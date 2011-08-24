@@ -45,7 +45,7 @@ namespace                com {
                          ~std_io();
           static std_io& instance();
           bool           read();
-          void           submit_check_result(unsigned long cmd_id,
+          void           submit_check_result(unsigned long long cmd_id,
                            bool executed,
                            int exitcode,
                            std::string const& err,

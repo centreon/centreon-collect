@@ -118,7 +118,9 @@ void std_io::_parse(std::string const& cmd) {
       end = cmd.find('\0', pos);
       if (std::string::npos == end)
         throw (exception() << "invalid execution request received");
-      time_t timeout(strtoull(cmd.c_str() + pos, NULL, 10));
+      time_t timeout(static_cast<time_t>(strtoull(cmd.c_str() + pos,
+        NULL,
+        10)));
       timeout += time(NULL);
       pos = end + 1;
       // Find start time.
@@ -235,7 +237,7 @@ bool std_io::read() {
  *  @param[in] err      Process' stderr.
  *  @param[in] out      Process' stdout.
  */
-void std_io::submit_check_result(unsigned long cmd_id,
+void std_io::submit_check_result(unsigned long long cmd_id,
                                  bool executed,
                                  int exitcode,
                                  std::string const& err,
