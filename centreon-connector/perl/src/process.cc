@@ -73,7 +73,7 @@ void process::_internal_copy(process const& p) {
  *  @param[in] fd_out stdout of process.
  *  @param[in] fd_err stderr of process.
  */
-process::process(unsigned long cmd_id, int fd_out, int fd_err)
+process::process(unsigned long long cmd_id, int fd_out, int fd_err)
   : _cmd(cmd_id),
     _fd_err(fd_err),
     _fd_out(fd_out),
@@ -158,7 +158,7 @@ void process::close() {
  *
  *  @return Command ID of this process.
  */
-unsigned long process::cmd() const {
+unsigned long long process::cmd() const {
   return (_cmd);
 }
 
