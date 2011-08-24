@@ -35,7 +35,7 @@ namespace                    com {
          */
         class                process {
          private:
-          unsigned long      _cmd;
+          unsigned long long _cmd;
           int                _fd_err;
           int                _fd_out;
           int                _signal;
@@ -45,14 +45,14 @@ namespace                    com {
           void               _internal_copy(process const& p);
 
          public:
-                             process(unsigned long cmd_id,
+                             process(unsigned long long cmd_id,
                                int fd_out,
                                int fd_err);
                              process(process const& p);
                              ~process();
           process&           operator=(process const& p);
           void               close();
-          unsigned long      cmd() const;
+          unsigned long long cmd() const;
           std::string const& err() const;
           std::string const& out() const;
           void               read_err();
