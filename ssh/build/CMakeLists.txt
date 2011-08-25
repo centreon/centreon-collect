@@ -30,6 +30,8 @@ set(INC_DIR "${INC_DIR}/com/centreon/connector/ssh")
 find_path(LIBSSH2_INCLUDE_DIR "libssh2.h")
 if (NOT LIBSSH2_INCLUDE_DIR)
   message(FATAL_ERROR "Could not find libssh2's headers.")
+else ()
+  include_directories("${LIBSSH2_INCLUDE_DIR}")
 endif ()
 
 # Find libssh2's library.
