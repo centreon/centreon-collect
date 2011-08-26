@@ -17,14 +17,14 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <EXTERN.h>
-#include <perl.h>
 #include <iostream>
 #include <memory>
 #include <signal.h>
 #include <sstream>
 #include <sys/select.h>
 #include <unistd.h>
+#include <EXTERN.h>
+#include <perl.h>
 #include "com/centreon/connector/perl/embedded.hh"
 #include "com/centreon/connector/perl/main_io.hh"
 #include "com/centreon/connector/perl/process.hh"
@@ -33,7 +33,7 @@
 using namespace com::centreon::connector::perl;
 
 // Perl interpreter object.
-static PerlInterpreter* my_perl(NULL);
+PerlInterpreter* my_perl(NULL);
 // Original PID.
 static pid_t original_pid;
 // Script path.

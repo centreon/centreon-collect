@@ -20,10 +20,13 @@
 #ifndef CCC_PERL_EMBEDDED_HH_
 # define CCC_PERL_EMBEDDED_HH_
 
-# include <EXTERN.h>
-# include <perl.h>
 # include <string>
 # include <sys/types.h>
+# include <EXTERN.h>
+# include <perl.h>
+
+// Global Perl interpreter.
+extern PerlInterpreter*            my_perl;
 
 namespace                          com {
   namespace                        centreon {
