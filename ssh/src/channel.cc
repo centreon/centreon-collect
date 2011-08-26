@@ -202,7 +202,7 @@ bool channel::_read() {
  */
 channel::channel(LIBSSH2_SESSION* sess,
                  std::string const& cmd,
-                 unsigned long cmd_id,
+                 unsigned long long cmd_id,
                  time_t timeout)
   : _channel(NULL),
     _cmd(cmd),
