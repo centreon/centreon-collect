@@ -23,6 +23,7 @@ project("Centreon Connector SSH" CXX)
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 include_directories("${INC_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/connector/ssh")
 
@@ -40,14 +41,13 @@ if (NOT LIBSSH2_LIBRARIES)
   message(FATAL_ERROR "Could not find libssh2's library.")
 endif ()
 
-# SSH connector.
-set(CONNECTOR "centreon_connector_ssh")
-add_executable("${CONNECTOR}"
+# SSH connector library.
+set(CONNECTORLIB "centreonconnectorssh")
+add_library("${CONNECTORLIB}"
   # Sources.
   "${SRC_DIR}/channel.cc"
   "${SRC_DIR}/credentials.cc"
   "${SRC_DIR}/exception.cc"
-  "${SRC_DIR}/main.cc"
   "${SRC_DIR}/multiplex.cc"
   "${SRC_DIR}/session.cc"
   "${SRC_DIR}/sessions.cc"
@@ -62,4 +62,27 @@ add_executable("${CONNECTOR}"
   "${INC_DIR}/sessions.hh"
   "${INC_DIR}/std_io.hh"
 )
-target_link_libraries("${CONNECTOR}" "${LIBSSH2_LIBRARIES}")
+target_link_libraries("${CONNECTORLIB}" "${LIBSSH2_LIBRARIES}")
+
+# SSH connector.
+set(CONNECTOR "centreon_connector_ssh")
+add_executable("${CONNECTOR}"
+  # Sources.
+  "${SRC_DIR}/main.cc"
+)
+target_link_libraries("${CONNECTOR}" "${CONNECTORLIB}")
+
+# Testing.
+option(WITH_TESTING "Build unit tests." OFF)
+if (WITH_TESTING)
+  # Enable testing.
+  enable_testing()
+
+  # Exception tests.
+  #   Default constructor.
+  set(TEST_NAME "exception_ctor_default")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/exception/ctor_default.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+endif ()
