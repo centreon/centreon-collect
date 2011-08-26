@@ -61,7 +61,7 @@ namespace                    com {
          public:
                              channel(LIBSSH2_SESSION* sess,
                                std::string const& cmd,
-                               unsigned long cmd_id,
+                               unsigned long long cmd_id,
                                time_t timeout);
                              ~channel();
           bool               run();
