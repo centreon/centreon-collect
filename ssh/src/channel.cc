@@ -67,39 +67,44 @@ channel& channel::operator=(channel const& c) {
  *  @return true while channel was not closed properly.
  */
 bool channel::_close() {
-  // Attempt to close channel.
-  int ret(libssh2_channel_close(_channel));
-
   // Close failed.
   bool retval;
-  if (ret) {
-    if (ret != LIBSSH2_ERROR_EAGAIN) {
-      char* msg;
-      libssh2_session_last_error(_session, &msg, NULL, 0);
-      throw (exception() << "could not close channel: " << msg);
-    }
-    else
+
+  // Check that channel was opened.
+  if (_channel) {
+    // Attempt to close channel.
+    int ret(libssh2_channel_close(_channel));
+    if (ret) {
+      if (ret != LIBSSH2_ERROR_EAGAIN) {
+        char* msg;
+        libssh2_session_last_error(_session, &msg, NULL, 0);
+        throw (exception() << "could not close channel: " << msg);
+      }
       retval = true;
+    }
+    // Close succeeded.
+    else {
+      // Get exit status.
+      int exitcode(libssh2_channel_get_exit_status(_channel));
+
+      // Send results to parent process.
+      std_io::instance().submit_check_result(_cmd_id,
+        true,
+        exitcode,
+        _stderr,
+        _stdout);
+
+      // Free channel.
+      libssh2_channel_free(_channel);
+      _channel = NULL;
+
+      // Method should not be called again.
+      retval = false;
+    }
   }
-  // Close succeeded.
-  else {
-    // Get exit status.
-    int exitcode(libssh2_channel_get_exit_status(_channel));
-
-    // Send results to parent process.
-    std_io::instance().submit_check_result(_cmd_id,
-      true,
-      exitcode,
-      _stderr,
-      _stdout);
-
-    // Free channel.
-    libssh2_channel_free(_channel);
-    _channel = NULL;
-
-    // Method should not be called again.
+  // No channel = successful close.
+  else
     retval = false;
-  }
 
   return (retval);
 }
@@ -264,7 +269,7 @@ bool channel::run() {
     }
     break ;
    case chan_close:
-     retval = !_close();
+     retval = _close();
     break ;
    default:
     retval = false;
