@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -22,37 +23,34 @@
 
 # include <exception>
 # include <string>
+# include "com/centreon/connector/ssh/namespace.hh"
 
-namespace              com {
-  namespace            centreon {
-    namespace          connector {
-      namespace        ssh {
-        /**
-         *  @class exception exception.hh "com/centreon/connector/ssh/exception.hh"
-         *  @brief Exception class.
-         *
-         *  Exception class with a message.
-         */
-        class          exception : public std::exception {
-         private:
-          char         _buffer[2048];
-          unsigned int _current;
-          template     <typename T>
-          exception&   _conversion(char const* format, T t) throw ();
+CCC_SSH_BEGIN()
 
-         public:
-                       exception();
-                       exception(exception const& e);
-                       ~exception() throw ();
-          exception&   operator=(exception const& e);
-          exception&   operator<<(char const* str) throw ();
-          exception&   operator<<(std::string const& str) throw ();
-          exception&   operator<<(int i) throw ();
-          char const*  what() const throw ();
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class exception exception.hh "com/centreon/connector/ssh/exception.hh"
+ *  @brief Exception class.
+ *
+ *  Exception class with a message.
+ */
+class          exception : public std::exception {
+ private:
+  char         _buffer[2048];
+  unsigned int _current;
+  template     <typename T>
+  exception&   _conversion(char const* format, T t) throw ();
+
+ public:
+               exception();
+               exception(exception const& e);
+               ~exception() throw ();
+  exception&   operator=(exception const& e);
+  exception&   operator<<(char const* str) throw ();
+  exception&   operator<<(std::string const& str) throw ();
+  exception&   operator<<(int i) throw ();
+  char const*  what() const throw ();
+};
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_EXCEPTION_HH_ */

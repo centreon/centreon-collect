@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -21,105 +22,102 @@
 # define CCC_SSH_ARRAY_PTR_HH_
 
 # include <stddef.h>
+# include "com/centreon/connector/ssh/namespace.hh"
 
-namespace com {
-  namespace centreon {
-    namespace connector {
-      namespace ssh {
-        /**
-         *  @class array_ptr array_ptr.hh
-         *  @brief Similar to auto_ptr for arrays.
-         *
-         *  Provide similar feature as auto_ptr but for array pointers.
-         */
-        template     <typename T>
-        class        array_ptr {
-         private:
-          T*         _ptr;
+CCC_SSH_BEGIN()
 
-         public:
-          /**
-           *  Constructor.
-           *
-           *  @param[in] t Array pointer.
-           */
-                     array_ptr(T* t) : _ptr(t) {}
+/**
+ *  @class array_ptr array_ptr.hh "com/centreon/connector/ssh/array_ptr.hh"
+ *  @brief Similar to auto_ptr for arrays.
+ *
+ *  Provide similar feature as auto_ptr but for array pointers.
+ */
+template     <typename T>
+class        array_ptr {
+ private:
+  T*         _ptr;
 
-          /**
-           *  Copy constructor.
-           *
-           *  @param[in] ap Object to copy.
-           */
-                     array_ptr(array_ptr& ap) : _ptr(ap._ptr) {
-            ap._ptr = NULL;
-          }
+ public:
+  /**
+   *  Constructor.
+   *
+   *  @param[in] t Array pointer.
+   */
+             array_ptr(T* t) : _ptr(t) {}
 
-          /**
-           *  Destructor.
-           */
-                     ~array_ptr() {
-            if (_ptr)
-              delete [] _ptr;
-          }
-
-          /**
-           *  Assignment operator.
-           *
-           *  @param[in] ap Object to copy.
-           *
-           *  @return This object.
-           */
-          array_ptr& operator=(array_ptr& ap) {
-            if (&ap != this) {
-              _ptr = ap._ptr;
-              ap._ptr = NULL;
-            }
-            return (*this);
-          }
-
-          /**
-           *  Dereferencing pointer.
-           *
-           *  @return Dereferenced pointer.
-           */
-          T&         operator*() {
-            return (*_ptr);
-          }
-
-          /**
-           *  Array access operator.
-           *
-           *  @param[in] idx Index in array.
-           *
-           *  @return Element at position idx.
-           */
-          T&         operator[](unsigned int idx) {
-            return (_ptr[idx]);
-          }
-
-          /**
-           *  Get the pointer associated with this object.
-           *
-           *  @return Pointer associated with this object.
-           */
-          T*         get() {
-            return (_ptr);
-          }
-
-          /**
-           *  Release the associated pointer and release it.
-           *
-           *  @return Pointer associated with this object.
-           */
-          T*         release() {
-            T* tmp(_ptr);
-            _ptr = NULL;
-            return (tmp);
-          }
-        };
-      }
-    }
+  /**
+   *  Copy constructor.
+   *
+   *  @param[in] ap Object to copy.
+   */
+             array_ptr(array_ptr& ap) : _ptr(ap._ptr) {
+    ap._ptr = NULL;
   }
-}
+
+  /**
+   *  Destructor.
+   */
+             ~array_ptr() {
+    if (_ptr)
+      delete [] _ptr;
+  }
+
+  /**
+   *  Assignment operator.
+   *
+   *  @param[in] ap Object to copy.
+   *
+   *  @return This object.
+   */
+  array_ptr& operator=(array_ptr& ap) {
+    if (&ap != this) {
+      _ptr = ap._ptr;
+      ap._ptr = NULL;
+    }
+    return (*this);
+  }
+
+  /**
+   *  Dereferencing pointer.
+   *
+   *  @return Dereferenced pointer.
+   */
+  T&         operator*() {
+    return (*_ptr);
+  }
+
+  /**
+   *  Array access operator.
+   *
+   *  @param[in] idx Index in array.
+   *
+   *  @return Element at position idx.
+   */
+  T&         operator[](unsigned int idx) {
+    return (_ptr[idx]);
+  }
+
+  /**
+   *  Get the pointer associated with this object.
+   *
+   *  @return Pointer associated with this object.
+   */
+  T*         get() {
+    return (_ptr);
+  }
+
+  /**
+   *  Release the associated pointer and release it.
+   *
+   *  @return Pointer associated with this object.
+   */
+  T*         release() {
+    T* tmp(_ptr);
+    _ptr = NULL;
+    return (tmp);
+  }
+};
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_ARRAY_PTR_HH_ */

@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -21,41 +22,38 @@
 # define CCC_SSH_STD_IO_HH_
 
 # include <string>
+# include "com/centreon/connector/ssh/namespace.hh"
 
-namespace                com {
-  namespace              centreon {
-    namespace            connector {
-      namespace          ssh {
-        /**
-         *  @class std_io std_io.hh "com/centreon/connector/ssh/std_io.hh"
-         *  @brief Manage standard I/O objects.
-         *
-         *  Handle standard I/O objects (stdin, stdout).
-         */
-        class            std_io {
-         private:
-          std::string    _rbuffer;
-          std::string    _wbuffer;
-                         std_io();
-                         std_io(std_io const& sio);
-          std_io&        operator=(std_io const& sio);
-          void           _parse(std::string const& cmd);
+CCC_SSH_BEGIN()
 
-         public:
-                         ~std_io();
-          static std_io& instance();
-          bool           read();
-          void           submit_check_result(unsigned long long cmd_id,
-                           bool executed,
-                           int exitcode,
-                           std::string const& err,
-                           std::string const& out);
-          void           write();
-          bool           write_wanted() const;
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class std_io std_io.hh "com/centreon/connector/ssh/std_io.hh"
+ *  @brief Manage standard I/O objects.
+ *
+ *  Handle standard I/O objects (stdin, stdout).
+ */
+class            std_io {
+ private:
+  std::string    _rbuffer;
+  std::string    _wbuffer;
+                 std_io();
+                 std_io(std_io const& sio);
+  std_io&        operator=(std_io const& sio);
+  void           _parse(std::string const& cmd);
+
+ public:
+                 ~std_io();
+  static std_io& instance();
+  bool           read();
+  void           submit_check_result(unsigned long long cmd_id,
+                   bool executed,
+                   int exitcode,
+                   std::string const& err,
+                   std::string const& out);
+  void           write();
+  bool           write_wanted() const;
+};
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_STD_IO_HH_ */
