@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector Perl.
 **
 ** Centreon Connector Perl is free software: you can redistribute it

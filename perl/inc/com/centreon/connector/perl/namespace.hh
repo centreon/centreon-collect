@@ -18,15 +18,20 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_PERL_CHECK_TERMINATED_HH_
-# define CCC_PERL_CHECK_TERMINATED_HH_
+#ifndef CCC_PERL_NAMESPACE_HH_
+# define CCC_PERL_NAMESPACE_HH_
 
-# include "com/centreon/connector/perl/namespace.hh"
+# ifdef CCC_PERL_BEGIN
+#  undef CCC_PERL_BEGIN
+# endif /* CCC_PERL_BEGIN */
+# define CCC_PERL_BEGIN() namespace       com { \
+                            namespace     centreon { \
+                              namespace   connector { \
+                                namespace perl {
 
-CCC_PERL_BEGIN()
+# ifdef CCC_PERL_END
+#  undef CCC_PERL_END
+# endif /* CCC_PERL_END */
+# define CCC_PERL_END() } } } }
 
-void    check_terminated();
-
-CCC_PERL_END()
-
-#endif /* !CCC_PERL_CHECK_TERMINATED_HH_ */
+#endif /* !CCC_PERL_NAMESPACE_HH_ */

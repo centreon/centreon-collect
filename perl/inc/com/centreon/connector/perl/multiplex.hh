@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector Perl.
 **
 ** Centreon Connector Perl is free software: you can redistribute it
@@ -18,18 +19,15 @@
 */
 
 #ifndef CCC_PERL_MULTIPLEX_HH_
-# define CCC_MULTIPLEX_HH_
+# define CCC_PERL_MULTIPLEX_HH_
 
 # include <signal.h>
+# include "com/centreon/connector/perl/namespace.hh"
 
-namespace       com {
-  namespace     centreon {
-    namespace   connector {
-      namespace perl {
-        int     multiplex(sigset_t sigmask, bool with_stdin = true);
-      }
-    }
-  }
-}
+CCC_PERL_BEGIN()
+
+int     multiplex(sigset_t sigmask, bool with_stdin = true);
+
+CCC_PERL_END()
 
 #endif /* !CCC_PERL_MULTIPLEX_HH_ */

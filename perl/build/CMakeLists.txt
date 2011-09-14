@@ -1,5 +1,6 @@
 ##
 ## Copyright 2011 Merethis
+##
 ## This file is part of Centreon Connector Perl.
 ##
 ## Centreon Connector Perl is free software: you can redistribute it
@@ -21,10 +22,9 @@
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Connector Perl" C CXX)
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
-set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
+set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/connector/perl")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-include_directories("${INC_DIR}")
-set(INC_DIR "${INC_DIR}/com/centreon/connector/perl")
+include_directories("${PROJECT_SOURCE_DIR}/inc")
 
 # Find Perl.
 include(FindPerlLibs)
@@ -72,3 +72,10 @@ add_executable("${CONNECTOR}"
 target_link_libraries("${CONNECTOR}"
   "${PERL_LIBRARY}"
   "${THREAD_LIBRARIES}")
+
+# Testing.
+option(WITH_TESTING "Build unit tests." OFF)
+if (WITH_TESTING)
+  # Enable testing.
+  enable_testing()
+endif ()

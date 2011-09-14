@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector Perl.
 **
 ** Centreon Connector Perl is free software: you can redistribute it
@@ -21,39 +22,36 @@
 # define CCC_PERL_MAIN_IO_HH_
 
 # include <string>
+# include "com/centreon/connector/perl/namespace.hh"
 
-namespace                 com {
-  namespace               centreon {
-    namespace             connector {
-      namespace           perl {
-        /**
-         *  @class main_io main_io.hh
-         *  @brief Manage I/O on standard input and standard output.
-         *
-         *  This singleton manages I/O on standard input (wait for
-         *  orders from the monitoring engine) and on standard output
-         *  (provide check results).
-         */
-        class             main_io {
-         private:
-          std::string     _rbuffer;
-          std::string     _wbuffer;
-                          main_io();
-                          main_io(main_io const& mio);
-          main_io&        operator=(main_io const& mio);
-          int             _parse(std::string const& cmd);
+CCC_PERL_BEGIN()
 
-         public:
-                          ~main_io();
-          static main_io& instance();
-          int             read();
-          int             write();
-          void            write(std::string const& data);
-          bool            write_wanted() const;
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class main_io main_io.hh
+ *  @brief Manage I/O on standard input and standard output.
+ *
+ *  This singleton manages I/O on standard input (wait for
+ *  orders from the monitoring engine) and on standard output
+ *  (provide check results).
+ */
+class             main_io {
+ private:
+  std::string     _rbuffer;
+  std::string     _wbuffer;
+                  main_io();
+                  main_io(main_io const& mio);
+  main_io&        operator=(main_io const& mio);
+  int             _parse(std::string const& cmd);
+
+ public:
+                  ~main_io();
+  static main_io& instance();
+  int             read();
+  int             write();
+  void            write(std::string const& data);
+  bool            write_wanted() const;
+};
+
+CCC_PERL_END()
 
 #endif /* !CCC_PERL_MAIN_IO_HH_ */

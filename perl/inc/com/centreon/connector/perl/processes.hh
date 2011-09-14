@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector Perl.
 **
 ** Centreon Connector Perl is free software: you can redistribute it
@@ -23,41 +24,38 @@
 # include <map>
 # include <sys/types.h>
 # include <utility>
+# include "com/centreon/connector/perl/namespace.hh"
 # include "com/centreon/connector/perl/process.hh"
 
-namespace                           com {
-  namespace                         centreon {
-    namespace                       connector {
-      namespace                     perl {
-        /**
-         *  @class processes processes.hh
-         *  @brief Process list.
-         *
-         *  List of processes to monitor for I/O.
-         */
-        class                       processes {
-         private:
-          pid_t                     _pid;
-          std::map<pid_t, process*> _set;
-                                    processes();
-                                    processes(processes const& p);
-          processes&                operator=(processes const& p);
+CCC_PERL_BEGIN()
 
-         public:
-                                    ~processes();
-          process*&                 operator[](pid_t key);
-          std::map<pid_t, process*>::iterator
-                                    begin();
-          bool                      empty() const;
-          std::map<pid_t, process*>::iterator
-                                    end();
-          void                      erase(pid_t key);
-          static processes&         instance();
-          unsigned int              size() const;
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class processes processes.hh
+ *  @brief Process list.
+ *
+ *  List of processes to monitor for I/O.
+ */
+class                       processes {
+ private:
+  pid_t                     _pid;
+  std::map<pid_t, process*> _set;
+                            processes();
+                            processes(processes const& p);
+  processes&                operator=(processes const& p);
+
+ public:
+                            ~processes();
+  process*&                 operator[](pid_t key);
+  std::map<pid_t, process*>::iterator
+                            begin();
+  bool                      empty() const;
+  std::map<pid_t, process*>::iterator
+                            end();
+  void                      erase(pid_t key);
+  static processes&         instance();
+  unsigned int              size() const;
+};
+
+CCC_PERL_END()
 
 #endif /* !CCC_PERL_PROCESSES_HH_ */
