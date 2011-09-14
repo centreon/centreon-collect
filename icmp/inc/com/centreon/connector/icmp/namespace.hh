@@ -20,17 +20,17 @@
 #ifndef CCC_ICMP_NAMESPACE_HH_
 # define CCC_ICMP_NAMESPACE_HH_
 
-# ifdef NAMESPACE_BEGIN
-#  undef NAMESPACE_BEGIN
-# endif /* NAMESPACE_BEGIN */
-# define NAMESPACE_BEGIN() namespace       com { \
-                             namespace     centreon { \
-                               namespace   connector { \
-                                 namespace icmp {
+# ifdef CCC_ICMP_BEGIN
+#  undef CCC_ICMP_BEGIN
+# endif /* CCC_ICMP_BEGIN */
+# define CCC_ICMP_BEGIN() namespace       com { \
+                            namespace     centreon { \
+                              namespace   connector { \
+                                namespace icmp {
 
-# ifdef NAMESPACE_END
-#  undef NAMESPACE_END
-# endif /* NAMESPACE_END */
-# define NAMESPACE_END() } } } }
+# ifdef CCC_ICMP_END
+#  undef CCC_ICMP_END
+# endif /* CCC_ICMP_END */
+# define CCC_ICMP_END() } } } }
 
 #endif /* !CCC_ICMP_NAMESPACE_HH_ */

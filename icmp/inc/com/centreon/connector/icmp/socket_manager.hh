@@ -26,7 +26,7 @@
 # include <QWaitCondition>
 # include "com/centreon/connector/icmp/namespace.hh"
 
-NAMESPACE_BEGIN()
+CCC_ICMP_BEGIN()
 
 /**
  *  @class socket_manager socket_manager.hh
@@ -57,6 +57,6 @@ class                    socket_manager {
   QMutex                 _mutex;
 };
 
-NAMESPACE_END()
+CCC_ICMP_END()
 
 #endif // !CCC_ICMP_SOCKET_MANAGER_HH_
