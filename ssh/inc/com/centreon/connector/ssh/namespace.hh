@@ -18,18 +18,20 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
-#include "com/centreon/connector/ssh/exception.hh"
+#ifndef CCC_SSH_NAMESPACE_HH_
+# define CCC_SSH_NAMESPACE_HH_
 
-/**
- *  Check that exception is properly default constructed.
- *
- *  @return 0 on success.
- */
-int main() {
-  // Exception object.
-  com::centreon::connector::ssh::exception e;
+# ifdef CCC_SSH_BEGIN
+#  undef CCC_SSH_BEGIN
+# endif /* CCC_SSH_BEGIN */
+# define CCC_SSH_BEGIN() namespace       com { \
+                           namespace     centreon { \
+                             namespace   connector { \
+                               namespace ssh {
 
-  // Default message must be empty.
-  return (strcmp(e.what(), ""));
-}
+# ifdef CCC_SSH_END
+#  undef CCC_SSH_END
+# endif /* CCC_SSH_END */
+# define CCC_SSH_END() } } } }
+
+#endif /* !CCC_SSH_NAMESPACE_HH_ */

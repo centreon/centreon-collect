@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -23,53 +24,50 @@
 # include <libssh2.h>
 # include <string>
 # include <time.h>
+# include "com/centreon/connector/ssh/namespace.hh"
 
-namespace                    com {
-  namespace                  centreon {
-    namespace                connector {
-      namespace              ssh {
-        /**
-         *  @class channel channel.hh "com/centreon/connector/ssh/channel.hh"
-         *  @brief SSH channel used to execute a command.
-         *
-         *  The channel class represents SSH channels used to execute
-         *  commands on the remote host.
-         */
-        class                channel {
-         private:
-          enum               e_step {
-            chan_open = 1,
-            chan_exec,
-            chan_read,
-            chan_close
-          };
-          LIBSSH2_CHANNEL*   _channel;
-          std::string        _cmd;
-          unsigned long long _cmd_id;
-          LIBSSH2_SESSION*   _session;
-          std::string        _stderr;
-          std::string        _stdout;
-          e_step             _step;
-          time_t             _timeout;
-                             channel(channel const& c);
-          channel&           operator=(channel const& c);
-          bool               _close();
-          bool               _exec();
-          bool               _open();
-          bool               _read();
+CCC_SSH_BEGIN()
 
-         public:
-                             channel(LIBSSH2_SESSION* sess,
-                               std::string const& cmd,
-                               unsigned long long cmd_id,
-                               time_t timeout);
-                             ~channel();
-          bool               run();
-          time_t             timeout() const;
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class channel channel.hh "com/centreon/connector/ssh/channel.hh"
+ *  @brief SSH channel used to execute a command.
+ *
+ *  The channel class represents SSH channels used to execute
+ *  commands on the remote host.
+ */
+class                channel {
+ private:
+  enum               e_step {
+    chan_open = 1,
+    chan_exec,
+    chan_read,
+    chan_close
+  };
+  LIBSSH2_CHANNEL*   _channel;
+  std::string        _cmd;
+  unsigned long long _cmd_id;
+  LIBSSH2_SESSION*   _session;
+  std::string        _stderr;
+  std::string        _stdout;
+  e_step             _step;
+  time_t             _timeout;
+                     channel(channel const& c);
+  channel&           operator=(channel const& c);
+  bool               _close();
+  bool               _exec();
+  bool               _open();
+  bool               _read();
+
+ public:
+                     channel(LIBSSH2_SESSION* sess,
+                       std::string const& cmd,
+                       unsigned long long cmd_id,
+                       time_t timeout);
+                     ~channel();
+  bool               run();
+  time_t             timeout() const;
+};
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_CHANNEL_HH_ */

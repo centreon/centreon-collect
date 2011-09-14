@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -22,44 +23,41 @@
 
 # include <map>
 # include "com/centreon/connector/ssh/credentials.hh"
+# include "com/centreon/connector/ssh/namespace.hh"
 
-namespace                  com {
-  namespace                centreon {
-    namespace              connector {
-      namespace            ssh {
-        // Forward declaration.
-        class              session;
+CCC_SSH_BEGIN()
 
-        /**
-         *  @class sessions sessions "com/centreon/connector/ssh/sessions.hh"
-         *  @brief Session manager.
-         *
-         *  Manage sessions.
-         */
-        class              sessions {
-         private:
-          std::map<credentials, session*>
-                           _set;
-                           sessions();
-                           sessions(sessions const& s);
-          sessions&        operator=(sessions const& s);
+// Forward declaration.
+class              session;
 
-         public:
-                           ~sessions();
-          session*&        operator[](credentials const& c);
-          std::map<credentials, session*>::iterator
-                           begin();
-          bool             empty() const;
-          std::map<credentials, session*>::iterator
-                           end();
-          void             erase(credentials const& key);
-          void             erase(std::map<credentials, session*>::iterator it);
-          static sessions& instance();
-          unsigned int     size() const;
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class sessions sessions "com/centreon/connector/ssh/sessions.hh"
+ *  @brief Session manager.
+ *
+ *  Manage sessions.
+ */
+class              sessions {
+ private:
+  std::map<credentials, session*>
+                   _set;
+                   sessions();
+                   sessions(sessions const& s);
+  sessions&        operator=(sessions const& s);
+
+ public:
+                   ~sessions();
+  session*&        operator[](credentials const& c);
+  std::map<credentials, session*>::iterator
+                   begin();
+  bool             empty() const;
+  std::map<credentials, session*>::iterator
+                   end();
+  void             erase(credentials const& key);
+  void             erase(std::map<credentials, session*>::iterator it);
+  static sessions& instance();
+  unsigned int     size() const;
+};
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_SESSIONS_HH_ */

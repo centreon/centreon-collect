@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -21,46 +22,43 @@
 # define CCC_SSH_CREDENTIALS_HH_
 
 # include <string>
+# include "com/centreon/connector/ssh/namespace.hh"
 
-namespace                    com {
-  namespace                  centreon {
-    namespace                connector {
-      namespace              ssh {
-        /**
-         *  @class credentials credentials.hh "com/centreon/connector/ssh/credentials.hh"
-         *  @brief Connection credentials.
-         *
-         *  Bundle together connection credentials : host, user and
-         *  password. Methods are provided so that they can be compared.
-         */
-        class                credentials {
-         private:
-          std::string        _host;
-          std::string        _password;
-          std::string        _user;
-          void               _copy(credentials const& c);
+CCC_SSH_BEGIN()
 
-         public:
-                             credentials();
-                             credentials(std::string const& host,
-                               std::string const& user,
-                               std::string const& password);
-                             credentials(credentials const& c);
-                             ~credentials();
-          credentials&       operator=(credentials const& c);
-          bool               operator==(credentials const& c) const;
-          bool               operator!=(credentials const& c) const;
-          bool               operator<(credentials const& c) const;
-          std::string const& get_host() const;
-          std::string const& get_password() const;
-          std::string const& get_user() const;
-          void               set_host(std::string const& host);
-          void               set_password(std::string const& password);
-          void               set_user(std::string const& user);
-        };
-      }
-    }
-  }
-}
+/**
+ *  @class credentials credentials.hh "com/centreon/connector/ssh/credentials.hh"
+ *  @brief Connection credentials.
+ *
+ *  Bundle together connection credentials : host, user and
+ *  password. Methods are provided so that they can be compared.
+ */
+class                credentials {
+ private:
+  std::string        _host;
+  std::string        _password;
+  std::string        _user;
+  void               _copy(credentials const& c);
+
+ public:
+                     credentials();
+                     credentials(std::string const& host,
+                       std::string const& user,
+                       std::string const& password);
+                     credentials(credentials const& c);
+                     ~credentials();
+  credentials&       operator=(credentials const& c);
+  bool               operator==(credentials const& c) const;
+  bool               operator!=(credentials const& c) const;
+  bool               operator<(credentials const& c) const;
+  std::string const& get_host() const;
+  std::string const& get_password() const;
+  std::string const& get_user() const;
+  void               set_host(std::string const& host);
+  void               set_password(std::string const& password);
+  void               set_user(std::string const& user);
+};
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_CREDENTIALS_HH_ */

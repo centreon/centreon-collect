@@ -1,5 +1,6 @@
 ##
 ## Copyright 2011 Merethis
+##
 ## This file is part of Centreon Connector SSH.
 ##
 ## Centreon Connector SSH is free software: you can redistribute it
@@ -21,24 +22,30 @@
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Connector SSH" CXX)
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
-set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
+set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/connector/ssh")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
-include_directories("${INC_DIR}")
-set(INC_DIR "${INC_DIR}/com/centreon/connector/ssh")
+include_directories("${PROJECT_SOURCE_DIR}/inc")
 
 # Find libssh2's headers.
-find_path(LIBSSH2_INCLUDE_DIR "libssh2.h")
-if (NOT LIBSSH2_INCLUDE_DIR)
-  message(FATAL_ERROR "Could not find libssh2's headers.")
+if (WITH_LIBSSH2_INCLUDE_DIR)
+  set(LIBSSH2_INCLUDE_DIR "${WITH_LIBSSH2_INCLUDE_DIR}")
 else ()
-  include_directories("${LIBSSH2_INCLUDE_DIR}")
+  find_path(LIBSSH2_INCLUDE_DIR "libssh2.h")
+  if (NOT LIBSSH2_INCLUDE_DIR)
+    message(FATAL_ERROR "Could not find libssh2's headers (try WITH_LIBSSH2_INCLUDE_DIR ?).")
+  endif ()
 endif ()
+include_directories("${LIBSSH2_INCLUDE_DIR}")
 
 # Find libssh2's library.
-find_library(LIBSSH2_LIBRARIES "ssh2")
-if (NOT LIBSSH2_LIBRARIES)
-  message(FATAL_ERROR "Could not find libssh2's library.")
+if (WITH_LIBSSH2_LIBRARIES)
+  set(LIBSSH2_LIBRARIES "${WITH_LIBSSH2_LIBRARIES}")
+else ()
+  find_library(LIBSSH2_LIBRARIES "ssh2")
+  if (NOT LIBSSH2_LIBRARIES)
+    message(FATAL_ERROR "Could not find libssh2's library (try WITH_LIBSSH2_LIBRARIES).")
+  endif ()
 endif ()
 
 # SSH connector library.
@@ -62,7 +69,7 @@ add_library("${CONNECTORLIB}"
   "${INC_DIR}/sessions.hh"
   "${INC_DIR}/std_io.hh"
 )
-target_link_libraries("${CONNECTORLIB}" "${LIBSSH2_LIBRARIES}")
+target_link_libraries("${CONNECTORLIB}" ${LIBSSH2_LIBRARIES})
 
 # SSH connector.
 set(CONNECTOR "centreon_connector_ssh")
@@ -70,7 +77,7 @@ add_executable("${CONNECTOR}"
   # Sources.
   "${SRC_DIR}/main.cc"
 )
-target_link_libraries("${CONNECTOR}" "${CONNECTORLIB}")
+target_link_libraries("${CONNECTOR}" ${CONNECTORLIB})
 
 # Testing.
 option(WITH_TESTING "Build unit tests." OFF)

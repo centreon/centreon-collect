@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector SSH.
 **
 ** Centreon Connector SSH is free software: you can redistribute it
@@ -20,14 +21,12 @@
 #ifndef CCC_SSH_MULTIPLEX_HH_
 # define CCC_SSH_MULTIPLEX_HH_
 
-namespace       com {
-  namespace     centreon {
-    namespace   connector {
-      namespace ssh {
-        bool    multiplex();
-      }
-    }
-  }
-}
+# include "com/centreon/connector/ssh/namespace.hh"
+
+CCC_SSH_BEGIN()
+
+bool    multiplex();
+
+CCC_SSH_END()
 
 #endif /* !CCC_SSH_MULTIPLEX_HH_ */
