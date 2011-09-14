@@ -1,37 +1,37 @@
 /*
 ** Copyright 2011 Merethis
 **
-** This file is part of Centreon Engine.
+** This file is part of Centreon Connector ICMP.
 **
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
+** Centreon Connector ICMP is free software: you can redistribute it
+** and/or modify it under the terms of the GNU General Public License
+** version 2 as published by the Free Software Foundation.
 **
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** Centreon Connector ICMP is distributed in the hope that it will be
+** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** General Public License for more details.
 **
 ** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
+** along with Centreon Connector ICMP. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
 #include <QCoreApplication>
 #include <QDateTime>
-#include "engine.hh"
-#include "commands/connector/quit_response.hh"
-#include "commands/connector/version_response.hh"
-#include "commands/connector/error_response.hh"
-#include "commands/connector/execute_response.hh"
-#include "commands/connector/execute_query.hh"
-#include "commands/connector/request_builder.hh"
+#include "com/centreon/engine/engine.hh"
+#include "com/centreon/engine/commands/connector/quit_response.hh"
+#include "com/centreon/engine/commands/connector/version_response.hh"
+#include "com/centreon/engine/commands/connector/error_response.hh"
+#include "com/centreon/engine/commands/connector/execute_response.hh"
+#include "com/centreon/engine/commands/connector/execute_query.hh"
+#include "com/centreon/engine/commands/connector/request_builder.hh"
 #include "com/centreon/connector/icmp/socket_manager.hh"
 #include "com/centreon/connector/icmp/check.hh"
 #include "com/centreon/connector/icmp/dispatcher.hh"
 
 using namespace com::centreon::connector::icmp;
-using namespace com::centreon::engine::commands;
+using namespace com::centreon::engine;
 
 /**
  *  Default constructor.
@@ -57,19 +57,19 @@ dispatcher::~dispatcher() throw() {
 void dispatcher::run() {
   try {
     while (true) {
-      QSharedPointer<connector::request> req = _wait_request();
+      QSharedPointer<commands::connector::request> req = _wait_request();
 
       switch (req->get_id()) {
-      case connector::request::version_q: {
-	connector::version_response version(ENGINE_MAJOR, ENGINE_MINOR);
+      case commands::connector::request::version_q: {
+	commands::connector::version_response version(ENGINE_MAJOR, ENGINE_MINOR);
 	_stream << version.build() << flush;
 	_init();
 	break;
       }
 
-      case connector::request::execute_q: {
-	connector::execute_query const* exec_query =
-	  static_cast<connector::execute_query const*>(&(*req));
+      case commands::connector::request::execute_q: {
+	commands::connector::execute_query const* exec_query =
+	  static_cast<commands::connector::execute_query const*>(&(*req));
 	check* new_check = new check(exec_query->get_command_id(),
 				     exec_query->get_args(),
 				     exec_query->get_timeout());
@@ -79,8 +79,8 @@ void dispatcher::run() {
 	break;
       }
 
-      case connector::request::quit_q: {
-	connector::quit_response quit;
+      case commands::connector::request::quit_q: {
+	commands::connector::quit_response quit;
 	_stream << quit.build() << flush;
 	QCoreApplication::instance()->quit();
 	return;
@@ -92,7 +92,7 @@ void dispatcher::run() {
     }
   }
   catch (std::exception const& e) {
-    connector::error_response error(e.what(), connector::error_response::error);
+    commands::connector::error_response error(e.what(), commands::connector::error_response::error);
     _stream << error.build() << flush;
   }
 }
@@ -102,13 +102,13 @@ void dispatcher::run() {
  */
 void dispatcher::_init() {
   if (geteuid()) {
-    connector::error_response error(
+    commands::connector::error_response error(
       "Warning: This plugin must be either run as root or setuid root.\n"
       "This plugin must be either run as root or setuid root.\n"
       "To run as root, you can use a tool like sudo.\n"
       "To set the setuid permissions, use the command:\n"
       "\tchmod u+s yourpluginfile\n",
-      connector::error_response::error);
+      commands::connector::error_response::error);
     _stream << error.build() << flush;
     return;
   }
@@ -122,16 +122,16 @@ void dispatcher::_init() {
       break;
 
     default:
-      connector::error_response error("Bad arguments",
-				      connector::error_response::warning);
+      commands::connector::error_response error("Bad arguments",
+                                                commands::connector::error_response::warning);
       _stream << error.build() << flush;
       return;
     }
   }
 
   if (optind > _argc) {
-      connector::error_response error("Bad arguments",
-				      connector::error_response::warning);
+    commands::connector::error_response error("Bad arguments",
+                                              commands::connector::error_response::warning);
       _stream << error.build() << flush;
       return;
   }
@@ -151,12 +151,12 @@ void dispatcher::_init() {
  *  @param[in] exit_code The exit code value.
  */
 void dispatcher::_finish(unsigned long cmd_id, QString const& output, int exit_code) {
-  connector::execute_response execute(cmd_id,
-				      true,
-				      exit_code,
-				      QDateTime::currentDateTime(),
-				      "",
-				      output);
+  commands::connector::execute_response execute(cmd_id,
+                                                true,
+                                                exit_code,
+                                                QDateTime::currentDateTime(),
+                                                "",
+                                                output);
   _stream << execute.build() << flush;
 }
 
@@ -165,9 +165,9 @@ void dispatcher::_finish(unsigned long cmd_id, QString const& output, int exit_c
  *
  *  @return The request was send by engine.
  */
-QSharedPointer<connector::request> dispatcher::_wait_request() {
-  static connector::request_builder& req_builder = connector::request_builder::instance();
-  static QList<QSharedPointer<connector::request> > requests;
+QSharedPointer<commands::connector::request> dispatcher::_wait_request() {
+  static commands::connector::request_builder& req_builder = commands::connector::request_builder::instance();
+  static QList<QSharedPointer<commands::connector::request> > requests;
   static QByteArray data;
   static char buf[4096];
 
@@ -176,13 +176,13 @@ QSharedPointer<connector::request> dispatcher::_wait_request() {
     data.append(buf, ret);
 
     while (data.size() > 0) {
-      int pos = data.indexOf(connector::request::cmd_ending());
+      int pos = data.indexOf(commands::connector::request::cmd_ending());
       if (pos < 0) {
 	break;
       }
 
       QByteArray req_data = data.left(pos);
-      data.remove(0, pos + connector::request::cmd_ending().size());
+      data.remove(0, pos + commands::connector::request::cmd_ending().size());
 
       try {
 	requests.push_back(req_builder.build(req_data));
@@ -193,7 +193,7 @@ QSharedPointer<connector::request> dispatcher::_wait_request() {
     }
   }
 
-  QSharedPointer<connector::request> req = requests.front();
+  QSharedPointer<commands::connector::request> req = requests.front();
   requests.pop_front();
   return (req);
 }

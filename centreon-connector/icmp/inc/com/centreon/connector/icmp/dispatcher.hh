@@ -1,31 +1,31 @@
 /*
 ** Copyright 2011 Merethis
 **
-** This file is part of Centreon Engine.
+** This file is part of Centreon Connector ICMP.
 **
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
+** Centreon Connector ICMP is free software: you can redistribute it
+** and/or modify it under the terms of the GNU General Public License
+** version 2 as published by the Free Software Foundation.
 **
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** Centreon Connector ICMP is distributed in the hope that it will be
+** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** General Public License for more details.
 **
 ** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
+** along with Centreon Connector ICMP. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_DISPATCHER_HH
-# define CCC_DISPATCHER_HH
+#ifndef CCC_DISPATCHER_HH_
+# define CCC_DISPATCHER_HH_
 
 # include <QThread>
 # include <QString>
 # include <QSharedPointer>
 # include <QThreadPool>
 # include <QTextStream>
-# include "commands/connector/request.hh"
+# include "com/centreon/engine/commands/connector/request.hh"
 
 namespace               com {
   namespace             centreon {
@@ -68,4 +68,4 @@ namespace               com {
   }
 }
 
-#endif // !CCC_DISPATCHER_HH
+#endif // !CCC_DISPATCHER_HH_

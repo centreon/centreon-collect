@@ -17,27 +17,20 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <QCoreApplication>
-#include <QDebug>
-#include <exception>
-#include "com/centreon/engine/engine.hh"
-#include "com/centreon/connector/icmp/dispatcher.hh"
+#ifndef CCC_ICMP_NAMESPACE_HH_
+# define CCC_ICMP_NAMESPACE_HH_
 
-using namespace com::centreon::connector::icmp;
+# ifdef NAMESPACE_BEGIN
+#  undef NAMESPACE_BEGIN
+# endif /* NAMESPACE_BEGIN */
+# define NAMESPACE_BEGIN() namespace       com { \
+                             namespace     centreon { \
+                               namespace   connector { \
+                                 namespace icmp {
 
-/**
- *  Check host is alive by icmp check.
- */
-int main(int argc, char** argv) {
-  QCoreApplication app(argc, argv);
+# ifdef NAMESPACE_END
+#  undef NAMESPACE_END
+# endif /* NAMESPACE_END */
+# define NAMESPACE_END() } } } }
 
-  QString progname(argv[0]);
-  progname = progname.right(progname.size() - progname.lastIndexOf('/') - 1);
-  app.setApplicationName(progname);
-
-  dispatcher dispatch(argc, argv);
-  dispatch.start();
-
-  app.exec();
-  return (STATE_OK);
-}
+#endif /* !CCC_ICMP_NAMESPACE_HH_ */
