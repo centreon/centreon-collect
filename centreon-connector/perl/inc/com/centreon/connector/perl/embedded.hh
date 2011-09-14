@@ -1,5 +1,6 @@
 /*
 ** Copyright 2011 Merethis
+**
 ** This file is part of Centreon Connector Perl.
 **
 ** Centreon Connector Perl is free software: you can redistribute it
@@ -24,27 +25,24 @@
 # include <sys/types.h>
 # include <EXTERN.h>
 # include <perl.h>
+# include "com/centreon/connector/perl/namespace.hh"
 
 // Global Perl interpreter.
 extern PerlInterpreter*            my_perl;
 
-namespace                          com {
-  namespace                        centreon {
-    namespace                      connector {
-      namespace                    perl {
-        namespace                  embedded {
-          extern char const* const script;
+CCC_PERL_BEGIN()
 
-          int                      init(int* argc,
-                                     char*** argv,
-                                     char*** env);
-          void                     run_command(std::string const& cmd,
-                                     unsigned long long cmd_id,
-                                     time_t timeout);
-        }
-      }
-    }
-  }
+namespace                  embedded {
+  extern char const* const script;
+
+  int                      init(int* argc,
+                             char*** argv,
+                             char*** env);
+  void                     run_command(std::string const& cmd,
+                             unsigned long long cmd_id,
+                             time_t timeout);
 }
 
-#endif /* !PERL_EMBEDDED_HH_ */
+CCC_PERL_END()
+
+#endif /* !CCC_PERL_EMBEDDED_HH_ */
