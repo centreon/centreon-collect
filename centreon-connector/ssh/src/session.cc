@@ -176,7 +176,13 @@ void session::_passwd() {
                _user.c_str(),
                _password.c_str()));
   if (retval != 0) {
+#if LIBSSH2_VERSION_NUM >= 0x010203
     if (retval == LIBSSH2_ERROR_AUTHENTICATION_FAILED) {
+#else
+    if ((retval != LIBSSH2_ERROR_EAGAIN)
+        && (retval != LIBSSH2_ERROR_ALLOC)
+        && (retval != LIBSSH2_ERROR_SOCKET_SEND)) {
+#endif /* libssh2 version >= 1.2.3 */
       _step = session_key;
       _key();
     }

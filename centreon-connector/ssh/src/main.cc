@@ -58,9 +58,11 @@ int main() {
   signal(SIGTERM, term_handler);
 
   try {
+#if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
     if (libssh2_init(0))
       throw (exception() << "libssh2 initialization failed");
+#endif /* libssh2 version >= 1.2.5 */
 
     // Multiplexing loop.
     while (!should_exit && multiplex())
@@ -73,8 +75,10 @@ int main() {
     std::cerr << e.what() << std::endl;
   }
 
+#if LIBSSH2_VERSION_NUM >= 0x010205
   // Deinitialize libssh2.
   libssh2_exit();
+#endif /* libssh2 version >= 1.2.5 */
 
   return (retval);
 }
