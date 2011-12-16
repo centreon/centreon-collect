@@ -93,8 +93,8 @@ unsigned long standard_error::read(void* data, unsigned long size) {
  *  @return The number of bytes written on the standard error.
  */
 unsigned long standard_error::write(
-                                 void const* data,
-                                 unsigned long size) {
+                                void const* data,
+                                unsigned long size) {
   if (!data)
     throw (basic_error() << "write failed on standard error:" \
            "invalid parameter (null pointer)");
