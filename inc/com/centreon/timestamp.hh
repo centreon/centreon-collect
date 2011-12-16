@@ -55,9 +55,9 @@ public:
   void             sub_msecond(long msecond);
   void             sub_second(time_t second);
   void             sub_usecond(long usecond);
-  long             to_msecond() const throw ();
+  long long        to_msecond() const throw ();
   time_t           to_second() const throw ();
-  long             to_usecond() const throw ();
+  long long        to_usecond() const throw ();
 
 private:
   timestamp&       _internal_copy(timestamp const& right);
