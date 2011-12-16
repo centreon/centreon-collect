@@ -305,7 +305,7 @@ engine::~engine() throw () {
          it(_backends.begin()), end(_backends.end());
        it != end;
        ++it)
-    delete (*it);
+    delete *it;
 }
 
 /**

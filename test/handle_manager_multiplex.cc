@@ -133,21 +133,6 @@ static bool basic_multiplex_write() {
 }
 
 /**
- *  Check if read is calling.
- *
- *  @return True on success, otherwise false.
- */
-static bool basic_multiplex_read() {
-  task_manager tm;
-  handle_manager hm(&tm);
-  file_descriptor fd(0);
-  listener l(fd, true, false);
-  hm.add(&fd, &l);
-  hm.multiplex();
-  return (!l.is_call());
-}
-
-/**
  *  Check if error is calling.
  *
  *  @return True on success, otherwise false.
@@ -191,8 +176,6 @@ int main() {
       throw (basic_error() << "");
     if (!basic_multiplex_write())
       throw (basic_error() << "multiplex one handle to write failed");
-    if (!basic_multiplex_read())
-      throw (basic_error() << "multiplex one handle to read failed");
     if (!basic_multiplex_error())
       throw (basic_error() << "multiplex one handle to error failed");
     if (!basic_multiplex_close())
