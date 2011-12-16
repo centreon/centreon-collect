@@ -48,17 +48,23 @@ endif ()
 set(LIB_THREAD "${CMAKE_THREAD_LIBS_INIT}")
 
 # Find real time library.
-set(LIB_RT "rt")
-check_library_exists(
-  "${LIB_RT}"
-  "clock_gettime"
-  "${CMAKE_LIBRARY_PATH}"
-  FIND_LIB_RT
-)
-if (NOT FIND_LIB_RT)
-  message(FATAL_ERROR "Could not find real time library.")
+if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+  set(LIB_RT "")
+else ()
+  set(LIB_RT "rt")
 endif ()
 
+if (NOT LIB_RT)
+  check_library_exists(
+    "${LIB_RT}"
+    "clock_gettime"
+    "${CMAKE_LIBRARY_PATH}"
+    FIND_LIB_RT
+    )
+  if (NOT FIND_LIB_RT)
+    message(FATAL_ERROR "Could not find real time library.")
+  endif ()
+endif ()
 
 # Set directories.
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
@@ -239,19 +245,21 @@ message(STATUS "")
 message(STATUS "Configuration Summary")
 message(STATUS "---------------------")
 message(STATUS "")
-message(STATUS "  Project:                  ${PROJECT_NAME}")
-message(STATUS "  Version:                  ${VERSION}")
-message(STATUS "  Extra compilation flags:  ${CMAKE_CXX_FLAGS}")
-message(STATUS "  Prefix:                   ${localstatedir}")
-message(STATUS "  Library directory:        ${libdir}")
-message(STATUS "  Include directory:        ${incdir}")
+message(STATUS "  System                        ${CMAKE_SYSTEM_NAME}")
+message(STATUS "    - Version                   ${CMAKE_SYSTEM_VERSION}")
+message(STATUS "    - Processor                 ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "")
+message(STATUS "  Project:                      ${PROJECT_NAME}")
+message(STATUS "    - Version:                  ${VERSION}")
+message(STATUS "    - Extra compilation flags:  ${CMAKE_CXX_FLAGS}")
+message(STATUS "    - Prefix:                   ${localstatedir}")
+message(STATUS "    - Library directory:        ${libdir}")
+message(STATUS "    - Include directory:        ${incdir}")
 message(STATUS "")
 message(STATUS "  Options")
-message(STATUS "  -------")
-message(STATUS "")
-message(STATUS "    Enable shared library:  ${SHARED_LIB}")
-message(STATUS "    Enable static library:  ${STATIC_LIB}")
-message(STATUS "    Enable unit test:       ${UNIT_TEST}")
-message(STATUS "    Deb package:            ${DEB_PACKAGE}")
-message(STATUS "    RMP package:            ${RPM_PACKAGE}")
+message(STATUS "    - Enable shared library:    ${SHARED_LIB}")
+message(STATUS "    - Enable static library:    ${STATIC_LIB}")
+message(STATUS "    - Enable unit test:         ${UNIT_TEST}")
+message(STATUS "    - Deb package:              ${DEB_PACKAGE}")
+message(STATUS "    - RMP package:              ${RPM_PACKAGE}")
 message(STATUS "")
