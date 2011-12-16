@@ -36,14 +36,14 @@ namespace   concurrency {
   class     locker {
   public:
             locker(mutex* m = NULL);
-            locker(locker const& right);
             ~locker() throw ();
-    locker& operator=(locker const& right);
     mutex*  get_mutex() const throw();
     void    relock();
     void    unlock();
 
   private:
+            locker(locker const& right);
+    locker& operator=(locker const& right);
     locker& _internal_copy(locker const& right);
 
     mutex* _m;
