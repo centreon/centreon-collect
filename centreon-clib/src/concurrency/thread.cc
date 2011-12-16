@@ -18,11 +18,13 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
 #include <assert.h>
 #include <errno.h>
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#  include <pthread_np.h>
+#endif // BSD
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "com/centreon/exception/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
@@ -191,11 +193,7 @@ bool thread::wait(unsigned long timeout) {
   ts.tv_nsec += timeout * 1000000;
 
   // Wait the end of the thread or timeout.
-#ifdef __linux__
   int ret(pthread_timedjoin_np(_th, NULL, &ts));
-#else
-  int ret(pthread_timedjoin(_th, NULL, &ts));
-#endif // __linux__
   if (!ret || ret == ESRCH)
     return (true);
   if (ret == ETIMEDOUT)
