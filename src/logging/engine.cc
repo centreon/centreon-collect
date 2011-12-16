@@ -26,6 +26,7 @@
 #endif // _WIN32
 
 #include <assert.h>
+#include <memory>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,7 +59,7 @@ unsigned long engine::add(
     throw (basic_error() << "add backend on the logging engine " \
            "failed:bad argument (null pointer)");
 
-  backend_info* info(new backend_info);
+  std::auto_ptr<backend_info> info(new backend_info);
   info->id = ++_id;
   info->obj = obj;
   info->types = types;
@@ -69,8 +70,8 @@ unsigned long engine::add(
         && _list_verbose[i] < verbose)
       _list_verbose[i] = verbose;
 
-  _backends.push_back(info);
-  return (info->id);
+  _backends.push_back(info.get());
+  return (info.release()->id);
 }
 
 
@@ -208,6 +209,7 @@ bool engine::remove(unsigned long id) {
        it != end;
        ++it)
     if ((*it)->id == id) {
+      delete *it;
       _backends.erase(it);
       _rebuild_verbosities();
       return (true);
@@ -233,6 +235,7 @@ unsigned int engine::remove(backend* obj) {
     if ((*it)->obj != obj)
       ++it;
     else {
+      delete *it;
       it = _backends.erase(it);
       ++count_remove;
     }
@@ -298,7 +301,7 @@ engine::engine(engine const& right) {
 }
 
 /**
- *  default destructor.
+ *  Default destructor.
  */
 engine::~engine() throw () {
   for (std::vector<backend_info*>::const_iterator

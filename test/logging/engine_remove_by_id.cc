@@ -46,7 +46,11 @@ public:
  *  @return 0 on success.
  */
 int main() {
+  // Return value.
+  int retval;
+
   engine::load();
+
   try {
     engine& e(engine::instance());
     if (e.remove(1) || e.remove(42))
@@ -57,11 +61,16 @@ int main() {
 
     if (!e.remove(id))
       throw (basic_error() << "remove id failed");
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
+  }
+  catch (...) {
+    std::cerr << "unknown error" << std::endl;
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }
