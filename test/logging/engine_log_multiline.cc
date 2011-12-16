@@ -54,6 +54,7 @@ private:
  */
 int main() {
   static unsigned int const nb_line(1024);
+  int retval;
 
   engine::load();
   try {
@@ -74,11 +75,12 @@ int main() {
         throw (basic_error() << "write multiline failed on line "
                << i + 1);
     }
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }

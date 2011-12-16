@@ -71,6 +71,7 @@ static bool check_time(std::string const& data, char const* msg) {
  */
 int main() {
   static char msg[] = "Centreon Clib test";
+  int retval;
 
   engine::load();
   try {
@@ -100,12 +101,12 @@ int main() {
       throw (basic_error() << "log with timestamp in microsecond " \
              "failed");
     obj->reset();
-
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }
