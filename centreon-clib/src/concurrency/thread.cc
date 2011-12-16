@@ -179,14 +179,23 @@ bool thread::wait(unsigned long timeout) {
     throw (basic_error() << "failed to wait thread:"
            << strerror(errno));
 
+  // Transforms unnecessary microseconds into seconds.
+  time_t sec(ts.tv_nsec / 1000000);
+  ts.tv_nsec -= sec * 1000000;
+  ts.tv_sec += sec;
+
   // Add timeout.
-  time_t sec(timeout / 1000);
+  sec = timeout / 1000;
   timeout -= sec * 1000;
   ts.tv_sec += sec;
-  ts.tv_nsec += timeout * 1000 * 1000;
+  ts.tv_nsec += timeout * 1000000;
 
   // Wait the end of the thread or timeout.
+#ifdef __linux__
   int ret(pthread_timedjoin_np(_th, NULL, &ts));
+#else
+  int ret(pthread_timedjoin(_th, NULL, &ts));
+#endif // __linux__
   if (!ret || ret == ESRCH)
     return (true);
   if (ret == ETIMEDOUT)
