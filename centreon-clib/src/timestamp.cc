@@ -262,7 +262,7 @@ void timestamp::sub_usecond(long usecond) {
  *  @return The time in milliseconds.
  */
 long long timestamp::to_msecond() const throw () {
-  return (_second * 1000 + _usecond / 1000);
+  return (_second * 1000LL + _usecond / 1000);
 }
 
 /**
@@ -280,7 +280,7 @@ time_t timestamp::to_second() const throw () {
  *  @return The time in microseconds.
  */
 long long timestamp::to_usecond() const throw () {
-  return (_second * 1000000 + _usecond);
+  return (_second * 1000000LL + _usecond);
 }
 
 /**
