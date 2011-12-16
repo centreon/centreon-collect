@@ -22,7 +22,7 @@
 #include <errno.h>
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #  include <pthread_np.h>
-#endif // BSD
+#endif // FreeBSD or OpenBSD or NetBSD
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>

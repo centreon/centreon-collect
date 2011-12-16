@@ -18,6 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <assert.h>
+#include <stdlib.h>
 #include "com/centreon/concurrency/locker.hh"
 
 using namespace com::centreon::concurrency;
@@ -34,30 +36,10 @@ locker::locker(mutex* m)
 }
 
 /**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-locker::locker(locker const& right) {
-  _internal_copy(right);
-}
-
-/**
  *  Default destructor.
  */
 locker::~locker() throw () {
   unlock();
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-locker& locker::operator=(locker const& right) {
-  return (_internal_copy(right));
 }
 
 /**
@@ -86,6 +68,26 @@ void locker::unlock() {
 }
 
 /**
+ *  Default copy constructor.
+ *
+ *  @param[in] right  The object to copy.
+ */
+locker::locker(locker const& right) {
+  _internal_copy(right);
+}
+
+/**
+ *  Default copy operator.
+ *
+ *  @param[in] right  The object to copy.
+ *
+ *  @return This object.
+ */
+locker& locker::operator=(locker const& right) {
+  return (_internal_copy(right));
+}
+
+/**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
@@ -93,8 +95,8 @@ void locker::unlock() {
  *  @return This object.
  */
 locker& locker::_internal_copy(locker const& right) {
-  if (this != &right) {
-    _m = right._m;
-  }
+  (void)right;
+  assert(!"impossible to copy locker");
+  abort();
   return (*this);
 }

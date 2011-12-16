@@ -99,12 +99,6 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# # get_options_
-# set(TEST_NAME "get_options_")
-# add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-# target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-# add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # stringifier_append
 set(TEST_NAME "stringifier_append")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
