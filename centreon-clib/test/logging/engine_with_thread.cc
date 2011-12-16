@@ -79,6 +79,7 @@ private:
 int main() {
   static unsigned int const nb_writter(10);
   static unsigned int const nb_write(10);
+  int retval;
 
   engine::load();
   try {
@@ -109,11 +110,12 @@ int main() {
       }
       delete threads[i];
     }
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }

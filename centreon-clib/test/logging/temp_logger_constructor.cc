@@ -52,6 +52,8 @@ private:
  *  @return 0 on success.
  */
 int main() {
+  int retval;
+
   engine::load();
   try {
     engine& e(engine::instance());
@@ -65,11 +67,12 @@ int main() {
     temp_logger(1, verbosity(1)) << "Centreon Clib test";
     if (obj->get_nb_call() != 1)
       throw (basic_error() << "invalid number of call log");
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }

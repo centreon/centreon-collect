@@ -63,6 +63,8 @@ static bool null_pointer() {
  *  @return 0 on success.
  */
 int main() {
+  int retval;
+
   engine::load();
   try {
     engine& e(engine::instance());
@@ -81,11 +83,12 @@ int main() {
     if (e.remove(obj.get()) != nb_backend)
       throw (basic_error() << "remove " << nb_backend
               << " backend failed");
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }

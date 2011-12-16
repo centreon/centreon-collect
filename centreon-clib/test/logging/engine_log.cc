@@ -51,6 +51,8 @@ private:
  *  @return 0 on success.
  */
 int main() {
+  int retval;
+
   engine::load();
   try {
     engine& e(engine::instance());
@@ -73,11 +75,12 @@ int main() {
 
     if (obj->get_nb_call() != 3 * sizeof(type_flags) * CHAR_BIT)
       throw (basic_error() << "invalid number of call log function");
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }

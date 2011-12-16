@@ -63,6 +63,8 @@ static bool null_pointer() {
  *  @return 0 on success.
  */
 int main() {
+  int retval;
+
   engine::load();
   try {
     engine& e(engine::instance());
@@ -73,11 +75,12 @@ int main() {
     unsigned long id(e.add(obj.get(), 0, verbosity()));
     if (!id)
       throw (basic_error() << "add backend failed, invalid id");
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }

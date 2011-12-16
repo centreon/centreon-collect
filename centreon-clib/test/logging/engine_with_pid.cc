@@ -71,6 +71,7 @@ static bool check_pid(std::string const& data, char const* msg) {
  */
 int main() {
   static char msg[] = "Centreon Clib test";
+  int retval;
 
   engine::load();
   try {
@@ -85,11 +86,12 @@ int main() {
     e.log(0, verbosity(1), msg);
     if (!check_pid(obj->data(), msg))
       throw (basic_error() << "log with pid failed");
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
   engine::unload();
-  return (0);
+  return (retval);
 }
