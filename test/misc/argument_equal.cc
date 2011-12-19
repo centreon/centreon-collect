@@ -34,6 +34,7 @@ int main() {
   try {
     argument ref("help",
                  'c',
+                 "this help",
                  true,
                  true,
                  "help:\n --help, -h  this help");

@@ -35,10 +35,12 @@ using namespace com::centreon::misc;
 argument::argument(
             std::string const& long_name,
             char name,
+            std::string const& description,
             bool has_value,
             bool is_set,
             std::string const& value)
-  : _is_set(is_set),
+  : _description(description),
+    _is_set(is_set),
     _has_value(has_value),
     _long_name(long_name),
     _name(name),
@@ -85,7 +87,8 @@ bool argument::operator==(argument const& right) const throw () {
           && _long_name == right._long_name
           && _value == right._value
           && _is_set == right._is_set
-          && _has_value == right._has_value);
+          && _has_value == right._has_value
+          && _description == right._description);
 }
 
 /**
@@ -97,6 +100,15 @@ bool argument::operator==(argument const& right) const throw () {
  */
 bool argument::operator!=(argument const& right) const throw () {
   return (!operator==(right));
+}
+
+/**
+ *  Get the argument description.
+ *
+ *  @return The description.
+ */
+std::string const& argument::get_description() const throw () {
+  return (_description);
 }
 
 /**
@@ -142,6 +154,15 @@ char argument::get_name() const throw () {
  */
 std::string const& argument::get_value() const throw () {
   return (_value);
+}
+
+/**
+ *  Set the argument description.
+ *
+ *  @param[in] description  The description.
+ */
+void argument::set_description(std::string const& description) {
+  _description = description;
 }
 
 /**
@@ -198,6 +219,7 @@ void argument::set_value(std::string const& value) {
  */
 argument& argument::_internal_copy(argument const& right) {
   if (this != &right) {
+    _description = right._description;
     _is_set = right._is_set;
     _has_value = right._has_value;
     _long_name = right._long_name;
