@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include <string>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/get_options.hh"
 
 using namespace com::centreon::misc;

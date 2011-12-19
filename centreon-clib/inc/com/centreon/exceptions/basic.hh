@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_EXCEPTION_BASIC_HH
-#  define CC_EXCEPTION_BASIC_HH
+#ifndef CC_EXCEPTIONS_BASIC_HH
+#  define CC_EXCEPTIONS_BASIC_HH
 
 #  include <exception>
 #  include <string>
@@ -28,9 +28,9 @@
 
 CC_BEGIN()
 
-namespace               exception {
+namespace               exceptions {
   /**
-   *  @class basic basic.hh "com/centreon/concurrency/basic.hh"
+   *  @class basic basic.hh "com/centreon/exceptions/basic.hh"
    *  @brief Base exception class.
    *
    *  Simple exception class containing an basic error message.
@@ -68,11 +68,11 @@ CC_END()
 #  endif
 
 #  ifndef NDEBUG
-#    define basic_error() com::centreon::exception::basic( \
+#    define basic_error() com::centreon::exceptions::basic( \
                           __FILE__,                        \
                           FUNCTION,                        \
                           __LINE__)
 #  else
-#    define basic_error() com::centreon::exception::basic()
+#    define basic_error() com::centreon::exceptions::basic()
 #  endif // !NDEBUG
-#endif // !CC_EXCEPTION_BASIC_HH
+#endif // !CC_EXCEPTIONS_BASIC_HH

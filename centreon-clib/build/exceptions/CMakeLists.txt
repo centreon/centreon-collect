@@ -19,8 +19,8 @@
 ##
 
 # Set directories.
-set(SRC_DIR "${SRC_DIR}/exception")
-set(INC_DIR "${INC_DIR}/exception")
+set(SRC_DIR "${SRC_DIR}/exceptions")
+set(INC_DIR "${INC_DIR}/exceptions")
 
 # Set sources.
 set(

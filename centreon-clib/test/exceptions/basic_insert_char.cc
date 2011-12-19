@@ -18,25 +18,22 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
 #include <string.h>
-#include "com/centreon/exception/basic.hh"
+#include <limits.h>
+#include "com/centreon/exceptions/basic.hh"
 
-using namespace com::centreon::exception;
+using namespace com::centreon::exceptions;
 
 /**
- *  Check the basic constructor.
+ *  Check the basic insert char.
  *
  *  @return 0 on success.
  */
 int main() {
-  const unsigned int line = __LINE__;
+  basic ex;
+  ex << static_cast<char>(CHAR_MIN);
+  ex << static_cast<char>(CHAR_MAX);
 
-  basic ex1;
-  basic ex2(__FILE__, __func__, line);
-
-  std::ostringstream oss;
-  oss << "[" << __FILE__ << ":" << line << "(" << __func__ << ")] ";
-  return (strcmp(ex1.what(), "")
-          || strcmp(ex2.what(), oss.str().c_str()));
+  char ref[] = { CHAR_MIN, CHAR_MAX, 0 };
+  return (strcmp(ex.what(), ref));
 }

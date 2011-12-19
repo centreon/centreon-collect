@@ -20,24 +20,22 @@
 
 #include <sstream>
 #include <string.h>
-#include "com/centreon/exception/basic.hh"
+#include <limits.h>
+#include "com/centreon/exceptions/basic.hh"
 
-using namespace com::centreon::exception;
+using namespace com::centreon::exceptions;
 
 /**
- *  Check the basic copy.
+ *  Check the basic insert unsigned long long.
  *
  *  @return 0 on success.
  */
 int main() {
-  static char const message[] = "Centreon Clib";
-  const unsigned int line = __LINE__;
-
-  basic ex(__FILE__, __func__, line);
-  ex << message;
+  basic ex;
+  ex << static_cast<unsigned long long>(0);
+  ex << static_cast<unsigned long long>(ULLONG_MAX);
 
   std::ostringstream oss;
-  oss << "[" << __FILE__ << ":" << line << "(" << __func__ << ")] "
-      << message;
+  oss << 0 << ULLONG_MAX;
   return (strcmp(ex.what(), oss.str().c_str()));
 }

@@ -23,7 +23,7 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/wait_condition.hh"
 
 using namespace com::centreon::concurrency;

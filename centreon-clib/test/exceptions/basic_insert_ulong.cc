@@ -18,18 +18,24 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
 #include <string.h>
-#include "com/centreon/exception/basic.hh"
+#include <limits.h>
+#include "com/centreon/exceptions/basic.hh"
 
-using namespace com::centreon::exception;
+using namespace com::centreon::exceptions;
 
 /**
- *  Check the basic insert string.
+ *  Check the basic insert unsigned long.
  *
  *  @return 0 on success.
  */
 int main() {
   basic ex;
-  ex << __FILE__;
-  return (strcmp(ex.what(), __FILE__));
+  ex << static_cast<unsigned long>(0);
+  ex << static_cast<unsigned long>(ULONG_MAX);
+
+  std::ostringstream oss;
+  oss << 0 << ULONG_MAX;
+  return (strcmp(ex.what(), oss.str().c_str()));
 }

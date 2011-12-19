@@ -20,22 +20,23 @@
 
 #include <sstream>
 #include <string.h>
-#include <limits.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 
-using namespace com::centreon::exception;
+using namespace com::centreon::exceptions;
 
 /**
- *  Check the basic insert unsigned int.
+ *  Check the basic constructor.
  *
  *  @return 0 on success.
  */
 int main() {
-  basic ex;
-  ex << static_cast<unsigned int>(0);
-  ex << static_cast<unsigned int>(UINT_MAX);
+  const unsigned int line = __LINE__;
+
+  basic ex1;
+  basic ex2(__FILE__, __func__, line);
 
   std::ostringstream oss;
-  oss << 0 << UINT_MAX;
-  return (strcmp(ex.what(), oss.str().c_str()));
+  oss << "[" << __FILE__ << ":" << line << "(" << __func__ << ")] ";
+  return (strcmp(ex1.what(), "")
+          || strcmp(ex2.what(), oss.str().c_str()));
 }

@@ -21,9 +21,9 @@
 #include <sstream>
 #include <string.h>
 #include <limits.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 
-using namespace com::centreon::exception;
+using namespace com::centreon::exceptions;
 
 /**
  *  Check the basic insert int.

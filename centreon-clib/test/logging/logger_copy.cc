@@ -19,7 +19,7 @@
 */
 
 #include <iostream>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon::logging;

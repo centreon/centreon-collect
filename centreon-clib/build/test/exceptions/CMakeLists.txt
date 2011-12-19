@@ -19,7 +19,7 @@
 ##
 
 # Set directories.
-set(TEST_DIR "${TEST_DIR}/exception")
+set(TEST_DIR "${TEST_DIR}/exceptions")
 
 # basic_constructor
 set(TEST_NAME "basic_constructor")

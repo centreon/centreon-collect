@@ -22,7 +22,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/handle_manager.hh"
 
 using namespace com::centreon;

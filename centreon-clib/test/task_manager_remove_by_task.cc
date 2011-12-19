@@ -19,7 +19,7 @@
 */
 
 #include <iostream>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/task_manager.hh"
 
 using namespace com::centreon;

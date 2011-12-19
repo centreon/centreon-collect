@@ -22,7 +22,7 @@
 #include <syslog.h>
 #include <stdlib.h>
 #include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/syslogger.hh"
 
 using namespace com::centreon::concurrency;

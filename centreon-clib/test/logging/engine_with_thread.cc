@@ -24,7 +24,7 @@
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/concurrency/thread.hh"
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::concurrency;
