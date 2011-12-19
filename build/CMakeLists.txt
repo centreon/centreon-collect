@@ -74,19 +74,21 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 
 # Set path.
-set(localstatedir "${CMAKE_INSTALL_PREFIX}/centreon-clib")
 if (WITH_PREFIX)
-  set(localstatedir "${WITH_PREFIX}")
+  set(PREFIX "${WITH_PREFIX}")
+  set(CMAKE_INSTALL_PREFIX "${PREFIX}")
+else ()
+  set(PREFIX "${CMAKE_INSTALL_PREFIX}")
 endif ()
-
-set(libdir "${localstatedir}/lib")
 if (WITH_PREFIX_LIB)
-  set(libdir "${WITH_PREFIX_LIB}")
+  set(PREFIX_LIB "${WITH_PREFIX_LIB}")
+else ()
+  set(PREFIX_LIB "lib")
 endif ()
-
-set(incdir "${localstatedir}/include")
-if (WITH_INCLUDE_DIR)
-  set(incdir "${WITH_INCLUDE_DIR}")
+if (WITH_PREFIX_INC)
+  set(PREFIX_INC "${WITH_PREFIX_INC}")
+else ()
+  set(PREFIX_INC "inc")
 endif ()
 
 
@@ -192,7 +194,7 @@ if (WITH_SHARED_LIB)
   # Install shared library.
   install(
     TARGETS "centreon_clib_shared"
-    DESTINATION "${libdir}"
+    DESTINATION "${PREFIX_LIB}"
     COMPONENT "runtime"
   )
 endif ()
@@ -222,7 +224,7 @@ if (WITH_STATIC_LIB)
   # Install static library.
   install(
     TARGETS "centreon_clib_static"
-    DESTINATION "${libdir}"
+    DESTINATION "${PREFIX_LIB}"
     COMPONENT "runtime"
   )
 endif ()
@@ -231,7 +233,7 @@ endif ()
 # Install header files for devel.
 install(
   DIRECTORY "${INCLUDE_DIR}/"
-  DESTINATION "${incdir}"
+  DESTINATION "${PREFIX_INC}"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
 )
@@ -252,9 +254,9 @@ message(STATUS "")
 message(STATUS "  Project:                      ${PROJECT_NAME}")
 message(STATUS "    - Version:                  ${VERSION}")
 message(STATUS "    - Extra compilation flags:  ${CMAKE_CXX_FLAGS}")
-message(STATUS "    - Prefix:                   ${localstatedir}")
-message(STATUS "    - Library directory:        ${libdir}")
-message(STATUS "    - Include directory:        ${incdir}")
+message(STATUS "    - Prefix:                   ${PREFIX}")
+message(STATUS "    - Library directory:        ${PREFIX_LIB}")
+message(STATUS "    - Include directory:        ${PREFIX_INC}")
 message(STATUS "")
 message(STATUS "  Options")
 message(STATUS "    - Enable shared library:    ${SHARED_LIB}")
