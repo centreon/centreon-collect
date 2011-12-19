@@ -74,7 +74,8 @@ void multiplexer::unload() {
  *  Default constructor.
  */
 multiplexer::multiplexer()
-  : com::centreon::task_manager(0),
+  // XXX : use thread_pool's ideal thread count when available
+  : com::centreon::task_manager(),
     com::centreon::handle_manager(this) {}
 
 /**

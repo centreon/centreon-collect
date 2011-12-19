@@ -162,4 +162,12 @@ if (WITH_TESTING)
   # Enable testing.
   enable_testing()
 
+  # multiplexer tests.
+  #   Check singleton.
+  set(TEST_NAME "multiplexer_singleton")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/multiplexer/singleton.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+
 endif ()
