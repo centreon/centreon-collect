@@ -23,11 +23,18 @@ cmake_minimum_required(VERSION 2.8)
 project("Centreon Clib" C CXX)
 
 
+# Set directories.
+set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
+set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
+set(INC_DIR "${INCLUDE_DIR}/com/centreon")
+set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+
+
 # Version.
-set(VERSION_MAJOR 0)
-set(VERSION_MINOR 1)
-set(VERSION_PATCH 0)
-set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set(CLIB_MAJOR 0)
+set(CLIB_MINOR 1)
+set(CLIB_PATCH 0)
+set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
 
 # Include module to check existing libraries.
@@ -65,12 +72,6 @@ if (NOT LIB_RT)
     message(FATAL_ERROR "Could not find real time library.")
   endif ()
 endif ()
-
-# Set directories.
-set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
-set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
-set(INC_DIR "${INCLUDE_DIR}/com/centreon")
-set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 
 # Set path.
@@ -160,6 +161,7 @@ include_directories("${INCLUDE_DIR}")
 
 
 # Add subdirectories.
+add_subdirectory("clib")
 add_subdirectory("concurrency")
 add_subdirectory("exception")
 add_subdirectory("logging")
@@ -252,7 +254,7 @@ message(STATUS "    - Version                   ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "    - Processor                 ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "")
 message(STATUS "  Project                       ${PROJECT_NAME}")
-message(STATUS "    - Version                   ${VERSION}")
+message(STATUS "    - Version                   ${CLIB_VERSION}")
 message(STATUS "    - Extra compilation flags   ${CMAKE_CXX_FLAGS}")
 message(STATUS "    - Build shared library      ${SHARED_LIB}")
 message(STATUS "    - Build static library      ${STATIC_LIB}")
