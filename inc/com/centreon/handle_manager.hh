@@ -42,7 +42,7 @@ CC_BEGIN()
 class                handle_manager {
 public:
                      handle_manager(task_manager* tm = NULL);
-                     ~handle_manager() throw ();
+  virtual            ~handle_manager() throw ();
   void               add(
                        handle* h,
                        handle_listener* hl,
