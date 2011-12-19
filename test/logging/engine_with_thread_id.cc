@@ -78,9 +78,9 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    e.set_enable_pid(false);
-    e.set_enable_thread_id(true);
-    e.set_enable_timestamp(engine::none);
+    e.set_show_pid(false);
+    e.set_show_thread_id(true);
+    e.set_show_timestamp(engine::none);
 
     std::auto_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 1, verbosity(1));

@@ -57,9 +57,10 @@ namespace                      logging {
     bool                       is_log(
                                  type_number flag,
                                  verbosity const& verbose) const throw ();
-    bool                       get_enable_pid() const throw ();
-    time_precision             get_enable_timestamp() const throw ();
-    bool                       get_enable_thread_id() const throw ();
+    bool                       get_enable_sync() const throw ();
+    bool                       get_show_pid() const throw ();
+    time_precision             get_show_timestamp() const throw ();
+    bool                       get_show_thread_id() const throw ();
     static void                load();
     void                       log(
                                  type_number flag,
@@ -67,10 +68,11 @@ namespace                      logging {
                                  char const* msg);
     bool                       remove(unsigned long id);
     unsigned int               remove(backend* obj);
-    void                       set_enable_pid(bool enable) throw ();
-    void                       set_enable_timestamp(
+    void                       set_enable_sync(bool enable) throw ();
+    void                       set_show_pid(bool enable) throw ();
+    void                       set_show_timestamp(
                                  time_precision p) throw ();
-    void                       set_enable_thread_id(bool enable) throw ();
+    void                       set_show_thread_id(bool enable) throw ();
     static void                unload();
 
   private:
@@ -91,6 +93,7 @@ namespace                      logging {
     std::vector<backend_info*> _backends;
     unsigned long              _id;
     static engine*             _instance;
+    bool                       _is_sync;
     verbosities                _list_verbose;
     bool                       _show_pid;
     time_precision             _show_timestamp;

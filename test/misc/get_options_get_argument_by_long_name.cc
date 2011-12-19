@@ -69,7 +69,10 @@ static bool valid_long_name() {
   try {
     std::vector<std::string> args;
     my_options opt(args);
-    opt.get_argument("help");
+    argument& a1(opt.get_argument("help"));
+    argument const& a2(opt.get_argument("help"));
+    (void)a1;
+    (void)a2;
   }
   catch (std::exception const& e) {
     (void)e;
