@@ -26,10 +26,10 @@
 #include <string.h>
 #include <unistd.h>
 #include "com/centreon/connector/ssh/credentials.hh"
-#include "com/centreon/connector/ssh/exception.hh"
 #include "com/centreon/connector/ssh/session.hh"
 #include "com/centreon/connector/ssh/sessions.hh"
 #include "com/centreon/connector/ssh/std_io.hh"
+#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -82,7 +82,7 @@ void std_io::_parse(std::string const& cmd) {
   // Get command ID.
   size_t pos(cmd.find('\0'));
   if (std::string::npos == pos)
-    throw (exception() << "invalid command received");
+    throw (basic_error() << "invalid command received");
   unsigned int id(strtoul(cmd.c_str(), NULL, 10));
   ++pos;
 
@@ -112,13 +112,13 @@ void std_io::_parse(std::string const& cmd) {
       // Find command ID.
       size_t end(cmd.find('\0', pos));
       if (std::string::npos == end)
-        throw (exception() << "invalid execution request received");
+        throw (basic_error() << "invalid execution request received");
       unsigned long long cmd_id(strtoull(cmd.c_str() + pos, NULL, 10));
       pos = end + 1;
       // Find timeout value.
       end = cmd.find('\0', pos);
       if (std::string::npos == end)
-        throw (exception() << "invalid execution request received");
+        throw (basic_error() << "invalid execution request received");
       time_t timeout(static_cast<time_t>(strtoull(cmd.c_str() + pos,
         NULL,
         10)));
@@ -127,31 +127,31 @@ void std_io::_parse(std::string const& cmd) {
       // Find start time.
       end = cmd.find('\0', pos);
       if (std::string::npos == end)
-        throw (exception() << "invalid execution request received");
+        throw (basic_error() << "invalid execution request received");
       pos = end + 1;
       // Find command to execute.
       end = cmd.find('\0', pos);
       if (std::string::npos == end)
-        throw (exception() << "invalid execution request received");
+        throw (basic_error() << "invalid execution request received");
       std::string cmdline(cmd.substr(pos, end - pos));
 
       // Find target host.
       pos = 0;
       end = cmdline.find(' ', pos);
       if (std::string::npos == end)
-        throw (exception() << "invalid execution command");
+        throw (basic_error() << "invalid execution command");
       std::string host(cmdline.substr(pos, end - pos));
       pos = end + 1;
       // Find user name.
       end = cmdline.find(' ', pos);
       if (std::string::npos == end)
-        throw (exception() << "invalid execution command");
+        throw (basic_error() << "invalid execution command");
       std::string user(cmdline.substr(pos, end - pos));
       pos = end + 1;
       // Find password.
       end = cmdline.find(' ', pos);
       if (std::string::npos == end)
-        throw (exception() << "invalid execution command");
+        throw (basic_error() << "invalid execution command");
       std::string password(cmdline.substr(pos, end - pos));
       pos = end + 1;
       // Find command.
@@ -205,8 +205,8 @@ bool std_io::read() {
   // An error occurred.
   if (rb < 0) {
     char const* msg(strerror(errno));
-    throw (exception() << "could not read from standard input: "
-             << msg);
+    throw (basic_error()
+             << "could not read from standard input: " << msg);
   }
 
   // Append data to buffer.
@@ -284,11 +284,11 @@ void std_io::write() {
   ssize_t wb(::write(STDOUT_FILENO, _wbuffer.c_str(), size));
   if (wb < 0) {
     char const* msg(strerror(errno));
-    throw (exception() << "failure while writing to standard output: "
-             << msg);
+    throw (basic_error()
+             << "failure while writing to standard output: " << msg);
   }
   else if (!wb)
-    throw (exception() << "standard output is closed");
+    throw (basic_error() << "standard output is closed");
   _wbuffer.erase(0, wb);
   return ;
 }

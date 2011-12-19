@@ -23,11 +23,11 @@
 #include <string.h>
 #include <time.h>
 #include "com/centreon/connector/ssh/array_ptr.hh"
-#include "com/centreon/connector/ssh/exception.hh"
 #include "com/centreon/connector/ssh/multiplex.hh"
 #include "com/centreon/connector/ssh/session.hh"
 #include "com/centreon/connector/ssh/sessions.hh"
 #include "com/centreon/connector/ssh/std_io.hh"
+#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -89,7 +89,7 @@ bool com::centreon::connector::ssh::multiplex() {
   int ret;
   if ((ret = poll(fds.get(), nfds, (timeout - now) * 1000)) < 0) {
     char const* msg(strerror(errno));
-    throw (exception() << "multiplexing failed: " << msg);
+    throw (basic_error() << "multiplexing failed: " << msg);
   }
 
   // Get current time.
@@ -145,7 +145,7 @@ bool com::centreon::connector::ssh::multiplex() {
   if (std_io::instance().write_wanted()) {
     pollfd& pfd(fds[nfds++]);
     if (pfd.revents & (POLLERR | POLLNVAL))
-      throw (exception() << "error on standard output");
+      throw (basic_error() << "error on standard output");
     else if (pfd.revents & POLLOUT)
       std_io::instance().write();
   }

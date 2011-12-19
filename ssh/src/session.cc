@@ -32,9 +32,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include "com/centreon/connector/ssh/channel.hh"
-#include "com/centreon/connector/ssh/exception.hh"
 #include "com/centreon/connector/ssh/session.hh"
 #include "com/centreon/connector/ssh/std_io.hh"
+#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -83,7 +83,7 @@ void session::_connect() {
   // Create session instance.
   _session = libssh2_session_init();
   if (!_session)
-    throw (exception()
+    throw (basic_error()
              << "SSH session creation failed (out of memory ?)");
 
   // Launch session startup.
@@ -156,7 +156,7 @@ void session::_key() {
                _password.c_str()));
   if (retval < 0) {
     if (retval != LIBSSH2_ERROR_EAGAIN)
-      throw (exception() << "user authentication failed");
+      throw (basic_error() << "user authentication failed");
   }
   else {
     // Enable non-blocking mode.
@@ -189,7 +189,7 @@ void session::_passwd() {
     else if (retval != LIBSSH2_ERROR_EAGAIN) {
       char* msg;
       libssh2_session_last_error(_session, &msg, NULL, 0);
-      throw (exception() << "password authentication failed: "
+      throw (basic_error() << "password authentication failed: "
                << msg << " (error " << retval << ")");
     }
   }
@@ -240,7 +240,7 @@ void session::_startup() {
     if (retval != LIBSSH2_ERROR_EAGAIN) { // Fatal failure.
       char* msg;
       int code(libssh2_session_last_error(_session, &msg, NULL, 0));
-      throw (exception() << "failure establishing SSH session: "
+      throw (basic_error() << "failure establishing SSH session: "
                << msg << " (error " << code << ")");
     }
   }
@@ -250,8 +250,8 @@ void session::_startup() {
     if (!known_hosts) {
       char* msg;
       libssh2_session_last_error(_session, &msg, NULL, 0);
-      throw (exception() << "could not create known hosts list: "
-               << msg);
+      throw (basic_error()
+               << "could not create known hosts list: " << msg);
     }
 
     // Get home directory.
@@ -280,8 +280,8 @@ void session::_startup() {
         char* msg;
         libssh2_session_last_error(_session, &msg, NULL, 0);
         libssh2_knownhost_free(known_hosts);
-        throw (exception() << "failed to get remote host fingerprint: "
-                 << msg);
+        throw (basic_error()
+                 << "failed to get remote host fingerprint: " << msg);
       }
 
       // Check fingerprint.
@@ -310,7 +310,7 @@ void session::_startup() {
 
       // Check fingerprint.
       if (check != LIBSSH2_KNOWNHOST_CHECK_MATCH) {
-        exception e;
+        exceptions::basic e(basic_error());
         e << "host '" << _host.c_str()
           << "' is not known or could not be validated: ";
         if (LIBSSH2_KNOWNHOST_CHECK_NOTFOUND == check)
@@ -375,10 +375,10 @@ session::session(std::string const& host,
                              &hint,
                              &res));
       if (retval)
-        throw (exception() << "lookup of host '" << host_ptr
+        throw (basic_error() << "lookup of host '" << host_ptr
                  << "' failed: " << gai_strerror(retval));
       else if (!res)
-        throw (exception() << "no IPv4 address found for host '"
+        throw (basic_error() << "no IPv4 address found for host '"
                  << host_ptr << "'");
 
       // Get address.
@@ -397,7 +397,7 @@ session::session(std::string const& host,
   _socket = ::socket(AF_INET, SOCK_STREAM, 0);
   if (_socket < 0) {
     char const* msg(strerror(errno));
-    throw (exception() << "socket creation failed: " << msg);
+    throw (basic_error() << "socket creation failed: " << msg);
   }
 
   // Set socket non-blocking.
@@ -405,14 +405,14 @@ session::session(std::string const& host,
   if (flags < 0) {
     char const* msg(strerror(errno));
     ::close(_socket);
-    throw (exception() << "could not get socket flags: " << msg);
+    throw (basic_error() << "could not get socket flags: " << msg);
   }
   flags |= O_NONBLOCK;
   if (fcntl(_socket, F_SETFL, flags) == -1) {
     char const* msg(strerror(errno));
     ::close(_socket);
-    throw (exception() << "could not make socket non blocking: "
-             << msg);
+    throw (basic_error()
+             << "could not make socket non blocking: " << msg);
   }
 
   // Connect to remote host.
@@ -420,8 +420,8 @@ session::session(std::string const& host,
       && (errno != EINPROGRESS)) {
       char const* msg(strerror(errno));
       ::close(_socket);
-      throw (exception() << "could not connect to '" << host_ptr
-               << "': " << msg);
+      throw (basic_error() << "could not connect to '"
+               << host_ptr << "': " << msg);
   }
 }
 

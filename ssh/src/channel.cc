@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/channel.hh"
-#include "com/centreon/connector/ssh/exception.hh"
 #include "com/centreon/connector/ssh/std_io.hh"
+#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -79,7 +79,7 @@ bool channel::_close() {
       if (ret != LIBSSH2_ERROR_EAGAIN) {
         char* msg;
         libssh2_session_last_error(_session, &msg, NULL, 0);
-        throw (exception() << "could not close channel: " << msg);
+        throw (basic_error() << "could not close channel: " << msg);
       }
       retval = true;
     }
@@ -123,7 +123,8 @@ bool channel::_exec() {
   if (ret && (ret != LIBSSH2_ERROR_EAGAIN)) {
     char* msg;
     libssh2_session_last_error(_session, &msg, NULL, 0);
-    throw (exception() << "could not execute command on SSH channel: "
+    throw (basic_error()
+             << "could not execute command on SSH channel: "
              << msg << " (error " << ret << ")");
   }
 
@@ -149,7 +150,7 @@ bool channel::_open() {
     char* msg;
     int ret(libssh2_session_last_error(_session, &msg, NULL, 0));
     if (ret != LIBSSH2_ERROR_EAGAIN)
-      throw (exception() << "could not open SSH channel: " << msg);
+      throw (basic_error() << "could not open SSH channel: " << msg);
     else
       retval = true;
   }
@@ -173,7 +174,7 @@ bool channel::_read() {
     if (orb != LIBSSH2_ERROR_EAGAIN) {
       char* msg;
       libssh2_session_last_error(_session, &msg, NULL, 0);
-      throw (exception() << "failed to read command output: " << msg);
+      throw (basic_error() << "failed to read command output: " << msg);
     }
   }
   // Append data.
