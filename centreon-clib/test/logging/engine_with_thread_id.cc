@@ -22,6 +22,8 @@
 #include <memory>
 #include <sstream>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "com/centreon/exception/basic.hh"
 #include "com/centreon/logging/engine.hh"
@@ -53,15 +55,15 @@ private:
  *  @return True on success, otherwise false.
  */
 static bool check_thread_id(std::string const& data, char const* msg) {
-  if (data[0] != '[' || data.size() < 4)
-    return (false);
-  unsigned int thread_id_size(data.size() - strlen(msg) - 1 - 3);
-  for (unsigned int i(1); i < thread_id_size; ++i)
-    if (!isdigit(data[i]))
-      return (false);
-  if (data.compare(3 + thread_id_size, strlen(msg), msg))
-    return (false);
-  return (true);
+  unsigned long ptr(0);
+  char message[1024];
+
+  int ret(sscanf(
+            data.c_str(),
+            "[%p] %s\n",
+            reinterpret_cast<void**>(&ptr),
+            message));
+  return (ret == 2 && !strncmp(msg, message, strlen(msg)));
 }
 
 /**
@@ -70,7 +72,7 @@ static bool check_thread_id(std::string const& data, char const* msg) {
  *  @return 0 on success.
  */
 int main() {
-  static char msg[] = "Centreon Clib test";
+  static char msg[] = "Centreon_Clib_test";
   int retval;
 
   engine::load();
