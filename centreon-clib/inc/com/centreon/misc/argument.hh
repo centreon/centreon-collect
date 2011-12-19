@@ -38,6 +38,7 @@ namespace              misc {
                        argument(
                          std::string const& long_name = "",
                          char name = '\0',
+                         std::string const& description = "",
                          bool has_value = false,
                          bool is_set = false,
                          std::string const& value = "");
@@ -46,11 +47,13 @@ namespace              misc {
     argument&          operator=(argument const& right);
     bool               operator==(argument const& right) const throw ();
     bool               operator!=(argument const& right) const throw ();
+    std::string const& get_description() const throw ();
     bool               get_is_set() const throw ();
     bool               get_has_value() const throw ();
     std::string const& get_long_name() const throw ();
     char               get_name() const throw ();
     std::string const& get_value() const throw ();
+    void               set_description(std::string const& description);
     void               set_is_set(bool val) throw ();
     void               set_has_value(bool val) throw ();
     void               set_long_name(std::string const& long_name);
@@ -60,6 +63,7 @@ namespace              misc {
   private:
     argument&          _internal_copy(argument const& right);
 
+    std::string        _description;
     bool               _is_set;
     bool               _has_value;
     std::string        _long_name;

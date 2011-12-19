@@ -45,14 +45,20 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# argument_set_has_value
-set(TEST_NAME "argument_set_has_value")
+# argument_set_description
+set(TEST_NAME "argument_set_description")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # argument_set_is_set
 set(TEST_NAME "argument_set_is_set")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# argument_set_has_value
+set(TEST_NAME "argument_set_has_value")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

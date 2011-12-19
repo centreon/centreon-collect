@@ -167,7 +167,27 @@ std::vector<std::string> const& get_options::get_parameters() const throw () {
  *  @return The help string.
  */
 std::string get_options::help() const {
-  return ("");
+  size_t size(0);
+  for (std::map<char, argument>::const_iterator
+         it(_arguments.begin()), end(_arguments.end());
+       it != end;
+       ++it)
+    if (size < it->second.get_long_name().size())
+      size = it->second.get_long_name().size();
+
+  std::string help;
+  for (std::map<char, argument>::const_iterator
+         it(_arguments.begin()), end(_arguments.end());
+       it != end;
+       ++it) {
+    argument const& arg (it->second);
+    help += std::string("  -") + arg.get_name();
+    help += ", --" + arg.get_long_name();
+    help += std::string(size - arg.get_long_name().size() + 4, ' ');
+    help += arg.get_description() + "\n";
+  }
+
+  return (help);
 }
 
 /**
@@ -176,21 +196,21 @@ std::string get_options::help() const {
  *  @return The usage string.
  */
 std::string get_options::usage() const {
-  return ("");
+  return (help());
 }
 
 /**
  *  Print help on the standard output.
  */
 void get_options::print_help() const {
-  std::cout << help() << std::endl;
+  std::cout << help() << std::flush;
 }
 
 /**
  *  Print usage on the standard error.
  */
 void get_options::print_usage() const {
-  std::cerr << usage() << std::endl;
+  std::cerr << usage() << std::flush;
 }
 
 /**

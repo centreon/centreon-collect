@@ -26,26 +26,17 @@
 using namespace com::centreon::misc;
 
 /**
- *  Check the argument equal operator.
+ *  Check the set description.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    argument ref("help",
-                 'c',
-                 "this help",
-                 true,
-                 true,
-                 "help:\n --help, -h  this help");
-
-    argument arg1(ref);
-    if (ref != arg1)
-      throw (basic_error() << "copy constructor failed");
-
-    argument arg2 = ref;
-    if (ref != arg2)
-      throw (basic_error() << "copy operator failed");
+    std::string description("this help");
+    argument arg;
+    arg.set_description(description);
+    if (arg.get_description() != description)
+      throw (basic_error() << "invalid description");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

@@ -34,11 +34,13 @@ int main() {
   try {
     std::string long_name("help");
     char name('h');
+    std::string description("this help");
     bool has_value(true);
     bool is_set(true);
     std::string value("help:\n --help, -h  this help");
     argument arg(long_name,
                  name,
+                 description,
                  has_value,
                  is_set,
                  value);
@@ -47,6 +49,8 @@ int main() {
       throw (basic_error() << "invalid long name");
     if (arg.get_name() != name)
       throw (basic_error() << "invalid name");
+    if (arg.get_description() != description)
+      throw (basic_error() << "invalid description");
     if (arg.get_has_value() != has_value)
       throw (basic_error() << "invalid has value");
     if (arg.get_is_set() != is_set)
