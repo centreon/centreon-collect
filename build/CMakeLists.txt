@@ -88,7 +88,7 @@ endif ()
 if (WITH_PREFIX_INC)
   set(PREFIX_INC "${WITH_PREFIX_INC}")
 else ()
-  set(PREFIX_INC "inc")
+  set(PREFIX_INC "include")
 endif ()
 
 
