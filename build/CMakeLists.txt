@@ -163,7 +163,7 @@ include_directories("${INCLUDE_DIR}")
 # Add subdirectories.
 add_subdirectory("clib")
 add_subdirectory("concurrency")
-add_subdirectory("exception")
+add_subdirectory("exceptions")
 add_subdirectory("logging")
 add_subdirectory("misc")
 add_subdirectory("io")

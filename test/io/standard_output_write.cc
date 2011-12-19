@@ -19,7 +19,7 @@
 */
 
 #include <iostream>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/standard_output.hh"
 
 using namespace com::centreon::io;

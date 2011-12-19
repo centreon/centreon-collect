@@ -18,22 +18,24 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <sstream>
 #include <string.h>
 #include <limits.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 
-using namespace com::centreon::exception;
+using namespace com::centreon::exceptions;
 
 /**
- *  Check the basic insert char.
+ *  Check the basic insert unsigned int.
  *
  *  @return 0 on success.
  */
 int main() {
   basic ex;
-  ex << static_cast<char>(CHAR_MIN);
-  ex << static_cast<char>(CHAR_MAX);
+  ex << static_cast<unsigned int>(0);
+  ex << static_cast<unsigned int>(UINT_MAX);
 
-  char ref[] = { CHAR_MIN, CHAR_MAX, 0 };
-  return (strcmp(ex.what(), ref));
+  std::ostringstream oss;
+  oss << 0 << UINT_MAX;
+  return (strcmp(ex.what(), oss.str().c_str()));
 }

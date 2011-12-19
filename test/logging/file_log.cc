@@ -23,7 +23,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <string.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/file.hh"
 
 using namespace com::centreon::logging;

@@ -32,7 +32,7 @@
 #include <string.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread.hh"
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/stringifier.hh"
 #include "com/centreon/timestamp.hh"
 #include "com/centreon/logging/engine.hh"

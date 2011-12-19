@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include <memory>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/logging/temp_logger.hh"
 

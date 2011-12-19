@@ -21,7 +21,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/standard_input.hh"
 
 using namespace com::centreon::io;

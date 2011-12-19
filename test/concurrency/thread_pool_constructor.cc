@@ -20,7 +20,7 @@
 
 #include <exception>
 #include <iostream>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/thread_pool.hh"
 
 using namespace com::centreon::concurrency;

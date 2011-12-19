@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include "com/centreon/exception/basic.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread_pool.hh"
 
