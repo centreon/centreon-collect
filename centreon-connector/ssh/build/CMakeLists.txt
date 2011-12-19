@@ -129,7 +129,6 @@ add_library("${CONNECTORLIB}"
 #   "${SRC_DIR}/sessions.cc"
 #   "${SRC_DIR}/std_io.cc"
   # Headers.
-#   "${INC_DIR}/array_ptr.hh"
 #   "${INC_DIR}/channel.hh"
 #   "${INC_DIR}/credentials.hh"
   "${INC_DIR}/multiplexer.hh"
