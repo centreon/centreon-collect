@@ -40,7 +40,7 @@ CC_BEGIN()
 class              task_manager {
 public:
                    task_manager(unsigned int max_thread_count = 1);
-                   ~task_manager() throw ();
+  virtual          ~task_manager() throw ();
   unsigned long    add(
                      task* t,
                      timestamp when,
