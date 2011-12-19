@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exception/basic.hh"
 #include "com/centreon/misc/stringifier.hh"
@@ -60,11 +61,13 @@ unsigned long engine::add(
            "failed:bad argument (null pointer)");
 
   std::auto_ptr<backend_info> info(new backend_info);
-  info->id = ++_id;
   info->obj = obj;
   info->types = types;
   info->verbose = verbose;
 
+  // Lock engine.
+  locker lock(&_mtx);
+  info->id = ++_id;
   for (unsigned int i(0); i < sizeof(type_flags) * CHAR_BIT; ++i)
     if ((types & (static_cast<type_flags>(1) << i))
         && _list_verbose[i] < verbose)
@@ -98,6 +101,9 @@ bool engine::is_log(
                verbosity const& verbose) const throw () {
   if (flag >= sizeof(type_flags) * CHAR_BIT)
     return (false);
+
+  // Lock engine.
+  locker lock(&_mtx);
   return (_list_verbose[flag] != verbosity()
           && verbose <= _list_verbose[flag]);
 }
@@ -117,6 +123,8 @@ bool engine::get_enable_sync() const throw () {
  *  @return True if pid is display, otherwise false.
  */
 bool engine::get_show_pid() const throw () {
+  // Lock engine.
+  locker lock(&_mtx);
   return (_show_pid);
 }
 
@@ -126,6 +134,8 @@ bool engine::get_show_pid() const throw () {
  *  @return Time precision is display, otherwise none.
  */
 engine::time_precision engine::get_show_timestamp() const throw () {
+  // Lock engine.
+  locker lock(&_mtx);
   return (_show_timestamp);
 }
 
@@ -135,6 +145,8 @@ engine::time_precision engine::get_show_timestamp() const throw () {
  *  @return True if thread id is display, otherwise false.
  */
 bool engine::get_show_thread_id() const throw () {
+  // Lock engine.
+  locker lock(&_mtx);
   return (_show_thread_id);
 }
 
@@ -159,6 +171,9 @@ void engine::log(
                char const* msg) {
   if (!msg || !is_log(flag, verbose))
     return;
+
+  // Lock engine.
+  locker lock(&_mtx);
 
   // Build line header.
   stringifier header;
@@ -216,6 +231,8 @@ void engine::log(
  *  @return True if the backend was remove, otherwise false.
  */
 bool engine::remove(unsigned long id) {
+  // Lock engine.
+  locker lock(&_mtx);
   for (std::vector<backend_info*>::iterator
          it(_backends.begin()), end(_backends.end());
        it != end;
@@ -241,6 +258,8 @@ unsigned int engine::remove(backend* obj) {
     throw (basic_error() << "remove backend on the logging engine " \
            "failed:bad argument (null pointer)");
 
+  // Lock engine.
+  locker lock(&_mtx);
   std::vector<backend_info*>::iterator it(_backends.begin());
   unsigned int count_remove(0);
   while (it != _backends.end()) {
@@ -272,6 +291,8 @@ void engine::set_enable_sync(bool enable) throw () {
  *  @param[in] enable  Enable or disable display pid.
  */
 void engine::set_show_pid(bool enable) throw () {
+  // Lock engine.
+  locker lock(&_mtx);
   _show_pid = enable;
 }
 
@@ -281,6 +302,8 @@ void engine::set_show_pid(bool enable) throw () {
  *  @param[in] enable  Enable or disable display timestamp.
  */
 void engine::set_show_timestamp(time_precision p) throw () {
+  // Lock engine.
+  locker lock(&_mtx);
   _show_timestamp = p;
 }
 
@@ -290,6 +313,8 @@ void engine::set_show_timestamp(time_precision p) throw () {
  *  @param[in] enable  Enable or disable display thread id.
  */
 void engine::set_show_thread_id(bool enable) throw () {
+  // Lock engine.
+  locker lock(&_mtx);
   _show_thread_id = enable;
 }
 
