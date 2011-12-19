@@ -19,46 +19,48 @@
 */
 
 #include <iostream>
-#include <string>
 #include "com/centreon/exception/basic.hh"
-#include "com/centreon/misc/get_options.hh"
+#include "com/centreon/handle_manager.hh"
 
-using namespace com::centreon::misc;
+using namespace com::centreon;
 
 /**
- *  @class my_options
- *  @brief litle implementation of get_options to test it.
+ *  @class standard
+ *  @brief litle implementation of handle to test handle copy.
  */
-class my_options : public get_options {
+class           standard : public handle {
 public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', true);
-        _arguments['t'] = argument("test", 't', true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default", 'd', true, true, "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
+                standard(native_handle internal) : handle(internal){}
+                ~standard() throw () {}
+  void          close() {}
+  unsigned long read(void* data, unsigned long size) {
+    (void)data;
+    (void)size;
+    return (0);
+  }
+  unsigned long write(void const* data, unsigned long size) {
+    (void)data;
+    (void)size;
+    return (0);
+  }
 };
 
 /**
- *  Check the get_options copy.
+ *  Check handle copy.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    std::vector<std::string> args;
-    my_options ref(args);
+    standard ref(42);
 
-    my_options opt1(ref);
-    if (!(ref == opt1))
-      throw (basic_error() << "copy constructor failed");
+    standard s1(ref);
+    if (ref.get_internal_handle() != s1.get_internal_handle())
+      throw (basic_error() << "invalid copy constructor");
 
-    my_options opt2 = ref;
-    if (ref != opt2)
-      throw (basic_error() << "copy operator failed");
+    standard s2 = ref;
+    if (ref.get_internal_handle() != s2.get_internal_handle())
+      throw (basic_error() << "invalid copy operator");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

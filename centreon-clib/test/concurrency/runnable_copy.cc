@@ -19,46 +19,40 @@
 */
 
 #include <iostream>
-#include <string>
 #include "com/centreon/exception/basic.hh"
-#include "com/centreon/misc/get_options.hh"
+#include "com/centreon/concurrency/runnable.hh"
 
-using namespace com::centreon::misc;
+using namespace com::centreon::concurrency;
 
 /**
- *  @class my_options
- *  @brief litle implementation of get_options to test it.
+ *  @class task
+ *  @brief litle implementation of runnable to test the thread pool.
  */
-class my_options : public get_options {
+class  task : public runnable {
 public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', true);
-        _arguments['t'] = argument("test", 't', true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default", 'd', true, true, "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
+       task(bool auto_delete) {
+         set_auto_delete(auto_delete);
+       }
+       ~task() throw () {}
+  void run() {}
 };
 
 /**
- *  Check the get_options copy.
+ *  Check the runnable copy.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    std::vector<std::string> args;
-    my_options ref(args);
+    task ref(true);
 
-    my_options opt1(ref);
-    if (!(ref == opt1))
-      throw (basic_error() << "copy constructor failed");
+    task t1(ref);
+    if (ref.get_auto_delete() != t1.get_auto_delete())
+      throw (basic_error() << "invalid copy constructor");
 
-    my_options opt2 = ref;
-    if (ref != opt2)
-      throw (basic_error() << "copy operator failed");
+    task t2 = ref;
+    if (ref.get_auto_delete() != t2.get_auto_delete())
+      throw (basic_error() << "invalid copy operator");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

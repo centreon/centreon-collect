@@ -27,6 +27,18 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# engine_disable_sync
+set(TEST_NAME "engine_disable_sync")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# engine_enable_sync
+set(TEST_NAME "engine_enable_sync")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # engine_is_log
 set(TEST_NAME "engine_is_log")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
@@ -75,6 +87,18 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# file_log
+set(TEST_NAME "file_log")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# logger_copy
+set(TEST_NAME "logger_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # engine_with_thread
 set(TEST_NAME "engine_with_thread")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
@@ -83,6 +107,138 @@ add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # temp_logger_constructor
 set(TEST_NAME "temp_logger_constructor")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_char
+set(TEST_NAME "temp_logger_do_nothing_char")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_double
+set(TEST_NAME "temp_logger_do_nothing_double")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_int
+set(TEST_NAME "temp_logger_do_nothing_int")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_long
+set(TEST_NAME "temp_logger_do_nothing_long")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_long_long
+set(TEST_NAME "temp_logger_do_nothing_long_long")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_pvoid
+set(TEST_NAME "temp_logger_do_nothing_pvoid")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_std_string
+set(TEST_NAME "temp_logger_do_nothing_std_string")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_string
+set(TEST_NAME "temp_logger_do_nothing_string")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_uint
+set(TEST_NAME "temp_logger_do_nothing_uint")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_ulong
+set(TEST_NAME "temp_logger_do_nothing_ulong")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_do_nothing_ulong_long
+set(TEST_NAME "temp_logger_do_nothing_ulong_long")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_char
+set(TEST_NAME "temp_logger_log_char")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_double
+set(TEST_NAME "temp_logger_log_double")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_int
+set(TEST_NAME "temp_logger_log_int")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_long
+set(TEST_NAME "temp_logger_log_long")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_long_long
+set(TEST_NAME "temp_logger_log_long_long")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_pvoid
+set(TEST_NAME "temp_logger_log_pvoid")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_std_string
+set(TEST_NAME "temp_logger_log_std_string")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_string
+set(TEST_NAME "temp_logger_log_string")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_uint
+set(TEST_NAME "temp_logger_log_uint")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_ulong
+set(TEST_NAME "temp_logger_log_ulong")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# temp_logger_log_ulong_long
+set(TEST_NAME "temp_logger_log_ulong_long")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

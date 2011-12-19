@@ -29,6 +29,12 @@ add_subdirectory("io")
 add_subdirectory("logging")
 add_subdirectory("misc")
 
+# handle_copy
+set(TEST_NAME "handle_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # handle_manager_add
 set(TEST_NAME "handle_manager_add")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")

@@ -84,6 +84,24 @@ temp_logger logger::operator()(verbosity_level level) const {
 }
 
 /**
+ *  Get the prefix.
+ *
+ *  @return The prefix.
+ */
+std::string const& logger::get_prefix() const throw () {
+  return (_prefix);
+}
+
+/**
+ *  Get the type number.
+ *
+ *  @return The type number.
+ */
+type_number logger::get_type() const throw () {
+  return (_type);
+}
+
+/**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
