@@ -19,10 +19,14 @@
 */
 
 #include <errno.h>
-#include <iostream>
 #include <signal.h>
 #include <stdlib.h>
+#include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/logging/logger.hh"
+
+using namespace com::centreon;
+using namespace com::centreon::connector::ssh;
 
 // Termination flag.
 static volatile bool should_exit(false);
@@ -35,7 +39,9 @@ static volatile bool should_exit(false);
 static void term_handler(int signum) {
   (void)signum;
   int old_errno(errno);
+  logging::info(logging::high) << "termination request received";
   should_exit = true;
+  logging::info(logging::low) << "reseting termination handler";
   signal(SIGTERM, SIG_DFL);
   errno = old_errno;
   return ;
@@ -50,31 +56,43 @@ int main() {
   // Return value.
   int retval(EXIT_FAILURE);
 
-  // Set termination handler.
-  signal(SIGTERM, term_handler);
-
   try {
+    // Initializations.
+    logging::engine::load();
+    multiplexer::load();
+
+    // Set termination handler.
+    logging::info(logging::medium) << "installing termination handler";
+    signal(SIGTERM, term_handler);
+
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
+    logging::info(logging::medium) << "initializing libssh2";
     if (libssh2_init(0))
       throw (basic_error() << "libssh2 initialization failed");
 #endif /* libssh2 version >= 1.2.5 */
 
     // Multiplexing loop.
+    logging::info(logging::medium) << "starting multiplexing loop";
     /*while (!should_exit && multiplex())
       ;*/
+    logging::info(logging::medium) << "multiplexing loop terminated";
 
     // Set return value.
     retval = EXIT_SUCCESS;
   }
   catch (std::exception const& e) {
-    std::cerr << e.what() << std::endl;
+    logging::error(logging::high) << e.what();
   }
 
 #if LIBSSH2_VERSION_NUM >= 0x010205
   // Deinitialize libssh2.
   libssh2_exit();
 #endif /* libssh2 version >= 1.2.5 */
+
+  // Deinitializations.
+  multiplexer::unload();
+  logging::engine::unload();
 
   return (retval);
 }

@@ -18,20 +18,20 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_SSH_NAMESPACE_HH_
-# define CCC_SSH_NAMESPACE_HH_
+#ifndef CCCS_NAMESPACE_HH
+#  define CCCS_NAMESPACE_HH
 
-# ifdef CCC_SSH_BEGIN
-#  undef CCC_SSH_BEGIN
-# endif /* CCC_SSH_BEGIN */
-# define CCC_SSH_BEGIN() namespace       com { \
-                           namespace     centreon { \
-                             namespace   connector { \
-                               namespace ssh {
+#  ifdef CCCS_BEGIN
+#    undef CCCS_BEGIN
+#  endif // CCCS_BEGIN
+#  define CCCS_BEGIN() namespace       com { \
+                         namespace     centreon { \
+                           namespace   connector { \
+                             namespace ssh {
 
-# ifdef CCC_SSH_END
-#  undef CCC_SSH_END
-# endif /* CCC_SSH_END */
-# define CCC_SSH_END() } } } }
+#  ifdef CCCS_END
+#    undef CCCS_END
+#  endif // CCCS_END
+#  define CCCS_END() } } } }
 
-#endif /* !CCC_SSH_NAMESPACE_HH_ */
+#endif // !CCCS_NAMESPACE_HH
