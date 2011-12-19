@@ -22,6 +22,7 @@
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
 # Add subdirectories.
+add_subdirectory("clib")
 add_subdirectory("concurrency")
 add_subdirectory("exception")
 add_subdirectory("io")
