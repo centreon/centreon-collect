@@ -22,6 +22,7 @@
 #  define CC_LOGGING_ENGINE_HH
 
 #  include <vector>
+#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/logging/backend.hh"
 #  include "com/centreon/logging/verbosity.hh"
 #  include "com/centreon/namespace.hh"
@@ -95,6 +96,7 @@ namespace                      logging {
     static engine*             _instance;
     bool                       _is_sync;
     verbosities                _list_verbose;
+    mutable concurrency::mutex _mtx;
     bool                       _show_pid;
     time_precision             _show_timestamp;
     bool                       _show_thread_id;
