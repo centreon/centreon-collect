@@ -19,50 +19,40 @@
 */
 
 #include <iostream>
-#include <string>
 #include "com/centreon/exception/basic.hh"
-#include "com/centreon/misc/get_options.hh"
+#include "com/centreon/logging/logger.hh"
 
-using namespace com::centreon::misc;
-
-/**
- *  @class my_options
- *  @brief litle implementation of get_options to test it.
- */
-class my_options : public get_options {
-public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', true);
-        _arguments['t'] = argument("test", 't', true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default", 'd', true, true, "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
-};
+using namespace com::centreon::logging;
 
 /**
- *  Check the get_options copy.
+ *  Check logger copy.
  *
  *  @return 0 on success.
  */
 int main() {
-  try {
-    std::vector<std::string> args;
-    my_options ref(args);
+  int retval;
 
-    my_options opt1(ref);
-    if (!(ref == opt1))
+  engine::load();
+  try {
+    logger ref(type_info, "info");
+
+    logger l1(ref);
+    if (l1.get_prefix() != ref.get_prefix()
+        || l1.get_type() != ref.get_type())
       throw (basic_error() << "copy constructor failed");
 
-    my_options opt2 = ref;
-    if (ref != opt2)
+
+    logger l2(ref);
+    if (l2.get_prefix() != ref.get_prefix()
+        || l2.get_type() != ref.get_type())
       throw (basic_error() << "copy operator failed");
+
+    retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    retval = 1;
   }
-  return (0);
+  engine::unload();
+  return (retval);
 }
