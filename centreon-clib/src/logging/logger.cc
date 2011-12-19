@@ -22,9 +22,15 @@
 
 using namespace com::centreon::logging;
 
-com::centreon::logging::logger info(type_info, "info");
-com::centreon::logging::logger debug(type_debug, "debug");
-com::centreon::logging::logger error(type_error, "error");
+com::centreon::logging::logger com::centreon::logging::info(
+                                                         type_info,
+                                                         "info");
+com::centreon::logging::logger com::centreon::logging::debug(
+                                                         type_debug,
+                                                         "debug");
+com::centreon::logging::logger com::centreon::logging::error(
+                                                         type_error,
+                                                         "error");
 
 logger::logger(type_number type, char const* prefix) throw ()
   : _type(type) {
