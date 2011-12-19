@@ -56,8 +56,8 @@ int main() {
     if (!(ref == opt1))
       throw (basic_error() << "copy constructor failed");
 
-    my_options opt2(ref);
-    if (!(ref == opt2))
+    my_options opt2 = ref;
+    if (ref != opt2)
       throw (basic_error() << "copy operator failed");
   }
   catch (std::exception const& e) {

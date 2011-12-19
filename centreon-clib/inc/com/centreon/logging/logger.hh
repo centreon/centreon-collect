@@ -27,14 +27,14 @@
 
 CC_BEGIN()
 
-namespace       logging {
-  enum          type_value {
+namespace              logging {
+  enum                 type_value {
     type_info = 0,
     type_debug = 1,
     type_error = 2
   };
 
-  enum          verbosity_level {
+  enum                 verbosity_level {
     none = 0,
     low = 1,
     medium = 2,
@@ -47,27 +47,29 @@ namespace       logging {
    *
    *  This class provide basic logger (info, debug, error).
    */
-  class         logger {
+  class                logger {
   public:
-                logger(
-                  type_number type,
-                  char const* prefix = NULL) throw ();
-                logger(logger const& right);
-                ~logger() throw ();
-    logger&     operator=(logger const& right);
-    temp_logger operator()(verbosity const& verbose) const;
-    temp_logger operator()(verbosity_level level) const;
+                       logger(
+                         type_number type,
+                         char const* prefix = NULL) throw ();
+                       logger(logger const& right);
+                       ~logger() throw ();
+    logger&            operator=(logger const& right);
+    temp_logger        operator()(verbosity const& verbose) const;
+    temp_logger        operator()(verbosity_level level) const;
+    std::string const& get_prefix() const throw ();
+    type_number        get_type() const throw ();
 
   private:
-    logger&     _internal_copy(logger const& right);
+    logger&            _internal_copy(logger const& right);
 
-    std::string _prefix;
-    type_number _type;
+    std::string        _prefix;
+    type_number        _type;
   };
 
-  extern logger info;
-  extern logger debug;
-  extern logger error;
+  extern logger        info;
+  extern logger        debug;
+  extern logger        error;
 }
 
 CC_END()

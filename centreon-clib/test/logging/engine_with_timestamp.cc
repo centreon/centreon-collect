@@ -76,26 +76,26 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    e.set_enable_pid(false);
-    e.set_enable_thread_id(false);
+    e.set_show_pid(false);
+    e.set_show_thread_id(false);
 
     std::auto_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 1, verbosity(1));
 
-    e.set_enable_timestamp(engine::second);
+    e.set_show_timestamp(engine::second);
     e.log(0, verbosity(1), msg);
     if (!check_time(obj->data(), msg))
       throw (basic_error() << "log with timestamp in second failed");
     obj->reset();
 
-    e.set_enable_timestamp(engine::millisecond);
+    e.set_show_timestamp(engine::millisecond);
     e.log(0, verbosity(1), msg);
     if (!check_time(obj->data(), msg))
       throw (basic_error() << "log with timestamp in millisecond " \
              "failed");
     obj->reset();
 
-    e.set_enable_timestamp(engine::microsecond);
+    e.set_show_timestamp(engine::microsecond);
     e.log(0, verbosity(1), msg);
     if (!check_time(obj->data(), msg))
       throw (basic_error() << "log with timestamp in microsecond " \
