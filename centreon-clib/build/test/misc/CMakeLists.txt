@@ -81,6 +81,12 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# get_options_constructor_invalid
+set(TEST_NAME "get_options_constructor_invalid")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # get_options_copy
 set(TEST_NAME "get_options_copy")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")

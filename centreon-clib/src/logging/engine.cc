@@ -99,7 +99,16 @@ bool engine::is_log(
   if (flag >= sizeof(type_flags) * CHAR_BIT)
     return (false);
   return (_list_verbose[flag] != verbosity()
-          && _list_verbose[flag] <= verbose);
+          && verbose <= _list_verbose[flag]);
+}
+
+/**
+ *  Get if all backends was synchronize.
+ *
+ *  @return True if synchronize, otherwise false.
+ */
+bool engine::get_enable_sync() const throw () {
+  return (_is_sync);
 }
 
 /**
@@ -107,7 +116,7 @@ bool engine::is_log(
  *
  *  @return True if pid is display, otherwise false.
  */
-bool engine::get_enable_pid() const throw () {
+bool engine::get_show_pid() const throw () {
   return (_show_pid);
 }
 
@@ -116,7 +125,7 @@ bool engine::get_enable_pid() const throw () {
  *
  *  @return Time precision is display, otherwise none.
  */
-engine::time_precision engine::get_enable_timestamp() const throw () {
+engine::time_precision engine::get_show_timestamp() const throw () {
   return (_show_timestamp);
 }
 
@@ -125,7 +134,7 @@ engine::time_precision engine::get_enable_timestamp() const throw () {
  *
  *  @return True if thread id is display, otherwise false.
  */
-bool engine::get_enable_thread_id() const throw () {
+bool engine::get_show_thread_id() const throw () {
   return (_show_thread_id);
 }
 
@@ -192,8 +201,11 @@ void engine::log(
        ++it)
     if (((*it)->types & (static_cast<type_flags>(1) << flag))
         && (*it)->verbose != verbosity()
-        && (*it)->verbose <= verbose)
+        && (*it)->verbose <= verbose) {
       (*it)->obj->log(buffer.data(), buffer.size());
+      if (_is_sync)
+        (*it)->obj->flush();
+    }
 }
 
 /**
@@ -246,11 +258,20 @@ unsigned int engine::remove(backend* obj) {
 }
 
 /**
+ *  Set if all backends was synchronize.
+ *
+ *  @param[in] enable  True to synchronize backends data.
+ */
+void engine::set_enable_sync(bool enable) throw () {
+  _is_sync = enable;
+}
+
+/**
  *  Set pid display.
  *
  *  @param[in] enable  Enable or disable display pid.
  */
-void engine::set_enable_pid(bool enable) throw () {
+void engine::set_show_pid(bool enable) throw () {
   _show_pid = enable;
 }
 
@@ -259,7 +280,7 @@ void engine::set_enable_pid(bool enable) throw () {
  *
  *  @param[in] enable  Enable or disable display timestamp.
  */
-void engine::set_enable_timestamp(time_precision p) throw () {
+void engine::set_show_timestamp(time_precision p) throw () {
   _show_timestamp = p;
 }
 
@@ -268,7 +289,7 @@ void engine::set_enable_timestamp(time_precision p) throw () {
  *
  *  @param[in] enable  Enable or disable display thread id.
  */
-void engine::set_enable_thread_id(bool enable) throw () {
+void engine::set_show_thread_id(bool enable) throw () {
   _show_thread_id = enable;
 }
 
@@ -285,6 +306,7 @@ void engine::unload() {
  */
 engine::engine()
   : _id(0),
+    _is_sync(true),
     _show_pid(true),
     _show_timestamp(second),
     _show_thread_id(true) {

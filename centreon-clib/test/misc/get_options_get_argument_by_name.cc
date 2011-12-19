@@ -69,7 +69,10 @@ static bool valid_name() {
   try {
     std::vector<std::string> args;
     my_options opt(args);
-    opt.get_argument('h');
+    argument& a1(opt.get_argument('h'));
+    argument const& a2(opt.get_argument('h'));
+    (void)a1;
+    (void)a2;
   }
   catch (std::exception const& e) {
     (void)e;

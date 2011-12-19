@@ -43,15 +43,23 @@ public:
 };
 
 /**
- *  Check with invalid long name.
+ *  Check the get options with unknown option.
  *
  *  @return True on success, otherwise false.
  */
-static bool invalid_long_name() {
+static bool check_unknown_option() {
   try {
     std::vector<std::string> args;
+    args.push_back("--test=1");
+    args.push_back("-h");
+    args.push_back("--arg");
+    args.push_back("2");
+    args.push_back("--failed=42");
+    args.push_back("param1");
+    args.push_back("param2");
+    args.push_back("param3");
+
     my_options opt(args);
-    opt.get_argument("unknown");
   }
   catch (std::exception const& e) {
     (void)e;
@@ -61,39 +69,40 @@ static bool invalid_long_name() {
 }
 
 /**
- *  Check with valide long name.
+ *  Check the get options without require argument.
  *
  *  @return True on success, otherwise false.
  */
-static bool valid_long_name() {
+static bool check_require_argument() {
   try {
     std::vector<std::string> args;
+    args.push_back("-h");
+    args.push_back("--arg");
+    args.push_back("2");
+    args.push_back("--test");
+
     my_options opt(args);
-    argument& a1(opt.get_argument("help"));
-    argument const& a2(opt.get_argument("help"));
-    (void)a1;
-    (void)a2;
   }
   catch (std::exception const& e) {
     (void)e;
-    return (false);
+    return (true);
   }
-  return (true);
+  return (false);
 }
 
 /**
- *  Check the get argument by long name.
+ *  Check the get_options constructor.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    if (!invalid_long_name())
-      throw (basic_error() << "get argument with invalid " \
-             "long name failed");
-    if (!valid_long_name())
-      throw (basic_error() << "get argument with valid " \
-             "long name failed");
+    if (!check_unknown_option())
+      throw (basic_error() << "constructor failed with unknown option");
+
+    if (!check_require_argument())
+      throw (basic_error() << "constructor failed with " \
+             "require argument");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
