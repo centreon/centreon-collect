@@ -120,27 +120,28 @@ endif ()
 
 # SSH connector library.
 set(CONNECTORLIB "centreonconnectorssh")
-# add_library("${CONNECTORLIB}"
-#   # Sources.
+add_library("${CONNECTORLIB}"
+  # Sources.
 #   "${SRC_DIR}/channel.cc"
 #   "${SRC_DIR}/credentials.cc"
-#   "${SRC_DIR}/multiplex.cc"
+  "${SRC_DIR}/multiplexer.cc"
 #   "${SRC_DIR}/session.cc"
 #   "${SRC_DIR}/sessions.cc"
 #   "${SRC_DIR}/std_io.cc"
-#   # Headers.
+  # Headers.
 #   "${INC_DIR}/array_ptr.hh"
 #   "${INC_DIR}/channel.hh"
 #   "${INC_DIR}/credentials.hh"
-#   "${INC_DIR}/multiplex.hh"
+  "${INC_DIR}/multiplexer.hh"
+  "${INC_DIR}/namespace.hh"
 #   "${INC_DIR}/session.hh"
 #   "${INC_DIR}/sessions.hh"
 #   "${INC_DIR}/std_io.hh"
-# )
-# target_link_libraries(
-#   "${CONNECTORLIB}"
-#   ${LIBSSH2_LIBRARIES}
-#   ${CLIB_LIBRARIES})
+)
+target_link_libraries(
+  "${CONNECTORLIB}"
+  ${LIBSSH2_LIBRARIES}
+  ${CLIB_LIBRARIES})
 
 # SSH connector.
 set(CONNECTOR "centreon_connector_ssh")
