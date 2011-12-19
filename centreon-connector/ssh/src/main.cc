@@ -20,13 +20,9 @@
 
 #include <errno.h>
 #include <iostream>
-#include <libssh2.h>
 #include <signal.h>
 #include <stdlib.h>
-#include "com/centreon/connector/ssh/exception.hh"
-#include "com/centreon/connector/ssh/multiplex.hh"
-
-using namespace com::centreon::connector::ssh;
+#include "com/centreon/exceptions/basic.hh"
 
 // Termination flag.
 static volatile bool should_exit(false);
@@ -61,12 +57,12 @@ int main() {
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
     if (libssh2_init(0))
-      throw (exception() << "libssh2 initialization failed");
+      throw (basic_error() << "libssh2 initialization failed");
 #endif /* libssh2 version >= 1.2.5 */
 
     // Multiplexing loop.
-    while (!should_exit && multiplex())
-      ;
+    /*while (!should_exit && multiplex())
+      ;*/
 
     // Set return value.
     retval = EXIT_SUCCESS;

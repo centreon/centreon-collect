@@ -120,26 +120,27 @@ endif ()
 
 # SSH connector library.
 set(CONNECTORLIB "centreonconnectorssh")
-add_library("${CONNECTORLIB}"
-  # Sources.
-  "${SRC_DIR}/channel.cc"
-  "${SRC_DIR}/credentials.cc"
-  "${SRC_DIR}/exception.cc"
-  "${SRC_DIR}/multiplex.cc"
-  "${SRC_DIR}/session.cc"
-  "${SRC_DIR}/sessions.cc"
-  "${SRC_DIR}/std_io.cc"
-  # Headers.
-  "${INC_DIR}/array_ptr.hh"
-  "${INC_DIR}/channel.hh"
-  "${INC_DIR}/credentials.hh"
-  "${INC_DIR}/exception.hh"
-  "${INC_DIR}/multiplex.hh"
-  "${INC_DIR}/session.hh"
-  "${INC_DIR}/sessions.hh"
-  "${INC_DIR}/std_io.hh"
-)
-target_link_libraries("${CONNECTORLIB}" ${LIBSSH2_LIBRARIES})
+# add_library("${CONNECTORLIB}"
+#   # Sources.
+#   "${SRC_DIR}/channel.cc"
+#   "${SRC_DIR}/credentials.cc"
+#   "${SRC_DIR}/multiplex.cc"
+#   "${SRC_DIR}/session.cc"
+#   "${SRC_DIR}/sessions.cc"
+#   "${SRC_DIR}/std_io.cc"
+#   # Headers.
+#   "${INC_DIR}/array_ptr.hh"
+#   "${INC_DIR}/channel.hh"
+#   "${INC_DIR}/credentials.hh"
+#   "${INC_DIR}/multiplex.hh"
+#   "${INC_DIR}/session.hh"
+#   "${INC_DIR}/sessions.hh"
+#   "${INC_DIR}/std_io.hh"
+# )
+# target_link_libraries(
+#   "${CONNECTORLIB}"
+#   ${LIBSSH2_LIBRARIES}
+#   ${CLIB_LIBRARIES})
 
 # SSH connector.
 set(CONNECTOR "centreon_connector_ssh")
@@ -161,11 +162,4 @@ if (WITH_TESTING)
   # Enable testing.
   enable_testing()
 
-  # Exception tests.
-  #   Default constructor.
-  set(TEST_NAME "exception_ctor_default")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/exception/ctor_default.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
 endif ()
