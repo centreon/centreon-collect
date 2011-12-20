@@ -161,6 +161,7 @@ option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
   # Enable testing.
   enable_testing()
+  set(BUILD_UNIT_TEST "Yes")
 
   # multiplexer tests.
   #   Check singleton.
@@ -170,4 +171,21 @@ if (WITH_TESTING)
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
+else()
+  set(BUILD_UNIT_TEST "No")
 endif ()
+
+# Summary.
+message(STATUS "")
+message(STATUS "Configuration Summary")
+message(STATUS "---------------------")
+message(STATUS "")
+message(STATUS "  System                         ${CMAKE_SYSTEM_NAME}")
+message(STATUS "    - Version                    ${CMAKE_SYSTEM_VERSION}")
+message(STATUS "    - Processor                  ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "")
+message(STATUS "  Project                        ${PROJECT_NAME}")
+message(STATUS "    - Version                    ${CONNECTOR_SSH_VERSION}")
+message(STATUS "    - Extra compilation flags    ${CMAKE_CXX_FLAGS}")
+message(STATUS "    - Build unit tests           ${BUILD_UNIT_TEST}")
+message(STATUS "")
