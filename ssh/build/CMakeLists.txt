@@ -123,6 +123,7 @@ set(CONNECTORLIB "centreonconnectorssh")
 add_library("${CONNECTORLIB}"
   # Sources.
 #   "${SRC_DIR}/channel.cc"
+  "${SRC_DIR}/check_result.cc"
   "${SRC_DIR}/commander.cc"
 #   "${SRC_DIR}/credentials.cc"
   "${SRC_DIR}/multiplexer.cc"
@@ -131,6 +132,7 @@ add_library("${CONNECTORLIB}"
 #   "${SRC_DIR}/std_io.cc"
   # Headers.
 #   "${INC_DIR}/channel.hh"
+  "${INC_DIR}/check_result.hh"
   "${INC_DIR}/commander.hh"
 #   "${INC_DIR}/credentials.hh"
   "${INC_DIR}/multiplexer.hh"
