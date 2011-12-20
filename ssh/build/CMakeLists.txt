@@ -173,6 +173,14 @@ if (WITH_TESTING)
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
+  # commander tests.
+  #   Check singleton.
+  set(TEST_NAME "commander_singleton")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/commander/singleton.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+
 else()
   set(BUILD_UNIT_TEST "No")
 endif ()
