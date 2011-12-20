@@ -61,6 +61,7 @@ int main() {
     // Initializations.
     logging::engine::load();
     multiplexer::load();
+    commander::load();
 
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
@@ -74,8 +75,7 @@ int main() {
     signal(SIGTERM, term_handler);
 
     // Listener of commands.
-    commander c;
-    c.reg();
+    commander::instance().reg();
 
     // Multiplexing loop.
     logging::info(logging::medium) << "starting multiplexing loop";
@@ -86,14 +86,14 @@ int main() {
     // Remove command listener on input.
     logging::debug(logging::high)
       << "commander will stop listening on input";
-    c.unreg(false);
+    commander::instance().unreg(false);
 
     // Wait for remaining sessions.
     // XXX : multiplexer.remaining() > 1 || multiplexer.want_write()
 
     // Remove command listener totally.
     logging::debug(logging::high) << "removing command listener";
-    c.unreg();
+    commander::instance().unreg();
 
     // Set return value.
     retval = EXIT_SUCCESS;
@@ -108,6 +108,7 @@ int main() {
 #endif /* libssh2 version >= 1.2.5 */
 
   // Deinitializations.
+  commander::unload();
   multiplexer::unload();
   logging::engine::unload();
 

@@ -32,6 +32,9 @@
 using namespace com::centreon;
 using namespace com::centreon::connector::ssh;
 
+// Class instance.
+std::auto_ptr<commander> commander::_instance;
+
 /**************************************
 *                                     *
 *           Public Methods            *
@@ -39,16 +42,9 @@ using namespace com::centreon::connector::ssh;
 **************************************/
 
 /**
- *  Default constructor.
- */
-commander::commander() {}
-
-/**
  *  Destructor.
  */
-commander::~commander() throw () {
-  unreg();
-}
+commander::~commander() throw () {}
 
 /**
  *  Close callback.
@@ -79,6 +75,23 @@ void commander::error(handle& h) {
     logging::info(logging::high) << "sending termination request";
     kill(getpid(), SIGTERM);
   }
+  return ;
+}
+
+/**
+ *  Get class instance.
+ *
+ *  @return Class instance.
+ */
+commander& commander::instance() {
+  return (*_instance);
+}
+
+/**
+ *  Load singleton.
+ */
+void commander::load() {
+  _instance.reset(new commander);
   return ;
 }
 
@@ -135,6 +148,14 @@ void commander::reg() {
 }
 
 /**
+ *  Unload singleton.
+ */
+void commander::unload() {
+  _instance.reset();
+  return ;
+}
+
+/**
  *  Unregister commander with multiplexer.
  *
  *  @param[in] all Set to true to remove both input and output. Set to
@@ -182,6 +203,11 @@ void commander::write(handle& h) {
 *           Private Methods           *
 *                                     *
 **************************************/
+
+/**
+ *  Default constructor.
+ */
+commander::commander() {}
 
 /**
  *  @brief Copy constructor.
