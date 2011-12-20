@@ -89,7 +89,7 @@ int main() {
     c.unreg(false);
 
     // Wait for remaining sessions.
-    // XXX
+    // XXX : multiplexer.remaining() > 1 || multiplexer.want_write()
 
     // Remove command listener totally.
     logging::debug(logging::high) << "removing command listener";
