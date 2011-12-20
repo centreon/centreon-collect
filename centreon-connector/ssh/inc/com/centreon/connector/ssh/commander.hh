@@ -21,6 +21,7 @@
 #ifndef CCCS_COMMANDER_HH
 #  define CCCS_COMMANDER_HH
 
+#  include <string>
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/handle_listener.hh"
 #  include "com/centreon/io/standard_input.hh"
@@ -34,27 +35,30 @@ CCCS_BEGIN()
  *
  *  Handle check execution command from the monitoring engine.
  */
-class        commander : public handle_listener {
+class         commander : public handle_listener {
 public:
-             commander();
-             ~commander() throw ();
-  void       close(handle& h);
-  void       error(handle& h);
-  void       read(handle& h);
-  void       reg();
-  void       unreg(bool all = true);
-  bool       want_read(handle& h);
-  bool       want_write(handle& h);
-  void       write(handle& h);
+              commander();
+              ~commander() throw ();
+  void        close(handle& h);
+  void        error(handle& h);
+  void        read(handle& h);
+  void        reg();
+  void        unreg(bool all = true);
+  bool        want_read(handle& h);
+  bool        want_write(handle& h);
+  void        write(handle& h);
 
 private:
-             commander(commander const& c);
-  commander& operator=(commander const& c);
+              commander(commander const& c);
+  commander&  operator=(commander const& c);
+  void        _parse(std::string const& cmd);
 
+  std::string _rbuffer;
   io::standard_input
-             _si;
+              _si;
   io::standard_output
-             _so;
+              _so;
+  std::string _wbuffer;
 };
 
 CCCS_END()

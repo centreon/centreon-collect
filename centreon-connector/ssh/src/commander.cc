@@ -20,7 +20,9 @@
 
 #include <assert.h>
 #include <signal.h>
+#include <sstream>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "com/centreon/connector/ssh/commander.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
@@ -86,7 +88,40 @@ void commander::error(handle& h) {
  *  @param[in,out] h Handle.
  */
 void commander::read(handle& h) {
-  // XXX
+  // Read data.
+  logging::debug(logging::medium) << "reading data from stdin";
+  char buffer[4096];
+  unsigned long rb(h.read(buffer, sizeof(buffer)));
+  logging::debug(logging::medium) << "read "
+    << rb << " bytes from stdin";
+
+  // stdin's eof is reached.
+  if (!rb) {
+    logging::debug(logging::high) << "got eof on stdin, closing it";
+    _si.close();
+  }
+  // Data was read.
+  else {
+    _rbuffer.append(buffer, rb);
+
+    // Find a command boundary.
+    char boundary[4];
+    memset(boundary, 0, sizeof(boundary));
+    size_t bound(_rbuffer.find(boundary, 0, sizeof(boundary)));
+
+    // Parse command.
+    while (bound != std::string::npos) {
+      logging::debug(logging::low)
+        << "got command boundary at offset " << bound;
+      bound += sizeof(boundary);
+      std::string cmd(_rbuffer.substr(0, bound));
+      _rbuffer.erase(0, bound);
+      _parse(cmd);
+      bound = _rbuffer.find(boundary, 0, sizeof(boundary));
+    }
+  }
+
+  return ;
 }
 
 /**
@@ -128,7 +163,7 @@ bool commander::want_read(handle& h) {
  *  @param[in] h Handle.
  */
 bool commander::want_write(handle& h) {
-  // XXX
+  return ((&h == &_so) && !_wbuffer.empty());
 }
 
 /**
@@ -137,7 +172,9 @@ bool commander::want_write(handle& h) {
  *  @param[in,out] h Handle.
  */
 void commander::write(handle& h) {
-  // XXX
+  unsigned long wb(h.write(_wbuffer.c_str(), _wbuffer.size()));
+  _wbuffer.erase(0, wb);
+  return ;
 }
 
 /**************************************
@@ -174,4 +211,115 @@ commander& commander::operator=(commander const& c) {
   assert(!"commander cannot be copied");
   abort();
   return (*this);
+}
+
+/**
+ *  Parse a command.
+ *
+ *  @param[in] cmd Command to parse.
+ */
+void commander::_parse(std::string const& cmd) {
+  // Get command ID.
+  size_t pos(cmd.find('\0'));
+  if (std::string::npos == pos)
+    throw (basic_error() << "invalid command received");
+  unsigned int id(strtoul(cmd.c_str(), NULL, 10));
+  ++pos;
+
+  // Process each command as necessary.
+  switch (id) {
+   case 0: // Version query.
+    // Send version response.
+    logging::info(logging::low)
+      << "received version request, replying with version 1.0.0";
+    {
+      // Packet ID.
+      std::ostringstream packet;
+      packet << "1";
+      packet.put('\0');
+      // Major.
+      packet << "0";
+      packet.put('\0');
+      // Minor.
+      packet << "0";
+      for (unsigned int i = 0; i < 4; ++i)
+        packet.put('\0');
+
+      // Send packet back to monitoring engine.
+      _wbuffer.append(packet.str());
+    }
+    break ;
+   case 2: // Execute query.
+    {
+      // Find command ID.
+      size_t end(cmd.find('\0', pos));
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution request received");
+      unsigned long long cmd_id(strtoull(cmd.c_str() + pos, NULL, 10));
+      pos = end + 1;
+      // Find timeout value.
+      end = cmd.find('\0', pos);
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution request received");
+      time_t timeout(static_cast<time_t>(strtoull(
+        cmd.c_str() + pos,
+        NULL,
+        10)));
+      timeout += time(NULL);
+      pos = end + 1;
+      // Find start time.
+      end = cmd.find('\0', pos);
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution request received");
+      pos = end + 1;
+      // Find command to execute.
+      end = cmd.find('\0', pos);
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution request received");
+      std::string cmdline(cmd.substr(pos, end - pos));
+
+      // Find target host.
+      pos = 0;
+      end = cmdline.find(' ', pos);
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution command");
+      std::string host(cmdline.substr(pos, end - pos));
+      pos = end + 1;
+      // Find user name.
+      end = cmdline.find(' ', pos);
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution command");
+      std::string user(cmdline.substr(pos, end - pos));
+      pos = end + 1;
+      // Find password.
+      end = cmdline.find(' ', pos);
+      if (std::string::npos == end)
+        throw (basic_error() << "invalid execution command");
+      std::string password(cmdline.substr(pos, end - pos));
+      pos = end + 1;
+      // Find command.
+      std::string command(cmdline.substr(pos));
+
+      logging::info(logging::high)
+        << "received command execution request\n"
+        << "  command ID  " << cmd_id << "\n"
+        << "  timeout     " << timeout << "\n"
+        // << "  start time  " << start_time << "\n"
+        << "  host        " << host << "\n"
+        << "  user        " << user << "\n"
+        << "  command     " << command;
+
+      // Run command.
+      // credentials cred(host, user, password);
+      // session*& sess(sessions::instance()[cred]);
+      // if (!sess)
+      //   sess = new session(host, user, password);
+      // sess->run(command, cmd_id, timeout);
+    }
+   case 4: // Quit query.
+    _si.close();
+    break ;
+  };
+
+  return ;
 }
