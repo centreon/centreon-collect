@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+#include "com/centreon/connector/ssh/commander.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
@@ -61,10 +62,6 @@ int main() {
     logging::engine::load();
     multiplexer::load();
 
-    // Set termination handler.
-    logging::info(logging::medium) << "installing termination handler";
-    signal(SIGTERM, term_handler);
-
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
     logging::info(logging::medium) << "initializing libssh2";
@@ -72,11 +69,31 @@ int main() {
       throw (basic_error() << "libssh2 initialization failed");
 #endif /* libssh2 version >= 1.2.5 */
 
+    // Set termination handler.
+    logging::info(logging::medium) << "installing termination handler";
+    signal(SIGTERM, term_handler);
+
+    // Listener of commands.
+    commander c;
+    c.reg();
+
     // Multiplexing loop.
     logging::info(logging::medium) << "starting multiplexing loop";
-    /*while (!should_exit && multiplex())
-      ;*/
+    while (!should_exit)
+      multiplexer::instance().multiplex();
     logging::info(logging::medium) << "multiplexing loop terminated";
+
+    // Remove command listener on input.
+    logging::debug(logging::high)
+      << "commander will stop listening on input";
+    c.unreg(false);
+
+    // Wait for remaining sessions.
+    // XXX
+
+    // Remove command listener totally.
+    logging::debug(logging::high) << "removing command listener";
+    c.unreg();
 
     // Set return value.
     retval = EXIT_SUCCESS;

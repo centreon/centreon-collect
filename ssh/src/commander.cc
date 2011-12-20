@@ -19,9 +19,15 @@
 */
 
 #include <assert.h>
+#include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "com/centreon/connector/ssh/commander.hh"
+#include "com/centreon/connector/ssh/multiplexer.hh"
+#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/logging/logger.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::connector::ssh;
 
 /**************************************
@@ -38,7 +44,101 @@ commander::commander() {}
 /**
  *  Destructor.
  */
-commander::~commander() throw () {}
+commander::~commander() throw () {
+  unreg();
+}
+
+/**
+ *  Close callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void commander::close(handle& h) {
+  if (&h == &_so)
+    throw (basic_error() << "received close request on output");
+  else {
+    logging::error(logging::high) << "received close request on input";
+    logging::info(logging::high) << "sending termination request";
+    kill(getpid(), SIGTERM);
+  }
+  return ;
+}
+
+/**
+ *  Error callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void commander::error(handle& h) {
+  if (&h == &_so)
+    throw (basic_error() << "received error on output");
+  else {
+    logging::error(logging::high) << "received error on input";
+    logging::info(logging::high) << "sending termination request";
+    kill(getpid(), SIGTERM);
+  }
+  return ;
+}
+
+/**
+ *  Read callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void commander::read(handle& h) {
+  // XXX
+}
+
+/**
+ *  Register commander with multiplexer.
+ */
+void commander::reg() {
+  unreg();
+  multiplexer::instance().handle_manager::add(&_si, this);
+  multiplexer::instance().handle_manager::add(&_so, this);
+  return ;
+}
+
+/**
+ *  Unregister commander with multiplexer.
+ *
+ *  @param[in] all Set to true to remove both input and output. Set to
+ *                 false to remove only input.
+ */
+void commander::unreg(bool all) {
+  if (all)
+    multiplexer::instance().handle_manager::remove(this);
+  else
+    multiplexer::instance().handle_manager::remove(&_si);
+  return ;
+}
+
+/**
+ *  Do we want to monitor handle for reading ?
+ *
+ *  @param[in] h Handle.
+ */
+bool commander::want_read(handle& h) {
+  return (&h == &_si);
+}
+
+/**
+ *  Do we want to monitor handle for writing ?
+ *
+ *  @param[in] h Handle.
+ */
+bool commander::want_write(handle& h) {
+  // XXX
+}
+
+/**
+ *  Write callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void commander::write(handle& h) {
+  // XXX
+}
 
 /**************************************
 *                                     *

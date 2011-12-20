@@ -23,6 +23,8 @@
 
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/handle_listener.hh"
+#  include "com/centreon/io/standard_input.hh"
+#  include "com/centreon/io/standard_output.hh"
 
 CCCS_BEGIN()
 
@@ -32,14 +34,27 @@ CCCS_BEGIN()
  *
  *  Handle check execution command from the monitoring engine.
  */
-class        commander : public com::centreon::handle_listener {
+class        commander : public handle_listener {
 public:
              commander();
              ~commander() throw ();
+  void       close(handle& h);
+  void       error(handle& h);
+  void       read(handle& h);
+  void       reg();
+  void       unreg(bool all = true);
+  bool       want_read(handle& h);
+  bool       want_write(handle& h);
+  void       write(handle& h);
 
 private:
              commander(commander const& c);
   commander& operator=(commander const& c);
+
+  io::standard_input
+             _si;
+  io::standard_output
+             _so;
 };
 
 CCCS_END()
