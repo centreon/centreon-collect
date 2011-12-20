@@ -30,7 +30,7 @@ CC_BEGIN()
  *  @class handle_listener handle_listener.hh "com/centreon/handle_listener.hh"
  *  @brief Base for all handle_listener objects.
  *
- *  This class is an interface to recive notification from
+ *  This class is an interface to receive notification from
  *  handle_manager for specific handle.
  */
 class          handle_listener {

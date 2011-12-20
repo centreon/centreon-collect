@@ -240,6 +240,7 @@ void handle_manager::_create_fds() {
       _fds[nfds].events |= POLLIN | POLLPRI;
     if (hl->want_write(*h))
       _fds[nfds].events |= POLLOUT;
+    ++nfds;
   }
 }
 
