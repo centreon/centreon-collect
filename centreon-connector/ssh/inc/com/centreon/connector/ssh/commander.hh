@@ -23,6 +23,7 @@
 
 #  include <memory>
 #  include <string>
+#  include "com/centreon/connector/ssh/check_result.hh"
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/handle_listener.hh"
 #  include "com/centreon/io/standard_input.hh"
@@ -45,6 +46,7 @@ public:
   static void         load();
   void                read(handle& h);
   void                reg();
+  void                submit_check_result(check_result const& cr);
   static void         unload();
   void                unreg(bool all = true);
   bool                want_read(handle& h);

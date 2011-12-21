@@ -18,17 +18,19 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_SSH_SESSION_HH_
-# define CCC_SSH_SESSION_HH_
+#ifndef CCCS_SESSION_HH
+#  define CCCS_SESSION_HH
 
-# include <libssh2.h>
-# include <list>
-# include <queue>
-# include <string>
-# include <sys/types.h>
-# include "com/centreon/connector/ssh/namespace.hh"
+#  include <libssh2.h>
+#  include <list>
+#  include <queue>
+#  include <string>
+#  include <sys/types.h>
+#  include "com/centreon/connector/ssh/namespace.hh"
+#  include "com/centreon/connector/ssh/socket_handle.hh"
+#  include "com/centreon/handle_listener.hh"
 
-CCC_SSH_BEGIN()
+CCCS_BEGIN()
 
 // Forward declaration.
 class                   channel;
@@ -40,8 +42,28 @@ class                   channel;
  *  SSH session between Centreon Connector SSH and a remote
  *  host. The session is kept open as long as needed.
  */
-class                   session {
- private:
+class                   session : public com::centreon::handle_listener {
+public:
+                        session(
+                          std::string const& host,
+                          std::string const& user,
+                          std::string const& password);
+                        ~session() throw ();
+  void                  close();
+  void                  close(handle& h);
+  bool                  empty() const;
+  void                  error(handle& h);
+  void                  open();
+  void                  read(handle& h);
+  void                  run(
+                          std::string const& cmd,
+                          unsigned long long cmd_id,
+                          time_t timeout);
+  bool                  want_read(handle& h);
+  bool                  want_write(handle& h);
+  void                  write(handle& h);
+
+private:
   enum                  e_step {
     session_connect = 0,
     session_startup,
@@ -54,41 +76,26 @@ class                   session {
     unsigned long long  cmd_id;
     time_t              timeout;
   };
-  std::list<channel*>   _channels;
-  std::queue<s_command> _commands;
-  std::string           _host;
-  std::string           _password;
-  LIBSSH2_SESSION*      _session;
-  int                   _socket;
-  e_step                _step;
-  std::string           _user;
+
+                        session(session const& s);
+  session&              operator=(session const& s);
   void                  _connect();
   void                  _exec();
   void                  _key();
   void                  _passwd();
   void                  _run();
   void                  _startup();
-                        session(session const& s);
-  session&              operator=(session const& s);
 
- public:
-                        session(std::string const& host,
-                          std::string const& user,
-                          std::string const& password);
-                        ~session();
-  bool                  empty() const;
-  time_t                get_timeout();
-  void                  read();
-  bool                  read_wanted() const;
-  void                  run(std::string const& cmd,
-                          unsigned long long cmd_id,
-                          time_t timeout);
-  int                   socket() const;
-  void                  timeout(time_t now);
-  void                  write();
-  bool                  write_wanted() const;
+  std::list<channel*>   _channels;
+  std::queue<s_command> _commands;
+  std::string           _host;
+  std::string           _password;
+  LIBSSH2_SESSION*      _session;
+  socket_handle         _socket;
+  e_step                _step;
+  std::string           _user;
 };
 
-CCC_SSH_END()
+CCCS_END()
 
-#endif /* !CCC_SSH_SESSION_HH_ */
+#endif // !CCCS_SESSION_HH

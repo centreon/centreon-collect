@@ -32,11 +32,310 @@
 #include <string.h>
 #include <sys/socket.h>
 #include "com/centreon/connector/ssh/channel.hh"
+#include "com/centreon/connector/ssh/commander.hh"
+#include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/session.hh"
-#include "com/centreon/connector/ssh/std_io.hh"
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/logging/logger.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::connector::ssh;
+
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
+/**
+ *  Constructor.
+ *
+ *  @param[in] host     Host to connect to.
+ *  @param[in] user     User name.
+ *  @param[in] password Password.
+ */
+session::session(
+           std::string const& host,
+           std::string const& user,
+           std::string const& password)
+  : _host(host),
+    _password(password),
+    _session(NULL),
+    _socket(-1),
+    _step(session_connect),
+    _user(user) {}
+
+/**
+ *  Destructor.
+ */
+session::~session() throw () {
+  try {
+    this->close();
+  }
+  catch (...) {}
+}
+
+/**
+ *  Close session.
+ */
+void session::close() {
+  // Unregister with multiplexer.
+  // XXX
+
+  // Shutdown channels.
+  for (std::list<channel*>::iterator
+         it = _channels.begin(),
+         end = _channels.end();
+       it != end;
+       ++it)
+    try {
+      check_result cr;
+      cr.set_command_id((*it)->get_command_id());
+      commander::instance().submit_check_result(cr);
+      delete *it;
+    }
+    catch (...) {}
+  _channels.clear();
+
+  // Send result of not run commands.
+  while (!_commands.empty()) {
+    check_result cr;
+    cr.set_command_id(_commands.front().cmd_id);
+    commander::instance().submit_check_result(cr);
+    _commands.pop();
+  }
+
+  // Delete session.
+  libssh2_session_set_blocking(_session, 1);
+  libssh2_session_disconnect(
+    _session,
+    "Centreon Connector SSH shutdown");
+  libssh2_session_free(_session);
+  _session = NULL;
+
+  // Close socket.
+  _socket.close();
+
+  return ;
+}
+
+/**
+ *  Close callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void session::close(handle& h) {
+  // XXX
+  return ;
+}
+
+/**
+ *  Check if channel list is empty or not.
+ *
+ *  @return true if the channel list is empty.
+ */
+bool session::empty() const {
+  return (_channels.empty());
+}
+
+/**
+ *  Error callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void session::error(handle& h) {
+  // XXX
+  return ;
+}
+
+/**
+ *  Open session.
+ */
+void session::open() {
+  // Check that session wasn't already open.
+  if (_socket.get_internal_handle() >= 0) {
+    logging::info(logging::high)
+      << "attempt to open already opened session";
+    return ;
+  }
+
+  // Step.
+  _step = session_connect;
+
+  // Host pointer.
+  char const* host_ptr(_host.c_str());
+
+  // Host lookup.
+  sockaddr_in sin;
+  memset(&sin, 0, sizeof(sin));
+  {
+    // Try to avoid DNS lookup.
+    in_addr_t addr(inet_addr(host_ptr));
+    if (addr != (in_addr_t)-1)
+      sin.sin_addr.s_addr = addr;
+    // DNS lookup.
+    else {
+      // IPv4 address lookup only.
+      addrinfo hint;
+      memset(&hint, 0, sizeof(hint));
+      hint.ai_family = AF_INET;
+      hint.ai_socktype = SOCK_STREAM;
+      addrinfo* res;
+      int retval(getaddrinfo(host_ptr,
+                             NULL,
+                             &hint,
+                             &res));
+      if (retval)
+        throw (basic_error() << "lookup of host '" << host_ptr
+                 << "' failed: " << gai_strerror(retval));
+      else if (!res)
+        throw (basic_error() << "no IPv4 address found for host '"
+                 << host_ptr << "'");
+
+      // Get address.
+      sin.sin_addr.s_addr = ((sockaddr_in*)(res->ai_addr))->sin_addr.s_addr;
+
+      // Free result.
+      freeaddrinfo(res);
+    }
+  }
+
+  // Set address info.
+  sin.sin_family = AF_INET;
+  sin.sin_port = htons(22); // Standard SSH port.
+
+  // Create socket.
+  int mysocket;
+  mysocket = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (mysocket < 0) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "socket creation failed: " << msg);
+  }
+
+  // Set socket non-blocking.
+  int flags(fcntl(mysocket, F_GETFL));
+  if (flags < 0) {
+    char const* msg(strerror(errno));
+    ::close(mysocket);
+    throw (basic_error() << "could not get socket flags: " << msg);
+  }
+  flags |= O_NONBLOCK;
+  if (fcntl(mysocket, F_SETFL, flags) == -1) {
+    char const* msg(strerror(errno));
+    ::close(mysocket);
+    throw (basic_error()
+             << "could not make socket non blocking: " << msg);
+  }
+
+  // Connect to remote host.
+  if ((connect(mysocket, (sockaddr*)&sin, sizeof(sin)) != 0)
+      && (errno != EINPROGRESS)) {
+      char const* msg(strerror(errno));
+      ::close(mysocket);
+      throw (basic_error() << "could not connect to '"
+               << host_ptr << "': " << msg);
+  }
+
+  // Set socket handle.
+  _socket.set_native_handle(mysocket);
+
+  // Register with multiplexer.
+  multiplexer::instance().handle_manager::add(&_socket, this);
+
+  return ;
+}
+
+/**
+ *  Read data is available.
+ *
+ *  @param[in] h Handle.
+ */
+void session::read(handle& h) {
+  (void)h;
+  static void (session::* const redirector[])() = {
+      &session::_connect,
+      &session::_startup,
+      &session::_passwd,
+      &session::_key,
+      &session::_exec
+    };
+  (this->*redirector[_step])();
+  return ;
+}
+
+/**
+ *  Run a command.
+ *
+ *  @param[in] cmd     Command line.
+ *  @param[in] cmd_id  Command ID.
+ *  @param[in] timeout Command timeout.
+ */
+void session::run(
+                std::string const& cmd,
+                unsigned long long cmd_id,
+                time_t timeout) {
+  s_command s;
+  s.cmd = cmd;
+  s.cmd_id = cmd_id;
+  s.timeout = timeout;
+  _commands.push(s);
+  return ;
+}
+
+/**
+ *  Check timeouts.
+ *
+ *  @param[in] now Current time.
+ */
+/*void session::check_timeout(time_t now) {
+  for (std::list<channel*>::iterator
+         it = _channels.begin(),
+         end = _channels.end();
+       it != end;)
+    if ((*it)->timeout() < now) {
+      try {
+        // XXX : check_result
+        delete *it;
+      }
+      catch (...) {}
+      _channels.erase(it++);
+    }
+    else
+      ++it;
+  return ;
+  }*/
+
+/**
+ *  Check if read monitoring is wanted.
+ *
+ *  @return true if read monitoring is wanted.
+ */
+bool session::want_read(handle& h) {
+  (void)h;
+  return (_session && (libssh2_session_block_directions(_session)
+                       & LIBSSH2_SESSION_BLOCK_INBOUND));
+}
+
+/**
+ *  Check if write monitoring is wanted.
+ *
+ *  @return true if write monitoring is wanted.
+ */
+bool session::want_write(handle& h) {
+  (void)h;
+  return (!_session || (libssh2_session_block_directions(_session)
+                        & LIBSSH2_SESSION_BLOCK_OUTBOUND));
+}
+
+/**
+ *  Write data is available.
+ *
+ *  @param[in] h Handle.
+ */
+void session::write(handle& h) {
+  read(h);
+  return ;
+}
 
 /**************************************
 *                                     *
@@ -53,7 +352,7 @@ using namespace com::centreon::connector::ssh;
  */
 session::session(session const& s) {
   (void)s;
-  assert(false);
+  assert(!"session is not copyable");
   abort();
 }
 
@@ -68,7 +367,7 @@ session::session(session const& s) {
  */
 session& session::operator=(session const& s) {
   (void)s;
-  assert(false);
+  assert(!"session is not copyable");
   abort();
   return (*this);
 }
@@ -106,8 +405,9 @@ void session::_exec() {
     // Delete object is 1) requested by channel or
     // 2) because channel thrown an exception.
     bool to_del(false);
+    check_result cr;
     try {
-      to_del = !(*it)->run();
+      to_del = !(*it)->run(cr);
     }
     catch (std::exception const& e) {
       to_del = true;
@@ -117,6 +417,7 @@ void session::_exec() {
       to_del = true;
     }
     if (to_del) {
+      commander::instance().submit_check_result(cr);
       delete *it;
       _channels.erase(it);
       break ;
@@ -213,17 +514,14 @@ void session::_run() {
     try {
       std::auto_ptr<channel> ptr(new channel(_session,
         s.cmd,
-        s.cmd_id,
-        s.timeout));
+        s.cmd_id));
       _channels.push_back(ptr.get());
       ptr.release();
     }
     catch (...) {
-      std_io::instance().submit_check_result(s.cmd_id,
-        false,
-        -1,
-        "",
-        "");
+      check_result cr;
+      cr.set_command_id(s.cmd_id);
+      commander::instance().submit_check_result(cr);
     }
     _commands.pop();
   }
@@ -235,7 +533,9 @@ void session::_run() {
  */
 void session::_startup() {
   // Exchange banners, keys, setup crypto, compression, ...
-  int retval(libssh2_session_startup(_session, _socket));
+  int retval(libssh2_session_startup(
+               _session,
+               _socket.get_internal_handle()));
   if (retval) {
     if (retval != LIBSSH2_ERROR_EAGAIN) { // Fatal failure.
       char* msg;
@@ -327,259 +627,5 @@ void session::_startup() {
       _passwd();
     }
   }
-}
-
-/**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
-
-/**
- *  Constructor.
- *
- *  @param[in] host     Host to connect to.
- *  @param[in] user     User name.
- *  @param[in] password Password.
- */
-session::session(std::string const& host,
-                 std::string const& user,
-                 std::string const& password)
-  : _host(host),
-    _password(password),
-    _session(NULL),
-    _socket(-1),
-    _step(session_connect),
-    _user(user) {
-  // Host pointer.
-  char const* host_ptr(_host.c_str());
-
-  // Host lookup.
-  sockaddr_in sin;
-  memset(&sin, 0, sizeof(sin));
-  {
-    // Try to avoid DNS lookup.
-    in_addr_t addr(inet_addr(host_ptr));
-    if (addr != (in_addr_t)-1)
-      sin.sin_addr.s_addr = addr;
-    // DNS lookup.
-    else {
-      // IPv4 address lookup only.
-      addrinfo hint;
-      memset(&hint, 0, sizeof(hint));
-      hint.ai_family = AF_INET;
-      hint.ai_socktype = SOCK_STREAM;
-      addrinfo* res;
-      int retval(getaddrinfo(host_ptr,
-                             NULL,
-                             &hint,
-                             &res));
-      if (retval)
-        throw (basic_error() << "lookup of host '" << host_ptr
-                 << "' failed: " << gai_strerror(retval));
-      else if (!res)
-        throw (basic_error() << "no IPv4 address found for host '"
-                 << host_ptr << "'");
-
-      // Get address.
-      sin.sin_addr.s_addr = ((sockaddr_in*)(res->ai_addr))->sin_addr.s_addr;
-
-      // Free result.
-      freeaddrinfo(res);
-    }
-  }
-
-  // Set address info.
-  sin.sin_family = AF_INET;
-  sin.sin_port = htons(22); // Standard SSH port.
-
-  // Create socket.
-  _socket = ::socket(AF_INET, SOCK_STREAM, 0);
-  if (_socket < 0) {
-    char const* msg(strerror(errno));
-    throw (basic_error() << "socket creation failed: " << msg);
-  }
-
-  // Set socket non-blocking.
-  int flags(fcntl(_socket, F_GETFL));
-  if (flags < 0) {
-    char const* msg(strerror(errno));
-    ::close(_socket);
-    throw (basic_error() << "could not get socket flags: " << msg);
-  }
-  flags |= O_NONBLOCK;
-  if (fcntl(_socket, F_SETFL, flags) == -1) {
-    char const* msg(strerror(errno));
-    ::close(_socket);
-    throw (basic_error()
-             << "could not make socket non blocking: " << msg);
-  }
-
-  // Connect to remote host.
-  if ((connect(_socket, (sockaddr*)&sin, sizeof(sin)) != 0)
-      && (errno != EINPROGRESS)) {
-      char const* msg(strerror(errno));
-      ::close(_socket);
-      throw (basic_error() << "could not connect to '"
-               << host_ptr << "': " << msg);
-  }
-}
-
-/**
- *  Destructor.
- */
-session::~session() {
-  // Shutdown channels.
-  for (std::list<channel*>::iterator
-         it = _channels.begin(),
-         end = _channels.end();
-       it != end;
-       ++it)
-    try {
-      delete *it;
-    }
-    catch (...) {}
-
-  // Send result of not run commands.
-  while (!_commands.empty()) {
-    std_io::instance().submit_check_result(_commands.front().cmd_id,
-      false,
-      -1,
-      "",
-      "");
-    _commands.pop();
-  }
-
-  // Delete session.
-  libssh2_session_set_blocking(_session, 1);
-  libssh2_session_disconnect(_session,
-    "Centreon Connector SSH shutdown");
-  libssh2_session_free(_session);
-
-  // Close socket.
-  shutdown(_socket, SHUT_RDWR);
-  ::close(_socket);
-}
-
-/**
- *  Check if channel list is empty or not.
- *
- *  @return true if the channel list is empty.
- */
-bool session::empty() const {
-  return (_channels.empty());
-}
-
-/**
- *  Get closest command timeout.
- *
- *  @return Closest command timeout.
- */
-time_t session::get_timeout() {
-  // According to POSIX, maximum timeout interval should be at least
-  // 31 days long.
-  time_t now(time(NULL));
-  time_t timeout(now + 31 * 24 * 60 * 60);
-  for (std::list<channel*>::iterator
-         it = _channels.begin(),
-         end = _channels.end();
-       it != end;
-       ++it) {
-    time_t t((*it)->timeout());
-    if (t < timeout)
-      timeout = t;
-  }
-  return (timeout);
-}
-
-/**
- *  Read data is available.
- */
-void session::read() {
-  static void (session::* const redirector[])() = {
-      &session::_connect,
-      &session::_startup,
-      &session::_passwd,
-      &session::_key,
-      &session::_exec
-    };
-  (this->*redirector[_step])();
   return ;
-}
-
-/**
- *  Check is read monitoring is wanted.
- *
- *  @return true if read monitoring is wanted.
- */
-bool session::read_wanted() const {
-  return (_session && (libssh2_session_block_directions(_session)
-                       & LIBSSH2_SESSION_BLOCK_INBOUND));
-}
-
-/**
- *  Run a command.
- *
- *  @param[in] cmd     Command line.
- *  @param[in] cmd_id  Command ID.
- *  @param[in] timeout Command timeout.
- */
-void session::run(std::string const& cmd,
-                  unsigned long long cmd_id,
-                  time_t timeout) {
-  s_command s;
-  s.cmd = cmd;
-  s.cmd_id = cmd_id;
-  s.timeout = timeout;
-  _commands.push(s);
-  return ;
-}
-
-/**
- *  Get the socket FD.
- *
- *  @return Socket FD associated with this SSH class.
- */
-int session::socket() const {
-  return (_socket);
-}
-
-/**
- *  Method called when timeout occurs.
- *
- *  @param[in] now Current time.
- */
-void session::timeout(time_t now) {
-  for (std::list<channel*>::iterator
-         it = _channels.begin(),
-         end = _channels.end();
-       it != end;)
-    if ((*it)->timeout() < now) {
-      try {
-        delete *it;
-      }
-      catch (...) {}
-      _channels.erase(it++);
-    }
-    else
-      ++it;
-  return ;
-}
-
-/**
- *  Write data is available.
- */
-void session::write() {
-  read();
-  return ;
-}
-
-/**
- *  Check if write monitoring is wanted.
- *
- *  @return true if write monitoring is wanted.
- */
-bool session::write_wanted() const {
-  return (!_session || (libssh2_session_block_directions(_session)
-                        & LIBSSH2_SESSION_BLOCK_OUTBOUND));
 }
