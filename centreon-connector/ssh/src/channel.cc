@@ -22,10 +22,84 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/channel.hh"
-#include "com/centreon/connector/ssh/std_io.hh"
+#include "com/centreon/connector/ssh/commander.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::connector::ssh;
+
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
+/**
+ *  Constructor.
+ *
+ *  @param[in] sess    Session object.
+ *  @param[in] cmd     Command line to execute.
+ *  @param[in] cmd_id  Command ID.
+ */
+channel::channel(
+           LIBSSH2_SESSION* sess,
+           std::string const& cmd,
+           unsigned long long cmd_id)
+  : _channel(NULL),
+    _cmd(cmd),
+    _cmd_id(cmd_id),
+    _session(sess),
+    _step(chan_open) {}
+
+/**
+ *  Destructor.
+ */
+channel::~channel() {
+  if (_channel) {
+    // Close channel.
+    while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
+      ;
+
+    // Free channel.
+    libssh2_channel_free(_channel);
+  }
+}
+
+/**
+ *  Attempt to run command.
+ *
+ *  @param[out] cr Command result.
+ *
+ *  @return false when the check result is available.
+ */
+bool channel::run(check_result& cr) {
+  bool retval(true);
+  switch (_step) {
+   case chan_open:
+    if (!_open()) {
+      _step = chan_exec;
+      retval = run(cr);
+    }
+    break ;
+   case chan_exec:
+    if (!_exec()) {
+      _step = chan_read;
+      retval = run(cr);
+    }
+    break ;
+   case chan_read:
+    if (!_read()) {
+      _step = chan_close;
+      retval = run(cr);
+    }
+    break ;
+   case chan_close:
+     retval = _close(cr);
+    break ;
+   default:
+    throw (basic_error() << "channel requested to run at invalid step");
+  }
+  return (retval);
+}
 
 /**************************************
 *                                     *
@@ -42,7 +116,7 @@ using namespace com::centreon::connector::ssh;
  */
 channel::channel(channel const& c) {
   (void)c;
-  assert(false);
+  assert(!"channel is not copyable");
   abort();
 }
 
@@ -57,7 +131,7 @@ channel::channel(channel const& c) {
  */
 channel& channel::operator=(channel const& c) {
   (void)c;
-  assert(false);
+  assert(!"channel is not copyable");
   abort();
   return (*this);
 }
@@ -67,7 +141,7 @@ channel& channel::operator=(channel const& c) {
  *
  *  @return true while channel was not closed properly.
  */
-bool channel::_close() {
+bool channel::_close(check_result& cr) {
   // Close failed.
   bool retval;
 
@@ -89,11 +163,11 @@ bool channel::_close() {
       int exitcode(libssh2_channel_get_exit_status(_channel));
 
       // Send results to parent process.
-      std_io::instance().submit_check_result(_cmd_id,
-        true,
-        exitcode,
-        _stderr,
-        _stdout);
+      cr.set_command_id(_cmd_id);
+      cr.set_error(_stderr);
+      cr.set_executed(true);
+      cr.set_exit_code(exitcode);
+      cr.set_output(_stdout);
 
       // Free channel.
       libssh2_channel_free(_channel);
@@ -105,7 +179,8 @@ bool channel::_close() {
   }
   // No channel = successful close.
   else
-    retval = false;
+    throw (basic_error()
+             << "channel requested to close whereas it wasn't opened");
 
   return (retval);
 }
@@ -191,99 +266,4 @@ bool channel::_read() {
           || (LIBSSH2_ERROR_EAGAIN == orb)
           || (erb > 0)
           || (LIBSSH2_ERROR_EAGAIN == erb));
-}
-
-/**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
-
-/**
- *  Constructor.
- *
- *  @param[in] sess    Session object.
- *  @param[in] cmd     Command line to execute.
- *  @param[in] cmd_id  Command ID.
- *  @param[in] timeout Command timeout.
- */
-channel::channel(LIBSSH2_SESSION* sess,
-                 std::string const& cmd,
-                 unsigned long long cmd_id,
-                 time_t timeout)
-  : _channel(NULL),
-    _cmd(cmd),
-    _cmd_id(cmd_id),
-    _session(sess),
-    _step(chan_open),
-    _timeout(timeout) {
-  // Launch initial attempt.
-  run();
-}
-
-/**
- *  Destructor.
- */
-channel::~channel() {
-  // There was an error while executing command.
-  if (_channel || (_step == chan_open))
-    // Send some result packet back to parent process.
-    std_io::instance().submit_check_result(_cmd_id,
-      false,
-      -1,
-      "",
-      "");
-
-  if (_channel) {
-    // Close channel.
-    while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
-      ;
-
-    // Free channel.
-    libssh2_channel_free(_channel);
-  }
-}
-
-/**
- *  Attempt to run command.
- *
- *  @return true if the run() method should be called again.
- */
-bool channel::run() {
-  bool retval(true);
-  switch (_step) {
-   case chan_open:
-    if (!_open()) {
-      _step = chan_exec;
-      retval = run();
-    }
-    break ;
-   case chan_exec:
-    if (!_exec()) {
-      _step = chan_read;
-      retval = run();
-    }
-    break ;
-   case chan_read:
-    if (!_read()) {
-      _step = chan_close;
-      retval = run();
-    }
-    break ;
-   case chan_close:
-     retval = _close();
-    break ;
-   default:
-    retval = false;
-  }
-  return (retval);
-}
-
-/**
- *  Get the command timeout.
- *
- *  @return Command timeout.
- */
-time_t channel::timeout() const {
-  return (_timeout);
 }

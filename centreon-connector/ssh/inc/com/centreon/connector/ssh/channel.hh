@@ -18,15 +18,16 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_SSH_CHANNEL_HH_
-# define CCC_SSH_CHANNEL_HH_
+#ifndef CCCS_CHANNEL_HH
+#  define CCCS_CHANNEL_HH
 
-# include <libssh2.h>
-# include <string>
-# include <time.h>
-# include "com/centreon/connector/ssh/namespace.hh"
+#  include <libssh2.h>
+#  include <string>
+#  include <time.h>
+#  include "com/centreon/connector/ssh/check_result.hh"
+#  include "com/centreon/connector/ssh/namespace.hh"
 
-CCC_SSH_BEGIN()
+CCCS_BEGIN()
 
 /**
  *  @class channel channel.hh "com/centreon/connector/ssh/channel.hh"
@@ -36,13 +37,29 @@ CCC_SSH_BEGIN()
  *  commands on the remote host.
  */
 class                channel {
- private:
+public:
+                     channel(
+                       LIBSSH2_SESSION* sess,
+                       std::string const& cmd,
+                       unsigned long long cmd_id);
+                     ~channel();
+  bool               run(check_result& cr);
+
+private:
   enum               e_step {
     chan_open = 1,
     chan_exec,
     chan_read,
     chan_close
   };
+
+                     channel(channel const& c);
+  channel&           operator=(channel const& c);
+  bool               _close(check_result& cr);
+  bool               _exec();
+  bool               _open();
+  bool               _read();
+
   LIBSSH2_CHANNEL*   _channel;
   std::string        _cmd;
   unsigned long long _cmd_id;
@@ -50,24 +67,8 @@ class                channel {
   std::string        _stderr;
   std::string        _stdout;
   e_step             _step;
-  time_t             _timeout;
-                     channel(channel const& c);
-  channel&           operator=(channel const& c);
-  bool               _close();
-  bool               _exec();
-  bool               _open();
-  bool               _read();
-
- public:
-                     channel(LIBSSH2_SESSION* sess,
-                       std::string const& cmd,
-                       unsigned long long cmd_id,
-                       time_t timeout);
-                     ~channel();
-  bool               run();
-  time_t             timeout() const;
 };
 
-CCC_SSH_END()
+CCCS_END()
 
-#endif /* !CCC_SSH_CHANNEL_HH_ */
+#endif // !CCCS_CHANNEL_HH
