@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include "com/centreon/connector/ssh/socket_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
@@ -52,6 +53,7 @@ socket_handle::~socket_handle() throw () {
  *  Close socket descriptor.
  */
 void socket_handle::close() {
+  shutdown(_internal_handle, SHUT_RDWR);
   ::close(_internal_handle);
   _internal_handle = -1;
   return ;
