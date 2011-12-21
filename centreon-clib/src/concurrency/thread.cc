@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#  include <pthread.h>
 #  include <pthread_np.h>
 #endif // FreeBSD or OpenBSD or NetBSD
 #include <stdlib.h>
