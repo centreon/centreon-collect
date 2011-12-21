@@ -27,46 +27,6 @@ using namespace com::centreon::connector::ssh;
 
 /**************************************
 *                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Constructor.
- */
-sessions::sessions() {}
-
-/**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] s Object to copy.
- */
-sessions::sessions(sessions const& s) {
-  (void)s;
-  assert(false);
-  abort();
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in a call to abort().
- *
- *  @param[in] s Object to copy.
- *
- *  @return This object.
- */
-sessions& sessions::operator=(sessions const& s) {
-  (void)s;
-  assert(false);
-  abort();
-  return (*this);
-}
-
-/**************************************
-*                                     *
 *           Public Methods            *
 *                                     *
 **************************************/
@@ -171,4 +131,44 @@ sessions& sessions::instance() {
  */
 unsigned int sessions::size() const {
   return (_set.size());
+}
+
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
+
+/**
+ *  Constructor.
+ */
+sessions::sessions() {}
+
+/**
+ *  @brief Copy constructor.
+ *
+ *  Any call to this constructor will result in a call to abort().
+ *
+ *  @param[in] s Object to copy.
+ */
+sessions::sessions(sessions const& s) {
+  (void)s;
+  assert(!"sessions is not copyable");
+  abort();
+}
+
+/**
+ *  @brief Assignment operator.
+ *
+ *  Any call to this method will result in a call to abort().
+ *
+ *  @param[in] s Object to copy.
+ *
+ *  @return This object.
+ */
+sessions& sessions::operator=(sessions const& s) {
+  (void)s;
+  assert(!"sessions is not copyable");
+  abort();
+  return (*this);
 }
