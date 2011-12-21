@@ -125,7 +125,10 @@ void session::close() {
  *  @param[in,out] h Handle.
  */
 void session::close(handle& h) {
-  // XXX
+  (void)h;
+  logging::error(logging::high)
+    << "socket got closed, shutting down session";
+  this->close();
   return ;
 }
 
@@ -144,7 +147,10 @@ bool session::empty() const {
  *  @param[in,out] h Handle.
  */
 void session::error(handle& h) {
-  // XXX
+  (void)h;
+  logging::error(logging::high)
+    << "error detected on socket, shutting down session";
+  this->close();
   return ;
 }
 
