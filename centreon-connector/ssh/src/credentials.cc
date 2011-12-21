@@ -24,24 +24,6 @@ using namespace com::centreon::connector::ssh;
 
 /**************************************
 *                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] c Object to copy.
- */
-void credentials::_copy(credentials const& c) {
-  _host = c._host;
-  _password = c._password;
-  _user = c._user;
-  return ;
-}
-
-/**************************************
-*                                     *
 *           Public Methods            *
 *                                     *
 **************************************/
@@ -60,9 +42,10 @@ credentials::credentials() {}
  *  @param[in] user     User.
  *  @param[in] password Password.
  */
-credentials::credentials(std::string const& host,
-                         std::string const& user,
-                         std::string const& password)
+credentials::credentials(
+               std::string const& host,
+               std::string const& user,
+               std::string const& password)
   : _host(host), _password(password), _user(user) {}
 
 /**
@@ -191,5 +174,23 @@ void credentials::set_password(std::string const& password) {
  */
 void credentials::set_user(std::string const& user) {
   _user = user;
+  return ;
+}
+
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
+
+/**
+ *  Copy internal data members.
+ *
+ *  @param[in] c Object to copy.
+ */
+void credentials::_copy(credentials const& c) {
+  _host = c._host;
+  _password = c._password;
+  _user = c._user;
   return ;
 }
