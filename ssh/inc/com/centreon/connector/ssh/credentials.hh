@@ -18,13 +18,13 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_SSH_CREDENTIALS_HH_
-# define CCC_SSH_CREDENTIALS_HH_
+#ifndef CCCS_CREDENTIALS_HH
+#  define CCCS_CREDENTIALS_HH
 
-# include <string>
-# include "com/centreon/connector/ssh/namespace.hh"
+#  include <string>
+#  include "com/centreon/connector/ssh/namespace.hh"
 
-CCC_SSH_BEGIN()
+CCCS_BEGIN()
 
 /**
  *  @class credentials credentials.hh "com/centreon/connector/ssh/credentials.hh"
@@ -34,15 +34,10 @@ CCC_SSH_BEGIN()
  *  password. Methods are provided so that they can be compared.
  */
 class                credentials {
- private:
-  std::string        _host;
-  std::string        _password;
-  std::string        _user;
-  void               _copy(credentials const& c);
-
- public:
+public:
                      credentials();
-                     credentials(std::string const& host,
+                     credentials(
+                       std::string const& host,
                        std::string const& user,
                        std::string const& password);
                      credentials(credentials const& c);
@@ -57,8 +52,15 @@ class                credentials {
   void               set_host(std::string const& host);
   void               set_password(std::string const& password);
   void               set_user(std::string const& user);
+
+private:
+  void               _copy(credentials const& c);
+
+  std::string        _host;
+  std::string        _password;
+  std::string        _user;
 };
 
-CCC_SSH_END()
+CCCS_END()
 
-#endif /* !CCC_SSH_CREDENTIALS_HH_ */
+#endif // !CCCS_CREDENTIALS_HH
