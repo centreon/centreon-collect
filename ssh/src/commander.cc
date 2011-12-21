@@ -148,6 +148,46 @@ void commander::reg() {
 }
 
 /**
+ *  Send a check result back to the monitoring engine.
+ *
+ *  @param[in] cr Check result.
+ */
+void commander::submit_check_result(check_result const& cr) {
+  // Build packet.
+  std::ostringstream oss;
+  // Packet ID.
+  oss << "3";
+  oss.put('\0');
+  // Command ID.
+  oss << cr.get_command_id();
+  oss.put('\0');
+  // Executed.
+  oss << (cr.get_executed() ? "1" : "0");
+  oss.put('\0');
+  // Exit code.
+  oss << cr.get_exit_code();
+  oss.put('\0');
+  // Error output.
+  if (cr.get_error().empty())
+    oss.put(' ');
+  else
+    oss << cr.get_error();
+  oss.put('\0');
+  // Standard output.
+  if (cr.get_output().empty())
+    oss.put(' ');
+  else
+    oss << cr.get_output();
+  // Packet boundary.
+  for (unsigned int i = 0; i < 4; ++i)
+    oss.put('\0');
+  // Append packet to write buffer.
+  _wbuffer.append(oss.str());
+
+  return ;
+}
+
+/**
  *  Unload singleton.
  */
 void commander::unload() {

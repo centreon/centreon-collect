@@ -65,6 +65,15 @@ channel::~channel() {
 }
 
 /**
+ *  Get command ID associated with channel.
+ *
+ *  @return Command ID associated with channel.
+ */
+unsigned long long channel::get_command_id() const {
+  return (_cmd_id);
+}
+
+/**
  *  Attempt to run command.
  *
  *  @param[out] cr Command result.

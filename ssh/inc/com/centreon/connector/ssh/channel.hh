@@ -43,6 +43,7 @@ public:
                        std::string const& cmd,
                        unsigned long long cmd_id);
                      ~channel();
+  unsigned long long get_command_id() const;
   bool               run(check_result& cr);
 
 private:
