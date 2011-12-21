@@ -25,7 +25,7 @@
 # include "com/centreon/connector/ssh/credentials.hh"
 # include "com/centreon/connector/ssh/namespace.hh"
 
-CCC_SSH_BEGIN()
+CCCS_BEGIN()
 
 // Forward declaration.
 class              session;
@@ -37,14 +37,7 @@ class              session;
  *  Manage sessions.
  */
 class              sessions {
- private:
-  std::map<credentials, session*>
-                   _set;
-                   sessions();
-                   sessions(sessions const& s);
-  sessions&        operator=(sessions const& s);
-
- public:
+public:
                    ~sessions();
   session*&        operator[](credentials const& c);
   std::map<credentials, session*>::iterator
@@ -56,8 +49,16 @@ class              sessions {
   void             erase(std::map<credentials, session*>::iterator it);
   static sessions& instance();
   unsigned int     size() const;
+
+private:
+                   sessions();
+                   sessions(sessions const& s);
+  sessions&        operator=(sessions const& s);
+
+  std::map<credentials, session*>
+                   _set;
 };
 
-CCC_SSH_END()
+CCCS_END()
 
-#endif /* !CCC_SSH_SESSIONS_HH_ */
+#endif // !CCCS_SESSIONS_HH
