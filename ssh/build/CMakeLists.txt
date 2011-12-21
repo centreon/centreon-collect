@@ -167,6 +167,56 @@ if (WITH_TESTING)
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
 
+  # check_result tests.
+  #   Default constructor.
+  set(TEST_NAME "check_result_ctor_default")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/ctor_default.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Command ID property.
+  set(TEST_NAME "check_result_command_id")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/command_id.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Error property.
+  set(TEST_NAME "check_result_error")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/error.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Executed
+  set(TEST_NAME "check_result_executed")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/executed.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Exit code property.
+  set(TEST_NAME "check_result_exit_code")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/exit_code.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Output property.
+  set(TEST_NAME "check_result_output")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/output.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Copy constructor.
+  set(TEST_NAME "check_result_ctor_copy")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/ctor_copy.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Assignment operator.
+  set(TEST_NAME "check_result_assignment")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/check_result/assignment.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+
   # multiplexer tests.
   #   Check singleton.
   set(TEST_NAME "multiplexer_singleton")
