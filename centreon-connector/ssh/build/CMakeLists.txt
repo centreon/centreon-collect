@@ -130,7 +130,6 @@ add_library("${CONNECTORLIB}"
   "${SRC_DIR}/session.cc"
 #   "${SRC_DIR}/sessions.cc"
   "${SRC_DIR}/socket_handle.cc"
-#   "${SRC_DIR}/std_io.cc"
   # Headers.
   "${INC_DIR}/channel.hh"
   "${INC_DIR}/check_result.hh"
@@ -141,7 +140,6 @@ add_library("${CONNECTORLIB}"
   "${INC_DIR}/session.hh"
 #   "${INC_DIR}/sessions.hh"
   "${INC_DIR}/socket_handle.hh"
-#   "${INC_DIR}/std_io.hh"
 )
 target_link_libraries(
   "${CONNECTORLIB}"
