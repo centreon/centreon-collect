@@ -68,12 +68,12 @@ void standard_input::close() {
 }
 
 /**
- *  Impossible to read on the standard input.
+ *  Read on the standard input.
  *
- *  @param[in] data  none
- *  @param[in] size  none
+ *  @param[out] data  Buffer to fill.
+ *  @param[in]  size  Buffer size.
  *
- *  @return Throw basic exception.
+ *  @return The number of bytes was read on the standard input.
  */
 unsigned long standard_input::read(void* data, unsigned long size) {
   if (!data)
@@ -90,12 +90,12 @@ unsigned long standard_input::read(void* data, unsigned long size) {
 }
 
 /**
- *  Write on the standard input.
+ *  Impossible to Write on the standard input.
  *
- *  @param[in] data  Buffer to write on standard input.
- *  @param[in] size  Size of the buffer.
+ *  @param[in] data  None.
+ *  @param[in] size  None.
  *
- *  @return The number of bytes written on the standard input.
+ *  @return Throw basic exception.
  */
 unsigned long standard_input::write(
                                  void const* data,

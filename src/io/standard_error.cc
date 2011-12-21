@@ -71,8 +71,8 @@ void standard_error::close() {
 /**
  *  Impossible to read on the standard error.
  *
- *  @param[in] data  none
- *  @param[in] size  none
+ *  @param[out] data  None.
+ *  @param[in]  size  None.
  *
  *  @return Throw basic exception.
  */

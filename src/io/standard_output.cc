@@ -71,8 +71,8 @@ void standard_output::close() {
 /**
  *  Impossible to read on the standard output.
  *
- *  @param[in] data  none
- *  @param[in] size  none
+ *  @param[out] data  None.
+ *  @param[in]  size  None.
  *
  *  @return Throw basic exception.
  */
