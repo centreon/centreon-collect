@@ -122,24 +122,24 @@ endif ()
 set(CONNECTORLIB "centreonconnectorssh")
 add_library("${CONNECTORLIB}"
   # Sources.
-  "${SRC_DIR}/channel.cc"
+  # "${SRC_DIR}/channel.cc"
   "${SRC_DIR}/check_result.cc"
-  "${SRC_DIR}/commander.cc"
-  "${SRC_DIR}/credentials.cc"
+  # "${SRC_DIR}/commander.cc"
+  # "${SRC_DIR}/credentials.cc"
   "${SRC_DIR}/multiplexer.cc"
-  "${SRC_DIR}/session.cc"
-  "${SRC_DIR}/sessions.cc"
-  "${SRC_DIR}/socket_handle.cc"
+  # "${SRC_DIR}/session.cc"
+  # "${SRC_DIR}/sessions.cc"
+  # "${SRC_DIR}/socket_handle.cc"
   # Headers.
-  "${INC_DIR}/channel.hh"
+  # "${INC_DIR}/channel.hh"
   "${INC_DIR}/check_result.hh"
-  "${INC_DIR}/commander.hh"
-  "${INC_DIR}/credentials.hh"
+  # "${INC_DIR}/commander.hh"
+  # "${INC_DIR}/credentials.hh"
   "${INC_DIR}/multiplexer.hh"
-  "${INC_DIR}/namespace.hh"
-  "${INC_DIR}/session.hh"
-  "${INC_DIR}/sessions.hh"
-  "${INC_DIR}/socket_handle.hh"
+  # "${INC_DIR}/namespace.hh"
+  # "${INC_DIR}/session.hh"
+  # "${INC_DIR}/sessions.hh"
+  # "${INC_DIR}/socket_handle.hh"
 )
 target_link_libraries(
   "${CONNECTORLIB}"
@@ -222,14 +222,6 @@ if (WITH_TESTING)
   set(TEST_NAME "multiplexer_singleton")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/multiplexer/singleton.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-
-  # commander tests.
-  #   Check singleton.
-  set(TEST_NAME "commander_singleton")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/commander/singleton.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
