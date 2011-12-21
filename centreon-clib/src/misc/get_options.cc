@@ -18,7 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <iostream>
+#include <iterator>
+#include <sstream>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/get_options.hh"
 
@@ -236,6 +239,20 @@ get_options& get_options::_internal_copy(get_options const& right) {
 void get_options::_parse_arguments(int argc, char** argv) {
   std::vector<std::string> args;
   _array_to_vector(argc, argv, args);
+  _parse_arguments(args);
+}
+
+/**
+ *  Parse and set argument (like unix command line style).
+ *
+ *  @param[in] command_line  The command line to parse.
+ */
+void get_options::_parse_arguments(std::string const& command_line) {
+  std::vector<std::string> args;
+  std::istringstream iss(command_line);
+  std::copy(std::istream_iterator<std::string>(iss),
+            std::istream_iterator<std::string>(),
+            std::back_inserter<std::vector<std::string> >(args));
   _parse_arguments(args);
 }
 

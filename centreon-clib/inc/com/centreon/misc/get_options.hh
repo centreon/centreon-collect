@@ -61,6 +61,7 @@ namespace               misc {
   protected:
     get_options&        _internal_copy(get_options const& right);
     void                _parse_arguments(int argc, char** argv);
+    void                _parse_arguments(std::string const& command_line);
     virtual void        _parse_arguments(std::vector<std::string> const& args);
 
     std::map<char, argument>
