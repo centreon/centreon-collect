@@ -126,12 +126,12 @@ add_library("${CONNECTORLIB}"
   "${SRC_DIR}/checks/listener.cc"
   "${SRC_DIR}/checks/result.cc"
   # "${SRC_DIR}/commander.cc"
-  # "${SRC_DIR}/credentials.cc"
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
   # "${SRC_DIR}/session.cc"
   # "${SRC_DIR}/sessions.cc"
+  "${SRC_DIR}/sessions/credentials.cc"
   "${SRC_DIR}/sessions/listener.cc"
   # "${SRC_DIR}/socket_handle.cc"
   # Headers.
@@ -139,13 +139,13 @@ add_library("${CONNECTORLIB}"
   "${INC_DIR}/checks/listener.hh"
   "${INC_DIR}/checks/result.hh"
   # "${INC_DIR}/commander.hh"
-  # "${INC_DIR}/credentials.hh"
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/orders/listener.hh"
   "${INC_DIR}/orders/parser.hh"
   # "${INC_DIR}/session.hh"
   # "${INC_DIR}/sessions.hh"
+  "${INC_DIR}/sessions/credentials.hh"
   "${INC_DIR}/sessions/listener.hh"
   # "${INC_DIR}/socket_handle.hh"
 )
@@ -288,6 +288,47 @@ if (WITH_TESTING)
   set(TEST_NAME "multiplexer_singleton")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/multiplexer/singleton.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+
+  #
+  # sessions namespace tests.
+  #
+  # credentials tests.
+  #   Default constructor.
+  set(TEST_NAME "sessions_credentials_ctor_default")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/ctor_default.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Host property.
+  set(TEST_NAME "sessions_credentials_host")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/host.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   User property.
+  set(TEST_NAME "sessions_credentials_user")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/user.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Password property.
+  set(TEST_NAME "sessions_credentials_password")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/password.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Copy constructor.
+  set(TEST_NAME "sessions_credentials_ctor_copy")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/ctor_copy.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Assignment operator.
+  set(TEST_NAME "sessions_credentials_assignment")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/assignment.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
