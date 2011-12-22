@@ -123,7 +123,7 @@ set(CONNECTORLIB "centreonconnectorssh")
 add_library("${CONNECTORLIB}"
   # Sources.
   # "${SRC_DIR}/channel.cc"
-  "${SRC_DIR}/check_result.cc"
+  "${SRC_DIR}/checks/result.cc"
   # "${SRC_DIR}/commander.cc"
   # "${SRC_DIR}/credentials.cc"
   "${SRC_DIR}/multiplexer.cc"
@@ -134,7 +134,7 @@ add_library("${CONNECTORLIB}"
   # "${SRC_DIR}/socket_handle.cc"
   # Headers.
   # "${INC_DIR}/channel.hh"
-  "${INC_DIR}/check_result.hh"
+  "${INC_DIR}/checks/result.hh"
   # "${INC_DIR}/commander.hh"
   # "${INC_DIR}/credentials.hh"
   "${INC_DIR}/multiplexer.hh"
@@ -172,53 +172,54 @@ if (WITH_TESTING)
   set(BUILD_UNIT_TEST "Yes")
   include_directories("${PROJECT_SOURCE_DIR}")
 
-  # check_result tests.
+  # checks namespace tests.
+  # result tests.
   #   Default constructor.
-  set(TEST_NAME "check_result_ctor_default")
+  set(TEST_NAME "checks_result_ctor_default")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/ctor_default.cc")
+    "${TEST_DIR}/checks/result/ctor_default.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Command ID property.
-  set(TEST_NAME "check_result_command_id")
+  set(TEST_NAME "checks_result_command_id")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/command_id.cc")
+    "${TEST_DIR}/checks/result/command_id.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Error property.
-  set(TEST_NAME "check_result_error")
+  set(TEST_NAME "checks_result_error")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/error.cc")
+    "${TEST_DIR}/checks/result/error.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Executed
-  set(TEST_NAME "check_result_executed")
+  set(TEST_NAME "checks_result_executed")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/executed.cc")
+    "${TEST_DIR}/checks/result/executed.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Exit code property.
-  set(TEST_NAME "check_result_exit_code")
+  set(TEST_NAME "checks_result_exit_code")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/exit_code.cc")
+    "${TEST_DIR}/checks/result/exit_code.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Output property.
-  set(TEST_NAME "check_result_output")
+  set(TEST_NAME "checks_result_output")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/output.cc")
+    "${TEST_DIR}/checks/result/output.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Copy constructor.
-  set(TEST_NAME "check_result_ctor_copy")
+  set(TEST_NAME "checks_result_ctor_copy")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/ctor_copy.cc")
+    "${TEST_DIR}/checks/result/ctor_copy.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Assignment operator.
-  set(TEST_NAME "check_result_assignment")
+  set(TEST_NAME "checks_result_assignment")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/check_result/assignment.cc")
+    "${TEST_DIR}/checks/result/assignment.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
 

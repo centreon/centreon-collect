@@ -18,27 +18,31 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/ssh/check_result.hh"
+#include "com/centreon/connector/ssh/checks/result.hh"
+
+#define ID1 71184
+#define ID2 15
+#define ID3 741258963148368872ull
 
 /**
- *  Check check_result's executed property.
+ *  Check result's command_id property.
  *
  *  @return 0 on success.
  */
 int main() {
   // Object.
-  com::centreon::connector::ssh::check_result cr;
+  com::centreon::connector::ssh::checks::result r;
 
   // Checks.
   int retval(0);
-  cr.set_executed(false);
-  retval |= cr.get_executed();
-  cr.set_executed(true);
+  r.set_command_id(ID1);
+  for (unsigned int i = 0; i < 100; ++i)
+    retval |= (r.get_command_id() != ID1);
+  r.set_command_id(ID2);
+  retval |= (r.get_command_id() != ID2);
+  r.set_command_id(ID3);
   for (unsigned int i = 0; i < 10000; ++i)
-    retval |= !cr.get_executed();
-  cr.set_executed(false);
-  for (unsigned int i = 0; i < 10000; ++i)
-    retval |= cr.get_executed();
+    retval |= (r.get_command_id() != ID3);
 
   // Return check result.
   return (retval);

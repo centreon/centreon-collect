@@ -18,21 +18,32 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/ssh/check_result.hh"
+#include "com/centreon/connector/ssh/checks/result.hh"
+
+#define STR1 "this is the first string"
+#define STR2 "this string might be longer"
+#define STR3 "this is the last string that makes Centreon Connector SSH rocks !"
 
 /**
- *  Check that check_result is properly default constructed.
+ *  Check result's output property.
  *
  *  @return 0 on success.
  */
 int main() {
   // Object.
-  com::centreon::connector::ssh::check_result cr;
+  com::centreon::connector::ssh::checks::result r;
 
-  // Check.
-  return ((cr.get_command_id() != 0)
-          || !cr.get_error().empty()
-          || cr.get_executed()
-          || (cr.get_exit_code() != -1)
-          || !cr.get_output().empty());
+  // Checks.
+  int retval(0);
+  r.set_output(STR1);
+  for (unsigned int i = 0; i < 100; ++i)
+    retval |= (r.get_output() != STR1);
+  r.set_output(STR2);
+  retval |= (r.get_output() != STR2);
+  r.set_output(STR3);
+  for (unsigned int i = 0; i < 10000; ++i)
+    retval |= (r.get_output() != STR3);
+
+  // Return check result.
+  return (retval);
 }

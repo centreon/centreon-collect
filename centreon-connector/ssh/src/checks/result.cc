@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/ssh/check_result.hh"
+#include "com/centreon/connector/ssh/checks/result.hh"
 
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector::ssh::checks;
 
 /**************************************
 *                                     *
@@ -31,33 +31,32 @@ using namespace com::centreon::connector::ssh;
 /**
  *  Default constructor.
  */
-check_result::check_result()
-  : _cmd_id(0), _executed(false), _exit_code(-1) {}
+result::result() : _cmd_id(0), _executed(false), _exit_code(-1) {}
 
 /**
  *  Copy constructor.
  *
- *  @param[in] cr Object to copy.
+ *  @param[in] r Object to copy.
  */
-check_result::check_result(check_result const& cr) {
-  _internal_copy(cr);
+result::result(result const& r) {
+  _internal_copy(r);
 }
 
 /**
  *  Destructor.
  */
-check_result::~check_result() {}
+result::~result() {}
 
 /**
  *  Assignment operator.
  *
- *  @param[in] cr Object to copy.
+ *  @param[in] r Object to copy.
  *
  *  @return This object.
  */
-check_result& check_result::operator=(check_result const& cr) {
-  if (this != &cr)
-    _internal_copy(cr);
+result& result::operator=(result const& r) {
+  if (this != &r)
+    _internal_copy(r);
   return (*this);
 }
 
@@ -66,7 +65,7 @@ check_result& check_result::operator=(check_result const& cr) {
  *
  *  @return Command ID.
  */
-unsigned long long check_result::get_command_id() const throw () {
+unsigned long long result::get_command_id() const throw () {
   return (_cmd_id);
 }
 
@@ -75,7 +74,7 @@ unsigned long long check_result::get_command_id() const throw () {
  *
  *  @return Check error string.
  */
-std::string const& check_result::get_error() const throw () {
+std::string const& result::get_error() const throw () {
   return (_error);
 }
 
@@ -84,7 +83,7 @@ std::string const& check_result::get_error() const throw () {
  *
  *  @return true if check was executed, false otherwise.
  */
-bool check_result::get_executed() const throw () {
+bool result::get_executed() const throw () {
   return (_executed);
 }
 
@@ -93,7 +92,7 @@ bool check_result::get_executed() const throw () {
  *
  *  @return Check exit code.
  */
-int check_result::get_exit_code() const throw () {
+int result::get_exit_code() const throw () {
   return (_exit_code);
 }
 
@@ -102,7 +101,7 @@ int check_result::get_exit_code() const throw () {
  *
  *  @return Check output.
  */
-std::string const& check_result::get_output() const throw () {
+std::string const& result::get_output() const throw () {
   return (_output);
 }
 
@@ -111,7 +110,7 @@ std::string const& check_result::get_output() const throw () {
  *
  *  @param[in] cmd_id Command ID.
  */
-void check_result::set_command_id(unsigned long long cmd_id) throw () {
+void result::set_command_id(unsigned long long cmd_id) throw () {
   _cmd_id = cmd_id;
   return ;
 }
@@ -121,7 +120,7 @@ void check_result::set_command_id(unsigned long long cmd_id) throw () {
  *
  *  @param[in] error Error string.
  */
-void check_result::set_error(std::string const& error) {
+void result::set_error(std::string const& error) {
   _error = error;
   return ;
 }
@@ -132,7 +131,7 @@ void check_result::set_error(std::string const& error) {
  *  @param[in] executed Set to true if check was executed, false
  *                      otherwise.
  */
-void check_result::set_executed(bool executed) throw () {
+void result::set_executed(bool executed) throw () {
   _executed = executed;
   return ;
 }
@@ -142,7 +141,7 @@ void check_result::set_executed(bool executed) throw () {
  *
  *  @param[in] code Check exit code.
  */
-void check_result::set_exit_code(int code) throw () {
+void result::set_exit_code(int code) throw () {
   _exit_code = code;
   return ;
 }
@@ -152,7 +151,7 @@ void check_result::set_exit_code(int code) throw () {
  *
  *  @param[in] output Check output.
  */
-void check_result::set_output(std::string const& output) {
+void result::set_output(std::string const& output) {
   _output = output;
   return ;
 }
@@ -166,13 +165,13 @@ void check_result::set_output(std::string const& output) {
 /**
  *  Copy internal data members.
  *
- *  @param[in] cr Object to copy.
+ *  @param[in] r Object to copy.
  */
-void check_result::_internal_copy(check_result const& cr) {
-  _cmd_id = cr._cmd_id;
-  _error = cr._error;
-  _executed = cr._executed;
-  _exit_code = cr._exit_code;
-  _output = cr._output;
+void result::_internal_copy(result const& r) {
+  _cmd_id = r._cmd_id;
+  _error = r._error;
+  _executed = r._executed;
+  _exit_code = r._exit_code;
+  _output = r._output;
   return ;
 }
