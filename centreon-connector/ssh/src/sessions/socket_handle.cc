@@ -22,11 +22,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "com/centreon/connector/ssh/socket_handle.hh"
+#include "com/centreon/connector/ssh/sessions/socket_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector::ssh::sessions;
 
 /**************************************
 *                                     *

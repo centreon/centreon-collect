@@ -26,25 +26,27 @@
 
 CCCS_BEGIN()
 
-/**
- *  @class socket_handle socket_handle.hh "com/centreon/connector/ssh/socket_handle.hh"
- *  @brief Socket handle.
- *
- *  Wrapper around a socket descriptor.
- */
-class            socket_handle : public com::centreon::handle {
-public:
-                 socket_handle(native_handle internal_handle = -1);
-                 ~socket_handle() throw ();
-  void           close();
-  unsigned long  read(void* data, unsigned long size);
-  void           set_native_handle(native_handle internal_handle);
-  unsigned long  write(void const* data, unsigned long size);
+namespace          sessions {
+  /**
+   *  @class socket_handle socket_handle.hh "com/centreon/connector/ssh/socket_handle.hh"
+   *  @brief Socket handle.
+   *
+   *  Wrapper around a socket descriptor.
+   */
+  class            socket_handle : public com::centreon::handle {
+  public:
+                   socket_handle(native_handle internal_handle = -1);
+                   ~socket_handle() throw ();
+    void           close();
+    unsigned long  read(void* data, unsigned long size);
+    void           set_native_handle(native_handle internal_handle);
+    unsigned long  write(void const* data, unsigned long size);
 
-private:
-                 socket_handle(socket_handle const& sh);
-  socket_handle& operator=(socket_handle const& sh);
-};
+  private:
+                   socket_handle(socket_handle const& sh);
+    socket_handle& operator=(socket_handle const& sh);
+  };
+}
 
 CCCS_END()
 
