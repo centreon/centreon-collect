@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/ssh/credentials.hh"
+#include "com/centreon/connector/ssh/sessions/credentials.hh"
 
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector::ssh::sessions;
 
 /**************************************
 *                                     *
