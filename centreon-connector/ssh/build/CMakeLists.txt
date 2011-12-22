@@ -128,6 +128,7 @@ add_library("${CONNECTORLIB}"
   # "${SRC_DIR}/credentials.cc"
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/orders/listener.cc"
+  "${SRC_DIR}/orders/parser.cc"
   # "${SRC_DIR}/session.cc"
   # "${SRC_DIR}/sessions.cc"
   # "${SRC_DIR}/socket_handle.cc"
@@ -139,6 +140,7 @@ add_library("${CONNECTORLIB}"
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/orders/listener.hh"
+  "${INC_DIR}/orders/parser.hh"
   # "${INC_DIR}/session.hh"
   # "${INC_DIR}/sessions.hh"
   # "${INC_DIR}/socket_handle.hh"
@@ -168,6 +170,7 @@ if (WITH_TESTING)
   # Enable testing.
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
+  include_directories("${PROJECT_SOURCE_DIR}")
 
   # check_result tests.
   #   Default constructor.
@@ -217,6 +220,62 @@ if (WITH_TESTING)
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/check_result/assignment.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+
+  #
+  # orders namespace tests.
+  #
+  # Common library.
+  add_library("test_orders" STATIC
+    # Sources.
+    "${TEST_DIR}/orders/buffer_handle.cc"
+    "${TEST_DIR}/orders/fake_listener.cc"
+    # Headers.
+    "${TEST_DIR}/orders/buffer_handle.hh"
+    "${TEST_DIR}/orders/fake_listener.hh")
+  set(ORDERS_LIBRARIES "test_orders" "${CONNECTORLIB}")
+  # parser tests.
+  #   Default constructor.
+  set(TEST_NAME "orders_parser_ctor_default")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/ctor_default.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   EOF detection.
+  set(TEST_NAME "orders_parser_eof")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/eof.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Error detection.
+  set(TEST_NAME "orders_parser_error")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/error.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Version order.
+  set(TEST_NAME "orders_parser_version")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/version.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Quit order.
+  set(TEST_NAME "orders_parser_quit")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/quit.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Execute order.
+  set(TEST_NAME "orders_parser_execute")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/execute.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Order suite.
+  set(TEST_NAME "orders_parser_suite")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/suite.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
   # multiplexer tests.
