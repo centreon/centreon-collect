@@ -18,45 +18,45 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/ssh/check_result.hh"
+#include "com/centreon/connector/ssh/checks/result.hh"
 
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector::ssh::checks;
 
 /**
- *  Check that check_result's copy constructor works properly.
+ *  Check that result's copy constructor works properly.
  *
  *  @return 0 on success.
  */
 int main() {
   // Base object.
-  check_result cr1;
-  cr1.set_command_id(14598753ull);
-  cr1.set_error("a random error string");
-  cr1.set_executed(true);
-  cr1.set_exit_code(-46582);
-  cr1.set_output("another random string, but for the output property");
+  result r1;
+  r1.set_command_id(14598753ull);
+  r1.set_error("a random error string");
+  r1.set_executed(true);
+  r1.set_exit_code(-46582);
+  r1.set_output("another random string, but for the output property");
 
   // Copied object.
-  check_result cr2;
-  cr2 = cr1;
+  result r2;
+  r2 = r1;
 
   // Reset base object.
-  cr1.set_command_id(42);
-  cr1.set_error("foo bar");
-  cr1.set_executed(false);
-  cr1.set_exit_code(7536);
-  cr1.set_output("baz qux");
+  r1.set_command_id(42);
+  r1.set_error("foo bar");
+  r1.set_executed(false);
+  r1.set_exit_code(7536);
+  r1.set_output("baz qux");
 
   // Check content.
-  return ((cr1.get_command_id() != 42)
-          || (cr1.get_error() != "foo bar")
-          || cr1.get_executed()
-          || (cr1.get_exit_code() != 7536)
-          || (cr1.get_output() != "baz qux")
-          || (cr2.get_command_id() != 14598753ull)
-          || (cr2.get_error() != "a random error string")
-          || !cr2.get_executed()
-          || (cr2.get_exit_code() != -46582)
-          || (cr2.get_output()
+  return ((r1.get_command_id() != 42)
+          || (r1.get_error() != "foo bar")
+          || r1.get_executed()
+          || (r1.get_exit_code() != 7536)
+          || (r1.get_output() != "baz qux")
+          || (r2.get_command_id() != 14598753ull)
+          || (r2.get_error() != "a random error string")
+          || !r2.get_executed()
+          || (r2.get_exit_code() != -46582)
+          || (r2.get_output()
               != "another random string, but for the output property"));
 }
