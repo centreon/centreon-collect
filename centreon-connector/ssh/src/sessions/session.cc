@@ -18,6 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -31,15 +32,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include "com/centreon/connector/ssh/channel.hh"
-#include "com/centreon/connector/ssh/commander.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
-#include "com/centreon/connector/ssh/session.hh"
+#include "com/centreon/connector/ssh/sessions/session.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon;
-using namespace com::centreon::connector::ssh;
+using namespace com::centreon::connector::ssh::sessions;
 
 /**************************************
 *                                     *
@@ -50,20 +49,12 @@ using namespace com::centreon::connector::ssh;
 /**
  *  Constructor.
  *
- *  @param[in] host     Host to connect to.
- *  @param[in] user     User name.
- *  @param[in] password Password.
+ *  @param[in] creds Connection credentials.
  */
-session::session(
-           std::string const& host,
-           std::string const& user,
-           std::string const& password)
-  : _host(host),
-    _password(password),
+session::session(credentials const& creds)
+  : _creds(creds),
     _session(NULL),
-    _socket(-1),
-    _step(session_connect),
-    _user(user) {}
+    _step(session_connect) {}
 
 /**
  *  Destructor.
@@ -82,28 +73,13 @@ void session::close() {
   // Unregister with multiplexer.
   // XXX
 
-  // Shutdown channels.
-  for (std::list<channel*>::iterator
-         it = _channels.begin(),
-         end = _channels.end();
+  // Notify listeners.
+  for (std::list<listener*>::iterator
+         it = _listnrs.begin(),
+         end = _listnrs.end();
        it != end;
        ++it)
-    try {
-      check_result cr;
-      cr.set_command_id((*it)->get_command_id());
-      commander::instance().submit_check_result(cr);
-      delete *it;
-    }
-    catch (...) {}
-  _channels.clear();
-
-  // Send result of not run commands.
-  while (!_commands.empty()) {
-    check_result cr;
-    cr.set_command_id(_commands.front().cmd_id);
-    commander::instance().submit_check_result(cr);
-    _commands.pop();
-  }
+    (*it)->on_close();
 
   // Delete session.
   libssh2_session_set_blocking(_session, 1);
@@ -133,33 +109,11 @@ void session::close(handle& h) {
 }
 
 /**
- *  Check if channel list is empty or not.
- *
- *  @return true if the channel list is empty.
- */
-bool session::empty() const {
-  return (_channels.empty());
-}
-
-/**
- *  Error callback.
- *
- *  @param[in,out] h Handle.
- */
-void session::error(handle& h) {
-  (void)h;
-  logging::error(logging::high)
-    << "error detected on socket, shutting down session";
-  this->close();
-  return ;
-}
-
-/**
  *  Open session.
  */
-void session::open() {
+void session::connect() {
   // Check that session wasn't already open.
-  if (_socket.get_internal_handle() >= 0) {
+  if (is_connected()) {
     logging::info(logging::high)
       << "attempt to open already opened session";
     return ;
@@ -169,7 +123,7 @@ void session::open() {
   _step = session_connect;
 
   // Host pointer.
-  char const* host_ptr(_host.c_str());
+  char const* host_ptr(_creds.get_host().c_str());
 
   // Host lookup.
   sockaddr_in sin;
@@ -234,7 +188,7 @@ void session::open() {
   }
 
   // Connect to remote host.
-  if ((connect(mysocket, (sockaddr*)&sin, sizeof(sin)) != 0)
+  if ((::connect(mysocket, (sockaddr*)&sin, sizeof(sin)) != 0)
       && (errno != EINPROGRESS)) {
       char const* msg(strerror(errno));
       ::close(mysocket);
@@ -252,6 +206,56 @@ void session::open() {
 }
 
 /**
+ *  Error callback.
+ *
+ *  @param[in,out] h Handle.
+ */
+void session::error(handle& h) {
+  (void)h;
+  logging::error(logging::high)
+    << "error detected on socket, shutting down session";
+  this->close();
+  return ;
+}
+
+/**
+ *  Get the libssh2 session object.
+ *
+ *  @return libssh2 session object.
+ */
+LIBSSH2_SESSION* session::get_libssh2_session() const throw () {
+  return (_session);
+}
+
+/**
+ *  Get the socket handle.
+ *
+ *  @return Socket handle.
+ */
+socket_handle* session::get_socket_handle() throw () {
+  return (&_socket);
+}
+
+/**
+ *  Check if session is connected.
+ *
+ *  @return true if session is connected.
+ */
+bool session::is_connected() const throw () {
+  return (_step == session_keepalive);
+}
+
+/**
+ *  Add listener to session.
+ *
+ *  @param[in] listnr New listener.
+ */
+void session::listen(listener* listnr) {
+  _listnrs.push_back(listnr);
+  return ;
+}
+
+/**
  *  Read data is available.
  *
  *  @param[in] h Handle.
@@ -263,53 +267,21 @@ void session::read(handle& h) {
       &session::_startup,
       &session::_passwd,
       &session::_key,
-      &session::_exec
+      &session::_nop
     };
   (this->*redirector[_step])();
   return ;
 }
 
 /**
- *  Run a command.
+ *  Remove a listener.
  *
- *  @param[in] cmd     Command line.
- *  @param[in] cmd_id  Command ID.
- *  @param[in] timeout Command timeout.
+ *  @param[in] listnr Listener to remove.
  */
-void session::run(
-                std::string const& cmd,
-                unsigned long long cmd_id,
-                time_t timeout) {
-  s_command s;
-  s.cmd = cmd;
-  s.cmd_id = cmd_id;
-  s.timeout = timeout;
-  _commands.push(s);
+void session::unlisten(listener* listnr) {
+  std::remove(_listnrs.begin(), _listnrs.end(), listnr);
   return ;
 }
-
-/**
- *  Check timeouts.
- *
- *  @param[in] now Current time.
- */
-/*void session::check_timeout(time_t now) {
-  for (std::list<channel*>::iterator
-         it = _channels.begin(),
-         end = _channels.end();
-       it != end;)
-    if ((*it)->timeout() < now) {
-      try {
-        // XXX : check_result
-        delete *it;
-      }
-      catch (...) {}
-      _channels.erase(it++);
-    }
-    else
-      ++it;
-  return ;
-  }*/
 
 /**
  *  Check if read monitoring is wanted.
@@ -399,44 +371,6 @@ void session::_connect() {
 }
 
 /**
- *  Run commands.
- */
-void session::_exec() {
-  // Run all channels.
-  for (std::list<channel*>::iterator
-         it = _channels.begin(),
-         end = _channels.end();
-       it != end;
-       ++it) {
-    // Delete object is 1) requested by channel or
-    // 2) because channel thrown an exception.
-    bool to_del(false);
-    check_result cr;
-    try {
-      to_del = !(*it)->run(cr);
-    }
-    catch (std::exception const& e) {
-      to_del = true;
-      std::cerr << e.what() << std::endl;
-    }
-    catch (...) {
-      to_del = true;
-    }
-    if (to_del) {
-      commander::instance().submit_check_result(cr);
-      delete *it;
-      _channels.erase(it);
-      break ;
-    }
-  }
-
-  // Launch new commands.
-  _run();
-
-  return ;
-}
-
-/**
  *  Attempt public key authentication.
  */
 void session::_key() {
@@ -457,10 +391,10 @@ void session::_key() {
 
   // Try public key authentication.
   int retval(libssh2_userauth_publickey_fromfile(_session,
-               _user.c_str(),
+               _creds.get_user().c_str(),
                pub.c_str(),
                priv.c_str(),
-               _password.c_str()));
+               _creds.get_password().c_str()));
   if (retval < 0) {
     if (retval != LIBSSH2_ERROR_EAGAIN)
       throw (basic_error() << "user authentication failed");
@@ -470,8 +404,23 @@ void session::_key() {
     libssh2_session_set_blocking(_session, 0);
 
     // Set execution step.
-    _step = session_exec;
+    _step = session_keepalive;
+    for (std::list<listener*>::iterator
+           it = _listnrs.begin(),
+           end = _listnrs.end();
+         it != end;
+         ++it)
+      (*it)->on_connected();
   }
+  return ;
+}
+
+/**
+ *  No operation.
+ */
+void session::_nop() {
+  logging::debug(logging::high) << "session is performing no operation";
+  return ;
 }
 
 /**
@@ -480,8 +429,8 @@ void session::_key() {
 void session::_passwd() {
   // Try password.
   int retval(libssh2_userauth_password(_session,
-               _user.c_str(),
-               _password.c_str()));
+               _creds.get_user().c_str(),
+               _creds.get_password().c_str()));
   if (retval != 0) {
 #if LIBSSH2_VERSION_NUM >= 0x010203
     if (retval == LIBSSH2_ERROR_AUTHENTICATION_FAILED) {
@@ -504,32 +453,14 @@ void session::_passwd() {
     // Enable non-blocking mode.
     libssh2_session_set_blocking(_session, 0);
 
-    // Set execution step.
-    _step = session_exec;
-    _exec();
-  }
-  return ;
-}
-
-/**
- *  Run new commands.
- */
-void session::_run() {
-  while (!_commands.empty()) {
-    s_command& s(_commands.front());
-    try {
-      std::auto_ptr<channel> ptr(new channel(_session,
-        s.cmd,
-        s.cmd_id));
-      _channels.push_back(ptr.get());
-      ptr.release();
-    }
-    catch (...) {
-      check_result cr;
-      cr.set_command_id(s.cmd_id);
-      commander::instance().submit_check_result(cr);
-    }
-    _commands.pop();
+    // We're now connected.
+    _step = session_keepalive;
+    for (std::list<listener*>::iterator
+           it = _listnrs.begin(),
+           end = _listnrs.end();
+         it != end;
+         ++it)
+      (*it)->on_connected();
   }
   return ;
 }
@@ -595,7 +526,7 @@ void session::_startup() {
 #if LIBSSH2_VERSION_NUM >= 0x010206
       // Introduced in 1.2.6.
       int check(libssh2_knownhost_checkp(known_hosts,
-        _host.c_str(),
+        _creds.get_host().c_str(),
         22,
         fingerprint,
         len,
@@ -604,7 +535,7 @@ void session::_startup() {
 #else
       // 1.2.5 or older.
       int check(libssh2_knownhost_check(known_hosts,
-        _host.c_str(),
+        creds.get_host().c_str(),
         fingerprint,
         len,
         LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW,
@@ -617,7 +548,7 @@ void session::_startup() {
       // Check fingerprint.
       if (check != LIBSSH2_KNOWNHOST_CHECK_MATCH) {
         exceptions::basic e(basic_error());
-        e << "host '" << _host.c_str()
+        e << "host '" << _creds.get_host()
           << "' is not known or could not be validated: ";
         if (LIBSSH2_KNOWNHOST_CHECK_NOTFOUND == check)
           e << "host was not found in known_hosts file";

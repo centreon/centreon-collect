@@ -38,6 +38,7 @@ namespace        sessions {
                  listener(listener const& l);
     virtual      ~listener();
     listener&    operator=(listener const& l);
+    virtual void on_close() = 0;
     virtual void on_connected() = 0;
   };
 }
