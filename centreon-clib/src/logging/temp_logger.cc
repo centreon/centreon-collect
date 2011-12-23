@@ -240,9 +240,11 @@ temp_logger& temp_logger::_builder(T obj) throw () {
  */
 temp_logger& temp_logger::_internal_copy(temp_logger const& right) {
   if (this != &right) {
+    _buffer = right._buffer;
     _redirector = right._redirector;
     _type = right._type;
     _verbose = right._verbose;
+    right._redirector = &_redir_nothing;
   }
   return (*this);
 }
