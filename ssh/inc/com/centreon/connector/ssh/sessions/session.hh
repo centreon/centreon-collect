@@ -1,0 +1,87 @@
+/*
+** Copyright 2011 Merethis
+**
+** This file is part of Centreon Connector SSH.
+**
+** Centreon Connector SSH is free software: you can redistribute it
+** and/or modify it under the terms of the GNU Affero General Public
+** License as published by the Free Software Foundation, either version
+** 3 of the License, or (at your option) any later version.
+**
+** Centreon Connector SSH is distributed in the hope that it will be
+** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** Affero General Public License for more details.
+**
+** You should have received a copy of the GNU Affero General Public
+** License along with Centreon Connector SSH. If not, see
+** <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef CCCS_SESSIONS_SESSION_HH
+#  define CCCS_SESSIONS_SESSION_HH
+
+#  include <libssh2.h>
+#  include <list>
+#  include "com/centreon/connector/ssh/namespace.hh"
+#  include "com/centreon/connector/ssh/sessions/credentials.hh"
+#  include "com/centreon/connector/ssh/sessions/listener.hh"
+#  include "com/centreon/connector/ssh/sessions/socket_handle.hh"
+#  include "com/centreon/handle_listener.hh"
+
+CCCS_BEGIN()
+
+namespace                 sessions {
+  /**
+   *  @class session session.hh "com/centreon/connector/ssh/session.hh"
+   *  @brief SSH session.
+   *
+   *  SSH session between Centreon Connector SSH and a remote
+   *  host. The session is kept open as long as needed.
+   */
+  class                   session : public com::centreon::handle_listener {
+  public:
+                          session(credentials const& creds);
+                          ~session() throw ();
+    void                  close();
+    void                  close(handle& h);
+    void                  connect();
+    void                  error(handle& h);
+    LIBSSH2_SESSION*      get_libssh2_session() const throw ();
+    socket_handle*        get_socket_handle() throw ();
+    bool                  is_connected() const throw ();
+    void                  listen(listener* listnr);
+    void                  read(handle& h);
+    void                  unlisten(listener* listnr);
+    bool                  want_read(handle& h);
+    bool                  want_write(handle& h);
+    void                  write(handle& h);
+
+  private:
+    enum                  e_step {
+      session_connect = 0,
+      session_startup,
+      session_password,
+      session_key,
+      session_keepalive
+    };
+
+                          session(session const& s);
+    session&              operator=(session const& s);
+    void                  _connect();
+    void                  _key();
+    void                  _nop();
+    void                  _passwd();
+    void                  _startup();
+
+    credentials           _creds;
+    std::list<listener*>  _listnrs;
+    LIBSSH2_SESSION*      _session;
+    socket_handle         _socket;
+    e_step                _step;
+  };
+}
+
+CCCS_END()
+
+#endif // !CCCS_SESSIONS_SESSION_HH
