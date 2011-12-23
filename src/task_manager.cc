@@ -161,6 +161,9 @@ unsigned int task_manager::execute(timestamp now) {
     it->second->when = it->first;
     _tasks.insert(*it);
   }
+
+  // Wait task ending.
+  _th_pool.wait_for_done();
   return (count_execute);
 }
 
