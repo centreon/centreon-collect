@@ -26,6 +26,9 @@
 CCCS_BEGIN()
 
 namespace        sessions {
+  // Forward declaration.
+  class          session;
+
   /**
    *  @class listener listener.hh "com/centreon/connector/ssh/sessions/listener.hh"
    *  @brief Session listener.
@@ -38,8 +41,8 @@ namespace        sessions {
                  listener(listener const& l);
     virtual      ~listener();
     listener&    operator=(listener const& l);
-    virtual void on_close() = 0;
-    virtual void on_connected() = 0;
+    virtual void on_close(session& s) = 0;
+    virtual void on_connected(session& s) = 0;
   };
 }
 
