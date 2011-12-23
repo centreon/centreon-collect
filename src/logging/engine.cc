@@ -105,7 +105,7 @@ bool engine::is_log(
   // Lock engine.
   locker lock(&_mtx);
   return (_list_verbose[flag] != verbosity()
-          && verbose <= _list_verbose[flag]);
+          && _list_verbose[flag] >= verbose);
 }
 
 /**
@@ -216,7 +216,7 @@ void engine::log(
        ++it)
     if (((*it)->types & (static_cast<type_flags>(1) << flag))
         && (*it)->verbose != verbosity()
-        && (*it)->verbose <= verbose) {
+        && (*it)->verbose >= verbose) {
       (*it)->obj->log(buffer.data(), buffer.size());
       if (_is_sync)
         (*it)->obj->flush();

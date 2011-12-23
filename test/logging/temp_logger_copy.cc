@@ -22,6 +22,7 @@
 #include <memory>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "com/centreon/logging/temp_logger.hh"
 
 using namespace com::centreon::logging;
 
@@ -29,51 +30,39 @@ using namespace com::centreon::logging;
  *  @class backend_test
  *  @brief litle implementation of backend to test logging engine.
  */
-class  backend_test : public backend {
+class                backend_test : public backend {
 public:
-       backend_test() {}
-       ~backend_test() throw () {}
-  void flush() throw () {}
-  void log(char const* msg, unsigned int size) throw () {
-    (void)msg;
-    (void)size;
+                     backend_test() {}
+                     ~backend_test() throw () {}
+  void               flush() throw () {}
+  void               log(char const* msg, unsigned int size) throw () {
+    _msg.append(msg, size);
   }
+  std::string const& get_msg() const throw () { return (_msg); }
+
+private:
+  std::string        _msg;
 };
 
 /**
- *  Check is log.
+ *  Check add backend on to the logging engine.
  *
  *  @return 0 on success.
  */
 int main() {
   int retval;
+
   engine::load();
   try {
     engine& e(engine::instance());
     std::auto_ptr<backend_test> obj(new backend_test);
+    e.add(obj.get(), 2, verbosity(1));
 
-    for (unsigned int i(1); i < 4; ++i) {
-      for (unsigned int j(0); j < sizeof(type_flags) * CHAR_BIT; ++j) {
-        verbosity verbose(i);
-        unsigned long id(e.add(obj.get(),
-                               (static_cast<type_flags>(1) << j),
-                               verbose));
-        for (unsigned int k(0); k < sizeof(type_flags) * CHAR_BIT; ++k) {
-          if (e.is_log(k, verbose) != (k == j))
-            throw (basic_error() << "is log failed with types("
-                   << j << ") verbose(" << verbose << ")");
-
-          for (unsigned int k(1); k < 4; ++k) {
-            verbosity tmp_verbose(k);
-            if (e.is_log(j, tmp_verbose) != (verbose >= tmp_verbose))
-              throw (basic_error() << "is log failed with types("
-                     << j << ") verbose(" << verbose << ")");
-          }
-        }
-        if (!e.remove(id))
-          throw (basic_error() << "remove id failed");
-      }
-    }
+    temp_logger tmp(1, verbosity(1));
+    tmp << "Centreon Clib test";
+    temp_logger(tmp) << " copy";
+    if (obj->get_msg().find("copy") == std::string::npos)
+      throw (basic_error() << "invalid number of call log");
     retval = 0;
   }
   catch (std::exception const& e) {

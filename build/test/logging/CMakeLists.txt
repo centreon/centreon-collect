@@ -105,6 +105,12 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# temp_logger_copy
+set(TEST_NAME "temp_logger_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # temp_logger_constructor
 set(TEST_NAME "temp_logger_constructor")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
