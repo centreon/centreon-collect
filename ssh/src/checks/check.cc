@@ -434,7 +434,7 @@ bool check::_read() {
  */
 void check::_send_result_and_unregister(result const& r) {
   // Unregister from multiplexer.
-  // XXX
+  multiplexer::instance().handle_manager::remove(this);
 
   // Unregister from session.
   _session->unlisten(this);

@@ -71,7 +71,8 @@ session::~session() throw () {
  */
 void session::close() {
   // Unregister with multiplexer.
-  // XXX
+  multiplexer::instance().handle_manager::remove(&_socket);
+  multiplexer::instance().handle_manager::remove(this);
 
   // Notify listeners.
   for (std::list<listener*>::iterator
