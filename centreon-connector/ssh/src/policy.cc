@@ -140,6 +140,7 @@ void policy::on_execute(
     sess->connect();
     _sessions[creds] = sess.get();
     sess.release();
+    it = _sessions.find(creds);
   }
 
   // Launch check.
