@@ -97,7 +97,7 @@ void reporter::error(handle& h) {
  *
  *  @param[in] r Check result.
  */
-void reporter::on_result(checks::result& r) {
+void reporter::on_result(checks::result const& r) {
   // Build packet.
   std::ostringstream oss;
   // Packet ID.
