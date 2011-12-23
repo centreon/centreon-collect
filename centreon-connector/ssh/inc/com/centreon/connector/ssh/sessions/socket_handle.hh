@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCCS_SOCKET_HANDLE_HH
-#  define CCCS_SOCKET_HANDLE_HH
+#ifndef CCCS_SESSIONS_SOCKET_HANDLE_HH
+#  define CCCS_SESSIONS_SOCKET_HANDLE_HH
 
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/handle.hh"
@@ -50,4 +50,4 @@ namespace          sessions {
 
 CCCS_END()
 
-#endif // !CCCS_SOCKET_HANDLE_HH
+#endif // !CCCS_SESSIONS_SOCKET_HANDLE_HH
