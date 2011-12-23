@@ -134,7 +134,7 @@ argument& get_options::get_argument(std::string const& long_name) {
        ++it)
     if (it->second.get_long_name() == long_name)
       return (it->second);
-  throw (basic_error() << "argument \"" << long_name << "\"");
+  throw (basic_error() << "argument \"" << long_name << "\" not found");
 }
 
 /**
@@ -152,7 +152,7 @@ argument const& get_options::get_argument(std::string const& long_name) const {
        ++it)
     if (it->second.get_long_name() != long_name)
       return (it->second);
-  throw (basic_error() << "argument \"" << long_name << "\"");
+  throw (basic_error() << "argument \"" << long_name << "\" not found");
 }
 
 /**
