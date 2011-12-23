@@ -19,9 +19,13 @@
 */
 
 #include <assert.h>
+#include <memory>
 #include <stdlib.h>
+#include "com/centreon/connector/ssh/checks/check.hh"
+#include "com/centreon/connector/ssh/checks/result.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/policy.hh"
+#include "com/centreon/connector/ssh/sessions/session.hh"
 #include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon::connector::ssh;
@@ -56,6 +60,32 @@ policy::~policy() throw () {
   // Remove from multiplexer.
   multiplexer::instance().handle_manager::remove(&_sin);
   multiplexer::instance().handle_manager::remove(&_sout);
+
+  // Close checks.
+  for (std::map<unsigned long long, checks::check*>::iterator
+         it = _checks.begin(),
+         end = _checks.end();
+       it != end;
+       ++it) {
+    try {
+      it->second->unlisten(this);
+    }
+    catch (...) {}
+    delete it->second;
+  }
+
+  // Close sessions.
+  for (std::map<sessions::credentials, sessions::session*>::iterator
+         it = _sessions.begin(),
+         end = _sessions.end();
+       it != end;
+       ++it) {
+    try {
+      it->second->close();
+    }
+    catch (...) {}
+    delete it->second;
+  }
 }
 
 /**
@@ -94,6 +124,32 @@ void policy::on_execute(
                std::string const& user,
                std::string const& password,
                std::string const& cmd) {
+  // Credentials.
+  sessions::credentials creds;
+  creds.set_host(host);
+  creds.set_user(user);
+  creds.set_password(password);
+
+  // Find session.
+  std::map<sessions::credentials, sessions::session*>::iterator it;
+  it = _sessions.find(creds);
+  if (it == _sessions.end()) {
+    logging::info(logging::low) << "creating session for "
+      << user << "@" << host;
+    std::auto_ptr<sessions::session> sess(new sessions::session(creds));
+    sess->connect();
+    _sessions[creds] = sess.get();
+    sess.release();
+  }
+
+  // Launch check.
+  std::auto_ptr<checks::check> chk(new checks::check);
+  chk->listen(this);
+  chk->execute(*it->second, cmd_id, cmd, timeout);
+  _checks[cmd_id] = chk.get();
+  chk.release();
+
+  return ;
 }
 
 /**
@@ -109,10 +165,36 @@ void policy::on_quit() {
 }
 
 /**
+ *  Check result has arrived.
+ *
+ *  @param[in] r Check result.
+ */
+void policy::on_result(checks::result const& r) {
+  // Remove check from list.
+  std::map<unsigned long long, checks::check*>::iterator it;
+  it = _checks.find(r.get_command_id());
+  if (it != _checks.end()) {
+    try {
+      it->second->unlisten(this);
+    }
+    catch (...) {}
+    delete it->second;
+    _checks.erase(it);
+  }
+
+  // Send check result back to monitoring engine.
+  _reporter.send_result(r);
+
+  return ;
+}
+
+/**
  *  Version request was received.
  */
 void policy::on_version() {
   // Report version 1.0.
+  logging::info(logging::low)
+    << "monitoring engine requested protocol version, sending 1.0";
   _reporter.send_version(1, 0);
   return ;
 }
@@ -141,7 +223,8 @@ void policy::run() {
  *
  *  @param[in] p Unused.
  */
-policy::policy(policy const& p) : orders::listener(p) {
+policy::policy(policy const& p)
+  : orders::listener(p), checks::listener(p) {
   assert(!"policy is not copyable");
   abort();
 }

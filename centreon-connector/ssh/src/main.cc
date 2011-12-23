@@ -20,10 +20,12 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon;
@@ -61,6 +63,8 @@ int main() {
     // Initializations.
     logging::engine::load();
     multiplexer::load();
+    logging::file log_file(stdout);
+    logging::engine::instance().add(&log_file, -1, 63);
 
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.

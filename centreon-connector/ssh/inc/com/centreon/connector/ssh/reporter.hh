@@ -34,8 +34,7 @@ CCCS_BEGIN()
  *
  *  Send replies to the monitoring engine.
  */
-class         reporter : public com::centreon::handle_listener,
-                         public checks::listener {
+class         reporter : public com::centreon::handle_listener {
 public:
               reporter();
               reporter(reporter const& r);
@@ -43,7 +42,7 @@ public:
   reporter&   operator=(reporter const& r);
   void        close(handle& h);
   void        error(handle& h);
-  void        on_result(checks::result const& r);
+  void        send_result(checks::result const& r);
   void        send_version(unsigned int major, unsigned int minor);
   bool        want_write(handle& h);
   void        write(handle& h);
