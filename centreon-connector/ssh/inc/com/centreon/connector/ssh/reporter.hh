@@ -43,7 +43,7 @@ public:
   reporter&   operator=(reporter const& r);
   void        close(handle& h);
   void        error(handle& h);
-  void        on_result(checks::result& r);
+  void        on_result(checks::result const& r);
   void        send_version(unsigned int major, unsigned int minor);
   bool        want_write(handle& h);
   void        write(handle& h);
