@@ -42,8 +42,7 @@ reporter::reporter() {}
  *
  *  @param[in] r Object to copy.
  */
-reporter::reporter(reporter const& r)
-  : com::centreon::handle_listener(r), checks::listener(r) {
+reporter::reporter(reporter const& r) : com::centreon::handle_listener(r) {
   _copy(r);
 }
 
@@ -62,7 +61,6 @@ reporter::~reporter() throw () {}
 reporter& reporter::operator=(reporter const& r) {
   if (this != &r) {
     com::centreon::handle_listener::operator=(r);
-    checks::listener::operator=(r);
     _copy(r);
   }
   return (*this);
@@ -93,11 +91,11 @@ void reporter::error(handle& h) {
 }
 
 /**
- *  Check result callback.
+ *  Report check result.
  *
  *  @param[in] r Check result.
  */
-void reporter::on_result(checks::result const& r) {
+void reporter::send_result(checks::result const& r) {
   // Build packet.
   std::ostringstream oss;
   // Packet ID.

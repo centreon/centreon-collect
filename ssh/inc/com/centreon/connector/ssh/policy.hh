@@ -21,14 +21,25 @@
 #ifndef CCCS_POLICY_HH
 #  define CCCS_POLICY_HH
 
+#  include <map>
+#  include "com/centreon/connector/ssh/checks/listener.hh"
 #  include "com/centreon/connector/ssh/orders/listener.hh"
 #  include "com/centreon/connector/ssh/orders/parser.hh"
-#  include "com/centreon/connector/ssh/policy.hh"
 #  include "com/centreon/connector/ssh/reporter.hh"
+#  include "com/centreon/connector/ssh/sessions/credentials.hh"
 #  include "com/centreon/io/standard_input.hh"
 #  include "com/centreon/io/standard_output.hh"
 
 CCCS_BEGIN()
+
+// Forward declarations.
+namespace checks {
+  class check;
+  class result;
+}
+namespace sessions {
+  class session;
+}
 
 /**
  *  @class policy policy.hh "com/centreon/connector/ssh/policy.hh"
@@ -36,7 +47,8 @@ CCCS_BEGIN()
  *
  *  Manage program execution.
  */
-class                 policy : public orders::listener {
+class                 policy : public orders::listener,
+                               public checks::listener {
 public:
                       policy();
                       ~policy() throw ();
@@ -50,6 +62,7 @@ public:
                         std::string const& password,
                         std::string const& cmd);
   void                on_quit();
+  void                on_result(checks::result const& r);
   void                on_version();
   void                run();
 
@@ -57,8 +70,12 @@ private:
                       policy(policy const& p);
   policy&             operator=(policy const& p);
 
+  std::map<unsigned long long, checks::check*>
+                      _checks;
   orders::parser      _parser;
   reporter            _reporter;
+  std::map<sessions::credentials, sessions::session*>
+                      _sessions;
   io::standard_input  _sin;
   io::standard_output _sout;
 };
