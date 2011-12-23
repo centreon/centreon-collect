@@ -22,6 +22,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
+#include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
@@ -29,7 +30,7 @@ using namespace com::centreon;
 using namespace com::centreon::connector::ssh;
 
 // Termination flag.
-static volatile bool should_exit(false);
+volatile bool should_exit(false);
 
 /**
  *  Termination handler.
@@ -72,14 +73,9 @@ int main() {
     logging::info(logging::medium) << "installing termination handler";
     signal(SIGTERM, term_handler);
 
-    // Multiplexing loop.
-    logging::info(logging::medium) << "starting multiplexing loop";
-    while (!should_exit)
-      multiplexer::instance().multiplex();
-    logging::info(logging::medium) << "multiplexing loop terminated";
-
-    // Wait for remaining sessions.
-    // XXX
+    // Program policy.
+    policy p;
+    p.run();
 
     // Set return value.
     retval = EXIT_SUCCESS;
