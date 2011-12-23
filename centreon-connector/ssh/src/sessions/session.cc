@@ -79,7 +79,7 @@ void session::close() {
          end = _listnrs.end();
        it != end;
        ++it)
-    (*it)->on_close();
+    (*it)->on_close(*this);
 
   // Delete session.
   libssh2_session_set_blocking(_session, 1);
@@ -410,7 +410,7 @@ void session::_key() {
            end = _listnrs.end();
          it != end;
          ++it)
-      (*it)->on_connected();
+      (*it)->on_connected(*this);
   }
   return ;
 }
@@ -460,7 +460,7 @@ void session::_passwd() {
            end = _listnrs.end();
          it != end;
          ++it)
-      (*it)->on_connected();
+      (*it)->on_connected(*this);
   }
   return ;
 }
