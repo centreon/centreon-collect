@@ -29,22 +29,28 @@ using namespace com::centreon::misc;
  *  @class my_options
  *  @brief litle implementation of get_options to test it.
  */
-class my_options : public get_options {
+class         my_options : public get_options {
 public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', "", true);
-        _arguments['t'] = argument("test", 't', "", true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default",
-                                   'd',
-                                   "",
-                                   true,
-                                   true,
-                                   "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
+              my_options(std::vector<std::string> const& args)
+  : get_options() {
+    _arguments['a'] = argument("arg", 'a', "", true);
+    _arguments['t'] = argument("test", 't', "", true);
+    _arguments['h'] = argument("help", 'h');
+    _arguments['d'] = argument(
+                        "default",
+                        'd',
+                        "",
+                        true,
+                        true,
+                        "def");
+    _parse_arguments(args);
+  }
+              my_options(my_options const& right) : get_options(right) {}
+              ~my_options() throw () {}
+  my_options& operator=(my_options const& right) {
+    get_options::operator=(right);
+    return (*this);
+  }
 };
 
 /**
