@@ -118,15 +118,14 @@ unsigned int task_manager::execute(timestamp now) {
   std::list<std::pair<timestamp, internal_task*> > recurring;
 
   unsigned int count_execute(0);
-  for (std::multimap<timestamp, internal_task*>::iterator
-         it(_tasks.begin()), next(it), end(_tasks.end());
-       it != end;
-       it = next) {
-    // This task dosn't need to be run now.
-    if (it->first > now)
-      break;
-
+  std::multimap<timestamp, internal_task*>::iterator it(_tasks.begin());
+  while (!_tasks.empty() && (it->first <= now)) {
+    // Get internal task.
     internal_task* itask(it->second);
+
+    // Remove entry.
+    _tasks.erase(it);
+
     if (itask->interval) {
       // This task is recurring, push it into recurring list.
       timestamp new_time(now);
@@ -148,9 +147,10 @@ unsigned int task_manager::execute(timestamp now) {
       if (itask->get_auto_delete())
         delete itask;
     }
-    ++(next = it);
-    _tasks.erase(it);
     ++count_execute;
+
+    // Reset iterator.
+    it = _tasks.begin();
   }
 
   // Update the task table with the recurring task.
