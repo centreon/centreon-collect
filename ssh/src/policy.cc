@@ -92,8 +92,8 @@ policy::~policy() throw () {
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  logging::info(logging::high) << "stdin is closed, exiting";
-  should_exit = true;
+  logging::info(logging::high) << "stdin is closed";
+  on_quit();
   return ;
 }
 
@@ -102,8 +102,8 @@ void policy::on_eof() {
  */
 void policy::on_error() {
   logging::info(logging::high)
-    << "error occurred while parsing stdin, exiting";
-  should_exit = true;
+    << "error occurred while parsing stdin";
+  on_quit();
   return ;
 }
 
@@ -124,31 +124,42 @@ void policy::on_execute(
                std::string const& user,
                std::string const& password,
                std::string const& cmd) {
-  // Credentials.
-  sessions::credentials creds;
-  creds.set_host(host);
-  creds.set_user(user);
-  creds.set_password(password);
+  try {
+    // Credentials.
+    sessions::credentials creds;
+    creds.set_host(host);
+    creds.set_user(user);
+    creds.set_password(password);
 
-  // Find session.
-  std::map<sessions::credentials, sessions::session*>::iterator it;
-  it = _sessions.find(creds);
-  if (it == _sessions.end()) {
-    logging::info(logging::low) << "creating session for "
-      << user << "@" << host;
-    std::auto_ptr<sessions::session> sess(new sessions::session(creds));
-    sess->connect();
-    _sessions[creds] = sess.get();
-    sess.release();
+    // Find session.
+    std::map<sessions::credentials, sessions::session*>::iterator it;
     it = _sessions.find(creds);
-  }
+    if (it == _sessions.end()) {
+      logging::info(logging::low) << "creating session for "
+        << user << "@" << host;
+      std::auto_ptr<sessions::session> sess(new sessions::session(creds));
+      sess->connect();
+      _sessions[creds] = sess.get();
+      sess.release();
+      it = _sessions.find(creds);
+    }
 
-  // Launch check.
-  std::auto_ptr<checks::check> chk(new checks::check);
-  chk->listen(this);
-  chk->execute(*it->second, cmd_id, cmd, timeout);
-  _checks[cmd_id] = chk.get();
-  chk.release();
+    // Launch check.
+    std::auto_ptr<checks::check> chk(new checks::check);
+    chk->listen(this);
+    chk->execute(*it->second, cmd_id, cmd, timeout);
+    _checks[cmd_id] = chk.get();
+    chk.release();
+  }
+  catch (std::exception const& e) {
+    logging::error(logging::high) << "could not launch check ID "
+      << cmd_id << " on host " << host << " because an error occurred: "
+      << e.what();
+  }
+  catch (...) {
+    logging::error(logging::high) << "could not launch check ID "
+      << cmd_id << " on host " << host << " because an error occurred";
+  }
 
   return ;
 }
@@ -207,6 +218,14 @@ void policy::run() {
   // Run multiplexer.
   while (!should_exit)
     multiplexer::instance().multiplex();
+
+  // Run as long as a check remains.
+  logging::info(logging::high) << "waiting for checks to terminate";
+  while (!_checks.empty())
+    multiplexer::instance().multiplex();
+
+  // Run as long as some data remains.
+  // XXX
 
   return ;
 }

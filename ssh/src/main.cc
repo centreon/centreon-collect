@@ -19,6 +19,7 @@
 */
 
 #include <errno.h>
+#include <libssh2.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,12 +66,19 @@ int main() {
     multiplexer::load();
     logging::file log_file(stdout);
     logging::engine::instance().add(&log_file, -1, 63);
-
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
     logging::info(logging::medium) << "initializing libssh2";
     if (libssh2_init(0))
       throw (basic_error() << "libssh2 initialization failed");
+    {
+      char const* version(libssh2_version(LIBSSH2_VERSION_NUM));
+      if (!version)
+        throw (basic_error() << "libssh2 version is too old (>= "
+                 << LIBSSH2_VERSION << " required)");
+      logging::debug(logging::high) << "libssh2 version "
+        << version << " successfully loaded";
+    }
 #endif /* libssh2 version >= 1.2.5 */
 
     // Set termination handler.

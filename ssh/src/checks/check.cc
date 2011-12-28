@@ -48,6 +48,11 @@ check::check()
  *  Destructor.
  */
 check::~check() throw () {
+  // Send result if we haven't already done so.
+  result r;
+  r.set_command_id(_cmd_id);
+  _send_result_and_unregister(r);
+
   if (_channel) {
     // Close channel.
     while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
@@ -146,6 +151,9 @@ void check::on_connected(sessions::session& sess) {
   multiplexer::instance().handle_manager::add(
     sess.get_socket_handle(),
     this);
+  logging::debug(logging::low) << "manually starting check "
+    << _cmd_id;
+  read(*sess.get_socket_handle());
   return ;
 }
 
@@ -158,24 +166,38 @@ void check::read(handle& h) {
   try {
     switch (_step) {
     case chan_open:
+      logging::info(logging::low)
+        << "attempting to open channel for check " << _cmd_id;
       if (!_open()) {
+        logging::info(logging::low) << "check " << _cmd_id
+          << " channel was successfully opened";
         _step = chan_exec;
         read(h);
       }
       break ;
     case chan_exec:
+      logging::info(logging::low)
+        << "attempting to execute check " << _cmd_id;
       if (!_exec()) {
+        logging::info(logging::low)
+          << "check " << _cmd_id << " was successfully executed";
         _step = chan_read;
         read(h);
       }
       break ;
     case chan_read:
+      logging::info(logging::low)
+        << "reading check " << _cmd_id << " result from channel";
       if (!_read()) {
+        logging::info(logging::low) << "result of check "
+          << _cmd_id << " was successfully fetched";
         _step = chan_close;
         read(h);
       }
       break ;
     case chan_close:
+      logging::info(logging::low) << "attempting to close check "
+        << _cmd_id << " channel";
       _close();
       break ;
     default:
@@ -434,6 +456,8 @@ bool check::_read() {
  */
 void check::_send_result_and_unregister(result const& r) {
   // Unregister from multiplexer.
+  logging::debug(logging::low) << "check " << this
+    << " is unregistering from multiplexer";
   multiplexer::instance().handle_manager::remove(this);
 
   // Unregister from session.
