@@ -118,6 +118,12 @@ else ()
   endif ()
 endif ()
 
+# Should the connector perform check against known_hosts file ?
+option(WITH_KNOWN_HOSTS_CHECK "Check hosts against user's known_hosts file." OFF)
+if (WITH_KNOWN_HOSTS_CHECK)
+  add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
+endif ()
+
 # SSH connector library.
 set(CONNECTORLIB "centreonconnectorssh")
 add_library("${CONNECTORLIB}"
@@ -352,5 +358,10 @@ message(STATUS "")
 message(STATUS "  Project                        ${PROJECT_NAME}")
 message(STATUS "    - Version                    ${CONNECTOR_SSH_VERSION}")
 message(STATUS "    - Extra compilation flags    ${CMAKE_CXX_FLAGS}")
+if (WITH_KNOWN_HOSTS_CHECK)
+  message(STATUS "    - Known hosts check          enabled")
+else ()
+  message(STATUS "    - Known hosts check          disabled")
+endif ()
 message(STATUS "    - Build unit tests           ${BUILD_UNIT_TEST}")
 message(STATUS "")

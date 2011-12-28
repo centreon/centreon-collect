@@ -59,8 +59,7 @@ namespace                 sessions {
 
   private:
     enum                  e_step {
-      session_connect = 0,
-      session_startup,
+      session_startup = 0,
       session_password,
       session_key,
       session_keepalive
@@ -68,7 +67,6 @@ namespace                 sessions {
 
                           session(session const& s);
     session&              operator=(session const& s);
-    void                  _connect();
     void                  _key();
     void                  _nop();
     void                  _passwd();
