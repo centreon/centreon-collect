@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/checks/check.hh"
-#include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
@@ -64,36 +63,6 @@ check::~check() throw () {
 }
 
 /**
- *  Session socket was closed.
- *
- *  @param[in] h Session socket handle.
- */
-void check::close(handle& h) {
-  (void)h;
-  logging::error(logging::low)
-    << "session socket was closed, check is aborted";
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
-  return ;
-}
-
-/**
- *  Error on session socket.
- *
- *  @param[in] h Session socket handle.
- */
-void check::error(handle& h) {
-  (void)h;
-  logging::error(logging::low)
-    << "session socket has error, check is aborted";
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
-  return ;
-}
-
-/**
  *  Start executing a check.
  *
  *  @param[in] sess    Session on which a channel will be opened.
@@ -110,10 +79,9 @@ void check::execute(
   _cmd_id = cmd_id;
   _session = &sess;
   _timeout = timeout;
+  sess.listen(this);
   if (sess.is_connected())
     on_connected(sess);
-  else
-    sess.listen(this);
   return ;
 }
 
@@ -123,46 +91,18 @@ void check::execute(
  *  @param[in] listnr Listener.
  */
 void check::listen(checks::listener* listnr) {
+  logging::debug(logging::medium) << "check "
+    << this << " is listened by " << listnr;
   _listnr = listnr;
-  return ;
-}
-
-/**
- *  On session close.
- *
- *  @param[in] sess Closing session.
- */
-void check::on_close(sessions::session& sess) {
-  (void)sess;
-  logging::error(logging::medium)
-    << "session closed before check could execute";
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
-  return ;
-}
-
-/**
- *  Called when session is connected.
- *
- *  @param[in] sess Connected session.
- */
-void check::on_connected(sessions::session& sess) {
-  multiplexer::instance().handle_manager::add(
-    sess.get_socket_handle(),
-    this);
-  logging::debug(logging::low) << "manually starting check "
-    << _cmd_id;
-  read(*sess.get_socket_handle());
   return ;
 }
 
 /**
  *  Can perform action on channel.
  *
- *  @param[in] h Unused.
+ *  @param[in] sess Unused.
  */
-void check::read(handle& h) {
+void check::on_available(sessions::session& sess) {
   try {
     switch (_step) {
     case chan_open:
@@ -172,7 +112,7 @@ void check::read(handle& h) {
         logging::info(logging::low) << "check " << _cmd_id
           << " channel was successfully opened";
         _step = chan_exec;
-        read(h);
+        on_available(sess);
       }
       break ;
     case chan_exec:
@@ -182,7 +122,7 @@ void check::read(handle& h) {
         logging::info(logging::low)
           << "check " << _cmd_id << " was successfully executed";
         _step = chan_read;
-        read(h);
+        on_available(sess);
       }
       break ;
     case chan_read:
@@ -192,7 +132,7 @@ void check::read(handle& h) {
         logging::info(logging::low) << "result of check "
           << _cmd_id << " was successfully fetched";
         _step = chan_close;
-        read(h);
+        on_available(sess);
       }
       break ;
     case chan_close:
@@ -222,45 +162,41 @@ void check::read(handle& h) {
 }
 
 /**
+ *  On session close.
+ *
+ *  @param[in] sess Closing session.
+ */
+void check::on_close(sessions::session& sess) {
+  (void)sess;
+  logging::error(logging::medium)
+    << "session closed before check could execute";
+  result r;
+  r.set_command_id(_cmd_id);
+  _send_result_and_unregister(r);
+  return ;
+}
+
+/**
+ *  Called when session is connected.
+ *
+ *  @param[in] sess Connected session.
+ */
+void check::on_connected(sessions::session& sess) {
+  logging::debug(logging::low) << "manually starting check "
+    << _cmd_id;
+  on_available(sess);
+  return ;
+}
+
+/**
  *  Stop listening to the check.
  *
  *  @param[in] listnr Listener.
  */
 void check::unlisten(checks::listener* listnr) {
-  (void)listnr;
+  logging::debug(logging::medium) << "listener " << listnr
+    << " stops listening check " << this;
   _listnr = NULL;
-  return ;
-}
-
-/**
- *  Do we want to read ?
- *
- *  @param[in] h Handle.
- *
- *  @return true if we want to read.
- */
-bool check::want_read(handle& h) {
-  return (_session->want_read(h));
-}
-
-/**
- *  Do we want to write ?
- *
- *  @param[in] h Handle.
- *
- *  @return true if we want to write.
- */
-bool check::want_write(handle& h) {
-  return (_session->want_write(h));
-}
-
-/**
- *  Can perform action on channel.
- *
- *  @param[in] h Unused.
- */
-void check::write(handle& h) {
-  read(h);
   return ;
 }
 
@@ -443,10 +379,11 @@ bool check::_read() {
     _stderr.append(buffer, erb);
 
   // Should we read again ?
-  return ((orb > 0)
-          || (LIBSSH2_ERROR_EAGAIN == orb)
-          || (erb > 0)
-          || (LIBSSH2_ERROR_EAGAIN == erb));
+  return (((orb > 0)
+           || (LIBSSH2_ERROR_EAGAIN == orb)
+           || (erb > 0)
+           || (LIBSSH2_ERROR_EAGAIN == erb))
+          && !libssh2_channel_eof(_channel));
 }
 
 /**
@@ -455,14 +392,16 @@ bool check::_read() {
  *  @param[in] r Check result.
  */
 void check::_send_result_and_unregister(result const& r) {
-  // Unregister from multiplexer.
-  logging::debug(logging::low) << "check " << this
-    << " is unregistering from multiplexer";
-  multiplexer::instance().handle_manager::remove(this);
+  // Check that session is valid.
+  if (_session) {
+    // Unregister from session.
+    logging::debug(logging::low) << "check " << this
+      << " is unregistering from session " << _session;
 
-  // Unregister from session.
-  _session->unlisten(this);
-  _session = NULL;
+    // Unregister from session.
+    _session->unlisten(this);
+    _session = NULL;
+  }
 
   // Check that was haven't already send a check result.
   if (_cmd_id) {

@@ -22,7 +22,7 @@
 #  define CCCS_SESSIONS_SESSION_HH
 
 #  include <libssh2.h>
-#  include <list>
+#  include <set>
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/connector/ssh/sessions/credentials.hh"
 #  include "com/centreon/connector/ssh/sessions/listener.hh"
@@ -67,13 +67,13 @@ namespace                 sessions {
 
                           session(session const& s);
     session&              operator=(session const& s);
+    void                  _available();
     void                  _key();
-    void                  _nop();
     void                  _passwd();
     void                  _startup();
 
     credentials           _creds;
-    std::list<listener*>  _listnrs;
+    std::set<listener*>   _listnrs;
     LIBSSH2_SESSION*      _session;
     socket_handle         _socket;
     e_step                _step;

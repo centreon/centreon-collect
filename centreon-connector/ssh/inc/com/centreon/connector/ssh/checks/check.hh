@@ -27,7 +27,6 @@
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/connector/ssh/sessions/listener.hh"
 #  include "com/centreon/connector/ssh/sessions/session.hh"
-#  include "com/centreon/handle_listener.hh"
 
 CCCS_BEGIN()
 
@@ -41,26 +40,20 @@ namespace              checks {
    *
    *  Execute a check by opening a new channel on a SSH session.
    */
-  class                check : public sessions::listener,
-                               public com::centreon::handle_listener {
+  class                check : public sessions::listener {
   public:
                        check();
                        ~check() throw ();
-    void               close(handle& h);
-    void               error(handle& h);
     void               execute(
                          sessions::session& sess,
                          unsigned long long cmd_id,
                          std::string const& cmd,
                          time_t timeout);
     void               listen(checks::listener* listnr);
+    void               on_available(sessions::session& sess);
     void               on_close(sessions::session& sess);
     void               on_connected(sessions::session& sess);
-    void               read(handle& h);
     void               unlisten(checks::listener* listnr);
-    bool               want_read(handle& h);
-    bool               want_write(handle& h);
-    void               write(handle& h);
 
   private:
     enum               e_step {
