@@ -40,6 +40,7 @@ public:
               reporter(reporter const& r);
               ~reporter() throw ();
   reporter&   operator=(reporter const& r);
+  bool        can_report() const throw ();
   void        close(handle& h);
   void        error(handle& h);
   void        send_result(checks::result const& r);
@@ -51,6 +52,7 @@ private:
   void        _copy(reporter const& r);
 
   std::string _buffer;
+  bool        _can_report;
 };
 
 CCCS_END()

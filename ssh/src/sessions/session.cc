@@ -87,12 +87,15 @@ void session::close() {
   multiplexer::instance().handle_manager::remove(this);
 
   // Notify listeners.
-  for (std::list<listener*>::iterator
-         it = _listnrs.begin(),
-         end = _listnrs.end();
-       it != end;
-       ++it)
-    (*it)->on_close(*this);
+  {
+    std::set<listener*> listnrs(_listnrs);
+    for (std::set<listener*>::iterator
+           it = listnrs.begin(),
+           end = listnrs.end();
+         it != end;
+         ++it)
+      (*it)->on_close(*this);
+  }
 
   // Close socket.
   _socket.close();
@@ -271,7 +274,7 @@ bool session::is_connected() const throw () {
  *  @param[in] listnr New listener.
  */
 void session::listen(listener* listnr) {
-  _listnrs.push_back(listnr);
+  _listnrs.insert(listnr);
   return ;
 }
 
@@ -286,7 +289,7 @@ void session::read(handle& h) {
       &session::_startup,
       &session::_passwd,
       &session::_key,
-      &session::_nop
+      &session::_available
     };
   (this->*redirector[_step])();
   return ;
@@ -299,7 +302,7 @@ void session::read(handle& h) {
  */
 void session::unlisten(listener* listnr) {
   unsigned int size(_listnrs.size());
-  _listnrs.remove(listnr);
+  _listnrs.erase(listnr);
   logging::debug(logging::low) << "session " << this
     << " is removing listener " << listnr << " (there was "
     << size << ", there is " << _listnrs.size() << ")";
@@ -374,6 +377,22 @@ session& session::operator=(session const& s) {
 }
 
 /**
+ *  Session is available for operation.
+ */
+void session::_available() {
+  logging::debug(logging::high) << "session " << this
+    << " is available and has " << _listnrs.size() << " listeners";
+  std::set<listener*> listnrs(_listnrs);
+  for (std::set<listener*>::iterator
+         it = listnrs.begin(),
+         end = listnrs.end();
+       it != end;
+       ++it)
+    (*it)->on_available(*this);
+  return ;
+}
+
+/**
  *  Attempt public key authentication.
  */
 void session::_key() {
@@ -419,21 +438,16 @@ void session::_key() {
 
     // Set execution step.
     _step = session_keepalive;
-    for (std::list<listener*>::iterator
-           it = _listnrs.begin(),
-           end = _listnrs.end();
-         it != end;
-         ++it)
-      (*it)->on_connected(*this);
+    {
+      std::set<listener*> listnrs(_listnrs);
+      for (std::set<listener*>::iterator
+             it = listnrs.begin(),
+             end = listnrs.end();
+           it != end;
+           ++it)
+        (*it)->on_connected(*this);
+    }
   }
-  return ;
-}
-
-/**
- *  No operation.
- */
-void session::_nop() {
-  logging::debug(logging::high) << "session is performing no operation";
   return ;
 }
 
@@ -483,12 +497,15 @@ void session::_passwd() {
 
     // We're now connected.
     _step = session_keepalive;
-    for (std::list<listener*>::iterator
-           it = _listnrs.begin(),
-           end = _listnrs.end();
-         it != end;
-         ++it)
-      (*it)->on_connected(*this);
+    {
+      std::set<listener*> listnrs(_listnrs);
+      for (std::set<listener*>::iterator
+             it = listnrs.begin(),
+             end = listnrs.end();
+           it != end;
+           ++it)
+        (*it)->on_connected(*this);
+    }
   }
   return ;
 }

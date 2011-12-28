@@ -225,7 +225,8 @@ void policy::run() {
     multiplexer::instance().multiplex();
 
   // Run as long as some data remains.
-  // XXX
+  while (_reporter.can_report() && _reporter.want_write(_sout))
+    multiplexer::instance().multiplex();
 
   return ;
 }

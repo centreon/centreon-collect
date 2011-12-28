@@ -41,6 +41,7 @@ namespace        sessions {
                  listener(listener const& l);
     virtual      ~listener();
     listener&    operator=(listener const& l);
+    virtual void on_available(session& s) = 0;
     virtual void on_close(session& s) = 0;
     virtual void on_connected(session& s) = 0;
   };

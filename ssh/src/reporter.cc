@@ -35,7 +35,7 @@ using namespace com::centreon::connector::ssh;
 /**
  *  Default constructor.
  */
-reporter::reporter() {}
+reporter::reporter() : _can_report(true) {}
 
 /**
  *  Copy constructor.
@@ -67,12 +67,22 @@ reporter& reporter::operator=(reporter const& r) {
 }
 
 /**
+ *  Check if reporter can report.
+ *
+ *  @return true if reporter can report.
+ */
+bool reporter::can_report() const throw () {
+  return (_can_report);
+}
+
+/**
  *  Close event on the handle.
  *
  *  @param[in] h Unused.
  */
 void reporter::close(handle& h) {
   (void)h;
+  _can_report = false;
   throw (basic_error()
            << "handle used to report to monitoring engine is closed");
   return ;
@@ -85,6 +95,7 @@ void reporter::close(handle& h) {
  */
 void reporter::error(handle& h) {
   (void)h;
+  _can_report = false;
   throw (basic_error()
            << "error detected on the handle used to report to the monitoring engine");
   return ;
@@ -190,5 +201,6 @@ void reporter::write(handle& h) {
  */
 void reporter::_copy(reporter const& r) {
   _buffer = r._buffer;
+  _can_report = r._can_report;
   return ;
 }
