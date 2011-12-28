@@ -60,11 +60,13 @@ int main() {
   // Return value.
   int retval(EXIT_FAILURE);
 
+  // Log object.
+  logging::file log_file(stdout);
+
   try {
     // Initializations.
     logging::engine::load();
     multiplexer::load();
-    logging::file log_file(stdout);
     logging::engine::instance().add(&log_file, -1, 63);
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
