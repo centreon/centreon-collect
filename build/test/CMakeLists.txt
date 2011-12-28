@@ -89,6 +89,12 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# task_manager_remove_self
+set(TEST_NAME "task_manager_remove_self")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # task_manager_next_execution_time
 set(TEST_NAME "task_manager_next_execution_time")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
