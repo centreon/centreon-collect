@@ -46,6 +46,10 @@ int main() {
 
     task_test* t1(new task_test);
     unsigned long id1(tm.add(t1, timestamp::now(), true, true));
+
+    if (tm.remove(42))
+      throw (basic_error() << "try to remove invalid id");
+
     if (!tm.remove(id1))
       throw (basic_error() << "remove one task failed");
 
