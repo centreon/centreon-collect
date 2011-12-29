@@ -34,25 +34,26 @@ CCCS_BEGIN()
  *
  *  Send replies to the monitoring engine.
  */
-class         reporter : public com::centreon::handle_listener {
+class                reporter : public com::centreon::handle_listener {
 public:
-              reporter();
-              reporter(reporter const& r);
-              ~reporter() throw ();
-  reporter&   operator=(reporter const& r);
-  bool        can_report() const throw ();
-  void        close(handle& h);
-  void        error(handle& h);
-  void        send_result(checks::result const& r);
-  void        send_version(unsigned int major, unsigned int minor);
-  bool        want_write(handle& h);
-  void        write(handle& h);
+                     reporter();
+                     reporter(reporter const& r);
+                     ~reporter() throw ();
+  reporter&          operator=(reporter const& r);
+  bool               can_report() const throw ();
+  void               close(handle& h);
+  void               error(handle& h);
+  std::string const& get_buffer() const throw ();
+  void               send_result(checks::result const& r);
+  void               send_version(unsigned int major, unsigned int minor);
+  bool               want_write(handle& h);
+  void               write(handle& h);
 
 private:
-  void        _copy(reporter const& r);
+  void               _copy(reporter const& r);
 
-  std::string _buffer;
-  bool        _can_report;
+  std::string        _buffer;
+  bool               _can_report;
 };
 
 CCCS_END()

@@ -96,9 +96,18 @@ void reporter::close(handle& h) {
 void reporter::error(handle& h) {
   (void)h;
   _can_report = false;
-  throw (basic_error()
-           << "error detected on the handle used to report to the monitoring engine");
+  throw (basic_error() << "error detected on the handle used" \
+              " to report to the monitoring engine");
   return ;
+}
+
+/**
+ *  Get reporter's internal buffer.
+ *
+ *  @return Internal buffer.
+ */
+std::string const& reporter::get_buffer() const throw () {
+  return (_buffer);
 }
 
 /**
@@ -174,7 +183,7 @@ void reporter::send_version(unsigned int major, unsigned int minor) {
  */
 bool reporter::want_write(handle& h) {
   (void)h;
-  return (!_buffer.empty());
+  return (can_report() && !_buffer.empty());
 }
 
 /**

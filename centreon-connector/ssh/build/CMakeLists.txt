@@ -344,14 +344,6 @@ if (WITH_TESTING)
   target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
-  # multiplexer tests.
-  #   Check singleton.
-  set(TEST_NAME "multiplexer_singleton")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/multiplexer/singleton.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-
   #
   # sessions namespace tests.
   #
@@ -403,6 +395,48 @@ if (WITH_TESTING)
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/sessions/credentials/less_than.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+
+  #
+  # Root namespace tests.
+  #
+  # multiplexer tests.
+  #   Check singleton.
+  set(TEST_NAME "multiplexer_singleton")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/multiplexer/singleton.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # reporter tests.
+  #   Default constructor.
+  set(TEST_NAME "reporter_ctor_default")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/reporter/ctor_default.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Report protocol version.
+  set(TEST_NAME "reporter_send_version")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/reporter/send_version.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Report check result.
+  set(TEST_NAME "reporter_send_result")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/reporter/send_result.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Handle closed.
+  set(TEST_NAME "reporter_close")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/reporter/close.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Handle has error.
+  set(TEST_NAME "reporter_error")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/reporter/error.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()
