@@ -63,7 +63,7 @@ task_manager::~task_manager() throw () {
  */
 unsigned long task_manager::add(
                               task* t,
-                              timestamp when,
+                              timestamp const& when,
                               bool is_runnable,
                               bool should_delete) {
   internal_task* itask(new internal_task(
@@ -90,7 +90,7 @@ unsigned long task_manager::add(
  */
 unsigned long task_manager::add(
                               task* t,
-                              timestamp when,
+                              timestamp const& when,
                               unsigned int interval,
                               bool is_runnable,
                               bool should_delete) {
@@ -112,7 +112,7 @@ unsigned long task_manager::add(
  *
  *  @return The number of task to be execute.
  */
-unsigned int task_manager::execute(timestamp now) {
+unsigned int task_manager::execute(timestamp const& now) {
   // Stock the new recurring task into this list for inject all
   // task at the end of the execution.
   std::list<std::pair<timestamp, internal_task*> > recurring;
@@ -276,7 +276,7 @@ task_manager& task_manager::_internal_copy(task_manager const& right) {
 task_manager::internal_task::internal_task(
                            unsigned long _id,
                            task* _t,
-                           timestamp _when,
+                           timestamp const& _when,
                            unsigned int _interval,
                            bool _is_runnable,
                            bool _should_delete)

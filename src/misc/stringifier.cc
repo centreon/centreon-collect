@@ -344,6 +344,13 @@ stringifier& stringifier::_internal_copy(stringifier const& right) {
   return (*this);
 }
 
+/**
+ *  Memory reallocation.
+ *
+ *  @param[in] new_size  The new memory size.
+ *
+ *  @return True on success, otherwise false.
+ */
 bool stringifier::_realloc(unsigned int new_size) throw () {
   try {
     _size = (new_size > _size * 2 ? new_size : _size * 2);
