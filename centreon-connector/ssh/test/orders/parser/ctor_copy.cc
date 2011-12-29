@@ -21,11 +21,14 @@
 #include "com/centreon/connector/ssh/orders/parser.hh"
 #include "com/centreon/logging/engine.hh"
 #include "test/orders/buffer_handle.hh"
+#include "test/orders/fake_listener.hh"
 
 using namespace com::centreon::connector::ssh::orders;
 
+#define DATA "765\0merethis\0Centreon is beautiful"
+
 /**
- *  Check that the orders parser is properly default constructed.
+ *  Check that the orders parser can be copy-constructed.
  *
  *  @return 0 on success.
  */
@@ -33,13 +36,24 @@ int main() {
   // Initialization.
   com::centreon::logging::engine::load();
 
-  // Object.
-  parser p;
+  // Data.
+  buffer_handle bh;
+  bh.write(DATA, sizeof(DATA));
+
+  // Listener.
+  fake_listener fl;
+
+  // Base object.
+  parser p1;
+  p1.listen(&fl);
+  p1.read(bh);
+
+  // Copy.
+  parser p2(p1);
 
   // Check.
-  buffer_handle bh;
-  return (!p.get_buffer().empty()
-          || p.get_listener()
-          || !p.want_read(bh)
-          || p.want_write(bh));
+  return ((p1.get_buffer() != std::string(DATA, sizeof(DATA)))
+          || (p1.get_listener() != &fl)
+          || (p2.get_buffer() != std::string(DATA, sizeof(DATA)))
+          || (p2.get_listener() != &fl));
 }

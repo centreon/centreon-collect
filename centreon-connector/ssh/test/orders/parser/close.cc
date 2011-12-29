@@ -21,11 +21,12 @@
 #include "com/centreon/connector/ssh/orders/parser.hh"
 #include "com/centreon/logging/engine.hh"
 #include "test/orders/buffer_handle.hh"
+#include "test/orders/fake_listener.hh"
 
 using namespace com::centreon::connector::ssh::orders;
 
 /**
- *  Check that the orders parser is properly default constructed.
+ *  Check that closed handle is properly handled.
  *
  *  @return 0 on success.
  */
@@ -33,13 +34,26 @@ int main() {
   // Initialization.
   com::centreon::logging::engine::load();
 
-  // Object.
-  parser p;
+  // Listener.
+  fake_listener listnr;
 
-  // Check.
+  // Buffer.
   buffer_handle bh;
-  return (!p.get_buffer().empty()
-          || p.get_listener()
-          || !p.want_read(bh)
-          || p.want_write(bh));
+
+  // Parser.
+  parser p;
+  p.listen(&listnr);
+  p.close(bh);
+
+  // Checks.
+  int retval(0);
+
+  // Listener must have received eof.
+  if (listnr.get_callbacks().size() != 1)
+    retval = 1;
+  else
+    retval |= (listnr.get_callbacks().begin()->callback
+               != fake_listener::cb_eof);
+
+  return (retval);
 }

@@ -265,6 +265,12 @@ if (WITH_TESTING)
     "${TEST_DIR}/orders/parser/eof.cc")
   target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Close detection.
+  set(TEST_NAME "orders_parser_close")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/close.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Error detection.
   set(TEST_NAME "orders_parser_error")
   add_executable("${TEST_NAME}"
@@ -293,6 +299,48 @@ if (WITH_TESTING)
   set(TEST_NAME "orders_parser_suite")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/orders/parser/suite.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Copy constructor.
+  set(TEST_NAME "orders_parser_ctor_copy")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/ctor_copy.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Assignment operator.
+  set(TEST_NAME "orders_parser_assignment")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/assignment.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Invalid command.
+  set(TEST_NAME "orders_parser_invalid_command")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/invalid_command.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Not enough arguments for execution.
+  set(TEST_NAME "orders_parser_execute_not_enough_args")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/execute_not_enough_args.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Invalid command ID in execution order.
+  set(TEST_NAME "orders_parser_execute_invalid_id")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/execute_invalid_id.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Invalid timeout in execution order.
+  set(TEST_NAME "orders_parser_execute_invalid_timeout")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/execute_invalid_timeout.cc")
+  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Invalid start time in execution order.
+  set(TEST_NAME "orders_parser_execute_invalid_start_time")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/orders/parser/execute_invalid_start_time.cc")
   target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
