@@ -329,6 +329,12 @@ if (WITH_TESTING)
     "${TEST_DIR}/sessions/credentials/password.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Constructor which set values.
+  set(TEST_NAME "sessions_credentials_ctor_values")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/ctor_values.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Copy constructor.
   set(TEST_NAME "sessions_credentials_ctor_copy")
   add_executable("${TEST_NAME}"
@@ -339,6 +345,12 @@ if (WITH_TESTING)
   set(TEST_NAME "sessions_credentials_assignment")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/sessions/credentials/assignment.cc")
+  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Less-than operator.
+  set(TEST_NAME "sessions_credentials_less_than")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/sessions/credentials/less_than.cc")
   target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
