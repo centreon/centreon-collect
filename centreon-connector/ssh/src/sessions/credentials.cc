@@ -111,10 +111,10 @@ bool credentials::operator<(credentials const& c) const {
   bool retval;
   if (_host != c._host)
     retval = (_host < c._host);
-  else if (_password != c._password)
-    retval = (_password < c._password);
   else if (_user != c._user)
     retval = (_user < c._user);
+  else if (_password != c._password)
+    retval = (_password < c._password);
   else
     retval = false;
   return (retval);

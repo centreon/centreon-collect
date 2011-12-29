@@ -31,7 +31,7 @@ int main() {
   // Objects.
   credentials creds1("AAA", "GGG", "VVV");
   credentials creds2("BBB", "HHH", "XXX");
-  credentials creds3("AAA", "HHH", "WWW");
+  credentials creds3("AAA", "HHH", "QQQ");
   credentials creds4("AAA", "GGG", "ZZZ");
   credentials creds5(creds1);
 
