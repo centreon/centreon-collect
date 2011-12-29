@@ -231,7 +231,7 @@ timestamp timestamp::now() throw () {
  *  @param[in] msecond  Time in milliseconds.
  */
 void timestamp::sub_msecond(long msecond) {
-  sub_usecond(msecond * 1000);
+  sub_usecond(msecond * 1000L);
 }
 
 /**
@@ -307,12 +307,12 @@ timestamp& timestamp::_internal_copy(timestamp const& right) {
  */
 void timestamp::_transfer(time_t* second, long* usecond) {
   // Transforms unnecessary microseconds into seconds.
-  int nsec(*usecond / 1000000);
-  *usecond -= nsec * 1000000;
+  int nsec(*usecond / 1000000L);
+  *usecond -= nsec * 1000000L;
   *second += nsec;
 
   if (*usecond < 0) {
-    *usecond = 1000000 + *usecond;
+    *usecond = 1000000L + *usecond;
     *second -= 1;
   }
 }

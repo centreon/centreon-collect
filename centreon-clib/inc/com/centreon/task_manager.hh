@@ -43,16 +43,16 @@ public:
   virtual          ~task_manager() throw ();
   unsigned long    add(
                      task* t,
-                     timestamp when,
+                     timestamp const& when,
                      bool is_runnable = false,
                      bool should_delete = false);
   unsigned long    add(
                      task* t,
-                     timestamp when,
+                     timestamp const& when,
                      unsigned int interval,
                      bool is_runnable = false,
                      bool should_delete = false);
-  unsigned int     execute(timestamp now = timestamp());
+  unsigned int     execute(timestamp const& now = timestamp());
   timestamp        next_execution_time() const;
   unsigned int     remove(task* t);
   bool             remove(unsigned long id);
@@ -62,7 +62,7 @@ private:
                    internal_task(
                      unsigned long id = 0,
                      task* t = NULL,
-                     timestamp when = 0,
+                     timestamp const& when = 0,
                      unsigned int interval = 0,
                      bool is_runnable = false,
                      bool should_delete = false);
