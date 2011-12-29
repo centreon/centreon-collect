@@ -213,15 +213,16 @@ void parser::_copy(parser const& p) {
 }
 
 /**
- *  Parse a command.
+ *  @brief Parse a command.
+ *
+ *  It is the caller's responsibility to ensure that the command given
+ *  to parse is terminated with 4 \0.
  *
  *  @param[in] cmd Command to parse.
  */
 void parser::_parse(std::string const& cmd) {
   // Get command ID.
   size_t pos(cmd.find('\0'));
-  if (std::string::npos == pos)
-    throw (basic_error() << "invalid command received");
   unsigned int id(strtoul(cmd.c_str(), NULL, 10));
   ++pos;
 
@@ -233,44 +234,56 @@ void parser::_parse(std::string const& cmd) {
     break ;
   case 2: // Execute query.
     {
+      // Note: no need to check npos because cmd is
+      //       terminated with at least 4 \0.
+
       // Find command ID.
       size_t end(cmd.find('\0', pos));
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution request received");
-      unsigned long long cmd_id(strtoull(cmd.c_str() + pos, NULL, 10));
+      char* ptr(NULL);
+      unsigned long long cmd_id(strtoull(cmd.c_str() + pos, &ptr, 10));
+      if (!cmd_id || *ptr)
+        throw (basic_error() << "invalid execution request received:" \
+                    " bad command ID (" << cmd.c_str() + pos << ")");
       pos = end + 1;
       // Find timeout value.
       end = cmd.find('\0', pos);
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution request received");
       time_t timeout(static_cast<time_t>(strtoull(
         cmd.c_str() + pos,
-        NULL,
+        &ptr,
         10)));
+      if (*ptr)
+        throw (basic_error() << "invalid execution request received:" \
+                    " bad timeout (" << cmd.c_str() + pos << ")");
       timeout += time(NULL);
       pos = end + 1;
       // Find start time.
       end = cmd.find('\0', pos);
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution request received");
+      strtoull(cmd.c_str() + pos, &ptr, 10);
+      if (*ptr)
+        throw (basic_error() << "invalid execution request received:" \
+                    " bad start time (" << cmd.c_str() + pos << ")");
       pos = end + 1;
       // Find command to execute.
       end = cmd.find('\0', pos);
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution request received");
       std::string cmdline(cmd.substr(pos, end - pos));
 
       // Find target host.
+      // XXX: improve parsing with whitespaces and quotes
       pos = 0;
       end = cmdline.find(' ', pos);
       if (std::string::npos == end)
-        throw (basic_error() << "invalid execution command");
+        throw (basic_error() << "invalid execution request received:" \
+                    " could not delimit host and user");
       std::string host(cmdline.substr(pos, end - pos));
+      if (host.empty())
+        throw (basic_error() << "invalid execution request received:" \
+                    " empty host");
       pos = end + 1;
       // Find user name.
       end = cmdline.find(' ', pos);
       if (std::string::npos == end)
-        throw (basic_error() << "invalid execution command");
+        throw (basic_error() << "invalid execution request received:" \
+                    " could not delimit user and password");
       std::string user(cmdline.substr(pos, end - pos));
       pos = end + 1;
       // Find password.
@@ -281,6 +294,9 @@ void parser::_parse(std::string const& cmd) {
       pos = end + 1;
       // Find command.
       std::string command(cmdline.substr(pos));
+      if (command.empty())
+        throw (basic_error() << "invalid execution request received:" \
+                    " empty command");
 
       // Notify listener.
       if (_listnr)
@@ -297,6 +313,9 @@ void parser::_parse(std::string const& cmd) {
     if (_listnr)
       _listnr->on_quit();
     break ;
+  default:
+    throw (basic_error() << "invalid command received (ID "
+             << id << ")");
   };
   return ;
 }
