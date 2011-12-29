@@ -27,6 +27,13 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 include_directories("${PROJECT_SOURCE_DIR}/inc")
 
+# Project version.
+set(CONNECTOR_SSH_MAJOR 0)
+set(CONNECTOR_SSH_MINOR 1)
+set(CONNECTOR_SSH_PATCH 0)
+set(CONNECTOR_SSH_VERSION "${CONNECTOR_SSH_MAJOR}.${CONNECTOR_SSH_MINOR}.${CONNECTOR_SSH_PATCH}")
+add_definitions(-DCENTREON_CONNECTOR_SSH_VERSION=\"${CONNECTOR_SSH_VERSION}\")
+
 # We will use pkg-config if available.
 include(FindPkgConfig)
 if (PKG_CONFIG_FOUND)
