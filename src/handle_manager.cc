@@ -46,8 +46,11 @@ handle_manager::~handle_manager() throw () {
   for (std::map<native_handle, internal_task*>::const_iterator
          it(_handles.begin()), end(_handles.end());
        it != end;
-       ++it)
+       ++it) {
+    if (_task_manager)
+      _task_manager->remove(it->second);
     delete it->second;
+  }
   delete[] _fds;
 }
 
@@ -153,6 +156,8 @@ bool handle_manager::remove(handle* h) {
     it(_handles.find(h->get_internal_handle()));
   if (it == _handles.end())
     return (false);
+  if (_task_manager)
+    _task_manager->remove(it->second);
   delete it->second;
   _handles.erase(it);
 
@@ -178,6 +183,8 @@ unsigned int handle_manager::remove(handle_listener* hl) {
        it = next) {
     ++(next = it);
     if (it->second->get_handle_listener() == hl) {
+      if (_task_manager)
+        _task_manager->remove(it->second);
       delete it->second;
       _handles.erase(it);
       ++count_erase;
