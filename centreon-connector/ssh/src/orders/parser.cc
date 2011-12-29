@@ -285,6 +285,9 @@ void parser::_parse(std::string const& cmd) {
         throw (basic_error() << "invalid execution request received:" \
                     " could not delimit user and password");
       std::string user(cmdline.substr(pos, end - pos));
+      if (user.empty())
+        throw (basic_error() << "invalid execution request received:" \
+                    " empty user");
       pos = end + 1;
       // Find password.
       end = cmdline.find(' ', pos);
