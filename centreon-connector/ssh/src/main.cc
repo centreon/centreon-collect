@@ -32,6 +32,11 @@
 using namespace com::centreon;
 using namespace com::centreon::connector::ssh;
 
+// Should be defined by build tools.
+#ifndef CENTREON_CONNECTOR_SSH_VERSION
+#  define CENTREON_CONNECTOR_SSH_VERSION "(development version)"
+#endif // !CENTREON_CONNECTOR_SSH_VERSION
+
 // Termination flag.
 volatile bool should_exit(false);
 
@@ -68,9 +73,11 @@ int main() {
     logging::engine::load();
     multiplexer::load();
     logging::engine::instance().add(&log_file, -1, 63);
+    logging::info(logging::high) << "Centreon Connector SSH "
+      << CENTREON_CONNECTOR_SSH_VERSION << " starting";
 #if LIBSSH2_VERSION_NUM >= 0x010205
     // Initialize libssh2.
-    logging::info(logging::medium) << "initializing libssh2";
+    logging::debug(logging::medium) << "initializing libssh2";
     if (libssh2_init(0))
       throw (basic_error() << "libssh2 initialization failed");
     {
@@ -78,13 +85,13 @@ int main() {
       if (!version)
         throw (basic_error() << "libssh2 version is too old (>= "
                  << LIBSSH2_VERSION << " required)");
-      logging::debug(logging::high) << "libssh2 version "
+      logging::info(logging::high) << "libssh2 version "
         << version << " successfully loaded";
     }
 #endif /* libssh2 version >= 1.2.5 */
 
     // Set termination handler.
-    logging::info(logging::medium) << "installing termination handler";
+    logging::debug(logging::medium) << "installing termination handler";
     signal(SIGTERM, term_handler);
 
     // Program policy.
