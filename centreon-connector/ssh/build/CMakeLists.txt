@@ -139,6 +139,7 @@ add_library("${CONNECTORLIB}"
   "${SRC_DIR}/checks/listener.cc"
   "${SRC_DIR}/checks/result.cc"
   "${SRC_DIR}/multiplexer.cc"
+  "${SRC_DIR}/options.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
   "${SRC_DIR}/policy.cc"
@@ -153,6 +154,7 @@ add_library("${CONNECTORLIB}"
   "${INC_DIR}/checks/result.hh"
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
+  "${INC_DIR}/options.hh"
   "${INC_DIR}/orders/listener.hh"
   "${INC_DIR}/orders/parser.hh"
   "${INC_DIR}/policy.hh"
@@ -438,6 +440,18 @@ if (WITH_TESTING)
     "${TEST_DIR}/reporter/error.cc")
   target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
+
+  #
+  # Process tests.
+  #
+  # Help.
+  add_test("connector_help" "${CONNECTOR}" "--help")
+  # Version.
+  add_test("connector_version" "${CONNECTOR}" "--version")
+  # Invalid flag.
+  add_test("connector_invalid" "${CONNECTOR}" "--merethis")
+  set_tests_properties("connector_invalid"
+    PROPERTIES WILL_FAIL TRUE)
 
 else()
   set(BUILD_UNIT_TEST "No")

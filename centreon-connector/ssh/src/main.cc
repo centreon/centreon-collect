@@ -19,11 +19,13 @@
 */
 
 #include <errno.h>
+#include <iostream>
 #include <libssh2.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
+#include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/file.hh"
@@ -59,47 +61,83 @@ static void term_handler(int signum) {
 /**
  *  Connector entry point.
  *
+ *  @param[in] argc Arguments count.
+ *  @param[in] argv Arguments values.
+ *
  *  @return 0 on successful execution.
  */
-int main() {
+int main(int argc, char* argv[]) {
   // Return value.
   int retval(EXIT_FAILURE);
 
   // Log object.
-  logging::file log_file(stdout);
+  logging::file log_file(stderr);
 
   try {
     // Initializations.
     logging::engine::load();
     multiplexer::load();
-    logging::engine::instance().add(&log_file, -1, 63);
-    logging::info(logging::high) << "Centreon Connector SSH "
-      << CENTREON_CONNECTOR_SSH_VERSION << " starting";
-#if LIBSSH2_VERSION_NUM >= 0x010205
-    // Initialize libssh2.
-    logging::debug(logging::medium) << "initializing libssh2";
-    if (libssh2_init(0))
-      throw (basic_error() << "libssh2 initialization failed");
-    {
-      char const* version(libssh2_version(LIBSSH2_VERSION_NUM));
-      if (!version)
-        throw (basic_error() << "libssh2 version is too old (>= "
-                 << LIBSSH2_VERSION << " required)");
-      logging::info(logging::high) << "libssh2 version "
-        << version << " successfully loaded";
+
+    // Command line parsing.
+    options opts;
+    try {
+      opts.parse(argc - 1, argv + 1);
     }
+    catch (exceptions::basic const& e) {
+      std::cout << e.what() << std::endl << opts.usage() << std::endl;
+      return (EXIT_FAILURE);
+    }
+    if (opts.get_argument("help").get_is_set()) {
+      std::cout << opts.help() << std::endl;
+      retval = EXIT_SUCCESS;
+    }
+    else if (opts.get_argument("version").get_is_set()) {
+      std::cout << "Centreon Connector SSH "
+        << CENTREON_CONNECTOR_SSH_VERSION << std::endl;
+      retval = EXIT_SUCCESS;
+    }
+    else {
+      // Set logging object.
+      if (opts.get_argument("debug").get_is_set())
+        logging::engine::instance().add(
+          &log_file,
+          (1ull << logging::type_debug)
+          | (1ull << logging::type_info)
+          | (1ull << logging::type_error),
+          logging::high);
+      else
+        logging::engine::instance().add(
+          &log_file,
+          (1ull << logging::type_info) | (1ull << logging::type_error),
+          logging::low);
+      logging::info(logging::high) << "Centreon Connector SSH "
+        << CENTREON_CONNECTOR_SSH_VERSION << " starting";
+#if LIBSSH2_VERSION_NUM >= 0x010205
+      // Initialize libssh2.
+      logging::debug(logging::medium) << "initializing libssh2";
+      if (libssh2_init(0))
+        throw (basic_error() << "libssh2 initialization failed");
+      {
+        char const* version(libssh2_version(LIBSSH2_VERSION_NUM));
+        if (!version)
+          throw (basic_error() << "libssh2 version is too old (>= "
+                   << LIBSSH2_VERSION << " required)");
+        logging::info(logging::high) << "libssh2 version "
+          << version << " successfully loaded";
+      }
 #endif /* libssh2 version >= 1.2.5 */
 
-    // Set termination handler.
-    logging::debug(logging::medium) << "installing termination handler";
-    signal(SIGTERM, term_handler);
+      // Set termination handler.
+      logging::debug(logging::medium) << "installing termination handler";
+      signal(SIGTERM, term_handler);
 
-    // Program policy.
-    policy p;
-    p.run();
+      // Program policy.
+      policy p;
+      p.run();
 
-    // Set return value.
-    retval = EXIT_SUCCESS;
+      // Set return value.
+      retval = EXIT_SUCCESS;
+    }
   }
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
