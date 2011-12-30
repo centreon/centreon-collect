@@ -229,7 +229,7 @@ bool thread::wait(unsigned long timeout) {
   }
 
   return (!running);
-#else // Other POSIX systems.
+#else // Other Unix systems.
   // Implementation based on pthread_timedjoin_np.
 
   // Get the current time.
@@ -254,7 +254,7 @@ bool thread::wait(unsigned long timeout) {
   if (ret == ETIMEDOUT)
     return (false);
   throw (basic_error() << "failed to wait thread: " << strerror(ret));
-#endif // POSIX flavor.
+#endif // Unix flavor.
 }
 
 /**

@@ -39,7 +39,7 @@ CC_BEGIN()
  */
 class              task_manager {
 public:
-                   task_manager(unsigned int max_thread_count = 1);
+                   task_manager(unsigned int max_thread_count = 0);
   virtual          ~task_manager() throw ();
   unsigned long    add(
                      task* t,

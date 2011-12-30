@@ -26,33 +26,18 @@
 using namespace com::centreon::concurrency;
 
 /**
- *  Check null max thread count.
- *
- *  @return True on success, otherwise false.
- */
-static bool null_max_thread_count() {
-  try {
-    thread_pool poll(0);
-  }
-  catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
-
-/**
  *  Check the thread pool constructor.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    if (!null_max_thread_count())
+    thread_pool pool1;
+    if (pool1.get_max_thread_count() <= 0)
       throw (basic_error() << "constructor failed");
 
-    thread_pool pool(4);
-    if (pool.get_max_thread_count() != 4)
+    thread_pool pool2(4);
+    if (pool2.get_max_thread_count() != 4)
       throw (basic_error() << "constructor failed");
   }
   catch (std::exception const& e) {

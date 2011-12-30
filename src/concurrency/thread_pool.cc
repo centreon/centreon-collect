@@ -20,6 +20,11 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#if defined(_WIN32)
+#  include <windows.h> // for GetSystemInfo
+#elif defined(__linux__)
+#  include <unistd.h> // for sysconf()
+#endif // Unix flavor.
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread_pool.hh"
@@ -83,8 +88,30 @@ unsigned int thread_pool::get_max_thread_count() const throw () {
  */
 void thread_pool::set_max_thread_count(unsigned int max) {
   locker lock(&_mtx_pool);
-  if (!max)
-    throw (basic_error() << "invalid max thread count");
+
+  // Find ideal thread count.
+  if (!max) {
+#if defined(_WIN32)
+    SYSTEMINFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    max = sysinfo.dwNumberOfProcessors;
+#elif defined(__linux__)
+    long ncpus(sysconf(_SC_NPROCESSORS_ONLN));
+    if (ncpus <= 0)
+      max = 1;
+    else
+      max = ncpus;
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+    size_t len(sizeof(max));
+    int mib[2];
+    mib[0] = CTL_HW;
+    mib[1] = HW_NCPU;
+    if (sysctl(mib, &max, &len, NULL, 0))
+      max = 1;
+#else
+    max = 1;
+#endif // UNIX flavor.    
+  }
 
   if (_max_thread_count < max)
     for (unsigned int i(0), nb_thread(max - _max_thread_count);
@@ -224,7 +251,7 @@ thread_pool::internal_thread& thread_pool::internal_thread::operator=(internal_t
  */
 thread_pool::internal_thread& thread_pool::internal_thread::_internal_copy(internal_thread const& right) {
   (void)right;
-  assert(!"impossible to copy thread_pool::internal_thread");
+  assert(!"thread_pool::internal_thread is not copyable");
   abort();
   return (*this);
 }
