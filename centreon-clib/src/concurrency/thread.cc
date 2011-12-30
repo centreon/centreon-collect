@@ -21,7 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__)
 #  include <pthread_np.h>
 #elif defined(__NetBSD__)
 #  include <signal.h>
@@ -175,7 +175,7 @@ void thread::wait() {
 bool thread::wait(unsigned long timeout) {
   locker lock(&_mtx);
 
-#ifdef __NetBSD__
+#if defined(__NetBSD__) || defined(__OpenBSD__)
   // Implementation based on pthread_kill and usleep.
 
   // Get the current time.
