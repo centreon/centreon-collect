@@ -19,9 +19,12 @@
 */
 
 #include <assert.h>
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/connector/ssh/checks/check.hh"
+#include "com/centreon/connector/ssh/checks/timeout.hh"
+#include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
@@ -68,17 +71,28 @@ check::~check() throw () {
  *  @param[in] sess    Session on which a channel will be opened.
  *  @param[in] cmd_id  Command ID.
  *  @param[in] cmd     Command to execute.
- *  @param[in] timeout Command timeout.
+ *  @param[in] tmt     Command timeout.
  */
 void check::execute(
               sessions::session& sess,
               unsigned long long cmd_id,
               std::string const& cmd,
-              time_t timeout) {
+              time_t tmt) {
+  // Store command information.
   _cmd = cmd;
   _cmd_id = cmd_id;
   _session = &sess;
-  _timeout = timeout;
+
+  // Register timeout.
+  std::auto_ptr<timeout> t(new timeout(this));
+  _timeout = multiplexer::instance().com::centreon::task_manager::add(
+    t.get(),
+    tmt,
+    false,
+    true);
+  t.release();
+
+  // Session-related actions.
   sess.listen(this);
   if (sess.is_connected())
     on_connected(sess);
@@ -185,6 +199,25 @@ void check::on_connected(sessions::session& sess) {
   logging::debug(logging::low) << "manually starting check "
     << _cmd_id;
   on_available(sess);
+  return ;
+}
+
+/**
+ *  Called when check timeout occurs.
+ */
+void check::on_timeout() {
+  // Log message.
+  logging::error(logging::medium) << "check " << this
+    << " reached timeout";
+
+  // Reset timeout task ID.
+  _timeout = 0;
+
+  // Send check result.
+  result r;
+  r.set_command_id(_cmd_id);
+  _send_result_and_unregister(r);
+
   return ;
 }
 
@@ -392,6 +425,16 @@ bool check::_read() {
  *  @param[in] r Check result.
  */
 void check::_send_result_and_unregister(result const& r) {
+  // Remove timeout task.
+  if (_timeout) {
+    try {
+      multiplexer::instance().com::centreon::task_manager::remove(
+        _timeout);
+    }
+    catch (...) {}
+    _timeout = 0;
+  }
+
   // Check that session is valid.
   if (_session) {
     // Unregister from session.
@@ -405,12 +448,12 @@ void check::_send_result_and_unregister(result const& r) {
 
   // Check that was haven't already send a check result.
   if (_cmd_id) {
+    // Reset command ID.
+    _cmd_id = 0;
+
     // Send check result to listeners.
     if (_listnr)
       _listnr->on_result(r);
-
-    // Reset command ID.
-    _cmd_id = 0;
   }
 
   return ;

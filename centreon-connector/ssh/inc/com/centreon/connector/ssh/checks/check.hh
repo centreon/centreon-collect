@@ -48,11 +48,12 @@ namespace              checks {
                          sessions::session& sess,
                          unsigned long long cmd_id,
                          std::string const& cmd,
-                         time_t timeout);
+                         time_t tmt);
     void               listen(checks::listener* listnr);
     void               on_available(sessions::session& sess);
     void               on_close(sessions::session& sess);
     void               on_connected(sessions::session& sess);
+    void               on_timeout();
     void               unlisten(checks::listener* listnr);
 
   private:
@@ -79,7 +80,7 @@ namespace              checks {
     std::string        _stderr;
     std::string        _stdout;
     e_step             _step;
-    time_t             _timeout;
+    unsigned long      _timeout;
   };
 }
 

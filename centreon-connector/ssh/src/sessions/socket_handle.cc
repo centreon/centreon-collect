@@ -53,9 +53,11 @@ socket_handle::~socket_handle() throw () {
  *  Close socket descriptor.
  */
 void socket_handle::close() {
-  shutdown(_internal_handle, SHUT_RDWR);
-  ::close(_internal_handle);
-  _internal_handle = -1;
+  if (_internal_handle >= 0) {
+    shutdown(_internal_handle, SHUT_RDWR);
+    ::close(_internal_handle);
+    _internal_handle = -1;
+  }
   return ;
 }
 
