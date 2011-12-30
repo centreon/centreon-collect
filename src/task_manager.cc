@@ -197,10 +197,12 @@ unsigned int task_manager::remove(task* t) {
          it(_tasks.begin()), next(it), end(_tasks.end());
        it != end;
        it = next)
-    if (it->second->t == t) {
+    if (it->second->t != t)
+      ++next;
+    else {
       if (it->second->get_auto_delete())
         delete it->second;
-      ++(next = it);
+      ++next;
       _tasks.erase(it);
       ++count_erase;
     }
@@ -219,10 +221,12 @@ bool task_manager::remove(unsigned long id) {
          it(_tasks.begin()), next(it), end(_tasks.end());
        it != end;
        it = next)
-    if (it->second->id == id) {
+    if (it->second->id != id)
+      ++next;
+    else {
       if (it->second->get_auto_delete())
         delete it->second;
-      ++(next = it);
+      ++next;
       _tasks.erase(it);
       return (true);
     }

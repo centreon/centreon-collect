@@ -46,6 +46,11 @@ int main() {
 
     task_test* t1(new task_test);
     tm.add(t1, timestamp::now(), true, true);
+
+    task_test none;
+    if (tm.remove(&none))
+      throw (basic_error() << "remove invalid task");
+
     if (tm.remove(t1) != 1)
       throw (basic_error() << "remove one task failed");
 
