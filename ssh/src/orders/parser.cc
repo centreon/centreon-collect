@@ -149,7 +149,7 @@ void parser::read(handle& h) {
 
     // Parse command.
     while (bound != std::string::npos) {
-      logging::debug(logging::low)
+      logging::debug(logging::high)
         << "got command boundary at offset " << bound;
       bound += sizeof(boundary);
       std::string cmd(_buffer.substr(0, bound));
@@ -159,12 +159,12 @@ void parser::read(handle& h) {
         _parse(cmd);
       }
       catch (std::exception const& e) {
-        logging::error(logging::high) << "orders parsing error: "
+        logging::error(logging::low) << "orders parsing error: "
           << e.what();
         error = true;
       }
       catch (...) {
-        logging::error(logging::high) << "unknown orders parsing error";
+        logging::error(logging::low) << "unknown orders parsing error";
         error = true;
       }
       if (error && _listnr)

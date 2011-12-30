@@ -92,7 +92,7 @@ policy::~policy() throw () {
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  logging::info(logging::high) << "stdin is closed";
+  logging::info(logging::low) << "stdin is closed";
   on_quit();
   return ;
 }
@@ -101,7 +101,7 @@ void policy::on_eof() {
  *  Called if an error occured on stdin.
  */
 void policy::on_error() {
-  logging::info(logging::high)
+  logging::info(logging::low)
     << "error occurred while parsing stdin";
   on_quit();
   return ;
@@ -152,12 +152,12 @@ void policy::on_execute(
     chk.release();
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << "could not launch check ID "
+    logging::error(logging::low) << "could not launch check ID "
       << cmd_id << " on host " << host << " because an error occurred: "
       << e.what();
   }
   catch (...) {
-    logging::error(logging::high) << "could not launch check ID "
+    logging::error(logging::low) << "could not launch check ID "
       << cmd_id << " on host " << host << " because an error occurred";
   }
 
@@ -169,8 +169,8 @@ void policy::on_execute(
  */
 void policy::on_quit() {
   // Exiting.
-  logging::info(logging::high)
-    << "quit request received from monitoring engine";
+  logging::info(logging::low)
+    << "quit request received";
   should_exit = true;
   multiplexer::instance().handle_manager::remove(&_sin);
   return ;
@@ -205,7 +205,7 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  logging::info(logging::low)
+  logging::info(logging::medium)
     << "monitoring engine requested protocol version, sending 1.0";
   _reporter.send_version(1, 0);
   return ;
@@ -220,11 +220,13 @@ void policy::run() {
     multiplexer::instance().multiplex();
 
   // Run as long as a check remains.
-  logging::info(logging::high) << "waiting for checks to terminate";
+  logging::info(logging::low) << "waiting for checks to terminate";
   while (!_checks.empty())
     multiplexer::instance().multiplex();
 
   // Run as long as some data remains.
+  logging::info(logging::low)
+    << "reporting last data to monitoring engine";
   while (_reporter.can_report() && _reporter.want_write(_sout))
     multiplexer::instance().multiplex();
 

@@ -52,7 +52,7 @@ static void term_handler(int signum) {
   int old_errno(errno);
   logging::info(logging::high) << "termination request received";
   should_exit = true;
-  logging::info(logging::low) << "reseting termination handler";
+  logging::info(logging::high) << "reseting termination handler";
   signal(SIGTERM, SIG_DFL);
   errno = old_errno;
   return ;
@@ -98,19 +98,25 @@ int main(int argc, char* argv[]) {
     }
     else {
       // Set logging object.
-      if (opts.get_argument("debug").get_is_set())
+      if (opts.get_argument("debug").get_is_set()) {
+        logging::engine::instance().set_show_pid(true);
+        logging::engine::instance().set_show_thread_id(true);
         logging::engine::instance().add(
           &log_file,
           (1ull << logging::type_debug)
           | (1ull << logging::type_info)
           | (1ull << logging::type_error),
           logging::high);
-      else
+      }
+      else {
+        logging::engine::instance().set_show_pid(false);
+        logging::engine::instance().set_show_thread_id(false);
         logging::engine::instance().add(
           &log_file,
           (1ull << logging::type_info) | (1ull << logging::type_error),
           logging::low);
-      logging::info(logging::high) << "Centreon Connector SSH "
+      }
+      logging::info(logging::low) << "Centreon Connector SSH "
         << CENTREON_CONNECTOR_SSH_VERSION << " starting";
 #if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.
@@ -122,7 +128,7 @@ int main(int argc, char* argv[]) {
         if (!version)
           throw (basic_error() << "libssh2 version is too old (>= "
                    << LIBSSH2_VERSION << " required)");
-        logging::info(logging::high) << "libssh2 version "
+        logging::info(logging::low) << "libssh2 version "
           << version << " successfully loaded";
       }
 #endif /* libssh2 version >= 1.2.5 */
@@ -140,7 +146,7 @@ int main(int argc, char* argv[]) {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    logging::error(logging::low) << e.what();
   }
 
 #if LIBSSH2_VERSION_NUM >= 0x010205
