@@ -110,8 +110,9 @@ void session::close() {
  */
 void session::close(handle& h) {
   (void)h;
-  logging::error(logging::high)
-    << "socket got closed, shutting down session";
+  logging::error(logging::low)
+    << "socket got closed, shutting down session "
+    << _creds.get_user() << "@" << _creds.get_host();
   this->close();
   return ;
 }
@@ -134,14 +135,15 @@ void session::connect() {
   char const* host_ptr(_creds.get_host().c_str());
 
   // Host lookup.
-  logging::info(logging::low) << "looking up address " << host_ptr;
+  logging::info(logging::high) << "looking up address " << host_ptr;
   sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
   {
     // Try to avoid DNS lookup.
     in_addr_t addr(inet_addr(host_ptr));
     if (addr != (in_addr_t)-1) {
-      logging::debug(logging::low) << "host_ptr is an IP address";
+      logging::debug(logging::high) << "host "
+        << host_ptr << " is an IP address";
       sin.sin_addr.s_addr = addr;
     }
     // DNS lookup.
@@ -235,8 +237,9 @@ void session::connect() {
  */
 void session::error(handle& h) {
   (void)h;
-  logging::error(logging::high)
-    << "error detected on socket, shutting down session";
+  logging::error(logging::low)
+    << "error detected on socket, shutting down session "
+    << _creds.get_user() << "@" << _creds.get_host();
   this->close();
   return ;
 }
@@ -397,7 +400,7 @@ void session::_available() {
  */
 void session::_key() {
   // Log message.
-  logging::info(logging::low)
+  logging::info(logging::medium)
     << "launching key-based authentication on session"
     << _creds.get_user() << "@" << _creds.get_host();
 
@@ -456,7 +459,7 @@ void session::_key() {
  */
 void session::_passwd() {
   // Log message.
-  logging::info(logging::low)
+  logging::info(logging::medium)
     << "launching password-based authentication on session "
     << _creds.get_user() << "@" << _creds.get_host();
 
@@ -473,7 +476,7 @@ void session::_passwd() {
         && (retval != LIBSSH2_ERROR_ALLOC)
         && (retval != LIBSSH2_ERROR_SOCKET_SEND)) {
 #endif /* libssh2 version >= 1.2.3 */
-      logging::info(logging::low)
+      logging::info(logging::medium)
         << "could not authenticate with password on session "
         << _creds.get_user() << "@" << _creds.get_host();
       _step = session_key;
@@ -515,7 +518,8 @@ void session::_passwd() {
  */
 void session::_startup() {
   // Log message.
-  logging::info(logging::low) << "attempting to initialize SSH session "
+  logging::info(logging::high)
+    << "attempting to initialize SSH session "
     << _creds.get_user() << "@" << _creds.get_host();
 
   // Exchange banners, keys, setup crypto, compression, ...
@@ -564,11 +568,11 @@ void session::_startup() {
       throw (basic_error() << "parsing of known_hosts file "
                << known_hosts_file << " failed: error " << -rh);
     else
-      logging::info(logging::low) << rh
+      logging::info(logging::medium) << rh
         << " hosts found in known_hosts file " << known_hosts_file;
 
     // Check host fingerprint against known hosts.
-    logging::info(logging::low) << "checking fingerprint on session "
+    logging::info(logging::high) << "checking fingerprint on session "
       << _creds.get_user() << "@" << _creds.get_host();
 
     // Get peer fingerprint.

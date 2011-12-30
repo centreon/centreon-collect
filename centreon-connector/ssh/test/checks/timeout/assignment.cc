@@ -20,6 +20,7 @@
 
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/timeout.hh"
+#include "com/centreon/connector/ssh/multiplexer.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -29,6 +30,9 @@ using namespace com::centreon::connector::ssh;
  *  @return 0 on success.
  */
 int main() {
+  // Initialization.
+  multiplexer::load();
+
   // Base object.
   checks::check c1;
   checks::timeout t1(&c1);
