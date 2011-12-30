@@ -80,16 +80,16 @@ bool wait_condition::wait(mutex* mtx, unsigned long timeout) {
     throw (basic_error() << "failed sleep thread:"
            << strerror(errno));
 
-  // Transforms unnecessary microseconds into seconds.
-  time_t sec(ts.tv_nsec / 1000000);
-  ts.tv_nsec -= sec * 1000000;
-  ts.tv_sec += sec;
-
   // Add timout.
-  sec = timeout / 1000;
+  time_t sec(timeout / 1000);
   timeout -= sec * 1000;
   ts.tv_sec += sec;
   ts.tv_nsec += timeout * 1000000;
+
+  // Transforms unnecessary microseconds into seconds.
+  sec = ts.tv_nsec / 1000000000L;
+  ts.tv_nsec -= sec * 1000000000L;
+  ts.tv_sec += sec;
 
   // Wait the condition variable.
   int ret(pthread_cond_timedwait(&_cnd, &mtx->_mtx, &ts));
