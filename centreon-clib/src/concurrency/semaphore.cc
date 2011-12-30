@@ -81,7 +81,7 @@ bool semaphore::acquire(unsigned long timeout) {
   // Add the timeout.
   ts.tv_sec += timeout / 1000;
   timeout %= 1000;
-  ts.tv_nsec += timeout * 1000 * 1000;
+  ts.tv_nsec += timeout * 1000000l;
   if (ts.tv_nsec > 1000000000l) {
     ts.tv_nsec -= 1000000000l;
     ++ts.tv_sec;
@@ -102,7 +102,7 @@ bool semaphore::acquire(unsigned long timeout) {
   timeval limit;
   memcpy(&limit, &now, sizeof(limit));
 
-  // Add the timeout.
+  // Add timeout.
   limit.tv_sec += timeout / 1000;
   timeout %= 1000;
   limit.tv_usec += timeout * 1000;

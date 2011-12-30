@@ -20,10 +20,13 @@
 
 #include <assert.h>
 #include <errno.h>
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-#  include <pthread.h>
+#include <pthread.h>
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 #  include <pthread_np.h>
-#endif // FreeBSD or OpenBSD or NetBSD
+#elif defined(__NetBSD__)
+#  include <signal.h>
+#  include <sys/time.h>
+#endif // BSD flavor.
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -36,16 +39,12 @@ using namespace com::centreon::concurrency;
 /**
  *  Default constructor.
  */
-thread::thread() {
-
-}
+thread::thread() {}
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
-thread::~thread() throw () {
-
-}
+thread::~thread() throw () {}
 
 /**
  *  Execute the running method in the new thread.
@@ -53,7 +52,7 @@ thread::~thread() throw () {
 void thread::exec() {
   int ret(pthread_create(&_th, NULL, &_execute, this));
   if (ret)
-    throw (basic_error() << "failed to create thread:"
+    throw (basic_error() << "failed to create thread: "
            << strerror(ret));
 }
 
@@ -76,7 +75,7 @@ void thread::msleep(unsigned long msecs) {
   // Get the current time.
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread:"
+    throw (basic_error() << "failed sleep thread: "
            << strerror(errno));
 
   // Add timeout.
@@ -99,7 +98,7 @@ void thread::nsleep(unsigned long nsecs) {
   // Get the current time.
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread:"
+    throw (basic_error() << "failed sleep thread: "
            << strerror(errno));
 
   // Add timeout.
@@ -119,7 +118,7 @@ void thread::sleep(unsigned long secs) {
   // Get the current time.
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread:"
+    throw (basic_error() << "failed sleep thread: "
            << strerror(errno));
 
   // Add timeout.
@@ -139,7 +138,7 @@ void thread::usleep(unsigned long usecs) {
   // Get the current time.
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread:"
+    throw (basic_error() << "failed sleep thread: "
            << strerror(errno));
 
   // Add timeout.
@@ -161,7 +160,7 @@ void thread::wait() {
   // Wait the end of the thread.
   int ret(pthread_join(_th, NULL));
   if (ret && ret != ESRCH)
-    throw (basic_error() << "failed to wait thread:"
+    throw (basic_error() << "failed to wait thread: "
            << strerror(ret));
 }
 
@@ -176,22 +175,65 @@ void thread::wait() {
 bool thread::wait(unsigned long timeout) {
   locker lock(&_mtx);
 
+#ifdef __NetBSD__
+  // Implementation based on pthread_kill and usleep.
+
+  // Get the current time.
+  timeval now;
+  gettimeofday(&now, NULL);
+  timeval limit;
+  memcpy(&limit, &now, sizeof(limit));
+
+  // Add timeout.
+  limit.tv_sec += timeout / 1000;
+  timeout %= 1000;
+  limit.tv_usec += timeout * 1000;
+  if (limit.tv_usec > 1000000) {
+    limit.tv_usec -= 1000000;
+    ++limit.tv_sec;
+  }
+
+  // Wait for the end of thread or timeout.
+  bool running(true);
+  while (running
+         && ((now.tv_sec * 1000000ull + now.tv_usec)
+             < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
+    usleep(100);
+    int ret(pthread_kill(_th, 0));
+    if (ret == ESRCH)
+      running = false;
+    else
+      throw (basic_error() << "failed to wait thread: "
+             << strerror(ret));
+    gettimeofday(&now, NULL);
+  }
+
+  // Join thread.
+  if (!running) {
+    int ret(pthread_join(_th, NULL));
+    if (ret)
+      throw (basic_error() << "failed to wait thread: "
+             << strerror(ret));
+  }
+
+  return (!running);
+#else // Other POSIX systems.
+  // Implementation based on pthread_timedjoin_np.
+
   // Get the current time.
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed to wait thread:"
+    throw (basic_error() << "failed to wait thread: "
            << strerror(errno));
 
-  // Transforms unnecessary microseconds into seconds.
-  time_t sec(ts.tv_nsec / 1000000);
-  ts.tv_nsec -= sec * 1000000;
-  ts.tv_sec += sec;
-
   // Add timeout.
-  sec = timeout / 1000;
-  timeout -= sec * 1000;
-  ts.tv_sec += sec;
-  ts.tv_nsec += timeout * 1000000;
+  ts.tv_sec += timeout / 1000;
+  timeout %= 1000;
+  ts.tv_nsec += timeout * 1000000l;
+  if (ts.tv_nsec > 1000000000l) {
+    ts.tv_nsec -= 1000000000l;
+    ++ts.tv_sec;
+  }
 
   // Wait the end of the thread or timeout.
   int ret(pthread_timedjoin_np(_th, NULL, &ts));
@@ -199,7 +241,8 @@ bool thread::wait(unsigned long timeout) {
     return (true);
   if (ret == ETIMEDOUT)
     return (false);
-  throw (basic_error() << "failed to wait thread:" << strerror(ret));
+  throw (basic_error() << "failed to wait thread: " << strerror(ret));
+#endif // POSIX flavor.
 }
 
 /**
@@ -254,7 +297,7 @@ void* thread::_execute(void* data) {
  */
 thread& thread::_internal_copy(thread const& right) {
   (void)right;
-  assert(!"impossible to copy thread");
+  assert(!"thread is not copyable");
   abort();
   return (*this);
 }
@@ -278,19 +321,18 @@ void thread::_sleep(timespec* ts) {
 
   // Lock the mutex.
   if ((ret = pthread_mutex_lock(&mtx)))
-    throw (basic_error() << "impossible to sleep:" << strerror(ret));
+    throw (basic_error() << "unable to sleep:" << strerror(ret));
 
   // Wait the timeout of the condition variable.
   if ((ret = pthread_cond_timedwait(&cnd, &mtx, ts))
       && ret != ETIMEDOUT)
-    throw (basic_error() << "impossible to sleep:" << strerror(ret));
+    throw (basic_error() << "unable to sleep:" << strerror(ret));
 
   // Release mutex.
   if ((ret = pthread_mutex_unlock(&mtx)))
-    throw (basic_error() << "impossible in sleep:" << strerror(ret));
+    throw (basic_error() << "unable to sleep:" << strerror(ret));
 
   // Cleanup.
   pthread_cond_destroy(&cnd);
   pthread_mutex_destroy(&mtx);
 }
-
