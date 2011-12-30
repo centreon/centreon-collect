@@ -24,7 +24,10 @@
 #  include <windows.h> // for GetSystemInfo
 #elif defined(__linux__)
 #  include <unistd.h> // for sysconf()
-#elif defined(__FreeBSD__) || defined(__NetBSD__)
+#elif defined(__FreeBSD__)
+#  include <sys/types.h>
+#  include <sys/sysctl.h>
+#elif defined(__NetBSD__)
 #  include <sys/sysctl.h>
 #elif defined(__OpenBSD__)
 #  include <sys/param.h>
@@ -111,7 +114,7 @@ void thread_pool::set_max_thread_count(unsigned int max) {
     int mib[2];
     mib[0] = CTL_HW;
     mib[1] = HW_NCPU;
-    if (sysctl(mib, &max, &len, NULL, 0))
+    if (sysctl(mib, 2, &max, &len, NULL, 0))
       max = 1;
 #else
     max = 1;
