@@ -22,7 +22,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/semaphore.hh"
 
@@ -35,7 +37,7 @@ using namespace com::centreon::concurrency;
  */
 semaphore::semaphore(unsigned int n) {
   if (sem_init(&_sem, 0, n))
-    throw (basic_error() << "impossible to create semaphore:"
+    throw (basic_error() << "unable to create semaphore: "
            << strerror(errno));
 }
 
@@ -54,7 +56,7 @@ semaphore::~semaphore() throw () {
 void semaphore::acquire() {
   // Wait to acquire ressource.
   if (sem_wait(&_sem))
-    throw (basic_error() << "impossible to acquire the semaphore:"
+    throw (basic_error() << "unable to acquire semaphore: "
            << strerror(errno));
 }
 
@@ -67,25 +69,60 @@ void semaphore::acquire() {
  *  @return True if one ressource is acquire, false if timeout.
  */
 bool semaphore::acquire(unsigned long timeout) {
-  timespec ts;
+#if defined(_POSIX_TIMEOUTS) && (_POSIX_TIMEOUTS >= 200112L)
+  // Implementation based on sem_timedwait.
+
   // Get the current time.
+  timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread:"
+    throw (basic_error() << "unable to get time within semaphore: "
            << strerror(errno));
 
   // Add the timeout.
-  time_t sec(timeout / 1000);
-  timeout -= sec * 1000;
-  ts.tv_sec += sec;
+  ts.tv_sec += timeout / 1000;
+  timeout %= 1000;
   ts.tv_nsec += timeout * 1000 * 1000;
+  if (ts.tv_nsec > 1000000000l) {
+    ts.tv_nsec -= 1000000000l;
+    ++ts.tv_sec;
+  }
 
   // Wait to acquire ressource.
-  if (!sem_timedwait(&_sem, &ts))
-    return (true);
-  if (errno == ETIMEDOUT)
-    return (false);
-  throw (basic_error() << "impossible to acquire the semaphore:"
-         << strerror(errno));
+  bool failed(sem_timedwait(&_sem, &ts));
+  if (failed && (errno != ETIMEDOUT))
+    throw (basic_error() << "unable to acquire semaphore: "
+           << strerror(errno));
+  return (!failed);
+#else
+  // Implementation based on try_acquire and usleep.
+
+  // Get the current time.
+  timeval now;
+  gettimeofday(&now, NULL);
+  timeval limit;
+  memcpy(&limit, &now, sizeof(limit));
+
+  // Add the timeout.
+  limit.tv_sec += timeout / 1000;
+  timeout %= 1000;
+  limit.tv_usec += timeout * 1000;
+  if (limit.tv_usec > 1000000) {
+    limit.tv_usec -= 1000000;
+    ++limit.tv_sec;
+  }
+
+  // Wait to acquire ressource.
+  bool locked(try_acquire());
+  while (!locked
+         && ((now.tv_sec * 1000000ull + now.tv_usec)
+             < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
+    usleep(100);
+    locked = try_acquire();
+    gettimeofday(&now, NULL);
+  }
+
+  return (locked);
+#endif // SUSv3, Timeouts option.
 }
 
 /**
@@ -96,7 +133,8 @@ bool semaphore::acquire(unsigned long timeout) {
 int  semaphore::available() {
   int sval(0);
   if (sem_getvalue(&_sem, &sval))
-    throw (basic_error() << "impossibel to get the available number:"
+    throw (basic_error()
+           << "unable to get semaphore's ressource count: "
            << strerror(errno));
   return (sval);
 }
@@ -106,7 +144,7 @@ int  semaphore::available() {
  */
 void semaphore::release() {
   if (sem_post(&_sem))
-    throw (basic_error() << "impossible to release the semaphore:"
+    throw (basic_error() << "unable to release semaphore: "
            << strerror(errno));
 }
 
@@ -116,12 +154,11 @@ void semaphore::release() {
  *  @return True if one ressource is acquire, otherwise false.
  */
 bool semaphore::try_acquire() {
-  if (!sem_trywait(&_sem))
-    return (true);
-  if (errno == EAGAIN)
-    return (false);
-  throw (basic_error() << "impossible to try to acquire the " \
-         "semaphore:" << strerror(errno));
+  bool failed(sem_trywait(&_sem));
+  if (failed && (errno != EAGAIN))
+    throw (basic_error() << "unable to acquire semaphore: "
+           << strerror(errno));
+  return (!failed);
 }
 
 /**
@@ -153,7 +190,7 @@ semaphore& semaphore::operator=(semaphore const& right) {
  */
 semaphore& semaphore::_internal_copy(semaphore const& right) {
   (void)right;
-  assert(!"impossible to copy semaphore");
+  assert(!"semaphore is not copyable");
   abort();
   return (*this);
 }
