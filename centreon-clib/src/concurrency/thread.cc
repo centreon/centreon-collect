@@ -83,7 +83,10 @@ void thread::msleep(unsigned long msecs) {
   time_t sec(msecs / 1000);
   msecs -= sec * 1000;
   ts.tv_sec += sec;
-  ts.tv_nsec += msecs * 1000 * 1000;
+  ts.tv_nsec += msecs * 1000000;
+
+  // Transforms unnecessary microseconds into seconds.
+  _transfer(&ts);
 
   // Sleep the calling thread.
   _sleep(&ts);
@@ -103,7 +106,13 @@ void thread::nsleep(unsigned long nsecs) {
            << strerror(errno));
 
   // Add timeout.
+  time_t sec(nsecs / 1000000000L);
+  nsecs -= sec * 1000000000L;
+  ts.tv_sec += sec;
   ts.tv_nsec += nsecs;
+
+  // Transforms unnecessary microseconds into seconds.
+  _transfer(&ts);
 
   // Sleep the calling thread.
   _sleep(&ts);
@@ -143,10 +152,13 @@ void thread::usleep(unsigned long usecs) {
            << strerror(errno));
 
   // Add timeout.
-  time_t sec(usecs / (1000 * 1000));
-  usecs -= sec * (1000 * 1000);
+  time_t sec(usecs / 1000000);
+  usecs -= sec * 1000000;
   ts.tv_sec += sec;
   ts.tv_nsec += usecs * 1000;
+
+  // Transforms unnecessary microseconds into seconds.
+  _transfer(&ts);
 
   // Sleep the calling thread.
   _sleep(&ts);
@@ -182,16 +194,14 @@ bool thread::wait(unsigned long timeout) {
     throw (basic_error() << "failed to wait thread:"
            << strerror(errno));
 
-  // Transforms unnecessary microseconds into seconds.
-  time_t sec(ts.tv_nsec / 1000000);
-  ts.tv_nsec -= sec * 1000000;
-  ts.tv_sec += sec;
-
   // Add timeout.
-  sec = timeout / 1000;
+  time_t sec = timeout / 1000;
   timeout -= sec * 1000;
   ts.tv_sec += sec;
   ts.tv_nsec += timeout * 1000000;
+
+  // Transforms unnecessary microseconds into seconds.
+  _transfer(&ts);
 
   // Wait the end of the thread or timeout.
   int ret(pthread_timedjoin_np(_th, NULL, &ts));
@@ -294,3 +304,14 @@ void thread::_sleep(timespec* ts) {
   pthread_mutex_destroy(&mtx);
 }
 
+/**
+ *  Transfer nanosecond in second if is possible.
+ *  @remark This function is static.
+ *
+ *  @param[out] ts  time.
+ */
+void thread::_transfer(timespec* ts) {
+  time_t sec(ts->tv_nsec / 1000000000L);
+  ts->tv_nsec -= sec * 1000000000L;
+  ts->tv_sec += sec;
+}

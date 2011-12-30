@@ -59,6 +59,7 @@ namespace            concurrency {
     static void*     _execute(void* data);
     thread&          _internal_copy(thread const& right);
     static void      _sleep(timespec* ts);
+    static void      _transfer(timespec* ts);
 
     mutable mutex    _mtx;
     pthread_t        _th;
