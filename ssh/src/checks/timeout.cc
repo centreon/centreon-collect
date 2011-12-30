@@ -18,6 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/timeout.hh"
 
 using namespace com::centreon::connector::ssh::checks;
@@ -78,7 +79,7 @@ check* timeout::get_check() const throw () {
  */
 void timeout::run() {
   if (_check)
-    ;// XXX
+    _check->on_timeout();
   return ;
 }
 
