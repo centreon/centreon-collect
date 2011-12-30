@@ -24,6 +24,11 @@
 #  include <windows.h> // for GetSystemInfo
 #elif defined(__linux__)
 #  include <unistd.h> // for sysconf()
+#elif defined(__FreeBSD__) || defined(__NetBSD__)
+#  include <sys/sysctl.h>
+#elif defined(__OpenBSD__)
+#  include <sys/param.h>
+#  include <sys/sysctl.h>
 #endif // Unix flavor.
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
