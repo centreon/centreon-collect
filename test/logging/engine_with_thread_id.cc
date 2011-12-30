@@ -55,13 +55,13 @@ private:
  *  @return True on success, otherwise false.
  */
 static bool check_thread_id(std::string const& data, char const* msg) {
-  unsigned long ptr(0);
+  void* ptr(NULL);
   char message[1024];
 
   int ret(sscanf(
             data.c_str(),
             "[%p] %s\n",
-            reinterpret_cast<void**>(&ptr),
+            &ptr,
             message));
   return (ret == 2 && !strncmp(msg, message, strlen(msg)));
 }
