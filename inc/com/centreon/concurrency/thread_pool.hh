@@ -40,7 +40,7 @@ namespace                concurrency {
    */
   class                  thread_pool {
   public:
-                         thread_pool(unsigned int max_thread_count = 1);
+                         thread_pool(unsigned int max_thread_count = 0);
                          ~thread_pool() throw ();
     unsigned int         get_current_task_running() const throw ();
     unsigned int         get_max_thread_count() const throw ();
