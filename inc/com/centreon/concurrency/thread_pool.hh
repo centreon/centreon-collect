@@ -75,7 +75,7 @@ namespace                concurrency {
     bool                 _quit;
     unsigned int         _max_thread_count;
     mutable mutex        _mtx_pool;
-    mutex                _mtx_thread;
+    mutable mutex        _mtx_thread;
     std::list<internal_thread*>
                          _pool;
     std::list<runnable*> _tasks;
