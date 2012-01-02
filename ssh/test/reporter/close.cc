@@ -54,6 +54,7 @@ int main() {
     retval = 1;
   }
   catch (com::centreon::exceptions::basic const& e) {
+    (void)e;
     retval = 0;
   }
 

@@ -357,7 +357,7 @@ void session::write(handle& h) {
  *
  *  @param[in] s Object to copy.
  */
-session::session(session const& s) {
+session::session(session const& s) : com::centreon::handle_listener(s) {
   (void)s;
   assert(!"session is not copyable");
   abort();
