@@ -58,31 +58,39 @@ thread_pool::~thread_pool() throw () {
 
 /**
  *  Get the number of current task running.
+ *  @remark This method is thread safe.
  *
  *  @return The number of current task running.
  */
 unsigned int thread_pool::get_current_task_running() const throw () {
+  // Lock the thread.
+  locker lock(&_mtx_thread);
   return (_current_task_running);
 }
 
 
 /**
  *  Get the number of threads into the thread pool.
+ *  @remark This method is thread safe.
  *
  *  @return The max thread count.
  */
 unsigned int thread_pool::get_max_thread_count() const throw () {
+  // Lock the thread pool.
   locker lock(&_mtx_pool);
   return (_max_thread_count);
 }
 
 /**
  *  Set the number of threads into the thread pool.
+ *  @remark This method is thread safe.
  *
  *  @param[in] max  The max thread count.
  */
 void thread_pool::set_max_thread_count(unsigned int max) {
+  // Lock the thread pool.
   locker lock(&_mtx_pool);
+
   if (!max)
     throw (basic_error() << "invalid max thread count");
 
@@ -109,6 +117,7 @@ void thread_pool::set_max_thread_count(unsigned int max) {
 
 /**
  *  Reserve a thread and uses it to run a runnable.
+ *  @remark This method is thread safe.
  *
  *  @param[in] r  The task to run.
  */
@@ -117,6 +126,7 @@ void thread_pool::start(runnable* r) {
     throw (basic_error() << "impossible to start a new runnable:" \
            "invalid argument (null pointer)");
 
+  // Lock the thread.
   locker lock(&_mtx_thread);
   _tasks.push_back(r);
   _cnd_thread.wake_one();
@@ -124,8 +134,10 @@ void thread_pool::start(runnable* r) {
 
 /**
  *  Waits for each runnable are finish.
+ *  @remark This method is thread safe.
  */
 void thread_pool::wait_for_done() {
+  // Lock the thread.
   locker lock(&_mtx_thread);
   while (!_tasks.empty() || _current_task_running)
     _cnd_pool.wait(&_mtx_thread);
@@ -187,8 +199,10 @@ thread_pool::internal_thread::~internal_thread() throw () {
 
 /**
  *  Ask the thread to quit.
+ *  @remark This method is thread safe.
  */
 void thread_pool::internal_thread::quit() {
+  // Lock the thread.
   locker lock(&_th_pool->_mtx_thread);
   _quit = true;
   _th_pool->_cnd_thread.wake_all();
@@ -231,8 +245,10 @@ thread_pool::internal_thread& thread_pool::internal_thread::_internal_copy(inter
 
 /**
  *  Internal running method to run the runnable class.
+ *  @remark This method is thread safe.
  */
 void thread_pool::internal_thread::_run() {
+  // Lock the thread.
   locker lock(&_th_pool->_mtx_thread);
   while (true) {
     while (!_th_pool->_tasks.empty()) {

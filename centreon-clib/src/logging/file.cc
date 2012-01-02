@@ -87,6 +87,7 @@ file& file::operator=(file const& right) {
 
 /**
  *  Forces write buffered data.
+ *  @remark This method is thread safe.
  */
 void file::flush() throw () {
   locker lock(&_mtx);
@@ -100,6 +101,7 @@ void file::flush() throw () {
 
 /**
  *  Write message into the file.
+ *  @remark This method is thread safe.
  *
  *  @param[in] msg   The message to write.
  *  @param[in] size  The message's size.

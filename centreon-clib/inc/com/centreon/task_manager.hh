@@ -26,6 +26,7 @@
 #  include "com/centreon/namespace.hh"
 #  include "com/centreon/task.hh"
 #  include "com/centreon/timestamp.hh"
+#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/concurrency/thread_pool.hh"
 
 CC_BEGIN()
@@ -87,6 +88,8 @@ private:
   task_manager&    _internal_copy(task_manager const& right);
 
   unsigned long    _current_id;
+  mutable concurrency::mutex
+                   _mtx;
   std::multimap<timestamp, internal_task*>
                    _tasks;
   concurrency::thread_pool

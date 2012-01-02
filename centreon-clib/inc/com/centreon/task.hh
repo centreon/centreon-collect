@@ -35,7 +35,7 @@ CC_BEGIN()
 class          task {
 public:
   virtual      ~task() throw ();
-  virtual void run() = 0;
+  virtual void run();
 };
 
 CC_END()
