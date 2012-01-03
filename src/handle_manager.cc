@@ -105,9 +105,11 @@ void handle_manager::multiplex() {
   _create_fds();
 
   // Determined the poll timeout with the next execution time.
-  int timeout(0);
+  int timeout(-1);
   timestamp now(timestamp::now());
   timestamp next(_task_manager->next_execution_time());
+  if (!_handles.size() && next == timestamp())
+    return;
   if (next > now)
     timeout = next.to_msecond() - now.to_msecond();
 
