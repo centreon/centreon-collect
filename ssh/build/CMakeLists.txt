@@ -187,8 +187,19 @@ add_executable("${CONNECTOR}"
 )
 target_link_libraries("${CONNECTOR}" ${CONNECTORLIB})
 
-# Installation.
-# XXX
+# Installation path.
+if (WITH_PREFIX)
+  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
+endif ()
+if (WITH_PREFIX_BINARY)
+  set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
+else ()
+  set(PREFIX_BINARY "bin")
+endif ()
+
+# Install rules.
+install(TARGETS "${CONNECTOR}"
+  RUNTIME DESTINATION "${PREFIX_BINARY}")
 
 # Packaging.
 option(WITH_PACKAGE_SH "Build shell-installable package." OFF)
@@ -583,5 +594,7 @@ message(STATUS "    - Extra compilation flags    ${CMAKE_CXX_FLAGS}")
 message(STATUS "    - Build unit tests           ${BUILD_UNIT_TEST}")
 message(STATUS "")
 message(STATUS "  Install")
+message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "    - Binary prefix              ${PREFIX_BINARY}")
 message(STATUS "    - Package                    ${PACKAGE_LIST}")
 message(STATUS "")
