@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/task_manager.hh"
 
 using namespace com::centreon;
@@ -32,7 +33,8 @@ using namespace com::centreon::concurrency;
  *                               pool.
  */
 task_manager::task_manager(unsigned int max_thread_count)
-  : _current_id(0), _th_pool(max_thread_count) {
+  : _current_id(0),
+    _th_pool(max_thread_count) {
 
 }
 
@@ -42,6 +44,9 @@ task_manager::task_manager(unsigned int max_thread_count)
 task_manager::~task_manager() throw () {
   // Wait the end of all running task.
   _th_pool.wait_for_done();
+
+  // Lock the task manager.
+  locker lock(&_mtx);
 
   // Delete all internal task.
   for (std::multimap<timestamp, internal_task*>::const_iterator
@@ -53,6 +58,7 @@ task_manager::~task_manager() throw () {
 
 /**
  *  Add a new task into the task manager.
+ *  @remark This method is thread safe.
  *
  *  @param[in] t              The new task.
  *  @param[in] when           The time limit to execute the task.
@@ -66,6 +72,9 @@ unsigned long task_manager::add(
                               timestamp const& when,
                               bool is_runnable,
                               bool should_delete) {
+  // Lock the task manager.
+  locker lock(&_mtx);
+
   internal_task* itask(new internal_task(
                              ++_current_id,
                              t,
@@ -79,6 +88,7 @@ unsigned long task_manager::add(
 
 /**
  *  This method is an overload to add.
+ *  @remark This method is thread safe.
  *
  *  @param[in] t              The new task.
  *  @param[in] when           The time limit to execute the task.
@@ -94,6 +104,9 @@ unsigned long task_manager::add(
                               unsigned int interval,
                               bool is_runnable,
                               bool should_delete) {
+  // Lock the task manager.
+  locker lock(&_mtx);
+
   internal_task* itask(new internal_task(
                              ++_current_id,
                              t,
@@ -107,6 +120,7 @@ unsigned long task_manager::add(
 
 /**
  *  Execute all the task to need run before the time limit.
+ *  @remark This method is thread safe.
  *
  *  @param[in] now  The time limit to execute tasks.
  *
@@ -118,39 +132,48 @@ unsigned int task_manager::execute(timestamp const& now) {
   std::list<std::pair<timestamp, internal_task*> > recurring;
 
   unsigned int count_execute(0);
-  std::multimap<timestamp, internal_task*>::iterator it(_tasks.begin());
-  while (!_tasks.empty() && (it->first <= now)) {
-    // Get internal task.
-    internal_task* itask(it->second);
+  {
+    // Lock the task manager.
+    locker lock(&_mtx);
 
-    // Remove entry.
-    _tasks.erase(it);
+    std::multimap<timestamp, internal_task*>::iterator
+      it(_tasks.begin());
+    while (!_tasks.empty() && (it->first <= now)) {
+      // Get internal task.
+      internal_task* itask(it->second);
 
-    if (itask->interval) {
-      // This task is recurring, push it into recurring list.
-      timestamp new_time(now);
-      new_time.add_usecond(itask->interval);
-      recurring.push_back(std::pair<timestamp,
-                                    internal_task*>(new_time,
-                                                    itask));
+      // Remove entry.
+      _tasks.erase(it);
+
+      if (itask->interval) {
+        // This task is recurring, push it into recurring list.
+        timestamp new_time(now);
+        new_time.add_usecond(itask->interval);
+        recurring.push_back(
+                    std::pair<timestamp, internal_task*>(
+                      new_time,
+                      itask));
+      }
+
+      if (itask->is_runnable) {
+        // This task allow to run in the thread.
+        _th_pool.start(itask);
+      }
+      else {
+        // This task need to be run in the main thread without
+        // any concurrence.
+        lock.unlock();
+        _th_pool.wait_for_done();
+        itask->t->run();
+        lock.relock();
+        if (itask->get_auto_delete())
+          delete itask;
+      }
+      ++count_execute;
+
+      // Reset iterator.
+      it = _tasks.begin();
     }
-
-    if (itask->is_runnable) {
-      // This task allow to run in the thread.
-      _th_pool.start(itask);
-    }
-    else {
-      // This task need to be run in the main thread without
-      // any concurrence.
-      _th_pool.wait_for_done();
-      itask->t->run();
-      if (itask->get_auto_delete())
-        delete itask;
-    }
-    ++count_execute;
-
-    // Reset iterator.
-    it = _tasks.begin();
   }
 
   // Update the task table with the recurring task.
@@ -169,11 +192,15 @@ unsigned int task_manager::execute(timestamp const& now) {
 
 /**
  *  Get the next execution time.
+ *  @remark This method is thread safe.
  *
  *  @return The next time to execute task or null timestamp if no
  *          task need to be run.
  */
 timestamp task_manager::next_execution_time() const {
+  // Lock the task manager.
+  locker lock(&_mtx);
+
   std::multimap<timestamp, internal_task*>::const_iterator
     lower(_tasks.begin());
   if (lower == _tasks.end())
@@ -183,6 +210,7 @@ timestamp task_manager::next_execution_time() const {
 
 /**
  *  Remove task.
+ *  @remark This method is thread safe.
  *
  *  @param[in] t  The specific task.
  *
@@ -191,6 +219,9 @@ timestamp task_manager::next_execution_time() const {
 unsigned int task_manager::remove(task* t) {
   if (!t)
     return (0);
+
+  // Lock the task manager.
+  locker lock(&_mtx);
 
   unsigned int count_erase(0);
   for (std::multimap<timestamp, internal_task*>::iterator
@@ -211,12 +242,16 @@ unsigned int task_manager::remove(task* t) {
 
 /**
  *  This method is an overload of remove.
+ *  @remark This method is thread safe.
  *
  *  @param[in] id  The task id to remove.
  *
  *  @return True if the task was remove, otherwise false.
  */
 bool task_manager::remove(unsigned long id) {
+  // Lock the task manager.
+  locker lock(&_mtx);
+
   for (std::multimap<timestamp, internal_task*>::iterator
          it(_tasks.begin()), next(it), end(_tasks.end());
        it != end;

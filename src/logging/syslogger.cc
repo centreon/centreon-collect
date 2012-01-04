@@ -78,6 +78,7 @@ void syslogger::flush() throw () {
 
 /**
  *  Write message into the syslog.
+ *  @remark This method is thread safe.
  *
  *  @param[in] msg   The message to write.
  *  @param[in] size  The message's size.

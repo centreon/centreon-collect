@@ -171,9 +171,11 @@ static bool basic_multiplex_close() {
 int main() {
   try {
     if (!null_task_manager())
-      throw (basic_error() << "");
+      throw (basic_error() << "handle manager failed to multiplex:" \
+             "try to multiplex null pointer");
     if (!empty_handle_manager())
-      throw (basic_error() << "");
+      throw (basic_error() << "handle manager failed to multiplex:" \
+             "try to multiplex nothing");
     if (!basic_multiplex_write())
       throw (basic_error() << "multiplex one handle to write failed");
     if (!basic_multiplex_error())

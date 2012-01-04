@@ -26,3 +26,10 @@ using namespace com::centreon;
  *  Default destructor.
  */
 task::~task() throw () {}
+
+/**
+ *  Empty task.
+ */
+void task::run() {
+
+}
