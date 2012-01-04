@@ -47,12 +47,17 @@ endif ()
 
 
 # Find pthreads.
-include(FindThreads)
-if (WIN32 AND NOT CMAKE_USE_WIN32_THREADS_INIT)
-  message(FATAL_ERROR "Could not find Win32 threads.")
-elseif (NOT CMAKE_USE_PTHREADS_INIT)
+if (WIN32)
+  include(FindThreads)
+  if (NOT CMAKE_USE_WIN32_THREADS_INIT)
+    message(FATAL_ERROR "Could not find Win32 threads.")
+  endif ()
+else ()
   set(CMAKE_THREAD_PREFER_PTHREAD)
-  message(FATAL_ERROR "Could not find pthreads library.")
+  include(FindThreads)
+  if (NOT CMAKE_USE_PTHREADS_INIT)
+    message(FATAL_ERROR "Could not find pthreads library.")
+  endif ()
 endif ()
 set(LIB_THREAD "${CMAKE_THREAD_LIBS_INIT}")
 
