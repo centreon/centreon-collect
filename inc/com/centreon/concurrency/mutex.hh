@@ -21,7 +21,7 @@
 #ifndef CC_CONCURRENCY_MUTEX_HH
 #  define CC_CONCURRENCY_MUTEX_HH
 
-#  ifdef WIN32
+#  ifdef _WIN32
 #    include "com/centreon/concurrency/mutex_win32.hh"
 #  else
 #    include "com/centreon/concurrency/mutex_posix.hh"
