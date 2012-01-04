@@ -21,16 +21,18 @@
 #ifndef CC_HANDLE_HH
 #  define CC_HANDLE_HH
 
+#  ifdef _WIN32
+#    include <windows.h>
+#  endif // _WIN32
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
-#  ifdef WIN32
-#    include <windows.h>
+#  ifdef _WIN32
 typedef HANDLE native_handle;
 #  else
 typedef int native_handle;
-#  endif // WIN32
+#  endif // _WIN32
 
 /**
  *  @class handle handle.hh "com/centreon/handle.hh"

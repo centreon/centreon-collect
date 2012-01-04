@@ -24,7 +24,7 @@
 #  include <semaphore.h>
 #  include "com/centreon/namespace.hh"
 
-#  ifdef WIN32
+#  ifdef _WIN32
 #    include "com/centreon/concurrency/semaphore_win32.hh"
 #  else
 #    include "com/centreon/concurrency/semaphore_posix.hh"
