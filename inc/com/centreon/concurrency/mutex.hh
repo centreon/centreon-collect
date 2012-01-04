@@ -21,37 +21,10 @@
 #ifndef CC_CONCURRENCY_MUTEX_HH
 #  define CC_CONCURRENCY_MUTEX_HH
 
-#  include <pthread.h>
-#  include "com/centreon/namespace.hh"
-
-CC_BEGIN()
-
-namespace           concurrency {
-  /**
-   *  @class mutex mutex.hh "com/centreon/concurrency/mutex.hh"
-   *  @brief Provide an independent implementation for mutex.
-   *
-   *  This is a simple class to have a platform-independent
-   *  implementation for the system mutex.
-   */
-  class             mutex {
-    friend class    wait_condition;
-  public:
-                    mutex();
-                    ~mutex() throw ();
-    void            lock();
-    bool            trylock();
-    void            unlock();
-
-  private:
-                    mutex(mutex const& right);
-    mutex&          operator=(mutex const& right);
-    mutex&          _internal_copy(mutex const& right);
-
-    pthread_mutex_t _mtx;
-  };
-}
-
-CC_END()
+#  ifdef WIN32
+#    include "com/centreon/concurrency/mutex_win32.hh"
+#  else
+#    include "com/centreon/concurrency/mutex_posix.hh"
+#  endif // Windows or POSIX implementation.
 
 #endif // !CC_CONCURRENCY_MUTEX_HH

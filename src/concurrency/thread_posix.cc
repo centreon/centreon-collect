@@ -32,7 +32,7 @@
 #include <time.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/concurrency/thread.hh"
+#include "com/centreon/concurrency/thread_posix.hh"
 
 using namespace com::centreon::concurrency;
 
