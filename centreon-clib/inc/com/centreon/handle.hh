@@ -26,10 +26,11 @@
 CC_BEGIN()
 
 #  ifdef WIN32
+#    include <windows.h>
 typedef HANDLE native_handle;
 #  else
 typedef int native_handle;
-#  endif // !WIN32
+#  endif // WIN32
 
 /**
  *  @class handle handle.hh "com/centreon/handle.hh"
