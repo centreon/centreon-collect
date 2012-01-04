@@ -21,51 +21,10 @@
 #ifndef CC_CONCURRENCY_THREAD_HH
 #  define CC_CONCURRENCY_THREAD_HH
 
-#  include <pthread.h>
-#  include "com/centreon/namespace.hh"
-#  include "com/centreon/concurrency/mutex.hh"
-
-CC_BEGIN()
-
-namespace            concurrency {
-  typedef pthread_t thread_id;
-  /**
-   *  @class thread thread.hh "com/centreon/concurrency/thread.hh"
-   *  @brief Provide an independent implementation for threads.
-   *
-   *  This is a simple class to have a platform-independent
-   *  implementation for the system threads.
-   */
-  class              thread {
-  public:
-                     thread();
-    virtual          ~thread() throw ();
-    void             exec();
-    static thread_id get_current_id() throw ();
-    static void      msleep(unsigned long msecs);
-    static void      nsleep(unsigned long nsecs);
-    static void      sleep(unsigned long secs);
-    static void      usleep(unsigned long usecs);
-    void             wait();
-    bool             wait(unsigned long timeout);
-    static void      yield() throw ();
-
-  protected:
-    virtual void     _run() = 0;
-
-  private:
-                     thread(thread const& right);
-    thread&          operator=(thread const& right);
-    static void*     _execute(void* data);
-    thread&          _internal_copy(thread const& right);
-    static void      _sleep(timespec* ts);
-    static void      _transfer(timespec* ts);
-
-    mutable mutex    _mtx;
-    pthread_t        _th;
-  };
-}
-
-CC_END()
+#  ifdef WIN32
+#    include "com/centreon/concurrency/thread_win32.hh"
+#  else
+#    include "com/centreon/concurrency/thread_posix.hh"
+#  endif // Windows or POSIX implementation.
 
 #endif // !CC_CONCURRENCY_THREAD_HH

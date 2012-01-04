@@ -24,7 +24,7 @@
 #include <string.h>
 #include <errno.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/concurrency/mutex.hh"
+#include "com/centreon/concurrency/mutex_posix.hh"
 
 using namespace com::centreon::concurrency;
 

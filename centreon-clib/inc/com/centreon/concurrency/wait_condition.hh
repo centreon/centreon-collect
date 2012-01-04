@@ -21,38 +21,10 @@
 #ifndef CC_CONCURRENCY_WAIT_CONDITION_HH
 #  define CC_CONCURRENCY_WAIT_CONDITION_HH
 
-#  include <pthread.h>
-#  include <limits.h>
-#  include "com/centreon/namespace.hh"
-#  include "com/centreon/concurrency/mutex.hh"
-
-CC_BEGIN()
-
-namespace           concurrency {
-  /**
-   *  @class wait_condition wait_condition.hh "com/centreon/concurrency/wait_condition.hh"
-   *  @brief Allow simple threads synchronization.
-   *
-   *  Provide condition variable for synchronization threads.
-   */
-  class             wait_condition {
-  public:
-                    wait_condition();
-                    ~wait_condition() throw ();
-    void            wait(mutex* mtx);
-    bool            wait(mutex* mtx, unsigned long timeout);
-    void            wake_all();
-    void            wake_one();
-
-  private:
-                    wait_condition(wait_condition const& right);
-    wait_condition& operator=(wait_condition const& right);
-    wait_condition& _internal_copy(wait_condition const& right);
-
-    pthread_cond_t  _cnd;
-  };
-}
-
-CC_END()
+#  ifdef WIN32
+#    include "com/centreon/concurrency/wait_condition_win32.hh"
+#  else
+#    include "com/centreon/concurrency/wait_condition_posix.hh"
+#  endif // Windows or POSIX implementation.
 
 #endif // !CC_CONCURRENCY_WAIT_CONDITION_HH

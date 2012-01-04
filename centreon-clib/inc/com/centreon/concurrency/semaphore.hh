@@ -24,35 +24,10 @@
 #  include <semaphore.h>
 #  include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace      concurrency {
-  /**
-   *  @class semaphore semaphore.hh "com/centreon/concurrency/semaphore.hh"
-   *  @brief Provide an independent implementation for semaphore.
-   *
-   *  This is a simple class to have a platform-independent
-   *  implementation for the system semaphore.
-   */
-  class        semaphore {
-  public:
-               semaphore(unsigned int n = 0);
-               ~semaphore() throw ();
-    void       acquire();
-    bool       acquire(unsigned long timeout);
-    int        available();
-    void       release();
-    bool       try_acquire();
-
-  private:
-               semaphore(semaphore const& right);
-    semaphore& operator=(semaphore const& right);
-    semaphore& _internal_copy(semaphore const& right);
-
-    sem_t      _sem;
-  };
-}
-
-CC_END()
+#  ifdef WIN32
+#    include "com/centreon/concurrency/semaphore_win32.hh"
+#  else
+#    include "com/centreon/concurrency/semaphore_posix.hh"
+#  endif // Windows or POSIX implementation.
 
 #endif // !CC_CONCURRENCY_SEMAPHORE_HH

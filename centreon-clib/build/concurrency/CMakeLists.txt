@@ -22,17 +22,37 @@
 set(SRC_DIR "${SRC_DIR}/concurrency")
 set(INC_DIR "${INC_DIR}/concurrency")
 
+# Platform-specific files.
+if (WIN32)
+  set(SPECIFIC_SOURCES
+    # XXX
+  )
+  set(SPECIFIC_HEADERS
+    # XXX
+  )
+else ()
+  set(SPECIFIC_SOURCES
+    "${SRC_DIR}/mutex_posix.cc"
+    "${SRC_DIR}/semaphore_posix.cc"
+    "${SRC_DIR}/thread_posix.cc"
+    "${SRC_DIR}/wait_condition_posix.cc"
+  )
+  set(SPECIFIC_HEADERS
+    "${INC_DIR}/mutex_posix.hh"
+    "${INC_DIR}/semaphore_posix.hh"
+    "${INC_DIR}/thread_posix.hh"
+    "${INC_DIR}/wait_condition_posix.hh"
+  )
+endif ()
+
 # Set sources.
 set(
   SOURCES
   ${SOURCES}
+  ${SPECIFIC_SOURCES}
   "${SRC_DIR}/locker.cc"
-  "${SRC_DIR}/mutex.cc"
   "${SRC_DIR}/runnable.cc"
-  "${SRC_DIR}/semaphore.cc"
-  "${SRC_DIR}/thread.cc"
   "${SRC_DIR}/thread_pool.cc"
-  "${SRC_DIR}/wait_condition.cc"
   PARENT_SCOPE
 )
 
@@ -40,6 +60,7 @@ set(
 set(
   HEADERS
   ${HEADERS}
+  ${SPECIFIC_HEADERS}
   "${INC_DIR}/locker.hh"
   "${INC_DIR}/mutex.hh"
   "${INC_DIR}/runnable.hh"
@@ -47,4 +68,5 @@ set(
   "${INC_DIR}/thread.hh"
   "${INC_DIR}/thread_pool.hh"
   "${INC_DIR}/wait_condition.hh"
+  PARENT_SCOPE
 )
