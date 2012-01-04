@@ -30,8 +30,10 @@ CC_BEGIN()
 
 #  ifdef _WIN32
 typedef HANDLE native_handle;
+native_handle const native_handle_null = NULL;
 #  else
 typedef int native_handle;
+native_handle const native_handle_null = -1;
 #  endif // _WIN32
 
 /**
@@ -42,7 +44,8 @@ typedef int native_handle;
  */
 class                   handle {
 public:
-                        handle(native_handle internal_handle = -1);
+                        handle(
+                          native_handle handl = native_handle_null);
                         handle(handle const& right);
   virtual               ~handle() throw ();
   handle&               operator=(handle const& right);
