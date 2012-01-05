@@ -330,8 +330,8 @@ bool session::want_read(handle& h) {
  */
 bool session::want_write(handle& h) {
   (void)h;
-  return (!_session || (libssh2_session_block_directions(_session)
-                        & LIBSSH2_SESSION_BLOCK_OUTBOUND));
+  return (_session && (libssh2_session_block_directions(_session)
+                       & LIBSSH2_SESSION_BLOCK_OUTBOUND));
 }
 
 /**
