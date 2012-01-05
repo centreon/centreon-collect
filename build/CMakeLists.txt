@@ -138,12 +138,28 @@ else ()
   set(DEFAULT_LINK_NAME "centreon_clib_static")
 endif ()
 
+
+# Platform-specific files.
+if (WIN32)
+  set(SPECIFIC_SOURCES
+  )
+  set(SPECIFIC_HEADERS
+  )
+else ()
+  set(SPECIFIC_SOURCES
+    "${SRC_DIR}/handle_manager_posix.cc"
+  )
+  set(SPECIFIC_HEADERS
+    "${INC_DIR}/handle_manager_posix.hh"
+  )
+endif ()
+
 # Set sources.
 set(
   SOURCES
+  ${SPECIFIC_SOURCES}
   "${SRC_DIR}/handle.cc"
   "${SRC_DIR}/handle_listener.cc"
-  "${SRC_DIR}/handle_manager.cc"
   "${SRC_DIR}/task.cc"
   "${SRC_DIR}/task_manager.cc"
   "${SRC_DIR}/timestamp.cc"
@@ -153,6 +169,7 @@ set(
 # Set headers.
 set(
   HEADERS
+  ${SPECIFIC_HEADERS}
   "${INC_DIR}/delayed_delete.hh"
   "${INC_DIR}/handle.hh"
   "${INC_DIR}/handle_listener.hh"
