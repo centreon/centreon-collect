@@ -153,6 +153,7 @@ set(
 # Set headers.
 set(
   HEADERS
+  "${INC_DIR}/delayed_delete.hh"
   "${INC_DIR}/handle.hh"
   "${INC_DIR}/handle_listener.hh"
   "${INC_DIR}/handle_manager.hh"
