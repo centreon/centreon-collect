@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -34,7 +34,10 @@ CC_BEGIN()
  */
 class          task {
 public:
+               task();
+               task(task const& t);
   virtual      ~task() throw ();
+  task&        operator=(task const& t);
   virtual void run();
 };
 
