@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/handle_manager.hh"
+#include "com/centreon/handle_manager_posix.hh"
 
 using namespace com::centreon;
 
