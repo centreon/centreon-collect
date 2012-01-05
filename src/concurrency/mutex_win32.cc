@@ -111,5 +111,5 @@ void mutex::_internal_copy(mutex const& right) {
   (void)right;
   assert(!"mutex is not copyable");
   abort();
-  return (*this);
+  return ;
 }
