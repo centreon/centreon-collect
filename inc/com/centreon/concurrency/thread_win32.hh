@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,24 +18,22 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_CONCURRENCY_THREAD_POSIX_HH
-#  define CC_CONCURRENCY_THREAD_POSIX_HH
+#ifndef CC_CONCURRENCY_THREAD_WIN32_HH
+#  define CC_CONCURRENCY_THREAD_WIN32_HH
 
-#  include <pthread.h>
+#  include <windows.h>
 #  include "com/centreon/namespace.hh"
-#  include "com/centreon/concurrency/mutex_posix.hh"
 
 CC_BEGIN()
 
 namespace            concurrency {
-  typedef pthread_t thread_id;
+  typedef HANDLE thread_id;
 
   /**
-   *  @class thread thread_posix.hh "com/centreon/concurrency/thread.hh"
-   *  @brief POSIX thread wrapper.
+   *  @class thread thread_win32.hh "com/centreon/concurrency/thread.hh"
+   *  @brief Win32 thread wrapper.
    *
-   *  Wrap POSIX thread library (pthreads) in a nice and easy to use
-   *  class.
+   *  Wrap Win32 threads in a nice and easy to use class.
    */
   class              thread {
   public:
@@ -51,22 +49,15 @@ namespace            concurrency {
     bool             wait(unsigned long timeout);
     static void      yield() throw ();
 
-  protected:
-    virtual void     _run() = 0;
-
   private:
-                     thread(thread const& right);
-    thread&          operator=(thread const& right);
-    static void*     _execute(void* data);
-    void             _internal_copy(thread const& right);
-    static void      _sleep(timespec* ts);
-    static void      _transfer(timespec* ts);
+                     thread(thread const& t);
+    thread&          operator=(thread const& t);
+    void             _close() throw ();
+    void             _internal_copy(thread const& t);
 
-    mutable mutex    _mtx;
-    pthread_t        _th;
-  };
+    HANDLE           _th;
 }
 
 CC_END()
 
-#endif // !CC_CONCURRENCY_THREAD_POSIX_HH
+#endif // !CC_CONCURRENCY_THREAD_WIN32_HH
