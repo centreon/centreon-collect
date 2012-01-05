@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -172,7 +172,7 @@ void thread::wait() {
   // Wait the end of the thread.
   int ret(pthread_join(_th, NULL));
   if (ret && ret != ESRCH)
-    throw (basic_error() << "failed to wait thread: "
+    throw (basic_error() << "failure while waiting thread: "
            << strerror(ret));
 }
 
@@ -182,7 +182,7 @@ void thread::wait() {
  *  @param[in] timeout  Define the timeout to wait the end of
  *                      the thread.
  *
- *  @return True if the thread end before timeout, otherwise false.
+ *  @return true if the thread end before timeout, otherwise false.
  */
 bool thread::wait(unsigned long timeout) {
   locker lock(&_mtx);
@@ -215,7 +215,7 @@ bool thread::wait(unsigned long timeout) {
     if (ret == ESRCH)
       running = false;
     else
-      throw (basic_error() << "failed to wait thread: "
+      throw (basic_error() << "failure while waiting thread: "
              << strerror(ret));
     gettimeofday(&now, NULL);
   }
@@ -224,7 +224,7 @@ bool thread::wait(unsigned long timeout) {
   if (!running) {
     int ret(pthread_join(_th, NULL));
     if (ret)
-      throw (basic_error() << "failed to wait thread: "
+      throw (basic_error() << "failure while waiting thread: "
              << strerror(ret));
   }
 
@@ -235,7 +235,7 @@ bool thread::wait(unsigned long timeout) {
   // Get the current time.
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed to wait thread: "
+    throw (basic_error() << "failure while waiting thread: "
            << strerror(errno));
 
   // Add timeout.
@@ -253,7 +253,8 @@ bool thread::wait(unsigned long timeout) {
     return (true);
   if (ret == ETIMEDOUT)
     return (false);
-  throw (basic_error() << "failed to wait thread: " << strerror(ret));
+  throw (basic_error() << "failure while waiting thread: "
+         << strerror(ret));
 #endif // Unix flavor.
 }
 
@@ -282,7 +283,8 @@ thread::thread(thread const& right) {
  *  @return This object.
  */
 thread& thread::operator=(thread const& right) {
-  return (_internal_copy(right));
+  _internal_copy(right);
+  return (*this);
 }
 
 /**
@@ -304,14 +306,12 @@ void* thread::_execute(void* data) {
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
- *
- *  @return This object.
  */
-thread& thread::_internal_copy(thread const& right) {
+void thread::_internal_copy(thread const& right) {
   (void)right;
   assert(!"thread is not copyable");
   abort();
-  return (*this);
+  return ;
 }
 
 /**

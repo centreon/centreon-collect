@@ -26,9 +26,11 @@ set(INC_DIR "${INC_DIR}/concurrency")
 if (WIN32)
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/mutex_win32.cc"
+    "${SRC_DIR}/thread_win32.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/mutex_win32.hh"
+    "${INC_DIR}/thread_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
