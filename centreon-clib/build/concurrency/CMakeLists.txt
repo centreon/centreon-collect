@@ -25,10 +25,10 @@ set(INC_DIR "${INC_DIR}/concurrency")
 # Platform-specific files.
 if (WIN32)
   set(SPECIFIC_SOURCES
-    # XXX
+    "${SRC_DIR}/mutex_win32.cc"
   )
   set(SPECIFIC_HEADERS
-    # XXX
+    "${INC_DIR}/mutex_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
