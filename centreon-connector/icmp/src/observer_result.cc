@@ -18,18 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_ICMP_NAMESPACE_HH
-#  define CCC_ICMP_NAMESPACE_HH
+#include "com/centreon/connector/icmp/observer_result.hh"
 
-#  ifndef CCC_ICMP_BEGIN
-#    define CCC_ICMP_BEGIN() namespace       com {        \
-                               namespace     centreon {   \
-                                 namespace   connector {  \
-                                   namespace icmp {
-#  endif // !CCC_ICMP_BEGIN
+using namespace com::centreon::connector::icmp;
 
-#  ifndef CCC_ICMP_END
-#    define CCC_ICMP_END() } } } }
-#  endif // !CCC_ICMP_END
+observer_result::~observer_result() throw () {
 
-#endif // !CCC_ICMP_NAMESPACE_HH
+}
