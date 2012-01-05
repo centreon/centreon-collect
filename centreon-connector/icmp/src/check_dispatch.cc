@@ -236,7 +236,6 @@ void check_dispatch::_build_response(check const& chk) {
       else
         oss << "nan";
       oss << ", lost " << pl << "%";
-      oss << " send: " << hst.get_packet_send() << " recv: " << hst.get_packet_recv() << " lost: " << hst.get_packet_lost();
     }
 
     if (pl >= chk.get_critical_packet_lost()
@@ -458,7 +457,8 @@ check_dispatch::task_runner::task_runner(
  *
  *  @param[in] right  The object to copy.
  */
-check_dispatch::task_runner::task_runner(task_runner const& right) {
+check_dispatch::task_runner::task_runner(task_runner const& right)
+  : task(right) {
   _internal_copy(right);
 }
 
@@ -525,7 +525,8 @@ check_dispatch::timeout::timeout(
  *
  *  @param[in] right  The object to copy.
  */
-check_dispatch::timeout::timeout(timeout const& right) {
+check_dispatch::timeout::timeout(timeout const& right)
+  : task(right) {
   _internal_copy(right);
 }
 

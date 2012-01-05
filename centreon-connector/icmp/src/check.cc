@@ -58,7 +58,8 @@ check::check(unsigned int command_id, std::string const& command_line)
  *
  *  @param[in] right  The object to copy.
  */
-check::check(check const& right) {
+check::check(check const& right)
+  : task(right) {
   _internal_copy(right);
 }
 

@@ -18,6 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <arpa/inet.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
@@ -219,8 +220,8 @@ char const* packet::get_error() const throw () {
  */
 unsigned int packet::get_host_id() const throw () {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  return (*reinterpret_cast<unsigned int*>(pkt->icmp_data
-                                           + sizeof(long long)));
+  return (ntohs(*reinterpret_cast<unsigned int*>(
+                   pkt->icmp_data + sizeof(long long))));
 }
 
 /**
@@ -229,7 +230,7 @@ unsigned int packet::get_host_id() const throw () {
  *  @return The packet id.
  */
 unsigned short packet::get_id() const throw () {
-  return (reinterpret_cast<struct icmp*>(_buffer)->icmp_id);
+  return (ntohs(reinterpret_cast<struct icmp*>(_buffer)->icmp_id));
 }
 
 /**
@@ -238,7 +239,7 @@ unsigned short packet::get_id() const throw () {
  *  @return The packet sequence.
  */
 unsigned short packet::get_sequence() const throw () {
-  return (reinterpret_cast<struct icmp*>(_buffer)->icmp_seq);
+  return (ntohs(reinterpret_cast<struct icmp*>(_buffer)->icmp_seq));
 }
 
 /**
@@ -299,7 +300,7 @@ void packet::set_address(unsigned int address) throw () {
  */
 void packet::set_host_id(unsigned int id) throw () {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  *reinterpret_cast<unsigned int*>(pkt->icmp_data + sizeof(long long)) = id;
+  *reinterpret_cast<unsigned int*>(pkt->icmp_data + sizeof(long long)) = ntohl(id);
 }
 
 /**
@@ -317,7 +318,7 @@ void packet::set_code(char code) throw () {
  *  @param[in] id  The packet id.
  */
 void packet::set_id(unsigned short id) throw () {
-  reinterpret_cast<struct icmp*>(_buffer)->icmp_id = id;
+  reinterpret_cast<struct icmp*>(_buffer)->icmp_id = ntohs(id);
 }
 
 /**
@@ -326,7 +327,7 @@ void packet::set_id(unsigned short id) throw () {
  *  @param[in] seq  The sequence number.
  */
 void packet::set_sequence(unsigned short seq) throw () {
-  reinterpret_cast<struct icmp*>(_buffer)->icmp_seq = seq;
+  reinterpret_cast<struct icmp*>(_buffer)->icmp_seq = ntohs(seq);
 }
 
 /**
