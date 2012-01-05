@@ -24,7 +24,7 @@
 
 using namespace com::centreon::misc;
 
-#ifdef WIN32
+#ifdef _WIN32
 // Standards ? Like C99 ? What for ?
 #  define snprintf _snprintf
 #endif // Win32
