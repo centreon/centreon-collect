@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -22,14 +22,46 @@
 
 using namespace com::centreon;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
- *  Default destructor.
+ *  Default constructor.
+ */
+task::task() {}
+
+/**
+ *  Copy constructor.
+ *
+ *  @param[in] t Object to copy.
+ */
+task::task(task const& t) {
+  (void)t;
+}
+
+/**
+ *  Destructor.
  */
 task::~task() throw () {}
+
+/**
+ *  Assignment operator.
+ *
+ *  @param[in] t Object to copy.
+ *
+ *  @return This object.
+ */
+task& task::operator=(task const& t) {
+  (void)t;
+  return (*this);
+}
 
 /**
  *  Empty task.
  */
 void task::run() {
-
+  return ;
 }
