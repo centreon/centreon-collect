@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -26,6 +26,7 @@
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/connector/ssh/sessions/session.hh"
+#include "com/centreon/delayed_delete.hh"
 #include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon::connector::ssh;
@@ -62,17 +63,18 @@ policy::~policy() throw () {
   multiplexer::instance().handle_manager::remove(&_sout);
 
   // Close checks.
-  for (std::map<unsigned long long, checks::check*>::iterator
+  for (std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator
          it = _checks.begin(),
          end = _checks.end();
        it != end;
        ++it) {
     try {
-      it->second->unlisten(this);
+      it->second.first->unlisten(this);
     }
     catch (...) {}
-    delete it->second;
+    delete it->second.first;
   }
+  _checks.clear();
 
   // Close sessions.
   for (std::map<sessions::credentials, sessions::session*>::iterator
@@ -148,17 +150,23 @@ void policy::on_execute(
     std::auto_ptr<checks::check> chk(new checks::check);
     chk->listen(this);
     chk->execute(*it->second, cmd_id, cmd, timeout);
-    _checks[cmd_id] = chk.get();
+    _checks[cmd_id] = std::make_pair(chk.get(), it->second);
     chk.release();
   }
   catch (std::exception const& e) {
     logging::error(logging::low) << "could not launch check ID "
       << cmd_id << " on host " << host << " because an error occurred: "
       << e.what();
+    checks::result r;
+    r.set_command_id(cmd_id);
+    on_result(r);
   }
   catch (...) {
     logging::error(logging::low) << "could not launch check ID "
       << cmd_id << " on host " << host << " because an error occurred";
+    checks::result r;
+    r.set_command_id(cmd_id);
+    on_result(r);
   }
 
   return ;
@@ -183,15 +191,58 @@ void policy::on_quit() {
  */
 void policy::on_result(checks::result const& r) {
   // Remove check from list.
-  std::map<unsigned long long, checks::check*>::iterator it;
-  it = _checks.find(r.get_command_id());
-  if (it != _checks.end()) {
+  std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator chk;
+  chk = _checks.find(r.get_command_id());
+  if (chk != _checks.end()) {
     try {
-      it->second->unlisten(this);
+      chk->second.first->unlisten(this);
     }
     catch (...) {}
-    delete it->second;
-    _checks.erase(it);
+    delete chk->second.first;
+    sessions::session* sess(chk->second.second);
+    _checks.erase(chk);
+
+    // Check session.
+    if (!sess->is_connected()) {
+      logging::debug(logging::medium) << "session " << sess << "is not"
+           " connected, checking if any check working with it remains";
+      bool found(false);
+      for (std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator
+             it = _checks.begin(),
+             end = _checks.end();
+           it != end;
+           ++it)
+        if (it->second.second == sess)
+          found = true;
+      if (!found) {
+        std::map<sessions::credentials, sessions::session*>::iterator
+          it, end;
+        for (it = _sessions.begin(), end = _sessions.end();
+             it != end;
+             ++it) {
+          if (it->second == sess)
+            break ;
+        }
+        if (it == end)
+          logging::error(logging::high) << "session " << sess
+            << " was not found in policy list, deleting anyway";
+        else {
+          logging::info(logging::high) << "session "
+           << it->first.get_user() << "@" << it->first.get_host()
+           << " that is not connected and has "
+              "no check running will be deleted";
+          _sessions.erase(it);
+        }
+        std::auto_ptr<delayed_delete<sessions::session> >
+          dd(new delayed_delete<sessions::session>(sess));
+        multiplexer::instance().task_manager::add(
+          dd.get(),
+          0,
+          true,
+          true);
+        dd.release();
+      }
+    }
   }
 
   // Send check result back to monitoring engine.

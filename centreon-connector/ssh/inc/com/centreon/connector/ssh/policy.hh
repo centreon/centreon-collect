@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -22,6 +22,7 @@
 #  define CCCS_POLICY_HH
 
 #  include <map>
+#  include <utility>
 #  include "com/centreon/connector/ssh/checks/listener.hh"
 #  include "com/centreon/connector/ssh/orders/listener.hh"
 #  include "com/centreon/connector/ssh/orders/parser.hh"
@@ -70,7 +71,7 @@ private:
                       policy(policy const& p);
   policy&             operator=(policy const& p);
 
-  std::map<unsigned long long, checks::check*>
+  std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >
                       _checks;
   orders::parser      _parser;
   reporter            _reporter;

@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Connector SSH.
 ##
@@ -53,7 +53,7 @@ if (WITH_LIBSSH2_INCLUDE_DIR)
   endif ()
   include_directories("${WITH_LIBSSH2_INCLUDE_DIR}")
 elseif (LIBSSH2_FOUND) # Was libssh2 detected with pkg-config ?
-  if ("${CMAKE_CXX_FLAGS}")
+  if (CMAKE_CXX_FLAGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBSSH2_CFLAGS}")
   else ()
     set(CMAKE_CXX_FLAGS "${LIBSSH2_CFLAGS}")
@@ -99,7 +99,7 @@ if (WITH_CENTREON_CLIB_INCLUDE_DIR)
   endif ()
   include_directories("${WITH_CENTREON_CLIB_INCLUDE_DIR}")
 elseif (CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
-  if ("${CMAKE_CXX_FLAGS}")
+  if (CMAKE_CXX_FLAGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLIB_CFLAGS}")
   else ()
     set(CMAKE_CXX_FLAGS "${CLIB_CFLAGS}")
