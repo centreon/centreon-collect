@@ -47,7 +47,7 @@ namespace            concurrency {
   private:
                      mutex(mutex const& right);
     mutex&           operator=(mutex const& right);
-    mutex&           _internal_copy(mutex const& right);
+    void             _internal_copy(mutex const& right);
 
     CRITICAL_SECTION _csection;
   };
