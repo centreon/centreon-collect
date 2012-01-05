@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -495,9 +495,6 @@ void session::_passwd() {
       << "successful password authentication on session "
       << _creds.get_user() << "@" << _creds.get_host();
 
-    // Enable non-blocking mode.
-    libssh2_session_set_blocking(_session, 0);
-
     // We're now connected.
     _step = session_keepalive;
     {
@@ -521,6 +518,9 @@ void session::_startup() {
   logging::info(logging::high)
     << "attempting to initialize SSH session "
     << _creds.get_user() << "@" << _creds.get_host();
+
+  // Enable non-blocking mode.
+  libssh2_session_set_blocking(_session, 0);
 
   // Exchange banners, keys, setup crypto, compression, ...
   int retval(libssh2_session_startup(
