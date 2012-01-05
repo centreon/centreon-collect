@@ -18,18 +18,29 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_ICMP_NAMESPACE_HH
-#  define CCC_ICMP_NAMESPACE_HH
+#ifndef CCC_ICMP_PACKET_OBSERVER_HH
+#  define CCC_ICMP_PACKET_OBSERVER_HH
 
-#  ifndef CCC_ICMP_BEGIN
-#    define CCC_ICMP_BEGIN() namespace       com {        \
-                               namespace     centreon {   \
-                                 namespace   connector {  \
-                                   namespace icmp {
-#  endif // !CCC_ICMP_BEGIN
+#  include <string>
+#  include "com/centreon/connector/icmp/namespace.hh"
+#  include "com/centreon/connector/icmp/packet.hh"
+#  include "com/centreon/timestamp.hh"
 
-#  ifndef CCC_ICMP_END
-#    define CCC_ICMP_END() } } } }
-#  endif // !CCC_ICMP_END
+CCC_ICMP_BEGIN()
 
-#endif // !CCC_ICMP_NAMESPACE_HH
+/**
+ *  @class packet_observer packet_observer.hh "com/centreon/connector/icmp/packet_observer.hh"
+ *  @brief Allow receive data from packet dispatcher.
+ *
+ *  This class is an observer to allow receive event from packet
+ *  dispatcher when some data are available.
+ */
+class          packet_observer {
+public:
+  virtual      ~packet_observer() throw ();
+  virtual void emit_receive(packet const& pkt) = 0;
+};
+
+CCC_ICMP_END()
+
+#endif // !CCC_ICMP_PACKET_OBSERVER_HH

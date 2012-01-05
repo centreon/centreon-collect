@@ -18,18 +18,29 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_ICMP_NAMESPACE_HH
-#  define CCC_ICMP_NAMESPACE_HH
+#ifndef CCC_ICMP_CHECK_OBSERVER_HH
+#  define CCC_ICMP_CHECK_OBSERVER_HH
 
-#  ifndef CCC_ICMP_BEGIN
-#    define CCC_ICMP_BEGIN() namespace       com {        \
-                               namespace     centreon {   \
-                                 namespace   connector {  \
-                                   namespace icmp {
-#  endif // !CCC_ICMP_BEGIN
+#  include <string>
+#  include "com/centreon/connector/icmp/namespace.hh"
+#  include "com/centreon/connector/icmp/packet.hh"
+#  include "com/centreon/timestamp.hh"
 
-#  ifndef CCC_ICMP_END
-#    define CCC_ICMP_END() } } } }
-#  endif // !CCC_ICMP_END
+CCC_ICMP_BEGIN()
 
-#endif // !CCC_ICMP_NAMESPACE_HH
+/**
+ *  @class check_observer check_observer.hh "com/centreon/connector/icmp/check_observer.hh"
+ *  @brief Allow to receive a check reslult from check dispatcher.
+ */
+class          check_observer {
+public:
+  virtual      ~check_observer() throw ();
+  virtual void emit_check_result(
+                 unsigned int command_id,
+                 unsigned int status,
+                 std::string const& msg) = 0;
+};
+
+CCC_ICMP_END()
+
+#endif // !CCC_ICMP_CHECK_OBSERVER_HH
