@@ -18,11 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/mutex_posix.hh"
 
@@ -33,13 +32,15 @@ using namespace com::centreon::concurrency;
  */
 mutex::mutex() {
   int ret(pthread_mutex_init(&_mtx, NULL));
-  if (ret)
-    throw (basic_error() << "impossible to create mutex:"
-           << strerror(ret));
+  if (ret) {
+    char const* msg(strerror(ret));
+    throw (basic_error() << "could not initialize mutex "
+             << this << ": " << msg);
+  }
 }
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
 mutex::~mutex() throw () {
   pthread_mutex_destroy(&_mtx);
@@ -52,8 +53,12 @@ mutex::~mutex() throw () {
  */
 void mutex::lock() {
   int ret(pthread_mutex_lock(&_mtx));
-  if (ret)
-    throw (basic_error() << "the mutex lock failed:" << strerror(ret));
+  if (ret) {
+    char const* msg(strerror(ret));
+    throw (basic_error() << "failed to lock mutex "
+           << this << ": " << msg);
+  }
+  return ;
 }
 
 /**
@@ -61,17 +66,17 @@ void mutex::lock() {
  *  modification on the mutex if anobther thread has already locked the
  *  mutex.
  *
- *  @return True if the mutex is lock, false if the mutex was already
- *  lock.
+ *  @return true if the mutex is lock, false if the mutex was already
+ *          locked.
  */
 bool mutex::trylock() {
   int ret(pthread_mutex_trylock(&_mtx));
-  if (!ret)
-    return (true);
-  if (ret == EBUSY)
-    return (false);
-  throw (basic_error() << "the mutex trylock failed:"
-         << strerror(ret));
+  if (ret && (ret != EBUSY)) {
+    char const* msg(strerror(ret));
+    throw (basic_error() << "failed mutex " << this
+           << " lock attempt: " << msg);
+  }
+  return (!ret);
 }
 
 /**
@@ -79,13 +84,22 @@ bool mutex::trylock() {
  */
 void mutex::unlock() {
   int ret(pthread_mutex_unlock(&_mtx));
-  if (ret)
-    throw (basic_error() << "the mutex unlock failed:"
-           << strerror(ret));
+  if (ret) {
+    char const* msg(strerror(ret));
+    throw (basic_error() << "failed to unlock mutex "
+           << this << msg);
+  }
+  return ;
 }
 
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
+
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
@@ -94,26 +108,27 @@ mutex::mutex(mutex const& right) {
 }
 
 /**
- *  Default copy operator.
+ *  Assignment operator.
  *
  *  @param[in] right  The object to copy.
  *
  *  @return This object.
  */
 mutex& mutex::operator=(mutex const& right) {
-  return (_internal_copy(right));
+  _internal_copy(right);
+  return (*this);
 }
 
 /**
- *  Internal copy.
+ *  Calls abort().
  *
  *  @param[in] right  The object to copy.
  *
  *  @return This object.
  */
-mutex& mutex::_internal_copy(mutex const& right) {
+void mutex::_internal_copy(mutex const& right) {
   (void)right;
-  assert(!"impossible to copy mutex.");
+  assert(!"mutex is not copyable");
   abort();
-  return (*this);
+  return ;
 }

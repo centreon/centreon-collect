@@ -35,6 +35,7 @@ namespace           concurrency {
    */
   class             mutex {
     friend class    wait_condition;
+
   public:
                     mutex();
                     ~mutex() throw ();
@@ -45,7 +46,7 @@ namespace           concurrency {
   private:
                     mutex(mutex const& right);
     mutex&          operator=(mutex const& right);
-    mutex&          _internal_copy(mutex const& right);
+    void            _internal_copy(mutex const& right);
 
     pthread_mutex_t _mtx;
   };
