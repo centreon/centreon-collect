@@ -219,7 +219,7 @@ void session::connect() {
   _socket.set_native_handle(mysocket);
 
   // Register with multiplexer.
-  multiplexer::instance().handle_manager::add(&_socket, this);
+  multiplexer::instance().handle_manager::add(&_socket, this, true);
 
   // Launch the connection process.
   logging::debug(logging::medium)
