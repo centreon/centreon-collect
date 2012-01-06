@@ -68,6 +68,7 @@ private:
   std::vector<std::string> _args;
   std::vector<std::string> _commands;
   std::string              _commands_file;
+  unsigned int             _current_running;
   int                      _pipe_in[2];
   int                      _pipe_out[2];
   pid_t                    _pid;

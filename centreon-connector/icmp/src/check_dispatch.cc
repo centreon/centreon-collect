@@ -345,19 +345,11 @@ void check_dispatch::_process_checks() {
     _checks_new.clear();
   }
 
-  timestamp now(timestamp::now());
-  for (std::list<check*>::const_iterator
-         it(checks.begin()), end(checks.end());
-       it != end;
-       ++it)
-    (*it)->run();
-    // _t_manager.add(*it, now, true);
-    // _t_manager.execute(now);
-
   for (std::list<check*>::const_iterator
          chk(checks.begin()), end(checks.end());
        chk != end;
        ++chk) {
+    (*chk)->parse();
     logging::debug(logging::medium) << "build " << **chk;
     std::list<host*> const& hosts((*chk)->get_hosts());
     for (std::list<host*>::const_iterator
@@ -370,7 +362,7 @@ void check_dispatch::_process_checks() {
       (*hst)->set_id(_host_id++);
       logging::debug(logging::medium) << "build " << **hst;
 
-      packet* pkt(new packet((*chk)->get_packet_size()));
+      packet* pkt(new packet((*chk)->get_packet_data_size()));
       pkt->set_address((*hst)->get_address());
       pkt->set_host_id((*hst)->get_id());
       pkt->set_id(_id);
@@ -406,8 +398,10 @@ void check_dispatch::_process_receive() {
 
     std::map<unsigned int, icmp_info>::iterator
       it(_checks.find(pkt.get_host_id()));
-    if (it == _checks.end())
+    if (it == _checks.end()) {
+      logging::debug(logging::low) << "drop host_id: " << pkt.get_host_id();
       continue;
+    }
 
     host& hst(*it->second.hst);
     unsigned int elapsed_time

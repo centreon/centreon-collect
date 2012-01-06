@@ -104,6 +104,7 @@ std::list<host*> host::factory(std::string const& name) {
       if (in->s_addr == INADDR_NONE || in->s_addr == INADDR_ANY)
         continue;
       hosts.push_back(new host(name, in->s_addr));
+      break;
     }
   }
   return (hosts);

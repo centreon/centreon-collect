@@ -46,7 +46,7 @@ check::check(unsigned int command_id, std::string const& command_line)
     _max_target_interval(0),
     _min_hosts_alive(-1),
     _nb_packet(5),
-    _packet_size(68 + 8),
+    _packet_data_size(68 + 8),
     _ttl(64),
     _warning_packet_lost(40),
     _warning_roundtrip_avg(200000) {
@@ -58,8 +58,7 @@ check::check(unsigned int command_id, std::string const& command_line)
  *
  *  @param[in] right  The object to copy.
  */
-check::check(check const& right)
-  : task(right) {
+check::check(check const& right) {
   _internal_copy(right);
 }
 
@@ -185,8 +184,8 @@ unsigned int check::get_nb_packet() const throw () {
  *
  *  @return The size of packet.
  */
-unsigned short check::get_packet_size() const throw () {
-  return (_packet_size);
+unsigned int check::get_packet_data_size() const throw () {
+  return (_packet_data_size);
 }
 
 /**
@@ -228,12 +227,13 @@ unsigned int check::get_warning_roundtrip_avg() const throw () {
 /**
  *  Init check with the command line.
  */
-void check::run() {
+void check::parse() {
   try {
     check_options options(_command_line);
-    // if (!_to_obj(options.get_argument('b').get_value(), ))
-    //   throw (basic_error() << "invalid option 'b' ("
-    //          << options.get_argument('b').get_value() << ")");
+    if (!_to_obj(options.get_argument('b').get_value(),
+                 _packet_data_size))
+      throw (basic_error() << "invalid option 'b' ("
+             << options.get_argument('b').get_value() << ")");
     if (!_get_threshold(options.get_argument('c').get_value(),
                         _critical_packet_lost,
                         _critical_roundtrip_avg))
@@ -320,7 +320,7 @@ check& check::_internal_copy(check const& right) {
     _min_hosts_alive = right._min_hosts_alive;
     _current_host_check = right._current_host_check;
     _nb_packet = right._nb_packet;
-    _packet_size = right._packet_size;
+    _packet_data_size = right._packet_data_size;
     _source_address = right._source_address;
     _ttl = right._ttl;
     _warning_packet_lost = right._warning_packet_lost;
@@ -431,7 +431,7 @@ logging::temp_logger connector::icmp::operator<<(
       << "  max_target_interval:    " << right.get_max_target_interval() << "\n"
       << "  min_hosts_alive:        " << right.get_min_hosts_alive() << "\n"
       << "  nb_packet:              " << right.get_nb_packet() << "\n"
-      << "  packet_size:            " << right.get_packet_size() << "\n"
+      << "  packet_data_size:       " << right.get_packet_data_size() << "\n"
       << "  critical_packet_lost:   " << right.get_critical_packet_lost() << "\n"
       << "  critical_roundtrip_avg: " << right.get_critical_roundtrip_avg() << "\n"
       << "  warning_packet_lost:    " << right.get_warning_packet_lost() << "\n"

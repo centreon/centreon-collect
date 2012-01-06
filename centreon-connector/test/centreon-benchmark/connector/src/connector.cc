@@ -45,6 +45,7 @@ connector::connector(
   : benchmark(),
     _args(args),
     _commands_file(commands_file),
+    _current_running(0),
     _pid(0) {
   memset(&_pipe_in, 0, sizeof(_pipe_in));
   memset(&_pipe_out, 0, sizeof(_pipe_out));
@@ -101,11 +102,13 @@ void connector::run() {
 void connector::_check_execution() {
   unsigned int nb_commands(_commands.size());
   for (unsigned int i(0); i < _total_request; ++i) {
+    while (_current_running > _limit_running)
+      _write(_get_next_result());
     _send_data(_request_execute(i, _commands[i % nb_commands], 1000));
     _recv_data();
   }
 
-  for (unsigned int i(0); i < _total_request; ++i)
+  while (_current_running > 0)
     _write(_get_next_result());
 }
 
@@ -142,6 +145,7 @@ void connector::_cleanup() {
   }
   _commands.clear();
   _results.clear();
+  _current_running = 0;
 }
 
 /**
@@ -176,6 +180,7 @@ std::string connector::_get_next_result() {
     _recv_data(-1);
     return (_get_next_result());
   }
+  --_current_running;
   return (result);
 }
 
@@ -249,6 +254,7 @@ void connector::_send_data(std::string const& data) {
     throw (basic_exception(strerror(errno)));
   if (static_cast<unsigned int>(ret) != data.size())
     throw (basic_exception("send data failed"));
+  ++_current_running;
 }
 
 /**

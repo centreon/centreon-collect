@@ -98,9 +98,8 @@ packet::packet(
 packet::packet(unsigned short size)
   : _address(0),
     _buffer(NULL),
-    _size(size) {
-  if (!_size
-      || _size < sizeof(::icmp) + sizeof(long long) + sizeof(unsigned int))
+    _size(sizeof(::icmp) + sizeof(long long) + sizeof(unsigned int) + size) {
+  if (_size < sizeof(::icmp) + sizeof(long long) + sizeof(unsigned int))
     throw (basic_error() << "invalid packet size");
   _buffer = new unsigned char[_size];
   memset(_buffer, 0, _size * sizeof(*_buffer));
@@ -162,8 +161,10 @@ unsigned char packet::get_code() const throw () {
  */
 void const* packet::get_data() const throw () {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  *reinterpret_cast<long long*>(pkt->icmp_data)
-    = timestamp::now().to_usecond();
+  long long now(timestamp::now().to_usecond());
+  memcpy(&pkt->icmp_data,
+         &now,
+         sizeof(long long));
   pkt->icmp_cksum = _checksum_icmp();
   return (_buffer);
 }
@@ -220,8 +221,11 @@ char const* packet::get_error() const throw () {
  */
 unsigned int packet::get_host_id() const throw () {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  return (ntohs(*reinterpret_cast<unsigned int*>(
-                   pkt->icmp_data + sizeof(long long))));
+  unsigned int id;
+  memcpy(&id,
+         &pkt->icmp_data + sizeof(long long),
+         sizeof(id));
+  return (ntohl(id));
 }
 
 /**
@@ -281,7 +285,9 @@ com::centreon::timestamp const& packet::get_recv_time() const {
  */
 com::centreon::timestamp packet::get_send_time() const {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  return (timestamp(0, *reinterpret_cast<long long*>(pkt->icmp_data)));
+  long long time;
+  memcpy(&time, &pkt->icmp_data, sizeof(long long));
+  return (timestamp(0, time));
 }
 
 /**
@@ -300,7 +306,11 @@ void packet::set_address(unsigned int address) throw () {
  */
 void packet::set_host_id(unsigned int id) throw () {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  *reinterpret_cast<unsigned int*>(pkt->icmp_data + sizeof(long long)) = ntohl(id);
+  id = htonl(id);
+  memcpy(
+    &pkt->icmp_data + sizeof(long long),
+    &id,
+    sizeof(id));
 }
 
 /**
