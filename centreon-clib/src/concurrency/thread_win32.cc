@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <windows.h>
 #include "com/centreon/concurrency/thread_win32.hh"
+#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::concurrency;
 
@@ -127,7 +128,7 @@ void thread::wait() {
 bool thread::wait(unsigned long timeout) {
   DWORD ret(WaitForSingleObject(_th, timeout));
   bool success(ret == WAIT_OBJECT_0);
-  if (!sucess && (ret != WAIT_TIMEOUT)) {
+  if (!success && (ret != WAIT_TIMEOUT)) {
     DWORD errcode(GetLastError());
     throw (basic_error() << "failure while waiting thread (error "
            << errcode << ")");
