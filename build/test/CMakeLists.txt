@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -119,20 +119,20 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_add_msecond
-set(TEST_NAME "timestamp_add_msecond")
+# timestamp_add_mseconds
+set(TEST_NAME "timestamp_add_mseconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_add_second
-set(TEST_NAME "timestamp_add_second")
+# timestamp_add_seconds
+set(TEST_NAME "timestamp_add_seconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_add_usecond
-set(TEST_NAME "timestamp_add_usecond")
+# timestamp_add_useconds
+set(TEST_NAME "timestamp_add_useconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
@@ -191,38 +191,38 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_sub_msecond
-set(TEST_NAME "timestamp_sub_msecond")
+# timestamp_sub_mseconds
+set(TEST_NAME "timestamp_sub_mseconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_sub_second
-set(TEST_NAME "timestamp_sub_second")
+# timestamp_sub_seconds
+set(TEST_NAME "timestamp_sub_seconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_sub_usecond
-set(TEST_NAME "timestamp_sub_usecond")
+# timestamp_sub_useconds
+set(TEST_NAME "timestamp_sub_useconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_to_msecond
-set(TEST_NAME "timestamp_to_msecond")
+# timestamp_to_mseconds
+set(TEST_NAME "timestamp_to_mseconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_to_second
-set(TEST_NAME "timestamp_to_second")
+# timestamp_to_seconds
+set(TEST_NAME "timestamp_to_seconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# timestamp_to_usecond
-set(TEST_NAME "timestamp_to_usecond")
+# timestamp_to_useconds
+set(TEST_NAME "timestamp_to_useconds")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

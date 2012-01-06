@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -46,7 +46,7 @@ int main() {
 
     task_test* t1(new task_test);
     tm.add(t1, timestamp::now(), true, true);
-    if (!tm.next_execution_time().to_usecond())
+    if (!tm.next_execution_time().to_useconds())
       throw (basic_error() << "add failed");
 
     task_test* t2(new task_test);

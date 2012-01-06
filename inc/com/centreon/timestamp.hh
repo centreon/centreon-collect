@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -34,7 +34,7 @@ CC_BEGIN()
  */
 class              timestamp {
 public:
-                   timestamp(time_t second = 0, long usecond = 0);
+                   timestamp(time_t secs = 0, unsigned int usecs = 0);
                    timestamp(timestamp const& right);
                    ~timestamp() throw ();
   timestamp&       operator=(timestamp const& right);
@@ -48,23 +48,23 @@ public:
   timestamp        operator-(timestamp const& right) const;
   timestamp&       operator+=(timestamp const& right);
   timestamp&       operator-=(timestamp const& right);
-  void             add_msecond(long msecond);
-  void             add_second(time_t second);
-  void             add_usecond(long usecond);
+  void             add_mseconds(long msecs);
+  void             add_seconds(time_t secs);
+  void             add_useconds(long usecs);
   static timestamp now() throw ();
-  void             sub_msecond(long msecond);
-  void             sub_second(time_t second);
-  void             sub_usecond(long usecond);
-  long long        to_msecond() const throw ();
-  time_t           to_second() const throw ();
-  long long        to_usecond() const throw ();
+  void             sub_mseconds(long msecs);
+  void             sub_seconds(time_t secs);
+  void             sub_useconds(long usecs);
+  long long        to_mseconds() const throw ();
+  time_t           to_seconds() const throw ();
+  long long        to_useconds() const throw ();
 
 private:
-  timestamp&       _internal_copy(timestamp const& right);
-  static void      _transfer(time_t* second, long* usecond);
+  void             _internal_copy(timestamp const& right);
+  static void      _transfer(time_t* secs, unsigned int* usecs);
 
-  long             _usecond;
-  time_t           _second;
+  time_t           _secs;
+  unsigned int     _usecs;
 };
 
 CC_END()

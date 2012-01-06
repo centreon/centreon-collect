@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -148,7 +148,7 @@ unsigned int task_manager::execute(timestamp const& now) {
       if (itask->interval) {
         // This task is recurring, push it into recurring list.
         timestamp new_time(now);
-        new_time.add_usecond(itask->interval);
+        new_time.add_useconds(itask->interval);
         recurring.push_back(
                     std::pair<timestamp, internal_task*>(
                       new_time,

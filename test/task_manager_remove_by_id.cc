@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -62,7 +62,7 @@ int main() {
     if (tm.remove(42))
       throw (basic_error() << "remove invalid id failed");
 
-    if (tm.next_execution_time().to_usecond())
+    if (tm.next_execution_time().to_useconds())
       throw (basic_error() << "invalid next_execution_time");
   }
   catch (std::exception const& e) {

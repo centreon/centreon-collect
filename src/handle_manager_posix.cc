@@ -111,7 +111,7 @@ void handle_manager::multiplex() {
   if (!_handles.size() && next == timestamp())
     return;
   if (next > now)
-    timeout = next.to_msecond() - now.to_msecond();
+    timeout = next.to_mseconds() - now.to_mseconds();
 
   // Wait events.
   int ret = _poll(_fds, _handles.size(), timeout);

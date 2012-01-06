@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -49,7 +49,7 @@ int main() {
 
     task_test* t1(new task_test);
     tm.add(t1, timestamp::now(), true, true);
-    if (!tm.next_execution_time().to_usecond())
+    if (!tm.next_execution_time().to_useconds())
       throw (basic_error() << "add failed");
 
     if (tm.execute(timestamp::now()) != 1)
@@ -65,7 +65,7 @@ int main() {
       throw (basic_error() << "execute four task failed");
 
     timestamp future(timestamp::now());
-    future.add_second(42);
+    future.add_seconds(42);
     tm.add(t2, future, false, false);
     if (tm.execute(timestamp::now()))
       throw (basic_error() << "execute future task failed");
