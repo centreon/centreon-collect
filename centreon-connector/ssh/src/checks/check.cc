@@ -44,7 +44,8 @@ check::check()
     _cmd_id(0),
     _listnr(NULL),
     _session(NULL),
-    _step(chan_open) {}
+    _step(chan_open),
+    _timeout(0) {}
 
 /**
  *  Destructor.
