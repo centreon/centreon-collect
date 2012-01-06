@@ -388,6 +388,8 @@ packet& packet::_internal_copy(packet const& right) {
         _buffer = new unsigned char[_size];
         memcpy(_buffer, right._buffer, _size);
       }
+      else
+        _buffer = NULL;
     }
     else if (_buffer)
       memcpy(_buffer, right._buffer, _size);

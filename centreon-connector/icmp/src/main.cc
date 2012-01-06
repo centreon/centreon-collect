@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <exception>
 #include <iostream>
 #include <memory>
 #include <stdlib.h>
@@ -26,6 +25,7 @@
 #include "com/centreon/connector/icmp/cmd_execute.hh"
 #include "com/centreon/connector/icmp/cmd_options.hh"
 #include "com/centreon/connector/icmp/version.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/logging/logger.hh"
 #include "com/centreon/logging/file.hh"
@@ -74,8 +74,14 @@ static logging::backend* setup_logger(
 int main(int argc, char** argv) {
   int ret(EXIT_SUCCESS);
 
-  // Load the logging engine.
+  // Load the logging engine with basic output.
   logging::engine::load();
+  logging::engine& log_engine(logging::engine::instance());
+  logging::file out(stdout);
+  log_engine.add(
+               &out,
+               logging::type_flags(1 | 4),
+               logging::verbosity(logging::high));
   logging::backend* backend(NULL);
 
   try {
@@ -83,6 +89,7 @@ int main(int argc, char** argv) {
     cmd_options options(argc, argv);
 
     // Setup the logger system.
+    log_engine.remove(&out);
     backend = setup_logger(
                 options.get_argument('d'),
                 options.get_argument('o'));
@@ -103,14 +110,14 @@ int main(int argc, char** argv) {
     argument const& arg(options.get_argument('c'));
     // Start command line version.
     if (arg.get_is_set()) {
-      cmd_execute cmd;
+      cmd_execute cmd(options.get_max_concurrent_checks());
       cmd.execute(arg.get_value());
       std::cout << cmd.get_message() << std::endl;
       ret = cmd.get_status();
     }
     // Start connector version.
     else {
-      cmd_dispatch cd;
+      cmd_dispatch cd(options.get_max_concurrent_checks());
       cd.exec();
       cd.wait();
     }

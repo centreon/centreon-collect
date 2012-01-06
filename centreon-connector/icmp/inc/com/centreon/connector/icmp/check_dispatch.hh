@@ -47,6 +47,8 @@ class                  check_dispatch
 public:
                        check_dispatch(check_observer* observer = NULL);
                        ~check_dispatch() throw ();
+  unsigned int         get_max_concurrent_checks() const throw ();
+  void                 set_max_concurrent_checks(unsigned int max) throw ();
   void                 submit(std::string const& command_line);
   void                 submit(
                          unsigned int command_id,
@@ -104,7 +106,6 @@ private:
   void                 _process_receive();
   void                 _push_packet(icmp_info* info);
 
-  task_runner          _build_checks;
   task_runner          _build_results;
   std::list<check*>    _checks_new;
   std::map<unsigned int, icmp_info>
@@ -115,6 +116,7 @@ private:
   unsigned int         _host_id;
   unsigned short       _id;
   unsigned short       _internal_sequence;
+  unsigned int         _max_concurrent_checks;
   packet_dispatch      _pkt_dispatcher;
   bool                 _quit;
   std::list<packet>    _results;

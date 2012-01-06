@@ -19,6 +19,7 @@
 */
 
 #include <libgen.h>
+#include <sstream>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/icmp/cmd_options.hh"
 
@@ -51,6 +52,13 @@ cmd_options::cmd_options(int argc, char** argv)
                       'h',
                       "Display this information.",
                       false);
+  _arguments['m'] = argument(
+                      "max-concurrent-checks",
+                      'm',
+                      "Max concurrent checks",
+                      true,
+                      true,
+                      "1");
   _arguments['o'] = argument(
                       "output",
                       'o',
@@ -64,6 +72,10 @@ cmd_options::cmd_options(int argc, char** argv)
 
   _appname = basename(argv[0]);
   _parse_arguments(argc - 1, argv + 1);
+
+  std::istringstream iss(_arguments['m'].get_value());
+  if ((iss >> _max_concurrent_checks) == 0)
+    throw (basic_error() << "invalid option 'm'");
 }
 
 /**
@@ -102,6 +114,16 @@ cmd_options& cmd_options::operator=(cmd_options const& right) {
 std::string const& cmd_options::get_appname() const throw () {
   return (_appname);
 }
+
+/**
+ *  Get the maximum concurrent checks.
+ *
+ *  @return The maximum concurrent checks.
+ */
+unsigned int cmd_options::get_max_concurrent_checks() const throw() {
+  return (_max_concurrent_checks);
+}
+
 
 /**
  *  Get the help string.

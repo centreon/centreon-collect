@@ -27,8 +27,9 @@ using namespace com::centreon::connector::icmp;
 /**
  *  Default constructor.
  */
-cmd_execute::cmd_execute()
+cmd_execute::cmd_execute(unsigned int max_concurrent_checks)
   : check_observer(),
+    _max_concurrent_checks(max_concurrent_checks),
     _status(0) {
 
 }
@@ -67,6 +68,7 @@ cmd_execute& cmd_execute::operator=(cmd_execute const& right) {
  */
 void cmd_execute::execute(std::string const& command_line) {
   check_dispatch cd(this);
+  cd.set_max_concurrent_checks(_max_concurrent_checks);
   cd.submit(command_line);
 }
 
