@@ -21,6 +21,8 @@
 #include <assert.h>
 #include <memory>
 #include <stdlib.h>
+#include "com/centreon/concurrency/locker.hh"
+#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/result.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
@@ -190,6 +192,11 @@ void policy::on_quit() {
  *  @param[in] r Check result.
  */
 void policy::on_result(checks::result const& r) {
+  static concurrency::mutex processing_mutex;
+
+  // Lock mutex.
+  concurrency::locker lock(&processing_mutex);
+
   // Remove check from list.
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator chk;
   chk = _checks.find(r.get_command_id());
@@ -244,6 +251,7 @@ void policy::on_result(checks::result const& r) {
       }
     }
   }
+  lock.unlock();
 
   // Send check result back to monitoring engine.
   _reporter.send_result(r);
