@@ -33,7 +33,7 @@ CCC_ICMP_BEGIN()
  */
 class                cmd_execute : private check_observer {
 public:
-                     cmd_execute();
+                     cmd_execute(unsigned int max_concurrent_checks);
                      cmd_execute(cmd_execute const& right);
                      ~cmd_execute() throw ();
   cmd_execute&       operator=(cmd_execute const& right);
@@ -48,6 +48,7 @@ private:
                        std::string const& msg);
   cmd_execute&       _internal_copy(cmd_execute const& right);
 
+  unsigned int       _max_concurrent_checks;
   std::string        _message;
   unsigned int       _status;
 };

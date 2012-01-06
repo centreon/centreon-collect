@@ -32,7 +32,7 @@ using namespace com::centreon::connector::icmp;
 /**
  *  Default constructor.
  */
-cmd_dispatch::cmd_dispatch()
+cmd_dispatch::cmd_dispatch(unsigned int max_concurrent_checks)
   : thread(),
     handle_listener(),
     check_observer(),
@@ -44,6 +44,7 @@ cmd_dispatch::cmd_dispatch()
   _h_manager.add(&_input, this);
   _h_manager.add(&_output, this);
   _h_manager.add(&_interrupt, &_interrupt);
+  _check_dispatcher.set_max_concurrent_checks(max_concurrent_checks);
 }
 
 /**

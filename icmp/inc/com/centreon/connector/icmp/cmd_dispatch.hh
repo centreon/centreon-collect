@@ -48,7 +48,7 @@ class                    cmd_dispatch
   : public concurrency::thread,
     private handle_listener, check_observer {
 public:
-                         cmd_dispatch();
+                         cmd_dispatch(unsigned int max_concurrent_checks);
                          ~cmd_dispatch() throw ();
   void                   exit();
 
@@ -81,7 +81,6 @@ private:
   std::list<std::string> _results;
   task_manager           _t_manager;
   handle_manager         _h_manager;
-  task               _timeout;
 };
 
 CCC_ICMP_END()

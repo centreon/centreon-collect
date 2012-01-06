@@ -40,12 +40,14 @@ public:
                      ~cmd_options() throw ();
   cmd_options&       operator=(cmd_options const& right);
   std::string const& get_appname() const throw ();
+  unsigned int       get_max_concurrent_checks() const throw();
   std::string        help() const;
 
 private:
   cmd_options&       _internal_copy(cmd_options const& right);
 
   std::string        _appname;
+  unsigned int       _max_concurrent_checks;
 };
 
 CCC_ICMP_END()

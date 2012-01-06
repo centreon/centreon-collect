@@ -42,12 +42,12 @@ using namespace com::centreon::connector::icmp;
  */
 check_dispatch::check_dispatch(check_observer* observer)
   : thread(),
-    _build_checks(this, &check_dispatch::_process_checks),
     _build_results(this, &check_dispatch::_process_receive),
     _current_checks(0),
     _host_id(0),
     _id(0),
     _internal_sequence(0),
+    _max_concurrent_checks(10),
     _pkt_dispatcher(this),
     _quit(false),
     _observer(observer),
@@ -82,6 +82,24 @@ check_dispatch::~check_dispatch() throw () {
 }
 
 /**
+ *  Get the maximum simultaneous checks.
+ *
+ *  @return The maximum concurrency checks.
+ */
+unsigned int check_dispatch::get_max_concurrent_checks() const throw () {
+  return (_max_concurrent_checks);
+}
+
+/**
+ *  Set the maximum simultaneous checks.
+ *
+ *  @param[in] max  The maximum concurrency checks.
+ */
+void check_dispatch::set_max_concurrent_checks(unsigned int max) throw () {
+  _max_concurrent_checks = max;
+}
+
+/**
  *  Submit a command line to execute it.
  *
  *  @param[in] command_line  The connector command line.
@@ -103,13 +121,8 @@ void check_dispatch::submit(
     << "submit(" << command_id << ", " << command_line << ")";
 
   locker lock(&_mtx);
-  bool add_task(_checks_new.empty());
   _checks_new.push_back(new check(command_id, command_line));
-  ++_current_checks;
-  if (add_task) {
-    _t_manager.add(&_build_checks, timestamp::now(), true);
-    _cnd.wake_one();
-  }
+  _cnd.wake_one();
 }
 
 /**
@@ -121,8 +134,10 @@ void check_dispatch::_run() {
       _t_manager.execute();
 
       locker lock(&_mtx);
-      if (_quit && !_current_checks)
+      if (_quit && !_checks_new.size() && !_checks.size())
         break;
+
+      _process_checks();
 
       timestamp now(timestamp::now());
       if (!_results.empty())
@@ -151,7 +166,6 @@ void check_dispatch::_run() {
  */
 check_dispatch::check_dispatch(check_dispatch const& right)
   : thread(),
-    _build_checks(this, &check_dispatch::_process_checks),
     _build_results(this, &check_dispatch::_process_receive) {
   _internal_copy(right);
 }
@@ -173,8 +187,6 @@ check_dispatch& check_dispatch::operator=(check_dispatch const& right) {
  *  @param[in] pkt   The packet receive.
  */
 void check_dispatch::emit_receive(packet const& pkt) {
-  logging::debug(logging::high) << "receive " << pkt;
-
   if (pkt.get_id() != _id) {
     logging::debug(logging::low) << "invalid packet:id";
     return ;
@@ -338,42 +350,42 @@ void check_dispatch::_push_packet(icmp_info* info) {
  *  Build all class checks.
  */
 void check_dispatch::_process_checks() {
-  std::list<check*> checks;
-  {
-    locker lock(&_mtx);
-    checks = _checks_new;
-    _checks_new.clear();
-  }
+  while (!_checks_new.empty()
+         && _current_checks <= _max_concurrent_checks) {
+    check* chk(_checks_new.front());
+    _checks_new.pop_front();
 
-  for (std::list<check*>::const_iterator
-         chk(checks.begin()), end(checks.end());
-       chk != end;
-       ++chk) {
-    (*chk)->parse();
-    logging::debug(logging::medium) << "build " << **chk;
-    std::list<host*> const& hosts((*chk)->get_hosts());
+    try {
+      chk->parse();
+      ++_current_checks;
+    }
+    catch (std::exception const& e) {
+      logging::error(logging::low) << e.what();
+      continue;
+    }
+
+    logging::debug(logging::medium) << "build " << *chk;
+    std::list<host*> const& hosts(chk->get_hosts());
     for (std::list<host*>::const_iterator
            hst(hosts.begin()), end(hosts.end());
          hst != end;
          ++hst) {
 
-      locker lock(&_mtx);
-
       (*hst)->set_id(_host_id++);
       logging::debug(logging::medium) << "build " << **hst;
 
-      packet* pkt(new packet((*chk)->get_packet_data_size()));
+      packet* pkt(new packet(chk->get_packet_data_size()));
       pkt->set_address((*hst)->get_address());
       pkt->set_host_id((*hst)->get_id());
       pkt->set_id(_id);
 
-      icmp_info info(*chk, *hst, pkt);
+      icmp_info info(chk, *hst, pkt);
 
       _checks[(*hst)->get_id()] = info;
       _push_packet(&info);
 
       timestamp next_timeout(timestamp::now());
-      next_timeout.add_usecond((*chk)->get_max_completion_time());
+      next_timeout.add_usecond(chk->get_max_completion_time());
       _t_manager.add(
                    new timeout(
                          this,
@@ -381,7 +393,6 @@ void check_dispatch::_process_checks() {
                    next_timeout,
                    false,
                    true);
-      _cnd.wake_one();
     }
   }
 }
@@ -391,7 +402,6 @@ void check_dispatch::_process_checks() {
  */
 void check_dispatch::_process_receive() {
   locker lock(&_mtx);
-  logging::debug(logging::high) << "process receive";
   while (!_results.empty()) {
     packet pkt(_results.front());
     _results.pop_front();
@@ -399,7 +409,8 @@ void check_dispatch::_process_receive() {
     std::map<unsigned int, icmp_info>::iterator
       it(_checks.find(pkt.get_host_id()));
     if (it == _checks.end()) {
-      logging::debug(logging::low) << "drop host_id: " << pkt.get_host_id();
+      logging::debug(logging::low)
+        << "packet drop: " << pkt.get_host_id();
       continue;
     }
 
@@ -426,9 +437,9 @@ void check_dispatch::_process_receive() {
       if (chk.get_current_host_check() >= chk.get_hosts().size()) {
         _build_response(chk);
         delete it->second.chk;
-        _checks.erase(it);
         --_current_checks;
       }
+      _checks.erase(it);
     }
   }
 }
@@ -572,7 +583,7 @@ check_dispatch::timeout& check_dispatch::timeout::_internal_copy(timeout const& 
 void check_dispatch::timeout::_delay_push_packet() {
   locker lock(&_dispatcher->_mtx);
   logging::debug(logging::high)
-    << "delay push packet " << _host_id << " id(" << _id << ")";
+    << "delay push packet hst_id(" << _host_id << ") pkt_id(" << _id << ")";
 
   std::map<unsigned int, icmp_info>::iterator
     it(_dispatcher->_checks.find(_host_id));
@@ -589,17 +600,13 @@ void check_dispatch::timeout::_delay_push_packet() {
  *  Remove target check.
  */
 void check_dispatch::timeout::_remove_target() {
-  locker lock(&_dispatcher->_mtx);
-  logging::debug(logging::high) << "remove target";
+  _dispatcher->_process_receive();
 
+  locker lock(&_dispatcher->_mtx);
   std::map<unsigned int, icmp_info>::iterator
     it(_dispatcher->_checks.find(_host_id));
   if (it == _dispatcher->_checks.end())
       return;
-
-  lock.unlock();
-  _dispatcher->_process_receive();
-  lock.relock();
 
   host& hst(*it->second.hst);
   check& chk(*it->second.chk);
