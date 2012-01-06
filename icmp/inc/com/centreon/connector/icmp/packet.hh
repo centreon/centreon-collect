@@ -73,7 +73,7 @@ private:
   packet&                _internal_copy(packet const& right);
 
   unsigned int           _address;
-  mutable unsigned char* _buffer;
+  unsigned char*         _buffer;
   unsigned int           _size;
   timestamp              _recv_time;
 };

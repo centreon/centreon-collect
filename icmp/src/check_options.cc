@@ -35,10 +35,10 @@ check_options::check_options(std::string const& command_line)
                       "-icmp-bytes-send",
                       'b',
                       "Number of icmp data bytes to send " \
-                      "(default \"XXX\").",
+                      "(default \"40\").",
                       true,
                       true,
-                      "XXX");
+                      "40");
   _arguments['c'] = argument(
                       "critical",
                       'c',

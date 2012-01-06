@@ -37,7 +37,7 @@ CCC_ICMP_BEGIN()
  *  This class provid all information on the request send by
  *  Centreon engine for make check icmp.
  */
-class                     check : public task {
+class                     check {
 public:
                           check(
                             unsigned int command_id = 0,
@@ -55,12 +55,12 @@ public:
   unsigned int            get_max_target_interval() const throw ();
   int                     get_min_hosts_alive() const throw ();
   unsigned int            get_nb_packet() const throw ();
-  unsigned short          get_packet_size() const throw ();
+  unsigned int            get_packet_data_size() const throw ();
   unsigned int            get_critical_packet_lost() const throw ();
   unsigned int            get_critical_roundtrip_avg() const throw ();
   unsigned int            get_warning_packet_lost() const throw ();
   unsigned int            get_warning_roundtrip_avg() const throw ();
-  void                    run();
+  void                    parse();
 
 private:
   check&                  _internal_copy(check const& right);
@@ -82,7 +82,7 @@ private:
   unsigned int            _max_target_interval;
   int                     _min_hosts_alive;
   unsigned int            _nb_packet;
-  unsigned short          _packet_size;
+  unsigned int            _packet_data_size;
   std::string             _source_address;
   unsigned char           _ttl;
   unsigned int            _warning_packet_lost;

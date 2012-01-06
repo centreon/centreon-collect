@@ -91,7 +91,7 @@ void plugin::run() {
     unsigned int nb_commands(_commands.size());
     for (unsigned int i(0); i < _total_request; ++i) {
       args[pos] = const_cast<char*>(_commands[i % nb_commands].c_str());
-      if (_current_running > _limit_running)
+      while (_current_running > _limit_running)
         _wait_plugin(true);
       _start_plugin(args);
       _wait_plugin(false);
