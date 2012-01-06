@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -24,24 +24,30 @@
 #include <errno.h>
 #include <time.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/concurrency/wait_condition_posix.hh"
+#include "com/centreon/concurrency/condvar_posix.hh"
 
 using namespace com::centreon::concurrency;
+
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
 
 /**
  *  Default constructor.
  */
-wait_condition::wait_condition() {
+condvar::condvar() {
   int ret(pthread_cond_init(&_cnd, NULL));
   if (ret)
-    throw (basic_error() << "the wait condition initialization failed:"
+    throw (basic_error() << "could not initialize condition variable: "
            << strerror(ret));
 }
 
 /**
  *  Default destructor.
  */
-wait_condition::~wait_condition() throw () {
+condvar::~condvar() throw () {
   pthread_cond_destroy(&_cnd);
 }
 
@@ -50,15 +56,15 @@ wait_condition::~wait_condition() throw () {
  *
  *  @param[in] mtx  The mutex to wait.
  */
-void wait_condition::wait(mutex* mtx) {
+void condvar::wait(mutex* mtx) {
   if (!mtx)
-    throw (basic_error() << "wait was call with invalid argument:" \
-           "null pointer");
+    throw (basic_error() << "wait was called with null mutex");
 
   int ret(pthread_cond_wait(&_cnd, &mtx->_mtx));
   if (ret)
-    throw (basic_error() << "the wait condition wait failed:"
+    throw (basic_error() << "failed to wait on condition variable: "
            << strerror(ret));
+  return ;
 }
 
 /**
@@ -69,16 +75,17 @@ void wait_condition::wait(mutex* mtx) {
  *
  *  @return True if the mutex was take, false if timeout.
  */
-bool wait_condition::wait(mutex* mtx, unsigned long timeout) {
+bool condvar::wait(mutex* mtx, unsigned long timeout) {
   if (!mtx)
-    throw (basic_error() << "wait was call with invalid argument:" \
-           "null pointer");
+    throw (basic_error() << "wait was called with null mutex");
 
   // Get the current time.
   timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread:"
-           << strerror(errno));
+  if (clock_gettime(CLOCK_REALTIME, &ts)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "failed to wait on condition variable: "
+           << msg);
+  }
 
   // Add timeout.
   ts.tv_sec += timeout / 1000;
@@ -91,64 +98,68 @@ bool wait_condition::wait(mutex* mtx, unsigned long timeout) {
 
   // Wait the condition variable.
   int ret(pthread_cond_timedwait(&_cnd, &mtx->_mtx, &ts));
-  if (!ret)
-    return (true);
-  if (ret == ETIMEDOUT)
-    return (false);
-  throw (basic_error() << "the wait condition wait with timeout failed:"
-         << strerror(ret));
+  if (ret && (ret != ETIMEDOUT))
+    throw (basic_error() << "failed to wait on condition variable: "
+           << strerror(ret));
+  return (!ret);
 }
 
 /**
  *  Wake all condition variable.
  */
-void wait_condition::wake_all() {
+void condvar::wake_all() {
   int ret(pthread_cond_broadcast(&_cnd));
   if (ret)
-    throw (basic_error() << "the wait condition wake all failed:"
-           << strerror(ret));
+    throw (basic_error() << "could not wake all threads attached to " \
+                "condition variable: " << strerror(ret));
+  return ;
 }
 
 /**
  *  Wake one condition variable.
  */
-void wait_condition::wake_one() {
+void condvar::wake_one() {
   int ret(pthread_cond_signal(&_cnd));
   if (ret)
-    throw (basic_error() << "the wait condition wake one failed:"
-           << strerror(ret));
+    throw (basic_error() << "could not wake one thread attached to " \
+                "condition variable: " << strerror(ret));
 }
 
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
+
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
-wait_condition::wait_condition(wait_condition const& right) {
+condvar::condvar(condvar const& right) {
   _internal_copy(right);
 }
 
 /**
- *  Default copy operator.
+ *  Assignment operator.
  *
  *  @param[in] right  The object to copy.
  *
  *  @return This object.
  */
-wait_condition& wait_condition::operator=(wait_condition const& right) {
-  return (_internal_copy(right));
+condvar& condvar::operator=(condvar const& right) {
+  _internal_copy(right);
+  return (*this);
 }
 
 /**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
- *
- *  @return This object.
  */
-wait_condition& wait_condition::_internal_copy(wait_condition const& right) {
+void condvar::_internal_copy(condvar const& right) {
   (void)right;
-  assert(!"impossible to copy wait_condition");
+  assert(!"cannot copy condition variable");
   abort();
-  return (*this);
+  return ;
 }

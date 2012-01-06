@@ -23,10 +23,10 @@
 
 #  include <list>
 #  include "com/centreon/namespace.hh"
+#  include "com/centreon/concurrency/condvar.hh"
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/concurrency/runnable.hh"
 #  include "com/centreon/concurrency/thread.hh"
-#  include "com/centreon/concurrency/wait_condition.hh"
 
 CC_BEGIN()
 
@@ -69,8 +69,8 @@ namespace                concurrency {
     thread_pool&         operator=(thread_pool const& right);
     thread_pool&         _internal_copy(thread_pool const& right);
 
-    wait_condition       _cnd_pool;
-    wait_condition       _cnd_thread;
+    condvar              _cnd_pool;
+    condvar              _cnd_thread;
     unsigned int         _current_task_running;
     bool                 _quit;
     unsigned int         _max_thread_count;

@@ -36,16 +36,16 @@ if (WIN32)
   )
 else ()
   set(SPECIFIC_SOURCES
+    "${SRC_DIR}/condvar_posix.cc"
     "${SRC_DIR}/mutex_posix.cc"
     "${SRC_DIR}/semaphore_posix.cc"
     "${SRC_DIR}/thread_posix.cc"
-    "${SRC_DIR}/wait_condition_posix.cc"
   )
   set(SPECIFIC_HEADERS
+    "${INC_DIR}/condvar_posix.hh"
     "${INC_DIR}/mutex_posix.hh"
     "${INC_DIR}/semaphore_posix.hh"
     "${INC_DIR}/thread_posix.hh"
-    "${INC_DIR}/wait_condition_posix.hh"
   )
 endif ()
 
@@ -65,12 +65,12 @@ set(
   HEADERS
   ${HEADERS}
   ${SPECIFIC_HEADERS}
+  "${INC_DIR}/condvar.hh"
   "${INC_DIR}/locker.hh"
   "${INC_DIR}/mutex.hh"
   "${INC_DIR}/runnable.hh"
   "${INC_DIR}/semaphore.hh"
   "${INC_DIR}/thread.hh"
   "${INC_DIR}/thread_pool.hh"
-  "${INC_DIR}/wait_condition.hh"
   PARENT_SCOPE
 )

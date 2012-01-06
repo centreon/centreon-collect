@@ -34,7 +34,7 @@ namespace           concurrency {
    *  POSIX-based implementation of a mutex.
    */
   class             mutex {
-    friend class    wait_condition;
+    friend class    condvar;
 
   public:
                     mutex();

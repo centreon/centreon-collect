@@ -18,13 +18,13 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_CONCURRENCY_WAIT_CONDITION_HH
-#  define CC_CONCURRENCY_WAIT_CONDITION_HH
+#ifndef CC_CONCURRENCY_CONDVAR_HH
+#  define CC_CONCURRENCY_CONDVAR_HH
 
 #  ifdef _WIN32
-#    include "com/centreon/concurrency/wait_condition_win32.hh"
+#    include "com/centreon/concurrency/condvar_win32.hh"
 #  else
-#    include "com/centreon/concurrency/wait_condition_posix.hh"
+#    include "com/centreon/concurrency/condvar_posix.hh"
 #  endif // Windows or POSIX implementation.
 
-#endif // !CC_CONCURRENCY_WAIT_CONDITION_HH
+#endif // !CC_CONCURRENCY_CONDVAR_HH
