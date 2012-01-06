@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -32,15 +32,15 @@ using namespace com::centreon;
 int main() {
   try {
     timestamp t1;
-    if (t1.to_msecond() || t1.to_second() || t1.to_usecond())
+    if (t1.to_mseconds() || t1.to_seconds() || t1.to_useconds())
       throw (basic_error() << "default constructor failed");
 
     timestamp t2(42);
-    if (t2.to_second() != 42)
+    if (t2.to_seconds() != 42)
       throw (basic_error() << "constructor failed");
 
     timestamp t3(42, 24);
-    if (t3.to_usecond() != 42000024)
+    if (t3.to_useconds() != 42000024)
       throw (basic_error() << "constructor failed");
   }
   catch (std::exception const& e) {

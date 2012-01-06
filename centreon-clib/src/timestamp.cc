@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,24 +18,34 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <sys/time.h>
+#ifdef _WIN32
+#  include <windows.h>
+#else
+#  include <sys/time.h>
+#endif // Windows or POSIX.
 #include "com/centreon/timestamp.hh"
 
 using namespace com::centreon;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
  *  Default constructor.
  *
- *  @param[in] second   Set the second.
- *  @param[in] usecond  Set the microsecond.
+ *  @param[in] secs   Set the seconds.
+ *  @param[in] usecs  Set the microseconds.
  */
-timestamp::timestamp(time_t second, long usecond)
-  : _usecond(usecond), _second(second) {
-  _transfer(&_second, &_usecond);
+timestamp::timestamp(time_t secs, unsigned int usecs)
+  : _secs(secs), _usecs(usecs) {
+  _transfer(&_secs, &_usecs);
 }
 
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
@@ -44,21 +54,21 @@ timestamp::timestamp(timestamp const& right) {
 }
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
-timestamp::~timestamp() throw () {
-
-}
+timestamp::~timestamp() throw () {}
 
 /**
- *  Default copy operator.
+ *  Assignment operator.
  *
  *  @param[in] right  The object to copy.
  *
  *  @return This object.
  */
 timestamp& timestamp::operator=(timestamp const& right) {
-  return (_internal_copy(right));
+  if (this != &right)
+    _internal_copy(right);
+  return (*this);
 }
 
 /**
@@ -69,7 +79,7 @@ timestamp& timestamp::operator=(timestamp const& right) {
  *  @return True if equal, otherwise false.
  */
 bool timestamp::operator==(timestamp const& right) const throw () {
-  return (_second == right._second && _usecond == right._usecond);
+  return (_secs == right._secs && _usecs == right._usecs);
 }
 
 /**
@@ -91,8 +101,8 @@ bool timestamp::operator!=(timestamp const& right) const throw () {
  *  @return True if less, otherwise false.
  */
 bool timestamp::operator<(timestamp const& right) const throw () {
-  return (_second < right._second
-          || (_second == right._second && _usecond < right._usecond));
+  return (_secs < right._secs
+          || (_secs == right._secs && _usecs < right._usecs));
 }
 
 /**
@@ -162,9 +172,8 @@ timestamp timestamp::operator-(timestamp const& right) const {
  *  @return This object.
  */
 timestamp& timestamp::operator+=(timestamp const& right) {
-  _usecond += right._usecond;
-  _second += right._second;
-  _transfer(&_second, &_usecond);
+  add_seconds(right._secs);
+  add_useconds(right._usecs);
   return (*this);
 }
 
@@ -176,42 +185,49 @@ timestamp& timestamp::operator+=(timestamp const& right) {
  *  @return This object.
  */
 timestamp& timestamp::operator-=(timestamp const& right) {
-  _transfer(&_second, &_usecond);
-  _usecond -= right._usecond;
-  _second -= right._second;
-  _transfer(&_second, &_usecond);
+  add_seconds(-right._secs);
+  add_useconds(-right._usecs);
   return (*this);
 }
 
 /**
- *  Add millisecond into this object.
+ *  Add milliseconds to this object.
  *
- *  @param[in] msecond  Time in milliseconds.
+ *  @param[in] msecs  Time in milliseconds.
  */
-void timestamp::add_msecond(long msecond) {
-  add_usecond(msecond * 1000);
+void timestamp::add_mseconds(long msecs) {
+  add_useconds(msecs * 1000);
+  return ;
 }
 
 /**
- *  Add second into this object.
+ *  Add seconds to this object.
  *
- *  @param[in] second  Time in seconds.
+ *  @param[in] secs  Time in seconds.
  */
-void timestamp::add_second(time_t second) {
-  _second += second;
+void timestamp::add_seconds(time_t secs) {
+  _secs += secs;
+  return ;
 }
 
 /**
- *  Add microsecond into this object.
+ *  Add microseconds to this object.
  *
- *  @param[in] usecond  Time in microseconds.
+ *  @param[in] usecs  Time in microseconds.
  */
-void timestamp::add_usecond(long usecond) {
-  time_t second(0);
-  _transfer(&second, &usecond);
-  _usecond += usecond;
-  _second += second;
-  _transfer(&_second, &_usecond);
+void timestamp::add_useconds(long usecs) {
+  long long us(_usecs);
+  us += usecs;
+  if (us < 0) {
+    _secs += (us / 1000000); // Will be negative.
+    us %= 1000000;
+    if (us) { // Non zero means negative value.
+      --_secs;
+      us += 1000000;
+    }
+  }
+  _transfer(&_secs, &_usecs);
+  return ;
 }
 
 /**
@@ -220,40 +236,70 @@ void timestamp::add_usecond(long usecond) {
  *  @return The current timestamp.
  */
 timestamp timestamp::now() throw () {
+#ifdef _WIN32
+  // Convert Epoch to FILETIME.
+  SYSTEMTIME st_epoch;
+  st_epoch.wYear = 1970;
+  st_epoch.wMonth = 1;
+  st_epoch.wDay = 1;
+  st_epoch.wHour = 0;
+  st_epoch.wMinute = 0;
+  st_epoch.wSecond = 0;
+  st_epoch.wMilliseconds = 0;
+  FILETIME ft_epoch;
+  SystemTimeToFileTime(&st_epoch, &ft_epoch);
+
+  // Get current time as FILETIME.
+  FILETIME ft_now;
+  GetSystemTimeAsFileTime(&ft);
+
+  // Move times to 64-bit integers.
+  ULARGE_INTEGER large_epoch;
+  ULARGE_INTEGER large_now;
+  large_epoch.LowPart = ft_epoch.dwLowDateTime;
+  large_epoch.HighPart = ft_epoch.dwHighDateTime;
+  large_now.LowPart = ft_now.dwLowDateTime;
+  large_now.HighPart = ft_now.dwHighDateTime;
+  large_now.QuadPart -= ft_epoch.QuadPart;
+  // Time is now expressed in units of 100ns since Unix Epoch.
+  return (timestamp(
+            large_now.QuadPart / (10 * 1000000),
+            (large_now.QuadPart % (10 * 1000000)) / 10));
+#else
   timeval tv;
   gettimeofday(&tv, NULL);
   return (timestamp(tv.tv_sec, tv.tv_usec));
+#endif // Windows or POSIX.
 }
 
 /**
- *  Substract millisecond into this object.
+ *  Substract milliseconds from this object.
  *
- *  @param[in] msecond  Time in milliseconds.
+ *  @param[in] msecs  Time in milliseconds.
  */
-void timestamp::sub_msecond(long msecond) {
-  sub_usecond(msecond * 1000L);
+void timestamp::sub_mseconds(long msecs) {
+  add_mseconds(-msecs);
+  return ;
 }
 
 /**
- *  Substract second into this object.
+ *  Substract seconds from this object.
  *
- *  @param[in] second  Time in seconds.
+ *  @param[in] secs  Time in seconds.
  */
-void timestamp::sub_second(time_t second) {
-  _second -= second;
+void timestamp::sub_seconds(time_t secs) {
+  add_seconds(-secs);
+  return ;
 }
 
 /**
- *  Substract microsecond into this object.
+ *  Substract microseconds from this object.
  *
- *  @param[in] usecond  Time in microseconds.
+ *  @param[in] usecs  Time in microseconds.
  */
-void timestamp::sub_usecond(long usecond) {
-  time_t second(0);
-  _transfer(&second, &usecond);
-  _usecond -= usecond;
-  _second -= second;
-  _transfer(&_second, &_usecond);
+void timestamp::sub_useconds(long usecs) {
+  add_useconds(-usecs);
+  return ;
 }
 
 /**
@@ -261,8 +307,8 @@ void timestamp::sub_usecond(long usecond) {
  *
  *  @return The time in milliseconds.
  */
-long long timestamp::to_msecond() const throw () {
-  return (_second * 1000LL + _usecond / 1000);
+long long timestamp::to_mseconds() const throw () {
+  return (_secs * 1000ll + _usecs / 1000);
 }
 
 /**
@@ -270,8 +316,8 @@ long long timestamp::to_msecond() const throw () {
  *
  *  @return The time in seconds.
  */
-time_t timestamp::to_second() const throw () {
-  return (_second);
+time_t timestamp::to_seconds() const throw () {
+  return (_secs);
 }
 
 /**
@@ -279,40 +325,37 @@ time_t timestamp::to_second() const throw () {
  *
  *  @return The time in microseconds.
  */
-long long timestamp::to_usecond() const throw () {
-  return (_second * 1000000LL + _usecond);
+long long timestamp::to_useconds() const throw () {
+  return (_secs * 1000000ll + _usecs);
 }
+
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
 
 /**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
- *
- *  @return This object.
  */
-timestamp& timestamp::_internal_copy(timestamp const& right) {
-  if (this != &right) {
-    _usecond = right._usecond;
-    _second = right._second;
-  }
-  return (*this);
+void timestamp::_internal_copy(timestamp const& right) {
+  _usecs = right._usecs;
+  _secs = right._secs;
+  return ;
 }
 
 /**
- *  Transfer microsecond in second if is possible.
+ *  Transfer microseconds to seconds if possible.
  *  @remark This function is static.
  *
- *  @param[in,out] second   The second.
- *  @param[in]     usecond  The microsecond.
+ *  @param[in,out] secs   The seconds.
+ *  @param[in,out] usecs  The microseconds.
  */
-void timestamp::_transfer(time_t* second, long* usecond) {
+void timestamp::_transfer(time_t* secs, unsigned int* usecs) {
   // Transforms unnecessary microseconds into seconds.
-  int nsec(*usecond / 1000000L);
-  *usecond -= nsec * 1000000L;
-  *second += nsec;
-
-  if (*usecond < 0) {
-    *usecond = 1000000L + *usecond;
-    *second -= 1;
-  }
+  *secs += (*usecs / 1000000);
+  *usecs %= 1000000;
+  return ;
 }

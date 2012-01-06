@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -25,21 +25,21 @@
 using namespace com::centreon;
 
 /**
- *  Check the timestamp substract microseconds.
+ *  Check the timestamp substract seconds.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
     timestamp t1(2, 42);
-    t1.sub_usecond(1000000);
-    if (t1.to_usecond() != 1000042)
-      throw (basic_error() << "sub_usecond failed");
+    t1.sub_seconds(1);
+    if (t1.to_seconds() != 1)
+      throw (basic_error() << "sub_second failed");
 
     timestamp t2(1, 42);
-    t2.sub_usecond(-1000000);
-    if (t2.to_usecond() != 2000042)
-      throw (basic_error() << "sub_usecond failed");
+    t2.sub_seconds(-1);
+    if (t2.to_seconds() != 2)
+      throw (basic_error() << "sub_second failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

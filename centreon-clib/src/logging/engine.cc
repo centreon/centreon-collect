@@ -190,11 +190,11 @@ void engine::log(
   // Build line header.
   stringifier header;
   if (_show_timestamp == second)
-    header << "[" << timestamp::now().to_second() << "] ";
+    header << "[" << timestamp::now().to_seconds() << "] ";
   else if (_show_timestamp == millisecond)
-    header << "[" << timestamp::now().to_msecond() << "] ";
+    header << "[" << timestamp::now().to_mseconds() << "] ";
   else if (_show_timestamp == microsecond)
-    header << "[" << timestamp::now().to_usecond() << "] ";
+    header << "[" << timestamp::now().to_useconds() << "] ";
   if (_show_pid) {
 #ifdef _WIN32
     header << "[" << GetCurrentProcessId() << "] ";

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -25,21 +25,21 @@
 using namespace com::centreon;
 
 /**
- *  Check the timestamp add milliseconds.
+ *  Check the timestamp add microseconds.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
     timestamp t1(1, 42);
-    t1.add_msecond(2000);
-    if (t1.to_msecond() != 3000)
-      throw (basic_error() << "add_msecond failed");
+    t1.add_useconds(2000000);
+    if (t1.to_useconds() != 3000042)
+      throw (basic_error() << "add_usecond failed");
 
     timestamp t2(1, 42);
-    t2.add_msecond(-1000);
-    if (t2.to_msecond() != 0)
-      throw (basic_error() << "add_msecond failed");
+    t2.add_useconds(-1000000);
+    if (t2.to_useconds() != 42)
+      throw (basic_error() << "add_usecond failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

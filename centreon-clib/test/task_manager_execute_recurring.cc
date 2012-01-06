@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -78,7 +78,7 @@ int main() {
       task_manager tm;
 
       timestamp future(timestamp::now());
-      future.add_second(42);
+      future.add_seconds(42);
 
       task_test* t2(new task_test);
       tm.add(t2, future, 0, false, false);
