@@ -18,20 +18,20 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_CONCURRENCY_SEMAPHORE_POSIX_HH
-#  define CC_CONCURRENCY_SEMAPHORE_POSIX_HH
+#ifndef CC_CONCURRENCY_SEMAPHORE_WIN32_HH
+#  define CC_CONCURRENCY_SEMAPHORE_WIN32_HH
 
-#  include <semaphore.h>
+#  include <windows.h>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
 namespace      concurrency {
   /**
-   *  @class semaphore semaphore_posix.hh "com/centreon/concurrency/semaphore.hh"
+   *  @class semaphore semaphore_win32.hh "com/centreon/concurrency/semaphore.hh"
    *  @brief Implements a semaphore.
    *
-   *  POSIX implementation of a semaphore.
+   *  Win32 implementation of a semaphore.
    */
   class        semaphore {
   public:
@@ -44,14 +44,14 @@ namespace      concurrency {
     bool       try_acquire();
 
   private:
-               semaphore(semaphore const& right);
-    semaphore& operator=(semaphore const& right);
+               semaphore(semaphore const& s);
+    semaphore& operator=(semaphore const& s);
     void       _internal_copy(semaphore const& right);
 
-    sem_t      _sem;
+    HANDLE     _sem;
   };
 }
 
 CC_END()
 
-#endif // !CC_CONCURRENCY_SEMAPHORE_POSIX_HH
+#endif // !CC_CONCURRENCY_SEMAPHORE_WIN32_HH

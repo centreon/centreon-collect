@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -30,19 +30,26 @@
 
 using namespace com::centreon::concurrency;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
  *  Default constructor.
  *
  *  @param[in] n  Specifies the initial value for the semaphore.
  */
 semaphore::semaphore(unsigned int n) {
-  if (sem_init(&_sem, 0, n))
-    throw (basic_error() << "unable to create semaphore: "
-           << strerror(errno));
+  if (sem_init(&_sem, 0, n)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "unable to create semaphore: " << msg);
+  }
 }
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
 semaphore::~semaphore() throw () {
   sem_destroy(&_sem);
@@ -50,21 +57,23 @@ semaphore::~semaphore() throw () {
 
 /**
  *  Acquire one ressource. If the semaphore's value is greater than zero
- *  then the function returns immediately, else the call blocks until one
- *  ressource was release.
+ *  then the function returns immediately, else the call blocks until
+ *  one ressource is released.
  */
 void semaphore::acquire() {
-  // Wait to acquire ressource.
-  if (sem_wait(&_sem))
-    throw (basic_error() << "unable to acquire semaphore: "
-           << strerror(errno));
+  if (sem_wait(&_sem)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "unable to acquire semaphore: " << msg);
+  }
+  return ;
 }
 
 
 /**
- *  This is an overload of acquire.
+ *  This is an overload of acquire().
  *
- *  @param[in] timeout  Define the timeout to wait one ressource.
+ *  @param[in] timeout Maximum number of milliseconds to wait for
+ *                     ressource availability.
  *
  *  @return True if one ressource is acquire, false if timeout.
  */
@@ -74,9 +83,11 @@ bool semaphore::acquire(unsigned long timeout) {
 
   // Get the current time.
   timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
+  if (clock_gettime(CLOCK_REALTIME, &ts)) {
+    char const* msg(strerror(errno));
     throw (basic_error() << "unable to get time within semaphore: "
-           << strerror(errno));
+           << msg);
+  }
 
   // Add the timeout.
   ts.tv_sec += timeout / 1000;
@@ -89,9 +100,10 @@ bool semaphore::acquire(unsigned long timeout) {
 
   // Wait to acquire ressource.
   bool failed(sem_timedwait(&_sem, &ts));
-  if (failed && (errno != ETIMEDOUT))
-    throw (basic_error() << "unable to acquire semaphore: "
-           << strerror(errno));
+  if (failed && (errno != ETIMEDOUT)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "unable to acquire semaphore: " << msg);
+  }
   return (!failed);
 #else
   // Implementation based on try_acquire and usleep.
@@ -132,10 +144,12 @@ bool semaphore::acquire(unsigned long timeout) {
  */
 int  semaphore::available() {
   int sval(0);
-  if (sem_getvalue(&_sem, &sval))
+  if (sem_getvalue(&_sem, &sval)) {
+    char const* msg(strerror(errno));
     throw (basic_error()
            << "unable to get semaphore's ressource count: "
-           << strerror(errno));
+           << msg);
+  }
   return (sval);
 }
 
@@ -143,9 +157,11 @@ int  semaphore::available() {
  *  Release one ressource.
  */
 void semaphore::release() {
-  if (sem_post(&_sem))
-    throw (basic_error() << "unable to release semaphore: "
-           << strerror(errno));
+  if (sem_post(&_sem)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "unable to release semaphore: " << msg);
+  }
+  return ;
 }
 
 /**
@@ -155,14 +171,21 @@ void semaphore::release() {
  */
 bool semaphore::try_acquire() {
   bool failed(sem_trywait(&_sem));
-  if (failed && (errno != EAGAIN))
-    throw (basic_error() << "unable to acquire semaphore: "
-           << strerror(errno));
+  if (failed && (errno != EAGAIN)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "unable to acquire semaphore: " << msg);
+  }
   return (!failed);
 }
 
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
+
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
@@ -171,26 +194,25 @@ semaphore::semaphore(semaphore const& right) {
 }
 
 /**
- *  Default copy operator.
+ *  Assignment operator.
  *
  *  @param[in] right  The object to copy.
  *
  *  @return This object.
  */
 semaphore& semaphore::operator=(semaphore const& right) {
-  return (_internal_copy(right));
+  _internal_copy(right);
+  return (*this);
 }
 
 /**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
- *
- *  @return This object.
  */
-semaphore& semaphore::_internal_copy(semaphore const& right) {
+void semaphore::_internal_copy(semaphore const& right) {
   (void)right;
   assert(!"semaphore is not copyable");
   abort();
-  return (*this);
+  return ;
 }
