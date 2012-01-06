@@ -37,6 +37,8 @@ namespace            concurrency {
    *  used for inter-process synchronisation.
    */
   class              mutex {
+    friend class     condvar;
+
   public:
                      mutex();
                      ~mutex() throw ();
