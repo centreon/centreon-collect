@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_CONCURRENCY_WAIT_CONDITION_POSIX_HH
-#  define CC_CONCURRENCY_WAIT_CONDITION_POSIX_HH
+#ifndef CC_CONCURRENCY_CONDVAR_POSIX_HH
+#  define CC_CONCURRENCY_CONDVAR_POSIX_HH
 
 #  include <pthread.h>
 #  include <limits.h>
@@ -28,31 +28,31 @@
 
 CC_BEGIN()
 
-namespace           concurrency {
+namespace          concurrency {
   /**
-   *  @class wait_condition wait_condition_posix.hh "com/centreon/concurrency/wait_condition.hh"
+   *  @class condvar condvar_posix.hh "com/centreon/concurrency/condvar.hh"
    *  @brief Allow simple threads synchronization.
    *
-   *  Provide condition variable for synchronization threads.
+   *  Provide condition variable for synchronization between threads.
    */
-  class             wait_condition {
+  class            condvar {
   public:
-                    wait_condition();
-                    ~wait_condition() throw ();
-    void            wait(mutex* mtx);
-    bool            wait(mutex* mtx, unsigned long timeout);
-    void            wake_all();
-    void            wake_one();
+                   condvar();
+                   ~condvar() throw ();
+    void           wait(mutex* mtx);
+    bool           wait(mutex* mtx, unsigned long timeout);
+    void           wake_all();
+    void           wake_one();
 
   private:
-                    wait_condition(wait_condition const& right);
-    wait_condition& operator=(wait_condition const& right);
-    wait_condition& _internal_copy(wait_condition const& right);
+                   condvar(condvar const& right);
+    condvar&       operator=(condvar const& right);
+    void           _internal_copy(condvar const& right);
 
-    pthread_cond_t  _cnd;
+    pthread_cond_t _cnd;
   };
 }
 
 CC_END()
 
-#endif // !CC_CONCURRENCY_WAIT_CONDITION_POSIX_HH
+#endif // !CC_CONCURRENCY_CONDVAR_POSIX_HH
