@@ -47,7 +47,7 @@ thread::~thread() throw () {
  *  Execute the running method in the new thread.
  */
 void thread::exec() {
-  _th = CreateThread(NULL, 0, &_exec, this, 0, NULL);
+  _th = CreateThread(NULL, 0, &_helper, this, 0, NULL);
   if (!_th) {
     DWORD errcode(GetLastError());
     throw (basic_error() << "failed to create thread (error "
@@ -183,6 +183,22 @@ void thread::_close() throw () {
     _th = NULL;
   }
   return ;
+}
+
+/**
+ *  @brief Execution helper.
+ *
+ *  This static method will be the native thread entry point that will
+ *  in turn call the run() method.
+ *
+ *  @param[in] data Class pointer.
+ *
+ *  @return 0.
+ */
+DWORD thread::_helper(void* data) {
+  thread* self(static_cast<thread*>(data));
+  self->_run();
+  return (0);
 }
 
 /**
