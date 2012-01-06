@@ -56,6 +56,7 @@ namespace            concurrency {
     void             _internal_copy(thread const& t);
 
     HANDLE           _th;
+  };
 }
 
 CC_END()
