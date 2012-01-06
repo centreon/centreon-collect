@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -41,7 +41,19 @@ using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
 using namespace com::centreon::misc;
 
-engine* engine::_instance = NULL;
+// Class instance.
+std::auto_ptr<engine> _instance;
+
+/**
+ *  Destructor.
+ */
+engine::~engine() throw () {
+  for (std::vector<backend_info*>::const_iterator
+         it(_backends.begin()), end(_backends.end());
+       it != end;
+       ++it)
+    delete *it;
+}
 
 /**
  *  Add backend into the logging engine.
@@ -154,8 +166,8 @@ bool engine::get_show_thread_id() const throw () {
  *  Create a new instance of the logging engine if no instance exist.
  */
 void engine::load() {
-  if (!_instance)
-    _instance = new engine();
+  _instance.reset(new engine());
+  return ;
 }
 
 /**
@@ -322,8 +334,8 @@ void engine::set_show_thread_id(bool enable) throw () {
  *  Destroy the logging engine.
  */
 void engine::unload() {
-  delete _instance;
-  _instance = NULL;
+  _instance.reset();
+  return ;
 }
 
 /**
@@ -339,7 +351,7 @@ engine::engine()
 }
 
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
@@ -348,18 +360,7 @@ engine::engine(engine const& right) {
 }
 
 /**
- *  Default destructor.
- */
-engine::~engine() throw () {
-  for (std::vector<backend_info*>::const_iterator
-         it(_backends.begin()), end(_backends.end());
-       it != end;
-       ++it)
-    delete *it;
-}
-
-/**
- *  Default copy operator.
+ *  Assignment operator.
  *
  *  @param[in] right  The object to copy.
  *
