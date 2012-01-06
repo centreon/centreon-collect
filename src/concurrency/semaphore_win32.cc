@@ -25,6 +25,8 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/semaphore_win32.hh"
 
+using namespace com::centreon::concurrency;
+
 /**************************************
 *                                     *
 *           Public Methods            *
