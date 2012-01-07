@@ -107,7 +107,7 @@ void thread_pool::set_max_thread_count(unsigned int max) {
   // Find ideal thread count.
   if (!max) {
 #if defined(_WIN32)
-    SYSTEMINFO sysinfo;
+    SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
     max = sysinfo.dwNumberOfProcessors;
 #elif defined(__linux__)

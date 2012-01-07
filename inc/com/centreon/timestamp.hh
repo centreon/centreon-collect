@@ -34,7 +34,7 @@ CC_BEGIN()
  */
 class              timestamp {
 public:
-                   timestamp(time_t secs = 0, unsigned int usecs = 0);
+                   timestamp(time_t secs = 0, int usecs = 0);
                    timestamp(timestamp const& right);
                    ~timestamp() throw ();
   timestamp&       operator=(timestamp const& right);
