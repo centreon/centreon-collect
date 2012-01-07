@@ -21,11 +21,15 @@
 #ifndef CC_CONCURRENCY_CONDVAR_WIN32_HH
 #  define CC_CONCURRENCY_CONDVAR_WIN32_HH
 
+#  include <windows.h>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
 namespace              concurrency {
+  // Forward declaration.
+  class                mutex;
+
   /**
    *  @class condvar condvar_win32.hh "com/centreon/concurrency/condvar.hh"
    *  @brief Simple thread synchronization.

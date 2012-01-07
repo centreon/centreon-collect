@@ -90,7 +90,13 @@ bool semaphore::acquire(unsigned long timeout) {
  *  @return Number of ressources available.
  */
 int semaphore::available() {
-  // XXX : ReleaseSemaphore
+  LONG count;
+  if (!ReleaseSemaphore(_sem, 0, &count)) {
+    int errcode(GetLastError());
+    throw (basic_error() << "unable to get semaphore count (error "
+           << errcode << ")");
+  }
+  return (count);
 }
 
 /**

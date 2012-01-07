@@ -39,9 +39,10 @@ using namespace com::centreon;
  *  @param[in] secs   Set the seconds.
  *  @param[in] usecs  Set the microseconds.
  */
-timestamp::timestamp(time_t secs, unsigned int usecs)
-  : _secs(secs), _usecs(usecs) {
-  _transfer(&_secs, &_usecs);
+timestamp::timestamp(time_t secs, int usecs)
+  : _secs(0), _usecs(0) {
+  add_seconds(secs);
+  add_useconds(usecs);
 }
 
 /**
@@ -186,7 +187,7 @@ timestamp& timestamp::operator+=(timestamp const& right) {
  */
 timestamp& timestamp::operator-=(timestamp const& right) {
   add_seconds(-right._secs);
-  add_useconds(-right._usecs);
+  add_useconds(-static_cast<long>(right._usecs));
   return (*this);
 }
 
@@ -226,6 +227,7 @@ void timestamp::add_useconds(long usecs) {
       us += 1000000;
     }
   }
+  _usecs = us;
   _transfer(&_secs, &_usecs);
   return ;
 }
@@ -251,7 +253,7 @@ timestamp timestamp::now() throw () {
 
   // Get current time as FILETIME.
   FILETIME ft_now;
-  GetSystemTimeAsFileTime(&ft);
+  GetSystemTimeAsFileTime(&ft_now);
 
   // Move times to 64-bit integers.
   ULARGE_INTEGER large_epoch;
@@ -260,7 +262,7 @@ timestamp timestamp::now() throw () {
   large_epoch.HighPart = ft_epoch.dwHighDateTime;
   large_now.LowPart = ft_now.dwLowDateTime;
   large_now.HighPart = ft_now.dwHighDateTime;
-  large_now.QuadPart -= ft_epoch.QuadPart;
+  large_now.QuadPart -= large_epoch.QuadPart;
   // Time is now expressed in units of 100ns since Unix Epoch.
   return (timestamp(
             large_now.QuadPart / (10 * 1000000),
