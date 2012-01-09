@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -22,15 +22,30 @@
 set(SRC_DIR "${SRC_DIR}/logging")
 set(INC_DIR "${INC_DIR}/logging")
 
+# Platform-specific files.
+if (WIN32)
+  set(SPECIFIC_SOURCES
+  )
+  set(SPECIFIC_HEADERS
+  )
+else ()
+  set(SPECIFIC_SOURCES
+    "${SRC_DIR}/syslogger.cc"
+  )
+  set(SPECIFIC_HEADERS
+    "${INC_DIR}/syslogger.hh"
+  )
+endif ()
+
 # Set sources.
 set(
   SOURCES
   ${SOURCES}
+  ${SPECIFIC_SOURCES}
   "${SRC_DIR}/backend.cc"
   "${SRC_DIR}/engine.cc"
   "${SRC_DIR}/file.cc"
   "${SRC_DIR}/logger.cc"
-  "${SRC_DIR}/syslogger.cc"
   "${SRC_DIR}/temp_logger.cc"
   "${SRC_DIR}/verbosity.cc"
   PARENT_SCOPE
@@ -40,11 +55,11 @@ set(
 set(
   HEADERS
   ${HEADERS}
+  ${SPECIFIC_HEADERS}
   "${INC_DIR}/backend.hh"
   "${INC_DIR}/engine.hh"
   "${INC_DIR}/file.hh"
   "${INC_DIR}/logger.hh"
-  "${INC_DIR}/syslogger.hh"
   "${INC_DIR}/temp_logger.hh"
   "${INC_DIR}/verbosity.hh"
   PARENT_SCOPE
