@@ -69,7 +69,7 @@ else ()
   set(LIB_RT "rt")
 endif ()
 
-if (NOT LIB_RT)
+if (NOT WIN32)
   check_library_exists(
     "${LIB_RT}"
     "clock_gettime"
