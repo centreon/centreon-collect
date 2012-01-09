@@ -1,20 +1,20 @@
 ##
 ## Copyright 2011-2012 Merethis
 ##
-## This file is part of Centreon Clib.
+## This file is part of Centreon Connector SSH.
 ##
-## Centreon Clib is free software: you can redistribute it
+## Centreon Connector SSH is free software: you can redistribute it
 ## and/or modify it under the terms of the GNU Affero General Public
 ## License as published by the Free Software Foundation, either version
 ## 3 of the License, or (at your option) any later version.
 ##
-## Centreon Clib is distributed in the hope that it will be
+## Centreon Connector SSH is distributed in the hope that it will be
 ## useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ## of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ## Affero General Public License for more details.
 ##
 ## You should have received a copy of the GNU Affero General Public
-## License along with Centreon Clib. If not, see
+## License along with Centreon Connector SSH. If not, see
 ## <http://www.gnu.org/licenses/>.
 ##
 
@@ -33,14 +33,14 @@ if (WITH_PACKAGE_SH
     OR WITH_PACKAGE_NSIS)
   # Default settings.
   set(CPACK_PACKAGE_VENDOR "Merethis")
-  set(CPACK_PACKAGE_VERSION_MAJOR "${CONNECTOR_ICMP_MAJOR}")
-  set(CPACK_PACKAGE_VERSION_MINOR "${CONNECTOR_ICMP_MINOR}")
-  set(CPACK_PACKAGE_VERSION_PATCH "${CONNECTOR_ICMP_PATCH}")
+  set(CPACK_PACKAGE_VERSION_MAJOR "${CONNECTOR_SSH_MAJOR}")
+  set(CPACK_PACKAGE_VERSION_MINOR "${CONNECTOR_SSH_MINOR}")
+  set(CPACK_PACKAGE_VERSION_PATCH "${CONNECTOR_SSH_PATCH}")
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "ICMP connector for Centreon Engine.")
+    "SSH connector for Centreon Engine.")
   set(CPACK_PACKAGE_FILE_NAME
-    "centreon-connector-icmp-${CONNECTOR_ICMP_VERSION}")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "centreon-connector-icmp")
+    "centreon-connector-ssh-${CONNECTOR_SSH_VERSION}")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "centreon-connector-ssh")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/license.txt")
   set(CPACK_PACKAGE_CONTACT
     "Matthieu Kermagoret <mkermagoret@merethis.com>")

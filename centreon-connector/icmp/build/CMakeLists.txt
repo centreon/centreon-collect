@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Connector ICMP.
 ##
@@ -21,90 +21,72 @@
 # Global options.
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Connector ICMP" C CXX)
+set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
+set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/connector/icmp")
+set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+include_directories("${PROJECT_SOURCE_DIR}/inc")
 
-# Version.
+# Project version.
 set(CONNECTOR_ICMP_MAJOR 0)
 set(CONNECTOR_ICMP_MINOR 1)
 set(CONNECTOR_ICMP_PATCH 0)
 set(CONNECTOR_ICMP_VERSION "${CONNECTOR_ICMP_MAJOR}.${CONNECTOR_ICMP_MINOR}.${CONNECTOR_ICMP_PATCH}")
 
-# Engine version needs.
-set(ENGINE_MAJOR 0)
-set(ENGINE_MINOR 1)
-
-# Include module to check existing libraries.
-include(CheckLibraryExists)
-
-# Include module CTest if necessary.
-if (WITH_TESTING)
-  include(CTest)
+# We will use pkg-config if available.
+include(FindPkgConfig)
+if (PKG_CONFIG_FOUND)
+  pkg_check_modules(CLIB QUIET "centreon-clib") # Will be used below.
 endif ()
 
-# Find centreon clib library.
-set(LIB_CENTREON_CLIB "centreon_clib")
-# check_library_exists(
-#   "${LIB_CENTREON_CLIB}"
-#   "clock_gettime"
-#   "${CMAKE_LIBRARY_PATH}"
-#   FIND_LIB_CENTREON_CLIB
-# )
-# if (NOT FIND_LIB_CENTREON_CLIB)
-#   message(FATAL_ERROR "Could not find centreon clib library.")
-# endif ()
-
-# Set directories.
-set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
-set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
-set(INC_DIR "${INCLUDE_DIR}/com/centreon/connector/icmp")
-set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-
-# Set path.
-set(PREFIX "${CMAKE_INSTALL_PREFIX}/centreon-connector")
-if (WITH_PREFIX)
-  set(PREFIX "${WITH_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${PREFIX}")
+# Find Centreon Clib's headers.
+if (WITH_CENTREON_CLIB_INCLUDE_DIR)
+  find_file(
+    CLIB_HEADER_FOUND
+    "com/centreon/clib/version.hh"
+    PATHS "${WITH_CENTREON_CLIB_INCLUDE_DIR}"
+    NO_DEFAULT_PATH)
+  if (NOT CLIB_HEADER_FOUND)
+    message(FATAL_ERROR "Could not find Centreon Clib's headers in ${WITH_CENTREON_CLIB_INCLUDE_DIR}.")
+  endif ()
+  include_directories("${WITH_CENTREON_CLIB_INCLUDE_DIR}")
+elseif (CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
+  if (CMAKE_CXX_FLAGS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLIB_CFLAGS}")
+  else ()
+    set(CMAKE_CXX_FLAGS "${CLIB_CFLAGS}")
+  endif ()
+else ()
+  find_path(CLIB_INCLUDE_DIR "com/centreon/clib/version.hh")
+  if (NOT CLIB_INCLUDE_DIR)
+    message(FATAL_ERROR "Could not find Centreon Clib's headers (try WITH_CENTREON_CLIB_INCLUDE_DIR).")
+  endif ()
+  include_directories("${CLIB_INCLUDE_DIR}")
 endif ()
 
-set(PREFIX_BIN "${PREFIX}/centreon_connector_icmp")
-if (WITH_PREFIX_BIN)
-  set(bindir "${WITH_PREFIX_BIN}")
+# Find Centreon Clib's library.
+if (WITH_CENTREON_CLIB_LIBRARIES)
+  set(CLIB_LIBRARIES "${WITH_CENTREON_CLIB_LIBRARIES}")
+elseif (WITH_CENTREON_CLIB_LIBRARY_DIR)
+  find_library(
+    CLIB_LIBRARIES
+    "centreon_clib"
+    PATHS "${WITH_CENTREON_CLIB_LIBRARY_DIR}"
+    NO_DEFAULT_PATH)
+  if (NOT CLIB_LIBRARIES)
+    message(FATAL_ERROR "Could not find Centreon Clib's library in ${WITH_CENTREON_CLIB_LIBRARY_DIR}.")
+  endif ()
+elseif (CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
+  set(CLIB_LIBRARIES "${CLIB_LDFLAGS}")
+else ()
+  find_library(CLIB_LIBRARIES "centreon_clib")
+  if (NOT CLIB_LIBRARIES)
+    message(FATAL_ERROR "Could not find Centreon Clib's library (try WITH_CENTREON_CLIB_LIBRARY_DIR or WITH_CENTREON_CLIB_LIBRARIES).")
+  endif ()
 endif ()
-
-set(clib_libdir "${CMAKE_INSTALL_PREFIX}/centreon-clib/lib")
-if (WITH_CLIB_LIB_DIR)
-  set(clib_libdir "${WITH_CLIB_LIB_DIR}")
-endif ()
-
-set(clib_incdir "${CMAKE_INSTALL_PREFIX}/centreon-clib/include")
-if (WITH_CLIB_INCLUDE_DIR)
-  set(clib_incdir "${WITH_CLIB_INCLUDE_DIR}")
-endif ()
-
-# Set options.
-set(UNIT_TEST "No")
-if (WITH_TESTING)
-  set(UNIT_TEST "Yes")
-endif ()
-
-set(DEB_PACKAGE "No")
-if (CPACK_BINARY_DEB)
-  set(DEB_PACKAGE "Yes")
-endif ()
-
-set(RPM_PACKAGE "No")
-if (CPACK_BINARY_RPM)
-  set(RPM_PACKAGE "Yes")
-endif ()
-
-# Include directories.
-include_directories("${INCLUDE_DIR}")
-include_directories("${clib_incdir}")
-
-# Link directories.
-link_directories("${clib_libdir}")
 
 # Add subdirectories.
 if (WITH_TESTING)
+  include(CTest)
   add_subdirectory("test")
 endif ()
 
@@ -114,11 +96,10 @@ configure_file(
   "${INC_DIR}/version.hh"
 )
 
-# Create project.
-add_executable(
-  "centreon_connector_icmp"
-
-# Sources.
+# ICMP connector library.
+set(CONNECTORLIB "centreonconnectoricmp")
+add_library("${CONNECTORLIB}"
+  # Sources.
   "${SRC_DIR}/check.cc"
   "${SRC_DIR}/check_dispatch.cc"
   "${SRC_DIR}/check_observer.cc"
@@ -130,15 +111,13 @@ add_executable(
   "${SRC_DIR}/icmp_info.cc"
   "${SRC_DIR}/icmp_socket.cc"
   "${SRC_DIR}/interrupt.cc"
-  "${SRC_DIR}/main.cc"
   "${SRC_DIR}/packet.cc"
   "${SRC_DIR}/packet_dispatch.cc"
   "${SRC_DIR}/packet_observer.cc"
   "${SRC_DIR}/request.cc"
   "${SRC_DIR}/result.cc"
   "${SRC_DIR}/version.cc"
-
-# Headers.
+  # Headers.
   "${INC_DIR}/check.hh"
   "${INC_DIR}/check_dispatch.hh"
   "${INC_DIR}/check_observer.hh"
@@ -159,15 +138,32 @@ add_executable(
   "${INC_DIR}/version.hh"
 )
 target_link_libraries(
-  "centreon_connector_icmp"
-  "${LIB_CENTREON_CLIB}"
+  "${CONNECTORLIB}"
+  ${CLIB_LIBRARIES}
 )
+
+# ICMP connector.
+set(CONNECTOR "centreon_connector_icmp")
+add_executable("${CONNECTOR}"
+  # Sources.
+  "${SRC_DIR}/main.cc"
+)
+target_link_libraries("${CONNECTOR}" ${CONNECTORLIB})
+
+# Installation path.
+if (WITH_PREFIX)
+  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
+endif ()
+if (WITH_PREFIX_BINARY)
+  set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
+else ()
+  set(PREFIX_BINARY "bin")
+endif ()
 
 # Install project.
 install(
-  TARGETS "centreon_connector_icmp"
-  DESTINATION "${PREFIX_BIN}"
-  COMPONENT "runtime"
+  TARGETS "${CONNECTOR}"
+  RUNTIME DESTINATION "${PREFIX_BINARY}"
 )
 
 # Include build package.
@@ -178,18 +174,22 @@ message(STATUS "")
 message(STATUS "Configuration Summary")
 message(STATUS "---------------------")
 message(STATUS "")
-message(STATUS "  System                        ${CMAKE_SYSTEM_NAME}")
+message(STATUS "  Project")
+message(STATUS "    - Name                      Centreon Connector ICMP")
+message(STATUS "    - Version                   ${CONNECTOR_ICMP_VERSION}")
+message(STATUS "")
+message(STATUS "  System")
+message(STATUS "    - Name                      ${CMAKE_SYSTEM_NAME}")
 message(STATUS "    - Version                   ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "    - Processor                 ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "")
-message(STATUS "  Project                       ${PROJECT_NAME}")
-message(STATUS "    - Version                   ${CONNECTOR_ICMP_VERSION}")
+message(STATUS "  Build")
+message(STATUS "    - Compiler                  ${CMAKE_CXX_COMPILER}")
 message(STATUS "    - Extra compilation flags   ${CMAKE_CXX_FLAGS}")
-message(STATUS "    - Build unit tests          ${UNIT_TEST}")
+message(STATUS "    - Build unit tests          ${BUILD_UNIT_TESTS}")
 message(STATUS "")
-message(STATUS "  Installation")
-message(STATUS "    - Prefix                    ${PREFIX}")
-message(STATUS "    - Binary directory          ${PREFIX_BIN}")
-message(STATUS "    - Deb package               ${DEB_PACKAGE}")
-message(STATUS "    - RPM package               ${RPM_PACKAGE}")
+message(STATUS "  Install")
+message(STATUS "    - Prefix                    ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "    - Binary directory          ${PREFIX_BINARY}")
+message(STATUS "    - Package                   ${PACKAGE_LIST}")
 message(STATUS "")
