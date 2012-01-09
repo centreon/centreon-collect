@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -21,56 +21,19 @@
 # Set directories.
 set(TEST_DIR "${TEST_DIR}/io")
 
-# standard_error_close
-set(TEST_NAME "standard_error_close")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+# file_stream tests.
+#   Default constructor.
+set(TEST_NAME "io_file_stream_ctor_default")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_stream/ctor_default.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_error_read
-set(TEST_NAME "standard_error_read")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#   Write.
+set(TEST_NAME "io_file_stream_write")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_stream/write.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_error_write
-set(TEST_NAME "standard_error_write")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_output_close
-set(TEST_NAME "standard_output_close")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_output_read
-set(TEST_NAME "standard_output_read")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_output_write
-set(TEST_NAME "standard_output_write")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_input_close
-set(TEST_NAME "standard_input_close")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_input_read
-set(TEST_NAME "standard_input_read")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# standard_input_write
-set(TEST_NAME "standard_input_write")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#   Read.
+set(TEST_NAME "io_file_stream_read")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_stream/read.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -26,9 +26,7 @@ set(INC_DIR "${INC_DIR}/io")
 set(
   SOURCES
   ${SOURCES}
-  "${SRC_DIR}/standard_error.cc"
-  "${SRC_DIR}/standard_input.cc"
-  "${SRC_DIR}/standard_output.cc"
+  "${SRC_DIR}/file_stream.cc"
   PARENT_SCOPE
 )
 
@@ -36,8 +34,6 @@ set(
 set(
   HEADERS
   ${HEADERS}
-  "${INC_DIR}/standard_error.hh"
-  "${INC_DIR}/standard_input.hh"
-  "${INC_DIR}/standard_output.hh"
+  "${INC_DIR}/file_stream.hh"
   PARENT_SCOPE
 )

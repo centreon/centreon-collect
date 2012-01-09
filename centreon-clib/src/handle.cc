@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -22,62 +22,39 @@
 
 using namespace com::centreon;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
  *  Default constructor.
- *
- *  @param[in] internal_handle  Set the internal handle.
  */
-handle::handle(native_handle internal_handle)
-  : _internal_handle(internal_handle) {
-
-}
+handle::handle() {}
 
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
 handle::handle(handle const& right) {
-  _internal_copy(right);
+  (void)right;
 }
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
-handle::~handle() throw () {
-
-}
+handle::~handle() throw () {}
 
 /**
- *  Default copy operator.
+ *  Assignment operator.
  *
  *  @param[in] right  The object to copy.
  *
  *  @return This object.
  */
 handle& handle::operator=(handle const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Get the internal handle.
- *
- *  @return The internal handle.
- */
-native_handle handle::get_internal_handle() const throw () {
-  return (_internal_handle);
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-handle& handle::_internal_copy(handle const& right) {
-  if (this != &right) {
-    _internal_handle = right._internal_handle;
-  }
+  (void)right;
   return (*this);
 }
