@@ -219,7 +219,7 @@ void session::connect() {
   _socket.set_native_handle(mysocket);
 
   // Register with multiplexer.
-  multiplexer::instance().handle_manager::add(&_socket, this);
+  multiplexer::instance().handle_manager::add(&_socket, this, true);
 
   // Launch the connection process.
   logging::debug(logging::medium)
@@ -525,7 +525,7 @@ void session::_startup() {
   // Exchange banners, keys, setup crypto, compression, ...
   int retval(libssh2_session_startup(
                _session,
-               _socket.get_internal_handle()));
+               _socket.get_native_handle()));
   if (retval) {
     if (retval != LIBSSH2_ERROR_EAGAIN) { // Fatal failure.
       char* msg;
