@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -38,6 +38,8 @@ public:
   buffer_handle& operator=(buffer_handle const& bh);
   void           close();
   bool           empty() const;
+  com::centreon::native_handle
+                 get_native_handle();
   unsigned long  read(void* data, unsigned long size);
   unsigned long  write(void const* data, unsigned long size);
 
