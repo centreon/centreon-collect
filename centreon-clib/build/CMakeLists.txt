@@ -62,7 +62,8 @@ endif ()
 set(LIB_THREAD "${CMAKE_THREAD_LIBS_INIT}")
 
 # Find real time library.
-if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD"
+    OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
   set(LIB_RT "")
 else ()
   set(LIB_RT "rt")
