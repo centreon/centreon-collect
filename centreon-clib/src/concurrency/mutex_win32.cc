@@ -60,7 +60,7 @@ void mutex::lock() {
  *  @return true if the mutex was successfully acquired.
  */
 bool mutex::trylock() {
-  return (TryEnterCriticalSection(&_csection));
+  return (static_cast<bool>(TryEnterCriticalSection(&_csection)));
 }
 
 /**

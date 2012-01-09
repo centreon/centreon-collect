@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -23,19 +23,21 @@
 
 using namespace com::centreon::logging;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
  *  Default constructor.
  */
-backend::backend() {
-
-}
+backend::backend() {}
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
-backend::~backend() throw () {
-
-}
+backend::~backend() throw () {}
 
 /**
  *  Log messages.
@@ -43,5 +45,6 @@ backend::~backend() throw () {
  *  @param[in] msg  The message to log.
  */
 void backend::log(char const* msg) throw () {
-  log(msg, strlen(msg));
+  log(msg, static_cast<unsigned int>(strlen(msg)));
+  return ;
 }

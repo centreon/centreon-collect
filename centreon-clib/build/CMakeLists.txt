@@ -46,6 +46,13 @@ if (WITH_TESTING)
 endif ()
 
 
+# Disable some unnecessary warnings on Windows by using secure
+# overloads.
+if (WIN32)
+  add_definitions(-D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1)
+endif ()
+
+
 # Find pthreads.
 if (WIN32)
   include(FindThreads)

@@ -136,7 +136,7 @@ unsigned long file_stream::read(void* data, unsigned long size) {
       throw (basic_error() << "could not read from file stream: "
              << msg);
   }
-  return (rb);
+  return (static_cast<unsigned long>(rb));
 }
 
 /**
@@ -157,7 +157,7 @@ unsigned long file_stream::write(void const* data, unsigned long size) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not write to file stream: " << msg);
   }
-  return (wb);
+  return (static_cast<unsigned long>(wb));
 }
 
 /**************************************

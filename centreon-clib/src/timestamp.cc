@@ -227,7 +227,7 @@ void timestamp::add_useconds(long usecs) {
       us += 1000000;
     }
   }
-  _usecs = us;
+  _usecs = static_cast<unsigned int>(us);
   _transfer(&_secs, &_usecs);
   return ;
 }
