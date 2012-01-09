@@ -77,9 +77,9 @@ com::centreon::native_handle file_stream::get_native_handle() {
     retval = native_handle_null;
 #ifdef _WIN32
   else {
-    HANDLE h(_get_osfhandle(_fileno(_stream)));
-    if ((native_handle_null == h)
-        || (INVALID_HANDLE_VALUE == h)) {
+    retval = (HANDLE)_get_osfhandle(_fileno(_stream));
+    if ((native_handle_null == retval)
+        || (INVALID_HANDLE_VALUE == retval)) {
       char const* msg(strerror(errno));
       throw (basic_error() << "could not get native handle from "
              "file stream: " << msg);
