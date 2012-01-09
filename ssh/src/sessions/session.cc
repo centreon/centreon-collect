@@ -525,7 +525,7 @@ void session::_startup() {
   // Exchange banners, keys, setup crypto, compression, ...
   int retval(libssh2_session_startup(
                _session,
-               _socket.get_internal_handle()));
+               _socket.get_native_handle()));
   if (retval) {
     if (retval != LIBSSH2_ERROR_EAGAIN) { // Fatal failure.
       char* msg;

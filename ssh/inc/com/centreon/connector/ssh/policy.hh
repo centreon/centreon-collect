@@ -28,8 +28,7 @@
 #  include "com/centreon/connector/ssh/orders/parser.hh"
 #  include "com/centreon/connector/ssh/reporter.hh"
 #  include "com/centreon/connector/ssh/sessions/credentials.hh"
-#  include "com/centreon/io/standard_input.hh"
-#  include "com/centreon/io/standard_output.hh"
+#  include "com/centreon/io/file_stream.hh"
 
 CCCS_BEGIN()
 
@@ -77,8 +76,8 @@ private:
   reporter            _reporter;
   std::map<sessions::credentials, sessions::session*>
                       _sessions;
-  io::standard_input  _sin;
-  io::standard_output _sout;
+  io::file_stream     _sin;
+  io::file_stream     _sout;
 };
 
 CCCS_END()
