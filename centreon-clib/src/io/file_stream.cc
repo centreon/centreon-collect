@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
+#  include <io.h>
 #  include <windows.h>
 #endif // Windows.
 #include "com/centreon/exceptions/basic.hh"
@@ -71,7 +72,7 @@ void file_stream::close() {
  *  @return Native handle.
  */
 com::centreon::native_handle file_stream::get_native_handle() {
-  int retval;
+  native_handle retval;
   if (!_stream)
     retval = native_handle_null;
 #ifdef _WIN32
