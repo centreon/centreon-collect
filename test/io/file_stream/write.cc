@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,44 +18,35 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
+#include <stdio.h>
+#include <string.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/io/standard_error.hh"
+#include "com/centreon/io/file_stream.hh"
 
-using namespace com::centreon::io;
-
-/**
- *  Check if close works correctly.
- *
- *  @return True on success, otherwise false.
- */
-static bool close_standard_error() {
-  try {
-    standard_error err;
-    char buf[1024];
-    err.close();
-    err.write(buf, sizeof(buf));
-  }
-  catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
+using namespace com::centreon;
 
 /**
- *  Check the standard error close.
+ *  Check that file_stream can be written to.
  *
  *  @return 0 on success.
  */
 int main() {
+  // Generate temporary file name.
+  char const* tmp_file_name(tmpnam(NULL));
+
+  // Open temporary file.
+  io::file_stream tmp_file_stream;
+  tmp_file_stream.open(tmp_file_name, "w");
+
+  // NULL write.
   try {
-    if (!close_standard_error())
-      throw (basic_error() << "close on the standard error failed");
+    tmp_file_stream.write(NULL, 1);
   }
-  catch (std::exception const& e) {
-    std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+  catch (exceptions::basic const& e) {
+    (void)e;
   }
-  return (0);
+
+  // Real write.
+  char const* data("some data");
+  return (tmp_file_stream.write(data, strlen(data)) == 0);
 }

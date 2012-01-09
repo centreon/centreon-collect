@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -44,20 +44,14 @@ native_handle const native_handle_null = -1;
  */
 class                   handle {
 public:
-                        handle(
-                          native_handle handl = native_handle_null);
+                        handle();
                         handle(handle const& right);
   virtual               ~handle() throw ();
   handle&               operator=(handle const& right);
   virtual void          close() = 0;
+  virtual native_handle get_native_handle() = 0;
   virtual unsigned long read(void* data, unsigned long size) = 0;
   virtual unsigned long write(void const* data, unsigned long size) = 0;
-  native_handle         get_internal_handle() const throw ();
-
-protected:
-  handle&               _internal_copy(handle const& right);
-
-  native_handle         _internal_handle;
 };
 
 CC_END()

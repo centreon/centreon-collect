@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -19,31 +19,12 @@
 */
 
 #include <iostream>
+#include <stdio.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/handle_manager.hh"
+#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
-
-/**
- *  @class standard
- *  @brief litle implementation of handle to test the handle manager.
- */
-class           standard : public handle {
-public:
-                standard() : handle(){}
-                ~standard() throw () {}
-  void          close() {}
-  unsigned long read(void* data, unsigned long size) {
-    (void)data;
-    (void)size;
-    return (0);
-  }
-  unsigned long write(void const* data, unsigned long size) {
-    (void)data;
-    (void)size;
-    return (0);
-  }
-};
 
 /**
  *  @class listener
@@ -83,8 +64,8 @@ static bool null_handle() {
 static bool null_listener() {
   try {
     handle_manager hm;
-    standard s;
-    hm.add(&s, NULL);
+    io::file_stream fs;
+    hm.add(&fs, NULL);
   }
   catch (std::exception const& e) {
     (void)e;
@@ -102,9 +83,9 @@ static bool basic_add() {
   try {
     handle_manager hm;
 
-    standard s;
+    io::file_stream fs(stdin);
     listener l;
-    hm.add(&s, &l);
+    hm.add(&fs, &l);
   }
   catch (std::exception const& e) {
     (void)e;
@@ -123,10 +104,10 @@ static bool double_add() {
   try {
     handle_manager hm;
 
-    standard s;
+    io::file_stream fs(stdin);
     listener l;
-    hm.add(&s, &l);
-    hm.add(&s, &l);
+    hm.add(&fs, &l);
+    hm.add(&fs, &l);
   }
   catch (std::exception const& e) {
     (void)e;

@@ -67,17 +67,22 @@ void handle_manager::add(
                        handle_listener* hl,
                        bool is_runnable) {
   if (!h)
-    throw (basic_error() << "try to add invalid handle "        \
-           "in the handle manager:null pointer");
+    throw (basic_error()
+           << "try to add null handle in the handle manager");
   if (!hl)
-    throw (basic_error() << "try to add invalid handle "        \
-           "listener in the handle manager:nullpointer");
+    throw (basic_error()
+           << "try to add null listener in the handle manager");
+
+  native_handle nh(h->get_native_handle());
+  if (nh == native_handle_null)
+    throw (basic_error()
+           << "try to add handle with invalid native handle "
+           << "in the handle manager");
 
   // Check if the handle was already checked by the handle manager.
-  if (_handles.find(h->get_internal_handle()) == _handles.end()) {
+  if (_handles.find(nh) == _handles.end()) {
     std::pair<native_handle, internal_task*>
-      item(h->get_internal_handle(),
-           new internal_task(h, hl, is_runnable));
+      item(nh, new internal_task(h, hl, is_runnable));
     _handles.insert(item);
     _should_create_fds = true;
   }
@@ -155,7 +160,7 @@ bool handle_manager::remove(handle* h) {
     return (false);
 
   std::map<native_handle, internal_task*>::iterator
-    it(_handles.find(h->get_internal_handle()));
+    it(_handles.find(h->get_native_handle()));
   if (it == _handles.end())
     return (false);
   if (_task_manager)

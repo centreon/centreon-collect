@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -20,36 +20,14 @@
 
 #include <iostream>
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/handle_manager.hh"
+#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
-
-/**
- *  @class standard
- *  @brief litle implementation of handle to test the handle manager.
- */
-class           file_descriptor : public handle {
-public:
-                file_descriptor(int fd)
-                  : handle(fd) {}
-                ~file_descriptor() throw () {}
-  void          close() {}
-  unsigned long read(void* data, unsigned long size) {
-    int ret(::read(_internal_handle, data, size));
-    if (ret < 0)
-      throw (basic_error() << "read failed:" << strerror(errno));
-    return (static_cast<unsigned long>(ret));
-  }
-  unsigned long write(void const* data, unsigned long size) {
-    int ret(::write(_internal_handle, data, size));
-    if (ret < 0)
-      throw (basic_error() << "write failed:" << strerror(errno));
-    return (static_cast<unsigned long>(ret));
-  }
-};
 
 /**
  *  @class listener
@@ -125,24 +103,9 @@ static bool empty_handle_manager() {
 static bool basic_multiplex_write() {
   task_manager tm;
   handle_manager hm(&tm);
-  file_descriptor fd(1);
-  listener l(fd, false, true);
-  hm.add(&fd, &l);
-  hm.multiplex();
-  return (l.is_call());
-}
-
-/**
- *  Check if error is calling.
- *
- *  @return True on success, otherwise false.
- */
-static bool basic_multiplex_error() {
-  task_manager tm;
-  handle_manager hm(&tm);
-  file_descriptor fd(42);
-  listener l(fd, true, true);
-  hm.add(&fd, &l);
+  io::file_stream fs(stdout);
+  listener l(fs, false, true);
+  hm.add(&fs, &l);
   hm.multiplex();
   return (l.is_call());
 }
@@ -156,9 +119,9 @@ static bool basic_multiplex_close() {
   ::close(0);
   task_manager tm;
   handle_manager hm(&tm);
-  file_descriptor fd(0);
-  listener l(fd, true, true);
-  hm.add(&fd, &l);
+  io::file_stream fs(stdin);
+  listener l(fs, true, true);
+  hm.add(&fs, &l);
   hm.multiplex();
   return (l.is_call());
 }
@@ -178,8 +141,6 @@ int main() {
              "try to multiplex nothing");
     if (!basic_multiplex_write())
       throw (basic_error() << "multiplex one handle to write failed");
-    if (!basic_multiplex_error())
-      throw (basic_error() << "multiplex one handle to error failed");
     if (!basic_multiplex_close())
       throw (basic_error() << "multiplex one handle to close failed");
   }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,43 +18,16 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
-#include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/io/standard_output.hh"
+#include "com/centreon/io/file_stream.hh"
 
-using namespace com::centreon::io;
+using namespace com::centreon;
 
 /**
- *  Check if read failed.
- *
- *  @return True on success, otherwise false.
- */
-static bool standard_output_read() {
-  try {
-    char buf[1024];
-    standard_output out;
-    out.read(buf, sizeof(buf));
-  }
-  catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
-
-/**
- *  Check the standard output read.
+ *  Check that file_stream is properly default constructed.
  *
  *  @return 0 on success.
  */
 int main() {
-  try {
-    if (!standard_output_read())
-      throw (basic_error() << "read failed on the standard output");
-  }
-  catch (std::exception const& e) {
-    std::cerr << "error: " << e.what() << std::endl;
-    return (1);
-  }
-  return (0);
+  io::file_stream fs;
+  return (fs.get_native_handle() != native_handle_null);
 }

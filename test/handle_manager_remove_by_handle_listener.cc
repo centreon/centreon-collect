@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -19,34 +19,12 @@
 */
 
 #include <iostream>
+#include <stdio.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/handle_manager.hh"
+#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
-
-/**
- *  @class standard
- *  @brief litle implementation of handle to test the handle manager.
- */
-class           standard : public handle {
-public:
-                standard() : handle() {
-                  static int i(0);
-                  _internal_handle = ++i;
-                }
-                ~standard() throw () {}
-  void          close() {}
-  unsigned long read(void* data, unsigned long size) {
-    (void)data;
-    (void)size;
-    return (0);
-  }
-  unsigned long write(void const* data, unsigned long size) {
-    (void)data;
-    (void)size;
-    return (0);
-  }
-};
 
 /**
  *  @class listener
@@ -75,21 +53,19 @@ int main() {
     if (hm.remove(&l))
       throw (basic_error() << "remove invalid listener");
 
-    standard s1;
-    hm.add(&s1, &l);
+    io::file_stream fs1(stdin);
+    hm.add(&fs1, &l);
     if (hm.remove(&l) != 1)
       throw (basic_error() << "remove one listener failed");
 
-    hm.add(&s1, &l);
-    standard s2;
-    hm.add(&s2, &l);
-    standard s3;
-    hm.add(&s3, &l);
-    standard s4;
-    hm.add(&s4, &l);
+    hm.add(&fs1, &l);
+    io::file_stream fs2(stdout);
+    hm.add(&fs2, &l);
+    io::file_stream fs3(stderr);
+    hm.add(&fs3, &l);
 
-    if (hm.remove(&l) != 4)
-      throw (basic_error() << "remove four listener failed");
+    if (hm.remove(&l) != 3)
+      throw (basic_error() << "remove three listener failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,49 +18,48 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
 #include <stdio.h>
+#include <string.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
 
 /**
- *  @class listener
- *  @brief litle implementation of handle listener to test the
- *         handle manager.
- */
-class     listener : public handle_listener {
-public:
-          listener() {}
-          ~listener() throw () {}
-  void    error(handle& h) { (void)h; }
-};
-
-/**
- *  Check the handle manager remove by handle.
+ *  Check that file_stream can be read from.
  *
  *  @return 0 on success.
  */
 int main() {
-  try {
-    handle_manager hm;
-    if (hm.remove(static_cast<handle*>(NULL)))
-      throw (basic_error() << "remove null pointer");
+  // Generate temporary file name.
+  char const* tmp_file_name(tmpnam(NULL));
 
-    io::file_stream fs(stdin);
-    if (hm.remove(&fs))
-      throw (basic_error() << "remove invalid handle");
+  // Open temporary file.
+  io::file_stream tmp_file_stream;
+  tmp_file_stream.open(tmp_file_name, "w");
 
-    listener l;
-    hm.add(&fs, &l);
-    if (!hm.remove(&fs))
-      throw (basic_error() << "remove failed");
+  // Return value.
+  int retval(0);
+
+  // Write.
+  char const* data("some data");
+  if (tmp_file_stream.write(data, strlen(data)) == 0)
+    retval = 1;
+  else {
+    // NULL-read.
+    try {
+      tmp_file_stream.read(NULL, 1);
+      retval = 1;
+    }
+    catch (exceptions::basic const& e) {
+      (void)e;
+    }
+    // Real read.
+    char buffer[1024];
+    tmp_file_stream.close();
+    tmp_file_stream.open(tmp_file_name, "r");
+    retval |= (tmp_file_stream.read(buffer, sizeof(buffer)) == 0);
   }
-  catch (std::exception const& e) {
-    std::cerr << "error: " << e.what() << std::endl;
-    return (1);
-  }
-  return (0);
+
+  return (retval);
 }
