@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <memory>
+#include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/mutex.hh"
@@ -45,7 +46,7 @@ extern volatile bool should_exit;
 /**
  *  Default constructor.
  */
-policy::policy() {
+policy::policy() : _sin(stdin), _sout(stdout) {
   // Send information back.
   multiplexer::instance().handle_manager::add(&_sout, &_reporter);
 

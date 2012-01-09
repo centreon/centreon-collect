@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -72,6 +72,15 @@ void buffer_handle::close() {
  */
 bool buffer_handle::empty() const {
   return (_buffer.empty());
+}
+
+/**
+ *  Get the native handle.
+ *
+ *  @return Invalid handle.
+ */
+native_handle buffer_handle::get_native_handle() {
+  return (native_handle_null);
 }
 
 /**

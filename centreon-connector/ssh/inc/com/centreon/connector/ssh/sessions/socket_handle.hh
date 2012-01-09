@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -35,16 +35,20 @@ namespace          sessions {
    */
   class            socket_handle : public com::centreon::handle {
   public:
-                   socket_handle(native_handle internal_handle = -1);
+                   socket_handle(
+                     native_handle handl = native_handle_null);
                    ~socket_handle() throw ();
     void           close();
+    native_handle  get_native_handle();
     unsigned long  read(void* data, unsigned long size);
-    void           set_native_handle(native_handle internal_handle);
+    void           set_native_handle(native_handle handl);
     unsigned long  write(void const* data, unsigned long size);
 
   private:
                    socket_handle(socket_handle const& sh);
     socket_handle& operator=(socket_handle const& sh);
+
+    native_handle  _handl;
   };
 }
 
