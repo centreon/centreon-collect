@@ -134,7 +134,7 @@ bool condvar::_wait(mutex* mutx, DWORD timeout) {
   bool retval(static_cast<bool>(SleepConditionVariableCS(
                                   &_cond,
                                   &mutx->_csection,
-                                  timeout));
+                                  timeout)));
   if (!retval) {
     DWORD errcode(GetLastError());
     if (errcode != WAIT_TIMEOUT)
