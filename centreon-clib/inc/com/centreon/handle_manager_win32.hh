@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,14 +18,14 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_HANDLE_MANAGER_POSIX_HH
-#  define CC_HANDLE_MANAGER_POSIX_HH
+#ifndef CC_HANDLE_MANAGER_WIN32_HH
+#  define CC_HANDLE_MANAGER_WIN32_HH
 
 #  include <map>
-#  include <poll.h>
 #  include <utility>
-#  include "com/centreon/namespace.hh"
+#  include <windows.h>
 #  include "com/centreon/handle.hh"
+#  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
@@ -35,7 +35,7 @@ class             handle_listener;
 class             task_manager;
 
 /**
- *  @class handle_manager handle_manager_posix.hh "com/centreon/handle_manager.hh"
+ *  @class handle_manager handle_manager_win32.hh "com/centreon/handle_manager.hh"
  *  @brief Multiplex I/O from multiple handles.
  *
  *  Listen handles and notifies listeners accordingly.
@@ -43,9 +43,9 @@ class             task_manager;
 class             handle_manager {
 public:
                   handle_manager(task_manager* tm = NULL);
-                  handle_manager(handle_manager const& right);
+                  handle_manager(handle_manager const& hm);
   virtual         ~handle_manager() throw ();
-  handle_manager& operator=(handle_manager const& right);
+  handle_manager& operator=(handle_manager const& hm);
   void            add(
                     handle* h,
                     handle_listener* hl,
@@ -57,13 +57,9 @@ public:
 
 private:
   void            _internal_copy(handle_manager const& right);
-  static int      _poll(
-                    pollfd *fds,
-                    nfds_t nfds,
-                    int timeout) throw ();
   void            _setup_array();
 
-  pollfd*         _array;
+  HANDLE*         _array;
   std::map<native_handle, handle_action*>
                   _handles;
   bool            _recreate_array;
@@ -72,4 +68,4 @@ private:
 
 CC_END()
 
-#endif // !CC_HANDLE_MANAGER_POSIX_HH
+#endif // !CC_HANDLE_MANAGER_WIN32_HH

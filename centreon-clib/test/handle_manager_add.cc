@@ -21,6 +21,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/handle_listener.hh"
 #include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
 
@@ -107,13 +108,17 @@ static bool double_add() {
     io::file_stream fs(stdin);
     listener l;
     hm.add(&fs, &l);
-    hm.add(&fs, &l);
+    try {
+      hm.add(&fs, &l);
+    }
+    catch (std::exception const& e) {
+      return (true);
+    }
   }
   catch (std::exception const& e) {
     (void)e;
-    return (false);
   }
-  return (true);
+  return (false);
 }
 
 /**
