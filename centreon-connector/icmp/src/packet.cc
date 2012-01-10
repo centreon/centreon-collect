@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -161,7 +161,7 @@ unsigned char packet::get_code() const throw () {
  */
 void const* packet::get_data() const throw () {
   ::icmp* pkt(reinterpret_cast<struct icmp*>(_buffer));
-  long long now(timestamp::now().to_usecond());
+  long long now(timestamp::now().to_useconds());
   memcpy(&pkt->icmp_data,
          &now,
          sizeof(long long));
@@ -410,15 +410,24 @@ logging::temp_logger connector::icmp::operator<<(
                                         logging::temp_logger log,
                                         packet const& right) {
   log << "packet (" << &right << ") {\n"
-      << "  address:        " << host::address_to_string(right.get_address()) << "\n"
-      << "  host id:        " << right.get_host_id() << "\n"
-      << "  id:             " << right.get_id() << "\n"
-      << "  type:           " << right.get_type() << "\n"
-      << "  code:           " << right.get_code() << "\n"
-      << "  sequence:       " << right.get_sequence() << "\n"
-      << "  recv timestamp: " << right.get_recv_time().to_usecond() << "\n"
-      << "  send timestamp: " << right.get_send_time().to_usecond() << "\n"
-      << "  size:           " << right.get_size() << "\n"
+      << "  address:        "
+      << host::address_to_string(right.get_address()) << "\n"
+      << "  host id:        "
+      << right.get_host_id() << "\n"
+      << "  id:             "
+      << right.get_id() << "\n"
+      << "  type:           "
+      << right.get_type() << "\n"
+      << "  code:           "
+      << right.get_code() << "\n"
+      << "  sequence:       "
+      << right.get_sequence() << "\n"
+      << "  recv timestamp: "
+      << right.get_recv_time().to_useconds() << "\n"
+      << "  send timestamp: "
+      << right.get_send_time().to_useconds() << "\n"
+      << "  size:           "
+      << right.get_size() << "\n"
       << "}";
   return (log);
 }

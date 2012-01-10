@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -36,11 +36,12 @@ using namespace com::centreon::connector::icmp;
  *  Default constructor.
  */
 icmp_socket::icmp_socket()
-  : handle(socket(PF_INET, SOCK_RAW, IPPROTO_ICMP)),
-    _address(0) {
-  if (_internal_handle == -1)
-    throw (basic_error() << "create icmp socket failed:"
-           << strerror(errno));
+  : handle(), _address(0) {
+  _internal_handle = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (_internal_handle == -1) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "create icmp socket failed: " << msg);
+  }
 }
 
 /**
@@ -92,6 +93,15 @@ unsigned int icmp_socket::get_address() const throw () {
 }
 
 /**
+ *  Get the native handle.
+ *
+ *  @return Native handle.
+ */
+com::centreon::native_handle icmp_socket::get_native_handle() {
+  return (_internal_handle);
+}
+
+/**
  *  Get the time to live value of packets.
  *
  *  @return The ttl value.
@@ -121,7 +131,7 @@ unsigned char icmp_socket::get_ttl() const {
  */
 unsigned long icmp_socket::read(void* data, unsigned long size) {
   if (!data)
-    throw (basic_error() << "read failed on icmp socket:" \
+    throw (basic_error() << "read failed on icmp socket: " \
            "invalid parameter (null pointer)");
 
   sockaddr_in addr;
@@ -137,13 +147,13 @@ unsigned long icmp_socket::read(void* data, unsigned long size) {
             &len_addr);
   } while (ret == -1 && errno == EINTR);
   if (ret < 0)
-    throw (basic_error() << "read failed on icmp socket:"
+    throw (basic_error() << "read failed on icmp socket: "
            << strerror(errno));
   _address = addr.sin_addr.s_addr;
   ip const* header_ip(reinterpret_cast<ip const*>(data));
   int header_size(header_ip->ip_hl << 2);
   if (ret < header_size + ICMP_MINLEN)
-    throw (basic_error() << "read failed on icmp socket:" \
+    throw (basic_error() << "read failed on icmp socket: " \
            "invalid packet header size");
   memmove(
     data,
@@ -174,7 +184,7 @@ void icmp_socket::set_ttl(unsigned char ttl) {
             &ttl,
             sizeof(ttl)));
   if (ret)
-    throw (basic_error() << "impossible to set ttl:"
+    throw (basic_error() << "unable to set ttl: "
            << strerror(errno));
 }
 
@@ -188,7 +198,7 @@ void icmp_socket::set_ttl(unsigned char ttl) {
  */
 unsigned long icmp_socket::write(void const* data, unsigned long size) {
   if (!data)
-    throw (basic_error() << "write failed on icmp socket:" \
+    throw (basic_error() << "write failed on icmp socket: " \
            "invalid parameter (null pointer)");
 
   sockaddr_in addr;
@@ -207,7 +217,7 @@ unsigned long icmp_socket::write(void const* data, unsigned long size) {
             sizeof(sockaddr));
   } while (ret == -1 && errno == EINTR);
   if (ret < 0)
-    throw (basic_error() << "write failed on icmp socket:"
+    throw (basic_error() << "write failed on icmp socket: "
            << strerror(errno));
   return (static_cast<unsigned long>(ret));
 }
@@ -224,7 +234,7 @@ icmp_socket& icmp_socket::_internal_copy(icmp_socket const& right) {
     _address = right._address;
     _internal_handle = dup(right._internal_handle);
     if (_internal_handle == -1)
-      throw (basic_error() << "icmp_socket copy failed:"
+      throw (basic_error() << "icmp_socket copy failed: "
              << strerror(errno));
   }
   return (*this);

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -149,7 +149,7 @@ void check_dispatch::_run() {
       if (next <= now)
         continue;
       else {
-        unsigned long timeout((next - now).to_msecond());
+        unsigned long timeout((next - now).to_mseconds());
         _cnd.wait(&_mtx, timeout);
       }
     }
@@ -333,7 +333,7 @@ void check_dispatch::_push_packet(icmp_info* info) {
   _pkt_dispatcher.push(*info->pkt);
 
   timestamp next_timeout(timestamp::now());
-  next_timeout.add_usecond(info->chk->get_max_packet_interval());
+  next_timeout.add_useconds(info->chk->get_max_packet_interval());
 
   _t_manager.add(
                new timeout(
@@ -385,7 +385,7 @@ void check_dispatch::_process_checks() {
       _push_packet(&info);
 
       timestamp next_timeout(timestamp::now());
-      next_timeout.add_usecond(chk->get_max_completion_time());
+      next_timeout.add_useconds(chk->get_max_completion_time());
       _t_manager.add(
                    new timeout(
                          this,
@@ -416,7 +416,7 @@ void check_dispatch::_process_receive() {
 
     host& hst(*it->second.hst);
     unsigned int elapsed_time
-      = (pkt.get_recv_time() - pkt.get_send_time()).to_usecond();
+      = (pkt.get_recv_time() - pkt.get_send_time()).to_useconds();
     if (pkt.get_type() == packet::icmp_echoreply) {
       hst.has_recv_packet(elapsed_time);
       logging::debug(logging::high) << "packet receive " << hst;

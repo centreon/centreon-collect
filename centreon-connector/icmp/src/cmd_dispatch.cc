@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -19,6 +19,7 @@
 */
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/connector/icmp/result.hh"
@@ -38,6 +39,8 @@ cmd_dispatch::cmd_dispatch(unsigned int max_concurrent_checks)
     check_observer(),
     _check_dispatcher(this),
     _current_execution(0),
+    _input(stdin),
+    _output(stdout),
     _quit(false),
     _t_manager(1),
     _h_manager(&_t_manager) {
