@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -18,6 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <stddef.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
 
 using namespace com::centreon::connector::ssh;
