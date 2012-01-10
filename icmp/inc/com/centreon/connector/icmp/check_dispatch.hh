@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -23,6 +23,7 @@
 
 #  include <list>
 #  include <string>
+#  include "com/centreon/concurrency/condvar.hh"
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/concurrency/thread.hh"
 #  include "com/centreon/connector/icmp/check.hh"
@@ -110,8 +111,7 @@ private:
   std::list<check*>    _checks_new;
   std::map<unsigned int, icmp_info>
                        _checks;
-  concurrency::wait_condition
-                       _cnd;
+  concurrency::condvar _cnd;
   unsigned int         _current_checks;
   unsigned int         _host_id;
   unsigned short       _id;

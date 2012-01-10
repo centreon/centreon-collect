@@ -1,20 +1,20 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
-** This file is part of Centreon Clib.
+** This file is part of Centreon Connector ICMP.
 **
-** Centreon Clib is free software: you can redistribute it
+** Centreon Connector ICMP is free software: you can redistribute it
 ** and/or modify it under the terms of the GNU Affero General Public
 ** License as published by the Free Software Foundation, either version
 ** 3 of the License, or (at your option) any later version.
 **
-** Centreon Clib is distributed in the hope that it will be
+** Centreon Connector ICMP is distributed in the hope that it will be
 ** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** Affero General Public License for more details.
 **
 ** You should have received a copy of the GNU Affero General Public
-** License along with Centreon Clib. If not, see
+** License along with Centreon Connector ICMP. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
@@ -44,10 +44,11 @@ public:
 private:
   void          close();
   void          error(handle& h);
+  native_handle get_native_handle();
   unsigned long read(void* data, unsigned long size);
   bool          want_read(handle& h);
   unsigned long write(void const* data, unsigned long size);
-  interrupt&    _internal_copy(interrupt const& right);
+  void          _internal_copy(interrupt const& right);
 
   int           _fd[2];
 };

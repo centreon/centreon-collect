@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -40,6 +40,7 @@ public:
                 ~icmp_socket() throw ();
   void          close();
   unsigned int  get_address() const throw ();
+  native_handle get_native_handle();
   unsigned char get_ttl() const;
   unsigned long read(void* data, unsigned long size);
   void          set_address(unsigned int address) throw ();
@@ -52,6 +53,7 @@ private:
   icmp_socket&  _internal_copy(icmp_socket const& right);
 
   unsigned int  _address;
+  native_handle _internal_handle;
 };
 
 CCC_ICMP_END()

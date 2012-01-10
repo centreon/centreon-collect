@@ -1,20 +1,20 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
-** This file is part of Centreon Clib.
+** This file is part of Centreon Connector ICMP.
 **
-** Centreon Clib is free software: you can redistribute it
+** Centreon Connector ICMP is free software: you can redistribute it
 ** and/or modify it under the terms of the GNU Affero General Public
 ** License as published by the Free Software Foundation, either version
 ** 3 of the License, or (at your option) any later version.
 **
-** Centreon Clib is distributed in the hope that it will be
+** Centreon Connector ICMP is distributed in the hope that it will be
 ** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** Affero General Public License for more details.
 **
 ** You should have received a copy of the GNU Affero General Public
-** License along with Centreon Clib. If not, see
+** License along with Centreon Connector ICMP. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
@@ -27,19 +27,24 @@
 using namespace com::centreon;
 using namespace com::centreon::connector::icmp;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
  *  Default constructor.
  */
-interrupt::interrupt()
-  : handle() {
-  if (pipe(_fd) == -1)
-    throw (basic_error() << "interrupt constructor failed:"
-           << strerror(errno));
-  _internal_handle = _fd[0];
+interrupt::interrupt() {
+  if (pipe(_fd) == -1) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "interrupt constructor failed: " << msg);
+  }
 }
 
 /**
- *  Default copy constructor.
+ *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
@@ -63,7 +68,8 @@ interrupt::~interrupt() throw () {
  *  @return This object.
  */
 interrupt& interrupt::operator=(interrupt const& right) {
-  return (_internal_copy(right));
+  _internal_copy(right);
+  return (*this);
 }
 
 /**
@@ -72,6 +78,12 @@ interrupt& interrupt::operator=(interrupt const& right) {
 void interrupt::wake() {
   write("\0", 1);
 }
+
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
 
 /**
  *  Close pipe.
@@ -90,6 +102,15 @@ void interrupt::error(handle& h) {
 }
 
 /**
+ *  Return the handle associated to this class.
+ *
+ *  @return Handle associated with this class.
+ */
+native_handle interrupt::get_native_handle() {
+  return (_fd[0]);
+}
+
+/**
  *  Read pipe data.
  *
  *  @param[out] data  The buffer to fill.
@@ -99,14 +120,14 @@ void interrupt::error(handle& h) {
  */
 unsigned long interrupt::read(void* data, unsigned long size) {
   if (!data)
-    throw (basic_error() << "read failed on interrupt:" \
+    throw (basic_error() << "read failed on interrupt: " \
            "invalid parameter (null pointer)");
   int ret;
   do {
-    ret = ::read(_internal_handle, data, size);
+    ret = ::read(_fd[0], data, size);
   } while (ret == -1 && errno == EINTR);
   if (ret < 0)
-    throw (basic_error() << "read failed on interrupt:"
+    throw (basic_error() << "read failed on interrupt: "
            << strerror(errno));
   return (static_cast<unsigned long>(ret));
 }
@@ -133,14 +154,14 @@ bool interrupt::want_read(handle& h) {
  */
 unsigned long interrupt::write(void const* data, unsigned long size) {
   if (!data)
-    throw (basic_error() << "write failed on interrupt:" \
+    throw (basic_error() << "write failed on interrupt: " \
            "invalid parameter (null pointer)");
   int ret;
   do {
     ret = ::write(_fd[1], data, size);
   } while (ret == -1 && errno == EINTR);
   if (ret < 0)
-    throw (basic_error() << "write failed on interrupt:"
+    throw (basic_error() << "write failed on interrupt: "
            << strerror(errno));
   return (static_cast<unsigned long>(ret));
 }
@@ -149,19 +170,16 @@ unsigned long interrupt::write(void const* data, unsigned long size) {
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
- *
- *  @return This object.
  */
-interrupt& interrupt::_internal_copy(interrupt const& right) {
+void interrupt::_internal_copy(interrupt const& right) {
   if (this != &right) {
     handle::operator=(right);
     close();
     for (unsigned int i(0); i < 2; ++i) {
-      if ((_fd[0] = dup(right._fd[0])) == -1)
-        throw (basic_error() << "interrupt copy failed:"
-               << strerror(errno));
+      if ((_fd[i] = dup(right._fd[i])) == -1) {
+        char const* msg(strerror(errno));
+        throw (basic_error() << "interrupt copy failed: " << msg);
+      }
     }
-    _internal_handle = _fd[0];
   }
-  return (*this);
 }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -30,8 +30,7 @@
 #  include "com/centreon/connector/icmp/interrupt.hh"
 #  include "com/centreon/connector/icmp/namespace.hh"
 #  include "com/centreon/connector/icmp/request.hh"
-#  include "com/centreon/io/standard_input.hh"
-#  include "com/centreon/io/standard_output.hh"
+#  include "com/centreon/io/file_stream.hh"
 #  include "com/centreon/handle_listener.hh"
 #  include "com/centreon/handle_manager.hh"
 #  include "com/centreon/task_manager.hh"
@@ -72,10 +71,10 @@ private:
   std::string            _buffer;
   check_dispatch         _check_dispatcher;
   unsigned int           _current_execution;
-  io::standard_input     _input;
+  io::file_stream        _input;
   interrupt              _interrupt;
   concurrency::mutex     _mtx;
-  io::standard_output    _output;
+  io::file_stream        _output;
   bool                   _quit;
   std::list<request>     _requests;
   std::list<std::string> _results;
