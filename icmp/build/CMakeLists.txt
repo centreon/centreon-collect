@@ -84,12 +84,6 @@ else ()
   endif ()
 endif ()
 
-# Add subdirectories.
-if (WITH_TESTING)
-  include(CTest)
-  add_subdirectory("test")
-endif ()
-
 # Generate version header.
 configure_file(
   "${INC_DIR}/version.hh.in"
@@ -148,7 +142,16 @@ add_executable("${CONNECTOR}"
   # Sources.
   "${SRC_DIR}/main.cc"
 )
-target_link_libraries("${CONNECTOR}" ${CONNECTORLIB})
+target_link_libraries(
+  "${CONNECTOR}"
+  ${CONNECTORLIB}
+)
+
+# Add subdirectories.
+if (WITH_TESTING)
+  include(CTest)
+  add_subdirectory("test")
+endif ()
 
 # Installation path.
 if (WITH_PREFIX)

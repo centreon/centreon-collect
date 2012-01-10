@@ -74,7 +74,7 @@ packet::packet()
  *  @param[in] time  Time when the packet was receive.
  */
 packet::packet(
-          unsigned char* data,
+          unsigned char const* data,
           unsigned short size,
           timestamp const& time)
   : _address(0),
@@ -251,7 +251,7 @@ unsigned short packet::get_sequence() const throw () {
  *
  *  @return The data size.
  */
-unsigned int packet::get_size() const throw () {
+unsigned short packet::get_size() const throw () {
   return (_size);
 }
 
