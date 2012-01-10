@@ -18,96 +18,36 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <assert.h>
+#include <memory>
+#include <string.h>
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/handle_action.hh"
+#include "com/centreon/handle_listener.hh"
 #include "com/centreon/handle_manager_posix.hh"
+#include "com/centreon/task_manager.hh"
+#include "com/centreon/timestamp.hh"
 
 using namespace com::centreon;
 
-/**
- *  Default constructor.
- *
- *  @param[in] tm  The task manager.
- */
-handle_manager::handle_manager(task_manager* tm)
-  : _fds(NULL),
-    _should_create_fds(false),
-    _task_manager(tm) {
-
-}
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
 
 /**
- *  Default destructor.
- */
-handle_manager::~handle_manager() throw () {
-  for (std::map<native_handle, internal_task*>::const_iterator
-         it(_handles.begin()), end(_handles.end());
-       it != end;
-       ++it) {
-    if (_task_manager)
-      _task_manager->remove(it->second);
-    delete it->second;
-  }
-  delete[] _fds;
-}
-
-/**
- *  Add a new handle into the handle manager.
- *
- *  @param[in] h            The handle to manage.
- *  @param[in] hl           The listener to recive notification.
- *  @param[in] is_runnable  True if the handle listener allow to run
- *                          simultaneously with other handle listener.
- */
-void handle_manager::add(
-                       handle* h,
-                       handle_listener* hl,
-                       bool is_runnable) {
-  if (!h)
-    throw (basic_error()
-           << "try to add null handle in the handle manager");
-  if (!hl)
-    throw (basic_error()
-           << "try to add null listener in the handle manager");
-
-  native_handle nh(h->get_native_handle());
-  if (nh == native_handle_null)
-    throw (basic_error()
-           << "try to add handle with invalid native handle "
-           << "in the handle manager");
-
-  // Check if the handle was already checked by the handle manager.
-  if (_handles.find(nh) == _handles.end()) {
-    std::pair<native_handle, internal_task*>
-      item(nh, new internal_task(h, hl, is_runnable));
-    _handles.insert(item);
-    _should_create_fds = true;
-  }
-}
-
-/**
- *  Set a new task manager.
- *
- *  @param[in] tm  The task manager.
- */
-void handle_manager::link(task_manager* tm) {
-  _task_manager = tm;
-}
-
-/**
- *  Multiplex input/output and notify handle listner if necessary.
- *  Execute the task manager at the next execution time.
+ *  Multiplex input/output and notify handle listeners if necessary and
+ *  execute the task manager.
  */
 void handle_manager::multiplex() {
+  // Check that task manager is present.
   if (!_task_manager)
-    throw (basic_error() << "impossible to run multiplexing because " \
-           "we don't have any task manager:null pointer");
+    throw (basic_error()
+           << "cannot multiplex handles with no task manager");
 
   // Create or update pollfd.
-  _create_fds();
+  _setup_array();
 
   // Determined the poll timeout with the next execution time.
   int timeout(-1);
@@ -119,28 +59,29 @@ void handle_manager::multiplex() {
     timeout = next.to_mseconds() - now.to_mseconds();
 
   // Wait events.
-  int ret = _poll(_fds, _handles.size(), timeout);
-  if (ret == -1)
-    throw (basic_error() << "the handle manager multiplexing failed:"
-           << strerror(errno));
+  int ret = _poll(_array, _handles.size(), timeout);
+  if (ret == -1) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "handle multiplexing failed: " << msg);
+  }
 
   // Dispatch events.
   int nb_check(0);
   for (unsigned int i(0), end(_handles.size());
        i < end && nb_check < ret;
        ++i) {
-    if (!_fds[i].revents)
+    if (!_array[i].revents)
       continue;
-    internal_task* task(_handles[_fds[i].fd]);
-    if (_fds[i].revents & (POLLIN | POLLPRI))
-      task->add_action(internal_task::read);
-    if (_fds[i].revents & POLLOUT)
-      task->add_action(internal_task::write);
-    if (_fds[i].revents & POLLHUP)
-      task->add_action(internal_task::close);
-    if (_fds[i].revents & (POLLERR | POLLNVAL))
-      task->add_action(internal_task::error);
-    _task_manager->add(task, now, task->is_runnable());
+    handle_action* task(_handles[_array[i].fd]);
+    if (_array[i].revents & (POLLIN | POLLPRI))
+      task->add_action(handle_action::read);
+    if (_array[i].revents & POLLOUT)
+      task->add_action(handle_action::write);
+    if (_array[i].revents & POLLHUP)
+      task->add_action(handle_action::close);
+    if (_array[i].revents & (POLLERR | POLLNVAL))
+      task->add_action(handle_action::error);
+    _task_manager->add(task, now, task->is_threadable());
     ++nb_check;
   }
 
@@ -148,129 +89,11 @@ void handle_manager::multiplex() {
   _task_manager->execute(timestamp::now());
 }
 
-/**
- *  Remove a specific handle.
- *
- *  @param[in] h  The handle to remove.
- *
- *  @return True if the handle was remove, otherwise false.
- */
-bool handle_manager::remove(handle* h) {
-  if (!h)
-    return (false);
-
-  std::map<native_handle, internal_task*>::iterator
-    it(_handles.find(h->get_native_handle()));
-  if (it == _handles.end())
-    return (false);
-  if (_task_manager)
-    _task_manager->remove(it->second);
-  delete it->second;
-  _handles.erase(it);
-
-  _should_create_fds = true;
-  return (true);
-}
-
-/**
- *  Remove all occurence of a specific handle listener.
- *
- *  @param[in] hl  The handle listener to remove.
- *
- *  @return The number of handle listener was remove.
- */
-unsigned int handle_manager::remove(handle_listener* hl) {
-  if (!hl)
-    return (0);
-
-  unsigned int count_erase(0);
-  for (std::map<native_handle, internal_task*>::iterator
-         it(_handles.begin()), next(it), end(_handles.end());
-       it != end;
-       it = next) {
-    ++(next = it);
-    if (it->second->get_handle_listener() == hl) {
-      if (_task_manager)
-        _task_manager->remove(it->second);
-      delete it->second;
-      _handles.erase(it);
-      ++count_erase;
-    }
-  }
-
-  if (count_erase)
-    _should_create_fds = true;
-  return (count_erase);
-}
-
-/**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-handle_manager::handle_manager(handle_manager const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-handle_manager& handle_manager::operator=(handle_manager const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal create pollfd.
- */
-void handle_manager::_create_fds() {
-  if (_should_create_fds) {
-    // Need to rebuild a new pollfd.
-    delete[] _fds;
-    _should_create_fds = false;
-
-    if (!_handles.size()) {
-      _fds = NULL;
-      return;
-    }
-    _fds = new pollfd[_handles.size()];
-  }
-
-  // Update the pollfd.
-  nfds_t nfds(0);
-  for (std::map<native_handle, internal_task*>::iterator
-         it(_handles.begin()), end(_handles.end());
-       it != end;
-       ++it) {
-    _fds[nfds].fd = it->first;
-    _fds[nfds].events = 0;
-    _fds[nfds].revents = 0;
-    handle* h(it->second->get_handle());
-    handle_listener* hl(it->second->get_handle_listener());
-    if (hl->want_read(*h))
-      _fds[nfds].events |= POLLIN | POLLPRI;
-    if (hl->want_write(*h))
-      _fds[nfds].events |= POLLOUT;
-    ++nfds;
-  }
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-handle_manager& handle_manager::_internal_copy(handle_manager const& right) {
-  (void)right;
-  assert(!"impossible to copy handle_manager");
-  abort();
-  return (*this);
-}
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
 
 /**
  *  Wrapper for poll system function.
@@ -296,114 +119,40 @@ int handle_manager::_poll(
 }
 
 /**
- *  Default constructor.
- *
- *  @param[in] h            A specific handle.
- *  @param[in] hl           A specific handle listener.
- *  @param[in] is_runnable  True if the task has the possibility to
- *                          run simultaneously.
+ *  Create or update internal pollfd array.
  */
-handle_manager::internal_task::internal_task(
-                                 handle* h,
-                                 handle_listener* hl,
-                                 bool is_runnable)
-  : task(),
-    _action(0),
-    _is_runnable(is_runnable),
-    _h(h),
-    _hl(hl) {
+void handle_manager::_setup_array() {
+  // Should we reallocate array ?
+  if (_recreate_array) {
+    // Remove old array.
+    delete [] _array;
 
-}
+    // Is there any handle ?
+    if (_handles.empty())
+      _array = NULL;
+    else {
+      _array = new pollfd[_handles.size()];
+      _recreate_array = false;
+    }
+  }
 
-/**
- *  Default destructor.
- */
-handle_manager::internal_task::~internal_task() throw () {
+  // Update the pollfd.
+  nfds_t nfds(0);
+  for (std::map<native_handle, handle_action*>::iterator
+         it(_handles.begin()), end(_handles.end());
+       it != end;
+       ++it) {
+    _array[nfds].fd = it->first;
+    _array[nfds].events = 0;
+    _array[nfds].revents = 0;
+    handle* h(it->second->get_handle());
+    handle_listener* hl(it->second->get_handle_listener());
+    if (hl->want_read(*h))
+      _array[nfds].events |= POLLIN | POLLPRI;
+    if (hl->want_write(*h))
+      _array[nfds].events |= POLLOUT;
+    ++nfds;
+  }
 
-}
-
-/**
- *  Add a new action to notify.
- *
- *  @param[in] a  The new action.
- */
-void handle_manager::internal_task::add_action(action a) throw () {
-  _action |= a;
-}
-
-/**
- *  Get if the task has the possibility to run simultaneously.
- *
- *  @return True is the task is thread safe, otherwise false.
- */
-bool handle_manager::internal_task::is_runnable() const throw () {
-  return (_is_runnable);
-}
-
-/**
- *  Get the specific handle.
- *
- *  @return The internal handle.
- */
-handle* handle_manager::internal_task::get_handle() const throw () {
-  return (_h);
-}
-
-/**
- *  Get the specific handle listener.
- *
- *  @return The internal handle listener.
- */
-handle_listener* handle_manager::internal_task::get_handle_listener() const throw () {
-  return (_hl);
-}
-
-/**
- *  Call the handle listener by action to be set.
- */
-void handle_manager::internal_task::run() {
-  if (_action & read)
-    _hl->read(*_h);
-  if (_action & write)
-    _hl->write(*_h);
-  if (_action & error)
-    _hl->error(*_h);
-  if (_action & close)
-    _hl->close(*_h);
-  _action = 0;
-}
-
-/**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-handle_manager::internal_task::internal_task(internal_task const& right)
-  : task() {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-handle_manager::internal_task& handle_manager::internal_task::operator=(internal_task const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-handle_manager::internal_task& handle_manager::internal_task::_internal_copy(internal_task const& right) {
-  (void)right;
-  assert(!"impossible to copy handle_manager::internal_task");
-  abort();
-  return (*this);
+  return ;
 }

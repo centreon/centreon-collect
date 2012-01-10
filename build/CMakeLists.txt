@@ -150,8 +150,10 @@ endif ()
 # Platform-specific files.
 if (WIN32)
   set(SPECIFIC_SOURCES
+    "${SRC_DIR}/handle_manager_win32.cc"
   )
   set(SPECIFIC_HEADERS
+    "${INC_DIR}/handle_manager_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
@@ -167,7 +169,9 @@ set(
   SOURCES
   ${SPECIFIC_SOURCES}
   "${SRC_DIR}/handle.cc"
+  "${SRC_DIR}/handle_action.cc"
   "${SRC_DIR}/handle_listener.cc"
+  "${SRC_DIR}/handle_manager.cc"
   "${SRC_DIR}/task.cc"
   "${SRC_DIR}/task_manager.cc"
   "${SRC_DIR}/timestamp.cc"
@@ -180,6 +184,7 @@ set(
   ${SPECIFIC_HEADERS}
   "${INC_DIR}/delayed_delete.hh"
   "${INC_DIR}/handle.hh"
+  "${INC_DIR}/handle_action.hh"
   "${INC_DIR}/handle_listener.hh"
   "${INC_DIR}/handle_manager.hh"
   "${INC_DIR}/namespace.hh"

@@ -24,8 +24,10 @@
 #include <string.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/handle_listener.hh"
 #include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
+#include "com/centreon/task_manager.hh"
 
 using namespace com::centreon;
 

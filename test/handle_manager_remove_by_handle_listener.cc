@@ -21,6 +21,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/handle_listener.hh"
 #include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
 
