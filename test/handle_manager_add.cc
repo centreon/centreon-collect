@@ -112,6 +112,7 @@ static bool double_add() {
       hm.add(&fs, &l);
     }
     catch (std::exception const& e) {
+      (void)e;
       return (true);
     }
   }
