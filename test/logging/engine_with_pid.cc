@@ -55,7 +55,8 @@ private:
 static bool check_pid(std::string const& data, char const* msg) {
   if (data[0] != '[' || data.size() < 4)
     return (false);
-  unsigned int pid_size(data.size() - strlen(msg) - 1 - 3);
+  unsigned int pid_size(
+    static_cast<unsigned int>(data.size() - strlen(msg) - 1 - 3));
   for (unsigned int i(1); i < pid_size; ++i)
     if (!isdigit(data[i]))
       return (false);
