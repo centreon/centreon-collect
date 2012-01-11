@@ -61,13 +61,15 @@ namespace               exceptions {
 
 CC_END()
 
-#  if defined(__GNUC__)
-#    define FUNCTION __PRETTY_FUNCTION__
-#  elif _MSC_VER
+#  if defined(_MSC_VER) || (_MSC_VER)
 #    define FUNCTION __FUNCSIG__
 #  else
-#    define FUNCTION __func__
-#  endif // Visual, GCC, other.
+#    if defined(__GNUC__)
+#      define FUNCTION __PRETTY_FUNCTION__
+#    else
+#      define FUNCTION __func__
+#    endif // GCC or other.
+#  endif // Visual or other.
 
 #  ifndef NDEBUG
 #    define basic_error() com::centreon::exceptions::basic( \
