@@ -18,13 +18,32 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <ios>
-#include <sstream>
-#include <string.h>
 #include <float.h>
+#include <math.h>
+#include <sstream>
+#include <stdlib.h>
 #include "com/centreon/misc/stringifier.hh"
 
 using namespace com::centreon::misc;
+
+/**
+ *  Check that double are properly written by stringifier.
+ *
+ *  @param[in] d Double to write and test.
+ *
+ *  @return true if check succeed.
+ */
+static bool check_double(double d) {
+  stringifier buffer;
+  buffer << d;
+  char* ptr(NULL);
+  double converted(strtod(buffer.data(), &ptr));
+  return (ptr
+          && !*ptr
+          && (fabs(d - converted)
+              // Roughly 0.1% error margin.
+              <= (fabs(d / 1000) + 2 * DBL_EPSILON)));
+}
 
 /**
  *  Check the stringifier insert double.
@@ -32,11 +51,9 @@ using namespace com::centreon::misc;
  *  @return 0 on success.
  */
 int main() {
-  stringifier buffer;
-  buffer << static_cast<double>(DBL_MIN);
-  buffer << static_cast<double>(DBL_MAX);
-
-  std::ostringstream oss;
-  oss << std::fixed << DBL_MIN << DBL_MAX;
-  return (strcmp(buffer.data(), oss.str().c_str()));
+  return (!check_double(DBL_MIN)
+          || !check_double(DBL_MAX)
+          || !check_double(0.0)
+          || !check_double(1.1)
+          || !check_double(-1.456657563));
 }
