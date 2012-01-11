@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -47,7 +47,7 @@ int main() {
   int retval;
 
   try {
-    char* tmp(tmpnam(NULL));
+    char* tmp(tmpnam(static_cast<char*>(NULL)));
     if (!tmp)
       throw (basic_error() << "tmpname failed");
 

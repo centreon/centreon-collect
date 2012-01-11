@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -34,7 +34,7 @@ int main() {
 
   engine::load();
   try {
-    logger ref(type_info, "info");
+    logger ref(com::centreon::logging::type_info, "info");
 
     logger l1(ref);
     if (l1.get_prefix() != ref.get_prefix()
