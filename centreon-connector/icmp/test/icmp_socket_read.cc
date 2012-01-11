@@ -84,9 +84,9 @@ int main() {
       throw (basic_error() << "impossible to resolve 127.0.0.1");
     unsigned int address(hosts.front()->get_address());
     if (!check_read(address))
-      throw ("unable to read data to 127.0.0.1");
+      throw (basic_error() << "unable to read data to 127.0.0.1");
     if (!check_null_data(address))
-      throw ("try to read null data to 127.0.0.1");
+      throw (basic_error() << "try to read null data to 127.0.0.1");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
