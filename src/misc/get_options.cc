@@ -357,8 +357,8 @@ bool get_options::_split_short(
                      std::string const& line,
                      std::string& key,
                      std::string& value) {
+  key = line;
   if (line.size() == 1) {
-    key = line;
     value = "";
     return (false);
   }
