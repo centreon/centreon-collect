@@ -1,5 +1,5 @@
 ##
-## Copyright 2011 Merethis
+## Copyright 2011-2012 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -18,34 +18,66 @@
 ## <http://www.gnu.org/licenses/>.
 ##
 
-# Build package.
-if (CPACK_BINARY_DEB OR CPACK_BINARY_RPM)
-  string(TOLOWER "${PROJECT_NAME}" PACKAGE_NAME)
-  string(REPLACE " " "-" PACKAGE_NAME "${PACKAGE_NAME}")
-
-  set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
+# Packaging.
+option(WITH_PACKAGE_SH "Build shell-installable package." OFF)
+option(WITH_PACKAGE_TGZ "Build gziped tarball package." OFF)
+option(WITH_PACKAGE_TBZ2 "Build bzip2'd tarball package." OFF)
+option(WITH_PACKAGE_DEB "Build DEB package." OFF)
+option(WITH_PACKAGE_RPM "Build RPM package." OFF)
+option(WITH_PACKAGE_NSIS "Build NSIS package." OFF)
+if (WITH_PACKAGE_SH
+    OR WITH_PACKAGE_TGZ
+    OR WITH_PACKAGE_TBZ2
+    OR WITH_PACKAGE_DEB
+    OR WITH_PACKAGE_RPM
+    OR WITH_PACKAGE_NSIS)
+  # Default settings.
   set(CPACK_PACKAGE_VENDOR "Merethis")
   set(CPACK_PACKAGE_VERSION_MAJOR "${CLIB_MAJOR}")
   set(CPACK_PACKAGE_VERSION_MINOR "${CLIB_MINOR}")
   set(CPACK_PACKAGE_VERSION_PATCH "${CLIB_PATCH}")
-  set(CPACK_PACKAGE_FILE_NAME "${PACKAGE_NAME}-${CLIB_VERSION}")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PACKAGE_NAME}")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "Centreon C/C++ library.")
+  set(CPACK_PACKAGE_FILE_NAME
+    "centreon-clib-${CLIB_VERSION}")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "centreon-clib")
   set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/license.txt")
-  set(CPACK_PACKAGE_CONTACT "Dorian Guillois <dguillois@merethis.com>")
-  set(
-    CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "Base library for Centreon C/C++ project"
-    )
+  set(CPACK_PACKAGE_CONTACT
+    "Matthieu Kermagoret <mkermagoret@merethis.com>")
 
-  # Define sepecific variables for build Debian Package.
-  if (CPACK_BINARY_DEB)
-    set(CPACK_DEBIAN_PACKAGE_SECTION "libs")
+  # Generators.
+  unset(PACKAGE_LIST)
+  if (WITH_PACKAGE_SH)
+    list(APPEND CPACK_GENERATOR "STGZ")
+    list(APPEND PACKAGE_LIST "Shell-installable package (.sh)")
   endif ()
-
-  # Define sepecific variables for build RPM.
-  if (CPACK_BINARY_RPM)
-    set(CPACK_RPM_PACKAGE_LICENSE "AGPLv3")
+  if (WITH_PACKAGE_TGZ)
+    list(APPEND CPACK_GENERATOR "TGZ")
+    list(APPEND PACKAGE_LIST "gziped tarball (.tar.gz)")
   endif ()
+  if (WITH_PACKAGE_TBZ2)
+    list(APPEND CPACK_GENERATOR "TBZ2")
+    list(APPEND PACKAGE_LIST "bzip2'd tarball (.tar.bz2)")
+  endif ()
+  if (WITH_PACKAGE_DEB)
+    list(APPEND CPACK_GENERATOR "DEB")
+    list(APPEND PACKAGE_LIST "DEB package (.deb)")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "net")
+  endif ()
+  if (WITH_PACKAGE_RPM)
+    list(APPEND CPACK_GENERATOR "RPM")
+    list(APPEND PACKAGE_LIST "RPM package (.rpm)")
+    set(CPACK_RPM_PACKAGE_RELEASE 1)
+    set(CPACK_RPM_PACKAGE_LICENSE "AGPLv3+")
+  endif ()
+  if (WITH_PACKAGE_NSIS)
+    list(APPEND CPACK_GENERATOR "NSIS")
+    list(APPEND PACKAGE_LIST "NSIS package (.exe)")
+  endif ()
+  string(REPLACE ";" ", " PACKAGE_LIST "${PACKAGE_LIST}")
 
+  # CPack module.
   include(CPack)
+else ()
+  set(PACKAGE_LIST "None")
 endif ()
