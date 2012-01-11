@@ -63,7 +63,7 @@ CC_END()
 
 #  if defined(__GNUC__)
 #    define FUNCTION __PRETTY_FUNCTION__
-#  elif defined(_MSC_VER)
+#  elif defined(__FUNCSIG__)
 #    define FUNCTION __FUNCSIG__
 #  else
 #    define FUNCTION __func__
