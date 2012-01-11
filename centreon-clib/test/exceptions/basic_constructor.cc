@@ -33,10 +33,10 @@ int main() {
   const unsigned int line = __LINE__;
 
   basic ex1;
-  basic ex2(__FILE__, __func__, line);
+  basic ex2(__FILE__, FUNCTION, line);
 
   std::ostringstream oss;
-  oss << "[" << __FILE__ << ":" << line << "(" << __func__ << ")] ";
+  oss << "[" << __FILE__ << ":" << line << "(" << FUNCTION << ")] ";
   return (strcmp(ex1.what(), "")
           || strcmp(ex2.what(), oss.str().c_str()));
 }

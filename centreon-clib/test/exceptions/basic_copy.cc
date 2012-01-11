@@ -33,11 +33,11 @@ int main() {
   static char const message[] = "Centreon Clib";
   const unsigned int line = __LINE__;
 
-  basic ex(__FILE__, __func__, line);
+  basic ex(__FILE__, FUNCTION, line);
   ex << message;
 
   std::ostringstream oss;
-  oss << "[" << __FILE__ << ":" << line << "(" << __func__ << ")] "
+  oss << "[" << __FILE__ << ":" << line << "(" << FUNCTION << ")] "
       << message;
   return (strcmp(ex.what(), oss.str().c_str()));
 }
