@@ -46,6 +46,7 @@ static bool empty_argument() {
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
   try {
     if (!empty_argument())
       throw (basic_error() << "invalid factory with empty name");
@@ -68,7 +69,7 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  return (ret);
 }

@@ -22,6 +22,7 @@
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/icmp/check.hh"
+#include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::connector::icmp;
 using namespace com::centreon;
@@ -57,6 +58,8 @@ bool is_same(check const& c1, check const& c2) {
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
+  logging::engine::load();
   try {
     check ref(42, "");
     ref.host_was_checked();
@@ -71,7 +74,8 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  logging::engine::unload();
+  return (ret);
 }

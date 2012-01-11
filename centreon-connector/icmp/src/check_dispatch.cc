@@ -95,7 +95,10 @@ unsigned int check_dispatch::get_max_concurrent_checks() const throw () {
  *
  *  @param[in] max  The maximum concurrency checks.
  */
-void check_dispatch::set_max_concurrent_checks(unsigned int max) throw () {
+void check_dispatch::set_max_concurrent_checks(unsigned int max) {
+  if (!max)
+    throw (basic_error() << "invalid max concurrent checks" \
+           ": value is null");
   _max_concurrent_checks = max;
 }
 
