@@ -32,7 +32,7 @@ using namespace com::centreon;
  */
 int main() {
   // Generate temporary file name.
-  char const* tmp_file_name(tmpnam(NULL));
+  char const* tmp_file_name(tmpnam(static_cast<char*>(NULL)));
 
   // Open temporary file.
   io::file_stream tmp_file_stream;
