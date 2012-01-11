@@ -20,6 +20,8 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
@@ -39,6 +41,10 @@ packet_dispatch::packet_dispatch(packet_observer* observer)
     _t_manager(1),
     _h_manager(&_t_manager),
     _want_write(false) {
+
+  // drop privileges.
+  setuid(getuid());
+
   _h_manager.add(&_socket, this);
   _h_manager.add(&_interrupt, &_interrupt);
   exec();
@@ -116,7 +122,6 @@ void packet_dispatch::error(handle& h) {
  *
  *  @param[in] h  The handle affected by the event.
  */
-#include <iostream>
 void packet_dispatch::read(handle& h) {
   try {
     timestamp now(timestamp::now());

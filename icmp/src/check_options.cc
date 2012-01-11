@@ -32,7 +32,7 @@ using namespace com::centreon::misc;
 check_options::check_options(std::string const& command_line)
   : get_options() {
   _arguments['b'] = argument(
-                      "-icmp-bytes-send",
+                      "icmp-bytes-send",
                       'b',
                       "Number of icmp data bytes to send " \
                       "(default \"40\").",

@@ -43,7 +43,7 @@ public:
 
                          packet();
                          packet(
-                           unsigned char* data,
+                           unsigned char const* data,
                            unsigned short size,
                            timestamp const& time);
                          packet(unsigned short size);
@@ -57,7 +57,7 @@ public:
   unsigned int           get_host_id() const throw ();
   unsigned short         get_id() const throw ();
   unsigned short         get_sequence() const throw ();
-  unsigned int           get_size() const throw ();
+  unsigned short         get_size() const throw ();
   timestamp const&       get_recv_time() const;
   timestamp              get_send_time() const;
   icmp_type              get_type() const throw ();
@@ -74,7 +74,7 @@ private:
 
   unsigned int           _address;
   unsigned char*         _buffer;
-  unsigned int           _size;
+  unsigned short         _size;
   timestamp              _recv_time;
 };
 
