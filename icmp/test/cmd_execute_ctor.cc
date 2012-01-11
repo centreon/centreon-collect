@@ -20,46 +20,43 @@
 
 #include <iostream>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/connector/icmp/check_dispatch.hh"
-#include "com/centreon/logging/engine.hh"
+#include "com/centreon/connector/icmp/cmd_execute.hh"
 
 using namespace com::centreon::connector::icmp;
-using namespace com::centreon;
 
 /**
- *  @class observer
- *  @brief Little implementation of packet_observer
- *         to test check dispatcher.
+ *  Check cmd execute with null argument.
+ *
+ *  @return True on success, otherwise false.
  */
-class  observer : public check_observer {
-public:
-  void emit_check_result(
-         unsigned int command_id,
-         unsigned int status,
-         std::string const& msg) {
-    (void)command_id;
-    (void)status;
-    (void)msg;
+bool check_null_argument() {
+  try {
+    cmd_execute ce(0);
   }
-};
+  catch (std::exception const& e) {
+    (void)e;
+    return (true);
+  }
+  return (false);
+}
 
 /**
- *  Check check dispatch constructor.
+ *  Check command execution constructor.
  *
  *  @return 0 on success.
  */
 int main() {
   int ret(0);
-  logging::engine::load();
   try {
-    observer obs;
-    check_dispatch cd1;
-    check_dispatch cd2(&obs);
+    if (!check_null_argument())
+      throw (basic_error() << "try to create cmd_execute "
+             "with bad argument");
+
+    cmd_execute ce(10);
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     ret = 1;
   }
-  logging::engine::unload();
   return (ret);
 }

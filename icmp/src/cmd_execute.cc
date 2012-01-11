@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include "com/centreon/connector/icmp/check_dispatch.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/icmp/cmd_execute.hh"
 
 using namespace com::centreon::connector::icmp;
@@ -31,7 +32,9 @@ cmd_execute::cmd_execute(unsigned int max_concurrent_checks)
   : check_observer(),
     _max_concurrent_checks(max_concurrent_checks),
     _status(0) {
-
+  if (!_max_concurrent_checks)
+    throw (basic_error() << "cmd_execute constructor failed: "
+           "null argument");
 }
 
 /**

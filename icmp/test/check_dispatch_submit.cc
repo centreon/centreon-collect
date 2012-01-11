@@ -72,7 +72,7 @@ private:
 };
 
 /**
- *  Check check dispatch max concurrent checks.
+ *  Check check dispatch submit command.
  *
  *  @return 0 on success.
  */

@@ -111,6 +111,24 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# cmd_execute_copy
+set(TEST_NAME "cmd_execute_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# cmd_execute_ctor
+set(TEST_NAME "cmd_execute_ctor")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# cmd_execute_execute
+set(TEST_NAME "cmd_execute_execute")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # host_copy
 set(TEST_NAME "host_copy")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
@@ -167,6 +185,42 @@ add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # icmp_info
 set(TEST_NAME "icmp_info")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# icmp_socket_address
+set(TEST_NAME "icmp_socket_address")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# icmp_socket_close
+set(TEST_NAME "icmp_socket_close")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# icmp_socket_ctor
+set(TEST_NAME "icmp_socket_ctor")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# icmp_socket_read
+set(TEST_NAME "icmp_socket_read")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# icmp_socket_ttl
+set(TEST_NAME "icmp_socket_ttl")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# icmp_socket_write
+set(TEST_NAME "icmp_socket_write")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

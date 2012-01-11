@@ -155,11 +155,12 @@ unsigned long icmp_socket::read(void* data, unsigned long size) {
   if (ret < header_size + ICMP_MINLEN)
     throw (basic_error() << "read failed on icmp socket: " \
            "invalid packet header size");
+  ret -= header_size;
   memmove(
     data,
     static_cast<unsigned char*>(data) + header_size,
-    sizeof(::icmp));
-  return (static_cast<unsigned long>(ret) - header_size);
+    ret);
+  return (static_cast<unsigned long>(ret));
 }
 
 /*
