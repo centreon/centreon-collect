@@ -37,7 +37,7 @@ namespace              clib {
     unsigned int const major = @CLIB_MAJOR@;
     unsigned int const minor = @CLIB_MINOR@;
     unsigned int const patch = @CLIB_PATCH@;
-    char const*        string = "@CLIB_VERSION@";
+    char const* const  string = "@CLIB_VERSION@";
 
     // Run-time values.
     unsigned int       get_major() throw ();
