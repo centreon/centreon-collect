@@ -55,7 +55,8 @@ private:
 static bool check_time(std::string const& data, char const* msg) {
   if (data[0] != '[' || data.size() < 4)
     return (false);
-  unsigned int time_size(data.size() - strlen(msg) - 1 - 3);
+  unsigned int time_size(
+    static_cast<unsigned int>(data.size() - strlen(msg) - 1 - 3));
   for (unsigned int i(1); i < time_size; ++i)
     if (!isdigit(data[i]))
       return (false);
