@@ -169,6 +169,7 @@ void check_dispatch::_run() {
  */
 check_dispatch::check_dispatch(check_dispatch const& right)
   : thread(),
+    packet_observer(),
     _build_results(this, &check_dispatch::_process_receive) {
   _internal_copy(right);
 }

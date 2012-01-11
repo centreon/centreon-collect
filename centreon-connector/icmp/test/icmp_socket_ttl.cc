@@ -20,46 +20,26 @@
 
 #include <iostream>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/connector/icmp/check_dispatch.hh"
-#include "com/centreon/logging/engine.hh"
+#include "com/centreon/connector/icmp/icmp_socket.hh"
 
 using namespace com::centreon::connector::icmp;
-using namespace com::centreon;
 
 /**
- *  @class observer
- *  @brief Little implementation of packet_observer
- *         to test check dispatcher.
- */
-class  observer : public check_observer {
-public:
-  void emit_check_result(
-         unsigned int command_id,
-         unsigned int status,
-         std::string const& msg) {
-    (void)command_id;
-    (void)status;
-    (void)msg;
-  }
-};
-
-/**
- *  Check check dispatch constructor.
+ *  Check icmp socket ttl.
  *
  *  @return 0 on success.
  */
 int main() {
   int ret(0);
-  logging::engine::load();
   try {
-    observer obs;
-    check_dispatch cd1;
-    check_dispatch cd2(&obs);
+    icmp_socket sock;
+    sock.set_ttl(42);
+    if (sock.get_ttl() != 42)
+      throw (basic_error() << "invalid ttl");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     ret = 1;
   }
-  logging::engine::unload();
   return (ret);
 }

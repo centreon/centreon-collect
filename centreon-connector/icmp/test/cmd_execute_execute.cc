@@ -20,31 +20,14 @@
 
 #include <iostream>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/connector/icmp/check_dispatch.hh"
+#include "com/centreon/connector/icmp/cmd_execute.hh"
 #include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::connector::icmp;
 using namespace com::centreon;
 
 /**
- *  @class observer
- *  @brief Little implementation of packet_observer
- *         to test check dispatcher.
- */
-class  observer : public check_observer {
-public:
-  void emit_check_result(
-         unsigned int command_id,
-         unsigned int status,
-         std::string const& msg) {
-    (void)command_id;
-    (void)status;
-    (void)msg;
-  }
-};
-
-/**
- *  Check check dispatch constructor.
+ *  Check command execution constructor.
  *
  *  @return 0 on success.
  */
@@ -52,9 +35,11 @@ int main() {
   int ret(0);
   logging::engine::load();
   try {
-    observer obs;
-    check_dispatch cd1;
-    check_dispatch cd2(&obs);
+    cmd_execute ce(1);
+    ce.execute("127.0.0.1");
+    if (ce.get_status() != 0
+        || ce.get_message().empty())
+      throw (basic_error() << "execute '127.0.0.1' failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
