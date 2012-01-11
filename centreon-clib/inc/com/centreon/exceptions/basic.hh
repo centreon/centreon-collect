@@ -61,10 +61,10 @@ namespace               exceptions {
 
 CC_END()
 
-#  ifdef _MSC_VER
-#    define FUNCTION __FUNCSIG__
-#  elif defined(__GNUC__)
+#  if defined(__GNUC__)
 #    define FUNCTION __PRETTY_FUNCTION__
+#  elif _MSC_VER
+#    define FUNCTION __FUNCSIG__
 #  else
 #    define FUNCTION __func__
 #  endif // Visual, GCC, other.
