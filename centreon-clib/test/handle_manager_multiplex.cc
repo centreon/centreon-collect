@@ -22,7 +22,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#ifndef _WIN32
+#  include <unistd.h>
+#endif // !_WIN32
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/handle_listener.hh"
 #include "com/centreon/handle_manager.hh"
@@ -112,13 +114,14 @@ static bool basic_multiplex_write() {
   return (l.is_call());
 }
 
+#ifndef _WIN32
 /**
  *  Check if close is calling.
  *
  *  @return True on success, otherwise false.
  */
 static bool basic_multiplex_close() {
-  ::close(0);
+  ::close(STDIN_FILENO);
   task_manager tm;
   handle_manager hm(&tm);
   io::file_stream fs(stdin);
@@ -127,6 +130,7 @@ static bool basic_multiplex_close() {
   hm.multiplex();
   return (l.is_call());
 }
+#endif // !_WIN32
 
 /**
  *  Check the handle manager multiplexing.
@@ -143,8 +147,10 @@ int main() {
              "try to multiplex nothing");
     if (!basic_multiplex_write())
       throw (basic_error() << "multiplex one handle to write failed");
+#ifndef _WIN32
     if (!basic_multiplex_close())
       throw (basic_error() << "multiplex one handle to close failed");
+#endif // !_WIN32
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
