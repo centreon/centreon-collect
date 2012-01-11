@@ -277,6 +277,7 @@ host& host::_internal_copy(host const& right) {
   if (this != &right) {
     _address = right._address;
     _error = right._error;
+    _id = right._id;
     _name = right._name;
     _packet_lost = right._packet_lost;
     _packet_recv = right._packet_recv;
