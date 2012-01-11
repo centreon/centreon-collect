@@ -131,10 +131,10 @@ void condvar::_internal_copy(condvar const& cv) {
 bool condvar::_wait(mutex* mutx, DWORD timeout) {
   if (!mutx)
     throw (basic_error() << "wait was called with null mutex");
-  bool retval(static_cast<bool>(SleepConditionVariableCS(
-                                  &_cond,
-                                  &mutx->_csection,
-                                  timeout)));
+  bool retval(SleepConditionVariableCS(
+                &_cond,
+                &mutx->_csection,
+                timeout) != 0);
   if (!retval) {
     DWORD errcode(GetLastError());
     if (errcode != WAIT_TIMEOUT)

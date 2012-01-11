@@ -48,5 +48,7 @@ int main() {
 
   // Real write.
   char const* data("some data");
-  return (tmp_file_stream.write(data, strlen(data)) == 0);
+  return (tmp_file_stream.write(
+            data,
+            static_cast<unsigned long>(strlen(data))) == 0);
 }
