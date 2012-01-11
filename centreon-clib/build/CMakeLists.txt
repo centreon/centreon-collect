@@ -50,6 +50,7 @@ endif ()
 # overloads.
 if (WIN32)
   add_definitions(-D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)
 endif ()
 
 
