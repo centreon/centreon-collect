@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -61,18 +61,18 @@ namespace               exceptions {
 
 CC_END()
 
-#  ifdef __GNUC__
+#  if defined(__GNUC__)
 #    define FUNCTION __PRETTY_FUNCTION__
 #  elif defined(_MSC_VER)
-#    define FUNCTION __FUNCTION__
+#    define FUNCTION __FUNCSIG__
 #  else
 #    define FUNCTION __func__
 #  endif
 
 #  ifndef NDEBUG
 #    define basic_error() com::centreon::exceptions::basic( \
-                          __FILE__,                        \
-                          FUNCTION,                        \
+                          __FILE__,                         \
+                          FUNCTION,                         \
                           __LINE__)
 #  else
 #    define basic_error() com::centreon::exceptions::basic()
