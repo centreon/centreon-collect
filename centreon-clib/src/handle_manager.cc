@@ -215,5 +215,10 @@ unsigned int handle_manager::remove(handle_listener* hl) {
  *  @param[in] hm Object to copy.
  */
 void handle_manager::_internal_copy(handle_manager const& hm) {
+  link(hm._task_manager); // Will remove tasks only, not register.
+  delete [] _array;
+  _array = NULL;
+  _recreate_array = true;
+  _handles = hm._handles;
   return ;
 }
