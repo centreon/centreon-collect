@@ -49,7 +49,7 @@ public:
                        check_dispatch(check_observer* observer = NULL);
                        ~check_dispatch() throw ();
   unsigned int         get_max_concurrent_checks() const throw ();
-  void                 set_max_concurrent_checks(unsigned int max) throw ();
+  void                 set_max_concurrent_checks(unsigned int max);
   void                 submit(std::string const& command_line);
   void                 submit(
                          unsigned int command_id,

@@ -56,6 +56,7 @@ bool is_same(host const& h1, host const& h2) {
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
   try {
     host ref("localhost", 42);
     ref.set_id(24);
@@ -75,7 +76,7 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  return (ret);
 }

@@ -54,6 +54,7 @@ bool is_same(packet const& p1, packet const& p2) {
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
   try {
     unsigned char buf[1024];
     memset(buf, 0x42, sizeof(buf));
@@ -75,7 +76,7 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  return (ret);
 }

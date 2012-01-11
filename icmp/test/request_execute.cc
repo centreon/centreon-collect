@@ -53,6 +53,7 @@ static std::string execute(
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
   try {
     request req(execute(42, "test", 10));
     if (req.id() != request::execute)
@@ -76,7 +77,7 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  return (ret);
 }

@@ -21,8 +21,10 @@
 #include <iostream>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/icmp/check.hh"
+#include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::connector::icmp;
+using namespace com::centreon;
 
 /**
  *  Check number packet.
@@ -30,6 +32,8 @@ using namespace com::centreon::connector::icmp;
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
+  logging::engine::load();
   try {
     {
       check c(0, "-n 5 127.0.0.1");
@@ -47,7 +51,8 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  logging::engine::unload();
+  return (ret);
 }

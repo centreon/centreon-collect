@@ -20,26 +20,54 @@
 
 #include <iostream>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/connector/icmp/result.hh"
+#include "com/centreon/connector/icmp/check_dispatch.hh"
+#include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::connector::icmp;
+using namespace com::centreon;
 
 /**
- *  Check result add data.
+ *  Check set max concurrent checks with null value.
+ *
+ *  @return True on sucess, otherwise false.
+ */
+bool check_null_value() {
+  try {
+    check_dispatch cd;
+    cd.set_max_concurrent_checks(0);
+    if (cd.get_max_concurrent_checks() != 0)
+      throw (basic_error() << "invalid max concurrent checks");
+  }
+  catch (std::exception const& e) {
+    (void)e;
+    return (true);
+  }
+  return (false);
+}
+
+/**
+ *  Check check dispatch max concurrent checks.
  *
  *  @return 0 on success.
  */
 int main() {
   int ret(0);
+  logging::engine::load();
   try {
-    result res(result::version);
-    res << "version";
-    if (res.data() != std::string("1\0version\0\0\0\0", 13))
-      throw (basic_error() << "invalid result data");
+    if (!check_null_value())
+      throw (basic_error() << "try to set null concurrent checks.");
+
+    check_dispatch cd;
+    cd.set_max_concurrent_checks(100);
+
+    if (cd.get_max_concurrent_checks() != 100)
+      throw (basic_error() << "invalid max concurrent checks");
+
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     ret = 1;
   }
+  logging::engine::unload();
   return (ret);
 }

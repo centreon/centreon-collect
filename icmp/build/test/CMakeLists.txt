@@ -93,6 +93,24 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# check_dispatch_ctor
+set(TEST_NAME "check_dispatch_ctor")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# check_dispatch_max_concurrent_checks
+set(TEST_NAME "check_dispatch_max_concurrent_checks")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# check_dispatch_submit
+set(TEST_NAME "check_dispatch_submit")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # host_copy
 set(TEST_NAME "host_copy")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")

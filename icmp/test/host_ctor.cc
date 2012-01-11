@@ -30,6 +30,7 @@ using namespace com::centreon::connector::icmp;
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
   try {
     host hst("localhost", 42);
     if (hst.get_name() != "localhost")
@@ -39,7 +40,7 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  return (ret);
 }

@@ -30,6 +30,7 @@ using namespace com::centreon::connector::icmp;
  *  @return 0 on success.
  */
 int main() {
+  int ret(0);
   try {
     request req(std::string("4\000\000\000\000", 5));
     if (req.id() != request::quit)
@@ -37,7 +38,7 @@ int main() {
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    ret = 1;
   }
-  return (0);
+  return (ret);
 }
