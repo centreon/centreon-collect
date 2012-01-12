@@ -480,7 +480,7 @@ void process::_with_std(
     if (_process == (pid_t)-1)
       *b = enable;
     else if (!enable) {
-      if (*fd < 0) {
+      if (*fd >= 0) {
         ::close(*fd);
         *fd = -1;
       }
