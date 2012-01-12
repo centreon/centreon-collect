@@ -364,6 +364,7 @@ void check_dispatch::_process_checks() {
       ++_current_checks;
     }
     catch (std::exception const& e) {
+      delete chk;
       logging::error(logging::low) << e.what();
       continue;
     }

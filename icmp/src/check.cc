@@ -228,77 +228,72 @@ unsigned int check::get_warning_roundtrip_avg() const throw () {
  *  Init check with the command line.
  */
 void check::parse() {
-  try {
-    check_options options(_command_line);
-    if (!_to_obj(options.get_argument('b').get_value(),
-                 _packet_data_size))
-      throw (basic_error() << "invalid option 'b' ("
-             << options.get_argument('b').get_value() << ")");
-    if (!_get_threshold(options.get_argument('c').get_value(),
-                        _critical_packet_lost,
-                        _critical_roundtrip_avg))
-      throw (basic_error() << "invalid option 'c' ("
-             << options.get_argument('c').get_value() << ")");
-    if (!_to_obj(options.get_argument('i').get_value(),
-                 _max_packet_interval))
-      throw (basic_error() << "invalid option 'i' ("
-             << options.get_argument('i').get_value() << ")");
-    if (!_to_obj(options.get_argument('I').get_value(),
-                 _max_target_interval))
-      throw (basic_error() << "invalid option 'I' ("
-             << options.get_argument('I').get_value() << ")");
-    if (!_to_obj(options.get_argument('l').get_value(), _ttl))
-      throw (basic_error() << "invalid option 'l' ("
-             << options.get_argument('l').get_value() << ")");
-    if (!_to_obj(options.get_argument('m').get_value(),
-                 _min_hosts_alive))
-      throw (basic_error() << "invalid option 'm' ("
-             << options.get_argument('m').get_value() << ")");
-    if (!_to_obj(options.get_argument('n').get_value(), _nb_packet))
-      throw (basic_error() << "invalid option 'n' ("
-             << options.get_argument('n').get_value() << ")");
-    _source_address = options.get_argument('s').get_value();
-    if (!_get_threshold(options.get_argument('w').get_value(),
-                        _warning_packet_lost,
-                        _warning_roundtrip_avg))
-      throw (basic_error() << "invalid option 'w' ("
-             << options.get_argument('w').get_value() << ")");
+  check_options options(_command_line);
+  if (!_to_obj(options.get_argument('b').get_value(),
+               _packet_data_size))
+    throw (basic_error() << "invalid option 'b' ("
+           << options.get_argument('b').get_value() << ")");
+  if (!_get_threshold(options.get_argument('c').get_value(),
+                      _critical_packet_lost,
+                      _critical_roundtrip_avg))
+    throw (basic_error() << "invalid option 'c' ("
+           << options.get_argument('c').get_value() << ")");
+  if (!_to_obj(options.get_argument('i').get_value(),
+               _max_packet_interval))
+    throw (basic_error() << "invalid option 'i' ("
+           << options.get_argument('i').get_value() << ")");
+  if (!_to_obj(options.get_argument('I').get_value(),
+               _max_target_interval))
+    throw (basic_error() << "invalid option 'I' ("
+           << options.get_argument('I').get_value() << ")");
+  if (!_to_obj(options.get_argument('l').get_value(), _ttl))
+    throw (basic_error() << "invalid option 'l' ("
+           << options.get_argument('l').get_value() << ")");
+  if (!_to_obj(options.get_argument('m').get_value(),
+               _min_hosts_alive))
+    throw (basic_error() << "invalid option 'm' ("
+           << options.get_argument('m').get_value() << ")");
+  if (!_to_obj(options.get_argument('n').get_value(), _nb_packet))
+    throw (basic_error() << "invalid option 'n' ("
+           << options.get_argument('n').get_value() << ")");
+  _source_address = options.get_argument('s').get_value();
+  if (!_get_threshold(options.get_argument('w').get_value(),
+                      _warning_packet_lost,
+                      _warning_roundtrip_avg))
+    throw (basic_error() << "invalid option 'w' ("
+           << options.get_argument('w').get_value() << ")");
 
-    _max_packet_interval *= 1000;
-    _max_target_interval *= 1000;
+  _max_packet_interval *= 1000;
+  _max_target_interval *= 1000;
 
-    misc::argument const& arg(options.get_argument('H'));
-    if (arg.get_is_set()) {
-      std::list<host*> const& hosts(host::factory(arg.get_value()));
-      std::copy(
-             hosts.begin(),
-             hosts.end(),
-             std::back_inserter(_hosts));
-    }
-
-    std::vector<std::string> const& parameters(options.get_parameters());
-    for (std::vector<std::string>::const_iterator
-           it(parameters.begin()), end(parameters.end());
-         it != end;
-         ++it) {
-      std::list<host*> const& hosts(host::factory(*it));
-      std::copy(
-             hosts.begin(),
-             hosts.end(),
-             std::back_inserter(_hosts));
-    }
-
-    if (_hosts.empty())
-      throw (basic_error() << "invalid command line:no host " \
-             "was define");
-
-    if (_nb_packet > 20)
-      throw (basic_error() << "invalid options 'n' ("
-             << _nb_packet << " > 20)");
+  misc::argument const& arg(options.get_argument('H'));
+  if (arg.get_is_set()) {
+    std::list<host*> const& hosts(host::factory(arg.get_value()));
+    std::copy(
+              hosts.begin(),
+              hosts.end(),
+              std::back_inserter(_hosts));
   }
-  catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+
+  std::vector<std::string> const& parameters(options.get_parameters());
+  for (std::vector<std::string>::const_iterator
+         it(parameters.begin()), end(parameters.end());
+       it != end;
+       ++it) {
+    std::list<host*> const& hosts(host::factory(*it));
+    std::copy(
+              hosts.begin(),
+              hosts.end(),
+              std::back_inserter(_hosts));
   }
+
+  if (_hosts.empty())
+    throw (basic_error() << "invalid command line:no host " \
+           "was define");
+
+  if (_nb_packet > 20)
+    throw (basic_error() << "invalid options 'n' ("
+           << _nb_packet << " > 20)");
 }
 
 /**
