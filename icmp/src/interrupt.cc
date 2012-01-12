@@ -49,7 +49,8 @@ interrupt::interrupt() {
  *  @param[in] right  The object to copy.
  */
 interrupt::interrupt(interrupt const& right)
-  : handle(right) {
+  : handle_listener(right),
+    handle(right) {
   _internal_copy(right);
 }
 
@@ -94,6 +95,15 @@ void interrupt::close() {
 }
 
 /**
+ *  Forward close to handle_listener.
+ *
+ *  @param[in,out] h  The handle to close;
+ */
+void interrupt::close(handle& h) {
+  handle_listener::close(h);
+}
+
+/**
  *  Catch error.
  */
 void interrupt::error(handle& h) {
@@ -133,6 +143,15 @@ unsigned long interrupt::read(void* data, unsigned long size) {
 }
 
 /**
+ *  Forward read to handle_listener.
+ *
+ *  @param[in,out] h  The handle to read.
+ */
+void interrupt::read(handle& h) {
+  handle_listener::read(h);
+}
+
+/**
  *  Need to read input file descriptor.
  *
  *  @param[in] h  The input file descriptor.
@@ -167,12 +186,22 @@ unsigned long interrupt::write(void const* data, unsigned long size) {
 }
 
 /**
+ *  Forward write to handle_listener.
+ *
+ *  @param[in,out] h  The handle to write.
+ */
+void interrupt::write(handle& h) {
+  handle_listener::write(h);
+}
+
+/**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
  */
 void interrupt::_internal_copy(interrupt const& right) {
   if (this != &right) {
+    handle_listener::operator=(right);
     handle::operator=(right);
     close();
     for (unsigned int i(0); i < 2; ++i) {

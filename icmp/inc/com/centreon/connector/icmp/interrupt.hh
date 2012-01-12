@@ -43,11 +43,14 @@ public:
 
 private:
   void          close();
+  void          close(handle& h);
   void          error(handle& h);
   native_handle get_native_handle();
   unsigned long read(void* data, unsigned long size);
+  void          read(handle& h);
   bool          want_read(handle& h);
   unsigned long write(void const* data, unsigned long size);
+  void          write(handle& h);
   void          _internal_copy(interrupt const& right);
 
   int           _fd[2];
