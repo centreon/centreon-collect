@@ -19,10 +19,24 @@
 */
 
 #include <iostream>
+#include <string.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/icmp/icmp_socket.hh"
 
 using namespace com::centreon::connector::icmp;
+
+/**
+ *  Delete hosts memory.
+ *
+ *  @param[in, out] lst  The hosts list.
+ */
+static void cleanup_hosts(std::list<host*> const& lst) {
+  for (std::list<host*>::const_iterator
+         it(lst.begin()), end(lst.end());
+       it != end;
+       ++it)
+    delete *it;
+}
 
 /**
  *  Check write data.
@@ -36,6 +50,7 @@ static bool check_write(unsigned int address) {
     icmp_socket sock;
     sock.set_address(address);
     char buf[128];
+    memset(buf, 42, sizeof(buf));
     unsigned long ret(sock.write(buf, sizeof(buf)));
     if (ret != sizeof(buf))
       return (false);
@@ -80,6 +95,7 @@ int main() {
     if (hosts.empty())
       throw (basic_error() << "impossible to resolve 127.0.0.1");
     unsigned int address(hosts.front()->get_address());
+    cleanup_hosts(hosts);
     if (!check_write(address))
       throw (basic_error() << "unable to write data to 127.0.0.1");
     if (!check_null_data(address))

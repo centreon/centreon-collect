@@ -25,13 +25,27 @@
 using namespace com::centreon::connector::icmp;
 
 /**
+ *  Delete hosts memory.
+ *
+ *  @param[in, out] lst  The hosts list.
+ */
+static void cleanup_hosts(std::list<host*> const& lst) {
+  for (std::list<host*>::const_iterator
+         it(lst.begin()), end(lst.end());
+       it != end;
+       ++it)
+    delete *it;
+}
+
+/**
  *  Check host factory with empty parameter.
  *
  *  @return True on sucess, otherwise false.
  */
 static bool empty_argument() {
   try {
-    host::factory("");
+    std::list<host*> hosts(host::factory(""));
+    cleanup_hosts(hosts);
   }
   catch (std::exception const& e) {
     (void)e;
@@ -56,6 +70,7 @@ int main() {
       throw (basic_error() << "invalid factory with localhost");
     unsigned int addr(hosts.front()->get_address());
     std::string addr_str(host::address_to_string(addr));
+    cleanup_hosts(hosts);
     if (std::string(addr_str) != "127.0.0.1")
       throw (basic_error() << "invalid factory with localhost");
 
@@ -64,6 +79,7 @@ int main() {
       throw (basic_error() << "invalid factory with 127.0.0.1");
     addr = hosts.front()->get_address();
     addr_str = host::address_to_string(addr);
+    cleanup_hosts(hosts);
     if (addr_str != "127.0.0.1")
       throw (basic_error() << "invalid factory with 127.0.0.1");
   }

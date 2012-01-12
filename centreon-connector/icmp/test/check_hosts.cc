@@ -42,17 +42,19 @@ int main() {
       throw (basic_error() << "invalid number of hosts");
 
     {
-      host& h(*hosts.front());
-      hosts.pop_front();
-      if (h.get_name() != "127.0.0.1")
+      host* h(hosts.front());
+      if (h->get_name() != "127.0.0.1")
         throw (basic_error() << "invalid host name");
+      hosts.pop_front();
+      delete h;
     }
 
     {
-      host& h(*hosts.front());
-      hosts.pop_front();
-      if (h.get_name() != "localhost")
+      host* h(hosts.front());
+      if (h->get_name() != "localhost")
         throw (basic_error() << "invalid host name");
+      hosts.pop_front();
+      delete h;
     }
 
   }
