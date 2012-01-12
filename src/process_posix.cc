@@ -202,9 +202,23 @@ unsigned int process::read_err(void* data, unsigned int size) {
 }
 
 /**
+ *  Terminate the process.
+ */
+void process::terminate() {
+  if (_process != (pid_t)-1) {
+    if (kill(_process, SIGKILL) != 0) {
+      char const* msg(strerror(errno));
+      throw (basic_error() << "could not terminate process "
+             << _process << ": " << msg);
+    }
+  }
+  return ;
+}
+
+/**
  *  Wait for process termination.
  */
-void process::wait() {
+int process::wait() {
   if (_process == (pid_t)-1)
     throw (basic_error() << "attempt to wait an unstarted process");
   int status(0);
@@ -214,18 +228,21 @@ void process::wait() {
     throw (basic_error() << "error while waiting for process: " << msg);
   }
   _terminated();
-  return ;
+  if (WIFEXITED(status))
+    status = WEXITSTATUS(status);
+  return (status);
 }
 
 /**
  *  Wait for process termination.
  *
- *  @param[in] timeout Maximum number of milliseconds to wait for
- *                     process termination.
+ *  @param[in]  timeout   Maximum number of milliseconds to wait for
+ *                        process termination.
+ *  @param[out] exit_code Will be set to the process's exit code.
  *
  *  @return true if process exited.
  */
-bool process::wait(unsigned long timeout) {
+bool process::wait(unsigned long timeout, int* exit_code) {
   if (_process == (pid_t)-1)
     throw (basic_error() << "attempt to wait an unstarted process");
 
@@ -260,8 +277,13 @@ bool process::wait(unsigned long timeout) {
     running = (ret == 0);
     gettimeofday(&now, NULL);
   }
-  if (!running)
+  if (!running) {
     _terminated();
+    if (WIFEXITED(status))
+      status = WEXITSTATUS(status);
+    if (exit_code)
+      *exit_code = status;
+  }
   return (!running);
 }
 
