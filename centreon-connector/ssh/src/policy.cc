@@ -108,6 +108,7 @@ void policy::on_eof() {
 void policy::on_error() {
   logging::info(logging::low)
     << "error occurred while parsing stdin";
+  _error = true;
   on_quit();
   return ;
 }
@@ -273,8 +274,13 @@ void policy::on_version() {
 
 /**
  *  Run the program.
+ *
+ *  @return false if program terminated prematurely.
  */
-void policy::run() {
+bool policy::run() {
+  // No error occurred yet.
+  _error = false;
+
   // Run multiplexer.
   while (!should_exit)
     multiplexer::instance().multiplex();
@@ -290,7 +296,7 @@ void policy::run() {
   while (_reporter.can_report() && _reporter.want_write(_sout))
     multiplexer::instance().multiplex();
 
-  return ;
+  return (!_error);
 }
 
 /**************************************

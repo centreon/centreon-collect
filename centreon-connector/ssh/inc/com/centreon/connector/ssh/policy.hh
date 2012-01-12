@@ -64,7 +64,7 @@ public:
   void                on_quit();
   void                on_result(checks::result const& r);
   void                on_version();
-  void                run();
+  bool                run();
 
 private:
                       policy(policy const& p);
@@ -72,6 +72,7 @@ private:
 
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >
                       _checks;
+  int                 _error;
   orders::parser      _parser;
   reporter            _reporter;
   std::map<sessions::credentials, sessions::session*>
