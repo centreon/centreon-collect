@@ -25,7 +25,9 @@
 #ifdef _WIN32
 #  include <io.h>
 #  include <windows.h>
-#endif // Windows.
+#else
+#  include <unistd.h>
+#endif // Windows or POSIX.
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 
@@ -127,16 +129,28 @@ unsigned long file_stream::read(void* data, unsigned long size) {
   if (!data || !size)
     throw (basic_error() << "attempt to read from " \
            "file stream but do not except any result");
-  size_t rb(fread(data, 1, size, _stream));
-  if (rb <= 0) {
-    char const* msg(strerror(errno));
-    if (feof(_stream))
-      rb = 0;
-    else if (ferror(_stream))
-      throw (basic_error() << "could not read from file stream: "
-             << msg);
+#ifdef _WIN32
+  DWORD rb;
+  bool success(ReadFile(
+                 get_native_handle(),
+                 data,
+                 size,
+                 &rb,
+                 NULL) != FALSE);
+  if (!success) {
+    int errcode(GetLastError());
+    throw (basic_error() << "could not read from file stream (error "
+           << errcode << ")");
   }
   return (static_cast<unsigned long>(rb));
+#else
+  ssize_t rb(::read(get_native_handle(), data, size));
+  if (rb < 0) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not read from file stream: " << msg);
+  }
+  return (static_cast<unsigned long>(rb));
+#endif // Windows or POSIX.
 }
 
 /**
@@ -152,12 +166,28 @@ unsigned long file_stream::write(void const* data, unsigned long size) {
     throw (basic_error() << "attempt to write to a closed file stream");
   if (!data || !size)
     throw (basic_error() << "attempt to write no data to file stream");
-  size_t wb(fwrite(data, 1, size, _stream));
+#ifdef _WIN32
+  DWORD wb;
+  bool success(WriteFile(
+                 get_native_handle(),
+                 data,
+                 size,
+                 &wb,
+                 NULL) != FALSE);
+  if (!success) {
+    int errcode(GetLastError());
+    throw (basic_error() << "could not write to file stream (error "
+           << errcode << ")");
+  }
+  return (static_cast<unsigned long>(wb));
+#else
+  ssize_t wb(::write(get_native_handle(), data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not write to file stream: " << msg);
   }
   return (static_cast<unsigned long>(wb));
+#endif // Windows or POSIX.
 }
 
 /**************************************
