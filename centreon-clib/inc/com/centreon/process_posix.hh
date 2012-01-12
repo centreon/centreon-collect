@@ -40,8 +40,9 @@ public:
   void               exec(std::string const& cmd);
   unsigned int       read(void* data, unsigned int size);
   unsigned int       read_err(void* data, unsigned int size);
-  void               wait();
-  bool               wait(unsigned long timeout);
+  void               terminate();
+  int                wait();
+  bool               wait(unsigned long timeout, int* exit_code = NULL);
   void               with_stderr(bool enable);
   void               with_stdin(bool enable);
   void               with_stdout(bool enable);
