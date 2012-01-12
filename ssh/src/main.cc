@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -139,10 +139,7 @@ int main(int argc, char* argv[]) {
 
       // Program policy.
       policy p;
-      p.run();
-
-      // Set return value.
-      retval = EXIT_SUCCESS;
+      retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
   }
   catch (std::exception const& e) {

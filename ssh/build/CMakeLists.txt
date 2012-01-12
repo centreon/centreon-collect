@@ -211,6 +211,13 @@ if (WITH_TESTING)
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
   include_directories("${PROJECT_SOURCE_DIR}")
+  get_property(CONNECTOR_SSH_BINARY
+    TARGET "${CONNECTOR}"
+    PROPERTY LOCATION)
+  message(STATUS ">>>> ${CONNECTOR_SSH_BINARY}")
+  configure_file(
+    "${TEST_DIR}/connector/binary.hh.in"
+    "${TEST_DIR}/connector/binary.hh")
 
 
   # checks namespace tests.
@@ -500,9 +507,39 @@ if (WITH_TESTING)
   # Version.
   add_test("connector_version" "${CONNECTOR}" "--version")
   # Invalid flag.
-  add_test("connector_invalid" "${CONNECTOR}" "--merethis")
-  set_tests_properties("connector_invalid"
+  add_test("connector_invalid_flag" "${CONNECTOR}" "--merethis")
+  set_tests_properties("connector_invalid_flag"
     PROPERTIES WILL_FAIL TRUE)
+  # Invalid command.
+  set(TEST_NAME "connector_invalid_command")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/invalid_command.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Invalid command ID.
+  set(TEST_NAME "connector_invalid_command_id")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/invalid_command_id.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # EOF on stdin.
+  set(TEST_NAME "connector_eof_on_stdin")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/eof_on_stdin.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Quit command.
+  set(TEST_NAME "connector_command_quit")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/command_quit.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Version command.
+  set(TEST_NAME "connector_command_version")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/command_version.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()
   set(BUILD_UNIT_TEST "No")
