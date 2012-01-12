@@ -210,7 +210,7 @@ bool thread::wait(unsigned long timeout) {
   while (running
          && ((now.tv_sec * 1000000ull + now.tv_usec)
              < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
-    usleep(100);
+    usleep(10000);
     int ret(pthread_kill(_th, 0));
     if (ret == ESRCH)
       running = false;

@@ -152,16 +152,20 @@ endif ()
 if (WIN32)
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/handle_manager_win32.cc"
+    "${SRC_DIR}/process_win32.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/handle_manager_win32.hh"
+    "${INC_DIR}/process_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/handle_manager_posix.cc"
+    "${SRC_DIR}/process_posix.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/handle_manager_posix.hh"
+    "${INC_DIR}/process_posix.hh"
   )
 endif ()
 
@@ -189,6 +193,7 @@ set(
   "${INC_DIR}/handle_listener.hh"
   "${INC_DIR}/handle_manager.hh"
   "${INC_DIR}/namespace.hh"
+  "${INC_DIR}/process.hh"
   "${INC_DIR}/task.hh"
   "${INC_DIR}/task_manager.hh"
   "${INC_DIR}/timestamp.hh"
