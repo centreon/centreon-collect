@@ -40,10 +40,9 @@ class              handle_action : public task {
 public:
   enum             action {
     none = 0,
-    read = 1,
-    write = 2,
-    error = 4,
-    close = 8
+    read,
+    write,
+    error
   };
 
                    handle_action(
@@ -53,16 +52,16 @@ public:
                    handle_action(handle_action const& right);
                    ~handle_action() throw ();
   handle_action&   operator=(handle_action const& right);
-  void             add_action(action a) throw ();
   bool             is_threadable() const throw ();
   handle*          get_handle() const throw ();
   handle_listener* get_handle_listener() const throw ();
   void             run();
+  void             set_action(action a) throw ();
 
 private:
   void             _internal_copy(handle_action const& right);
 
-  unsigned int     _actions;
+  action           _action;
   handle*          _h;
   handle_listener* _hl;
   bool             _is_threadable;

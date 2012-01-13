@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -37,7 +37,6 @@ class          handle_listener {
 public:
                handle_listener();
   virtual      ~handle_listener() throw ();
-  virtual void close(handle& h);
   virtual void error(handle& h) = 0;
   virtual void read(handle& h);
   virtual bool want_read(handle& h);

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -34,15 +34,6 @@ handle_listener::handle_listener() {
  */
 handle_listener::~handle_listener() throw () {
 
-}
-
-/**
- *  Close action on a specific handle.
- *
- *  @param[in] h  The handle notify by a close.
- */
-void handle_listener::close(handle& h) {
-  (void)h;
 }
 
 /**
