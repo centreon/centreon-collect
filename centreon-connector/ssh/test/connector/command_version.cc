@@ -42,8 +42,11 @@ int main() {
   // Write command.
   char const* ptr(CMD);
   unsigned int size(sizeof(CMD) - 1);
-  while (size > 0)
-    size -= p.write(ptr, size);
+  while (size > 0) {
+    unsigned int rb(p.write(ptr, size));
+    size -= rb;
+    ptr += rb;
+  }
   p.with_stdin(false);
 
   // Read reply.
