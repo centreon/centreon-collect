@@ -73,14 +73,12 @@ void handle_manager::multiplex() {
     if (!_array[i].revents)
       continue;
     handle_action* task(_handles[_array[i].fd]);
-    if (_array[i].revents & (POLLIN | POLLPRI))
-      task->add_action(handle_action::read);
-    if (_array[i].revents & POLLOUT)
-      task->add_action(handle_action::write);
-    if (_array[i].revents & POLLHUP)
-      task->add_action(handle_action::close);
     if (_array[i].revents & (POLLERR | POLLNVAL))
-      task->add_action(handle_action::error);
+      task->set_action(handle_action::error);
+    else if (_array[i].revents & POLLOUT)
+      task->set_action(handle_action::write);
+    else if (_array[i].revents & (POLLIN | POLLPRI))
+      task->set_action(handle_action::read);
     _task_manager->add(task, now, task->is_threadable());
     ++nb_check;
   }

@@ -49,7 +49,6 @@ public:
               _want_read(want_read),
               _want_write(want_write) {}
           ~listener() throw () {}
-  void    close(handle& h) { if (&_ref_h == &h) _is_call = true; }
   void    error(handle& h) { if (&_ref_h == &h) _is_call = true; }
   bool    is_call() const throw () { return (_is_call); }
   void    read(handle& h) { if (&_ref_h == &h) _is_call = true; }

@@ -41,7 +41,7 @@ handle_action::handle_action(
                  handle* h,
                  handle_listener* hl,
                  bool is_threadable)
-  : _actions(none), _h(h), _hl(hl), _is_threadable(is_threadable) {}
+  : _action(none), _h(h), _hl(hl), _is_threadable(is_threadable) {}
 
 /**
  *  Copy constructor.
@@ -70,16 +70,6 @@ handle_action& handle_action::operator=(handle_action const& right) {
     _internal_copy(right);
   }
   return (*this);
-}
-
-/**
- *  Add action to action list.
- *
- *  @param[in] a Action to perform.
- */
-void handle_action::add_action(action a) throw () {
-  _actions |= a;
-  return ;
 }
 
 /**
@@ -113,15 +103,24 @@ handle_listener* handle_action::get_handle_listener() const throw () {
  *  Run the task.
  */
 void handle_action::run() {
-  if (_actions & read)
-    _hl->read(*_h);
-  if (_actions & write)
-    _hl->write(*_h);
-  if (_actions & error)
+  action a(_action);
+  _action = none;
+  if (a == error)
     _hl->error(*_h);
-  if (_actions & close)
-    _hl->close(*_h);
-  _actions = none;
+  else if (a == read)
+    _hl->read(*_h);
+  else if (a == write)
+    _hl->write(*_h);
+  return ;
+}
+
+/**
+ *  Set action.
+ *
+ *  @param[in] a Action to perform.
+ */
+void handle_action::set_action(action a) throw () {
+  _action = a;
   return ;
 }
 
@@ -137,7 +136,7 @@ void handle_action::run() {
  *  @param[in] right Object to copy.
  */
 void handle_action::_internal_copy(handle_action const& right) {
-  _actions = right._actions;
+  _action = right._action;
   _h = right._h;
   _hl = right._hl;
   _is_threadable = right._is_threadable;
