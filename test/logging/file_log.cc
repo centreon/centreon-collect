@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/io/file_stream.hh"
 #include "com/centreon/logging/file.hh"
 
 using namespace com::centreon::logging;
@@ -47,9 +48,7 @@ int main() {
   int retval;
 
   try {
-    char* tmp(tmpnam(static_cast<char*>(NULL)));
-    if (!tmp)
-      throw (basic_error() << "tmpname failed");
+    char* tmp(com::centreon::io::file_stream::tmpnam());
 
     {
       file f(tmp);
