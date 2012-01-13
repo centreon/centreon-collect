@@ -154,6 +154,18 @@ unsigned long file_stream::read(void* data, unsigned long size) {
 }
 
 /**
+ *  Get temporary name.
+ *
+ *  @return Temporary name.
+ */
+char* file_stream::tmpnam() {
+  char* ret(::tmpnam(static_cast<char*>(NULL)));
+  if (!ret)
+    throw (basic_error() << "could not generate temporary file name");
+  return (ret);
+}
+
+/**
  *  Write data to stream.
  *
  *  @param[in] data Buffer.
