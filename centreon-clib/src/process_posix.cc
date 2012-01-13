@@ -43,11 +43,13 @@ using namespace com::centreon;
  *  Default constructor.
  */
 process::process()
-  : _process((pid_t)-1), _with_err(false), _with_in(false), _with_out(false) {
-  _err = -1;
-  _in = -1;
-  _out = -1;
-}
+  : _err(-1),
+    _in(-1),
+    _out(-1),
+    _process((pid_t)-1),
+    _with_err(false),
+    _with_in(false),
+    _with_out(false) {}
 
 /**
  *  Destructor.
@@ -65,7 +67,7 @@ void process::exec(std::string const& cmd) {
   // Check viability.
   if (_process != (pid_t)-1)
     throw (basic_error() << "process " << _process
-           << " is already started or has not been waited");
+           << " is already started and has not been waited");
 
   // Create pipes if necessary.
   int err[2];
@@ -218,6 +220,8 @@ void process::terminate() {
 
 /**
  *  Wait for process termination.
+ *
+ *  @return Process exit code.
  */
 int process::wait() {
   if (_process == (pid_t)-1)
@@ -239,7 +243,7 @@ int process::wait() {
  *
  *  @param[in]  timeout   Maximum number of milliseconds to wait for
  *                        process termination.
- *  @param[out] exit_code Will be set to the process's exit code.
+ *  @param[out] exit_code Will be set to the process' exit code.
  *
  *  @return true if process exited.
  */
@@ -428,9 +432,9 @@ void process::_pipe(int fds[2]) {
 /**
  *  Read data from FD.
  *
- *  @param[in] fd 
- *  @param[in] data Destination buffer.
- *  @param[in] size Maximum number of bytes to read.
+ *  @param[in]  fd   File descriptor.
+ *  @param[out] data Destination buffer.
+ *  @param[in]  size Maximum number of bytes to read.
  *
  *  @return Number of bytes actually read.
  */

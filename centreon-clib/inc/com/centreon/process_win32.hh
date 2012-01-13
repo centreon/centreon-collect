@@ -52,8 +52,23 @@ private:
                      process(process const& p);
   process&           operator=(process const& p);
   void               _internal_copy(process const& p);
+  static void        _pipe(HANDLE* rh, HANDLE* wh);
+  unsigned int       _read(HANDLE h, void* data, unsigned int size);
+  void               _terminated() throw ();
+  bool               _wait(DWORD timeout, int* exit_code);
+  void               _with_std(
+                       bool enable,
+                       bool* b,
+                       HANDLE* h,
+                       char const* name);
 
+  HANDLE             _err;
+  HANDLE             _in;
+  HANDLE             _out;
   HANDLE             _process;
+  bool               _with_err;
+  bool               _with_in;
+  bool               _with_out;
 };
 
 CC_END()
