@@ -77,7 +77,7 @@ void handle_manager::multiplex() {
       task->set_action(handle_action::error);
     else if (_array[i].revents & POLLOUT)
       task->set_action(handle_action::write);
-    else if (_array[i].revents & (POLLIN | POLLPRI))
+    else if (_array[i].revents & (POLLHUP | POLLIN | POLLPRI))
       task->set_action(handle_action::read);
     _task_manager->add(task, now, task->is_threadable());
     ++nb_check;
