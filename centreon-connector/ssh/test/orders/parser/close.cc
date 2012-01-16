@@ -43,7 +43,7 @@ int main() {
   // Parser.
   parser p;
   p.listen(&listnr);
-  p.close(bh);
+  p.read(bh);
 
   // Checks.
   int retval(0);

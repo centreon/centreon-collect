@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -41,7 +41,6 @@ public:
                      ~reporter() throw ();
   reporter&          operator=(reporter const& r);
   bool               can_report() const throw ();
-  void               close(handle& h);
   void               error(handle& h);
   std::string const& get_buffer() const throw ();
   void               send_result(checks::result const& r);

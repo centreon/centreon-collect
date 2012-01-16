@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -43,7 +43,6 @@ namespace              orders {
                        parser(parser const& p);
                        ~parser() throw ();
     parser&            operator=(parser const& p);
-    void               close(handle& h);
     void               error(handle& h);
     std::string const& get_buffer() const throw ();
     listener*          get_listener() const throw ();
