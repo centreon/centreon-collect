@@ -44,7 +44,6 @@ namespace                 sessions {
                           session(credentials const& creds);
                           ~session() throw ();
     void                  close();
-    void                  close(handle& h);
     void                  connect();
     void                  error(handle& h);
     LIBSSH2_SESSION*      get_libssh2_session() const throw ();

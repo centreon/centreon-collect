@@ -485,12 +485,6 @@ if (WITH_TESTING)
     "${TEST_DIR}/reporter/send_result.cc")
   target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Handle closed.
-  set(TEST_NAME "reporter_close")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/reporter/close.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
   #   Handle has error.
   set(TEST_NAME "reporter_error")
   add_executable("${TEST_NAME}"
@@ -502,6 +496,14 @@ if (WITH_TESTING)
   #
   # Process tests.
   #
+  # Test library.
+  add_library("connector_ssh_binary" STATIC
+    # Sources.
+    "${TEST_DIR}/connector/get_user_name.cc"
+    # Headers.
+    "${TEST_DIR}/connector/binary.hh"
+    "${TEST_DIR}/connector/get_user_name.hh")
+  set(TEST_LIBRARIES "connector_ssh_binary" ${CLIB_LIBRARIES})
   # Help.
   add_test("connector_help" "${CONNECTOR}" "--help")
   # Version.
@@ -539,6 +541,12 @@ if (WITH_TESTING)
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/connector/command_version.cc")
   target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Execute command.
+  set(TEST_NAME "connector_command_execute")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/command_execute.cc")
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()

@@ -104,20 +104,6 @@ void session::close() {
 }
 
 /**
- *  Close callback.
- *
- *  @param[in,out] h Handle.
- */
-void session::close(handle& h) {
-  (void)h;
-  logging::error(logging::low)
-    << "socket got closed, shutting down session "
-    << _creds.get_user() << "@" << _creds.get_host();
-  this->close();
-  return ;
-}
-
-/**
  *  Open session.
  */
 void session::connect() {
@@ -294,7 +280,15 @@ void session::read(handle& h) {
       &session::_key,
       &session::_available
     };
-  (this->*redirector[_step])();
+  try {
+    (this->*redirector[_step])();
+  }
+  catch (std::exception const& e) {
+    logging::error(logging::medium) << "session "
+      << _creds.get_user() << "@" << _creds.get_host()
+      << " encountered an error: " << e.what();
+    this->close();
+  }
   return ;
 }
 
@@ -401,7 +395,7 @@ void session::_available() {
 void session::_key() {
   // Log message.
   logging::info(logging::medium)
-    << "launching key-based authentication on session"
+    << "launching key-based authentication on session "
     << _creds.get_user() << "@" << _creds.get_host();
 
   // Get home directory.

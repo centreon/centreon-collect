@@ -213,7 +213,7 @@ void policy::on_result(checks::result const& r) {
 
     // Check session.
     if (!sess->is_connected()) {
-      logging::debug(logging::medium) << "session " << sess << "is not"
+      logging::debug(logging::medium) << "session " << sess << " is not"
            " connected, checking if any check working with it remains";
       bool found(false);
       for (std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator

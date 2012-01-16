@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -65,18 +65,6 @@ parser& parser::operator=(parser const& p) {
     _copy(p);
   }
   return (*this);
-}
-
-/**
- *  Got close event on handle.
- *
- *  @param[in] h Handle.
- */
-void parser::close(handle& h) {
-  (void)h;
-  if (_listnr)
-    _listnr->on_eof();
-  return ;
 }
 
 /**
