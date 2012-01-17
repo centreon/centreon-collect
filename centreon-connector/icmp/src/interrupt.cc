@@ -100,7 +100,8 @@ void interrupt::close() {
  *  @param[in,out] h  The handle to close;
  */
 void interrupt::close(handle& h) {
-  handle_listener::close(h);
+  (void)h;
+  return ;
 }
 
 /**
