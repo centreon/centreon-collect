@@ -103,6 +103,7 @@ add_library("${CONNECTORLIB}" STATIC
   "${SRC_DIR}/options.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
+  "${SRC_DIR}/reporter.cc"
   # Headers.
   "${INC_DIR}/checks/listener.hh"
   "${INC_DIR}/checks/result.hh"
@@ -111,6 +112,7 @@ add_library("${CONNECTORLIB}" STATIC
   "${INC_DIR}/options.hh"
   "${INC_DIR}/orders/listener.hh"
   "${INC_DIR}/orders/parser.hh"
+  "${INC_DIR}/reporter.hh"
 )
 target_link_libraries(
   "${CONNECTORLIB}"
