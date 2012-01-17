@@ -95,7 +95,7 @@ include_directories("${PERL_INCLUDE_PATH}")
 
 # Perl connector library.
 set(CONNECTORLIB "centreonconnectorperl")
-add_library("${CONNECTOR}" STATIC
+add_library("${CONNECTORLIB}" STATIC
   # Sources.
   # Headers.
   "${INC_DIR}/namespace.hh"
