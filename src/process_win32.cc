@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process_win32.hh"
 
 using namespace com::centreon;
@@ -110,6 +111,7 @@ void process::exec(std::string const& cmd) {
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(pi));
     success = (CreateProcess(
+                 NULL,
                  cmd.c_str(),
                  NULL,
                  NULL,
@@ -182,7 +184,7 @@ void process::terminate() {
     if (!TerminateProcess(_process, EXIT_FAILURE)) {
       int errcode(GetLastError());
       throw (basic_error() << "could not terminate process "
-             << GetProcessId(_process) << ": " << msg);
+             << GetProcessId(_process) << " (error " << errcode << ")");
     }
   }
   return ;
