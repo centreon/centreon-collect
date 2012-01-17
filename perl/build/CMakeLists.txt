@@ -99,10 +99,14 @@ add_library("${CONNECTORLIB}" STATIC
   # Sources.
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/options.cc"
+  "${SRC_DIR}/orders/listener.cc"
+  "${SRC_DIR}/orders/parser.cc"
   # Headers.
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/options.hh"
+  "${INC_DIR}/orders/listener.hh"
+  "${INC_DIR}/orders/parser.hh"
 )
 target_link_libraries(
   "${CONNECTORLIB}"
