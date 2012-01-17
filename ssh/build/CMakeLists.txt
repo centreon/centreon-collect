@@ -214,7 +214,6 @@ if (WITH_TESTING)
   get_property(CONNECTOR_SSH_BINARY
     TARGET "${CONNECTOR}"
     PROPERTY LOCATION)
-  message(STATUS ">>>> ${CONNECTOR_SSH_BINARY}")
   configure_file(
     "${TEST_DIR}/connector/binary.hh.in"
     "${TEST_DIR}/connector/binary.hh")
