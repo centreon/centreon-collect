@@ -97,7 +97,9 @@ include_directories("${PERL_INCLUDE_PATH}")
 set(CONNECTORLIB "centreonconnectorperl")
 add_library("${CONNECTORLIB}" STATIC
   # Sources.
+  "${SRC_DIR}/multiplexer.cc"
   # Headers.
+  "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
 )
 target_link_libraries(
