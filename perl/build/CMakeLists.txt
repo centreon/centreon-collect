@@ -97,11 +97,13 @@ include_directories("${PERL_INCLUDE_PATH}")
 set(CONNECTORLIB "centreonconnectorperl")
 add_library("${CONNECTORLIB}" STATIC
   # Sources.
+  "${SRC_DIR}/checks/result.cc"
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/options.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
   # Headers.
+  "${INC_DIR}/checks/result.hh"
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/options.hh"
