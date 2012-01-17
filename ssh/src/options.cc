@@ -83,7 +83,7 @@ std::string options::help() const {
       << "\n"
       << "Commands must be sent on the connector's standard input.\n"
       << "They must be sent using Centreon Connector protocol version\n"
-      << "and formatted as such:\n"
+      << "1.0 and formatted as such:\n"
       << "\n"
       << "  <host> <user> <password> <command> [arg1] [arg2]\n"
       << "Check results will be sent back using also the Centreon\n"
