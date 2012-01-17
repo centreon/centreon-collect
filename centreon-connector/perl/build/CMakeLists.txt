@@ -98,9 +98,11 @@ set(CONNECTORLIB "centreonconnectorperl")
 add_library("${CONNECTORLIB}" STATIC
   # Sources.
   "${SRC_DIR}/multiplexer.cc"
+  "${SRC_DIR}/options.cc"
   # Headers.
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
+  "${INC_DIR}/options.hh"
 )
 target_link_libraries(
   "${CONNECTORLIB}"
@@ -137,6 +139,20 @@ if (WITH_TESTING)
   # Enable testing.
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
+  include_directories("${PROJECT_SOURCE_DIR}")
+
+
+  #
+  # Process tests.
+  #
+  # Help.
+  add_test("connector_help" "${CONNECTOR}" "--help")
+  # Version.
+  add_test("connector_version" "${CONNECTOR}" "--version")
+  # Invalid flag.
+  add_test("connector_invalid_flag" "${CONNECTOR}" "--merethis")
+  set_tests_properties("connector_invalid_flag"
+    PROPERTIES WILL_FAIL TRUE)
 
 else()
   set(BUILD_UNIT_TEST "No")
