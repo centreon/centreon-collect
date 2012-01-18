@@ -107,7 +107,7 @@ void process::exec(std::string const& cmd) {
 
   // Create process.
   bool success(false);
-  exceptions::basic error(basic_error());
+  exceptions::basic error = basic_error();
   try {
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(pi));
