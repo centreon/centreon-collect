@@ -24,6 +24,7 @@
 #include <windows.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process_win32.hh"
+#include "com/centreon/unique_array_ptr.hh"
 
 using namespace com::centreon;
 
@@ -110,9 +111,12 @@ void process::exec(std::string const& cmd) {
   try {
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(pi));
+    size_t size(cmd.size() + 1);
+    unique_array_ptr cmdstr(new char[size]);
+    memcpy(cmdstr.get(), cmd.c_str(), size);
     success = (CreateProcess(
                  NULL,
-                 cmd.c_str(),
+                 cmdstr.get(),
                  NULL,
                  NULL,
                  TRUE,
