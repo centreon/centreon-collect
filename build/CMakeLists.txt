@@ -67,7 +67,11 @@ else ()
     message(FATAL_ERROR "Could not find pthreads library.")
   endif ()
 endif ()
-set(LIB_THREAD "${CMAKE_THREAD_LIBS_INIT}")
+if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" AND CMAKE_COMPILER_IS_GNUCXX)
+  set(LIB_THREAD "-pthread -lpthread")
+else ()
+  set(LIB_THREAD "${CMAKE_THREAD_LIBS_INIT}")
+endif ()
 
 # Find real time library.
 if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD"
