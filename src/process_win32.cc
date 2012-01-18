@@ -112,7 +112,7 @@ void process::exec(std::string const& cmd) {
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(pi));
     size_t size(cmd.size() + 1);
-    unique_array_ptr cmdstr(new char[size]);
+    unique_array_ptr<char> cmdstr(new char[size]);
     memcpy(cmdstr.get(), cmd.c_str(), size);
     success = (CreateProcess(
                  NULL,
