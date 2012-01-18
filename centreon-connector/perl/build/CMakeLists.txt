@@ -99,14 +99,17 @@ add_library("${CONNECTORLIB}" STATIC
   # Sources.
   "${SRC_DIR}/checks/listener.cc"
   "${SRC_DIR}/checks/result.cc"
+  "${SRC_DIR}/embedded_perl.cc"
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/options.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
   "${SRC_DIR}/reporter.cc"
+  "${SRC_DIR}/script.cc"
   # Headers.
   "${INC_DIR}/checks/listener.hh"
   "${INC_DIR}/checks/result.hh"
+  "${INC_DIR}/embedded_perl.hh"
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/options.hh"
@@ -150,6 +153,14 @@ if (WITH_TESTING)
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
   include_directories("${PROJECT_SOURCE_DIR}")
+
+  # Embedded Perl tests.
+  #   Simple script execution.
+  set(TEST_NAME "embedded_perl_run_simple")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/embedded_perl/run_simple.cc")
+  target_link_libraries("${TEST_NAME}" ${CONNECTORLIB})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 
   #

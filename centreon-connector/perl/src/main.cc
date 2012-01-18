@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/connector/perl/options.hh"
 #include "com/centreon/exceptions/basic.hh"
@@ -39,10 +40,11 @@ using namespace com::centreon::connector::perl;
  *
  *  @param[in] argc Argument count.
  *  @param[in] argv Argument values.
+ *  @param[in] env  Environment.
  *
  *  @return 0 on successful execution.
  */
-int main(int argc, char** argv) {
+int main(int argc, char** argv, char** env) {
   // Return value.
   int retval(EXIT_FAILURE);
 
@@ -94,6 +96,10 @@ int main(int argc, char** argv) {
       }
       logging::info(logging::low) << "Centreon Connector Perl "
         << CENTREON_CONNECTOR_PERL_VERSION << " starting";
+
+      // Load Embedded Perl.
+      embedded_perl::load(&argc, &argv, &env);
+
       // XXX: to implement
     }
   }
@@ -102,6 +108,7 @@ int main(int argc, char** argv) {
   }
 
   // Deinitializations.
+  embedded_perl::unload();
   multiplexer::unload();
   logging::engine::unload();
 
