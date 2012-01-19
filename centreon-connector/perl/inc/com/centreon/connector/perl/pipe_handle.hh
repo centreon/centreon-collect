@@ -32,21 +32,22 @@ CCCP_BEGIN()
  *
  *  Wrap a pipe file descriptor within a class.
  */
-class          pipe_handle : public handle {
+class           pipe_handle : public handle {
 public:
-               pipe_handle(int fd = -1);
-               pipe_handle(pipe_handle const& ph);
-               ~pipe_handle() throw ();
-  pipe_handle& operator=(pipe_handle const& ph);
-  void         close() throw ();
-  unsigned int read(void* data, unsigned int size);
-  void         set_fd(int fd);
-  unsigned int write(void const* data, unsigned int size);
+                pipe_handle(int fd = -1);
+                pipe_handle(pipe_handle const& ph);
+                ~pipe_handle() throw ();
+  pipe_handle&  operator=(pipe_handle const& ph);
+  void          close() throw ();
+  native_handle get_native_handle() throw ();
+  unsigned long read(void* data, unsigned long size);
+  void          set_fd(int fd);
+  unsigned long write(void const* data, unsigned long size);
 
 private:
-  void         _internal_copy(pipe_handle const& ph);
+  void          _internal_copy(pipe_handle const& ph);
 
-  int          _fd;
+  int           _fd;
 };
 
 CCCP_END()
