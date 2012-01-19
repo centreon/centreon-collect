@@ -57,7 +57,7 @@ class        unique_array_ptr {
   /**
    *  Destructor.
    */
-             ~array_ptr() {
+             ~unique_array_ptr() {
     delete [] _ptr;
   }
 
