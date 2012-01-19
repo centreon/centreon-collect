@@ -97,6 +97,7 @@ include_directories("${PERL_INCLUDE_PATH}")
 set(CONNECTORLIB "centreonconnectorperl")
 add_library("${CONNECTORLIB}" STATIC
   # Sources.
+  "${SRC_DIR}/checks/check.cc"
   "${SRC_DIR}/checks/listener.cc"
   "${SRC_DIR}/checks/result.cc"
   "${SRC_DIR}/embedded_perl.cc"
@@ -108,6 +109,7 @@ add_library("${CONNECTORLIB}" STATIC
   "${SRC_DIR}/reporter.cc"
   "${SRC_DIR}/script.cc"
   # Headers.
+  "${INC_DIR}/checks/check.hh"
   "${INC_DIR}/checks/listener.hh"
   "${INC_DIR}/checks/result.hh"
   "${INC_DIR}/embedded_perl.hh"
