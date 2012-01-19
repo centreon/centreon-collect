@@ -134,7 +134,8 @@ int main(int argc, char* argv[]) {
 #endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
-      logging::debug(logging::medium) << "installing termination handler";
+      logging::debug(logging::medium)
+        << "installing termination handler";
       signal(SIGTERM, term_handler);
 
       // Program policy.
