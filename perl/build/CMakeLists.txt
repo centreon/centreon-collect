@@ -106,6 +106,7 @@ add_library("${CONNECTORLIB}" STATIC
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
   "${SRC_DIR}/pipe_handle.cc"
+  "${SRC_DIR}/policy.cc"
   "${SRC_DIR}/reporter.cc"
   "${SRC_DIR}/script.cc"
   # Headers.
@@ -119,6 +120,7 @@ add_library("${CONNECTORLIB}" STATIC
   "${INC_DIR}/orders/listener.hh"
   "${INC_DIR}/orders/parser.hh"
   "${INC_DIR}/pipe_handle.hh"
+  "${INC_DIR}/policy.hh"
   "${INC_DIR}/reporter.hh"
 )
 target_link_libraries(
