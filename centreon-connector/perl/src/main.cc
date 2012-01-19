@@ -19,10 +19,12 @@
 */
 
 #include <iostream>
+#include <signal.h>
 #include <stdlib.h>
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/connector/perl/options.hh"
+#include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/logger.hh"
@@ -34,6 +36,25 @@ using namespace com::centreon::connector::perl;
 #ifndef CENTREON_CONNECTOR_PERL_VERSION
 #  define CENTREON_CONNECTOR_PERL_VERSION "(development version)"
 #endif // !CENTREON_CONNECTOR_PERL_VERSION
+
+// Termination flag.
+volatile bool should_exit(false);
+
+/**
+ *  Termination handler.
+ *
+ *  @param[in] signum Unused.
+ */
+static void term_handler(int signum) {
+  (void)signum;
+  int old_errno(errno);
+  logging::info(logging::high) << "termination request received";
+  should_exit = true;
+  logging::info(logging::high) << "reseting termination handler";
+  signal(SIGTERM, SIG_DFL);
+  errno = old_errno;
+  return ;
+}
 
 /**
  *  Program entry point.
@@ -97,10 +118,17 @@ int main(int argc, char** argv, char** env) {
       logging::info(logging::low) << "Centreon Connector Perl "
         << CENTREON_CONNECTOR_PERL_VERSION << " starting";
 
+      // Set termination handler.
+      logging::debug(logging::medium)
+        << "installing termination handler";
+      signal(SIGTERM, term_handler);
+
       // Load Embedded Perl.
       embedded_perl::load(&argc, &argv, &env);
 
-      // XXX: to implement
+      // Program policy.
+      policy p;
+      retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
   }
   catch (std::exception const& e) {
