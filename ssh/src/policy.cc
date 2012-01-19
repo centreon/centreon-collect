@@ -61,12 +61,17 @@ policy::policy() : _sin(stdin), _sout(stdout) {
  *  Destructor.
  */
 policy::~policy() throw () {
-  // Remove from multiplexer.
-  multiplexer::instance().handle_manager::remove(&_sin);
-  multiplexer::instance().handle_manager::remove(&_sout);
+  try {
+    // Remove from multiplexer.
+    multiplexer::instance().handle_manager::remove(&_sin);
+    multiplexer::instance().handle_manager::remove(&_sout);
+  }
+  catch (...) {}
 
   // Close checks.
-  for (std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator
+  for (std::map<
+         unsigned long long,
+         std::pair<checks::check*, sessions::session*> >::iterator
          it = _checks.begin(),
          end = _checks.end();
        it != end;
@@ -314,8 +319,7 @@ bool policy::run() {
  */
 policy::policy(policy const& p)
   : orders::listener(p), checks::listener(p) {
-  assert(!"policy is not copyable");
-  abort();
+  _internal_copy(p);
 }
 
 /**
@@ -328,8 +332,18 @@ policy::policy(policy const& p)
  *  @return This object.
  */
 policy& policy::operator=(policy const& p) {
+  _internal_copy(p);
+  return (*this);
+}
+
+/**
+ *  Calls abort().
+ *
+ *  @param[in] p Unused.
+ */
+void policy::_internal_copy(policy const& p) {
   (void)p;
   assert(!"policy is not copyable");
   abort();
-  return (*this);
+  return ;
 }

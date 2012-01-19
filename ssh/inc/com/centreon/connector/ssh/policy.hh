@@ -33,12 +33,12 @@
 CCCS_BEGIN()
 
 // Forward declarations.
-namespace checks {
-  class check;
-  class result;
+namespace         checks {
+  class           check;
+  class           result;
 }
-namespace sessions {
-  class session;
+namespace         sessions {
+  class           session;
 }
 
 /**
@@ -47,38 +47,39 @@ namespace sessions {
  *
  *  Manage program execution.
  */
-class                 policy : public orders::listener,
-                               public checks::listener {
+class             policy : public orders::listener,
+                           public checks::listener {
 public:
-                      policy();
-                      ~policy() throw ();
-  void                on_eof();
-  void                on_error();
-  void                on_execute(
-                        unsigned long long cmd_id,
-                        time_t timeout,
-                        std::string const& host,
-                        std::string const& user,
-                        std::string const& password,
-                        std::string const& cmd);
-  void                on_quit();
-  void                on_result(checks::result const& r);
-  void                on_version();
-  bool                run();
+                  policy();
+                  ~policy() throw ();
+  void            on_eof();
+  void            on_error();
+  void            on_execute(
+                    unsigned long long cmd_id,
+                    time_t timeout,
+                    std::string const& host,
+                    std::string const& user,
+                    std::string const& password,
+                    std::string const& cmd);
+  void            on_quit();
+  void            on_result(checks::result const& r);
+  void            on_version();
+  bool            run();
 
 private:
-                      policy(policy const& p);
-  policy&             operator=(policy const& p);
+                  policy(policy const& p);
+  policy&         operator=(policy const& p);
+  void            _internal_copy(policy const& p);
 
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >
-                      _checks;
-  int                 _error;
-  orders::parser      _parser;
-  reporter            _reporter;
+                  _checks;
+  bool            _error;
+  orders::parser  _parser;
+  reporter        _reporter;
   std::map<sessions::credentials, sessions::session*>
-                      _sessions;
-  io::file_stream     _sin;
-  io::file_stream     _sout;
+                  _sessions;
+  io::file_stream _sin;
+  io::file_stream _sout;
 };
 
 CCCS_END()
