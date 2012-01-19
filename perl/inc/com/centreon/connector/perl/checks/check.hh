@@ -44,6 +44,7 @@ namespace              checks {
   public:
                        check();
                        ~check() throw ();
+    void               error(handle& h);
     pid_t              execute(
                          unsigned long long cmd_id,
                          std::string const& cmd,

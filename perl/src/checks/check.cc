@@ -54,6 +54,19 @@ check::~check() throw () {
 }
 
 /**
+ *  Error occurred on one pipe.
+ *
+ *  @param[in] h Pipe.
+ */
+void check::error(handle& h) {
+  (void)h;
+  result r;
+  r.set_command_id(_cmd_id);
+  _send_result_and_unregister(r);
+  return ;
+}
+
+/**
  *  Execute a Perl script.
  *
  *  @param[in] cmd_id Command ID.
