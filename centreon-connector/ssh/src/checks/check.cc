@@ -456,12 +456,12 @@ void check::_send_result_and_unregister(result const& r) {
     _session = NULL;
   }
 
-  // Check that was haven't already send a check result.
+  // Check that we haven't already send a check result.
   if (_cmd_id) {
     // Reset command ID.
     _cmd_id = 0;
 
-    // Send check result to listeners.
+    // Send check result to listener.
     if (_listnr)
       _listnr->on_result(r);
   }
