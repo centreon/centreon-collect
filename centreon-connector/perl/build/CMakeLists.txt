@@ -159,10 +159,16 @@ if (WITH_TESTING)
   include_directories("${PROJECT_SOURCE_DIR}")
 
   # Embedded Perl tests.
-  #   Simple script execution.
-  set(TEST_NAME "embedded_perl_run_simple")
+  #   Simple script execution #1.
+  set(TEST_NAME "embedded_perl_run_simple_1")
   add_executable("${TEST_NAME}"
-    "${TEST_DIR}/embedded_perl/run_simple.cc")
+    "${TEST_DIR}/embedded_perl/run_simple_1.cc")
+  target_link_libraries("${TEST_NAME}" ${CONNECTORLIB})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Simple script execution #2.
+  set(TEST_NAME "embedded_perl_run_simple_2")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/embedded_perl/run_simple_2.cc")
   target_link_libraries("${TEST_NAME}" ${CONNECTORLIB})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
