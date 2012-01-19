@@ -199,9 +199,8 @@ void policy::on_quit() {
  *  @param[in] r Check result.
  */
 void policy::on_result(checks::result const& r) {
-  static concurrency::mutex processing_mutex;
-
   // Lock mutex.
+  static concurrency::mutex processing_mutex;
   concurrency::locker lock(&processing_mutex);
 
   // Remove check from list.
@@ -258,7 +257,6 @@ void policy::on_result(checks::result const& r) {
       }
     }
   }
-  lock.unlock();
 
   // Send check result back to monitoring engine.
   _reporter.send_result(r);
