@@ -86,6 +86,15 @@ void pipe_handle::close() throw () {
 }
 
 /**
+ *  Get the native handle associated with this pipe handle.
+ *
+ *  @return Pipe FD.
+ */
+int pipe_handle::get_native_handle() throw () {
+  return (_fd);
+}
+
+/**
  *  Read data from the file descriptor.
  *
  *  @param[out] data Destination buffer.
@@ -93,7 +102,7 @@ void pipe_handle::close() throw () {
  *
  *  @return Number of bytes actually read.
  */
-unsigned int pipe_handle::read(void* data, unsigned int size) {
+unsigned long pipe_handle::read(void* data, unsigned long size) {
   ssize_t rb(::read(_fd, data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
@@ -121,7 +130,7 @@ void pipe_handle::set_fd(int fd) {
  *
  *  @return Actual number of bytes written.
  */
-unsigned int pipe_handle::write(void const* data, unsigned int size) {
+unsigned long pipe_handle::write(void const* data, unsigned long size) {
   ssize_t wb(::write(_fd, data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
