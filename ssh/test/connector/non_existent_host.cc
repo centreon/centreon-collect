@@ -41,7 +41,7 @@ using namespace com::centreon;
                " \0\0\0\0"
 
 /**
- *  Check that connector respond properly to version command.
+ *  Check that connector respond properly to check on non-existent host.
  *
  *  @return 0 on success.
  */
