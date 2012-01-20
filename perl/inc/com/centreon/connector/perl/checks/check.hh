@@ -50,7 +50,7 @@ namespace              checks {
                          std::string const& cmd,
                          time_t tmt);
     void               listen(listener* listnr);
-    void               on_timeout(bool final);
+    void               on_timeout(bool final = true);
     void               read(handle& h);
     void               terminated(int exit_code);
     void               unlisten(listener* listnr);
@@ -62,12 +62,14 @@ namespace              checks {
     void               _internal_copy(check const& c);
     void               _send_result_and_unregister(result const& r);
 
+    pid_t              _child;
     unsigned long long _cmd_id;
     pipe_handle        _err;
     listener*          _listnr;
     pipe_handle        _out;
     std::string        _stderr;
     std::string        _stdout;
+    unsigned long      _timeout;
   };
 }
 

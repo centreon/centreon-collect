@@ -21,7 +21,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <memory>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -120,17 +119,8 @@ void policy::on_execute(
   std::auto_ptr<checks::check> chk(new checks::check);
   chk->listen(this);
   pid_t child(chk->execute(cmd_id, cmd, timeout));
-  try {
-    _checks[child] = chk.get();
-    chk.release();
-  }
-  catch (...) {
-    kill(SIGKILL, child);
-    checks::result r;
-    r.set_command_id(cmd_id);
-    on_result(r);
-    throw ;
-  }
+  _checks[child] = chk.get();
+  chk.release();
   return ;
 }
 
