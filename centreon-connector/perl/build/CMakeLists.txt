@@ -208,6 +208,18 @@ if (WITH_TESTING)
     "${TEST_DIR}/connector/non_existent_script.cc")
   target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Graceful timeout.
+  set(TEST_NAME "connector_timeout_term")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/timeout_term.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Forced timeout.
+  set(TEST_NAME "connector_timeout_kill")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/timeout_kill.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()
   set(BUILD_UNIT_TEST "No")
