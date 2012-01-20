@@ -47,9 +47,9 @@ int main(int argc, char* argv[], char* env[]) {
   int retval(EXIT_FAILURE);
 
   // Write simple Perl script.
-  std::string script_path(io::file_stream::tmpnam());
+  std::string script_path(com::centreon::io::file_stream::tmpnam());
   try {
-    io::file_stream fs;
+    com::centreon::io::file_stream fs;
     fs.open(script_path.c_str(), "w");
     char const* data(
       "my $x;\n"
