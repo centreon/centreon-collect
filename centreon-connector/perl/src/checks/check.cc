@@ -104,10 +104,10 @@ pid_t check::execute(
     this);
 
   // Register timeout.
-  std::auto_ptr<timeout> t(new timeout(this));
+  std::auto_ptr<timeout> t(new timeout(this, false));
   _timeout = multiplexer::instance().com::centreon::task_manager::add(
     t.get(),
-    tmt,
+    tmt - 1,
     false,
     true);
   t.release();
