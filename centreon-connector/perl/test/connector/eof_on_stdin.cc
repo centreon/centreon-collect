@@ -19,7 +19,7 @@
 */
 
 #include "com/centreon/process.hh"
-#include "test/connector/binary.hh"
+#include "test/connector/paths.hh"
 
 using namespace com::centreon;
 

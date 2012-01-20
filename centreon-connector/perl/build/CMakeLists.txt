@@ -161,12 +161,13 @@ if (WITH_TESTING)
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
   include_directories("${PROJECT_SOURCE_DIR}")
+  set(CONNECTOR_TEST_DIR "${PROJECT_SOURCE_DIR}/test/connector")
   get_property(CONNECTOR_PERL_BINARY
     TARGET "${CONNECTOR}"
     PROPERTY LOCATION)
   configure_file(
-    "${TEST_DIR}/connector/binary.hh.in"
-    "${TEST_DIR}/connector/binary.hh")
+    "${TEST_DIR}/connector/paths.hh.in"
+    "${TEST_DIR}/connector/paths.hh")
 
 
   # Embedded Perl tests.
