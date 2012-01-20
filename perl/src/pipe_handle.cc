@@ -38,7 +38,7 @@ using namespace com::centreon::connector::perl;
  *
  *  @param[in] fd File descriptor.
  */
-pipe_handle::pipe_handle(int fd) {
+pipe_handle::pipe_handle(int fd) : _fd(-1) {
   set_fd(fd);
 }
 
