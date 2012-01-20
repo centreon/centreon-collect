@@ -118,9 +118,18 @@ void policy::on_execute(
                std::string const& cmd) {
   std::auto_ptr<checks::check> chk(new checks::check);
   chk->listen(this);
-  pid_t child(chk->execute(cmd_id, cmd, timeout));
-  _checks[child] = chk.get();
-  chk.release();
+  try {
+    pid_t child(chk->execute(cmd_id, cmd, timeout));
+    _checks[child] = chk.get();
+    chk.release();
+  }
+  catch (std::exception const& e) {
+    logging::info(logging::low) << "execution of check "
+      << cmd_id << "failed: " << e.what();
+    checks::result r;
+    r.set_command_id(cmd_id);
+    on_result(r);
+  }
   return ;
 }
 
@@ -179,9 +188,9 @@ bool policy::run() {
     // Is there some terminated child ?
     int status(0);
     pid_t child(waitpid(0, &status, WNOHANG));
-    while (child != 0) {
+    while ((child != 0) && (child != (pid_t)-1)) {
       // Check for error.
-      if (child == (pid_t)-1) {
+      if ((child == (pid_t)-1) && (errno != ECHILD)) {
         char const* msg(strerror(errno));
         throw (basic_error() << "waitpid failed: " << msg);
       }
