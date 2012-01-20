@@ -201,7 +201,7 @@ bool policy::run() {
       if (it != _checks.end()) {
         std::auto_ptr<checks::check> chk(it->second);
         _checks.erase(it);
-        chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : 3);
+        chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
       }
 
       // Is there any other terminated child ?
