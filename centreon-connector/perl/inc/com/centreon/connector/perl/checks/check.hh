@@ -50,6 +50,7 @@ namespace              checks {
                          std::string const& cmd,
                          time_t tmt);
     void               listen(listener* listnr);
+    void               on_timeout(bool final);
     void               read(handle& h);
     void               terminated(int exit_code);
     void               unlisten(listener* listnr);
