@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -51,19 +51,22 @@ check::check()
  *  Destructor.
  */
 check::~check() throw () {
-  // Send result if we haven't already done so.
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
+  try {
+    // Send result if we haven't already done so.
+    result r;
+    r.set_command_id(_cmd_id);
+    _send_result_and_unregister(r);
 
-  if (_channel) {
-    // Close channel.
-    while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
-      ;
+    if (_channel) {
+      // Close channel.
+      while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
+        ;
 
-    // Free channel.
-    libssh2_channel_free(_channel);
+      // Free channel.
+      libssh2_channel_free(_channel);
+    }
   }
+  catch (...) {}
 }
 
 /**
