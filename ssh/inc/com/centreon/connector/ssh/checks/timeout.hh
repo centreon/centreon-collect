@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -35,7 +35,7 @@ namespace    checks {
    *  @class timeout timeout.hh "com/centreon/connector/ssh/checks/timeout.hh"
    *  @brief Check timeout.
    *
-   *  Task executed when a check timeout.
+   *  Task executed when a check timeouts.
    */
   class      timeout : public com::centreon::task {
   public:
@@ -48,7 +48,7 @@ namespace    checks {
     void     set_check(check* chk) throw ();
 
   private:
-    void     _copy(timeout const& t);
+    void     _internal_copy(timeout const& t);
 
     check*   _check;
   };

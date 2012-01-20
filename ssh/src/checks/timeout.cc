@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -42,7 +42,7 @@ timeout::timeout(check* chk) : _check(chk) {}
  *  @param[in] t Object to copy.
  */
 timeout::timeout(timeout const& t) : com::centreon::task(t) {
-  _copy(t);
+  _internal_copy(t);
 }
 
 /**
@@ -60,7 +60,7 @@ timeout::~timeout() throw () {}
 timeout& timeout::operator=(timeout const& t) {
   if (this != &t) {
     com::centreon::task::operator=(t);
-    _copy(t);
+    _internal_copy(t);
   }
   return (*this);
 }
@@ -104,7 +104,7 @@ void timeout::set_check(check* chk) throw () {
  *
  *  @param[in] t Object to copy.
  */
-void timeout::_copy(timeout const& t) {
+void timeout::_internal_copy(timeout const& t) {
   _check = t._check;
   return ;
 }
