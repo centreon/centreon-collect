@@ -32,12 +32,13 @@ if (WITH_PACKAGE_SH
     OR WITH_PACKAGE_RPM
     OR WITH_PACKAGE_NSIS)
   # Default settings.
+  set(CPACK_PACKAGE_NAME "centreon-clib")
   set(CPACK_PACKAGE_VENDOR "Merethis")
   set(CPACK_PACKAGE_VERSION_MAJOR "${CLIB_MAJOR}")
   set(CPACK_PACKAGE_VERSION_MINOR "${CLIB_MINOR}")
   set(CPACK_PACKAGE_VERSION_PATCH "${CLIB_PATCH}")
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "Centreon C/C++ library.")
+    "Centreon C/C++ library used in multiple monitoring-related projects.")
   set(CPACK_PACKAGE_FILE_NAME
     "centreon-clib-${CLIB_VERSION}")
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "centreon-clib")
@@ -63,6 +64,7 @@ if (WITH_PACKAGE_SH
     list(APPEND CPACK_GENERATOR "DEB")
     list(APPEND PACKAGE_LIST "DEB package (.deb)")
     set(CPACK_DEBIAN_PACKAGE_SECTION "net")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6")
   endif ()
   if (WITH_PACKAGE_RPM)
     list(APPEND CPACK_GENERATOR "RPM")
