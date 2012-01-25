@@ -173,14 +173,18 @@ void check::on_available(sessions::session& sess) {
   }
   catch (std::exception const& e) {
     logging::error(logging::low)
-      << "error occured while executing a check: " << e.what();
+      << "error occured while executing check " << _cmd_id
+      << " on session " << sess.get_credentials().get_user() << "@"
+      << sess.get_credentials().get_host() << ": " << e.what();
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
   }
   catch (...) {
     logging::error(logging::low)
-      << "unknown error occured while executing a check";
+      << "unknown error occured while executing check " << _cmd_id
+      << " on session " << sess.get_credentials().get_user() << "@"
+      << sess.get_credentials().get_host();
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);

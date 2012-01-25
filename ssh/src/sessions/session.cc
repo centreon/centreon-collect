@@ -231,6 +231,15 @@ void session::error(handle& h) {
 }
 
 /**
+ *  Get the session credentials.
+ *
+ *  @return Credentials associated to this session.
+ */
+credentials const& session::get_credentials() const throw () {
+  return (_creds);
+}
+
+/**
  *  Get the libssh2 session object.
  *
  *  @return libssh2 session object.
