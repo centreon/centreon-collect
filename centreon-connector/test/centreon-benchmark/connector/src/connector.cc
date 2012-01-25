@@ -104,7 +104,7 @@ void connector::_check_execution() {
   for (unsigned int i(0); i < _total_request; ++i) {
     while (_current_running > _limit_running)
       _write(_get_next_result());
-    _send_data(_request_execute(i, _commands[i % nb_commands], 1000));
+    _send_data(_request_execute(i + 1, _commands[i % nb_commands], 1000));
     _recv_data();
   }
 
