@@ -46,6 +46,7 @@ namespace                 sessions {
     void                  close();
     void                  connect();
     void                  error(handle& h);
+    credentials const&    get_credentials() const throw ();
     LIBSSH2_SESSION*      get_libssh2_session() const throw ();
     socket_handle*        get_socket_handle() throw ();
     bool                  is_connected() const throw ();
