@@ -285,19 +285,25 @@ bool policy::run() {
   _error = false;
 
   // Run multiplexer.
-  while (!should_exit)
+  while (!should_exit) {
+    logging::debug(logging::high) << "multiplex()";
     multiplexer::instance().multiplex();
+  }
 
   // Run as long as a check remains.
   logging::info(logging::low) << "waiting for checks to terminate";
-  while (!_checks.empty())
+  while (!_checks.empty()) {
+    logging::debug(logging::high) << "multiplex()";
     multiplexer::instance().multiplex();
+  }
 
   // Run as long as some data remains.
   logging::info(logging::low)
     << "reporting last data to monitoring engine";
-  while (_reporter.can_report() && _reporter.want_write(_sout))
+  while (_reporter.can_report() && _reporter.want_write(_sout)) {
+    logging::debug(logging::high) << "multiplex()";
     multiplexer::instance().multiplex();
+  }
 
   return (!_error);
 }
