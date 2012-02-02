@@ -193,8 +193,11 @@ void connector::_recv_data(int timeout) {
   int ret(poll(&_pfd, 1, timeout));
   if (ret == -1)
     throw (basic_exception(strerror(errno)));
-  if (!ret || !(_pfd.revents & (POLLIN |POLLPRI)))
-    return;
+  else if (ret && (_pfd.revents & (POLLNVAL | POLLHUP)))
+    throw (basic_exception("connector communication fd " \
+                           "terminated prematurely"));
+  else if (!ret || !(_pfd.revents & (POLLIN | POLLPRI)))
+    return ;
   char buffer[4096];
   if ((ret = read(_pipe_out[0], buffer, sizeof(buffer))) == -1)
     throw (basic_exception(strerror(errno)));
