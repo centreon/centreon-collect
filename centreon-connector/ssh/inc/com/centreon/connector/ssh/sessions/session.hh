@@ -79,6 +79,7 @@ namespace                 sessions {
     LIBSSH2_SESSION*      _session;
     socket_handle         _socket;
     e_step                _step;
+    char const*           _step_string;
   };
 }
 
