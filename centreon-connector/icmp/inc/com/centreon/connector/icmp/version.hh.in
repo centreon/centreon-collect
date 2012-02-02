@@ -36,9 +36,9 @@ CCC_ICMP_BEGIN()
 
 namespace            version {
   // Compile-time values.
-  unsigned int const major(@CONNECTOR_ICMP_MAJOR@);
-  unsigned int const minor(@CONNECTOR_ICMP_MINOR@);
-  unsigned int const patch(@CONNECTOR_ICMP_PATCH@);
+  unsigned int const major = @CONNECTOR_ICMP_MAJOR@;
+  unsigned int const minor = @CONNECTOR_ICMP_MINOR@;
+  unsigned int const patch = @CONNECTOR_ICMP_PATCH@;
 
   unsigned int const engine_major = @CONNECTOR_ICMP_MAJOR@;
   unsigned int const engine_minor = @CONNECTOR_ICMP_MINOR@;

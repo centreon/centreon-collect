@@ -20,12 +20,12 @@
 
 #include <errno.h>
 #include <string.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/icmp/icmp_socket.hh"

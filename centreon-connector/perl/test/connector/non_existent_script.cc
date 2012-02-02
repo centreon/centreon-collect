@@ -1,20 +1,20 @@
 /*
 ** Copyright 2012 Merethis
 **
-** This file is part of Centreon Connector SSH.
+** This file is part of Centreon Connector Perl.
 **
-** Centreon Connector SSH is free software: you can redistribute it
+** Centreon Connector Perl is free software: you can redistribute it
 ** and/or modify it under the terms of the GNU Affero General Public
 ** License as published by the Free Software Foundation, either version
 ** 3 of the License, or (at your option) any later version.
 **
-** Centreon Connector SSH is distributed in the hope that it will be
+** Centreon Connector Perl is distributed in the hope that it will be
 ** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** Affero General Public License for more details.
 **
 ** You should have received a copy of the GNU Affero General Public
-** License along with Centreon Connector SSH. If not, see
+** License along with Centreon Connector Perl. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
@@ -22,17 +22,15 @@
 #include <string>
 #include <string.h>
 #include "com/centreon/process.hh"
-#include "test/connector/binary.hh"
-#include "test/connector/get_user_name.hh"
+#include "test/connector/paths.hh"
 
 using namespace com::centreon;
 
-#define CMD1 "2\0" \
-             "4242\0" \
-             "5\0" \
-             "123456789\0" \
-             "nonexistenthost.nonexistentdomain "
-#define CMD2 "  echo Merethis is wonderful\0\0\0\0"
+#define CMD "2\0" \
+            "4242\0" \
+            "3\0" \
+            "123456789\0" \
+            "/non/existent/script.pl\0\0\0\0"
 #define RESULT "3\0" \
                "4242\0" \
                "0\0" \
@@ -41,7 +39,8 @@ using namespace com::centreon;
                " \0\0\0\0"
 
 /**
- *  Check that connector respond properly to check on non-existent host.
+ *  Check that connector respond properly when running a non existent
+ *  script.
  *
  *  @return 0 on success.
  */
@@ -50,13 +49,11 @@ int main() {
   process p;
   p.with_stdin(true);
   p.with_stdout(true);
-  p.exec(CONNECTOR_SSH_BINARY);
+  p.exec(CONNECTOR_PERL_BINARY);
 
   // Write command.
   std::ostringstream oss;
-  oss.write(CMD1, sizeof(CMD1) - 1);
-  oss << get_user_name();
-  oss.write(CMD2, sizeof(CMD2) - 1);
+  oss.write(CMD, sizeof(CMD) - 1);
   std::string cmd(oss.str());
   char const* ptr(cmd.c_str());
   unsigned int size(cmd.size());
@@ -82,7 +79,7 @@ int main() {
   // Wait for process termination.
   int retval;
   int exitcode;
-  if (!p.wait(5000, &exitcode)) {
+  if (!p.wait(4000, &exitcode)) {
     p.terminate();
     p.wait();
     retval = 1;
@@ -93,5 +90,5 @@ int main() {
   // Compare results.
   return (retval
           || (size != (sizeof(RESULT) - 1))
-          || (memcmp(buffer, RESULT, sizeof(RESULT) - 1)));;
+          || memcmp(buffer, RESULT, sizeof(RESULT) - 1));
 }

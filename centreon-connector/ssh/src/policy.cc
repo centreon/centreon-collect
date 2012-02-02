@@ -61,12 +61,17 @@ policy::policy() : _sin(stdin), _sout(stdout) {
  *  Destructor.
  */
 policy::~policy() throw () {
-  // Remove from multiplexer.
-  multiplexer::instance().handle_manager::remove(&_sin);
-  multiplexer::instance().handle_manager::remove(&_sout);
+  try {
+    // Remove from multiplexer.
+    multiplexer::instance().handle_manager::remove(&_sin);
+    multiplexer::instance().handle_manager::remove(&_sout);
+  }
+  catch (...) {}
 
   // Close checks.
-  for (std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator
+  for (std::map<
+         unsigned long long,
+         std::pair<checks::check*, sessions::session*> >::iterator
          it = _checks.begin(),
          end = _checks.end();
        it != end;
@@ -131,6 +136,11 @@ void policy::on_execute(
                std::string const& password,
                std::string const& cmd) {
   try {
+    // Log message.
+    logging::info(logging::medium) << "got request to execute check "
+      << cmd_id << " on session " << user << "@" << host
+      << " (timeout " << timeout << ", command \"" << cmd << "\")";
+
     // Credentials.
     sessions::credentials creds;
     creds.set_host(host);
@@ -194,9 +204,8 @@ void policy::on_quit() {
  *  @param[in] r Check result.
  */
 void policy::on_result(checks::result const& r) {
-  static concurrency::mutex processing_mutex;
-
   // Lock mutex.
+  static concurrency::mutex processing_mutex;
   concurrency::locker lock(&processing_mutex);
 
   // Remove check from list.
@@ -253,7 +262,6 @@ void policy::on_result(checks::result const& r) {
       }
     }
   }
-  lock.unlock();
 
   // Send check result back to monitoring engine.
   _reporter.send_result(r);
@@ -282,19 +290,25 @@ bool policy::run() {
   _error = false;
 
   // Run multiplexer.
-  while (!should_exit)
+  while (!should_exit) {
+    logging::debug(logging::high) << "multiplexing";
     multiplexer::instance().multiplex();
+  }
 
   // Run as long as a check remains.
   logging::info(logging::low) << "waiting for checks to terminate";
-  while (!_checks.empty())
+  while (!_checks.empty()) {
+    logging::debug(logging::high) << "multiplexing remaining checks";
     multiplexer::instance().multiplex();
+  }
 
   // Run as long as some data remains.
   logging::info(logging::low)
     << "reporting last data to monitoring engine";
-  while (_reporter.can_report() && _reporter.want_write(_sout))
+  while (_reporter.can_report() && _reporter.want_write(_sout)) {
+    logging::debug(logging::high) << "multiplexing remaining data";
     multiplexer::instance().multiplex();
+  }
 
   return (!_error);
 }
@@ -314,8 +328,7 @@ bool policy::run() {
  */
 policy::policy(policy const& p)
   : orders::listener(p), checks::listener(p) {
-  assert(!"policy is not copyable");
-  abort();
+  _internal_copy(p);
 }
 
 /**
@@ -328,8 +341,18 @@ policy::policy(policy const& p)
  *  @return This object.
  */
 policy& policy::operator=(policy const& p) {
+  _internal_copy(p);
+  return (*this);
+}
+
+/**
+ *  Calls abort().
+ *
+ *  @param[in] p Unused.
+ */
+void policy::_internal_copy(policy const& p) {
   (void)p;
   assert(!"policy is not copyable");
   abort();
-  return (*this);
+  return ;
 }

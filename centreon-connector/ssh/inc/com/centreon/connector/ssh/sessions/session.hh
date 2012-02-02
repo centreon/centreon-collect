@@ -46,6 +46,7 @@ namespace                 sessions {
     void                  close();
     void                  connect();
     void                  error(handle& h);
+    credentials const&    get_credentials() const throw ();
     LIBSSH2_SESSION*      get_libssh2_session() const throw ();
     socket_handle*        get_socket_handle() throw ();
     bool                  is_connected() const throw ();
@@ -73,9 +74,12 @@ namespace                 sessions {
 
     credentials           _creds;
     std::set<listener*>   _listnrs;
+    std::set<listener*>::iterator
+                          _listnrs_it;
     LIBSSH2_SESSION*      _session;
     socket_handle         _socket;
     e_step                _step;
+    char const*           _step_string;
   };
 }
 

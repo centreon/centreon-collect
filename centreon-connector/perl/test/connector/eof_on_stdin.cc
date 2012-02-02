@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Connector Perl.
 **
@@ -18,31 +18,32 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CCC_PERL_EMBEDDED_HH_
-# define CCC_PERL_EMBEDDED_HH_
+#include "com/centreon/process.hh"
+#include "test/connector/paths.hh"
 
-# include <string>
-# include <sys/types.h>
-# include <EXTERN.h>
-# include <perl.h>
-# include "com/centreon/connector/perl/namespace.hh"
+using namespace com::centreon;
 
-// Global Perl interpreter.
-extern PerlInterpreter*            my_perl;
+/**
+ *  Check that connector exits when stdin is closed.
+ *
+ *  @return 0 on success.
+ */
+int main() {
+  // Process.
+  process p;
+  p.with_stdin(true);
+  p.exec(CONNECTOR_PERL_BINARY);
+  p.with_stdin(false);
 
-CCC_PERL_BEGIN()
-
-namespace                  embedded {
-  extern char const* const script;
-
-  int                      init(int* argc,
-                             char*** argv,
-                             char*** env);
-  void                     run_command(std::string const& cmd,
-                             unsigned long long cmd_id,
-                             time_t timeout);
+  // Wait for process termination.
+  int retval;
+  int exitcode;
+  if (!p.wait(5000, &exitcode)) {
+    p.terminate();
+    p.wait();
+    retval = 1;
+  }
+  else
+    retval = (exitcode != 0);
+  return (retval);
 }
-
-CCC_PERL_END()
-
-#endif /* !CCC_PERL_EMBEDDED_HH_ */

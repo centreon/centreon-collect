@@ -97,21 +97,32 @@ include_directories("${PERL_INCLUDE_PATH}")
 set(CONNECTORLIB "centreonconnectorperl")
 add_library("${CONNECTORLIB}" STATIC
   # Sources.
+  "${SRC_DIR}/checks/check.cc"
   "${SRC_DIR}/checks/listener.cc"
   "${SRC_DIR}/checks/result.cc"
+  "${SRC_DIR}/checks/timeout.cc"
+  "${SRC_DIR}/embedded_perl.cc"
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/options.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
+  "${SRC_DIR}/pipe_handle.cc"
+  "${SRC_DIR}/policy.cc"
   "${SRC_DIR}/reporter.cc"
+  "${SRC_DIR}/script.cc"
   # Headers.
+  "${INC_DIR}/checks/check.hh"
   "${INC_DIR}/checks/listener.hh"
   "${INC_DIR}/checks/result.hh"
+  "${INC_DIR}/checks/timeout.hh"
+  "${INC_DIR}/embedded_perl.hh"
   "${INC_DIR}/multiplexer.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/options.hh"
   "${INC_DIR}/orders/listener.hh"
   "${INC_DIR}/orders/parser.hh"
+  "${INC_DIR}/pipe_handle.hh"
+  "${INC_DIR}/policy.hh"
   "${INC_DIR}/reporter.hh"
 )
 target_link_libraries(
@@ -150,6 +161,28 @@ if (WITH_TESTING)
   enable_testing()
   set(BUILD_UNIT_TEST "Yes")
   include_directories("${PROJECT_SOURCE_DIR}")
+  set(CONNECTOR_TEST_DIR "${PROJECT_SOURCE_DIR}/test/connector")
+  get_property(CONNECTOR_PERL_BINARY
+    TARGET "${CONNECTOR}"
+    PROPERTY LOCATION)
+  configure_file(
+    "${TEST_DIR}/connector/paths.hh.in"
+    "${TEST_DIR}/connector/paths.hh")
+
+
+  # Embedded Perl tests.
+  #   Simple script execution #1.
+  set(TEST_NAME "embedded_perl_run_simple_1")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/embedded_perl/run_simple_1.cc")
+  target_link_libraries("${TEST_NAME}" ${CONNECTORLIB})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  #   Simple script execution #2.
+  set(TEST_NAME "embedded_perl_run_simple_2")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/embedded_perl/run_simple_2.cc")
+  target_link_libraries("${TEST_NAME}" ${CONNECTORLIB})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 
   #
@@ -163,6 +196,30 @@ if (WITH_TESTING)
   add_test("connector_invalid_flag" "${CONNECTOR}" "--merethis")
   set_tests_properties("connector_invalid_flag"
     PROPERTIES WILL_FAIL TRUE)
+  # EOF on stdin.
+  set(TEST_NAME "connector_eof_on_stdin")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/eof_on_stdin.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Non-existent script.
+  set(TEST_NAME "connector_non_existent_script")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/non_existent_script.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Graceful timeout.
+  set(TEST_NAME "connector_timeout_term")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/timeout_term.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Forced timeout.
+  set(TEST_NAME "connector_timeout_kill")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/timeout_kill.cc")
+  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()
   set(BUILD_UNIT_TEST "No")

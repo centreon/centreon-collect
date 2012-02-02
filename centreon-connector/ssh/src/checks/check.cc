@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -51,19 +51,22 @@ check::check()
  *  Destructor.
  */
 check::~check() throw () {
-  // Send result if we haven't already done so.
-  result r;
-  r.set_command_id(_cmd_id);
-  _send_result_and_unregister(r);
+  try {
+    // Send result if we haven't already done so.
+    result r;
+    r.set_command_id(_cmd_id);
+    _send_result_and_unregister(r);
 
-  if (_channel) {
-    // Close channel.
-    while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
-      ;
+    if (_channel) {
+      // Close channel.
+      while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
+        ;
 
-    // Free channel.
-    libssh2_channel_free(_channel);
+      // Free channel.
+      libssh2_channel_free(_channel);
+    }
   }
+  catch (...) {}
 }
 
 /**
@@ -170,14 +173,18 @@ void check::on_available(sessions::session& sess) {
   }
   catch (std::exception const& e) {
     logging::error(logging::low)
-      << "error occured while executing a check: " << e.what();
+      << "error occured while executing check " << _cmd_id
+      << " on session " << sess.get_credentials().get_user() << "@"
+      << sess.get_credentials().get_host() << ": " << e.what();
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
   }
   catch (...) {
     logging::error(logging::low)
-      << "unknown error occured while executing a check";
+      << "unknown error occured while executing check " << _cmd_id
+      << " on session " << sess.get_credentials().get_user() << "@"
+      << sess.get_credentials().get_host();
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
@@ -456,12 +463,12 @@ void check::_send_result_and_unregister(result const& r) {
     _session = NULL;
   }
 
-  // Check that was haven't already send a check result.
+  // Check that we haven't already send a check result.
   if (_cmd_id) {
     // Reset command ID.
     _cmd_id = 0;
 
-    // Send check result to listeners.
+    // Send check result to listener.
     if (_listnr)
       _listnr->on_result(r);
   }

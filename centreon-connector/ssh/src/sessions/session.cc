@@ -53,7 +53,8 @@ using namespace com::centreon::connector::ssh::sessions;
 session::session(credentials const& creds)
   : _creds(creds),
     _session(NULL),
-    _step(session_startup) {
+    _step(session_startup),
+    _step_string("startup") {
   // Create session instance.
   _session = libssh2_session_init();
   if (!_session)
@@ -88,13 +89,10 @@ void session::close() {
 
   // Notify listeners.
   {
-    std::set<listener*> listnrs(_listnrs);
-    for (std::set<listener*>::iterator
-           it = listnrs.begin(),
-           end = listnrs.end();
-         it != end;
-         ++it)
-      (*it)->on_close(*this);
+    for (_listnrs_it = _listnrs.begin();
+         _listnrs_it != _listnrs.end();
+         ++_listnrs_it)
+      (*_listnrs_it)->on_close(*this);
   }
 
   // Close socket.
@@ -116,6 +114,7 @@ void session::connect() {
 
   // Step.
   _step = session_startup;
+  _step_string = "startup";
 
   // Host pointer.
   char const* host_ptr(_creds.get_host().c_str());
@@ -231,6 +230,15 @@ void session::error(handle& h) {
 }
 
 /**
+ *  Get the session credentials.
+ *
+ *  @return Credentials associated to this session.
+ */
+credentials const& session::get_credentials() const throw () {
+  return (_creds);
+}
+
+/**
  *  Get the libssh2 session object.
  *
  *  @return libssh2 session object.
@@ -299,9 +307,14 @@ void session::read(handle& h) {
  */
 void session::unlisten(listener* listnr) {
   unsigned int size(_listnrs.size());
-  _listnrs.erase(listnr);
+  std::set<listener*>::iterator it(_listnrs.find(listnr));
+  if (it != _listnrs.end()) {
+    if (_listnrs_it == it)
+      --_listnrs_it;
+    _listnrs.erase(it);
+  }
   logging::debug(logging::low) << "session " << this
-    << " is removing listener " << listnr << " (there was "
+    << " removed listener " << listnr << " (there was "
     << size << ", there is " << _listnrs.size() << ")";
   return ;
 }
@@ -313,8 +326,12 @@ void session::unlisten(listener* listnr) {
  */
 bool session::want_read(handle& h) {
   (void)h;
-  return (_session && (libssh2_session_block_directions(_session)
-                       & LIBSSH2_SESSION_BLOCK_INBOUND));
+  bool retval(_session && (libssh2_session_block_directions(_session)
+                           & LIBSSH2_SESSION_BLOCK_INBOUND));
+  logging::debug(logging::low) << "session " << _creds.get_user()
+    << "@" << _creds.get_host() << (retval ? "" : " do not")
+    << " want to read (step " << _step_string << ")";
+  return (retval);
 }
 
 /**
@@ -324,8 +341,12 @@ bool session::want_read(handle& h) {
  */
 bool session::want_write(handle& h) {
   (void)h;
-  return (_session && (libssh2_session_block_directions(_session)
-                       & LIBSSH2_SESSION_BLOCK_OUTBOUND));
+  bool retval(_session && (libssh2_session_block_directions(_session)
+                           & LIBSSH2_SESSION_BLOCK_OUTBOUND));
+  logging::debug(logging::low) << "session " << _creds.get_user()
+    << "@" << _creds.get_host() << (retval ? "" : " do not")
+    << " want to write (step " << _step_string << ")";
+  return (retval);
 }
 
 /**
@@ -379,13 +400,10 @@ session& session::operator=(session const& s) {
 void session::_available() {
   logging::debug(logging::high) << "session " << this
     << " is available and has " << _listnrs.size() << " listeners";
-  std::set<listener*> listnrs(_listnrs);
-  for (std::set<listener*>::iterator
-         it = listnrs.begin(),
-         end = listnrs.end();
-       it != end;
-       ++it)
-    (*it)->on_available(*this);
+  for (_listnrs_it = _listnrs.begin();
+       _listnrs_it != _listnrs.end();
+       ++_listnrs_it)
+    (*_listnrs_it)->on_available(*this);
   return ;
 }
 
@@ -435,14 +453,12 @@ void session::_key() {
 
     // Set execution step.
     _step = session_keepalive;
+    _step_string = "keep-alive";
     {
-      std::set<listener*> listnrs(_listnrs);
-      for (std::set<listener*>::iterator
-             it = listnrs.begin(),
-             end = listnrs.end();
-           it != end;
-           ++it)
-        (*it)->on_connected(*this);
+      for (_listnrs_it = _listnrs.begin();
+           _listnrs_it != _listnrs.end();
+           ++_listnrs_it)
+        (*_listnrs_it)->on_connected(*this);
     }
   }
   return ;
@@ -474,6 +490,7 @@ void session::_passwd() {
         << "could not authenticate with password on session "
         << _creds.get_user() << "@" << _creds.get_host();
       _step = session_key;
+      _step_string = "public key authentication";
       _key();
     }
     else if (retval != LIBSSH2_ERROR_EAGAIN) {
@@ -491,14 +508,12 @@ void session::_passwd() {
 
     // We're now connected.
     _step = session_keepalive;
+    _step_string = "keep-alive";
     {
-      std::set<listener*> listnrs(_listnrs);
-      for (std::set<listener*>::iterator
-             it = listnrs.begin(),
-             end = listnrs.end();
-           it != end;
-           ++it)
-        (*it)->on_connected(*this);
+      for (_listnrs_it = _listnrs.begin();
+           _listnrs_it != _listnrs.end();
+           ++_listnrs_it)
+        (*_listnrs_it)->on_connected(*this);
     }
   }
   return ;
@@ -633,6 +648,7 @@ void session::_startup() {
 #endif // WITH_KNOWN_HOSTS_CHECKS
     // Successful peer authentication.
     _step = session_password;
+    _step_string = "password authentication";
     _passwd();
   }
   return ;

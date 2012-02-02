@@ -87,6 +87,12 @@ else ()
   endif ()
 endif ()
 
+# Check if libssh2 is using libgcrypt or OpenSSL.
+set(LIBSSH2_WITH_LIBGCRYPT 1)
+if (LIBSSH2_WITH_LIBGCRYPT)
+  add_definitions(-DLIBSSH2_WITH_LIBGCRYPT)
+endif ()
+
 # Find Centreon Clib's headers.
 if (WITH_CENTREON_CLIB_INCLUDE_DIR)
   find_file(

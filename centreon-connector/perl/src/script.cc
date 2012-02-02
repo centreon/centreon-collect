@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector Perl.
 **
@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/perl/embedded.hh"
+#include "com/centreon/connector/perl/embedded_perl.hh"
 
-char const* const com::centreon::connector::perl::embedded::script =
+char const* const com::centreon::connector::perl::embedded_perl::_script =
   "#!/usr/bin/perl\n" \
   "\n" \
   "package Embed::Persistent;\n" \
