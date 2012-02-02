@@ -136,6 +136,11 @@ void policy::on_execute(
                std::string const& password,
                std::string const& cmd) {
   try {
+    // Log message.
+    logging::info(logging::medium) << "got request to execute check "
+      << cmd_id << " on session " << user << "@" << host
+      << " (command \"" << cmd << "\")";
+
     // Credentials.
     sessions::credentials creds;
     creds.set_host(host);
