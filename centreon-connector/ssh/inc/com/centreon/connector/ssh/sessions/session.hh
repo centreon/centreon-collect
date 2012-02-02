@@ -74,6 +74,8 @@ namespace                 sessions {
 
     credentials           _creds;
     std::set<listener*>   _listnrs;
+    std::set<listener*>::iterator
+                          _listnrs_it;
     LIBSSH2_SESSION*      _session;
     socket_handle         _socket;
     e_step                _step;
