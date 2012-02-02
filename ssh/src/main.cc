@@ -19,6 +19,9 @@
 */
 
 #include <errno.h>
+#ifdef LIBSSH2_WITH_LIBGCRYPT
+#  include <gcrypt.h>
+#endif // LIBSSH2_WITH_LIBGCRYPT
 #include <iostream>
 #include <libssh2.h>
 #include <signal.h>
@@ -41,6 +44,11 @@ using namespace com::centreon::connector::ssh;
 
 // Termination flag.
 volatile bool should_exit(false);
+
+#ifdef LIBSSH2_WITH_LIBGCRYPT
+// libgcrypt threading structure.
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif // LIBSSH2_WITH_LIBGCRYPT
 
 /**
  *  Termination handler.
@@ -121,6 +129,9 @@ int main(int argc, char* argv[]) {
 #if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.
       logging::debug(logging::medium) << "initializing libssh2";
+#  ifdef LIBSSH2_WITH_LIBGCRYPT
+      gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+#  endif // LIBSSH2_WITH_LIBGCRYPT
       if (libssh2_init(0))
         throw (basic_error() << "libssh2 initialization failed");
       {
@@ -134,7 +145,8 @@ int main(int argc, char* argv[]) {
 #endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
-      logging::debug(logging::medium) << "installing termination handler";
+      logging::debug(logging::medium)
+        << "installing termination handler";
       signal(SIGTERM, term_handler);
 
       // Program policy.

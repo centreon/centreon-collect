@@ -1,27 +1,27 @@
 /*
 ** Copyright 2011-2012 Merethis
 **
-** This file is part of Centreon Connector SSH.
+** This file is part of Centreon Connector Perl.
 **
-** Centreon Connector SSH is free software: you can redistribute it
+** Centreon Connector Perl is free software: you can redistribute it
 ** and/or modify it under the terms of the GNU Affero General Public
 ** License as published by the Free Software Foundation, either version
 ** 3 of the License, or (at your option) any later version.
 **
-** Centreon Connector SSH is distributed in the hope that it will be
+** Centreon Connector Perl is distributed in the hope that it will be
 ** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** Affero General Public License for more details.
 **
 ** You should have received a copy of the GNU Affero General Public
-** License along with Centreon Connector SSH. If not, see
+** License along with Centreon Connector Perl. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/connector/ssh/checks/check.hh"
-#include "com/centreon/connector/ssh/checks/timeout.hh"
+#include "com/centreon/connector/perl/checks/check.hh"
+#include "com/centreon/connector/perl/checks/timeout.hh"
 
-using namespace com::centreon::connector::ssh::checks;
+using namespace com::centreon::connector::perl::checks;
 
 /**************************************
 *                                     *
@@ -32,9 +32,10 @@ using namespace com::centreon::connector::ssh::checks;
 /**
  *  Constructor.
  *
- *  @param[in] chk Check that will be notified if timeout occurs.
+ *  @param[in] chk   Check that will be notified if timeout occurs.
+ *  @param[in] final Is this the final timeout ?
  */
-timeout::timeout(check* chk) : _check(chk) {}
+timeout::timeout(check* chk, bool final) : _check(chk), _final(final) {}
 
 /**
  *  Copy constructor.
@@ -75,11 +76,20 @@ check* timeout::get_check() const throw () {
 }
 
 /**
+ *  Is this a final timeout ?
+ *
+ *  @return true if the timeout is final.
+ */
+bool timeout::is_final() const throw () {
+  return (_final);
+}
+
+/**
  *  Notify check of timeout.
  */
 void timeout::run() {
   if (_check)
-    _check->on_timeout();
+    _check->on_timeout(_final);
   return ;
 }
 
@@ -90,6 +100,16 @@ void timeout::run() {
  */
 void timeout::set_check(check* chk) throw () {
   _check = chk;
+  return ;
+}
+
+/**
+ *  Set whether this timeout is final.
+ *
+ *  @param[in] final New final parameter.
+ */
+void timeout::set_final(bool final) throw () {
+  _final = final;
   return ;
 }
 
@@ -106,5 +126,6 @@ void timeout::set_check(check* chk) throw () {
  */
 void timeout::_internal_copy(timeout const& t) {
   _check = t._check;
+  _final = t._final;
   return ;
 }

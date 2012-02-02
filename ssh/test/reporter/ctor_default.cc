@@ -19,6 +19,7 @@
 */
 
 #include "com/centreon/connector/ssh/reporter.hh"
+#include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -28,6 +29,9 @@ using namespace com::centreon::connector::ssh;
  *  @return 0 on success.
  */
 int main() {
+  // Initialization.
+  com::centreon::logging::engine::load();
+
   // Object.
   reporter r;
 

@@ -104,7 +104,7 @@ void connector::_check_execution() {
   for (unsigned int i(0); i < _total_request; ++i) {
     while (_current_running > _limit_running)
       _write(_get_next_result());
-    _send_data(_request_execute(i, _commands[i % nb_commands], 1000));
+    _send_data(_request_execute(i + 1, _commands[i % nb_commands], 1000));
     _recv_data();
   }
 
@@ -117,7 +117,6 @@ void connector::_check_execution() {
  */
 void connector::_check_quit() {
   _send_data(_request_quit());
-  _get_next_result();
 }
 
 /**
@@ -193,8 +192,13 @@ void connector::_recv_data(int timeout) {
   int ret(poll(&_pfd, 1, timeout));
   if (ret == -1)
     throw (basic_exception(strerror(errno)));
-  if (!ret || !(_pfd.revents & (POLLIN |POLLPRI)))
-    return;
+  else if (ret
+           && (_pfd.revents & (POLLNVAL | POLLHUP))
+           && !(_pfd.revents & (POLLIN | POLLPRI)))
+    throw (basic_exception("connector communication fd " \
+                           "terminated prematurely"));
+  else if (!ret || !(_pfd.revents & (POLLIN | POLLPRI)))
+    return ;
   char buffer[4096];
   if ((ret = read(_pipe_out[0], buffer, sizeof(buffer))) == -1)
     throw (basic_exception(strerror(errno)));
