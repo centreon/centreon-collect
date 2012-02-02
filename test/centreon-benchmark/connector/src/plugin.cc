@@ -28,6 +28,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <wordexp.h>
 #include "com/centreon/benchmark/connector/basic_exception.hh"
 #include "com/centreon/benchmark/connector/misc.hh"
 #include "com/centreon/benchmark/connector/plugin.hh"
@@ -42,7 +43,7 @@ using namespace com::centreon::benchmark::connector;
  */
 plugin::plugin(
           std::string const& commands_file,
-          std::vector<std::string> const& args)
+          std::list<std::string> const& args)
   : benchmark(),
     _args(args),
     _commands_file(commands_file),
@@ -85,15 +86,16 @@ void plugin::run() {
   _cleanup();
   _commands = load_commands_file(_commands_file);
 
-  char** args = com::centreon::benchmark::connector::vector_to_tab(_args, _args.size() + 2);
+  wordexp_t p;
   try {
-    unsigned int pos(_args.size());
     unsigned int nb_commands(_commands.size());
     for (unsigned int i(0); i < _total_request; ++i) {
-      args[pos] = const_cast<char*>(_commands[i % nb_commands].c_str());
       while (_current_running > _limit_running)
         _wait_plugin(true);
-      _start_plugin(args);
+      if (wordexp(_commands[i % nb_commands].c_str(), &p, 0))
+        throw (basic_exception("parsing argument failed"));
+      _start_plugin(p.we_wordv);
+      wordfree(&p);
       _wait_plugin(false);
     }
 
@@ -102,10 +104,9 @@ void plugin::run() {
     }
   }
   catch (std::exception const& e) {
-    delete args;
+    wordfree(&p);
     throw;
   }
-  delete args;
 }
 
 /**

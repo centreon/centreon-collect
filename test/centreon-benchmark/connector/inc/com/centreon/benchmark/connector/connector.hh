@@ -21,6 +21,7 @@
 #ifndef CCB_CONNECTOR_CONNECTOR
 #  define CCB_CONNECTOR_CONNECTOR
 
+#  include <list>
 #  include <poll.h>
 #  include <string>
 #  include <sys/types.h>
@@ -40,7 +41,7 @@ class                      connector : public benchmark {
 public:
                            connector(
                              std::string const& commands_file,
-                             std::vector<std::string> const& args);
+                             std::list<std::string> const& args);
                            connector(connector const& right);
                            ~connector() throw ();
   connector&               operator=(connector const& right);
@@ -65,7 +66,7 @@ private:
   void                     _start_connector();
   void                     _wait_connector();
 
-  std::vector<std::string> _args;
+  std::list<std::string>   _args;
   std::vector<std::string> _commands;
   std::string              _commands_file;
   unsigned int             _current_running;

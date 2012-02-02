@@ -21,6 +21,7 @@
 #ifndef CCB_CONNECTOR_PLUGIN
 #  define CCB_CONNECTOR_PLUGIN
 
+#  include <list>
 #  include <map>
 #  include <string>
 #  include <sys/types.h>
@@ -41,7 +42,7 @@ class                      plugin : public benchmark {
 public:
                            plugin(
                              std::string const& commands_file,
-                             std::vector<std::string> const& args);
+                             std::list<std::string> const& args);
                            plugin(plugin const& right);
                            ~plugin() throw ();
   plugin&                  operator=(plugin const& right);
@@ -55,7 +56,7 @@ private:
   void                     _start_plugin(char** args);
   void                     _wait_plugin(bool block);
 
-  std::vector<std::string> _args;
+  std::list<std::string>   _args;
   std::vector<std::string> _commands;
   std::string              _commands_file;
   unsigned int             _current_running;
