@@ -46,22 +46,24 @@ std::vector<std::string> com::centreon::benchmark::connector::load_commands_file
 }
 
 /**
- *  Create string array from string vector.
+ *  Create string array from string list.
  *
- *  @param[in] v  The vector to convert.
+ *  @param[in] v  The list to convert.
  *
  *  @return The new string array.
  */
-char** com::centreon::benchmark::connector::vector_to_tab(
-         std::vector<std::string> const& v,
+char** com::centreon::benchmark::connector::list_to_tab(
+         std::list<std::string> const& v,
          unsigned int size) {
   if (!size)
     size = v.size() + 1;
   char** tab(new char*[size]);
-  for (unsigned int i(0), end(v.size()); i < size; ++i)
-    if (i < end)
-      tab[i] = const_cast<char*>(v[i].c_str());
-    else
-      tab[i] = NULL;
+  unsigned int i(0);
+  for (std::list<std::string>::const_iterator
+         it(v.begin()), end(v.end());
+       it != end;
+       ++it)
+    tab[i++] = const_cast<char*>(it->c_str());
+  tab[i] = NULL;
   return (tab);
 }

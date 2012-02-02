@@ -41,7 +41,7 @@ using namespace com::centreon::benchmark::connector;
  */
 connector::connector(
              std::string const& commands_file,
-             std::vector<std::string> const& args)
+             std::list<std::string> const& args)
   : benchmark(),
     _args(args),
     _commands_file(commands_file),
@@ -275,7 +275,7 @@ void connector::_start_connector() {
         && dup2(_pipe_in[0], 0) != -1) {
       close(_pipe_in[0]);
       close(_pipe_out[1]);
-      char** arg(vector_to_tab(_args));
+      char** arg(list_to_tab(_args));
       execvp(arg[0], arg);
     }
     std::cerr << "error: " << strerror(errno) << std::endl;

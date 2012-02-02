@@ -37,7 +37,7 @@ struct options {
       memory_usage(0),
       is_plugin(false),
       total_request(1) {}
-  std::vector<std::string> args;
+  std::list<std::string>   args;
   std::string              commands_file;
   unsigned int             limit_running;
   unsigned int             memory_usage;
@@ -117,7 +117,7 @@ static options parse_options(int ac, char** av) {
   while (optind < ac)
     opt.args.push_back(av[optind++]);
 
-  if (!opt.args.size())
+  if (!opt.args.size() && !opt.is_plugin)
     throw (basic_exception("invalid args"));
   if (opt.commands_file.empty())
     throw (basic_exception("invalid commands file"));
