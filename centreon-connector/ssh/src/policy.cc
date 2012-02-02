@@ -139,7 +139,7 @@ void policy::on_execute(
     // Log message.
     logging::info(logging::medium) << "got request to execute check "
       << cmd_id << " on session " << user << "@" << host
-      << " (command \"" << cmd << "\")";
+      << " (timeout " << timeout << ", command \"" << cmd << "\")";
 
     // Credentials.
     sessions::credentials creds;
