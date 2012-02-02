@@ -117,7 +117,6 @@ void connector::_check_execution() {
  */
 void connector::_check_quit() {
   _send_data(_request_quit());
-  _get_next_result();
 }
 
 /**
@@ -193,7 +192,9 @@ void connector::_recv_data(int timeout) {
   int ret(poll(&_pfd, 1, timeout));
   if (ret == -1)
     throw (basic_exception(strerror(errno)));
-  else if (ret && (_pfd.revents & (POLLNVAL | POLLHUP)))
+  else if (ret
+           && (_pfd.revents & (POLLNVAL | POLLHUP))
+           && !(_pfd.revents & (POLLIN | POLLPRI)))
     throw (basic_exception("connector communication fd " \
                            "terminated prematurely"));
   else if (!ret || !(_pfd.revents & (POLLIN | POLLPRI)))
