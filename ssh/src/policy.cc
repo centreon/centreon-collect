@@ -298,7 +298,8 @@ bool policy::run() {
   // Run as long as a check remains.
   logging::info(logging::low) << "waiting for checks to terminate";
   while (!_checks.empty()) {
-    logging::debug(logging::high) << "multiplexing remaining checks";
+    logging::debug(logging::high)
+      << "multiplexing remaining checks (" << _checks.size() << ")";
     multiplexer::instance().multiplex();
   }
 
