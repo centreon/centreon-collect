@@ -23,6 +23,7 @@
 
 #  include <map>
 #  include <utility>
+#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/connector/ssh/checks/listener.hh"
 #  include "com/centreon/connector/ssh/orders/listener.hh"
 #  include "com/centreon/connector/ssh/orders/parser.hh"
@@ -74,6 +75,8 @@ private:
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >
                   _checks;
   bool            _error;
+  concurrency::mutex
+                  _mutex;
   orders::parser  _parser;
   reporter        _reporter;
   std::map<sessions::credentials, sessions::session*>
