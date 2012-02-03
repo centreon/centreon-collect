@@ -371,29 +371,8 @@ bool check::_exec() {
  *  @return true while the channel was not successfully opened.
  */
 bool check::_open() {
-  // Return value.
-  bool retval;
-
-  // Attempt to open channel.
-  _channel = libssh2_channel_open_session(
-               _session->get_libssh2_session());
-  if (_channel)
-    retval = false;
-  // Channel creation failed, check that we can try again later.
-  else {
-    char* msg;
-    int ret(libssh2_session_last_error(
-              _session->get_libssh2_session(),
-              &msg,
-              NULL,
-              0));
-    if (ret != LIBSSH2_ERROR_EAGAIN)
-      throw (basic_error() << "could not open SSH channel: " << msg);
-    else
-      retval = true;
-  }
-
-  return (retval);
+  _channel = _session->new_channel();
+  return (!_channel);
 }
 
 /**

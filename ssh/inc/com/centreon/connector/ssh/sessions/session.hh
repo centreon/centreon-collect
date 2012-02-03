@@ -51,6 +51,7 @@ namespace                 sessions {
     socket_handle*        get_socket_handle() throw ();
     bool                  is_connected() const throw ();
     void                  listen(listener* listnr);
+    LIBSSH2_CHANNEL*      new_channel();
     void                  read(handle& h);
     void                  unlisten(listener* listnr);
     bool                  want_read(handle& h);
@@ -76,6 +77,7 @@ namespace                 sessions {
     std::set<listener*>   _listnrs;
     std::set<listener*>::iterator
                           _listnrs_it;
+    bool                  _needed_new_chan;
     LIBSSH2_SESSION*      _session;
     socket_handle         _socket;
     e_step                _step;
