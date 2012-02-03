@@ -162,12 +162,16 @@ void policy::on_execute(
       it = _sessions.find(creds);
     }
 
-    // Launch check.
+    // Create check object.
     std::auto_ptr<checks::check> chk(new checks::check);
     chk->listen(this);
-    chk->execute(*it->second, cmd_id, cmd, timeout);
     _checks[cmd_id] = std::make_pair(chk.get(), it->second);
-    chk.release();
+    checks::check* chk_ptr(chk.release());
+
+    // Release lock and run copied pointer (we might be called in
+    // on_result() and mutex must be available).
+    lock.unlock();
+    chk_ptr->execute(*it->second, cmd_id, cmd, timeout);
   }
   catch (std::exception const& e) {
     logging::error(logging::low) << "could not launch check ID "
