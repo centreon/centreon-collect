@@ -52,6 +52,7 @@ using namespace com::centreon::connector::ssh::sessions;
  */
 session::session(credentials const& creds)
   : _creds(creds),
+    _needed_new_chan(false),
     _session(NULL),
     _step(session_startup),
     _step_string("startup") {
@@ -276,6 +277,37 @@ void session::listen(listener* listnr) {
 }
 
 /**
+ *  Get a new channel.
+ *
+ *  @return New channel if possible, NULL otherwise.
+ */
+LIBSSH2_CHANNEL* session::new_channel() {
+  // Return value.
+  LIBSSH2_CHANNEL* chan;
+
+  // New channel flag.
+  _needed_new_chan = true;
+
+  // Attempt to open channel.
+  chan = libssh2_channel_open_session(_session);
+
+  // Channel creation failed, check that we can try again later.
+  if (!chan) {
+    char* msg;
+    int ret(libssh2_session_last_error(
+              _session,
+              &msg,
+              NULL,
+              0));
+    if (ret != LIBSSH2_ERROR_EAGAIN)
+      throw (basic_error() << "could not open SSH channel: " << msg);
+  }
+
+  // Return channel.
+  return (chan);
+}
+
+/**
  *  Read data is available.
  *
  *  @param[in] h Handle.
@@ -341,8 +373,9 @@ bool session::want_read(handle& h) {
  */
 bool session::want_write(handle& h) {
   (void)h;
-  bool retval(_session && (libssh2_session_block_directions(_session)
-                           & LIBSSH2_SESSION_BLOCK_OUTBOUND));
+  bool retval(_session && ((libssh2_session_block_directions(_session)
+                            & LIBSSH2_SESSION_BLOCK_OUTBOUND)
+                           || _needed_new_chan));
   logging::debug(logging::low) << "session " << _creds.get_user()
     << "@" << _creds.get_host() << (retval ? "" : " do not")
     << " want to write (step " << _step_string << ")";
@@ -355,6 +388,7 @@ bool session::want_write(handle& h) {
  *  @param[in] h Handle.
  */
 void session::write(handle& h) {
+  _needed_new_chan = false;
   read(h);
   return ;
 }
