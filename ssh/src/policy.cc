@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/result.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
@@ -147,6 +146,9 @@ void policy::on_execute(
     creds.set_user(user);
     creds.set_password(password);
 
+    // Object lock.
+    concurrency::locker lock(&_mutex);
+
     // Find session.
     std::map<sessions::credentials, sessions::session*>::iterator it;
     it = _sessions.find(creds);
@@ -204,9 +206,8 @@ void policy::on_quit() {
  *  @param[in] r Check result.
  */
 void policy::on_result(checks::result const& r) {
-  // Lock mutex.
-  static concurrency::mutex processing_mutex;
-  concurrency::locker lock(&processing_mutex);
+  // Object lock.
+  concurrency::locker lock(&_mutex);
 
   // Remove check from list.
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator chk;
