@@ -559,6 +559,12 @@ if (WITH_TESTING)
     "${TEST_DIR}/connector/non_existent_host.cc")
   target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Single check that timeouts.
+  set(TEST_NAME "connector_single_check_timeout")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/single_check_timeout.cc")
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()
   set(BUILD_UNIT_TEST "No")

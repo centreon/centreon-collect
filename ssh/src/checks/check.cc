@@ -58,8 +58,16 @@ check::~check() throw () {
     _send_result_and_unregister(r);
 
     if (_channel) {
-      // Close channel.
-      while (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN)
+      // Close channel (or at least try to). Here libssh2 sucks. When
+      // the close request is received on the remote end, the SSH server
+      // closes the pipes it opened with the target process. It then
+      // waits for it to exits (more or less forced by SIGPIPE if
+      // process writes). However if process does not write we will hang
+      // until it exits (which could be like forever).
+      for (unsigned int i = 0;
+           (i < 32)
+           && (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN);
+           ++i)
         ;
 
       // Free channel.
