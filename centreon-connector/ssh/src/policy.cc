@@ -211,7 +211,10 @@ void policy::on_result(checks::result const& r) {
   // Remove check from list.
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator chk;
   chk = _checks.find(r.get_command_id());
-  if (chk != _checks.end()) {
+  if (chk == _checks.end())
+    logging::error(logging::medium) << "got result of check "
+      << r.get_command_id() << " which is not registered";
+  else {
     try {
       chk->second.first->unlisten(this);
     }
