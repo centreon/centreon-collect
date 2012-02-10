@@ -88,8 +88,31 @@ else ()
 endif ()
 
 # Check if libssh2 is using libgcrypt or OpenSSL.
-set(LIBSSH2_WITH_LIBGCRYPT 1)
+if (WITH_LIBSSH2_WITH_LIBGCRYPT)
+  set(LIBSSH2_WITH_LIBGCRYPT "${WITH_LIBSSH2_WITH_LIBGCRYPT}")
+else ()
+  set(LIBSSH2_WITH_LIBGCRYPT 1)
+endif ()
 if (LIBSSH2_WITH_LIBGCRYPT)
+  # Find libgcrypt's required header.
+  if (WITH_LIBGCRYPT_INCLUDE_DIR)
+    find_file(
+      LIBGCRYPT_HEADER_FOUND
+      "gcrypt.h"
+      PATHS "${WITH_LIBGCRYPT_INCLUDE_DIR}"
+      NO_DEFAULT_PATH)
+    if (NOT LIBGCRYPT_HEADER_FOUND)
+      message(FATAL_ERROR "Could not find libgcrypt's headers in ${WITH_LIBGCRYPT_INCLUDE_DIR}.")
+    endif ()
+    include_directories("${WITH_LIBGCRYPT_INCLUDE_DIR}")
+  else ()
+    find_file(LIBGCRYPT_HEADER_FOUND "gcrypt.h")
+    if (NOT LIBGCRYPT_HEADER_FOUND)
+      message(FATAL_ERROR "Could not find libgcrypt's headers (try WITH_LIBGCRYPT_INCLUDE_DIR).")
+    endif ()
+  endif ()
+
+  # Add macro.
   add_definitions(-DLIBSSH2_WITH_LIBGCRYPT)
 endif ()
 
