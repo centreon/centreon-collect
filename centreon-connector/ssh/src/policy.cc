@@ -222,6 +222,7 @@ void policy::on_result(checks::result const& r) {
   else {
     try {
       chk->second.first->unlisten(this);
+      chk->second.second->unlisten(chk->second.first);
     }
     catch (...) {}
     delete chk->second.first;
