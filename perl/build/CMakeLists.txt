@@ -231,6 +231,23 @@ if (WITH_TESTING)
     "${TEST_DIR}/connector/timeout_kill.cc")
   target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Execution library.
+  add_library("test_execute" STATIC
+    "${TEST_DIR}/connector/misc.cc"
+    "${TEST_DIR}/connector/misc.hh")
+  set(TEST_LIBRARIES ${CLIB_LIBRARIES} "test_execute")
+  # Single script execution.
+  set(TEST_NAME "connector_execute_single_script")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/execute_single_script.cc")
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Multiple script execution.
+  set(TEST_NAME "connector_execute_multiple_scripts")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/execute_multiple_scripts.cc")
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
 
 else()
   set(BUILD_UNIT_TEST "No")
