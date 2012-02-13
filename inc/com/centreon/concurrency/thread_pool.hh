@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -22,6 +22,9 @@
 #  define CC_CONCURRENCY_THREAD_POOL_HH
 
 #  include <list>
+#  ifndef _WIN32
+#    include <sys/types.h>
+#  endif // POSIX
 #  include "com/centreon/namespace.hh"
 #  include "com/centreon/concurrency/condvar.hh"
 #  include "com/centreon/concurrency/mutex.hh"
@@ -72,12 +75,15 @@ namespace                concurrency {
     condvar              _cnd_pool;
     condvar              _cnd_thread;
     unsigned int         _current_task_running;
-    bool                 _quit;
     unsigned int         _max_thread_count;
     mutable mutex        _mtx_pool;
     mutable mutex        _mtx_thread;
+#ifndef _WIN32
+    pid_t                _pid;
+#endif // POSIX
     std::list<internal_thread*>
                          _pool;
+    bool                 _quit;
     std::list<runnable*> _tasks;
   };
 }

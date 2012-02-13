@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -22,8 +22,6 @@
 #include <assert.h>
 #if defined(_WIN32)
 #  include <windows.h> // for GetSystemInfo
-#elif defined(__linux__)
-#  include <unistd.h> // for sysconf()
 #elif defined(__FreeBSD__)
 #  include <sys/types.h>
 #  include <sys/sysctl.h>
@@ -32,7 +30,10 @@
 #elif defined(__OpenBSD__)
 #  include <sys/param.h>
 #  include <sys/sysctl.h>
-#endif // Unix flavor.
+#endif // OS flavor.
+#ifndef _WIN32
+#  include <unistd.h>
+#endif // POSIX.
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread_pool.hh"
@@ -47,8 +48,9 @@ using namespace com::centreon::concurrency;
  */
 thread_pool::thread_pool(unsigned int max_thread_count)
   : _current_task_running(0),
-    _quit(false),
-    _max_thread_count(0) {
+    _max_thread_count(0),
+    _pid(getpid()),
+    _quit(false) {
   set_max_thread_count(max_thread_count);
 }
 
@@ -56,17 +58,19 @@ thread_pool::thread_pool(unsigned int max_thread_count)
  *  Default destructor.
  */
 thread_pool::~thread_pool() throw () {
-  {
-    locker lock(&_mtx_thread);
-    _quit = true;
-    _cnd_thread.wake_all();
+  if (getpid() == _pid) {
+    {
+      locker lock(&_mtx_thread);
+      _quit = true;
+      _cnd_thread.wake_all();
+    }
+    locker lock(&_mtx_pool);
+    for (std::list<internal_thread*>::const_iterator
+           it(_pool.begin()), end(_pool.end());
+         it != end;
+         ++it)
+      delete *it;
   }
-  locker lock(&_mtx_pool);
-  for (std::list<internal_thread*>::const_iterator
-         it(_pool.begin()), end(_pool.end());
-       it != end;
-       ++it)
-    delete *it;
 }
 
 /**
