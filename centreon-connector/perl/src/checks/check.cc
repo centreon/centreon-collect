@@ -168,10 +168,16 @@ void check::on_timeout(bool final) {
 void check::read(handle& h) {
   char buffer[1024];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
-  if (&h == &_err)
+  if (&h == &_err) {
+    logging::debug(logging::high) << "reading from process "
+      << _child << "'s stdout";
     _stderr.append(buffer, rb);
-  else
+  }
+  else {
+    logging::debug(logging::high) << "reading from process "
+      << _child << "' stderr";
     _stdout.append(buffer, rb);
+  }
   return ;
 }
 
@@ -181,16 +187,15 @@ void check::read(handle& h) {
  *  @param[in] exit_code Process exit code.
  */
 void check::terminated(int exit_code) {
-  // Reset PID.
-  _child = (pid_t)-1;
-
   // Read possibly remaining data.
+  logging::debug(logging::medium)
+    << "reading remaining data from process " << _child;
   try {
     char buffer[1024];
     unsigned long rb(_out.read(buffer, sizeof(buffer)));
     while (rb != 0) {
       _stdout.append(buffer, rb);
-      _out.read(buffer, rb);
+      rb = _out.read(buffer, rb);
     }
   }
   catch (...) {}
@@ -199,10 +204,13 @@ void check::terminated(int exit_code) {
     unsigned long rb(_err.read(buffer, sizeof(buffer)));
     while (rb != 0) {
       _stderr.append(buffer, rb);
-      _err.read(buffer, sizeof(buffer));
+      rb = _err.read(buffer, sizeof(buffer));
     }
   }
   catch (...) {}
+
+  // Reset PID.
+  _child = (pid_t)-1;
 
   // Send check result.
   result r;
