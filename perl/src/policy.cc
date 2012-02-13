@@ -125,7 +125,7 @@ void policy::on_execute(
   }
   catch (std::exception const& e) {
     logging::info(logging::low) << "execution of check "
-      << cmd_id << "failed: " << e.what();
+      << cmd_id << " failed: " << e.what();
     checks::result r;
     r.set_command_id(cmd_id);
     on_result(r);
@@ -196,6 +196,8 @@ bool policy::run() {
       }
 
       // Handle process termination.
+      logging::info(logging::medium) << "process " << child
+        << " exited with status " << status;
       std::map<pid_t, checks::check*>::iterator it;
       it = _checks.find(child);
       if (it != _checks.end()) {
@@ -203,6 +205,8 @@ bool policy::run() {
         _checks.erase(it);
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
       }
+      logging::debug(logging::medium)
+        << _checks.size() << " checks still running";
 
       // Is there any other terminated child ?
       child = waitpid(0, &status, WNOHANG);
