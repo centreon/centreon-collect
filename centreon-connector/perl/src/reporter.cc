@@ -35,7 +35,7 @@ using namespace com::centreon::connector::perl;
 /**
  *  Default constructor.
  */
-reporter::reporter() : _can_report(true) {}
+reporter::reporter() : _can_report(true), _reported(0) {}
 
 /**
  *  Copy constructor.
@@ -49,7 +49,10 @@ reporter::reporter(reporter const& r) : com::centreon::handle_listener(r) {
 /**
  *  Destructor.
  */
-reporter::~reporter() throw () {}
+reporter::~reporter() throw () {
+  logging::info(logging::medium) << "connector reporter " << _reported
+    << " check results to monitoring engine";
+}
 
 /**
  *  Assignment operator.
@@ -103,6 +106,12 @@ std::string const& reporter::get_buffer() const throw () {
  *  @param[in] r Check result.
  */
 void reporter::send_result(checks::result const& r) {
+  // Update statistics.
+  ++_reported;
+  logging::debug(logging::high)
+    << "reporting check result #" << _reported << " (check "
+    << r.get_command_id() << ")";
+
   // Build packet.
   std::ostringstream oss;
   // Packet ID.
@@ -198,5 +207,6 @@ void reporter::write(handle& h) {
 void reporter::_copy(reporter const& r) {
   _buffer = r._buffer;
   _can_report = r._can_report;
+  _reported = r._reported;
   return ;
 }

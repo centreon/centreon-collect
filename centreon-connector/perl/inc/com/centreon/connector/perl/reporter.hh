@@ -53,6 +53,7 @@ private:
 
   std::string        _buffer;
   bool               _can_report;
+  unsigned int       _reported;
 };
 
 CCCP_END()

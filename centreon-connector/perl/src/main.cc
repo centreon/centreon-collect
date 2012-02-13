@@ -97,7 +97,7 @@ int main(int argc, char** argv, char** env) {
     }
     else {
       // Set logging object.
-      if (opts.get_argument("version").get_is_set()) {
+      if (opts.get_argument("debug").get_is_set()) {
         logging::engine::instance().set_show_pid(true);
         logging::engine::instance().set_show_thread_id(true);
         logging::engine::instance().add(
