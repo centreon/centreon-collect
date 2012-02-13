@@ -181,7 +181,30 @@ void check::read(handle& h) {
  *  @param[in] exit_code Process exit code.
  */
 void check::terminated(int exit_code) {
+  // Reset PID.
   _child = (pid_t)-1;
+
+  // Read possibly remaining data.
+  try {
+    char buffer[1024];
+    unsigned long rb(_out.read(buffer, sizeof(buffer)));
+    while (rb != 0) {
+      _stdout.append(buffer, rb);
+      _out.read(buffer, rb);
+    }
+  }
+  catch (...) {}
+  try {
+    char buffer[1024];
+    unsigned long rb(_err.read(buffer, sizeof(buffer)));
+    while (rb != 0) {
+      _stderr.append(buffer, rb);
+      _err.read(buffer, sizeof(buffer));
+    }
+  }
+  catch (...) {}
+
+  // Send check result.
   result r;
   r.set_command_id(_cmd_id);
   r.set_executed(true);
@@ -189,6 +212,7 @@ void check::terminated(int exit_code) {
   r.set_error(_stderr);
   r.set_output(_stdout);
   _send_result_and_unregister(r);
+
   return ;
 }
 
@@ -202,6 +226,16 @@ void check::unlisten(listener* listnr) {
     << " stops listening check " << this;
   _listnr = NULL;
   return ;
+}
+
+/**
+ *  Check want to read.
+ *
+ *  @return true.
+ */
+bool check::want_read(handle& h) {
+  (void)h;
+  return (true);
 }
 
 /**

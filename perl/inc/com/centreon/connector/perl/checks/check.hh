@@ -54,6 +54,7 @@ namespace              checks {
     void               read(handle& h);
     void               terminated(int exit_code);
     void               unlisten(listener* listnr);
+    bool               want_read(handle& h);
     void               write(handle& h);
 
   private:

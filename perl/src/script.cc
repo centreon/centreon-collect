@@ -25,8 +25,6 @@ char const* const com::centreon::connector::perl::embedded_perl::_script =
   "\n" \
   "package Embed::Persistent;\n" \
   "\n" \
-  "use strict;\n" \
-  "\n" \
   "use Text::ParseWords qw(parse_line);\n" \
   "\n" \
   "our %Cache;\n" \
