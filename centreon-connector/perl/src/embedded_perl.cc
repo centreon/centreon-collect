@@ -34,7 +34,6 @@ using namespace com::centreon::connector::perl;
 // Temporary script path.
 #define SCRIPT_PATH "/tmp/centreon_connector_perl.XXXXXX"
 
-
 // Embedded Perl instance.
 static std::auto_ptr<embedded_perl> _instance;
 // Perl interpreter object.
@@ -129,18 +128,11 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
         != 1)
       throw (basic_error() << "could not compile Perl script " << file);
   }
-#ifdef __GNUC__ // Temporary disable some strict warnings.
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-pedantic"
-#endif // GCC
   SPAGAIN;
   SV* handle(POPs);
   if (SvTRUE(ERRSV))
     throw (basic_error() << "Embedded Perl error: "
            << SvPV_nolen(ERRSV));
-#ifdef __GNUC__
-#  pragma GCC diagnostic pop
-#endif // GCC
 
   // Open pipes.
   int in_pipe[2];
