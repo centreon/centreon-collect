@@ -55,7 +55,7 @@ int main() {
     "\n" \
     "use Error::Simple;\n" \
     "use IO::Socket;\n" \
-    "$| = 1;\n" \
+    "\n" \
     "print \"Merethis is wonderful\\n\";\n" \
     "exit 0;\n");
 

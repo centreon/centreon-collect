@@ -32,6 +32,8 @@ char const* const com::centreon::connector::perl::embedded_perl::_script =
   "use constant MTIME_IDX  => 0;\n" \
   "use constant HANDLE_IDX => 1;\n" \
   "\n" \
+  "$| = 1;\n" \
+  "\n" \
   "sub valid_package_name {\n" \
   "  my ($string) = @_;\n" \
   "  # First pass.\n" \
