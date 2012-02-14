@@ -53,7 +53,6 @@ int main() {
     script_path.c_str(),
     "#!/usr/bin/perl\n" \
     "\n" \
-    "$| = 1;\n" \
     "print \"Merethis is wonderful\\n\";\n" \
     "exit 0;\n");
 

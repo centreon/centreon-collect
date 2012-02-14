@@ -44,7 +44,6 @@ using namespace com::centreon;
 
 #define SCRIPT "#!/usr/bin/perl\n" \
                "\n" \
-               "$| = 1;\n" \
                "print \"Merethis is wonderful\\n\";\n" \
                "exit 2;\n"
 
