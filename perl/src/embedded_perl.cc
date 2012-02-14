@@ -39,6 +39,9 @@ static std::auto_ptr<embedded_perl> _instance;
 // Perl interpreter object.
 PerlInterpreter* my_perl(NULL);
 
+// Allow module loading.
+EXTERN_C void xs_init(pTHX);
+
 /**************************************
 *                                     *
 *           Public Methods            *
@@ -286,8 +289,9 @@ embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
   char const* embedding[2];
   embedding[0] = "";
   embedding[1] = script_path;
-  if (perl_parse(my_perl,
-        NULL,
+  if (perl_parse(
+        my_perl,
+        &xs_init,
         sizeof(embedding) / sizeof(*embedding),
         (char**)embedding,
         NULL))
