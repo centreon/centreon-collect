@@ -92,6 +92,13 @@ if (NOT PERLLIBS_FOUND)
   message(FATAL_ERROR "Could not find Perl libraries.")
 endif ()
 include_directories("${PERL_INCLUDE_PATH}")
+execute_process(COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "ldopts"
+  RESULT_VARIABLE PERL_LDFLAGS_ERROR
+  OUTPUT_VARIABLE PERL_LIBRARIES
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if (PERL_LDFLAGS_ERROR)
+  set(PERL_LIBRARIES ${PERL_LIBRARY})
+endif ()
 
 # Generate code to dynamically load modules.
 add_custom_command(OUTPUT "${SRC_DIR}/xs_init.cc"
@@ -143,7 +150,7 @@ add_library("${CONNECTORLIB}" STATIC
 )
 target_link_libraries(
   "${CONNECTORLIB}"
-  ${PERL_LIBRARY}
+  ${PERL_LIBRARIES}
   ${CLIB_LIBRARIES})
 
 # Perl connector.
