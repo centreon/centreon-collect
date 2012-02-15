@@ -44,7 +44,7 @@ namespace         io {
     native_handle get_native_handle();
     void          open(char const* path, char const* mode);
     unsigned long read(void* data, unsigned long size);
-    static char*  tmpnam();
+    static char*  temp_path();
     unsigned long write(void const* data, unsigned long size);
 
   private:
