@@ -48,7 +48,7 @@ using namespace com::centreon;
  */
 int main() {
   // Write Perl script.
-  std::string script_path(io::file_stream::tmpnam());
+  std::string script_path(io::file_stream::temp_path());
   write_file(
     script_path.c_str(),
     "#!/usr/bin/perl\n" \
