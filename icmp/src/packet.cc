@@ -21,9 +21,9 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#ifdef __NetBSD__
+#if defined(__NetBSD__) || defined(__OpenBSD__)
 #  include <netinet/in_systm.h>
-#endif // NetBSD
+#endif // NetBSD or OpenBSD
 #include <netinet/ip.h>
 #ifdef __NetBSD__
 #  include <netinet/ip_compat.h>

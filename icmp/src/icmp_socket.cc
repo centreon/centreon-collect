@@ -22,9 +22,9 @@
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#ifdef __NetBSD__
+#if defined(__NetBSD__) || defined(__OpenBSD__)
 #  include <netinet/in_systm.h>
-#endif // NetBSD
+#endif // NetBSD or OpenBSD
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
