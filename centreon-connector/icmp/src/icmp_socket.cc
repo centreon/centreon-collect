@@ -18,10 +18,13 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
 #include <sys/types.h>
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#ifdef __NetBSD__
+#  include <netinet/in_systm.h>
+#endif // NetBSD
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
