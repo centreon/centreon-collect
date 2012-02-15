@@ -18,8 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <arpa/inet.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #ifdef __NetBSD__
 #  include <netinet/in_systm.h>
 #endif // NetBSD
