@@ -19,16 +19,18 @@
 */
 
 #include <errno.h>
-#include <string.h>
 #include <sys/types.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/concurrency/locker.hh"
+#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/icmp/icmp_socket.hh"
+#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::connector::icmp;
 
@@ -111,7 +113,7 @@ unsigned char icmp_socket::get_ttl() const {
   socklen_t size(sizeof(ttl));
   int res(getsockopt(
             _internal_handle,
-            SOL_IP,
+            _get_proto_by_name("IP"),
             IP_TTL,
             &ttl,
             &size));
@@ -180,7 +182,7 @@ void icmp_socket::set_address(unsigned int address) throw () {
 void icmp_socket::set_ttl(unsigned char ttl) {
   int ret(setsockopt(
             _internal_handle,
-            SOL_IP,
+            _get_proto_by_name("IP"),
             IP_TTL,
             &ttl,
             sizeof(ttl)));
@@ -221,6 +223,28 @@ unsigned long icmp_socket::write(void const* data, unsigned long size) {
     throw (basic_error() << "write failed on icmp socket: "
            << strerror(errno));
   return (static_cast<unsigned long>(ret));
+}
+
+/**
+ *  Get the protocol number by its name.
+ *
+ *  @param[in] name Protocol name.
+ *
+ *  @return Protocol number.
+ */
+int icmp_socket::_get_proto_by_name(char const* name) {
+  // getprotobyname() is not thread safe.
+  static concurrency::mutex _mutex;
+  concurrency::locker lock(&_mutex);
+
+  // Get protocol information.
+  protoent* pe(getprotobyname(name));
+  if (!pe)
+    throw (basic_error() << "protocol " << name
+           << " could not be found in protocol database");
+
+  // Return protocol number.
+  return (pe->p_proto);
 }
 
 /**

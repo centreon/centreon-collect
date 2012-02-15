@@ -50,6 +50,7 @@ public:
 private:
                 icmp_socket(icmp_socket const& right);
   icmp_socket&  operator=(icmp_socket const& right);
+  static int    _get_proto_by_name(char const* name);
   icmp_socket&  _internal_copy(icmp_socket const& right);
 
   unsigned int  _address;
