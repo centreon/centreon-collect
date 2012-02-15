@@ -44,7 +44,9 @@ public:
                           ~host() throw ();
   host&                   operator=(host const& right);
   static char const*      address_to_string(unsigned int address);
-  static std::list<host*> factory(std::string const& name);
+  static void             factory(
+                            std::string const& name,
+                            std::list<host*>& hosts);
   unsigned int            get_address() const throw ();
   unsigned int            get_id() const throw ();
   std::string const&      get_error() const throw ();

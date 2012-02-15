@@ -369,7 +369,7 @@ void check_dispatch::_process_checks() {
       continue;
     }
 
-    logging::debug(logging::medium) << "build " << *chk;
+    // logging::debug(logging::medium) << "build " << *chk;
     std::list<host*> const& hosts(chk->get_hosts());
     for (std::list<host*>::const_iterator
            hst(hosts.begin()), end(hosts.end());
@@ -377,7 +377,7 @@ void check_dispatch::_process_checks() {
          ++hst) {
 
       (*hst)->set_id(_host_id++);
-      logging::debug(logging::medium) << "build " << **hst;
+      // logging::debug(logging::medium) << "build " << **hst;
 
       packet* pkt(new packet(chk->get_packet_data_size()));
       pkt->set_address((*hst)->get_address());
@@ -424,12 +424,12 @@ void check_dispatch::_process_receive() {
       = (pkt.get_recv_time() - pkt.get_send_time()).to_useconds();
     if (pkt.get_type() == packet::icmp_echoreply) {
       hst.has_recv_packet(elapsed_time);
-      logging::debug(logging::high) << "packet receive " << hst;
+      // logging::debug(logging::high) << "packet receive " << hst;
     }
     else {
       hst.has_lost_packet(elapsed_time);
       hst.set_error(pkt.get_error());
-      logging::debug(logging::high) << "packet lost " << hst;
+      // logging::debug(logging::high) << "packet lost " << hst;
     }
 
     check& chk(*it->second.chk);
@@ -616,7 +616,7 @@ void check_dispatch::timeout::_remove_target() {
   host& hst(*it->second.hst);
   check& chk(*it->second.chk);
 
-  logging::debug(logging::low) << "remove target " << hst;
+  // logging::debug(logging::low) << "remove target " << hst;
 
   unsigned int nb_packet(hst.get_packet_recv() + hst.get_packet_lost());
   if (nb_packet < chk.get_nb_packet()) {

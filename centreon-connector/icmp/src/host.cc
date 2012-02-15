@@ -87,9 +87,9 @@ char const* host::address_to_string(unsigned int address) {
  *  Build host with an host name.
  *
  *  @param[in] name  The host name.
+ *  @param[in] hosts The host list to fill.
  */
-std::list<host*> host::factory(std::string const& name) {
-  std::list<host*> hosts;
+void host::factory(std::string const& name, std::list<host*>& hosts) {
   unsigned int addr(inet_addr(name.c_str()));
   if (addr != INADDR_NONE)
     hosts.push_back(new host(name, addr));
@@ -107,7 +107,6 @@ std::list<host*> host::factory(std::string const& name) {
       break;
     }
   }
-  return (hosts);
 }
 
 /**

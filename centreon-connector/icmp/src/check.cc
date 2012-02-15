@@ -267,25 +267,15 @@ void check::parse() {
   _max_target_interval *= 1000;
 
   misc::argument const& arg(options.get_argument('H'));
-  if (arg.get_is_set()) {
-    std::list<host*> const& hosts(host::factory(arg.get_value()));
-    std::copy(
-              hosts.begin(),
-              hosts.end(),
-              std::back_inserter(_hosts));
-  }
+  if (arg.get_is_set())
+    host::factory(arg.get_value(), _hosts);
 
   std::vector<std::string> const& parameters(options.get_parameters());
   for (std::vector<std::string>::const_iterator
          it(parameters.begin()), end(parameters.end());
        it != end;
-       ++it) {
-    std::list<host*> const& hosts(host::factory(*it));
-    std::copy(
-              hosts.begin(),
-              hosts.end(),
-              std::back_inserter(_hosts));
-  }
+       ++it)
+    host::factory(*it, _hosts);
 
   if (_hosts.empty())
     throw (basic_error() << "invalid command line:no host " \
