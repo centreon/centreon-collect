@@ -19,6 +19,7 @@
 */
 
 #include <arpa/inet.h>
+#include <sys/types.h>
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
