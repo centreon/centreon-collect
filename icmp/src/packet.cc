@@ -20,7 +20,13 @@
 
 #include <arpa/inet.h>
 #include <sys/types.h>
+#ifdef __NetBSD__
+#  include <netinet/in_systm.h>
+#endif // NetBSD
 #include <netinet/ip.h>
+#ifdef __NetBSD__
+#  include <netinet/ip_compat.h>
+#endif // NetBSD
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
