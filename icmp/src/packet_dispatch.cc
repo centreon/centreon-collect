@@ -129,7 +129,7 @@ void packet_dispatch::read(handle& h) {
     unsigned char buffer[4096];
     unsigned long size(sock.read(buffer, sizeof(buffer)));
     packet pkt(buffer, size, now);
-    logging::debug(logging::high) << "read " << pkt;
+    // logging::debug(logging::high) << "read " << pkt;
     if (_observer)
       _observer->emit_receive(pkt);
   }
@@ -176,7 +176,7 @@ void packet_dispatch::write(handle& h) {
     _mtx.unlock();
 
     void const* data(pkt.get_data());
-    logging::debug(logging::high) << "write " << pkt;
+    // logging::debug(logging::high) << "write " << pkt;
 
     sock.set_address(pkt.get_address());
     if (sock.write(data, pkt.get_size()) != pkt.get_size())

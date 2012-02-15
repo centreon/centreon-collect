@@ -363,7 +363,7 @@ unsigned short packet::_checksum_icmp() const throw () {
   long sum(0);
   for (unsigned int i(0), end(_size / 2); i < end; ++i)
     sum += reinterpret_cast<unsigned short*>(_buffer)[i];
-  if (_size % 2)
+  if (_size & 1)
     sum += _buffer[_size - 1];
 
   sum = (sum >> 16) + (sum & 0xFFFF);
