@@ -59,7 +59,7 @@ int main() {
   for (unsigned int i = 0;
        i < sizeof(script_paths) / sizeof(*script_paths);
        ++i) {
-    script_paths[i] = io::file_stream::tmpnam();
+    script_paths[i] = io::file_stream::temp_path();
     write_file(
       script_paths[i].c_str(),
       SCRIPT,
