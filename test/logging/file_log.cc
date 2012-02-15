@@ -48,7 +48,7 @@ int main() {
   int retval;
 
   try {
-    char* tmp(com::centreon::io::file_stream::tmpnam());
+    char* tmp(com::centreon::io::file_stream::temp_path());
 
     {
       file f(tmp);
