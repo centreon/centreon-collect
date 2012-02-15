@@ -55,7 +55,11 @@ static error_message gl_unreach_msg[] = {
   { ICMP_UNREACH_HOST_PROHIB, "Host denied" },
   { ICMP_UNREACH_TOSNET, "Bad TOS for network" },
   { ICMP_UNREACH_TOSHOST, "Bad TOS for host" },
+#ifdef ICMP_UNREACH_FILTER
+  { ICMP_UNREACH_FILTER, "Prohibited by filter" },
+#else
   { ICMP_UNREACH_FILTER_PROHIB, "Prohibited by filter" },
+#endif // ICMP_UNREACH_FILTER*
   { ICMP_UNREACH_HOST_PRECEDENCE, "Host precedence violation" },
   { ICMP_UNREACH_PRECEDENCE_CUTOFF, "Precedence cutoff" }
 };
