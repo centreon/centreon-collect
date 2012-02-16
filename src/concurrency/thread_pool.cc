@@ -49,7 +49,9 @@ using namespace com::centreon::concurrency;
 thread_pool::thread_pool(unsigned int max_thread_count)
   : _current_task_running(0),
     _max_thread_count(0),
+#ifndef _WIN32
     _pid(getpid()),
+#endif // !Windows
     _quit(false) {
   set_max_thread_count(max_thread_count);
 }
@@ -58,7 +60,9 @@ thread_pool::thread_pool(unsigned int max_thread_count)
  *  Default destructor.
  */
 thread_pool::~thread_pool() throw () {
+#ifndef _WIN32
   if (getpid() == _pid) {
+#endif // !Windows
     {
       locker lock(&_mtx_thread);
       _quit = true;
@@ -70,7 +74,9 @@ thread_pool::~thread_pool() throw () {
          it != end;
          ++it)
       delete *it;
+#ifndef _WIN32
   }
+#endif // !Windows
 }
 
 /**
