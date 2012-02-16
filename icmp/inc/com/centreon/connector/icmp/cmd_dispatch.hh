@@ -21,7 +21,7 @@
 #ifndef CCC_ICMP_CMD_DISPATCH_HH
 #  define CCC_ICMP_CMD_DISPATCH_HH
 
-#  include <deque>
+#  include <list>
 #  include <list>
 #  include <string>
 #  include "com/centreon/concurrency/mutex.hh"
