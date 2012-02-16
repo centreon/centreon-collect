@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <list>
 #include <stdio.h>
 #include <sstream>
-#include <string>
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/misc.hh"
@@ -97,18 +97,18 @@ int main() {
   }
   p.with_stdin(false);
 
-  // Generate result string.
-  std::string expected_result;
+  // Generate result strings.
+  std::list<std::string> expected_result;
   {
-    std::ostringstream oss;
     for (unsigned int i = 0;
          i < COUNT;
          ++i) {
+      std::ostringstream oss;
       oss.write(RESULT1, sizeof(RESULT1) - 1);
       oss << i + 1;
       oss.write(RESULT2, sizeof(RESULT2) - 1);
+      expected_result.push_back(oss.str());
     }
-    expected_result = oss.str();
   }
 
   // Read reply.
@@ -141,8 +141,17 @@ int main() {
        ++i)
     remove(script_paths[i].c_str());
 
-  // Compare results.
-  return (retval
-          || (expected_result.size() != result.size())
-          || (expected_result != result));
+  // Find all expected results.
+  while (!retval && !expected_result.empty()) {
+    std::string current(expected_result.front());
+    expected_result.pop_front();
+    size_t pos(result.find(current));
+    if (std::string::npos == pos)
+      retval = 1;
+    else
+      result.erase(pos, current.size());
+  }
+
+  // Return check result.
+  return (retval);
 }
