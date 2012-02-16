@@ -20,15 +20,31 @@
 
 #include <algorithm>
 #include <ctype.h>
+#include <getopt.h>
 #include <iterator>
 #include <sstream>
-#include "com/centreon/connector/icmp/check_options.hh"
+#include <wordexp.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 #include "com/centreon/connector/icmp/check.hh"
 
 using namespace com::centreon::connector::icmp;
 using namespace com::centreon;
+
+static option long_options[] = {
+  { "icmp-bytes-send",     1, NULL, 'b' },
+  { "critical",            1, NULL, 'c' },
+  { "host",                1, NULL, 'H' },
+  { "max-packet-interval", 1, NULL, 'i' },
+  { "max-target-interval", 1, NULL, 'I' },
+  { "ttl",                 1, NULL, 'l' },
+  { "min-hosts-alive",     1, NULL, 'm' },
+  { "packets-number",      1, NULL, 'n' },
+  { "source",              1, NULL, 's' },
+  { "timeout",             1, NULL, 't' },
+  { "warning",             1, NULL, 'w' },
+  { NULL,                  0, NULL,  0  }
+};
 
 /**
  *  Default constructor.
@@ -38,7 +54,7 @@ using namespace com::centreon;
  */
 check::check(unsigned int command_id, std::string const& command_line)
   : _command_id(command_id),
-    _command_line(command_line),
+    _command_line("bin " + command_line),
     _critical_packet_lost(80),
     _critical_roundtrip_avg(500000),
     _current_host_check(0),
@@ -50,7 +66,10 @@ check::check(unsigned int command_id, std::string const& command_line)
     _ttl(64),
     _warning_packet_lost(40),
     _warning_roundtrip_avg(200000) {
-
+  _max_completion_time
+    = _hosts_size * (_nb_packet * (_max_packet_interval
+                                   + _critical_roundtrip_avg)
+                     + _max_target_interval) + _critical_roundtrip_avg;
 }
 
 /**
@@ -129,16 +148,22 @@ std::list<host*>& check::get_hosts() throw () {
 }
 
 /**
+ *  Get the number of hosts to check.
+ *
+ *  @return The number of hosts.
+ */
+size_t check::get_hosts_size() const throw () {
+  return (_hosts_size);
+}
+
+/**
  *  Get the maximum completion time. This is the maximum time
  *  for this check.
  *
  *  @return The maximum completion time.
  */
 unsigned int check::get_max_completion_time() const throw () {
-  return (_hosts.size() * _nb_packet * _max_packet_interval
-          + _hosts.size() * _max_target_interval
-          + _hosts.size() * _nb_packet * _critical_roundtrip_avg
-          + _critical_roundtrip_avg);
+  return (_max_completion_time);
 }
 
 /**
@@ -228,54 +253,103 @@ unsigned int check::get_warning_roundtrip_avg() const throw () {
  *  Init check with the command line.
  */
 void check::parse() {
-  check_options options(_command_line);
-  if (!_to_obj(options.get_argument('b').get_value(),
-               _packet_data_size))
-    throw (basic_error() << "invalid option 'b' ("
-           << options.get_argument('b').get_value() << ")");
-  if (!_get_threshold(options.get_argument('c').get_value(),
-                      _critical_packet_lost,
-                      _critical_roundtrip_avg))
-    throw (basic_error() << "invalid option 'c' ("
-           << options.get_argument('c').get_value() << ")");
-  if (!_to_obj(options.get_argument('i').get_value(),
-               _max_packet_interval))
-    throw (basic_error() << "invalid option 'i' ("
-           << options.get_argument('i').get_value() << ")");
-  if (!_to_obj(options.get_argument('I').get_value(),
-               _max_target_interval))
-    throw (basic_error() << "invalid option 'I' ("
-           << options.get_argument('I').get_value() << ")");
-  if (!_to_obj(options.get_argument('l').get_value(), _ttl))
-    throw (basic_error() << "invalid option 'l' ("
-           << options.get_argument('l').get_value() << ")");
-  if (!_to_obj(options.get_argument('m').get_value(),
-               _min_hosts_alive))
-    throw (basic_error() << "invalid option 'm' ("
-           << options.get_argument('m').get_value() << ")");
-  if (!_to_obj(options.get_argument('n').get_value(), _nb_packet))
-    throw (basic_error() << "invalid option 'n' ("
-           << options.get_argument('n').get_value() << ")");
-  _source_address = options.get_argument('s').get_value();
-  if (!_get_threshold(options.get_argument('w').get_value(),
-                      _warning_packet_lost,
-                      _warning_roundtrip_avg))
-    throw (basic_error() << "invalid option 'w' ("
-           << options.get_argument('w').get_value() << ")");
+  wordexp_t p;
+  wordexp(_command_line.c_str(), &p, 0);
+  int argc(p.we_wordc);
+  char** argv(p.we_wordv);
 
-  _max_packet_interval *= 1000;
-  _max_target_interval *= 1000;
+  try {
+    char c;
+    while ((c = getopt_long(
+                  argc,
+                  argv,
+                  "b:c:H:i:I:l:m:n:s:t:w:",
+                  long_options,
+                  NULL)) != -1) {
+      switch (c) {
+      case 'b': // Number of icmp data bytes to send.
+        if (!_to_obj(optarg, _packet_data_size))
+          throw (basic_error() << "invalid option 'b' ("
+                 << optarg << ")");
+        break;
 
-  misc::argument const& arg(options.get_argument('H'));
-  if (arg.get_is_set())
-    host::factory(arg.get_value(), _hosts);
+      case 'c': // Critical threshold.
+        if (!_get_threshold(
+               optarg,
+               _critical_packet_lost,
+               _critical_roundtrip_avg))
+          throw (basic_error() << "invalid option 'c' ("
+                 << optarg << ")");
+        break;
 
-  std::vector<std::string> const& parameters(options.get_parameters());
-  for (std::vector<std::string>::const_iterator
-         it(parameters.begin()), end(parameters.end());
-       it != end;
-       ++it)
-    host::factory(*it, _hosts);
+      case 'H': // Specify a target.
+        host::factory(optarg, _hosts);
+        break;
+
+      case 'i': // Max packet interval.
+        if (!_to_obj(optarg, _max_packet_interval))
+          throw (basic_error() << "invalid option 'i' ("
+                 << optarg << ")");
+        _max_packet_interval *= 1000;
+        break;
+
+      case 'I': // Max target interval.
+        if (!_to_obj(optarg, _max_target_interval))
+          throw (basic_error() << "invalid option 'I' ("
+                 << optarg << ")");
+        _max_target_interval *= 1000;
+        break;
+
+      case 'l': // TTL on outgoing packets.
+        if (!_to_obj(optarg, _ttl))
+          throw (basic_error() << "invalid option 'l' ("
+                 << optarg << ")");
+        break;
+
+      case 'm': // Number of alive hosts required for success.
+        if (!_to_obj(optarg, _min_hosts_alive))
+          throw (basic_error() << "invalid option 'm' ("
+                 << optarg << ")");
+        break;
+
+      case 'n': // Number of packets to send.
+        if (!_to_obj(optarg, _nb_packet))
+          throw (basic_error() << "invalid option 'n' ("
+                 << optarg << ")");
+        break;
+
+      case 's': // Specify a source IP address or device name.
+        _source_address = optarg;
+        break;
+
+      case 't': // Timeout not used.
+        break;
+
+      case 'w': // Warning threshold.
+        if (!_get_threshold(
+               optarg,
+               _warning_packet_lost,
+               _warning_roundtrip_avg))
+          throw (basic_error() << "invalid option 'w' ("
+                 << optarg << ")");
+        break;
+
+      case '?': // Missing argument.
+        throw (basic_error() << "option '" << c
+               << "' requires an argument");
+
+      default:
+        throw (basic_error() << "unrecognized option '" << c << "'");
+      }
+    }
+    while (optind < argc)
+      host::factory(argv[optind++], _hosts);
+    _hosts_size = _hosts.size();
+  }
+  catch (...) {
+    wordfree(&p);
+    throw;
+  }
 
   if (_hosts.empty())
     throw (basic_error() << "invalid command line:no host " \
@@ -300,6 +374,7 @@ check& check::_internal_copy(check const& right) {
     _critical_packet_lost = right._critical_packet_lost;
     _critical_roundtrip_avg = right._critical_roundtrip_avg;
     _hosts = right._hosts;
+    _max_completion_time = right._max_completion_time;
     _max_packet_interval = right._max_packet_interval;
     _max_target_interval = right._max_target_interval;
     _min_hosts_alive = right._min_hosts_alive;
@@ -412,6 +487,7 @@ logging::temp_logger connector::icmp::operator<<(
   log << "check (" << &right << ") {\n"
       << "  command_id:             " << right.get_command_id() << "\n"
       << "  current host check:     " << right.get_current_host_check() << "\n"
+      << "  max_completion_time:    " << right.get_max_completion_time() << "\n"
       << "  max_packet_interval:    " << right.get_max_packet_interval() << "\n"
       << "  max_target_interval:    " << right.get_max_target_interval() << "\n"
       << "  min_hosts_alive:        " << right.get_min_hosts_alive() << "\n"

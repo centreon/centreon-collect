@@ -211,7 +211,7 @@ void packet_dispatch::_run() {
 
       locker lock(&_mtx);
       _want_write = !_packets.empty();
-      if (_quit && _packets.empty())
+      if (_quit && !_want_write)
         break;
     }
   }

@@ -137,7 +137,7 @@ void check_dispatch::_run() {
       _t_manager.execute();
 
       locker lock(&_mtx);
-      if (_quit && !_checks_new.size() && !_checks.size())
+      if (_quit && _checks_new.empty() && _checks.empty())
         break;
 
       _process_checks();
@@ -274,7 +274,7 @@ void check_dispatch::_build_response(check const& chk) {
        it != end;
        ++it) {
     host const& hst(**it);
-    std::string const& name(hosts.size() > 1 ? hst.get_name() : "");
+    std::string const& name(hosts.empty() ? "" : hst.get_name());
     oss << name
         << "rta=" << static_cast<float>(hst.get_roundtrip_avg()) / 1000 << "ms;"
         << static_cast<float>(chk.get_warning_roundtrip_avg()) / 1000 << ";"
@@ -411,7 +411,7 @@ void check_dispatch::_process_receive() {
     packet pkt(_results.front());
     _results.pop_front();
 
-    std::map<unsigned int, icmp_info>::iterator
+    htable<unsigned int, icmp_info>::iterator
       it(_checks.find(pkt.get_host_id()));
     if (it == _checks.end()) {
       logging::debug(logging::low)
@@ -439,7 +439,7 @@ void check_dispatch::_process_receive() {
              >= chk.get_nb_packet()) {
       chk.host_was_checked();
       delete it->second.pkt;
-      if (chk.get_current_host_check() >= chk.get_hosts().size()) {
+      if (chk.get_current_host_check() >= chk.get_hosts_size()) {
         _build_response(chk);
         delete it->second.chk;
         --_current_checks;
@@ -590,7 +590,7 @@ void check_dispatch::timeout::_delay_push_packet() {
   logging::debug(logging::high)
     << "delay push packet hst_id(" << _host_id << ") pkt_id(" << _id << ")";
 
-  std::map<unsigned int, icmp_info>::iterator
+  htable<unsigned int, icmp_info>::iterator
     it(_dispatcher->_checks.find(_host_id));
   if (it != _dispatcher->_checks.end()) {
     host& hst(*it->second.hst);
@@ -608,7 +608,7 @@ void check_dispatch::timeout::_remove_target() {
   _dispatcher->_process_receive();
 
   locker lock(&_dispatcher->_mtx);
-  std::map<unsigned int, icmp_info>::iterator
+  htable<unsigned int, icmp_info>::iterator
     it(_dispatcher->_checks.find(_host_id));
   if (it == _dispatcher->_checks.end())
       return;
@@ -631,7 +631,7 @@ void check_dispatch::timeout::_remove_target() {
   }
 
   chk.host_was_checked();
-  if (chk.get_current_host_check() == chk.get_hosts().size()) {
+  if (chk.get_current_host_check() == chk.get_hosts_size()) {
     _dispatcher->_build_response(chk);
     --_dispatcher->_current_checks;
     delete it->second.chk;

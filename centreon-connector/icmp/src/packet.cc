@@ -361,8 +361,9 @@ void packet::set_type(icmp_type type) throw () {
  */
 unsigned short packet::_checksum_icmp() const throw () {
   long sum(0);
-  for (unsigned int i(0), end(_size / 2); i < end; ++i)
-    sum += reinterpret_cast<unsigned short*>(_buffer)[i];
+  unsigned short* buf((unsigned short*)_buffer);
+  for (unsigned int i(0), end(_size >> 1); i < end; ++i)
+    sum += buf[i];
   if (_size & 1)
     sum += _buffer[_size - 1];
 

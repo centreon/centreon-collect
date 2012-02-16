@@ -50,6 +50,7 @@ public:
   unsigned int            get_current_host_check() const throw ();
   std::list<host*> const& get_hosts() const throw ();
   std::list<host*>&       get_hosts() throw ();
+  size_t                  get_hosts_size() const throw ();
   unsigned int            get_max_completion_time() const throw ();
   unsigned int            get_max_packet_interval() const throw ();
   unsigned int            get_max_target_interval() const throw ();
@@ -78,6 +79,8 @@ private:
   unsigned int            _critical_roundtrip_avg;
   unsigned int            _current_host_check;
   std::list<host*>        _hosts;
+  size_t                  _hosts_size;
+  unsigned int            _max_completion_time;
   unsigned int            _max_packet_interval;
   unsigned int            _max_target_interval;
   int                     _min_hosts_alive;

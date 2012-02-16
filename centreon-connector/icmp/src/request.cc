@@ -32,9 +32,7 @@ request::request(std::string const& data)
   : _data(data) {
   unsigned int id(0);
   if (!next_argument(id)
-      || (id != request::version
-          && id != request::execute
-          && id != request::quit))
+      || ((id & 1) && id <= request::quit))
     throw (basic_error() << "invalid request:id not found");
   _id = static_cast<request::type>(id);
 }

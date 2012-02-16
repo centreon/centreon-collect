@@ -36,6 +36,17 @@
 #  include "com/centreon/task.hh"
 #  include "com/centreon/timestamp.hh"
 
+# if defined(__GXX_EXPERIMENTAL_CXX0X__)
+# include <unordered_map>
+# define htable std::unordered_map
+# elif defined(__GNUC__) && __GNUC__ >= 4
+#  include <tr1/unordered_map>
+#  define htable std::tr1::unordered_map
+# else
+#  include <map>
+#  define htable std::map
+# endif // CPP0X, GNUC4
+
 CCC_ICMP_BEGIN()
 
 /**
@@ -109,7 +120,7 @@ private:
 
   task_runner          _build_results;
   std::list<check*>    _checks_new;
-  std::map<unsigned int, icmp_info>
+  htable<unsigned int, icmp_info>
                        _checks;
   concurrency::condvar _cnd;
   unsigned int         _current_checks;
