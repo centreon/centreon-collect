@@ -117,7 +117,16 @@ void session::connect() {
   _step = session_startup;
   _step_string = "startup";
 
-  // Host pointer.
+  // Split host:port.
+  std::string host(_creds.get_host());
+  unsigned short port;
+  size_t pos(host.find_last_of(':'));
+  if (std::string::npos == pos)
+    port = 22;
+  else {
+    port = strtoul(host.substr(pos + 1).c_str(), NULL, 10);
+    host.resize(pos);
+  }
   char const* host_ptr(_creds.get_host().c_str());
 
   // Host lookup.
@@ -167,7 +176,7 @@ void session::connect() {
 
   // Set address info.
   sin.sin_family = AF_INET;
-  sin.sin_port = htons(22); // Standard SSH port.
+  sin.sin_port = htons(port);
 
   // Create socket.
   int mysocket;
