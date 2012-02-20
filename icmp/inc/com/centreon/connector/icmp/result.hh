@@ -54,6 +54,11 @@ public:
     _data.append(1, '\0');
     return (*this);
   }
+  result&     operator<<(std::string const& argument) {
+    _data.append(argument);
+    _data.append(1, '\0');
+    return (*this);
+  }
               ~result() throw ();
   std::string data() const throw ();
   type        id() const throw ();

@@ -62,7 +62,7 @@ check::check(unsigned int command_id, std::string const& command_line)
     _max_target_interval(0),
     _min_hosts_alive(-1),
     _nb_packet(5),
-    _packet_data_size(68 + 8),
+    _packet_data_size(40 + 8),
     _ttl(64),
     _warning_packet_lost(40),
     _warning_roundtrip_avg(200000) {
