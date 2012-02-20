@@ -19,6 +19,7 @@
 */
 
 #include <iostream>
+#include <stdio.h>
 #include <string>
 #include <string.h>
 #include <sys/wait.h>
@@ -47,7 +48,7 @@ int main(int argc, char* argv[], char* env[]) {
   int retval(EXIT_FAILURE);
 
   // Write simple Perl script.
-  std::string script_path(com::centreon::io::file_stream::tmpnam());
+  std::string script_path(com::centreon::io::file_stream::temp_path());
   try {
     com::centreon::io::file_stream fs;
     fs.open(script_path.c_str(), "w");
@@ -72,6 +73,9 @@ int main(int argc, char* argv[], char* env[]) {
     int status;
     if (waitpid(child, &status, 0) == child)
       retval = !(WIFEXITED(status) && (WEXITSTATUS(status) == 42));
+
+    // Remove temporary file.
+    remove(script_path.c_str());
   }
   catch (std::exception const& e) {
     std::cerr << e.what() << std::endl;
