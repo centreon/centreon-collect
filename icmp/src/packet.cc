@@ -18,7 +18,16 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/types.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+#  include <netinet/in_systm.h>
+#endif // NetBSD or OpenBSD
+#include <netinet/ip.h>
+#ifdef __NetBSD__
+#  include <netinet/ip_compat.h>
+#endif // NetBSD
 #include <netinet/ip_icmp.h>
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
@@ -47,7 +56,11 @@ static error_message gl_unreach_msg[] = {
   { ICMP_UNREACH_HOST_PROHIB, "Host denied" },
   { ICMP_UNREACH_TOSNET, "Bad TOS for network" },
   { ICMP_UNREACH_TOSHOST, "Bad TOS for host" },
+#ifdef ICMP_UNREACH_FILTER
+  { ICMP_UNREACH_FILTER, "Prohibited by filter" },
+#else
   { ICMP_UNREACH_FILTER_PROHIB, "Prohibited by filter" },
+#endif // ICMP_UNREACH_FILTER*
   { ICMP_UNREACH_HOST_PRECEDENCE, "Host precedence violation" },
   { ICMP_UNREACH_PRECEDENCE_CUTOFF, "Precedence cutoff" }
 };
