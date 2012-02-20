@@ -98,8 +98,9 @@ packet::packet(
 packet::packet(unsigned short size)
   : _address(0),
     _buffer(NULL),
-    _size(sizeof(::icmp) + sizeof(long long) + sizeof(unsigned int) + size) {
-  if (_size < sizeof(::icmp) + sizeof(long long) + sizeof(unsigned int))
+    _size(size) {
+  if (_size < sizeof(::icmp) + sizeof(long long)
+      + sizeof(unsigned int) + ICMP_MINLEN)
     throw (basic_error() << "invalid packet size");
   _buffer = new unsigned char[_size];
   memset(_buffer, 0, _size * sizeof(*_buffer));
@@ -112,8 +113,7 @@ packet::packet(unsigned short size)
  *  @param[in] right  The object to copy.
  */
 packet::packet(packet const& right)
-  : _address(0),
-    _buffer(NULL),
+  : _buffer(NULL),
     _size(0) {
   _internal_copy(right);
 }

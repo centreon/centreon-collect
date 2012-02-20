@@ -40,7 +40,7 @@ packet_dispatch::packet_dispatch(packet_observer* observer)
     _observer(observer),
     _t_manager(1),
     _h_manager(&_t_manager),
-    _want_write(false) {
+    _want_write(0) {
 
   // drop privileges.
   setuid(getuid());
@@ -70,6 +70,7 @@ packet_dispatch::~packet_dispatch() throw () {
 void packet_dispatch::push(packet const& pkt) {
   locker lock(&_mtx);
   _packets.push_back(pkt);
+  ++_want_write;
   _interrupt.wake();
 }
 
@@ -173,6 +174,7 @@ void packet_dispatch::write(handle& h) {
     _mtx.lock();
     packet pkt(_packets.front());
     _packets.pop_front();
+    --_want_write;
     _mtx.unlock();
 
     void const* data(pkt.get_data());
@@ -210,8 +212,7 @@ void packet_dispatch::_run() {
       _h_manager.multiplex();
 
       locker lock(&_mtx);
-      _want_write = !_packets.empty();
-      if (_quit && !_want_write)
+      if (!_want_write && _quit)
         break;
     }
   }

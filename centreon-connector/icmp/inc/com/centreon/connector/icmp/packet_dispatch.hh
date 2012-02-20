@@ -71,7 +71,7 @@ private:
   task_manager       _t_manager;
   handle_manager     _h_manager;
   task               _timeout;
-  bool               _want_write;
+  unsigned int       _want_write;
 };
 
 CCC_ICMP_END()
