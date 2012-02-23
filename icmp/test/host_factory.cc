@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -44,7 +44,8 @@ static void cleanup_hosts(std::list<host*> const& lst) {
  */
 static bool empty_argument() {
   try {
-    std::list<host*> hosts(host::factory(""));
+    std::list<host*> hosts;
+    host::factory("", hosts);
     cleanup_hosts(hosts);
   }
   catch (std::exception const& e) {
@@ -65,7 +66,8 @@ int main() {
     if (!empty_argument())
       throw (basic_error() << "invalid factory with empty name");
 
-    std::list<host*> hosts(host::factory("localhost"));
+    std::list<host*> hosts;
+    host::factory("localhost", hosts);
     if (hosts.empty())
       throw (basic_error() << "invalid factory with localhost");
     unsigned int addr(hosts.front()->get_address());
@@ -74,7 +76,8 @@ int main() {
     if (std::string(addr_str) != "127.0.0.1")
       throw (basic_error() << "invalid factory with localhost");
 
-    hosts = host::factory("127.0.0.1");
+    hosts.clear();
+    host::factory("127.0.0.1", hosts);
     if (hosts.empty())
       throw (basic_error() << "invalid factory with 127.0.0.1");
     addr = hosts.front()->get_address();
