@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector ICMP.
 **
@@ -94,7 +94,8 @@ static bool check_null_data(unsigned int address) {
 int main() {
   int ret(0);
   try {
-    std::list<host*> hosts(host::factory("127.0.0.1"));
+    std::list<host*> hosts;
+    host::factory("127.0.0.1", hosts);
     if (hosts.empty())
       throw (basic_error() << "impossible to resolve 127.0.0.1");
     unsigned int address(hosts.front()->get_address());
