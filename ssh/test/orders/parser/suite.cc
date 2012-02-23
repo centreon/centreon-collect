@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -70,7 +70,7 @@ int main() {
     execute.host = "localhost";
     execute.user = "root";
     execute.password = "password";
-    execute.cmd= "ls";
+    execute.cmds.push_back("ls");
     expected.push_back(execute);
   }
   { // Second execution order.
@@ -81,7 +81,7 @@ int main() {
     execute.host = "www.merethis.com";
     execute.user = "centreon";
     execute.password = "iswonderful";
-    execute.cmd= "rm -rf /";
+    execute.cmds.push_back("rm -rf /");
     expected.push_back(execute);
   }
   { // Third execution order.
@@ -92,7 +92,7 @@ int main() {
     execute.host = "www.centreon.com";
     execute.user = "merethis";
     execute.password = "rocks";
-    execute.cmd= "./check_for_updates on website";
+    execute.cmds.push_back("./check_for_updates on website");
     expected.push_back(execute);
   }
   { // Quit.

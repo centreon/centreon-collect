@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -21,6 +21,7 @@
 #ifndef CCCS_ORDERS_LISTENER_HH
 #  define CCCS_ORDERS_LISTENER_HH
 
+#  include <list>
 #  include <string>
 #  include <time.h>
 #  include "com/centreon/connector/ssh/namespace.hh"
@@ -49,7 +50,7 @@ namespace        orders {
                    std::string const& host,
                    std::string const& user,
                    std::string const& password,
-                   std::string const& cmd) = 0;
+                   std::list<std::string> const& cmds) = 0;
     virtual void on_quit() = 0;
     virtual void on_version() = 0;
   };

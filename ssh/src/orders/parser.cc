@@ -246,7 +246,7 @@ void parser::_parse(std::string const& cmd) {
       pos = end + 1;
       // Find start time.
       end = cmd.find('\0', pos);
-      strtoull(cmd.c_str() + pos, &ptr, 10);
+      (void)strtoull(cmd.c_str() + pos, &ptr, 10);
       if (*ptr)
         throw (basic_error() << "invalid execution request received:" \
                     " bad start time (" << cmd.c_str() + pos << ")");
@@ -290,6 +290,8 @@ void parser::_parse(std::string const& cmd) {
                     " empty command");
 
       // Notify listener.
+      std::list<std::string> cmds;
+      cmds.push_back(command);
       if (_listnr)
         _listnr->on_execute(
           cmd_id,
@@ -297,7 +299,7 @@ void parser::_parse(std::string const& cmd) {
           host,
           user,
           password,
-          command);
+          cmds);
     }
     break ;
   case 4: // Quit query.

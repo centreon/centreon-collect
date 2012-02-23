@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -100,7 +100,7 @@ void fake_listener::on_error() {
  *  @param[in] host     Host.
  *  @param[in] user     User.
  *  @param[in] password Password.
- *  @param[in] cmd      Command line.
+ *  @param[in] cmds     Commands.
  */
 void fake_listener::on_execute(
                       unsigned long long cmd_id,
@@ -108,7 +108,7 @@ void fake_listener::on_execute(
                       std::string const& host,
                       std::string const& user,
                       std::string const& password,
-                      std::string const& cmd) {
+                      std::list<std::string> const& cmds) {
   callback_info ci;
   ci.callback = cb_execute;
   ci.cmd_id = cmd_id;
@@ -116,7 +116,7 @@ void fake_listener::on_execute(
   ci.host = host;
   ci.user = user;
   ci.password = password;
-  ci.cmd = cmd;
+  ci.cmds = cmds;
   _callbacks.push_back(ci);
   return ;
 }
@@ -191,7 +191,7 @@ bool operator==(
                   || (it1->host != it2->host)
                   || (it1->user != it2->user)
                   || (it1->password != it2->password)
-                  || (it1->cmd != it2->cmd))))
+                  || (it1->cmds != it2->cmds))))
         retval = false;
   }
   return (retval);
