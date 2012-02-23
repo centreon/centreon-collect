@@ -125,7 +125,7 @@ void policy::on_error() {
  *  @param[in] host     Target host.
  *  @param[in] user     User.
  *  @param[in] password Password.
- *  @param[in] cmd      Command to execute.
+ *  @param[in] cmds     Commands to execute.
  */
 void policy::on_execute(
                unsigned long long cmd_id,
@@ -133,12 +133,13 @@ void policy::on_execute(
                std::string const& host,
                std::string const& user,
                std::string const& password,
-               std::string const& cmd) {
+               std::list<std::string> const& cmds) {
   try {
     // Log message.
     logging::info(logging::medium) << "got request to execute check "
       << cmd_id << " on session " << user << "@" << host
-      << " (timeout " << timeout << ", command \"" << cmd << "\")";
+      << " (timeout " << timeout << ", first command \""
+      << cmds.front() << "\")";
 
     // Credentials.
     sessions::credentials creds;
@@ -171,7 +172,7 @@ void policy::on_execute(
     // Release lock and run copied pointer (we might be called in
     // on_result() and mutex must be available).
     lock.unlock();
-    chk_ptr->execute(*it->second, cmd_id, cmd, timeout);
+    chk_ptr->execute(*it->second, cmd_id, cmds, timeout);
   }
   catch (std::exception const& e) {
     logging::error(logging::low) << "could not launch check ID "

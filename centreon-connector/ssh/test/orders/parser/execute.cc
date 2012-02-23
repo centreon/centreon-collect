@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -88,14 +88,16 @@ int main() {
               << "            " << info1.password << std::endl
               << "command:    " << "mycheck to execute with some args"
               << std::endl
-              << "            " << info1.cmd << std::endl;
+              << "            " << info1.cmds.front() << std::endl;
     retval |= ((info1.callback != fake_listener::cb_execute)
                || (info1.cmd_id != 1478523697531598258ull)
                || ((comparison_timeout - info1.timeout) > 1)
                || (info1.host != "localhost")
                || (info1.user != "root")
                || (info1.password != "myverysecretpassword")
-               || (info1.cmd != "mycheck to execute with some args")
+               || (info1.cmds.size() != 1)
+               || (info1.cmds.front()
+                   != "mycheck to execute with some args")
                || (info2.callback != fake_listener::cb_eof));
   }
 

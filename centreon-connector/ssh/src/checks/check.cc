@@ -82,20 +82,20 @@ check::~check() throw () {
  *
  *  @param[in] sess    Session on which a channel will be opened.
  *  @param[in] cmd_id  Command ID.
- *  @param[in] cmd     Command to execute.
+ *  @param[in] cmds    Commands to execute.
  *  @param[in] tmt     Command timeout.
  */
 void check::execute(
               sessions::session& sess,
               unsigned long long cmd_id,
-              std::string const& cmd,
+              std::list<std::string> const& cmds,
               time_t tmt) {
   // Log message.
   logging::debug(logging::low) << "check "
     << this << " has ID " << cmd_id;
 
   // Store command information.
-  _cmd = cmd;
+  _cmds = cmds;
   _cmd_id = cmd_id;
   _session = &sess;
 
@@ -170,9 +170,14 @@ void check::on_available(sessions::session& sess) {
         unsigned long long cmd_id(_cmd_id);
         logging::info(logging::high) << "attempting to close check "
           << cmd_id << " channel";
-        if (!_close())
+        if (!_close()) {
           logging::info(logging::medium) << "channel of check "
             << cmd_id << " successfully closed";
+          if (!_cmds.empty()) {
+            _step = chan_open;
+            on_available(sess);
+          }
+        }
       }
       break ;
     default:
@@ -354,7 +359,7 @@ bool check::_close() {
  */
 bool check::_exec() {
   // Attempt to execute command.
-  int ret(libssh2_channel_exec(_channel, _cmd.c_str()));
+  int ret(libssh2_channel_exec(_channel, _cmds.front().c_str()));
 
   // Check that we can try again later.
   if (ret && (ret != LIBSSH2_ERROR_EAGAIN)) {
@@ -370,7 +375,14 @@ bool check::_exec() {
   }
 
   // Check whether command succeeded or if we can try again later.
-  return (ret == LIBSSH2_ERROR_EAGAIN);
+  bool retval;
+  if (ret == LIBSSH2_ERROR_EAGAIN)
+    retval = true;
+  else {
+    retval = false;
+    _cmds.pop_front();
+  }
+  return (retval);
 }
 
 /**

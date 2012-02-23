@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -21,6 +21,7 @@
 #ifndef CCCS_CHECKS_CHECK_HH
 #  define CCCS_CHECKS_CHECK_HH
 
+#  include <list>
 #  include <string>
 #  include <time.h>
 #  include "com/centreon/connector/ssh/checks/listener.hh"
@@ -30,9 +31,9 @@
 
 CCCS_BEGIN()
 
-namespace              checks {
+namespace                  checks {
   // Forward declaration.
-  class                result;
+  class                    result;
 
   /**
    *  @class check check.hh "com/centreon/connector/ssh/checks/check.hh"
@@ -40,47 +41,47 @@ namespace              checks {
    *
    *  Execute a check by opening a new channel on a SSH session.
    */
-  class                check : public sessions::listener {
+  class                    check : public sessions::listener {
   public:
-                       check();
-                       ~check() throw ();
-    void               execute(
-                         sessions::session& sess,
-                         unsigned long long cmd_id,
-                         std::string const& cmd,
-                         time_t tmt);
-    void               listen(checks::listener* listnr);
-    void               on_available(sessions::session& sess);
-    void               on_close(sessions::session& sess);
-    void               on_connected(sessions::session& sess);
-    void               on_timeout();
-    void               unlisten(checks::listener* listnr);
+                           check();
+                           ~check() throw ();
+    void                   execute(
+                             sessions::session& sess,
+                             unsigned long long cmd_id,
+                             std::list<std::string> const& cmds,
+                             time_t tmt);
+    void                   listen(checks::listener* listnr);
+    void                   on_available(sessions::session& sess);
+    void                   on_close(sessions::session& sess);
+    void                   on_connected(sessions::session& sess);
+    void                   on_timeout();
+    void                   unlisten(checks::listener* listnr);
 
   private:
-    enum               e_step {
+    enum                   e_step {
       chan_open = 1,
       chan_exec,
       chan_read,
       chan_close
     };
 
-                       check(check const& c);
-    check&             operator=(check const& c);
-    bool               _close();
-    bool               _exec();
-    bool               _open();
-    bool               _read();
-    void               _send_result_and_unregister(result const& r);
+                           check(check const& c);
+    check&                 operator=(check const& c);
+    bool                   _close();
+    bool                   _exec();
+    bool                   _open();
+    bool                   _read();
+    void                   _send_result_and_unregister(result const& r);
 
-    LIBSSH2_CHANNEL*   _channel;
-    std::string        _cmd;
-    unsigned long long _cmd_id;
-    checks::listener*  _listnr;
-    sessions::session* _session;
-    std::string        _stderr;
-    std::string        _stdout;
-    e_step             _step;
-    unsigned long      _timeout;
+    LIBSSH2_CHANNEL*       _channel;
+    std::list<std::string> _cmds;
+    unsigned long long     _cmd_id;
+    checks::listener*      _listnr;
+    sessions::session*     _session;
+    std::string            _stderr;
+    std::string            _stdout;
+    e_step                 _step;
+    unsigned long          _timeout;
   };
 }
 

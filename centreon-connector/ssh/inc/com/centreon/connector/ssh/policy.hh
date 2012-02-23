@@ -61,7 +61,7 @@ public:
                     std::string const& host,
                     std::string const& user,
                     std::string const& password,
-                    std::string const& cmd);
+                    std::list<std::string> const& cmds);
   void            on_quit();
   void            on_result(checks::result const& r);
   void            on_version();

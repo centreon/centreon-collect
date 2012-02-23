@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -47,7 +47,8 @@ public:
     std::string  host;
     std::string  user;
     std::string  password;
-    std::string  cmd;
+    std::list<std::string>
+                 cmds;
   };
 
                  fake_listener();
@@ -64,7 +65,7 @@ public:
                    std::string const& host,
                    std::string const& user,
                    std::string const& password,
-                   std::string const& cmd);
+                   std::list<std::string> const& cmds);
   void           on_quit();
   void           on_version();
 
