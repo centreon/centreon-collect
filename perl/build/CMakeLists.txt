@@ -182,7 +182,6 @@ option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
   # Enable testing.
   enable_testing()
-  set(BUILD_UNIT_TEST "Yes")
   include_directories("${PROJECT_SOURCE_DIR}")
   set(CONNECTOR_TEST_DIR "${PROJECT_SOURCE_DIR}/test/connector")
   get_property(CONNECTOR_PERL_BINARY
@@ -191,7 +190,6 @@ if (WITH_TESTING)
   configure_file(
     "${TEST_DIR}/connector/paths.hh.in"
     "${TEST_DIR}/connector/paths.hh")
-
 
   # Embedded Perl tests.
   #   Simple script execution #1.
@@ -267,8 +265,6 @@ if (WITH_TESTING)
   target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
 
-else()
-  set(BUILD_UNIT_TEST "No")
 endif ()
 
 # Summary.
@@ -293,7 +289,11 @@ message(STATUS "")
 message(STATUS "  Build")
 message(STATUS "    - Compiler                   ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})")
 message(STATUS "    - Extra compilation flags    ${CMAKE_CXX_FLAGS}")
-message(STATUS "    - Build unit tests           ${BUILD_UNIT_TEST}")
+if (WITH_TESTING)
+  message(STATUS "    - Unit tests                 enabled")
+else()
+  message(STATUS "    - Unit tests                 disabled")
+endif ()
 message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
