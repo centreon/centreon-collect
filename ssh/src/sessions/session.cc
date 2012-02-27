@@ -105,7 +105,7 @@ void session::close() {
 /**
  *  Open session.
  */
-void session::connect() {
+void session::connect(bool use_ipv6) {
   // Check that session wasn't already open.
   if (is_connected()) {
     logging::info(logging::high)
@@ -117,70 +117,81 @@ void session::connect() {
   _step = session_startup;
   _step_string = "startup";
 
-  // Split host:port.
-  std::string host(_creds.get_host());
-  unsigned short port;
-  size_t pos(host.find_last_of(':'));
-  if (std::string::npos == pos)
-    port = 22;
-  else {
-    port = strtoul(host.substr(pos + 1).c_str(), NULL, 10);
-    host.resize(pos);
-  }
   char const* host_ptr(_creds.get_host().c_str());
+  unsigned short port(_creds.get_port());
 
   // Host lookup.
   logging::info(logging::high) << "looking up address " << host_ptr;
-  sockaddr_in sin;
-  memset(&sin, 0, sizeof(sin));
-  {
+  int ret;
+  int sin_size;
+  std::auto_ptr<sockaddr> sin;
+  if (use_ipv6) {
+    sockaddr_in6* sin6(new sockaddr_in6);
+    sin = std::auto_ptr<sockaddr>((sockaddr*)(sin6));
+    sin_size = sizeof(*sin6);
+    memset(sin6, 0, sin_size);
+
+    // Set address info.
+    sin6->sin6_family = AF_INET6;
+    sin6->sin6_port = htons(port);
+
     // Try to avoid DNS lookup.
-    in_addr_t addr(inet_addr(host_ptr));
-    if (addr != (in_addr_t)-1) {
-      logging::debug(logging::high) << "host "
-        << host_ptr << " is an IP address";
-      sin.sin_addr.s_addr = addr;
-    }
-    // DNS lookup.
-    else {
-      // IPv4 address lookup only.
-      addrinfo hint;
-      memset(&hint, 0, sizeof(hint));
-      hint.ai_family = AF_INET;
-      hint.ai_socktype = SOCK_STREAM;
-      addrinfo* res;
-      int retval(getaddrinfo(
-                   host_ptr,
-                   NULL,
-                   &hint,
-                   &res));
-      if (retval)
-        throw (basic_error() << "lookup of host '" << host_ptr
-                 << "' failed: " << gai_strerror(retval));
-      else if (!res)
-        throw (basic_error() << "no IPv4 address found for host '"
-                 << host_ptr << "'");
+    ret = inet_pton(AF_INET6, host_ptr, &sin6->sin6_addr);
+  }
+  else {
+    sockaddr_in* sin4(new sockaddr_in);
+    sin = std::auto_ptr<sockaddr>((sockaddr*)(sin4));
+    sin_size = sizeof(*sin4);
+    memset(sin4, 0, sin_size);
 
-      // Log message.
-      logging::debug(logging::low) << "found host " << host_ptr
-        << " address through name resolution";
+    // Set address info.
+    sin4->sin_family = AF_INET;
+    sin4->sin_port = htons(port);
 
-      // Get address.
-      sin.sin_addr.s_addr
-        = ((sockaddr_in*)(res->ai_addr))->sin_addr.s_addr;
-
-      // Free result.
-      freeaddrinfo(res);
-    }
+    // Try to avoid DNS lookup.
+    ret = inet_pton(AF_INET, host_ptr, &sin4->sin_addr);
   }
 
-  // Set address info.
-  sin.sin_family = AF_INET;
-  sin.sin_port = htons(port);
+  if (ret != 1)
+    logging::debug(logging::high) << "host "
+      << host_ptr << " is an IP address";
+  // DNS lookup.
+  else {
+    addrinfo hint;
+    memset(&hint, 0, sizeof(hint));
+    hint.ai_family = (use_ipv6 ? AF_INET6 : AF_INET);
+    hint.ai_socktype = SOCK_STREAM;
+    addrinfo* res(NULL);
+    int retval(getaddrinfo(
+                 host_ptr,
+                 NULL,
+                 &hint,
+                 &res));
+    if (retval)
+      throw (basic_error() << "lookup of host '" << host_ptr
+             << "' failed: " << gai_strerror(retval));
+    else if (!res)
+      throw (basic_error() << "no IPv" << (use_ipv6 ? "6" : "4")
+             << " address found for host '" << host_ptr << "'");
+
+    // Log message.
+    logging::debug(logging::low) << "found host " << host_ptr
+      << " address through name resolution";
+
+    // Get address.
+    if (use_ipv6)
+      ((sockaddr_in6*)sin.get())->sin6_addr
+        = ((sockaddr_in6*)(res->ai_addr))->sin6_addr;
+    else
+      ((sockaddr_in*)sin.get())->sin_addr.s_addr
+        = ((sockaddr_in*)(res->ai_addr))->sin_addr.s_addr;
+    // Free result.
+    freeaddrinfo(res);
+  }
 
   // Create socket.
   int mysocket;
-  mysocket = ::socket(AF_INET, SOCK_STREAM, 0);
+  mysocket = ::socket((use_ipv6 ? AF_INET6 : AF_INET), SOCK_STREAM, 0);
   if (mysocket < 0) {
     char const* msg(strerror(errno));
     throw (basic_error() << "socket creation failed: " << msg);
@@ -202,7 +213,7 @@ void session::connect() {
   }
 
   // Connect to remote host.
-  if ((::connect(mysocket, (sockaddr*)&sin, sizeof(sin)) != 0)
+  if ((::connect(mysocket, sin.get(), sin_size) != 0)
       && (errno != EINPROGRESS)) {
       char const* msg(strerror(errno));
       ::close(mysocket);
@@ -210,7 +221,6 @@ void session::connect() {
                << host_ptr << "': " << msg);
   }
 
-  // Set socket handle.
   _socket.set_native_handle(mysocket);
 
   // Register with multiplexer.
@@ -219,7 +229,8 @@ void session::connect() {
   // Launch the connection process.
   logging::debug(logging::medium)
     << "manually launching the connection process of session "
-    << _creds.get_user() << "@" << _creds.get_host();
+    << _creds.get_user() << "@" << _creds.get_host()
+    << ":" << _creds.get_port();
   _startup();
 
   return ;
@@ -234,7 +245,8 @@ void session::error(handle& h) {
   (void)h;
   logging::error(logging::low)
     << "error detected on socket, shutting down session "
-    << _creds.get_user() << "@" << _creds.get_host();
+    << _creds.get_user() << "@" << _creds.get_host()
+    << ":" << _creds.get_port();
   this->close();
   return ;
 }
@@ -335,6 +347,7 @@ void session::read(handle& h) {
   catch (std::exception const& e) {
     logging::error(logging::medium) << "session "
       << _creds.get_user() << "@" << _creds.get_host()
+      << ":" << _creds.get_port()
       << " encountered an error: " << e.what();
     this->close();
   }
@@ -370,8 +383,9 @@ bool session::want_read(handle& h) {
   bool retval(_session && (libssh2_session_block_directions(_session)
                            & LIBSSH2_SESSION_BLOCK_INBOUND));
   logging::debug(logging::low) << "session " << _creds.get_user()
-    << "@" << _creds.get_host() << (retval ? "" : " do not")
-    << " want to read (step " << _step_string << ")";
+    << "@" << _creds.get_host() << ":" << _creds.get_port()
+    << (retval ? "" : " do not") << " want to read (step "
+    << _step_string << ")";
   return (retval);
 }
 
@@ -386,8 +400,9 @@ bool session::want_write(handle& h) {
                             & LIBSSH2_SESSION_BLOCK_OUTBOUND)
                            || _needed_new_chan));
   logging::debug(logging::low) << "session " << _creds.get_user()
-    << "@" << _creds.get_host() << (retval ? "" : " do not")
-    << " want to write (step " << _step_string << ")";
+    << "@" << _creds.get_host() << ":" << _creds.get_port()
+    << (retval ? "" : " do not") << " want to write (step "
+    << _step_string << ")";
   return (retval);
 }
 
@@ -457,22 +472,29 @@ void session::_key() {
   // Log message.
   logging::info(logging::medium)
     << "launching key-based authentication on session "
-    << _creds.get_user() << "@" << _creds.get_host();
-
-  // Get home directory.
-  passwd* pw(getpwuid(getuid()));
+    << _creds.get_user() << "@" << _creds.get_host()
+    << ":" << _creds.get_port();
 
   // Build key paths.
   std::string priv;
   std::string pub;
-  if (pw && pw->pw_dir) {
-    priv = pw->pw_dir;
-    priv.append("/");
-    pub = pw->pw_dir;
-    pub.append("/");
+
+  if (_creds.get_key().empty()) {
+    // Get home directory.
+    passwd* pw(getpwuid(getuid()));
+    if (pw && pw->pw_dir) {
+      priv = pw->pw_dir;
+      priv.append("/");
+      pub = pw->pw_dir;
+      pub.append("/");
+    }
+    priv.append(".ssh/id_rsa");
+    pub.append(".ssh/id_rsa.pub");
   }
-  priv.append(".ssh/id_rsa");
-  pub.append(".ssh/id_rsa.pub");
+  else {
+    priv = _creds.get_key();
+    pub = priv + ".pub";
+  }
 
   // Try public key authentication.
   int retval(libssh2_userauth_publickey_fromfile(
@@ -489,7 +511,8 @@ void session::_key() {
     // Log message.
     logging::info(logging::medium)
       << "successful key-based authentication on session "
-      << _creds.get_user() << "@" << _creds.get_host();
+      << _creds.get_user() << "@" << _creds.get_host()
+      << ":" << _creds.get_port();
 
     // Enable non-blocking mode.
     libssh2_session_set_blocking(_session, 0);
@@ -514,7 +537,8 @@ void session::_passwd() {
   // Log message.
   logging::info(logging::medium)
     << "launching password-based authentication on session "
-    << _creds.get_user() << "@" << _creds.get_host();
+    << _creds.get_user() << "@" << _creds.get_host()
+    << ":" << _creds.get_port();
 
   // Try password.
   int retval(libssh2_userauth_password(
@@ -531,7 +555,8 @@ void session::_passwd() {
 #endif /* libssh2 version >= 1.2.3 */
       logging::info(logging::medium)
         << "could not authenticate with password on session "
-        << _creds.get_user() << "@" << _creds.get_host();
+        << _creds.get_user() << "@" << _creds.get_host()
+        << ":" << _creds.get_port();
       _step = session_key;
       _step_string = "public key authentication";
       _key();
@@ -547,7 +572,8 @@ void session::_passwd() {
     // Log message.
     logging::info(logging::medium)
       << "successful password authentication on session "
-      << _creds.get_user() << "@" << _creds.get_host();
+      << _creds.get_user() << "@" << _creds.get_host()
+      << ":" << _creds.get_port();
 
     // We're now connected.
     _step = session_keepalive;
@@ -569,7 +595,8 @@ void session::_startup() {
   // Log message.
   logging::info(logging::high)
     << "attempting to initialize SSH session "
-    << _creds.get_user() << "@" << _creds.get_host();
+    << _creds.get_user() << "@" << _creds.get_host()
+    << ":" << _creds.get_port();
 
   // Enable non-blocking mode.
   libssh2_session_set_blocking(_session, 0);
@@ -590,7 +617,7 @@ void session::_startup() {
     // Log message.
     logging::info(logging::medium) << "SSH session "
       << _creds.get_user() << "@" << _creds.get_host()
-      << " successfully initialized";
+      << ":" << _creds.get_port() << " successfully initialized";
 
 #ifdef WITH_KNOWN_HOSTS_CHECK
     // Initialize known hosts list.
@@ -625,7 +652,8 @@ void session::_startup() {
 
     // Check host fingerprint against known hosts.
     logging::info(logging::high) << "checking fingerprint on session "
-      << _creds.get_user() << "@" << _creds.get_host();
+      << _creds.get_user() << "@" << _creds.get_host()
+      << ":" << _creds.get_port();
 
     // Get peer fingerprint.
     size_t len;
@@ -687,6 +715,7 @@ void session::_startup() {
     }
     logging::info(logging::medium) << "fingerprint on session "
       << _creds.get_user() << "@" << _creds.get_host()
+      << ":" << _creds.get_port()
       << " matches a known host";
 #endif // WITH_KNOWN_HOSTS_CHECKS
     // Successful peer authentication.

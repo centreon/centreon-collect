@@ -22,6 +22,7 @@
 #include <string>
 #include <string.h>
 #include "com/centreon/connector/ssh/orders/parser.hh"
+#include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
@@ -254,52 +255,21 @@ void parser::_parse(std::string const& cmd) {
       // Find command to execute.
       end = cmd.find('\0', pos);
       std::string cmdline(cmd.substr(pos, end - pos));
-
-      // Find target host.
-      // XXX: improve parsing with whitespaces and quotes
-      pos = 0;
-      end = cmdline.find(' ', pos);
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution request received:" \
-                    " could not delimit host and user");
-      std::string host(cmdline.substr(pos, end - pos));
-      if (host.empty())
-        throw (basic_error() << "invalid execution request received:" \
-                    " empty host");
-      pos = end + 1;
-      // Find user name.
-      end = cmdline.find(' ', pos);
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution request received:" \
-                    " could not delimit user and password");
-      std::string user(cmdline.substr(pos, end - pos));
-      if (user.empty())
-        throw (basic_error() << "invalid execution request received:" \
-                    " empty user");
-      pos = end + 1;
-      // Find password.
-      end = cmdline.find(' ', pos);
-      if (std::string::npos == end)
-        throw (basic_error() << "invalid execution command");
-      std::string password(cmdline.substr(pos, end - pos));
-      pos = end + 1;
-      // Find command.
-      std::string command(cmdline.substr(pos));
-      if (command.empty())
-        throw (basic_error() << "invalid execution request received:" \
-                    " empty command");
+      options opt;
+      opt.parse(cmdline);
 
       // Notify listener.
-      std::list<std::string> cmds;
-      cmds.push_back(command);
       if (_listnr)
         _listnr->on_execute(
           cmd_id,
           timeout,
-          host,
-          user,
-          password,
-          cmds);
+          opt.get_host(),
+          opt.get_user(),
+          opt.get_authentication(),
+          opt.get_identity_file(),
+          opt.get_port(),
+          opt.get_commands(),
+          (opt.get_ip_protocol() == options::ip_v6));
     }
     break ;
   case 4: // Quit query.

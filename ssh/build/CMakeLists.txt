@@ -180,6 +180,7 @@ add_library("${CONNECTORLIB}"
   "${SRC_DIR}/options.cc"
   "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
+  "${SRC_DIR}/orders/options.cc"
   "${SRC_DIR}/policy.cc"
   "${SRC_DIR}/reporter.cc"
   "${SRC_DIR}/sessions/credentials.cc"
@@ -196,6 +197,7 @@ add_library("${CONNECTORLIB}"
   "${INC_DIR}/options.hh"
   "${INC_DIR}/orders/listener.hh"
   "${INC_DIR}/orders/parser.hh"
+  "${INC_DIR}/orders/options.hh"
   "${INC_DIR}/policy.hh"
   "${INC_DIR}/reporter.hh"
   "${INC_DIR}/sessions/credentials.hh"
@@ -206,7 +208,8 @@ add_library("${CONNECTORLIB}"
 target_link_libraries(
   "${CONNECTORLIB}"
   ${LIBSSH2_LIBRARIES}
-  ${CLIB_LIBRARIES})
+  ${CLIB_LIBRARIES}
+)
 
 # SSH connector.
 set(CONNECTOR "centreon_connector_ssh")

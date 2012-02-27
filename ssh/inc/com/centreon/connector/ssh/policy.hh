@@ -61,7 +61,10 @@ public:
                     std::string const& host,
                     std::string const& user,
                     std::string const& password,
-                    std::list<std::string> const& cmds);
+                    std::string const& key,
+                    unsigned short port,
+                    std::list<std::string> const& cmds,
+                    bool is_ipv6);
   void            on_quit();
   void            on_result(checks::result const& r);
   void            on_version();

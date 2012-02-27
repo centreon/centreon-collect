@@ -23,9 +23,9 @@
 #include <getopt.h>
 #include <iterator>
 #include <sstream>
-#include <wordexp.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
+#include "com/centreon/misc/command_line.hh"
 #include "com/centreon/connector/icmp/check.hh"
 
 using namespace com::centreon::connector::icmp;
@@ -253,106 +253,99 @@ unsigned int check::get_warning_roundtrip_avg() const throw () {
  *  Init check with the command line.
  */
 void check::parse() {
-  wordexp_t p;
-  wordexp(_command_line.c_str(), &p, 0);
-  int argc(p.we_wordc);
-  char** argv(p.we_wordv);
+  misc::command_line cmd(_command_line);
+  int argc(cmd.get_argc());
+  char** argv(cmd.get_argv());
 
-  try {
-    char c;
-    while ((c = getopt_long(
-                  argc,
-                  argv,
-                  "b:c:H:i:I:l:m:n:s:t:w:",
-                  long_options,
-                  NULL)) != -1) {
-      switch (c) {
-      case 'b': // Number of icmp data bytes to send.
-        if (!_to_obj(optarg, _packet_data_size))
-          throw (basic_error() << "invalid option 'b' ("
-                 << optarg << ")");
-        break;
+  char c;
+  while ((c = getopt_long(
+                argc,
+                argv,
+                "b:c:H:i:I:l:m:n:s:t:w:",
+                long_options,
+                NULL)) != -1) {
+    switch (c) {
+    case 'b': // Number of icmp data bytes to send.
+      if (!_to_obj(optarg, _packet_data_size))
+        throw (basic_error() << "invalid option 'b' ("
+               << optarg << ")");
+      break;
 
-      case 'c': // Critical threshold.
-        if (!_get_threshold(
-               optarg,
-               _critical_packet_lost,
-               _critical_roundtrip_avg))
-          throw (basic_error() << "invalid option 'c' ("
-                 << optarg << ")");
-        break;
+    case 'c': // Critical threshold.
+      if (!_get_threshold(
+                          optarg,
+                          _critical_packet_lost,
+                          _critical_roundtrip_avg))
+        throw (basic_error() << "invalid option 'c' ("
+               << optarg << ")");
+      break;
 
-      case 'H': // Specify a target.
-        host::factory(optarg, _hosts);
-        break;
+    case 'H': // Specify a target.
+      host::factory(optarg, _hosts);
+      break;
 
-      case 'i': // Max packet interval.
-        if (!_to_obj(optarg, _max_packet_interval))
-          throw (basic_error() << "invalid option 'i' ("
-                 << optarg << ")");
-        _max_packet_interval *= 1000;
-        break;
+    case 'i': // Max packet interval.
+      if (!_to_obj(optarg, _max_packet_interval))
+        throw (basic_error() << "invalid option 'i' ("
+               << optarg << ")");
+      _max_packet_interval *= 1000;
+      break;
 
-      case 'I': // Max target interval.
-        if (!_to_obj(optarg, _max_target_interval))
-          throw (basic_error() << "invalid option 'I' ("
-                 << optarg << ")");
-        _max_target_interval *= 1000;
-        break;
+    case 'I': // Max target interval.
+      if (!_to_obj(optarg, _max_target_interval))
+        throw (basic_error() << "invalid option 'I' ("
+               << optarg << ")");
+      _max_target_interval *= 1000;
+      break;
 
-      case 'l': // TTL on outgoing packets.
-        if (!_to_obj(optarg, _ttl))
-          throw (basic_error() << "invalid option 'l' ("
-                 << optarg << ")");
-        break;
+    case 'l': // TTL on outgoing packets.
+      if (!_to_obj(optarg, _ttl))
+        throw (basic_error() << "invalid option 'l' ("
+               << optarg << ")");
+      break;
 
-      case 'm': // Number of alive hosts required for success.
-        if (!_to_obj(optarg, _min_hosts_alive))
-          throw (basic_error() << "invalid option 'm' ("
-                 << optarg << ")");
-        break;
+    case 'm': // Number of alive hosts required for success.
+      if (!_to_obj(optarg, _min_hosts_alive))
+        throw (basic_error() << "invalid option 'm' ("
+               << optarg << ")");
+      break;
 
-      case 'n': // Number of packets to send.
-        if (!_to_obj(optarg, _nb_packet))
-          throw (basic_error() << "invalid option 'n' ("
-                 << optarg << ")");
-        break;
+    case 'n': // Number of packets to send.
+      if (!_to_obj(optarg, _nb_packet))
+        throw (basic_error() << "invalid option 'n' ("
+               << optarg << ")");
+      break;
 
-      case 's': // Specify a source IP address or device name.
-        _source_address = optarg;
-        break;
+    case 's': // Specify a source IP address or device name.
+      _source_address = optarg;
+      break;
 
-      case 't': // Timeout not used.
-        break;
+    case 't': // Timeout not used.
+      break;
 
-      case 'w': // Warning threshold.
-        if (!_get_threshold(
-               optarg,
-               _warning_packet_lost,
-               _warning_roundtrip_avg))
-          throw (basic_error() << "invalid option 'w' ("
-                 << optarg << ")");
-        break;
+    case 'w': // Warning threshold.
+      if (!_get_threshold(
+                          optarg,
+                          _warning_packet_lost,
+                          _warning_roundtrip_avg))
+        throw (basic_error() << "invalid option 'w' ("
+               << optarg << ")");
+      break;
 
-      case '?': // Missing argument.
-        throw (basic_error() << "option '" << c
-               << "' requires an argument");
+    case '?': // Missing argument.
+      throw (basic_error() << "option '" << c
+             << "' requires an argument");
 
-      default:
-        throw (basic_error() << "unrecognized option '" << c << "'");
-      }
+    default:
+      throw (basic_error() << "unrecognized option '" << c << "'");
     }
-    while (optind < argc)
-      host::factory(argv[optind++], _hosts);
-    _hosts_size = _hosts.size();
   }
-  catch (...) {
-    wordfree(&p);
-    throw;
-  }
+  while (optind < argc)
+    host::factory(argv[optind++], _hosts);
+  _hosts_size = _hosts.size();
 
   if (_hosts.empty())
-    throw (basic_error() << "invalid command line:no host " \
+    throw (basic_error() << "invalid command line:no host "     \
            "was define");
 
   if (_nb_packet > 20)
