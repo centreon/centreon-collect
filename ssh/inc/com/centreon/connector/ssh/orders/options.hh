@@ -55,8 +55,8 @@ namespace                         orders {
     std::string const&            get_user() const throw ();
     static std::string            help();
     void                          parse(std::string const& cmdline);
-    bool                          skip_stderr() const throw ();
-    bool                          skip_stdout() const throw ();
+    int                           skip_stderr() const throw ();
+    int                           skip_stdout() const throw ();
 
   private:
     void                          _copy(options const& p);
@@ -67,8 +67,8 @@ namespace                         orders {
     std::string                   _identity_file;
     ip_protocol                   _ip_protocol;
     unsigned short                _port;
-    bool                          _skip_stderr;
-    bool                          _skip_stdout;
+    int                           _skip_stderr;
+    int                           _skip_stdout;
     unsigned int                  _timeout;
     std::string                   _user;
   };

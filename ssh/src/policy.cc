@@ -120,14 +120,16 @@ void policy::on_error() {
 /**
  *  Execution command received.
  *
- *  @param[in] cmd_id   Command ID.
- *  @param[in] timeout  Time the command has to execute.
- *  @param[in] host     Target host.
- *  @param[in] user     User.
- *  @param[in] password Password.
- *  @param[in] key      Identity file.
- *  @param[in] cmds     Commands to execute.
- *  @param[in] use_ipv6 Version of ip protocol to use.
+ *  @param[in] cmd_id      Command ID.
+ *  @param[in] timeout     Time the command has to execute.
+ *  @param[in] host        Target host.
+ *  @param[in] user        User.
+ *  @param[in] password    Password.
+ *  @param[in] key         Identity file.
+ *  @param[in] cmds        Commands to execute.
+ *  @param[in] skip_stdout Ignore all or first n output lines.
+ *  @param[in] skip_stderr Ignore all or first n error lines.
+ *  @param[in] use_ipv6    Version of ip protocol to use.
  */
 void policy::on_execute(
                unsigned long long cmd_id,
@@ -138,6 +140,8 @@ void policy::on_execute(
                std::string const& key,
                unsigned short port,
                std::list<std::string> const& cmds,
+               int skip_stdout,
+               int skip_stderr,
                bool use_ipv6) {
   try {
     // Log message.
@@ -171,7 +175,9 @@ void policy::on_execute(
     }
 
     // Create check object.
-    std::auto_ptr<checks::check> chk(new checks::check);
+    std::auto_ptr<checks::check> chk(new checks::check(
+                                                   skip_stdout,
+                                                   skip_stderr));
     chk->listen(this);
     _checks[cmd_id] = std::make_pair(chk.get(), it->second);
     checks::check* chk_ptr(chk.release());

@@ -152,7 +152,7 @@ void session::connect(bool use_ipv6) {
     ret = inet_pton(AF_INET, host_ptr, &sin4->sin_addr);
   }
 
-  if (ret != 1)
+  if (ret == 1)
     logging::debug(logging::high) << "host "
       << host_ptr << " is an IP address";
   // DNS lookup.

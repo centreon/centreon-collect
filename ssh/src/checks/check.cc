@@ -38,12 +38,17 @@ using namespace com::centreon::connector::ssh::checks;
 
 /**
  *  Default constructor.
+ *
+ *  @param[in] skip_stdout Ignore all or first n output lines.
+ *  @param[in] skip_stderr Ignore all or first n error lines.
  */
-check::check()
+check::check(int skip_stdout, int skip_stderr)
   : _channel(NULL),
     _cmd_id(0),
     _listnr(NULL),
     _session(NULL),
+    _skip_stderr(skip_stderr),
+    _skip_stdout(skip_stdout),
     _step(chan_open),
     _timeout(0) {}
 
@@ -334,6 +339,11 @@ bool check::_close() {
       // Method should not be called again.
       retval = false;
 
+      if (_skip_stdout != -1)
+        _skip_data(_stdout, _skip_stdout);
+      if (_skip_stderr != -1)
+        _skip_data(_stderr, _skip_stderr);
+
       // Send results to parent process.
       result r;
       r.set_command_id(_cmd_id);
@@ -473,4 +483,27 @@ void check::_send_result_and_unregister(result const& r) {
   }
 
   return ;
+}
+
+/**
+ *  Skip n lines.
+ *
+ *  @param[in] data    The string to truncate.
+ *  @param[in] nb_line The number of lines to keep.
+ *
+ *  @return The first argument.
+ */
+std::string& check::_skip_data(std::string& data, int nb_line) {
+  if (nb_line < 0)
+    return (data);
+  if (!nb_line)
+    data.clear();
+  else {
+    size_t pos(0);
+    for (int i(0); i < nb_line && pos != std::string::npos; ++i)
+      pos = data.find("\n", pos + 1);
+    if (pos != std::string::npos)
+      data.resize(pos);
+  }
+  return (data);
 }

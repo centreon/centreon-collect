@@ -19,6 +19,7 @@
 */
 
 #include <sstream>
+#include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/connector/ssh/options.hh"
 
 using namespace com::centreon::connector::ssh;
@@ -83,9 +84,9 @@ std::string options::help() const {
       << "\n"
       << "Commands must be sent on the connector's standard input.\n"
       << "They must be sent using Centreon Connector protocol version\n"
-      << "1.0 and formatted as such:\n"
+      << "1.0 and support the following options:\n"
       << "\n"
-      << "  <host> <user> <password> <command> [arg1] [arg2]\n"
+      << orders::options::help() << "\n"
       << "Check results will be sent back using also the Centreon\n"
       << "Connector protocol version 1.0, on the process' standard\n"
       << "output.";
