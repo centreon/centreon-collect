@@ -125,7 +125,9 @@ void policy::on_error() {
  *  @param[in] host     Target host.
  *  @param[in] user     User.
  *  @param[in] password Password.
+ *  @param[in] key      Identity file.
  *  @param[in] cmds     Commands to execute.
+ *  @param[in] use_ipv6 Version of ip protocol to use.
  */
 void policy::on_execute(
                unsigned long long cmd_id,
@@ -133,7 +135,10 @@ void policy::on_execute(
                std::string const& host,
                std::string const& user,
                std::string const& password,
-               std::list<std::string> const& cmds) {
+               std::string const& key,
+               unsigned short port,
+               std::list<std::string> const& cmds,
+               bool use_ipv6) {
   try {
     // Log message.
     logging::info(logging::medium) << "got request to execute check "
@@ -146,6 +151,8 @@ void policy::on_execute(
     creds.set_host(host);
     creds.set_user(user);
     creds.set_password(password);
+    creds.set_port(port);
+    creds.set_key(key);
 
     // Object lock.
     concurrency::locker lock(&_mutex);
@@ -155,9 +162,9 @@ void policy::on_execute(
     it = _sessions.find(creds);
     if (it == _sessions.end()) {
       logging::info(logging::low) << "creating session for "
-        << user << "@" << host;
+        << user << "@" << host << ":" << port;
       std::auto_ptr<sessions::session> sess(new sessions::session(creds));
-      sess->connect();
+      sess->connect(use_ipv6);
       _sessions[creds] = sess.get();
       sess.release();
       it = _sessions.find(creds);
@@ -257,6 +264,7 @@ void policy::on_result(checks::result const& r) {
         else {
           logging::info(logging::high) << "session "
            << it->first.get_user() << "@" << it->first.get_host()
+           << ":" << it->first.get_port()
            << " that is not connected and has "
               "no check running will be deleted";
           _sessions.erase(it);

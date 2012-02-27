@@ -31,7 +31,8 @@ using namespace com::centreon::connector::ssh::sessions;
 /**
  *  @brief Default constructor.
  *
- *  Host, user and password are all empty after construction.
+ *  Host, user, password and identity are all empty after construction.
+ *  Port number are set to 22 by default.
  */
 credentials::credentials() {}
 
@@ -41,12 +42,22 @@ credentials::credentials() {}
  *  @param[in] host     Host.
  *  @param[in] user     User.
  *  @param[in] password Password.
+ *  @param[in] key      Identity file.
+ *  @param[in] port     Port.
  */
 credentials::credentials(
                std::string const& host,
                std::string const& user,
-               std::string const& password)
-  : _host(host), _password(password), _user(user) {}
+               std::string const& password,
+               std::string const& key,
+               unsigned short port)
+  : _host(host),
+    _key(key),
+    _password(password),
+    _port(port),
+    _user(user) {
+
+}
 
 /**
  *  Copy constructor.
@@ -85,7 +96,9 @@ credentials& credentials::operator=(credentials const& c) {
 bool credentials::operator==(credentials const& c) const {
   return ((_host == c._host)
           && (_password == c._password)
-          && (_user == c._user));
+          && (_user == c._user)
+          && (_port == c._port)
+          && (_key == c._key));
 }
 
 /**
@@ -115,6 +128,10 @@ bool credentials::operator<(credentials const& c) const {
     retval = (_user < c._user);
   else if (_password != c._password)
     retval = (_password < c._password);
+  else if (_port != c._port)
+    retval = (_port < c._port);
+  else if (_key != c._key)
+    retval = (_key < c._key);
   else
     retval = false;
   return (retval);
@@ -130,6 +147,15 @@ std::string const& credentials::get_host() const {
 }
 
 /**
+ *  Get the key file.
+ *
+ *  @return Identity file.
+ */
+std::string const& credentials::get_key() const {
+  return (_key);
+}
+
+/**
  *  Get the password.
  *
  *  @return Password.
@@ -139,12 +165,31 @@ std::string const& credentials::get_password() const {
 }
 
 /**
+ *  Get the port.
+ *
+ *  @return Port.
+ */
+unsigned short credentials::get_port() const {
+  return (_port);
+}
+
+/**
  *  Get the user.
  *
  *  @return User.
  */
 std::string const& credentials::get_user() const {
   return (_user);
+}
+
+/**
+ *  Set key file.
+ *
+ *  @param[in] file The new identity file.
+ */
+void credentials::set_key(std::string const& file) {
+  _key = file;
+  return ;
 }
 
 /**
@@ -164,6 +209,16 @@ void credentials::set_host(std::string const& host) {
  */
 void credentials::set_password(std::string const& password) {
   _password = password;
+  return ;
+}
+
+/**
+ *  Set the port.
+ *
+ *  @param[in] port New port.
+ */
+void credentials::set_port(unsigned short port) {
+  _port = port;
   return ;
 }
 
@@ -190,7 +245,9 @@ void credentials::set_user(std::string const& user) {
  */
 void credentials::_copy(credentials const& c) {
   _host = c._host;
+  _key = c._key;
   _password = c._password;
+  _port = c._port;
   _user = c._user;
   return ;
 }
