@@ -67,8 +67,8 @@ static struct option optlong[] = {
 options::options(std::string const& cmdline)
   : _ip_protocol(ip_v4),
     _port(22),
-    _skip_stderr(false),
-    _skip_stdout(false),
+    _skip_stderr(-1),
+    _skip_stdout(-1),
     _timeout(0) {
   if (!cmdline.empty())
     parse(cmdline);
@@ -183,28 +183,28 @@ std::string const& options::get_user() const throw () {
 std::string options::help() {
   std::string help;
   help =
-    "-1, --proto1:         This option is not supported.\n"             \
-    "-2, --proto2:         Tell ssh to use Protocol 2.\n"               \
-    "-4, --use-ipv4:       Enable IPv4 connection.\n"                   \
-    "-6, --use-ipv6:       Enable IPv6 connection.\n"                   \
-    "-a, --authentication: Authentication password.\n"                  \
-    "-C, --command:        Command to execute on the remote machine.\n" \
-    "-E, --skip-stderr:    Ignore all or first n lines on STDERR.\n"    \
-    "-f, --fork:           This option is not supported.\n"             \
-    "-h, --help:           Not used.\n"                                 \
-    "-H, --hostname:       Host name, IP Address.\n"                    \
-    "-i, --identity:       Identity of an authorized key.\n"            \
-    "-l, --logname:        SSH user name on remote host.\n"             \
-    "-n, --name:           This option is not supported.\n"             \
-    "-o, --ssh-option:     This option is not supported.\n"             \
-    "-O, --output:         This option is not supported.\n"             \
-    "-p, --port:           Port number (default: 22).\n"                \
-    "-q, --quiet:          Not used.\n"                                 \
-    "-s, --services:       This option is not supported.\n"             \
-    "-S, --skip-stdout:    Ignore all or first n lines on STDOUT.\n"    \
-    "-t, --timeout:        Seconds before connection times out (default: 10).\n" \
-    "-v, --verbose:        Not used.\n"                                 \
-    "-V, --version:        Not used.\n";
+    "  -1, --proto1:         This option is not supported.\n"           \
+    "  -2, --proto2:         Tell ssh to use Protocol 2.\n"             \
+    "  -4, --use-ipv4:       Enable IPv4 connection.\n"                 \
+    "  -6, --use-ipv6:       Enable IPv6 connection.\n"                 \
+    "  -a, --authentication: Authentication password.\n"                \
+    "  -C, --command:        Command to execute on the remote machine.\n" \
+    "  -E, --skip-stderr:    Ignore all or first n lines on STDERR.\n"  \
+    "  -f, --fork:           This option is not supported.\n"           \
+    "  -h, --help:           Not used.\n"                               \
+    "  -H, --hostname:       Host name, IP Address.\n"                  \
+    "  -i, --identity:       Identity of an authorized key.\n"          \
+    "  -l, --logname:        SSH user name on remote host.\n"           \
+    "  -n, --name:           This option is not supported.\n"           \
+    "  -o, --ssh-option:     This option is not supported.\n"           \
+    "  -O, --output:         This option is not supported.\n"           \
+    "  -p, --port:           Port number (default: 22).\n"              \
+    "  -q, --quiet:          Not used.\n"                               \
+    "  -s, --services:       This option is not supported.\n"           \
+    "  -S, --skip-stdout:    Ignore all or first n lines on STDOUT.\n"  \
+    "  -t, --timeout:        Seconds before connection times out (default: 10).\n" \
+    "  -v, --verbose:        Not used.\n"                               \
+    "  -V, --version:        Not used.\n";
   return (help);
 }
 
@@ -259,9 +259,7 @@ void options::parse(std::string const& cmdline) {
       break;
 
     case 'E': // Skip stderr.
-      _skip_stderr = true;;
-      throw (basic_error() << "'" << c
-             << "' option is not yet supported");
+      _skip_stderr = atoi(optarg);
       break;
 
     case 'f': // Fork ssh.
@@ -271,8 +269,6 @@ void options::parse(std::string const& cmdline) {
 
     case 'i': // Set Identity file.
       _identity_file = optarg;
-      throw (basic_error() << "'" << c
-             << "' option is not yet supported");
       break;
 
     case 'n': // Host name for monitoring engine.
@@ -296,15 +292,11 @@ void options::parse(std::string const& cmdline) {
       break;
 
     case 'S': // Skip stdout.
-      _skip_stdout = true;
-      throw (basic_error() << "'" << c
-             << "' option is not yet supported");
+      _skip_stdout = atoi(optarg);
       break;
 
     case 't': // Set timeout.
       _timeout = atoi(optarg);
-      throw (basic_error() << "'" << c
-             << "' option is not yet supported");
       break;
 
     case 'h': // Help.
@@ -327,18 +319,18 @@ void options::parse(std::string const& cmdline) {
 /**
  *  Disable error output.
  *
- *  @return True to disable, otherwise false.
+ *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-bool options::skip_stderr() const throw () {
+int options::skip_stderr() const throw () {
   return (_skip_stderr);
 }
 
 /**
  *  Disable standard output.
  *
- *  @return True to disable, otherwise false.
+ *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-bool options::skip_stdout() const throw () {
+int options::skip_stdout() const throw () {
   return (_skip_stdout);
 }
 

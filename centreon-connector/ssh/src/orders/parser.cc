@@ -257,6 +257,11 @@ void parser::_parse(std::string const& cmd) {
       std::string cmdline(cmd.substr(pos, end - pos));
       options opt;
       opt.parse(cmdline);
+      if (opt.get_timeout() < timeout)
+        timeout = opt.get_timeout();
+      else if (opt.get_timeout() > timeout)
+        throw (basic_error() << "invalid timeout: check "       \
+               "timeout > to monitoring engine timeout");
 
       // Notify listener.
       if (_listnr)
@@ -269,6 +274,8 @@ void parser::_parse(std::string const& cmd) {
           opt.get_identity_file(),
           opt.get_port(),
           opt.get_commands(),
+          opt.skip_stdout(),
+          opt.skip_stderr(),
           (opt.get_ip_protocol() == options::ip_v6));
     }
     break ;

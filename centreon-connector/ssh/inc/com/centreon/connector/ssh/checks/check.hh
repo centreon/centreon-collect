@@ -43,7 +43,9 @@ namespace                  checks {
    */
   class                    check : public sessions::listener {
   public:
-                           check();
+                           check(
+                             int skip_stdout = -1,
+                             int skip_stderr = -1);
                            ~check() throw ();
     void                   execute(
                              sessions::session& sess,
@@ -72,12 +74,15 @@ namespace                  checks {
     bool                   _open();
     bool                   _read();
     void                   _send_result_and_unregister(result const& r);
+    static std::string&    _skip_data(std::string& data, int nb_line);
 
     LIBSSH2_CHANNEL*       _channel;
     std::list<std::string> _cmds;
     unsigned long long     _cmd_id;
     checks::listener*      _listnr;
     sessions::session*     _session;
+    int                    _skip_stderr;
+    int                    _skip_stdout;
     std::string            _stderr;
     std::string            _stdout;
     e_step                 _step;

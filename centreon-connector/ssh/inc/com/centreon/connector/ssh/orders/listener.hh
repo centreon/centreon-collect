@@ -53,6 +53,8 @@ namespace        orders {
                    std::string const& identity,
                    unsigned short port,
                    std::list<std::string> const& cmds,
+                   int skip_stdout,
+                   int skip_stderr,
                    bool is_ipv6) = 0;
     virtual void on_quit() = 0;
     virtual void on_version() = 0;

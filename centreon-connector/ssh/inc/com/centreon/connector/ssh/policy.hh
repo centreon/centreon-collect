@@ -64,6 +64,8 @@ public:
                     std::string const& key,
                     unsigned short port,
                     std::list<std::string> const& cmds,
+                    int skip_output,
+                    int skip_error,
                     bool is_ipv6);
   void            on_quit();
   void            on_result(checks::result const& r);
