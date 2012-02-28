@@ -95,21 +95,26 @@ void fake_listener::on_error() {
 /**
  *  Execute callback.
  *
- *  @param[in] cmd_id   Command ID.
- *  @param[in] timeout  Timeout.
- *  @param[in] host     Host.
- *  @param[in] user     User.
- *  @param[in] password Password.
- *  @param[in] cmds     Commands.
+ *  @param[in] cmd_id      Command ID.
+ *  @param[in] timeout     Timeout.
+ *  @param[in] host        Host.
+ *  @param[in] port        Connection port.
+ *  @param[in] user        User.
+ *  @param[in] password    Password.
+ *  @param[in] identity    Identity file.
+ *  @param[in] cmds        Commands.
+ *  @param[in] skip_stdout Should stdout be skipped.
+ *  @param[in] skip_stderr Should stderr be skipped.
+ *  @param[in] is_ipv6     Work with IPv6.
  */
 void fake_listener::on_execute(
                       unsigned long long cmd_id,
                       time_t timeout,
                       std::string const& host,
+                      unsigned short port,
                       std::string const& user,
                       std::string const& password,
                       std::string const& identity,
-                      unsigned short port,
                       std::list<std::string> const& cmds,
                       int skip_stdout,
                       int skip_stderr,
@@ -119,10 +124,10 @@ void fake_listener::on_execute(
   ci.cmd_id = cmd_id;
   ci.timeout = timeout;
   ci.host = host;
+  ci.port = port;
   ci.user = user;
   ci.password = password;
   ci.identity = identity;
-  ci.port = port;
   ci.cmds = cmds;
   ci.skip_stdout = skip_stdout;
   ci.skip_stderr = skip_stderr;
@@ -199,10 +204,10 @@ bool operator==(
               && ((it1->cmd_id != it2->cmd_id)
                   || (fabs(it1->timeout - it2->timeout) >= 1.0)
                   || (it1->host != it2->host)
+                  || (it1->port != it2->port)
                   || (it1->user != it2->user)
                   || (it1->password != it2->password)
                   || (it1->identity != it2->identity)
-                  || (it1->port != it2->port)
                   || (it1->skip_stdout != it2->skip_stdout)
                   || (it1->skip_stderr != it2->skip_stderr)
                   || (it1->is_ipv6 != it2->is_ipv6)

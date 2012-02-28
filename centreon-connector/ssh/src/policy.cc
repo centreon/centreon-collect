@@ -123,6 +123,7 @@ void policy::on_error() {
  *  @param[in] cmd_id      Command ID.
  *  @param[in] timeout     Time the command has to execute.
  *  @param[in] host        Target host.
+ *  @param[in] port        Connection port.
  *  @param[in] user        User.
  *  @param[in] password    Password.
  *  @param[in] key         Identity file.
@@ -135,10 +136,10 @@ void policy::on_execute(
                unsigned long long cmd_id,
                time_t timeout,
                std::string const& host,
+               unsigned short port,
                std::string const& user,
                std::string const& password,
                std::string const& key,
-               unsigned short port,
                std::list<std::string> const& cmds,
                int skip_stdout,
                int skip_stderr,

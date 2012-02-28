@@ -25,14 +25,20 @@
 
 using namespace com::centreon::connector::ssh::orders;
 
-#define DATA1 "2\0\0\0\0"
-#define DATA2 "2\00042\0\0\0\0"
-#define DATA3 "2\00042\00010\0\0\0\0"
-#define DATA4 "2\00042\00010\0000\0\0\0\0"
-#define DATA5 "2\00042\00010\0000\0localhost\0\0\0\0"
-#define DATA6 "2\00042\00010\0000\0localhost root\0\0\0\0"
-#define DATA7 "2\00042\00010\0000\0localhost root centreon\0\0\0\0"
-#define DATA8 "2\00042\00010\0000\0localhost root centreon \0\0\0\0"
+#define DATA01 "2\0\0\0\0"
+#define DATA02 "2\00042\0\0\0\0"
+#define DATA03 "2\00042\00010\0\0\0\0"
+#define DATA04 "2\00042\00010\0000\0\0\0\0"
+#define DATA05 "2\00042\00010\0000\0check_by_ssh\0\0\0\0"
+#define DATA06 "2\00042\00010\0000\0check_by_ssh -H\0\0\0\0"
+#define DATA07 "2\00042\00010\0000\0check_by_ssh -H localhost\0\0\0\0"
+#define DATA08 "2\00042\00010\0000\0check_by_ssh -H localhost -l\0\0\0\0"
+#define DATA09 "2\00042\00010\0000\0check_by_ssh -H localhost -l root\0\0\0\0"
+#define DATA10 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon\0\0\0\0"
+#define DATA11 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a \0\0\0\0"
+#define DATA12 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon\0\0\0\0"
+#define DATA13 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon -C\0\0\0\0"
+#define DATA14 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon -C ''\0\0\0\0"
 
 /**
  *  Check execute orders parsing.
@@ -45,14 +51,20 @@ int main() {
 
   // Create invalid execute order packet.
   buffer_handle bh;
-  bh.write(DATA1, sizeof(DATA1) - 1);
-  bh.write(DATA2, sizeof(DATA2) - 1);
-  bh.write(DATA3, sizeof(DATA3) - 1);
-  bh.write(DATA4, sizeof(DATA4) - 1);
-  bh.write(DATA5, sizeof(DATA5) - 1);
-  bh.write(DATA6, sizeof(DATA6) - 1);
-  bh.write(DATA7, sizeof(DATA7) - 1);
-  bh.write(DATA8, sizeof(DATA8) - 1);
+  bh.write(DATA01, sizeof(DATA01) - 1);
+  bh.write(DATA02, sizeof(DATA02) - 1);
+  bh.write(DATA03, sizeof(DATA03) - 1);
+  bh.write(DATA04, sizeof(DATA04) - 1);
+  bh.write(DATA05, sizeof(DATA05) - 1);
+  bh.write(DATA06, sizeof(DATA06) - 1);
+  bh.write(DATA07, sizeof(DATA07) - 1);
+  bh.write(DATA08, sizeof(DATA08) - 1);
+  bh.write(DATA09, sizeof(DATA09) - 1);
+  bh.write(DATA10, sizeof(DATA10) - 1);
+  bh.write(DATA11, sizeof(DATA11) - 1);
+  bh.write(DATA12, sizeof(DATA12) - 1);
+  bh.write(DATA13, sizeof(DATA13) - 1);
+  bh.write(DATA14, sizeof(DATA14) - 1);
 
   // Listener.
   fake_listener listnr;
@@ -71,28 +83,13 @@ int main() {
   if (listnr.get_callbacks().size() != 9)
     retval = 1;
   else {
-    fake_listener::callback_info
-      info1, info2, info3, info4, info5, info6, info7, info8, info9;
+    fake_listener::callback_info info[14];
     std::list<fake_listener::callback_info>::const_iterator it;
     it = listnr.get_callbacks().begin();
-    info1 = *(it++);
-    info2 = *(it++);
-    info3 = *(it++);
-    info4 = *(it++);
-    info5 = *(it++);
-    info6 = *(it++);
-    info7 = *(it++);
-    info8 = *(it++);
-    info9 = *(it++);
-    retval |= ((info1.callback != fake_listener::cb_error)
-               || (info2.callback != fake_listener::cb_error)
-               || (info3.callback != fake_listener::cb_error)
-               || (info4.callback != fake_listener::cb_error)
-               || (info5.callback != fake_listener::cb_error)
-               || (info6.callback != fake_listener::cb_error)
-               || (info7.callback != fake_listener::cb_error)
-               || (info8.callback != fake_listener::cb_error)
-               || (info9.callback != fake_listener::cb_eof));
+    for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i)
+      info[i] = *(it++);
+    for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i)
+      retval |= (info[i].callback != fake_listener::cb_error);
   }
 
   // Parser must be empty.
