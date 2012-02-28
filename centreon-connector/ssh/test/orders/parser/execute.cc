@@ -46,7 +46,7 @@ int main() {
   bh.write(str, strlen(str) + 1);
   str = "4242"; // Timeout.
   bh.write(str, strlen(str) + 1);
-  str = "0"; // Start time.
+  str = "4241"; // Start time.
   bh.write(str, strlen(str) + 1);
   str = "check_by_ssh -H localhost -l root -a myverysecretpassword -C \"mycheck to execute with some args\"";
   bh.write(str, strlen(str));

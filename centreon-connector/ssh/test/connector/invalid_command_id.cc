@@ -27,7 +27,9 @@ using namespace com::centreon;
             "0\0" \
             "10\0" \
             "123456789\0" \
-            "localhost user password echo Merethis\0\0\0\0"
+            "check_by_ssh " \
+            "-H localhost -l user -a password " \
+            "-C 'echo Merethis'\0\0\0\0"
 
 /**
  *  Check that connector exits when receiving an invalid command ID (0).

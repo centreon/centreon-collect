@@ -60,7 +60,7 @@ namespace                         orders {
 
   private:
     void                          _copy(options const& p);
-    static char const*            _get_login() throw ();
+    static std::string            _get_user_name();
 
     std::string                   _authentication;
     std::list<std::string>        _commands;

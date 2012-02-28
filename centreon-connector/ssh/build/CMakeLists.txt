@@ -525,14 +525,7 @@ if (WITH_TESTING)
   #
   # Process tests.
   #
-  # Test library.
-  add_library("connector_ssh_binary" STATIC
-    # Sources.
-    "${TEST_DIR}/connector/get_user_name.cc"
-    # Headers.
-    "${TEST_DIR}/connector/binary.hh"
-    "${TEST_DIR}/connector/get_user_name.hh")
-  set(TEST_LIBRARIES "connector_ssh_binary" ${CLIB_LIBRARIES})
+  set(TEST_LIBRARIES ${CLIB_LIBRARIES})
   # Help.
   add_test("connector_help" "${CONNECTOR}" "--help")
   # Version.

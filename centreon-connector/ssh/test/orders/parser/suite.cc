@@ -28,7 +28,7 @@ using namespace com::centreon::connector::ssh::orders;
 
 #define CMD "0\0\0\0\0" \
             "2\000147852\0007849\000147852369\0check_by_ssh -H localhost -l root -a password -6 -C ls\0\0\0\0" \
-            "2\00036525825445548787\0002258\0000\0check_by_ssh -H www.merethis.com -l centreon -a iswonderful -C \"rm -rf /\"\0\0\0\0" \
+            "2\00036525825445548787\0002258\00001\0check_by_ssh -H www.merethis.com -l centreon -a iswonderful -C \"rm -rf /\"\0\0\0\0" \
             "2\00063\0000\00099999999999999999\000check_by_ssh -H www.centreon.com -p 2222 -l merethis -a rocks -C \"./check_for_updates on website\"\0\0\0\0" \
             "4\0\0\0\0"
 

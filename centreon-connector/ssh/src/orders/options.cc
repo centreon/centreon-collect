@@ -18,11 +18,16 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#ifdef _WIN32
+#  include <windows.h>
+#else
+#  include <errno.h>
+#  include <pwd.h>
+#  include <string.h>
+#  include <unistd.h>
+#endif // Windows or POSIX.
 #include <getopt.h>
-#include <pwd.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
 #include "com/centreon/connector/ssh/orders/options.hh"
@@ -319,12 +324,8 @@ void options::parse(std::string const& cmdline) {
       throw (basic_error() << "unrecognized option '" << c << "'");
     }
   }
-  if (_user.empty()) {
-    char const* user(_get_login());
-    if (!user)
-      throw (basic_error() << "enable to set default user");
-    _user = user;
-  }
+  if (_user.empty())
+    _user = _get_user_name();
 }
 
 /**
@@ -374,12 +375,22 @@ void options::_copy(options const& right) {
  *
  *  @return The current login name.
  */
-char const* options::_get_login() throw () {
-  passwd* pwd(NULL);
-  uid_t uid(getuid());
-  setpwent();
-  while ((pwd = getpwent()) && pwd->pw_uid != uid)
-    ;
-  endpwent();
-  return (pwd ? pwd->pw_name : NULL);
+std::string options::_get_user_name() {
+#ifdef _WIN32
+  char buffer[32665];
+  if (!GetUserName(buffer, sizeof(buffer) - 1)) {
+    int errcode(GetLastError());
+    throw (basic_error() << "cannot get current user name (error "
+           << errcode << ")");
+  }
+  return (buffer);
+#else
+  errno = 0;
+  passwd* pwd(getpwuid(getuid()));
+  if (!pwd || !pwd->pw_name) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "cannot get current user name: " << msg);
+  }
+  return (pwd->pw_name);
+#endif // Windows or POSIX.
 }
