@@ -108,7 +108,12 @@ void fake_listener::on_execute(
                       std::string const& host,
                       std::string const& user,
                       std::string const& password,
-                      std::list<std::string> const& cmds) {
+                      std::string const& identity,
+                      unsigned short port,
+                      std::list<std::string> const& cmds,
+                      int skip_stdout,
+                      int skip_stderr,
+                      bool is_ipv6) {
   callback_info ci;
   ci.callback = cb_execute;
   ci.cmd_id = cmd_id;
@@ -116,7 +121,12 @@ void fake_listener::on_execute(
   ci.host = host;
   ci.user = user;
   ci.password = password;
+  ci.identity = identity;
+  ci.port = port;
   ci.cmds = cmds;
+  ci.skip_stdout = skip_stdout;
+  ci.skip_stderr = skip_stderr;
+  ci.is_ipv6 = is_ipv6;
   _callbacks.push_back(ci);
   return ;
 }
@@ -191,6 +201,11 @@ bool operator==(
                   || (it1->host != it2->host)
                   || (it1->user != it2->user)
                   || (it1->password != it2->password)
+                  || (it1->identity != it2->identity)
+                  || (it1->port != it2->port)
+                  || (it1->skip_stdout != it2->skip_stdout)
+                  || (it1->skip_stderr != it2->skip_stderr)
+                  || (it1->is_ipv6 != it2->is_ipv6)
                   || (it1->cmds != it2->cmds))))
         retval = false;
   }

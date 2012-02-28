@@ -30,57 +30,68 @@
  *
  *  Register callback call order.
  */
-class            fake_listener : public com::centreon::connector::ssh::orders::listener {
+class              fake_listener
+  : public com::centreon::connector::ssh::orders::listener {
 public:
-  enum           e_callback {
+  enum             e_callback {
     cb_eof,
     cb_error,
     cb_execute,
     cb_quit,
     cb_version
   };
-  struct         callback_info {
-    e_callback   callback;
+  struct           callback_info {
+    e_callback     callback;
     unsigned long long
-                 cmd_id;
-    time_t       timeout;
-    std::string  host;
-    std::string  user;
-    std::string  password;
+                   cmd_id;
+    time_t         timeout;
+    std::string    host;
+    std::string    user;
+    std::string    password;
+    std::string    identity;
+    unsigned short port;
     std::list<std::string>
-                 cmds;
+                   cmds;
+    int            skip_stderr;
+    int            skip_stdout;
+    bool           is_ipv6;
   };
 
-                 fake_listener();
-                 fake_listener(fake_listener const& fl);
-                 ~fake_listener();
-  fake_listener& operator=(fake_listener const& fl);
+                   fake_listener();
+                   fake_listener(fake_listener const& fl);
+                   ~fake_listener();
+  fake_listener&   operator=(fake_listener const& fl);
   std::list<callback_info> const&
-                 get_callbacks() const throw ();
-  void           on_eof();
-  void           on_error();
-  void           on_execute(
-                   unsigned long long cmd_id,
-                   time_t timeout,
-                   std::string const& host,
-                   std::string const& user,
-                   std::string const& password,
-                   std::list<std::string> const& cmds);
-  void           on_quit();
-  void           on_version();
+                   get_callbacks() const throw ();
+  void             on_eof();
+  void             on_error();
+  void             on_execute(
+                     unsigned long long cmd_id,
+                     time_t timeout,
+                     std::string const& host,
+                     std::string const& user,
+                     std::string const& password,
+                     std::string const& identity,
+                     unsigned short port,
+                     std::list<std::string> const& cmds,
+                     int skip_stdout,
+                     int skip_stderr,
+                     bool is_ipv6);
+  void             on_quit();
+  void             on_version();
 
 private:
-  void           _copy(fake_listener const& fl);
+  void             _copy(fake_listener const& fl);
 
   std::list<callback_info>
-                 _callbacks;
+                   _callbacks;
 };
 
-bool             operator==(
-                   std::list<fake_listener::callback_info> const& left,
-                   std::list<fake_listener::callback_info> const& right);
-bool             operator!=(
-                   std::list<fake_listener::callback_info> const& left,
-                   std::list<fake_listener::callback_info> const& right);
+bool               operator==(
+                     std::list<fake_listener::callback_info> const& left,
+                     std::list<fake_listener::callback_info> const& right);
+bool               operator!=(
+                     std::list<fake_listener::callback_info> const& left,
+                     std::list<fake_listener::callback_info> const& right);
 
 #endif // !TEST_ORDERS_FAKE_LISTENER_HH
