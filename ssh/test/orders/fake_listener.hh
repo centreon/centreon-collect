@@ -46,10 +46,10 @@ public:
                    cmd_id;
     time_t         timeout;
     std::string    host;
+    unsigned short port;
     std::string    user;
     std::string    password;
     std::string    identity;
-    unsigned short port;
     std::list<std::string>
                    cmds;
     int            skip_stderr;
@@ -69,10 +69,10 @@ public:
                      unsigned long long cmd_id,
                      time_t timeout,
                      std::string const& host,
+                     unsigned short port,
                      std::string const& user,
                      std::string const& password,
                      std::string const& identity,
-                     unsigned short port,
                      std::list<std::string> const& cmds,
                      int skip_stdout,
                      int skip_stderr,

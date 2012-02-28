@@ -48,7 +48,7 @@ int main() {
   bh.write(str, strlen(str) + 1);
   str = "0"; // Start time.
   bh.write(str, strlen(str) + 1);
-  str = "localhost root myverysecretpassword mycheck to execute with some args";
+  str = "check_by_ssh -H localhost -l root -a myverysecretpassword -C \"mycheck to execute with some args\"";
   bh.write(str, strlen(str));
   bh.write("\0\0\0\0", 4);
 
