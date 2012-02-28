@@ -19,7 +19,9 @@
 */
 
 #include <getopt.h>
+#include <pwd.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
@@ -314,6 +316,12 @@ void options::parse(std::string const& cmdline) {
       throw (basic_error() << "unrecognized option '" << c << "'");
     }
   }
+  if (_user.empty()) {
+    char const* user(_get_login());
+    if (!user)
+      throw (basic_error() << "enable to set default user");
+    _user = user;
+  }
 }
 
 /**
@@ -356,4 +364,19 @@ void options::_copy(options const& right) {
   _skip_stdout = right._skip_stdout;
   _timeout = right._timeout;
   _user = right._user;
+}
+
+/**
+ *  Get the current login name.
+ *
+ *  @return The current login name.
+ */
+char const* options::_get_login() throw () {
+  passwd* pwd(NULL);
+  uid_t uid(getuid());
+  setpwent();
+  while ((pwd = getpwent()) && pwd->pw_uid != uid)
+    ;
+  endpwent();
+  return (pwd ? pwd->pw_name : NULL);
 }

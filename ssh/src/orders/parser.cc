@@ -257,7 +257,7 @@ void parser::_parse(std::string const& cmd) {
       std::string cmdline(cmd.substr(pos, end - pos));
       options opt;
       opt.parse(cmdline);
-      if (opt.get_timeout() < timeout)
+      if (opt.get_timeout() > 0 && opt.get_timeout() < timeout)
         timeout = opt.get_timeout();
       else if (opt.get_timeout() > timeout)
         throw (basic_error() << "invalid timeout: check "       \

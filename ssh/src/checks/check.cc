@@ -345,13 +345,15 @@ bool check::_close() {
         _skip_data(_stderr, _skip_stderr);
 
       // Send results to parent process.
-      result r;
-      r.set_command_id(_cmd_id);
-      r.set_error(_stderr);
-      r.set_executed(true);
-      r.set_exit_code(exitcode);
-      r.set_output(_stdout);
-      _send_result_and_unregister(r);
+      if (_cmds.empty()) {
+        result r;
+        r.set_command_id(_cmd_id);
+        r.set_error(_stderr);
+        r.set_executed(true);
+        r.set_exit_code(exitcode);
+        r.set_output(_stdout);
+        _send_result_and_unregister(r);
+      }
     }
   }
   // Attempt to close a closed channel.
