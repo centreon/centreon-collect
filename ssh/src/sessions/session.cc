@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <iostream>
 #include <libssh2.h>
 #include <memory>
 #include <netdb.h>
@@ -458,10 +457,11 @@ session& session::operator=(session const& s) {
 void session::_available() {
   logging::debug(logging::high) << "session " << this
     << " is available and has " << _listnrs.size() << " listeners";
-  for (_listnrs_it = _listnrs.begin();
-       _listnrs_it != _listnrs.end();
-       ++_listnrs_it)
-    (*_listnrs_it)->on_available(*this);
+  _listnrs_it = _listnrs.begin();
+  while (_listnrs_it != _listnrs.end()) {
+    std::set<listener*>::iterator it(_listnrs_it++);
+    (*it)->on_available(*this);
+  }
   return ;
 }
 

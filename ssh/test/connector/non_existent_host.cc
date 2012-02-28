@@ -23,7 +23,6 @@
 #include <string.h>
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
-#include "test/connector/get_user_name.hh"
 
 using namespace com::centreon;
 
@@ -31,8 +30,9 @@ using namespace com::centreon;
              "4242\0" \
              "5\0" \
              "123456789\0" \
-             "nonexistenthost.nonexistentdomain "
-#define CMD2 "  echo Merethis is wonderful\0\0\0\0"
+             "check_by_ssh " \
+             "-H nonexistenthost.nonexistentdomain " \
+             " -C 'echo Merethis is wonderful'\0\0\0\0"
 #define RESULT "3\0" \
                "4242\0" \
                "0\0" \
@@ -55,8 +55,6 @@ int main() {
   // Write command.
   std::ostringstream oss;
   oss.write(CMD1, sizeof(CMD1) - 1);
-  oss << get_user_name();
-  oss.write(CMD2, sizeof(CMD2) - 1);
   std::string cmd(oss.str());
   char const* ptr(cmd.c_str());
   unsigned int size(cmd.size());

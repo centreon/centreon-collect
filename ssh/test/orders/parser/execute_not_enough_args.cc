@@ -30,21 +30,21 @@ using namespace com::centreon::connector::ssh::orders;
 #define DATA03 "2\00042\00010\0\0\0\0"
 #define DATA04 "2\00042\00010\0000\0\0\0\0"
 #define DATA05 "2\00042\00010\0000\0check_by_ssh\0\0\0\0"
-#define DATA06 "2\00042\00010\0000\0check_by_ssh -H\0\0\0\0"
-#define DATA07 "2\00042\00010\0000\0check_by_ssh -H localhost\0\0\0\0"
-#define DATA08 "2\00042\00010\0000\0check_by_ssh -H localhost -l\0\0\0\0"
-#define DATA09 "2\00042\00010\0000\0check_by_ssh -H localhost -l root\0\0\0\0"
-#define DATA10 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon\0\0\0\0"
-#define DATA11 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a \0\0\0\0"
-#define DATA12 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon\0\0\0\0"
-#define DATA13 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon -C\0\0\0\0"
-#define DATA14 "2\00042\00010\0000\0check_by_ssh -H localhost -l root -a centreon -C ''\0\0\0\0"
+#define DATA06 "2\00042\00010\0000\0check_by_ssh -C 'true'\0\0\0\0"
+#define DATA07 "2\00042\00010\0000\0check_by_ssh -C 'true' -H\0\0\0\0"
+#define DATA08 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -i\0\0\0\0"
+#define DATA09 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -l\0\0\0\0"
+#define DATA10 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -p\0\0\0\0"
+#define DATA11 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -a\0\0\0\0"
+#define DATA12 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -t\0\0\0\0"
+#define DATA13 "2\00042\00010\0000\0check_by_ssh -C '' -H localhost\0\0\0\0"
 
 /**
  *  Check execute orders parsing.
  *
  *  @return 0 on success.
  */
+#include <iostream>
 int main() {
   // Initialization.
   com::centreon::logging::engine::load();
@@ -64,7 +64,6 @@ int main() {
   bh.write(DATA11, sizeof(DATA11) - 1);
   bh.write(DATA12, sizeof(DATA12) - 1);
   bh.write(DATA13, sizeof(DATA13) - 1);
-  bh.write(DATA14, sizeof(DATA14) - 1);
 
   // Listener.
   fake_listener listnr;
@@ -78,18 +77,19 @@ int main() {
 
   // Checks.
   int retval(0);
-
   // Listener must have received errors and eof.
-  if (listnr.get_callbacks().size() != 9)
+  if (listnr.get_callbacks().size() != 14)
     retval = 1;
   else {
-    fake_listener::callback_info info[14];
+    fake_listener::callback_info info[13];
     std::list<fake_listener::callback_info>::const_iterator it;
     it = listnr.get_callbacks().begin();
     for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i)
       info[i] = *(it++);
-    for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i)
+    for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i) {
+      std::cout << fake_listener::cb_error << ": " << info[i].callback << std::endl;
       retval |= (info[i].callback != fake_listener::cb_error);
+    }
   }
 
   // Parser must be empty.

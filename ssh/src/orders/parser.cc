@@ -232,7 +232,7 @@ void parser::_parse(std::string const& cmd) {
       unsigned long long cmd_id(strtoull(cmd.c_str() + pos, &ptr, 10));
       if (!cmd_id || *ptr)
         throw (basic_error() << "invalid execution request received:" \
-                    " bad command ID (" << cmd.c_str() + pos << ")");
+               " bad command ID (" << cmd.c_str() + pos << ")");
       pos = end + 1;
       // Find timeout value.
       end = cmd.find('\0', pos);
@@ -242,26 +242,36 @@ void parser::_parse(std::string const& cmd) {
         10)));
       if (*ptr)
         throw (basic_error() << "invalid execution request received:" \
-                    " bad timeout (" << cmd.c_str() + pos << ")");
+               " bad timeout (" << cmd.c_str() + pos << ")");
       timeout += time(NULL);
       pos = end + 1;
       // Find start time.
       end = cmd.find('\0', pos);
-      (void)strtoull(cmd.c_str() + pos, &ptr, 10);
-      if (*ptr)
+      time_t start_time(static_cast<time_t>(strtoull(
+        cmd.c_str() + pos,
+        &ptr,
+        10)));
+      if (*ptr || !start_time)
         throw (basic_error() << "invalid execution request received:" \
-                    " bad start time (" << cmd.c_str() + pos << ")");
+               " bad start time (" << cmd.c_str() + pos << ")");
       pos = end + 1;
       // Find command to execute.
       end = cmd.find('\0', pos);
       std::string cmdline(cmd.substr(pos, end - pos));
+      if (cmdline.empty())
+        throw (basic_error() << "invalid execution request received:" \
+               " bad command line (" << cmd.c_str() + pos << ")");
       options opt;
       opt.parse(cmdline);
+      if (opt.get_commands().empty())
+        throw (basic_error() << "invalid execution request received:" \
+               " bad command line (" << cmd.c_str() + pos << ")");
+
       if (opt.get_timeout() > 0 && opt.get_timeout() < timeout)
         timeout = opt.get_timeout();
       else if (opt.get_timeout() > timeout)
-        throw (basic_error() << "invalid timeout: check "       \
-               "timeout > to monitoring engine timeout");
+        throw (basic_error() << "invalid execution request received:" \
+               " timeout > to monitoring engine timeout");
 
       // Notify listener.
       if (_listnr)

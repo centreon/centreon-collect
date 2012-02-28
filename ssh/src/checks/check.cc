@@ -452,6 +452,7 @@ bool check::_read() {
  *
  *  @param[in] r Check result.
  */
+#include <iostream>
 void check::_send_result_and_unregister(result const& r) {
   // Remove timeout task.
   if (_timeout) {
