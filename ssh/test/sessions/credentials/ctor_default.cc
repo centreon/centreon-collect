@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -33,7 +33,9 @@ int main() {
 
   // Check.
   return (!creds.get_host().empty()
+          || !creds.get_key().empty()
           || !creds.get_password().empty()
+          || (creds.get_port() != 22)
           || !creds.get_user().empty()
           || !(creds == credentials())
           || (creds != credentials()));

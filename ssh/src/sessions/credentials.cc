@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Connector SSH.
 **
@@ -34,7 +34,7 @@ using namespace com::centreon::connector::ssh::sessions;
  *  Host, user, password and identity are all empty after construction.
  *  Port number are set to 22 by default.
  */
-credentials::credentials() {}
+credentials::credentials() : _port(22) {}
 
 /**
  *  Constructor.
@@ -94,11 +94,11 @@ credentials& credentials::operator=(credentials const& c) {
  *  @return true if both objects are equal.
  */
 bool credentials::operator==(credentials const& c) const {
-  return ((_host == c._host)
+  return ((_port == c._port)
+          && (_host == c._host)
+          && (_key == c._key)
           && (_password == c._password)
-          && (_user == c._user)
-          && (_port == c._port)
-          && (_key == c._key));
+          && (_user == c._user));
 }
 
 /**
