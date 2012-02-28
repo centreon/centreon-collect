@@ -29,7 +29,7 @@
 
 using namespace com::centreon::connector::ssh::orders;
 
-static char const* optstr = "1246a:c:C:E:fhH:i:l:n:o:O:p:qs:S:t:vVw:";
+static char const* optstr = "1246a:C:E:fhH:i:l:n:o:O:p:qs:S:t:vV";
 static struct option optlong[] = {
   { "authentication", required_argument, NULL, 'a' },
   { "command",        required_argument, NULL, 'C' },
@@ -220,6 +220,9 @@ void options::parse(std::string const& cmdline) {
   int ac(cmd.get_argc());
   char** av(cmd.get_argv());
 
+  optind = 0; // Reset optind to parse arguments.
+  opterr = 0; // Disable output messages.
+
   char c;
   while ((c = getopt_long(ac, av, optstr, optlong, NULL)) > 0) {
     switch (c) {
@@ -261,7 +264,7 @@ void options::parse(std::string const& cmdline) {
       break;
 
     case 'E': // Skip stderr.
-      _skip_stderr = atoi(optarg);
+      _skip_stderr = (optarg ? atoi(optarg) : 0);
       break;
 
     case 'f': // Fork ssh.
@@ -294,7 +297,7 @@ void options::parse(std::string const& cmdline) {
       break;
 
     case 'S': // Skip stdout.
-      _skip_stdout = atoi(optarg);
+      _skip_stdout = (optarg ? atoi(optarg) : 0);
       break;
 
     case 't': // Set timeout.
