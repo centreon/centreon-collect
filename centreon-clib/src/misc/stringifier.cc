@@ -37,6 +37,7 @@ using namespace com::centreon::misc;
 stringifier::stringifier(char const* buffer) throw ()
   : _buffer(_static_buffer),
     _current(0),
+    _precision(-1),
     _size(_static_buffer_size) {
   reset();
   if (buffer)
@@ -114,7 +115,9 @@ stringifier& stringifier::operator<<(char c) throw () {
  *  @return This object.
  */
 stringifier& stringifier::operator<<(double d) throw () {
-  return (_insert("%f", d));
+  if (_precision < 0)
+    return (_insert("%f", d));
+  return (_insert("%.*f", _precision, d));
 }
 
 /**
@@ -240,6 +243,24 @@ char const* stringifier::data() const throw () {
 }
 
 /**
+ *  Get precision.
+ *
+ *  @return The precision.
+ */
+int stringifier::precision() const throw () {
+  return (_precision);
+}
+
+/**
+ *  Set precision.
+ *
+ *  @param[in] val  The precision.
+ */
+void stringifier::precision(int val) throw () {
+  _precision = val;
+}
+
+/**
  *  Reset the internal buffer to the empty string.
  */
 void stringifier::reset() throw () {
@@ -342,6 +363,7 @@ stringifier& stringifier::_internal_copy(stringifier const& right) {
         delete[] _buffer;
       _buffer = new char[right._size];
     }
+    _precision = right._precision;
     _size = right._size;
     _current = right._current;
     memcpy(_buffer, right._buffer, (_current + 1) * sizeof(*_buffer));

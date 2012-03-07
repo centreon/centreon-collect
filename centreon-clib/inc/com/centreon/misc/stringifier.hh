@@ -55,6 +55,8 @@ namespace        misc {
     stringifier& operator<<(void const* p) throw ();
     stringifier& append(char const* str, unsigned int size) throw ();
     char const*  data() const throw ();
+    int          precision() const throw ();
+    void         precision(int val) throw ();
     void         reset() throw ();
     unsigned int size() const throw ();
 
@@ -71,6 +73,7 @@ namespace        misc {
 
     char*         _buffer;
     unsigned int  _current;
+    int           _precision;
     unsigned int  _size;
     static unsigned int const
                   _static_buffer_size = 1024;
