@@ -30,6 +30,12 @@
 CC_BEGIN()
 
 namespace                     logging {
+    struct                    setprecision {
+                              setprecision(int val = -1)
+                                : precision(val) {}
+      int                     precision;
+    };
+
   /**
    *  @class temp_logger temp_logger.hh "com/centreon/logging/temp_logger.hh"
    *  @brief Log messages.
@@ -50,6 +56,7 @@ namespace                     logging {
     temp_logger&              operator<<(int obj) throw ();
     temp_logger&              operator<<(long long obj) throw ();
     temp_logger&              operator<<(long obj) throw ();
+    temp_logger&              operator<<(setprecision const& obj) throw ();
     temp_logger&              operator<<(std::string const& obj) throw ();
     temp_logger&              operator<<(unsigned int obj) throw ();
     temp_logger&              operator<<(unsigned long long obj) throw ();
@@ -71,6 +78,8 @@ namespace                     logging {
       temp_logger&            (temp_logger::*
                                redir_long)(long) throw ();
       temp_logger&            (temp_logger::*
+                               redir_setprecision)(setprecision const&) throw ();
+      temp_logger&            (temp_logger::*
                                redir_std_string)(std::string const&) throw ();
       temp_logger&            (temp_logger::*
                                redir_string)(char const*) throw ();
@@ -86,6 +95,8 @@ namespace                     logging {
 
     template<typename T>
     temp_logger&              _builder(T obj) throw ();
+    temp_logger&              _builder_setprecision(
+                                setprecision const& obj) throw ();
     temp_logger&              _internal_copy(temp_logger const& right);
     temp_logger&              _flush() throw ();
     template<typename T>

@@ -29,6 +29,7 @@ temp_logger::redirector const temp_logger::_redir_nothing = {
   &temp_logger::_nothing,
   &temp_logger::_nothing<long long>,
   &temp_logger::_nothing<long>,
+  &temp_logger::_nothing<setprecision const&>,
   &temp_logger::_nothing<std::string const&>,
   &temp_logger::_nothing<char const*>,
   &temp_logger::_nothing<unsigned int>,
@@ -44,6 +45,7 @@ temp_logger::redirector const temp_logger::_redir_builder = {
   &temp_logger::_flush,
   &temp_logger::_builder<long long>,
   &temp_logger::_builder<long>,
+  &temp_logger::_builder_setprecision,
   &temp_logger::_builder<std::string const&>,
   &temp_logger::_builder<char const*>,
   &temp_logger::_builder<unsigned int>,
@@ -153,6 +155,17 @@ temp_logger& temp_logger::operator<<(long obj) throw () {
 }
 
 /**
+ *  Set float precision.
+ *
+ *  @param[in] obj The new precision.
+ *
+ *  @return This object.
+ */
+temp_logger& temp_logger::operator<<(setprecision const& obj) throw () {
+  return ((this->*(_redirector->redir_setprecision))(obj));
+}
+
+/**
  *  Add a string into the logger buffer.
  *
  *  @param[in] obj The string to add.
@@ -228,6 +241,19 @@ temp_logger& temp_logger::operator<<(void const* obj) throw () {
 template<typename T>
 temp_logger& temp_logger::_builder(T obj) throw () {
   _buffer << obj;
+  return (*this);
+}
+
+/**
+ *  Set float precision.
+ *
+ *  @param[in] obj  Set precision.
+ *
+ *  @return This object.
+ */
+temp_logger& temp_logger::_builder_setprecision(
+                            setprecision const& obj) throw () {
+  _buffer.precision(obj.precision);
   return (*this);
 }
 
