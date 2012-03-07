@@ -53,7 +53,9 @@ public:
    *
    *  @param[in] right Object to copy.
    */
-                shared_ptr(shared_ptr const& right) {
+                shared_ptr(shared_ptr const& right)
+                  : _count(NULL),
+                    _data(NULL) {
     operator=(right);
   }
 
