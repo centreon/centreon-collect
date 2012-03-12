@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -34,11 +34,7 @@ using namespace com::centreon::misc;
  *  Default constructor.
  */
 command_line::command_line()
-  : _argc(0),
-    _argv(NULL),
-    _size(0) {
-
-}
+  : _argc(0), _argv(NULL), _size(0) {}
 
 /**
  *  Parse command line.
@@ -46,9 +42,7 @@ command_line::command_line()
  *  @param[in] cmdline  The command line to parse.
  */
 command_line::command_line(std::string const& cmdline)
-  : _argc(0),
-    _argv(NULL),
-    _size(0) {
+  : _argc(0), _argv(NULL), _size(0) {
   parse(cmdline);
 }
 
@@ -157,7 +151,21 @@ void command_line::parse(std::string const& cmdline) {
       else if (c != '\\' || (escap && c == last))
         str[_size++] = c;
     }
-    else if (c != '\\' || (escap && c == last))
+    else if (escap) {
+      switch (c) {
+      case 'n':
+        c = '\n';
+        break ;
+      case 'r':
+        c = '\r';
+        break ;
+      case 't':
+        c = '\t';
+        break ;
+      }
+      str[_size++] = c;
+    }
+    else if (c != '\\')
       str[_size++] = c;
     last = c;
   }

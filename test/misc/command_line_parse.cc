@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -149,9 +149,9 @@ int main() {
     }
 
     {
-      std::string cmdline(" \" ' aaa 42 ' \" 4242 ");
+      std::string cmdline(" \" '\\n aaa 42 ' \" 4242 ");
       std::vector<std::string> res;
-      res.push_back(" ' aaa 42 ' ");
+      res.push_back(" '\n aaa 42 ' ");
       res.push_back("4242");
       if (!check(cmdline, res))
         throw (basic_error() << "parsing error: " << cmdline);
@@ -177,9 +177,9 @@ int main() {
     }
 
     {
-      std::string cmdline(" '12 34 56' \" 12 12 12 \" '99 9 9'");
+      std::string cmdline(" '12\\t 34 56' \t \" 12 12 12 \" '99 9 9'");
       std::vector<std::string> res;
-      res.push_back("12 34 56");
+      res.push_back("12\t 34 56");
       res.push_back(" 12 12 12 ");
       res.push_back("99 9 9");
       if (!check(cmdline, res))
