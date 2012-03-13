@@ -51,8 +51,7 @@ command_line::command_line(std::string const& cmdline)
  *
  *  @param[in] right  The object to copy.
  */
-command_line::command_line(command_line const& right)
-  : _argv(NULL) {
+command_line::command_line(command_line const& right) : _argv(NULL) {
   _internal_copy(right);
 }
 
@@ -164,11 +163,8 @@ void command_line::parse(std::string const& cmdline) {
     else if (!escap && (c == '\'' || c == '"')) {
       if (!sep)
         sep = c;
-      else if (sep == c) {
-        str[_size++] = 0;
-        ++_argc;
+      else if (sep == c)
         sep = 0;
-      }
       else if ((c != '\\') || escap)
         str[_size++] = c;
     }
@@ -216,10 +212,8 @@ void command_line::parse(std::string const& cmdline) {
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.
- *
- *  @return This object.
  */
-command_line& command_line::_internal_copy(command_line const& right) {
+void command_line::_internal_copy(command_line const& right) {
   if (this != &right) {
     _argc = right._argc;
     _size = right._size;
@@ -236,7 +230,7 @@ command_line& command_line::_internal_copy(command_line const& right) {
       }
     }
   }
-  return (*this);
+  return ;
 }
 
 /**
