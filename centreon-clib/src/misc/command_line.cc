@@ -71,7 +71,8 @@ command_line::~command_line() throw () {
  *  @return This object.
  */
 command_line& command_line::operator=(command_line const& right) {
-  return (_internal_copy(right));
+  _internal_copy(right);
+  return (*this);
 }
 
 /**
@@ -122,36 +123,23 @@ char** command_line::get_argv() const throw () {
  *  @param[in] cmdline  The command line to parse.
  */
 void command_line::parse(std::string const& cmdline) {
+  // Allocate buffer.
   _release();
-
   char* str(new char[cmdline.size() + 1]);
   _size = 0;
   str[_size] = 0;
 
+  // Status variables.
   bool escap(false);
   char sep(0);
   char last(0);
   for (size_t i(0), end(cmdline.size()); i < end; ++i) {
+    // Current processed char.
     char c(cmdline[i]);
+
+    // Is this an escaped character ?
     escap = (last == '\\' ? !escap : false);
-    if (!sep && isblank(c)) {
-      if (last && !isblank(last) && str[_size - 1]) {
-        str[_size++] = 0;
-        ++_argc;
-      }
-    }
-    else if (!escap && (c == '\'' || c == '"')) {
-      if (!sep)
-        sep = c;
-      else if (sep == c) {
-        str[_size++] = 0;
-        ++_argc;
-        sep = 0;
-      }
-      else if (c != '\\' || (escap && c == last))
-        str[_size++] = c;
-    }
-    else if (escap) {
+    if (escap) {
       switch (c) {
       case 'n':
         c = '\n';
@@ -163,23 +151,46 @@ void command_line::parse(std::string const& cmdline) {
         c = '\t';
         break ;
       }
-      str[_size++] = c;
     }
-    else if (c != '\\')
+
+    // End of token.
+    if (!sep && isblank(c)) {
+      if (last && !isblank(last) && str[_size - 1]) {
+        str[_size++] = 0;
+        ++_argc;
+      }
+    }
+    // Quotes.
+    else if (!escap && (c == '\'' || c == '"')) {
+      if (!sep)
+        sep = c;
+      else if (sep == c) {
+        str[_size++] = 0;
+        ++_argc;
+        sep = 0;
+      }
+      else if ((c != '\\') || escap)
+        str[_size++] = c;
+    }
+    // Normal char (backslashes are used for escaping).
+    else if ((c != '\\') || escap)
       str[_size++] = c;
     last = c;
   }
 
+  // Not-terminated quote.
   if (sep) {
-    delete[] str;
+    delete [] str;
     throw (basic_error() << "missing separator '" << sep << "'");
   }
 
+  // Terminate string if not already done so.
   if (last && _size && str[_size - 1]) {
     str[_size] = 0;
     ++_argc;
   }
 
+  // Put tokens in table.
   _size = 0;
   _argv = new char*[_argc + 1];
   _argv[_argc] = NULL;
@@ -188,8 +199,11 @@ void command_line::parse(std::string const& cmdline) {
     while (str[_size++]);
   }
 
+  // If no token were found, avoid memory leak.
   if (!_argv[0])
-    delete[] str;
+    delete [] str;
+
+  return ;
 }
 
 /**************************************
@@ -230,7 +244,8 @@ command_line& command_line::_internal_copy(command_line const& right) {
  */
 void command_line::_release() {
   if (_argv)
-    delete[] _argv[0];
-  delete[] _argv;
+    delete [] _argv[0];
+  delete [] _argv;
   _argv = NULL;
+  return ;
 }
