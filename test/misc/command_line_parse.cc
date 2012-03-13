@@ -177,7 +177,7 @@ int main() {
     }
 
     {
-      std::string cmdline(" '12\\t 34 56' \t \" 12 12 12 \" '99 9 9'");
+      std::string cmdline(" '12\\t ''34 56' \t \" 12 12 12 \" '99 9 9'");
       std::vector<std::string> res;
       res.push_back("12\t 34 56");
       res.push_back(" 12 12 12 ");

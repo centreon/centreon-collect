@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -48,7 +48,7 @@ namespace         misc {
     void          parse(std::string const& cmdline);
 
   private:
-    command_line& _internal_copy(command_line const& right);
+    void          _internal_copy(command_line const& right);
     void          _release();
 
     int           _argc;
