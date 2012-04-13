@@ -18,6 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <limits>
 #ifdef _WIN32
 #  include <windows.h>
 #else
@@ -230,6 +231,30 @@ void timestamp::add_useconds(long usecs) {
   _usecs = static_cast<unsigned int>(us);
   _transfer(&_secs, &_usecs);
   return ;
+}
+
+/**
+ *  Get the maximum time.
+ *
+ *  @return Maximum time.
+ */
+timestamp timestamp::max() throw () {
+  timestamp t;
+  t._secs = std::numeric_limits<time_t>::max();
+  t._usecs = 999999;
+  return (t);
+}
+
+/**
+ *  Get the minimum time.
+ *
+ *  @return Minimum time.
+ */
+timestamp timestamp::min() throw () {
+  timestamp t;
+  t._secs = std::numeric_limits<time_t>::min();
+  t._usecs = 0;
+  return (t);
 }
 
 /**
