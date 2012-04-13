@@ -53,9 +53,13 @@ void handle_manager::multiplex() {
   int timeout(-1);
   timestamp now(timestamp::now());
   timestamp next(_task_manager->next_execution_time());
-  if (!_handles.size() && next == timestamp())
-    return;
-  if (next > now)
+  if (!_handles.size() && next == timestamp::max())
+    return ;
+  if (next <= now)
+    timeout = 0;
+  else if (next == timestamp::max())
+    timeout = -1;
+  else
     timeout = next.to_mseconds() - now.to_mseconds();
 
   // Wait events.
