@@ -27,19 +27,16 @@ using namespace com::centreon;
 using namespace com::centreon::concurrency;
 
 /**
- *  Default constructor.
+ *  Constructor.
  *
  *  @param[in] max_thread_count  The number of threads into the thread
  *                               pool.
  */
 task_manager::task_manager(unsigned int max_thread_count)
-  : _current_id(0),
-    _th_pool(max_thread_count) {
-
-}
+  : _current_id(0), _th_pool(max_thread_count) {}
 
 /**
- *  Default destructor.
+ *  Destructor.
  */
 task_manager::~task_manager() throw () {
   // Wait the end of all running task.
@@ -198,14 +195,10 @@ unsigned int task_manager::execute(timestamp const& now) {
  *          task need to be run.
  */
 timestamp task_manager::next_execution_time() const {
-  // Lock the task manager.
   locker lock(&_mtx);
-
   std::multimap<timestamp, internal_task*>::const_iterator
     lower(_tasks.begin());
-  if (lower == _tasks.end())
-    return (timestamp());
-  return (lower->first);
+  return ((lower == _tasks.end()) ? timestamp::max() : lower->first);
 }
 
 /**

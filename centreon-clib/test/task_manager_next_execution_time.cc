@@ -44,9 +44,9 @@ int main() {
   try {
     task_manager tm;
     timestamp now(timestamp::now());
-    timestamp none;
+    timestamp max(timestamp::max());
 
-    if (tm.next_execution_time() != none)
+    if (tm.next_execution_time() != max)
       throw (basic_error() << "bad initialization of " \
              "next_execution_time");
 
