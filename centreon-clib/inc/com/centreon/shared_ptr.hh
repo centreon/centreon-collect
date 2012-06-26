@@ -21,7 +21,7 @@
 #ifndef CC_SHARED_PTR_HH
 #  define CC_SHARED_PTR_HH
 
-#  include <stddef.h>
+#  include <cstddef>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -44,9 +44,7 @@ public:
    */
                 shared_ptr(T* data = NULL)
                   : _count(data ? new unsigned int(1) : NULL),
-                    _data(data) {
-
-  }
+                    _data(data) {}
 
   /**
    *  Copy constructor.
@@ -109,9 +107,10 @@ public:
     if (_count && !(--(*_count))) {
       delete _data;
       delete _count;
-      _count = NULL;
-      _data = NULL;
     }
+    _count = NULL;
+    _data = NULL;
+    return ;
   }
 
   /**
