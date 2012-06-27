@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,10 +18,11 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <pthread.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/mutex_posix.hh"
 
@@ -31,12 +32,27 @@ using namespace com::centreon::concurrency;
  *  Default constructor.
  */
 mutex::mutex() {
-  int ret(pthread_mutex_init(&_mtx, NULL));
-  if (ret) {
-    char const* msg(strerror(ret));
-    throw (basic_error() << "could not initialize mutex "
-             << this << ": " << msg);
-  }
+  // Return value.
+  int ret;
+
+  // Initialize mutex attributes.
+  pthread_mutexattr_t mta;
+  ret = pthread_mutexattr_init(&mta);
+  if (ret)
+    throw (basic_error() << "could not initialize mutex attributes: "
+           << strerror(ret));
+
+  // Set mutex as recursive.
+  ret = pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
+  if (ret)
+    throw (basic_error() << "could not set mutex as recursive: "
+           << strerror(ret));
+
+  // Initialize mutex.
+  ret = pthread_mutex_init(&_mtx, &mta);
+  if (ret)
+    throw (basic_error() << "could not initialize mutex: "
+           << strerror(ret));
 }
 
 /**
@@ -53,11 +69,8 @@ mutex::~mutex() throw () {
  */
 void mutex::lock() {
   int ret(pthread_mutex_lock(&_mtx));
-  if (ret) {
-    char const* msg(strerror(ret));
-    throw (basic_error() << "failed to lock mutex "
-           << this << ": " << msg);
-  }
+  if (ret)
+    throw (basic_error() << "failed to lock mutex : " << strerror(ret));
   return ;
 }
 
@@ -71,11 +84,9 @@ void mutex::lock() {
  */
 bool mutex::trylock() {
   int ret(pthread_mutex_trylock(&_mtx));
-  if (ret && (ret != EBUSY)) {
-    char const* msg(strerror(ret));
+  if (ret && (ret != EBUSY))
     throw (basic_error() << "failed mutex " << this
-           << " lock attempt: " << msg);
-  }
+           << " lock attempt: " << strerror(ret));
   return (!ret);
 }
 
