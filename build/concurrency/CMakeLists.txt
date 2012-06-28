@@ -27,12 +27,14 @@ if (WIN32)
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/condvar_win32.cc"
     "${SRC_DIR}/mutex_win32.cc"
+    "${SRC_DIR}/read_write_lock_win32.cc"
     "${SRC_DIR}/semaphore_win32.cc"
     "${SRC_DIR}/thread_win32.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/condvar_win32.hh"
     "${INC_DIR}/mutex_win32.hh"
+    "${INC_DIR}/read_write_lock_win32.hh"
     "${INC_DIR}/semaphore_win32.hh"
     "${INC_DIR}/thread_win32.hh"
   )
@@ -40,12 +42,14 @@ else ()
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/condvar_posix.cc"
     "${SRC_DIR}/mutex_posix.cc"
+    "${SRC_DIR}/read_write_lock_posix.cc"
     "${SRC_DIR}/semaphore_posix.cc"
     "${SRC_DIR}/thread_posix.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/condvar_posix.hh"
     "${INC_DIR}/mutex_posix.hh"
+    "${INC_DIR}/read_write_lock_posix.hh"
     "${INC_DIR}/semaphore_posix.hh"
     "${INC_DIR}/thread_posix.hh"
   )
@@ -70,6 +74,7 @@ set(
   "${INC_DIR}/condvar.hh"
   "${INC_DIR}/locker.hh"
   "${INC_DIR}/mutex.hh"
+  "${INC_DIR}/read_write_lock.hh"
   "${INC_DIR}/runnable.hh"
   "${INC_DIR}/semaphore.hh"
   "${INC_DIR}/thread.hh"
