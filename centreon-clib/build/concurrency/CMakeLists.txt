@@ -61,8 +61,10 @@ set(
   ${SOURCES}
   ${SPECIFIC_SOURCES}
   "${SRC_DIR}/locker.cc"
+  "${SRC_DIR}/read_locker.cc"
   "${SRC_DIR}/runnable.cc"
   "${SRC_DIR}/thread_pool.cc"
+  "${SRC_DIR}/write_locker.cc"
   PARENT_SCOPE
 )
 
@@ -74,10 +76,12 @@ set(
   "${INC_DIR}/condvar.hh"
   "${INC_DIR}/locker.hh"
   "${INC_DIR}/mutex.hh"
+  "${INC_DIR}/read_locker.hh"
   "${INC_DIR}/read_write_lock.hh"
   "${INC_DIR}/runnable.hh"
   "${INC_DIR}/semaphore.hh"
   "${INC_DIR}/thread.hh"
   "${INC_DIR}/thread_pool.hh"
+  "${INC_DIR}/write_locker.hh"
   PARENT_SCOPE
 )
