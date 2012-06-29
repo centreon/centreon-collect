@@ -60,10 +60,10 @@ int main() {
              << "' does not exist whereas it should");
 
     // Remove file.
-    io::file_stream::remove(path);
 
     // File must not exists.
-    if (io::file_stream::exists(path))
+    if (!io::file_stream::remove(path)
+        || io::file_stream::exists(path))
       throw (basic_error() << "file '" << path
              << "' exists whereas it should not");
 
