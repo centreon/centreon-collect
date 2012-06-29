@@ -42,10 +42,12 @@ namespace         io {
                   ~file_stream() throw ();
     void          close();
     static bool   exists(char const* path);
+    void          flush();
     native_handle get_native_handle();
     void          open(char const* path, char const* mode);
     unsigned long read(void* data, unsigned long size);
-    static void   remove(char const* path);
+    static bool   remove(char const* path);
+    unsigned long size();
     static char*  temp_path();
     unsigned long write(void const* data, unsigned long size);
 

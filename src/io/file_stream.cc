@@ -84,6 +84,17 @@ bool file_stream::exists(char const* path) {
 }
 
 /**
+ *  Flush the file to disk.
+ */
+void file_stream::flush() {
+  if (fflush(_stream)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "cannot flush stream: " << msg);
+  }
+  return ;
+}
+
+/**
  *  Get native handle.
  *
  *  @return Native handle.
@@ -172,10 +183,44 @@ unsigned long file_stream::read(void* data, unsigned long size) {
  *  Remove a file.
  *
  *  @param[in] path Path to the file to remove.
+ *
+ *  @return true if file was successfully removed.
  */
-void file_stream::remove(char const* path) {
-  ::remove(path);
-  return ;
+bool file_stream::remove(char const* path) {
+  return (!::remove(path));
+}
+
+/**
+ *  Get file size.
+ *
+ *  @return File size.
+ */
+unsigned long file_stream::size() {
+  // Get original offset.
+  long original_offset(ftell(_stream));
+  if (-1 == original_offset) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "cannot tell position within file: "
+           << msg);
+  }
+
+  // Seek to end of file.
+  if (fseek(_stream, 0, SEEK_END)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "cannot seek to end of file: " << msg);
+  }
+
+  // Get position (size).
+  long size(ftell(_stream));
+  if (size < 0) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "cannot get file size: " << msg);
+  }
+
+  // Get back to original position.
+  fseek(_stream, original_offset, SEEK_SET);
+
+  return (size);
 }
 
 /**
