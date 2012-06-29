@@ -18,10 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #ifdef _WIN32
 #  include <io.h>
 #  include <windows.h>
@@ -66,6 +66,21 @@ void file_stream::close() {
     _stream = NULL;
   }
   return ;
+}
+
+/**
+ *  Check for file existance.
+ *
+ *  @param[in] path File to check.
+ *
+ *  @return true if file exists.
+ */
+bool file_stream::exists(char const* path) {
+#ifdef _WIN32
+  return (!_access(path, 0));
+#else
+  return (!access(path, F_OK));
+#endif // Windows or POSIX
 }
 
 /**
@@ -151,6 +166,16 @@ unsigned long file_stream::read(void* data, unsigned long size) {
   }
   return (static_cast<unsigned long>(rb));
 #endif // Windows or POSIX.
+}
+
+/**
+ *  Remove a file.
+ *
+ *  @param[in] path Path to the file to remove.
+ */
+void file_stream::remove(char const* path) {
+  ::remove(path);
+  return ;
 }
 
 /**
