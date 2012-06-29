@@ -21,7 +21,7 @@
 #ifndef CC_IO_FILE_STREAM_HH
 #  define CC_IO_FILE_STREAM_HH
 
-#  include <stdio.h>
+#  include <cstdio>
 #  include "com/centreon/handle.hh"
 #  include "com/centreon/namespace.hh"
 
@@ -41,9 +41,11 @@ namespace         io {
                     bool auto_close = false);
                   ~file_stream() throw ();
     void          close();
+    static bool   exists(char const* path);
     native_handle get_native_handle();
     void          open(char const* path, char const* mode);
     unsigned long read(void* data, unsigned long size);
+    static void   remove(char const* path);
     static char*  temp_path();
     unsigned long write(void const* data, unsigned long size);
 
