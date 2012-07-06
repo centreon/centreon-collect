@@ -42,3 +42,8 @@ set(TEST_NAME "io_file_stream_read")
 add_executable("${TEST_NAME}" "${TEST_DIR}/file_stream/read.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Rename.
+set(TEST_NAME "io_file_stream_rename")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_stream/rename.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
