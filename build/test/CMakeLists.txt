@@ -59,6 +59,22 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# library_resolve.
+set(TEST_NAME "library_resolve")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# library_resolve.
+set(TEST_NAME "library_load")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# shared_testing_library.
+set(LIB_NAME "shared_testing_library")
+add_library("${LIB_NAME}" SHARED "${TEST_DIR}/${LIB_NAME}.cc")
+
 # shared_ptr_clear
 set(TEST_NAME "shared_ptr_clear")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
