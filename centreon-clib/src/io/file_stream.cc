@@ -20,6 +20,7 @@
 
 #include <cassert>
 #include <cerrno>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #ifdef _WIN32
@@ -76,11 +77,20 @@ void file_stream::close() {
  *  @return true if file exists.
  */
 bool file_stream::exists(char const* path) {
+  if (!path)
+    return (false);
 #ifdef _WIN32
   return (!_access(path, 0));
 #else
   return (!access(path, F_OK));
 #endif // Windows or POSIX
+}
+
+/**
+ *  Overload of exists method.
+ */
+bool file_stream::exists(std::string const& path) {
+  return (exists(path.c_str()));
 }
 
 /**
@@ -130,6 +140,11 @@ com::centreon::native_handle file_stream::get_native_handle() {
  *  Open file.
  */
 void file_stream::open(char const* path, char const* mode) {
+  if (!path)
+    throw (basic_error() << "invalid argument path: null pointer");
+  if (!mode)
+    throw (basic_error() << "invalid argument mode: null pointer");
+
   close();
   _auto_close = true;
   _stream = fopen(path, mode);
@@ -139,6 +154,13 @@ void file_stream::open(char const* path, char const* mode) {
            << path << "': " << msg);
   }
   return ;
+}
+
+/**
+ *  Overload of open method.
+ */
+void file_stream::open(std::string const& path, char const* mode) {
+  open(path.c_str(), mode);
 }
 
 /**
@@ -187,7 +209,60 @@ unsigned long file_stream::read(void* data, unsigned long size) {
  *  @return true if file was successfully removed.
  */
 bool file_stream::remove(char const* path) {
+  if (!path)
+    return (false);
   return (!::remove(path));
+}
+
+/**
+ *  Overload of remove method.
+ */
+bool file_stream::remove(std::string const& path) {
+  return (remove(path.c_str()));
+}
+
+/**
+ *  Rename a file.
+ *
+ *  @param[in] old_filename  The current filename.
+ *  @param[in] new_filename  The new filename.
+ *
+ *  @return True on success, otherwise false.
+ */
+bool file_stream::rename(
+                    char const* old_filename,
+                    char const* new_filename) {
+  if (!old_filename || !new_filename)
+    return (false);
+  bool ret(!::rename(old_filename, new_filename));
+  if (!ret) {
+    if (errno != EXDEV)
+      return (false);
+    try {
+      file_stream file_read(NULL, true);
+      file_read.open(old_filename, "r");
+      file_stream file_write(NULL, true);
+      file_write.open(new_filename, "w");
+
+      char data[4096];
+      unsigned int len;
+      while ((len = file_read.read(data, sizeof(data))))
+        file_write.write(data, len);
+    }
+    catch (...) {
+      return (false);
+    }
+  }
+  return (true);
+}
+
+/**
+ *  Overload of rename method.
+ */
+bool file_stream::rename(
+                    std::string const& old_filename,
+                    std::string const& new_filename) {
+  return (rename(old_filename.c_str(), new_filename.c_str()));
 }
 
 /**

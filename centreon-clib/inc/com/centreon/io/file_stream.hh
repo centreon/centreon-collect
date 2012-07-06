@@ -22,6 +22,7 @@
 #  define CC_IO_FILE_STREAM_HH
 
 #  include <cstdio>
+#  include <string>
 #  include "com/centreon/handle.hh"
 #  include "com/centreon/namespace.hh"
 
@@ -42,11 +43,20 @@ namespace         io {
                   ~file_stream() throw ();
     void          close();
     static bool   exists(char const* path);
+    static bool   exists(std::string const& path);
     void          flush();
     native_handle get_native_handle();
     void          open(char const* path, char const* mode);
+    void          open(std::string const& path, char const* mode);
     unsigned long read(void* data, unsigned long size);
     static bool   remove(char const* path);
+    static bool   remove(std::string const& path);
+    static bool   rename(
+                    char const* old_filename,
+                    char const* new_filename);
+    static bool   rename(
+                    std::string const& old_filename,
+                    std::string const& new_filename);
     unsigned long size();
     static char*  temp_path();
     unsigned long write(void const* data, unsigned long size);
