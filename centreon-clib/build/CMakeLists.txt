@@ -93,6 +93,25 @@ if (NOT WIN32)
   endif ()
 endif ()
 
+# Find dynamic linking library.
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  set(LIB_DL "")
+else ()
+  set(LIB_DL "dl")
+endif ()
+
+if (NOT WIN32)
+  check_library_exists(
+    "${LIB_DL}"
+    "dlopen"
+    "${CMAKE_LIBRARY_PATH}"
+    FIND_LIB_DL
+    )
+  if (NOT FIND_LIB_DL)
+    message(FATAL_ERROR "Could not find dynamic linking library.")
+  endif ()
+endif ()
+
 
 # Set path.
 if (WITH_PREFIX)
@@ -156,19 +175,23 @@ endif ()
 if (WIN32)
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/handle_manager_win32.cc"
+    "${SRC_DIR}/library_win32.cc"
     "${SRC_DIR}/process_win32.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/handle_manager_win32.hh"
+    "${INC_DIR}/library_win32.hh"
     "${INC_DIR}/process_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/handle_manager_posix.cc"
+    "${SRC_DIR}/library_posix.cc"
     "${SRC_DIR}/process_posix.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/handle_manager_posix.hh"
+    "${INC_DIR}/library_posix.hh"
     "${INC_DIR}/process_posix.hh"
   )
 endif ()
@@ -196,6 +219,7 @@ set(
   "${INC_DIR}/handle_action.hh"
   "${INC_DIR}/handle_listener.hh"
   "${INC_DIR}/handle_manager.hh"
+  "${INC_DIR}/library.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/process.hh"
   "${INC_DIR}/shared_ptr.hh"
@@ -235,6 +259,7 @@ if (WITH_SHARED_LIB)
     "centreon_clib_shared"
     ${LIB_THREAD}
     ${LIB_RT}
+    ${LIB_DL}
   )
   # Set output name for the shared library.
   set_target_properties(
@@ -265,6 +290,7 @@ if (WITH_STATIC_LIB)
     "centreon_clib_static"
     ${LIB_THREAD}
     ${LIB_RT}
+    ${LIB_DL}
   )
   # Set output name for the static library.
   set_target_properties(
