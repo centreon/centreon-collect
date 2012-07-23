@@ -49,6 +49,9 @@ namespace              io {
     file_entry&        operator=(file_entry const& right);
     bool               operator==(file_entry const& right) const throw ();
     bool               operator!=(file_entry const& right) const throw ();
+    std::string        base_name() const;
+    std::string        directory_name() const;
+    std::string        file_name() const;
     bool               is_directory() const throw ();
     bool               is_link() const throw ();
     bool               is_regular() const throw ();
