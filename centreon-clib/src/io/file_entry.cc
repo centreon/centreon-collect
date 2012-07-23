@@ -21,6 +21,9 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#ifndef _WIN32
+#  include <libgen.h>
+#endif // !_WIN32
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_entry.hh"
 
@@ -93,6 +96,70 @@ bool file_entry::operator==(file_entry const& right) const throw () {
  */
 bool file_entry::operator!=(file_entry const& right) const throw () {
   return (!operator==(right));
+}
+
+/**
+ *  Get the file name without extention.
+ *
+ *  @return The file name without extention.
+ */
+std::string file_entry::base_name() const {
+  std::string name;
+#ifdef _WIN32
+  char fname[_MAX_FNAME];
+  _splitpath(_path.c_str(), NULL, NULL, fname, NULL);
+  name = fname;
+#else
+  name = file_name();
+  size_t pos(name.find_last_of('.'));
+  if (pos != 0 && pos != std::string::npos)
+    name.erase(pos);
+#endif // _WIN32
+  return (name);
+}
+
+/**
+ *  Get the directory path.
+ *
+ *  @return The directory path of this file.
+ */
+std::string file_entry::directory_name() const {
+  std::string name;
+#ifdef _WIN32
+  char drive[_MAX_DRIVE];
+  char dir[_MAX_DIR];
+  _splitpath(_path.c_str(), drive, dir, NULL, NULL);
+  name = drive + dir;
+#else
+  char* path(new char[_path.size() + 1]);
+  strcpy(path, _path.c_str());
+  char* dname(dirname(path));
+  name = dname;
+  delete[] path;
+#endif // _WIN32
+  return (name);
+}
+
+/**
+ *  Get the file name without extention.
+ *
+ *  @return The file name without extention.
+ */
+std::string file_entry::file_name() const {
+  std::string name;
+#ifdef _WIN32
+  char fname[_MAX_FNAME];
+  char ext[_MAX_EXT];
+  _splitpath(_path.c_str(), NULL, NULL, fname, ext);
+  name = fname + ext;
+#else
+  char* path(new char[_path.size() + 1]);
+  strcpy(path, _path.c_str());
+  char* fname(basename(path));
+  name = fname;
+  delete[] path;
+#endif // _WIN32
+  return (name);
 }
 
 /**

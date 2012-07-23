@@ -49,6 +49,11 @@ set(TEST_NAME "io_file_entry_ctor_default")
 add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/ctor_default.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Pathinfo.
+set(TEST_NAME "io_file_entry_pathinfo")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/pathinfo.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
 #   Permission.
 set(TEST_NAME "io_file_entry_permission")
 add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/permission.cc")
