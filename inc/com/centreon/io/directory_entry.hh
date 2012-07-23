@@ -45,6 +45,7 @@ namespace                 io {
     bool                  operator==(directory_entry const& right) const throw ();
     bool                  operator!=(directory_entry const& right) const throw ();
                           ~directory_entry() throw ();
+    static std::string    current_path();
     file_entry const&     entry() const throw ();
     std::list<file_entry> const&
                           entry_list(std::string const& filter = "");

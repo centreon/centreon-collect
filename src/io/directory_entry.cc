@@ -19,14 +19,21 @@
 */
 
 #include <cerrno>
+#include <cstdlib>
 #include <cstring>
 #ifdef _WIN32
+#  include <io.h>
 #  include <windows.h>
 #else
 #  include <dirent.h>
+#  include <unistd.h>
 #endif // _WIN32
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/directory_entry.hh"
+
+#ifdef _WIN32
+#  define getcwd _getcwd
+#endif // _WIN32
 
 using namespace com::centreon::io;
 
@@ -98,6 +105,20 @@ bool directory_entry::operator!=(directory_entry const& right) const throw () {
  */
 directory_entry::~directory_entry() throw () {
 
+}
+
+/**
+ *  Get the current directory path.
+ *
+ *  @return The current directory path.
+ */
+std::string directory_entry::current_path() {
+  char* buffer(getcwd(NULL, 0));
+  if (!buffer)
+    throw (basic_error() << "current path failed");
+  std::string path(buffer);
+  free(buffer);
+  return (path);
 }
 
 /**
