@@ -27,6 +27,11 @@ set(TEST_NAME "io_directory_entry_copy")
 add_executable("${TEST_NAME}" "${TEST_DIR}/directory_entry/copy.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Copy.
+set(TEST_NAME "io_directory_entry_current_path")
+add_executable("${TEST_NAME}" "${TEST_DIR}/directory_entry/current_path.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
 #   Default constructor.
 set(TEST_NAME "io_directory_entry_ctor_default")
 add_executable("${TEST_NAME}" "${TEST_DIR}/directory_entry/ctor_default.cc")
