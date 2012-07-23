@@ -21,6 +21,45 @@
 # Set directories.
 set(TEST_DIR "${TEST_DIR}/io")
 
+# directory_entry tests.
+#   Copy.
+set(TEST_NAME "io_directory_entry_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/directory_entry/copy.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Default constructor.
+set(TEST_NAME "io_directory_entry_ctor_default")
+add_executable("${TEST_NAME}" "${TEST_DIR}/directory_entry/ctor_default.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Filter.
+set(TEST_NAME "io_directory_entry_filter")
+add_executable("${TEST_NAME}" "${TEST_DIR}/directory_entry/filter.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# file_entry tests.
+#   Copy.
+set(TEST_NAME "io_file_entry_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/copy.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Default constructor.
+set(TEST_NAME "io_file_entry_ctor_default")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/ctor_default.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Permission.
+set(TEST_NAME "io_file_entry_permission")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/permission.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+#   Size.
+set(TEST_NAME "io_file_entry_size")
+add_executable("${TEST_NAME}" "${TEST_DIR}/file_entry/size.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # file_stream tests.
 #   Default constructor.
 set(TEST_NAME "io_file_stream_ctor_default")

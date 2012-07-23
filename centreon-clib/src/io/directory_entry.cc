@@ -72,6 +72,28 @@ directory_entry& directory_entry::operator=(directory_entry const& right) {
 }
 
 /**
+ *  Equal operator.
+ *
+ *  @param[in] right  The object to compare.
+ *
+ *  @return True if is the same object, owtherwise false.
+ */
+bool directory_entry::operator==(directory_entry const& right) const throw () {
+  return (_entry == right._entry);
+}
+
+/**
+ *  Not equal operator.
+ *
+ *  @param[in] right  The object to compare.
+ *
+ *  @return True if is not the same object, owtherwise false.
+ */
+bool directory_entry::operator!=(directory_entry const& right) const throw () {
+  return (!operator==(right));
+}
+
+/**
  *  Destructor.
  */
 directory_entry::~directory_entry() throw () {
