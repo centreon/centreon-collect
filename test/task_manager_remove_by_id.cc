@@ -62,7 +62,7 @@ int main() {
     if (tm.remove(42))
       throw (basic_error() << "remove invalid id failed");
 
-    if (tm.next_execution_time() != timestamp::max())
+    if (tm.next_execution_time() != timestamp::max_time())
       throw (basic_error() << "invalid next_execution_time");
   }
   catch (std::exception const& e) {

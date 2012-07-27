@@ -21,7 +21,7 @@
 #ifndef CC_TIMESTAMP_HH
 #  define CC_TIMESTAMP_HH
 
-#  include <time.h>
+#  include <ctime>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -51,8 +51,8 @@ public:
   void             add_mseconds(long msecs);
   void             add_seconds(time_t secs);
   void             add_useconds(long usecs);
-  static timestamp max() throw ();
-  static timestamp min() throw ();
+  static timestamp max_time() throw ();
+  static timestamp min_time() throw ();
   static timestamp now() throw ();
   void             sub_mseconds(long msecs);
   void             sub_seconds(time_t secs);

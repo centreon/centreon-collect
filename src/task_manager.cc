@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/task_manager.hh"
 
@@ -198,7 +198,9 @@ timestamp task_manager::next_execution_time() const {
   locker lock(&_mtx);
   std::multimap<timestamp, internal_task*>::const_iterator
     lower(_tasks.begin());
-  return ((lower == _tasks.end()) ? timestamp::max() : lower->first);
+  return ((lower == _tasks.end())
+          ? timestamp::max_time()
+          : lower->first);
 }
 
 /**
