@@ -22,7 +22,7 @@
 #  define CC_LIBRARY_WIN32_HH
 
 #  include <string>
-#  include <winbase.h>
+#  include <windows.h>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()

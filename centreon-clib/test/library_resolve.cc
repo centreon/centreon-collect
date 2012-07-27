@@ -41,7 +41,7 @@ int main() {
 
     // load a "add" symbole.
     int (*my_add)(int, int);
-    *(void**)(&my_add) = lib.resolve("add");
+    my_add = (int (*)(int, int))lib.resolve("add");
     if ((*my_add)(21, 21) != 42)
       throw (basic_error() << "resolve failed: invalid call result");
 

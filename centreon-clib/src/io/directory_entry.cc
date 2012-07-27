@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #ifdef _WIN32
+#  include <direct.h>
 #  include <io.h>
 #  include <windows.h>
 #else
@@ -144,7 +145,7 @@ std::list<file_entry> const& directory_entry::entry_list(
 
 #ifdef _WIN32
   WIN32_FIND_DATA ffd;
-  HANDLE hwd(FindFirstFile(_entry.path(), &ffd));
+  HANDLE hwd(FindFirstFile(_entry.path().c_str(), &ffd));
   if (hwd == INVALID_HANDLE_VALUE)
     throw (basic_error() << "open directory failed");
 
