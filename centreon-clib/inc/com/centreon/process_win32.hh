@@ -28,47 +28,52 @@
 CC_BEGIN()
 
 /**
- *  @class process process_win32.hh "com/centreon/process.hh"
+ *  @class process process_win32.hh "com/centreon/process_win32.hh"
  *  @brief Process execution class.
  *
  *  Execute external process.
  */
-class                process {
+class                  process {
 public:
-                     process();
-  virtual            ~process() throw ();
-  void               exec(std::string const& cmd);
-  unsigned int       read(void* data, unsigned int size);
-  unsigned int       read_err(void* data, unsigned int size);
-  void               terminate();
-  int                wait();
-  bool               wait(unsigned long timeout, int* exit_code = NULL);
-  void               with_stderr(bool enable);
-  void               with_stdin(bool enable);
-  void               with_stdout(bool enable);
-  unsigned int       write(void const* data, unsigned int size);
+  enum                 status {
+    normal = 0,
+    crash = 1
+  };
+  enum                 stream {
+    in = 0,
+    out = 1,
+    err = 2
+  };
+
+                       process();
+  virtual              ~process() throw ();
+  void                 enable_stream(stream s, bool enable);
+  void                 exec(char const* cmd, char** env);
+  void                 exec(std::string const& cmd);
+  int                  exit_code() const throw ();
+  status               exit_status() const throw ();
+  void                 kill();
+  unsigned int         read(void* data, unsigned int size);
+  unsigned int         read_err(void* data, unsigned int size);
+  void                 terminate();
+  void                 wait();
+  bool                 wait(unsigned long timeout);
+  unsigned int         write(std::string const& data);
+  unsigned int         write(void const* data, unsigned int size);
 
 private:
-                     process(process const& p);
-  process&           operator=(process const& p);
-  void               _internal_copy(process const& p);
-  static void        _pipe(HANDLE* rh, HANDLE* wh);
-  unsigned int       _read(HANDLE h, void* data, unsigned int size);
-  void               _terminated() throw ();
-  bool               _wait(DWORD timeout, int* exit_code);
-  void               _with_std(
-                       bool enable,
-                       bool* b,
-                       HANDLE* h,
-                       char const* name);
+                       process(process const& p);
+  process&             operator=(process const& p);
+  void                 _internal_copy(process const& p);
+  static void          _pipe(HANDLE* rh, HANDLE* wh);
+  unsigned int         _read(HANDLE h, void* data, unsigned int size);
+  static BOOL          _terminate_window(HWND hwnd, LPARAM proc_id);
+  bool                 _wait(DWORD timeout, int* exit_code);
 
-  HANDLE             _err;
-  HANDLE             _in;
-  HANDLE             _out;
-  HANDLE             _process;
-  bool               _with_err;
-  bool               _with_in;
-  bool               _with_out;
+  bool                 _enable_stream[3];
+  DWORD                _exit_code;
+  PROCESS_INFORMATION* _process;
+  HANDLE               _stream[3];
 };
 
 CC_END()

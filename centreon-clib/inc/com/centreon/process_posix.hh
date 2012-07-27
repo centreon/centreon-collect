@@ -28,48 +28,56 @@
 CC_BEGIN()
 
 /**
- *  @class process process_posix.hh "com/centreon/process.hh"
+ *  @class process process_posix.hh "com/centreon/process_posix.hh"
  *  @brief Process execution class.
  *
  *  Execute external process.
  */
 class                process {
 public:
+  enum               status {
+    normal = 0,
+    crash = 1
+  };
+  enum               stream {
+    in = 0,
+    out = 1,
+    err = 2
+  };
+
                      process();
   virtual            ~process() throw ();
+  void               enable_stream(stream s, bool enable);
+  void               exec(char const* cmd, char** env = NULL);
   void               exec(std::string const& cmd);
+  int                exit_code() const throw ();
+  status             exit_status() const throw ();
+  void               kill();
   unsigned int       read(void* data, unsigned int size);
   unsigned int       read_err(void* data, unsigned int size);
   void               terminate();
-  int                wait();
-  bool               wait(unsigned long timeout, int* exit_code = NULL);
-  void               with_stderr(bool enable);
-  void               with_stdin(bool enable);
-  void               with_stdout(bool enable);
+  void               wait();
+  bool               wait(unsigned long timeout);
+  unsigned int       write(std::string const& data);
   unsigned int       write(void const* data, unsigned int size);
 
 private:
                      process(process const& p);
   process&           operator=(process const& p);
+  static void        _close(int& fd) throw ();
   static void        _dev_null(int fd, int flags);
+  static int         _dup(int oldfd);
   static void        _dup2(int oldfd, int newfd);
   void               _internal_copy(process const& p);
+  void               _kill(int sig);
   static void        _pipe(int fds[2]);
   unsigned int       _read(int fd, void* data, unsigned int size);
-  void               _terminated();
-  void               _with_std(
-                       bool enable,
-                       bool* b,
-                       int* fd,
-                       char const* name);
+  static void        _set_cloexec(int fd);
 
-  int                _err;
-  int                _in;
-  int                _out;
+  bool               _enable_stream[3];
   pid_t              _process;
-  bool               _with_err;
-  bool               _with_in;
-  bool               _with_out;
+  int                _status;
+  int                _stream[3];
 };
 
 CC_END()

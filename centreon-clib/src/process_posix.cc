@@ -19,16 +19,18 @@
 */
 
 #include <algorithm>
-#include <assert.h>
-#include <errno.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/misc/command_line.hh"
 #include "com/centreon/process_posix.hh"
 
 using namespace com::centreon;
@@ -43,19 +45,156 @@ using namespace com::centreon;
  *  Default constructor.
  */
 process::process()
-  : _err(-1),
-    _in(-1),
-    _out(-1),
-    _process((pid_t)-1),
-    _with_err(false),
-    _with_in(false),
-    _with_out(false) {}
+  : _process(static_cast<pid_t>(-1)),
+    _status(0) {
+  memset(_enable_stream, 1, sizeof(_enable_stream));
+  memset(_stream, -1, sizeof(_stream));
+}
 
 /**
  *  Destructor.
  */
 process::~process() throw () {
-  _terminated();
+  for (unsigned int i(0); i < 3; ++i)
+    _close(_stream[i]);
+}
+
+/**
+ *  Enable or disable process' stream.
+ *
+ *  @param[in] s      The stream to set.
+ *  @param[in] enable Set to true to enable stderr.
+ */
+void process::enable_stream(stream s, bool enable) {
+  if (_enable_stream[s] != enable) {
+    if (_process == static_cast<pid_t>(-1))
+      _enable_stream[s] = enable;
+    else if (!enable)
+      _close(_stream[s]);
+    else
+      throw (basic_error() << "cannot reenable \""
+             << s << "\" while process is running");
+  }
+  return;
+}
+
+/**
+ *  Run process.
+ *
+ *  @param[in] cmd Command line.
+ *  @param[in] env Array of strings (on form key=value), which are
+ *                 passed as environment to the new process. If env
+ *                 is NULL, the current environement are passed of
+ *                 the new process.
+ */
+void process::exec(char const* cmd, char** env) {
+  // Check if process already running.
+  if (_process != static_cast<pid_t>(-1))
+    throw (basic_error() << "process " << _process
+           << " is already started and has not been waited");
+
+  // Reset status.
+  _status = 0;
+
+  // Close the last file descriptor;
+  for (unsigned int i(0); i < 3; ++i)
+    _close(_stream[i]);
+
+  // Init file desciptor.
+  int std[3] = { -1, -1, -1 };
+  int pipe_stream[3][2] = {
+    { -1, -1 },
+    { -1, -1 },
+    { -1, -1 }
+  };
+
+  bool restore_std(false);
+
+  try {
+    // Create backup FDs.
+    std[0] = _dup(STDIN_FILENO);
+    std[1] = _dup(STDOUT_FILENO);
+    std[2] = _dup(STDERR_FILENO);
+
+    // Backup FDs do not need to be inherited.
+    for (unsigned int i(0); i < 3; ++i)
+      _set_cloexec(std[i]);
+
+    restore_std = true;
+
+    // Create pipes if necessary and duplicate FDs.
+    if (!_enable_stream[in])
+      _dev_null(STDIN_FILENO, O_RDONLY);
+    else {
+      _pipe(pipe_stream[in]);
+      _dup2(pipe_stream[in][0], STDIN_FILENO);
+      _close(pipe_stream[in][0]);
+      _set_cloexec(pipe_stream[in][1]);
+    }
+    if (!_enable_stream[out])
+      _dev_null(STDOUT_FILENO, O_WRONLY);
+    else {
+      _pipe(pipe_stream[out]);
+      _dup2(pipe_stream[out][1], STDOUT_FILENO);
+      _close(pipe_stream[out][1]);
+      _set_cloexec(pipe_stream[out][0]);
+    }
+    if (!_enable_stream[err])
+      _dev_null(STDERR_FILENO, O_WRONLY);
+    else {
+      _pipe(pipe_stream[err]);
+      _dup2(pipe_stream[err][1], STDERR_FILENO);
+      _close(pipe_stream[err][1]);
+      _set_cloexec(pipe_stream[err][0]);
+    }
+
+    misc::command_line cmdline(cmd);
+    char** args(cmdline.get_argv());
+    if (!env)
+      env = environ;
+
+    _process = vfork();
+    if (_process == static_cast<pid_t>(-1)) {
+      char const* msg(strerror(errno));
+      throw (basic_error() << "could not create process: " << msg);
+    }
+
+    // Child execution.
+    if (!_process) {
+      ::execve(args[0], args, env);
+      ::_exit(EXIT_FAILURE);
+    }
+
+    // Parent execution.
+
+    // Restore original FDs.
+    _dup2(std[0], STDIN_FILENO);
+    _dup2(std[1], STDOUT_FILENO);
+    _dup2(std[2], STDERR_FILENO);
+    for (unsigned int i(0); i < 3; ++i) {
+      _close(std[i]);
+      _close(pipe_stream[i][i == in ? 0 : 1]);
+      _stream[i] = pipe_stream[i][i == in ? 1 : 0];
+    }
+  }
+  catch (...) {
+    // Restore original FDs.
+    if (restore_std) {
+      _dup2(std[0], STDIN_FILENO);
+      _dup2(std[1], STDOUT_FILENO);
+      _dup2(std[2], STDERR_FILENO);
+    }
+
+    // Close all file descriptor.
+    for (unsigned int i(0); i < 3; ++i) {
+      _close(std[i]);
+      _close(_stream[i]);
+      for (unsigned int j(0); j < 2; ++j)
+        _close(pipe_stream[i][j]);
+    }
+    throw;
+  }
+  return;
 }
 
 /**
@@ -64,191 +203,98 @@ process::~process() throw () {
  *  @param[in] cmd Command line.
  */
 void process::exec(std::string const& cmd) {
-  // Check viability.
-  if (_process != (pid_t)-1)
-    throw (basic_error() << "process " << _process
-           << " is already started and has not been waited");
+  exec(cmd.c_str());
+  return;
+}
 
-  // Create pipes if necessary.
-  int err[2];
-  int in[2];
-  int out[2];
-  err[0] = -1;
-  err[1] = -1;
-  in[0] = -1;
-  in[1] = -1;
-  out[0] = -1;
-  out[1] = -1;
-  try {
-    if (_with_err)
-      _pipe(err);
-    if (_with_in)
-      _pipe(in);
-    if (_with_out)
-      _pipe(out);
-  }
-  catch (...) {
-    if (err[0] >= 0) {
-      ::close(err[0]);
-      ::close(err[1]);
-    }
-    if (in[0] >= 0) {
-      ::close(in[0]);
-      ::close(in[1]);
-    }
-    throw ;
-  }
+/**
+ *  Get the exit code, return by the executed process.
+ *
+ *  @return The exit code.
+ */
+int process::exit_code() const throw () {
+  if (WIFEXITED(_status))
+    return (WEXITSTATUS(_status));
+  return (0);
+}
 
-  // Fork.
-  _process = fork();
-  if (_process == (pid_t)-1) {
-    char const* msg(strerror(errno));
-    throw (basic_error() << "could not fork: " << msg);
-  }
+/**
+ *  Get the exit status, return normal if the executed process end
+ *  normaly, return crash if the executed process terminated abnormaly.
+ *
+ *  @return The exit status.
+ */
+process::status process::exit_status() const throw () {
+  return (static_cast<process::status>(!WIFEXITED(_status)));
+}
 
-  // Child.
-  if (!_process) {
-    try {
-      // Connect standard error.
-      if (err[0] >= 0) {
-        ::close(err[0]);
-        _dup2(err[1], STDERR_FILENO);
-        ::close(err[1]);
-      }
-      else
-        _dev_null(STDERR_FILENO, O_WRONLY);
-
-      // Connect standard input.
-      if (in[0] >= 0) {
-        ::close(in[1]);
-        _dup2(in[0], STDIN_FILENO);
-        ::close(in[0]);
-      }
-      else
-        _dev_null(STDIN_FILENO, O_RDONLY);
-
-      // Connect standard output.
-      if (out[0] >= 0) {
-        ::close(out[0]);
-        _dup2(out[1], STDOUT_FILENO);
-        ::close(out[1]);
-      }
-      else
-        _dev_null(STDOUT_FILENO, O_WRONLY);
-
-      // XXX: parsing sucks, I know.
-      // Count spaces in command line.
-      std::string cmdline(cmd);
-      unsigned int size(std::count(
-                               cmdline.begin(),
-                               cmdline.end(),
-                               ' '));
-
-      // Allocate argument array.
-      size += 2;
-      char** array;
-      array = new char*[size];
-
-      // Replace spaces with \0.
-      size_t pos(cmdline.find_first_of(' '));
-      while (pos != std::string::npos) {
-        cmdline[pos] = '\0';
-        pos = cmdline.find_first_of(' ', pos + 1);
-      }
-
-      // Fill array.
-      array[0] = const_cast<char*>(cmdline.c_str());
-      for (unsigned int i = 1; i < size - 1; ++i)
-        array[i] = array[i - 1] + strlen(array[i - 1]) + 1;
-      array[size - 1] = NULL;
-
-      // Execute.
-      execvp(array[0], array);
-    }
-    catch (...) {}
-    exit(EXIT_FAILURE);
-  }
-
-  // Parent.
-  ::close(err[1]);
-  ::close(in[0]);
-  ::close(out[1]);
-  _err = err[0];
-  _in = in[1];
-  _out = out[0];
-
-  return ;
+/**
+ *  Kill process.
+ */
+void process::kill() {
+  _kill(SIGKILL);
 }
 
 /**
  *  Read data from stdout.
  *
- *  @param[in] data Destination buffer.
- *  @param[in] size Maximum number of bytes to read.
+ *  @param[out] data Destination buffer.
+ *  @param[in]  size Maximum number of bytes to read.
  *
  *  @return Number of bytes actually read.
  */
 unsigned int process::read(void* data, unsigned int size) {
-  return (_read(_out, data, size));
+  return (_read(_stream[out], data, size));
 }
 
 /**
  *  Read data from stderr.
  *
- *  @param[in] data Destination buffer.
- *  @param[in] size Maximum number of bytes to read.
+ *  @param[out] data Destination buffer.
+ *  @param[in]  size Maximum number of bytes to read.
  *
  *  @return Number of bytes actually read.
  */
 unsigned int process::read_err(void* data, unsigned int size) {
-  return (_read(_err, data, size));
+  return (_read(_stream[err], data, size));
 }
 
 /**
- *  Terminate the process.
+ *  Terminate process.
  */
 void process::terminate() {
-  if (_process != (pid_t)-1) {
-    if (kill(_process, SIGKILL) != 0) {
-      char const* msg(strerror(errno));
-      throw (basic_error() << "could not terminate process "
-             << _process << ": " << msg);
-    }
-  }
-  return ;
+  _kill(SIGTERM);
+  return;
 }
 
 /**
  *  Wait for process termination.
- *
- *  @return Process exit code.
  */
-int process::wait() {
-  if (_process == (pid_t)-1)
+void process::wait() {
+  if (_process == static_cast<pid_t>(-1))
     throw (basic_error() << "attempt to wait an unstarted process");
-  int status(0);
-  pid_t ret(waitpid(_process, &status, 0));
-  if (ret == (pid_t)-1) {
+  _status = 0;
+  pid_t ret(waitpid(_process, &_status, 0));
+  if (ret == static_cast<pid_t>(-1)) {
     char const* msg(strerror(errno));
     throw (basic_error() << "error while waiting for process: " << msg);
   }
-  _terminated();
-  if (WIFEXITED(status))
-    status = WEXITSTATUS(status);
-  return (status);
+  _process = static_cast<pid_t>(-1);
+  _close(_stream[in]);
+  return;
 }
 
 /**
  *  Wait for process termination.
  *
- *  @param[in]  timeout   Maximum number of milliseconds to wait for
- *                        process termination.
- *  @param[out] exit_code Will be set to the process' exit code.
+ *  @param[in]  timeout Maximum number of milliseconds to wait for
+ *                      process termination.
+ *  @param[out] code    Will be set to the process' exit code.
  *
  *  @return true if process exited.
  */
-bool process::wait(unsigned long timeout, int* exit_code) {
-  if (_process == (pid_t)-1)
+bool process::wait(unsigned long timeout) {
+  if (_process == static_cast<pid_t>(-1))
     throw (basic_error() << "attempt to wait an unstarted process");
 
   // Get the current time.
@@ -267,14 +313,14 @@ bool process::wait(unsigned long timeout, int* exit_code) {
   }
 
   // Wait for the end of process or timeout.
-  int status(0);
+  _status = 0;
   bool running(true);
   while (running
          && ((now.tv_sec * 1000000ull + now.tv_usec)
              < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
     usleep(10000);
-    pid_t ret(waitpid(_process, &status, WNOHANG));
-    if (ret == (pid_t)-1) {
+    pid_t ret(waitpid(_process, &_status, WNOHANG));
+    if (ret == static_cast<pid_t>(-1)) {
       char const* msg(strerror(errno));
       throw (basic_error() << "could not wait process "
              << _process << ": " << msg);
@@ -283,43 +329,21 @@ bool process::wait(unsigned long timeout, int* exit_code) {
     gettimeofday(&now, NULL);
   }
   if (!running) {
-    _terminated();
-    if (WIFEXITED(status))
-      status = WEXITSTATUS(status);
-    if (exit_code)
-      *exit_code = status;
+    _process = static_cast<pid_t>(-1);
+    _close(_stream[in]);
   }
   return (!running);
 }
 
 /**
- *  Enable or disable process' stderr.
+ *  Write data to process' standard input.
  *
- *  @param[in] enable Set to true to enable stderr.
- */
-void process::with_stderr(bool enable) {
-  _with_std(enable, &_with_err, &_err, "stderr");
-  return ;
-}
-
-/**
- *  Enable or disable process' stdin.
+ *  @param[in] data Source buffer.
  *
- *  @param[in] enable Set to true to enable stdin.
+ *  @return Number of bytes actually written.
  */
-void process::with_stdin(bool enable) {
-  _with_std(enable, &_with_in, &_in, "stdin");
-  return ;
-}
-
-/**
- *  Enable or disable process' stdout.
- *
- *  @param[in] enable Set to true to enable stdout.
- */
-void process::with_stdout(bool enable) {
-  _with_std(enable, &_with_out, &_out, "stdout");
-  return ;
+unsigned int process::write(std::string const& data) {
+  return (write(data.c_str(), data.size()));
 }
 
 /**
@@ -331,7 +355,7 @@ void process::with_stdout(bool enable) {
  *  @return Number of bytes actually written.
  */
 unsigned int process::write(void const* data, unsigned int size) {
-  ssize_t wb(::write(_in, data, size));
+  ssize_t wb(::write(_stream[in], data, size));
   if (wb < 0) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not write on process "
@@ -368,6 +392,19 @@ process& process::operator=(process const& p) {
 }
 
 /**
+ *  close syscall wrapper.
+ *
+ *  @param[in, out] fd The file descriptor to close.
+ */
+void process::_close(int& fd) throw () {
+  if (fd >= 0) {
+    ::close(fd);
+    fd = -1;
+  }
+  return;
+}
+
+/**
  *  Open /dev/null and duplicate file descriptor.
  *
  *  @param[in] fd    Target FD.
@@ -387,7 +424,23 @@ void process::_dev_null(int fd, int flags) {
     throw ;
   }
   ::close(newfd);
-  return ;
+  return;
+}
+
+/**
+ *  dup syscall wrapper.
+ *
+ *  @param[in] oldfd Old FD.
+ *
+ *  @return The new descriptor.
+ */
+int process::_dup(int oldfd) {
+  int newfd(dup(oldfd));
+  if (newfd < 0) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not duplicate FD: " << msg);
+  }
+  return (newfd);
 }
 
 /**
@@ -401,7 +454,7 @@ void process::_dup2(int oldfd, int newfd) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not duplicate FD: " << msg);
   }
-  return ;
+  return;
 }
 
 /**
@@ -413,7 +466,23 @@ void process::_internal_copy(process const& p) {
   (void)p;
   assert(!"process is not copyable");
   abort();
-  return ;
+  return;
+}
+
+/**
+ *  kill syscall wrapper.
+ *
+ *  @param[in] sig The signal number.
+ */
+void process::_kill(int sig) {
+  if (_process != static_cast<pid_t>(-1)) {
+    if (::kill(_process, sig) != 0) {
+      char const* msg(strerror(errno));
+      throw (basic_error() << "could not terminate process "
+             << _process << ": " << msg);
+    }
+  }
+  return;
 }
 
 /**
@@ -426,7 +495,7 @@ void process::_pipe(int fds[2]) {
     char const* msg(strerror(errno));
     throw (basic_error() << "pipe creation failed: " << msg);
   }
-  return ;
+  return;
 }
 
 /**
@@ -449,50 +518,21 @@ unsigned int process::_read(int fd, void* data, unsigned int size) {
 }
 
 /**
- *  Reset fields of process after execution.
- */
-void process::_terminated() {
-  _process = (pid_t)-1;
-  if (_err >= 0) {
-    ::close(_err);
-    _err = -1;
-  }
-  if (_in >= 0) {
-    ::close(_in);
-    _in = -1;
-  }
-  if (_out >= 0) {
-    ::close(_out);
-    _out = -1;
-  }
-  return ;
-}
-
-/**
- *  Enable or disable standard process objects.
+ *  Set the close-on-exec flag on the file descriptor.
  *
- *  @param[in]     enable New boolean flag.
- *  @param[in,out] b      Boolean flag.
- *  @param[in,out] fd     FD.
- *  @param[in]     name   Object name (for error reporting).
+ *  @param[in] fd The file descriptor to set close on exec.
  */
-void process::_with_std(
-                bool enable,
-                bool* b,
-                int* fd,
-                char const* name) {
-  if (*b != enable) {
-    if (_process == (pid_t)-1)
-      *b = enable;
-    else if (!enable) {
-      if (*fd >= 0) {
-        ::close(*fd);
-        *fd = -1;
-      }
-    }
-    else
-      throw (basic_error() << "cannot reenable "
-             << name << " while process is running");
+void process::_set_cloexec(int fd) {
+  int flags(fcntl(fd, F_GETFD));
+  if (flags < 0) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "Could not get file descriptor flags: "
+           << msg);
   }
-  return ;
+  if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "Could not set close-on-exec flag: "
+           << msg);
+  }
+  return;
 }

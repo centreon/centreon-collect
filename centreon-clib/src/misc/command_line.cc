@@ -40,6 +40,19 @@ command_line::command_line()
  *  Parse command line.
  *
  *  @param[in] cmdline  The command line to parse.
+ *  @param[in] size     The command line size, if size equal 0 parse
+ *                      calculate the command line size.
+ */
+command_line::command_line(char const* cmdline, unsigned int size)
+  : _argc(0), _argv(NULL), _size(0) {
+  parse(cmdline, size);
+}
+
+
+/**
+ *  Parse command line.
+ *
+ *  @param[in] cmdline  The command line to parse.
  */
 command_line::command_line(std::string const& cmdline)
   : _argc(0), _argv(NULL), _size(0) {
@@ -51,7 +64,8 @@ command_line::command_line(std::string const& cmdline)
  *
  *  @param[in] right  The object to copy.
  */
-command_line::command_line(command_line const& right) : _argv(NULL) {
+command_line::command_line(command_line const& right)
+  : _argv(NULL) {
   _internal_copy(right);
 }
 
@@ -120,11 +134,21 @@ char** command_line::get_argv() const throw () {
  *  Parse command line and store arguments.
  *
  *  @param[in] cmdline  The command line to parse.
+ *  @param[in] size     The command line size, if size equal 0 parse
+ *                      calculate the command line size.
  */
-void command_line::parse(std::string const& cmdline) {
-  // Allocate buffer.
+void command_line::parse(char const* cmdline, unsigned int size) {
+  // Cleanup.
   _release();
-  char* str(new char[cmdline.size() + 1]);
+
+  if (!cmdline)
+    return;
+
+  if (!size)
+    size = strlen(cmdline);
+
+  // Allocate buffer.
+  char* str(new char[size + 1]);
   _size = 0;
   str[_size] = 0;
 
@@ -132,7 +156,7 @@ void command_line::parse(std::string const& cmdline) {
   bool escap(false);
   char sep(0);
   char last(0);
-  for (size_t i(0), end(cmdline.size()); i < end; ++i) {
+  for (unsigned int i(0); i < size; ++i) {
     // Current processed char.
     char c(cmdline[i]);
 
@@ -200,6 +224,15 @@ void command_line::parse(std::string const& cmdline) {
     delete [] str;
 
   return ;
+}
+
+/**
+ *  Parse command line and store arguments.
+ *
+ *  @param[in] cmdline  The command line to parse.
+ */
+void command_line::parse(std::string const& cmdline) {
+  parse(cmdline.c_str(), cmdline.size());
 }
 
 /**************************************

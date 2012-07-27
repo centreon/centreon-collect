@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert.h>
+#include <cstdlib>
+#include <cstring>
 #include <windows.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process_win32.hh"
@@ -38,19 +38,121 @@ using namespace com::centreon;
  *  Default constructor.
  */
 process::process()
-  : _err(NULL),
-    _in(NULL),
-    _out(NULL),
-    _process(NULL),
-    _with_err(false),
-    _with_in(false),
-    _with_out(false) {}
+  : _exit_code(0),
+    _process(NULL) {
+  memset(_enable_stream, 1, sizeof(_enable_stream));
+  memset(_stream, NULL, sizeof(_stream));
+}
 
 /**
  *  Destructor.
  */
 process::~process() throw () {
-  _terminated();
+  for (unsigned int i(0); i < 3; ++i)
+    _close(_stream[i]);
+}
+
+/**
+ *  Enable or disable process' stream.
+ *
+ *  @param[in] s      The stream to set.
+ *  @param[in] enable Set to true to enable stderr.
+ */
+void process::enable_stream(stream s, bool enable) {
+  if (_enable_stream[s] != enable) {
+    if (!_process)
+      _enable_stream[s] = enable;
+    else if (!enable)
+      _close(_stream[s]);
+    else
+      throw (basic_error() << "cannot reenable \""
+             << s << "\" while process is running");
+  }
+  return;
+}
+
+/**
+ *  Run process.
+ *
+ *  @param[in] cmd Command line.
+ *  @param[in] env Array of strings (on form key=value), which are
+ *                 passed as environment to the new process. If env
+ *                 is NULL, the current environement are passed of
+ *                 the new process.
+ */
+void process::exec(char const* cmd, char** env) {
+  // Check viability.
+  if (_process)
+    throw (basic_error() << "process " << _process->dwProcessId
+           << " is already started and has not been waited");
+
+  // Reset exit code.
+  _exit_code = 0;
+
+  HANDLE child_stream[3] = { NULL, NULL, NULL };
+
+  try {
+    // Create pipes if necessary.
+    if (_enable_stream[in]) {
+      _pipe(&child_stream[in], &_stream[in]);
+      SetHandleInformation(_stream[in], HANDLE_FLAG_INHERIT, 0);
+    }
+    if (_enable_stream[out]) {
+      _pipe(&_stream[out], &child_stream[out]);
+      SetHandleInformation(_stream[out], HANDLE_FLAG_INHERIT, 0);
+    }
+    if (_enable_stream[err]) {
+      _pipe(&_stream[err], &child_stream[err]);
+      SetHandleInformation(_stream[err], HANDLE_FLAG_INHERIT, 0);
+    }
+
+    if (!env)
+      env = environ;
+
+    // Set startup informations.
+    STARTUPINFO si;
+    memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    si.hStdError = child_stream[err];
+    si.hStdInput = child_stream[in];
+    si.hStdOutput = child_stream[out];
+    si.dwFlags = STARTF_USESTDHANDLES;
+
+    // Execute process.
+    _process = new PROCESS_INFORMATION;
+    memset(_process, 0, sizeof(*_process));
+    unsigned int size(cmd.size() + 1);
+    unique_array_ptr<char> cmd_str(new char[size]);
+    memcpy(cmd_str.get(), cmd.c_str(), size);
+    if (CreateProcess(
+          NULL,
+          cmdstr.get(),
+          NULL,
+          NULL,
+          TRUE,
+          0,
+          env,
+          NULL,
+          &si,
+          _process) == FALSE) {
+      int errcode(GetLastError());
+      throw (basic_error() << "could not create process (error "
+             << errcode << ")");
+    }
+
+    for (unsigned int i(0); i < 3; ++i)
+      _close(child_stream[i]);
+  }
+  catch (...) {
+    delete _process;
+    _process = NULL;
+    for (unsigned int i(0); i < 3; ++i) {
+      _close(child_stream[i]);
+      _close(_stream[i]);
+    }
+    throw;
+  }
+  return;
 }
 
 /**
@@ -59,101 +161,39 @@ process::~process() throw () {
  *  @param[in] cmd Command line.
  */
 void process::exec(std::string const& cmd) {
-  // Check viability.
-  if (_process)
-    throw (basic_error() << "process " << GetProcessId(_process)
-           << " is already started and has not been waited");
+  exec(cmd.c_str());
+  return;
+}
 
-  // Create pipes if necessary.
-  HANDLE child_err(NULL);
-  HANDLE child_in(NULL);
-  HANDLE child_out(NULL);
-  try {
-    if (_with_err) {
-      _pipe(&_err, &child_err);
-      SetHandleInformation(_err, HANDLE_FLAG_INHERIT, 0);
-    }
-    if (_with_in) {
-      _pipe(&child_in, &_in);
-      SetHandleInformation(_in, HANDLE_FLAG_INHERIT, 0);
-    }
-    if (_with_out) {
-      _pipe(&_out, &child_out);
-      SetHandleInformation(_out, HANDLE_FLAG_INHERIT, 0);
-    }
-  }
-  catch (...) {
-    if (child_err) {
-      CloseHandle(child_err);
-      CloseHandle(_err);
-      _err = NULL;
-    }
-    if (child_in) {
-      CloseHandle(child_in);
-      CloseHandle(_in);
-      _in = NULL;
-    }
-    throw ;
-  }
+/**
+ *  Get the exit code, return by the executed process.
+ *
+ *  @return The exit code.
+ */
+int process::exit_code() const throw () {
+  return (_exit_code);
+}
 
-  // Startup informations.
-  STARTUPINFO si;
-  memset(&si, 0, sizeof(si));
-  si.cb = sizeof(si);
-  si.hStdError = child_err;
-  si.hStdInput = child_in;
-  si.hStdOutput = child_out;
-  si.dwFlags = STARTF_USESTDHANDLES;
+/**
+ *  Get the exit status, always return normal into windows.
+ *
+ *  @return The exit status.
+ */
+process::status process::exit_status() const throw () {
+  return (process::normal);
+}
 
-  // Create process.
-  bool success(false);
-  exceptions::basic error = basic_error();
-  try {
-    PROCESS_INFORMATION pi;
-    memset(&pi, 0, sizeof(pi));
-    size_t size(cmd.size() + 1);
-    unique_array_ptr<char> cmdstr(new char[size]);
-    memcpy(cmdstr.get(), cmd.c_str(), size);
-    success = (CreateProcess(
-                 NULL,
-                 cmdstr.get(),
-                 NULL,
-                 NULL,
-                 TRUE,
-                 0,
-                 NULL,
-                 NULL,
-                 &si,
-                 &pi) != FALSE);
-    if (!success) {
+/**
+ *  Kill process.
+ */
+void process::kill() {
+  if (_process) {
+    if (!TerminateProcess(_process->hProcess, EXIT_FAILURE)) {
       int errcode(GetLastError());
-      error << "could not create process (error " << errcode << ")";
+      throw (basic_error() << "could not terminate process "
+             << _process->dwProcessId << " (error " << errcode << ")");
     }
-    else
-      _process = pi.hProcess;
   }
-  catch (std::exception const& e) {
-    error << "could not create process: " << e.what();
-    _terminated();
-  }
-  catch (...) {
-    error << "could not create process: unknown error";
-    _terminated();
-  }
-
-  // Close handles.
-  if (child_err)
-    CloseHandle(child_err);
-  if (child_in)
-    CloseHandle(child_in);
-  if (child_out)
-    CloseHandle(child_out);
-
-  // Throw exception if error occurred.
-  if (!success)
-    throw (error);
-
-  return ;
 }
 
 /**
@@ -185,24 +225,19 @@ unsigned int process::read_err(void* data, unsigned int size) {
  */
 void process::terminate() {
   if (_process) {
-    if (!TerminateProcess(_process, EXIT_FAILURE)) {
-      int errcode(GetLastError());
-      throw (basic_error() << "could not terminate process "
-             << GetProcessId(_process) << " (error " << errcode << ")");
-    }
+    EnumWindows(
+      &_terminate_window,
+      static_cast<LPARAM>(_process->dwProcessId));
+    PostThreadMessage(_process->dwThreadId, WM_CLOSE, 0, 0);
   }
-  return ;
+  return;
 }
 
 /**
  *  Wait for process termination.
- *
- *  @return Process exit code.
  */
-int process::wait() {
-  int exit_code;
-  _wait(INFINITE, &exit_code);
-  return (exit_code);
+void process::wait() {
+  _wait(INFINITE);
 }
 
 /**
@@ -210,42 +245,21 @@ int process::wait() {
  *
  *  @param[in]  timeout   Maximum number of milliseconds to wait for
  *                        process termination.
- *  @param[out] exit_code Will be set to the process' exit code.
- *
  *  @return true if process exited.
  */
-bool process::wait(unsigned long timeout, int* exit_code) {
-  return (_wait(timeout, exit_code));
+bool process::wait(unsigned long timeout) {
+  return (_wait(timeout));
 }
 
 /**
- *  Enable or disable process' stderr.
+ *  Write data to process' standard input.
  *
- *  @param[in] enable Set to true to enable stderr.
- */
-void process::with_stderr(bool enable) {
-  _with_std(enable, &_with_err, &_err, "stderr");
-  return ;
-}
-
-/**
- *  Enable or disable process' stdin.
+ *  @param[in] data Source buffer.
  *
- *  @param[in] enable Set to true to enable stdin.
+ *  @return Number of bytes actually written.
  */
-void process::with_stdin(bool enable) {
-  _with_std(enable, &_with_in, &_in, "stdin");
-  return ;
-}
-
-/**
- *  Enable or disable process' stdout.
- *
- *  @param[in] enable Set to true to enable stdout.
- */
-void process::with_stdout(bool enable) {
-  _with_std(enable, &_with_out, &_out, "stdout");
-  return ;
+unsigned int process::write(std::string const& data) {
+  return (write(data.c_str(), data.size()));
 }
 
 /**
@@ -261,17 +275,17 @@ unsigned int process::write(void const* data, unsigned int size) {
   if (!_process)
     throw (basic_error() << "could not write on " \
            "process' input: process is not running");
-  if (!_in)
+  if (!_stream[in])
     throw (basic_error() << "could not write on process "
-           << GetProcessId(_process) << "'s input: not connected");
+           << _process->dwProcessId << "'s input: not connected");
 
   // Write data.
   DWORD wb;
-  bool success(WriteFile(_in, data, size, &wb, NULL) != 0);
+  bool success(WriteFile(_stream[in], data, size, &wb, NULL) != 0);
   if (!success) {
     int errcode(GetLastError());
     throw (basic_error() << "could not write on process "
-           << GetProcessId(_process) << "'s input (error "
+           << _process->dwProcessId << "'s input (error "
            << errcode << ")");
   }
   return (wb);
@@ -305,6 +319,19 @@ process& process::operator=(process const& p) {
 }
 
 /**
+ *  close syscall wrapper.
+ *
+ *  @param[in, out] fd The file descriptor to close.
+ */
+void process::_close(HANDLE& fd) throw () {
+  if (!fd) {
+    CloseHandle(fd);
+    fd = NULL;
+  }
+  return;
+}
+
+/**
  *  Copy internal data members.
  *
  *  @param[in] p Object to copy.
@@ -313,7 +340,7 @@ void process::_internal_copy(process const& p) {
   (void)p;
   assert(!"process is not copyable");
   abort();
-  return ;
+  return;
 }
 
 /**
@@ -328,7 +355,7 @@ void process::_pipe(HANDLE* rh, HANDLE* wh) {
     throw (basic_error() << "pipe creation failed (error "
            << errcode << ")");
   }
-  return ;
+  return;
 }
 
 /**
@@ -354,82 +381,44 @@ unsigned int process::_read(HANDLE h, void* data, unsigned int size) {
 }
 
 /**
- *  Reset fields of process after execution.
+ *  Callback to terminate window.
+ *
+ *  @param[in] hwnd    The window handle.
+ *  @param[in] proc_id The current process id.
+ *
+ *  @return Always true.
  */
-void process::_terminated() throw () {
-  if (_process) {
-    CloseHandle(_process);
-    _process = NULL;
-  }
-  if (_err) {
-    CloseHandle(_err);
-    _err = NULL;
-  }
-  if (_in) {
-    CloseHandle(_in);
-    _in = NULL;
-  }
-  if (_out) {
-    CloseHandle(_out);
-    _out = NULL;
-  }
-  return ;
+BOOL process::_terminate_window(HWND hwnd, LPARAM proc_id) {
+  DWORD curr_proc_id(0);
+  GetWindowThreadProcessId(hwnd, &curr_proc_id);
+  if (curr_proc_id == static_cast<DWORD>(proc_id))
+    PostMessage(hwnd, WM_CLOSE, 0, 0);
+  return (TRUE);
 }
 
 /**
  *  Wait for process termination.
  *
- *  @param[in]  timeout   Maximum number of milliseconds to wait.
- *  @param[out] exit_code Process' exit code.
+ *  @param[in] timeout Maximum number of milliseconds to wait.
  *
  *  @return true if process exited.
  */
-bool process::_wait(DWORD timeout, int* exit_code) {
+bool process::_wait(DWORD timeout) {
   if (!_process)
     throw (basic_error() << "could not wait on non-running process");
-  DWORD ret(WaitForSingleObject(_process, timeout));
+  DWORD ret(WaitForSingleObject(_process->hProcess, timeout));
   bool success(ret == WAIT_OBJECT_0);
   if (!success && (ret != WAIT_TIMEOUT)) {
     int errcode(GetLastError());
     throw (basic_error() << "could not wait process "
-           << GetProcessId(_process) << " (error " << errcode << ")");
+           << _process->dwProcessId << " (error " << errcode << ")");
   }
   if (success) {
-    if (exit_code) {
-      DWORD ec(EXIT_FAILURE);
-      GetExitCodeProcess(_process, &ec);
-      *exit_code = ec;
-    }
-    _terminated();
+    _exit_code = EXIT_FAILURE;
+    GetExitCodeProcess(_process->hProcess, &_exit_code);
+    delete _process;
+    _process = NULL;
+    _close(_stream[in]);
   }
   return (success);
-}
-
-/**
- *  Enable or disable standard process objects.
- *
- *  @param[in]     enable New boolean flag.
- *  @param[in,out] b      Boolean flag.
- *  @param[in,out] h      Handle.
- *  @param[in]     name   Object name (for error reporting).
- */
-void process::_with_std(
-                bool enable,
-                bool* b,
-                HANDLE* h,
-                char const* name) {
-  if (*b != enable) {
-    if (!_process)
-      *b = enable;
-    else if (!enable) {
-      if (*h) {
-        CloseHandle(*h);
-        *h = NULL;
-      }
-    }
-    else
-      throw (basic_error() << "cannot reenable "
-             << name << " while process is running");
-  }
-  return ;
 }
