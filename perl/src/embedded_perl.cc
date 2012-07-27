@@ -240,6 +240,11 @@ void embedded_perl::unload() {
  *  @param[in] env  Program environment.
  */
 embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
+  // Do not warn if unused by PERL_SYS_INIT3 macro.
+  (void)argc;
+  (void)argv;
+  (void)env;
+
   // Set original PID.
   _self = getpid();
   logging::debug(logging::high) << "self PID is " << _self;
