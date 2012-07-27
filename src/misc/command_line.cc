@@ -18,7 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
+#include <cctype>
+#include <cstring>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
 
@@ -153,8 +154,8 @@ void command_line::parse(std::string const& cmdline) {
     }
 
     // End of token.
-    if (!sep && isblank(c)) {
-      if (last && !isblank(last) && str[_size - 1]) {
+    if (!sep && isspace(c)) {
+      if (last && !isspace(last) && str[_size - 1]) {
         str[_size++] = 0;
         ++_argc;
       }
