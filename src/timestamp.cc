@@ -26,6 +26,9 @@
 #endif // Windows or POSIX.
 #include "com/centreon/timestamp.hh"
 
+// Disable min/max macros on Win32.
+#define NOMINMAX
+
 using namespace com::centreon;
 
 /**************************************
