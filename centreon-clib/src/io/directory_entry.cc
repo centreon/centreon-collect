@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #ifdef _WIN32
+#  include <direct.h>
 #  include <io.h>
 #  include <windows.h>
 #else
