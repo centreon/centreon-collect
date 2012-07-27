@@ -129,7 +129,8 @@ std::string file_entry::directory_name() const {
   char drive[_MAX_DRIVE];
   char dir[_MAX_DIR];
   _splitpath(_path.c_str(), drive, dir, NULL, NULL);
-  name = drive + dir;
+  name = drive;
+  name.append(dir);
 #else
   char* path(new char[_path.size() + 1]);
   strcpy(path, _path.c_str());
@@ -151,7 +152,8 @@ std::string file_entry::file_name() const {
   char fname[_MAX_FNAME];
   char ext[_MAX_EXT];
   _splitpath(_path.c_str(), NULL, NULL, fname, ext);
-  name = fname + ext;
+  name = fname;
+  name.append(ext);
 #else
   char* path(new char[_path.size() + 1]);
   strcpy(path, _path.c_str());
@@ -177,7 +179,11 @@ bool file_entry::is_directory() const throw () {
  *  @return True if this file is a symbolic link, otherwise false.
  */
 bool file_entry::is_link() const throw () {
+#ifdef _WIN32
+  return (false);
+#else
   return ((_sbuf.st_mode & S_IFMT) == S_IFLNK);
+#endif // Win32 or POSIX
 }
 
 /**
