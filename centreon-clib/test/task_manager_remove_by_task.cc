@@ -66,7 +66,7 @@ int main() {
     if (tm.remove(reinterpret_cast<task*>(0x4242)))
       throw (basic_error() << "remove invalid task failed");
 
-    if (tm.next_execution_time() != timestamp::max())
+    if (tm.next_execution_time() != timestamp::max_time())
       throw (basic_error() << "invalid next_execution_time");
   }
   catch (std::exception const& e) {

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011 Merethis
+** Copyright 2011-2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -44,9 +44,9 @@ int main() {
   try {
     task_manager tm;
     timestamp now(timestamp::now());
-    timestamp max(timestamp::max());
+    timestamp max_time(timestamp::max_time());
 
-    if (tm.next_execution_time() != max)
+    if (tm.next_execution_time() != max_time)
       throw (basic_error() << "bad initialization of " \
              "next_execution_time");
 
