@@ -26,7 +26,7 @@
 
 CC_BEGIN()
 
-namespace            concurrency {
+namespace                 concurrency {
   /**
    *  @class read_write_lock read_write_lock_win32.hh "com/centreon/concurrency/read_write_lock.hh"
    *  @brief Readers/writer lock.
@@ -34,25 +34,30 @@ namespace            concurrency {
    *  Implementation of the readers/writer lock synchronization
    *  primitive.
    */
-  class              read_write_lock {
+  class                   read_write_lock {
   public:
-                     read_write_lock();
-                     ~read_write_lock() throw ();
-    void             read_lock();
-    bool             read_lock(unsigned long timeout);
-    bool             read_trylock();
-    void             read_unlock();
-    void             write_lock();
-    bool             write_lock(unsigned long timeout);
-    bool             write_trylock();
-    void             write_unlock();
+                          read_write_lock();
+                          ~read_write_lock() throw ();
+    void                  read_lock();
+    bool                  read_lock(unsigned long timeout);
+    bool                  read_trylock();
+    void                  read_unlock();
+    void                  write_lock();
+    bool                  write_lock(unsigned long timeout);
+    bool                  write_trylock();
+    void                  write_unlock();
 
   private:
-                     read_write_lock(read_write_lock const& right);
-    read_write_lock& operator=(read_write_lock const& right);
-    void             _internal_copy(read_write_lock const& right);
+                          read_write_lock(read_write_lock const& right);
+    read_write_lock&      operator=(read_write_lock const& right);
+    void                  _internal_copy(read_write_lock const& right);
 
-    // XXX : needs to be implemented
+    condvar               _condvar;
+    mutex                 _mtx;
+    volatile unsigned int _readers;
+    volatile unsigned int _readers_waiting;
+    volatile bool         _writer;
+    volatile unsigned int _writers_waiting;
   };
 }
 
