@@ -94,10 +94,14 @@ if (NOT WIN32)
 endif ()
 
 # Find dynamic linking library.
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  set(LIB_DL "")
-else ()
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(LIB_DL "dl")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"
+        OR CMAKE_SYSTEM_NAME STREQUAL "NetBSD"
+        OR CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+  set(LIB_DL "c")
+else ()
+  set(LIB_DL "")
 endif ()
 
 if (NOT WIN32)
