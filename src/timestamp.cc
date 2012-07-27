@@ -20,6 +20,7 @@
 
 #include <limits>
 #ifdef _WIN32
+#  define NOMINMAX
 #  include <windows.h>
 #else
 #  include <sys/time.h>
@@ -238,7 +239,7 @@ void timestamp::add_useconds(long usecs) {
  *
  *  @return Maximum time.
  */
-timestamp timestamp::max() throw () {
+timestamp timestamp::max_time() throw () {
   timestamp t;
   t._secs = std::numeric_limits<time_t>::max();
   t._usecs = 999999;
@@ -250,7 +251,7 @@ timestamp timestamp::max() throw () {
  *
  *  @return Minimum time.
  */
-timestamp timestamp::min() throw () {
+timestamp timestamp::min_time() throw () {
   timestamp t;
   t._secs = std::numeric_limits<time_t>::min();
   t._usecs = 0;

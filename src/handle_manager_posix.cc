@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
+#include <cerrno>
+#include <cstring>
 #include <memory>
-#include <string.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/handle_action.hh"
 #include "com/centreon/handle_listener.hh"
@@ -53,11 +53,11 @@ void handle_manager::multiplex() {
   int timeout(-1);
   timestamp now(timestamp::now());
   timestamp next(_task_manager->next_execution_time());
-  if (!_handles.size() && next == timestamp::max())
+  if (!_handles.size() && next == timestamp::max_time())
     return ;
   if (next <= now)
     timeout = 0;
-  else if (next == timestamp::max())
+  else if (next == timestamp::max_time())
     timeout = -1;
   else
     timeout = next.to_mseconds() - now.to_mseconds();
