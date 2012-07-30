@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert.h>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <windows.h>
