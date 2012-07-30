@@ -35,6 +35,9 @@
 
 using namespace com::centreon;
 
+// environ is not declared on *BSD.
+extern char** environ;
+
 /**************************************
 *                                     *
 *           Public Methods            *
