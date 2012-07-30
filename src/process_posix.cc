@@ -111,7 +111,8 @@ void process::exec(char const* cmd, char** env) {
     { -1, -1 }
   };
 
-  bool restore_std(false);
+  // volatile prevent compiler optimization that might clobber variable.
+  volatile bool restore_std(false);
 
   try {
     // Create backup FDs.
@@ -153,8 +154,9 @@ void process::exec(char const* cmd, char** env) {
 
     misc::command_line cmdline(cmd);
     char** args(cmdline.get_argv());
-    if (!env)
-      env = environ;
+    // volatile prevent compiler optimization
+    // that might clobber variable.
+    char** volatile my_env(env ? env : environ);
 
     _process = vfork();
     if (_process == static_cast<pid_t>(-1)) {
@@ -164,7 +166,7 @@ void process::exec(char const* cmd, char** env) {
 
     // Child execution.
     if (!_process) {
-      ::execve(args[0], args, env);
+      ::execve(args[0], args, my_env);
       ::_exit(EXIT_FAILURE);
     }
 
