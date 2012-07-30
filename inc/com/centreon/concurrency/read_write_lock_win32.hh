@@ -22,6 +22,8 @@
 #  define CC_CONCURRENCY_READ_WRITE_LOCK_WIN32_HH
 
 #  include <windows.h>
+#  include "com/centreon/concurrency/condvar.hh"
+#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()

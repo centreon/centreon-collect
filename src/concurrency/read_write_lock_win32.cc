@@ -20,6 +20,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/read_write_lock_win32.hh"
 
 using namespace com::centreon::concurrency;
