@@ -54,7 +54,7 @@ static option long_options[] = {
  */
 check::check(unsigned int command_id, std::string const& command_line)
   : _command_id(command_id),
-    _command_line("bin " + command_line),
+    _command_line(command_line),
     _critical_packet_lost(80),
     _critical_roundtrip_avg(500000),
     _current_host_check(0),
@@ -256,6 +256,9 @@ void check::parse() {
   misc::command_line cmd(_command_line);
   int argc(cmd.get_argc());
   char** argv(cmd.get_argv());
+
+  optind = 0; // Reset optind to parse arguments.
+  opterr = 0; // Disable output messages.
 
   char c;
   while ((c = getopt_long(
