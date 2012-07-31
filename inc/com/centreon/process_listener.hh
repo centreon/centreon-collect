@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,33 +18,28 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include <iostream>
-#include "com/centreon/clib.hh"
-#include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/process.hh"
+#ifndef CC_PROCESS_LISTENER_HH
+#  define CC_PROCESS_LISTENER_HH
 
-using namespace com::centreon;
+#  include "com/centreon/namespace.hh"
+#  include "com/centreon/process.hh"
+
+CC_BEGIN()
 
 /**
- *  Check class process (return).
+ *  @class process process_listener.hh "com/centreon/process_listener.hh"
+ *  @brief Notify process events.
  *
- *  @return EXIT_SUCCESS on success.
+ *  This class provide interface to notify process events.
  */
-int main() {
-  int ret(EXIT_SUCCESS);
-  clib::load();
-  try {
-    process p;
-    p.exec("./bin_test_process_output check_return 42");
-    p.wait();
-    if (p.exit_code() != 42)
-      throw (basic_error() << "invalid return");
-  }
-  catch (std::exception const& e) {
-    ret = EXIT_FAILURE;
-    std::cerr << "error: " << e.what() << std::endl;
-  }
-  clib::unload();
-  return (ret);
-}
+class          process_listener {
+public:
+  virtual      ~process_listener() throw () {}
+  virtual void data_is_available(process& p) throw () = 0;
+  virtual void data_is_available_err(process& p) throw () = 0;
+  virtual void finished(process& p) throw () = 0;
+};
+
+CC_END()
+
+#endif // !CC_PROCESS_LISTENER_HH

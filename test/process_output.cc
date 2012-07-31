@@ -22,6 +22,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include "com/centreon/clib.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 
@@ -34,6 +35,7 @@ using namespace com::centreon;
  */
 int main(int argc, char** argv) {
   int ret(EXIT_SUCCESS);
+  clib::load();
   try {
     if (argc != 2
         || (strcmp(argv[1], "err") && strcmp(argv[1], "out"))) {
@@ -47,7 +49,7 @@ int main(int argc, char** argv) {
     process p;
     p.exec(cmd);
     char buffer_write[16 * 1024];
-    char buffer_read[16 * 1024];
+    std::string buffer_read;
     for (unsigned int i(0); i < sizeof(buffer_write); ++i)
       buffer_write[i] = static_cast<char>(i);
     unsigned int total_read(0);
@@ -58,14 +60,11 @@ int main(int argc, char** argv) {
                          buffer_write,
                          sizeof(buffer_write) - total_write);
       if (!strcmp(argv[1], "out"))
-        total_read += p.read(
-                        buffer_read + total_read,
-                        sizeof(buffer_read) - total_read);
+        p.read(buffer_read);
       else
-        total_read += p.read_err(
-                        buffer_read + total_read,
-                        sizeof(buffer_read) - total_read);
-    } while (total_read < sizeof(buffer_read));
+        p.read_err(buffer_read);
+      total_read += buffer_read.size();
+    } while (total_read < sizeof(buffer_write));
     p.enable_stream(process::in, false);
     p.wait();
     if (p.exit_code() != EXIT_SUCCESS)
@@ -79,5 +78,6 @@ int main(int argc, char** argv) {
     ret = EXIT_FAILURE;
     std::cerr << "error: " << e.what() << std::endl;
   }
+  clib::unload();
   return (ret);
 }

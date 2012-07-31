@@ -18,33 +18,32 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include <iostream>
-#include "com/centreon/clib.hh"
-#include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/process.hh"
+#ifndef CC_CLIB_HH
+#  define CC_CLIB_HH
 
-using namespace com::centreon;
+#  include "com/centreon/namespace.hh"
+
+CC_BEGIN()
 
 /**
- *  Check class process (return).
+ *  @class clib clib.hh "com/centreon/clib.hh"
+ *  @brief Initialize all clib manager.
  *
- *  @return EXIT_SUCCESS on success.
+ *  Initialize all clib manager and make base configuration.
  */
-int main() {
-  int ret(EXIT_SUCCESS);
-  clib::load();
-  try {
-    process p;
-    p.exec("./bin_test_process_output check_return 42");
-    p.wait();
-    if (p.exit_code() != 42)
-      throw (basic_error() << "invalid return");
-  }
-  catch (std::exception const& e) {
-    ret = EXIT_FAILURE;
-    std::cerr << "error: " << e.what() << std::endl;
-  }
-  clib::unload();
-  return (ret);
-}
+class         clib {
+public:
+  static void load();
+  static void unload();
+
+private:
+              clib();
+              clib(clib const& right);
+              ~clib() throw ();
+  clib&       operator=(clib const& right);
+  void        _internal_copy(clib const& right);
+};
+
+CC_END()
+
+#endif // !CC_CLIB_HH
