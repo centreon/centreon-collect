@@ -84,6 +84,10 @@ private:
   std::string        _buffer_err;
   std::string        _buffer_out;
   mutable concurrency::condvar
+                     _cv_buffer_err;
+  mutable concurrency::condvar
+                     _cv_buffer_out;
+  mutable concurrency::condvar
                      _cv_process;
   bool               _enable_stream[3];
   process_listener*  _listener;
