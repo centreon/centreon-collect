@@ -121,9 +121,9 @@ void process::exec(char const* cmd, char** env) {
     // Execute process.
     _process = new PROCESS_INFORMATION;
     memset(_process, 0, sizeof(*_process));
-    unsigned int size(cmd.size() + 1);
+    unsigned int size(strlen(cmd) + 1);
     unique_array_ptr<char> cmd_str(new char[size]);
-    memcpy(cmd_str.get(), cmd.c_str(), size);
+    memcpy(cmd_str.get(), cmd, size);
     if (CreateProcess(
           NULL,
           cmdstr.get(),
