@@ -64,6 +64,7 @@ public:
 private:
                        process(process const& p);
   process&             operator=(process const& p);
+  void                 _close(HANDLE& fd) throw ();
   void                 _internal_copy(process const& p);
   static void          _pipe(HANDLE* rh, HANDLE* wh);
   unsigned int         _read(HANDLE h, void* data, unsigned int size);
