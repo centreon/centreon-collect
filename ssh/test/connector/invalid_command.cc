@@ -18,6 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
@@ -31,9 +32,10 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
+  clib::load();
   // Process.
   process p;
-  p.with_stdin(true);
+  p.enable_stream(process::in, true);
   p.exec(CONNECTOR_SSH_BINARY);
 
   // Write command.
@@ -46,14 +48,26 @@ int main() {
   }
 
   // Wait for process termination.
-  int retval;
-  int exitcode;
-  if (!p.wait(5000, &exitcode)) {
+  // Read reply.
+  std::string output;
+  while (true) {
+    std::string buffer;
+    p.read(buffer);
+    if (buffer.empty())
+      break;
+    output.append(buffer);
+  }
+
+  // Wait for process termination.
+  int retval(1);
+  if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-    retval = 1;
   }
   else
-    retval = (exitcode == 0);
+    retval = (p.exit_code() != 0);
+
+  clib::unload();
+
   return (retval);
 }

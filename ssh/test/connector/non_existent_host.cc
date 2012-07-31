@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <string.h>
+#include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
@@ -46,10 +47,11 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
+  clib::load();
   // Process.
   process p;
-  p.with_stdin(true);
-  p.with_stdout(true);
+  p.enable_stream(process::in, true);
+  p.enable_stream(process::out, true);
   p.exec(CONNECTOR_SSH_BINARY);
 
   // Write command.
@@ -63,33 +65,30 @@ int main() {
     size -= rb;
     ptr += rb;
   }
-  p.with_stdin(false);
+  p.enable_stream(process::in, false);
 
   // Read reply.
-  char buffer[1024];
-  size = 0;
-  {
-    unsigned int rb(0);
-    rb = p.read(buffer, sizeof(buffer));
-    while ((rb > 0) && (size < sizeof(buffer))) {
-      size += rb;
-      rb = p.read(buffer + size, sizeof(buffer) - size);
-    }
+  std::string output;
+  while (true) {
+    std::string buffer;
+    p.read(buffer);
+    if (buffer.empty())
+      break;
+    output.append(buffer);
   }
 
   // Wait for process termination.
-  int retval;
-  int exitcode;
-  if (!p.wait(5000, &exitcode)) {
+  int retval(1);
+  if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-    retval = 1;
   }
   else
-    retval = (exitcode != 0);
+    retval = (p.exit_code() != 0);
 
+  clib::unload();
   // Compare results.
   return (retval
-          || (size != (sizeof(RESULT) - 1))
-          || (memcmp(buffer, RESULT, sizeof(RESULT) - 1)));;
+          || (output.size() != (sizeof(RESULT) - 1))
+          || (memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1)));
 }

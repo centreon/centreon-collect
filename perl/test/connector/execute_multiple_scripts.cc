@@ -21,6 +21,7 @@
 #include <list>
 #include <stdio.h>
 #include <sstream>
+#include "com/centreon/clib.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/misc.hh"
@@ -54,6 +55,7 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
+  clib::load();
   // Write Perl scripts.
   std::string script_paths[10];
   for (unsigned int i = 0;
@@ -68,8 +70,8 @@ int main() {
 
   // Process.
   process p;
-  p.with_stdin(true);
-  p.with_stdout(true);
+  p.enable_stream(process::in, true);
+  p.enable_stream(process::out, true);
   p.exec(CONNECTOR_PERL_BINARY);
 
   // Generate command string.
@@ -95,7 +97,7 @@ int main() {
     size -= rb;
     ptr += rb;
   }
-  p.with_stdin(false);
+  p.enable_stream(process::in, false);
 
   // Generate result strings.
   std::list<std::string> expected_result;
@@ -112,28 +114,23 @@ int main() {
   }
 
   // Read reply.
-  char buffer[1024];
-  std::string result;
-  size = 0;
-  {
-    unsigned int rb(0);
-    rb = p.read(buffer, sizeof(buffer));
-    while (rb > 0) {
-      result.append(buffer, rb);
-      rb = p.read(buffer, sizeof(buffer));
-    }
+  std::string output;
+  while (true) {
+    std::string buffer;
+    p.read(buffer);
+    if (buffer.empty())
+      break;
+    output.append(buffer);
   }
 
   // Wait for process termination.
-  int retval;
-  int exitcode;
-  if (!p.wait(5000, &exitcode)) {
+  int retval(1);
+  if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-    retval = 1;
   }
   else
-    retval = (exitcode != 0);
+    retval = (p.exit_code() != 0);
 
   // Remove temporary files.
   for (unsigned int i = 0;
@@ -145,13 +142,14 @@ int main() {
   while (!retval && !expected_result.empty()) {
     std::string current(expected_result.front());
     expected_result.pop_front();
-    size_t pos(result.find(current));
+    size_t pos(output.find(current));
     if (std::string::npos == pos)
       retval = 1;
     else
-      result.erase(pos, current.size());
+      output.erase(pos, current.size());
   }
 
+  clib::unload();
   // Return check result.
   return (retval);
 }
