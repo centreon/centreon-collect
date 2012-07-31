@@ -22,7 +22,11 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
-#include <unistd.h>
+#ifdef _WIN32
+#  include <windows.h>
+#else
+#  include <unistd.h>
+#endif // Win32 or POSIX
 
 /**
  *  Find line into the environement.
@@ -102,7 +106,11 @@ int main(int argc, char** argv, char** env) {
           return (atoi(argv[2]));
         if (!strcmp(argv[1], "check_sleep")) {
           int timeout(atoi(argv[2]));
+#ifdef _WIN32
+          Sleep(timeout * 1000);
+#else
           sleep(timeout);
+#endif // Win32 or POSIX
           return (timeout);
         }
       }
