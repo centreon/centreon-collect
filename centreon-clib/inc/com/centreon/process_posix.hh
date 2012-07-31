@@ -23,9 +23,14 @@
 
 #  include <string>
 #  include <sys/types.h>
+#  include "com/centreon/concurrency/condvar.hh"
+#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
+
+class process_listener;
+class process_manager;
 
 /**
  *  @class process process_posix.hh "com/centreon/process_posix.hh"
@@ -34,6 +39,7 @@ CC_BEGIN()
  *  Execute external process.
  */
 class                process {
+  friend class       process_manager;
 public:
   enum               status {
     normal = 0,
@@ -45,7 +51,7 @@ public:
     err = 2
   };
 
-                     process();
+                     process(process_listener* l = NULL);
   virtual            ~process() throw ();
   void               enable_stream(stream s, bool enable);
   void               exec(char const* cmd, char** env = NULL);
@@ -53,11 +59,11 @@ public:
   int                exit_code() const throw ();
   status             exit_status() const throw ();
   void               kill();
-  unsigned int       read(void* data, unsigned int size);
-  unsigned int       read_err(void* data, unsigned int size);
+  void               read(std::string& data);
+  void               read_err(std::string& data);
   void               terminate();
-  void               wait();
-  bool               wait(unsigned long timeout);
+  void               wait() const;
+  bool               wait(unsigned long timeout) const;
   unsigned int       write(std::string const& data);
   unsigned int       write(void const* data, unsigned int size);
 
@@ -69,12 +75,20 @@ private:
   static int         _dup(int oldfd);
   static void        _dup2(int oldfd, int newfd);
   void               _internal_copy(process const& p);
+  bool               _is_running() const throw ();
   void               _kill(int sig);
   static void        _pipe(int fds[2]);
   unsigned int       _read(int fd, void* data, unsigned int size);
   static void        _set_cloexec(int fd);
 
+  std::string        _buffer_err;
+  std::string        _buffer_out;
+  mutable concurrency::condvar
+                     _cv_process;
   bool               _enable_stream[3];
+  process_listener*  _listener;
+  mutable concurrency::mutex
+                     _lock_process;
   pid_t              _process;
   int                _status;
   int                _stream[3];

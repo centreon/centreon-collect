@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Merethis
+** Copyright 2012 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -18,33 +18,18 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include <iostream>
-#include "com/centreon/clib.hh"
-#include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/process.hh"
+#ifndef CC_HTABLE_HH
+#  define CC_HTABLE_HH
 
-using namespace com::centreon;
+#  if defined(__GXX_EXPERIMENTAL_CXX0X__)
+#    include <unordered_map>
+#    define htable std::unordered_map
+#  elif defined(__GNUC__) && __GNUC__ >= 4
+#    include <tr1/unordered_map>
+#    define htable std::tr1::unordered_map
+#  else
+#    include <map>
+#    define htable std::map
+#  endif // CPP0X, GNUC4
 
-/**
- *  Check class process (return).
- *
- *  @return EXIT_SUCCESS on success.
- */
-int main() {
-  int ret(EXIT_SUCCESS);
-  clib::load();
-  try {
-    process p;
-    p.exec("./bin_test_process_output check_return 42");
-    p.wait();
-    if (p.exit_code() != 42)
-      throw (basic_error() << "invalid return");
-  }
-  catch (std::exception const& e) {
-    ret = EXIT_FAILURE;
-    std::cerr << "error: " << e.what() << std::endl;
-  }
-  clib::unload();
-  return (ret);
-}
+#endif // !CC_HTABLE_HH

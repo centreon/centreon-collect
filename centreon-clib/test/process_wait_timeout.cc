@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include "com/centreon/clib.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 
@@ -32,6 +33,7 @@ using namespace com::centreon;
  */
 int main() {
   int ret(EXIT_SUCCESS);
+  clib::load();
   try {
     process p;
     p.exec("./bin_test_process_output check_sleep 1");
@@ -46,5 +48,6 @@ int main() {
     ret = EXIT_FAILURE;
     std::cerr << "error: " << e.what() << std::endl;
   }
+  clib::unload();
   return (ret);
 }

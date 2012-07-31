@@ -29,8 +29,10 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
+#include "com/centreon/process_manager_posix.hh"
 #include "com/centreon/process_posix.hh"
 
 using namespace com::centreon;
@@ -47,8 +49,9 @@ extern char** environ;
 /**
  *  Default constructor.
  */
-process::process()
-  : _process(static_cast<pid_t>(-1)),
+process::process(process_listener* listener)
+  : _listener(listener),
+    _process(static_cast<pid_t>(-1)),
     _status(0) {
   memset(_enable_stream, 1, sizeof(_enable_stream));
   memset(_stream, -1, sizeof(_stream));
@@ -58,8 +61,8 @@ process::process()
  *  Destructor.
  */
 process::~process() throw () {
-  for (unsigned int i(0); i < 3; ++i)
-    _close(_stream[i]);
+  kill();
+  wait();
 }
 
 /**
@@ -69,8 +72,9 @@ process::~process() throw () {
  *  @param[in] enable Set to true to enable stderr.
  */
 void process::enable_stream(stream s, bool enable) {
+  concurrency::locker lock(&_lock_process);
   if (_enable_stream[s] != enable) {
-    if (_process == static_cast<pid_t>(-1))
+    if (!_is_running())
       _enable_stream[s] = enable;
     else if (!enable)
       _close(_stream[s]);
@@ -91,13 +95,17 @@ void process::enable_stream(stream s, bool enable) {
  *                 the new process.
  */
 void process::exec(char const* cmd, char** env) {
+  concurrency::locker lock(&_lock_process);
+
   // Check if process already running.
-  if (_process != static_cast<pid_t>(-1))
+  if (_is_running())
     throw (basic_error() << "process " << _process
            << " is already started and has not been waited");
 
-  // Reset status.
+  // Reset variable.
   _status = 0;
+  _buffer_err.clear();
+  _buffer_out.clear();
 
   // Close the last file descriptor;
   for (unsigned int i(0); i < 3; ++i)
@@ -181,6 +189,8 @@ void process::exec(char const* cmd, char** env) {
       _close(pipe_stream[i][i == in ? 0 : 1]);
       _stream[i] = pipe_stream[i][i == in ? 1 : 0];
     }
+
+    process_manager::instance().add(this);
   }
   catch (...) {
     // Restore original FDs.
@@ -218,6 +228,7 @@ void process::exec(std::string const& cmd) {
  *  @return The exit code.
  */
 int process::exit_code() const throw () {
+  concurrency::locker lock(&_lock_process);
   if (WIFEXITED(_status))
     return (WEXITSTATUS(_status));
   return (0);
@@ -230,6 +241,7 @@ int process::exit_code() const throw () {
  *  @return The exit status.
  */
 process::status process::exit_status() const throw () {
+  concurrency::locker lock(&_lock_process);
   return (static_cast<process::status>(!WIFEXITED(_status)));
 }
 
@@ -237,37 +249,44 @@ process::status process::exit_status() const throw () {
  *  Kill process.
  */
 void process::kill() {
+  concurrency::locker lock(&_lock_process);
   _kill(SIGKILL);
+  return;
 }
 
 /**
  *  Read data from stdout.
  *
  *  @param[out] data Destination buffer.
- *  @param[in]  size Maximum number of bytes to read.
- *
- *  @return Number of bytes actually read.
  */
-unsigned int process::read(void* data, unsigned int size) {
-  return (_read(_stream[out], data, size));
+void process::read(std::string& data) {
+  concurrency::locker lock(&_lock_process);
+  if (_buffer_out.empty())
+    _cv_process.wait(&_lock_process);
+  data.clear();
+  data.swap(_buffer_out);
+  return;
 }
 
 /**
  *  Read data from stderr.
  *
  *  @param[out] data Destination buffer.
- *  @param[in]  size Maximum number of bytes to read.
- *
- *  @return Number of bytes actually read.
  */
-unsigned int process::read_err(void* data, unsigned int size) {
-  return (_read(_stream[err], data, size));
+void process::read_err(std::string& data) {
+  concurrency::locker lock(&_lock_process);
+  if (_buffer_err.empty())
+    _cv_process.wait(&_lock_process);
+  data.clear();
+  data.swap(_buffer_err);
+  return;
 }
 
 /**
  *  Terminate process.
  */
 void process::terminate() {
+  concurrency::locker lock(&_lock_process);
   _kill(SIGTERM);
   return;
 }
@@ -275,17 +294,10 @@ void process::terminate() {
 /**
  *  Wait for process termination.
  */
-void process::wait() {
-  if (_process == static_cast<pid_t>(-1))
-    throw (basic_error() << "attempt to wait an unstarted process");
-  _status = 0;
-  pid_t ret(waitpid(_process, &_status, 0));
-  if (ret == static_cast<pid_t>(-1)) {
-    char const* msg(strerror(errno));
-    throw (basic_error() << "error while waiting for process: " << msg);
-  }
-  _process = static_cast<pid_t>(-1);
-  _close(_stream[in]);
+void process::wait() const {
+  concurrency::locker lock(&_lock_process);
+  if (_is_running())
+    _cv_process.wait(&_lock_process);
   return;
 }
 
@@ -298,46 +310,12 @@ void process::wait() {
  *
  *  @return true if process exited.
  */
-bool process::wait(unsigned long timeout) {
-  if (_process == static_cast<pid_t>(-1))
-    throw (basic_error() << "attempt to wait an unstarted process");
-
-  // Get the current time.
-  timeval now;
-  gettimeofday(&now, NULL);
-  timeval limit;
-  memcpy(&limit, &now, sizeof(limit));
-
-  // Add timeout.
-  limit.tv_sec += timeout / 1000;
-  timeout %= 1000;
-  limit.tv_usec += timeout * 1000;
-  if (limit.tv_usec > 1000000) {
-    limit.tv_usec -= 1000000;
-    ++limit.tv_sec;
-  }
-
-  // Wait for the end of process or timeout.
-  _status = 0;
-  bool running(true);
-  while (running
-         && ((now.tv_sec * 1000000ull + now.tv_usec)
-             < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
-    usleep(10000);
-    pid_t ret(waitpid(_process, &_status, WNOHANG));
-    if (ret == static_cast<pid_t>(-1)) {
-      char const* msg(strerror(errno));
-      throw (basic_error() << "could not wait process "
-             << _process << ": " << msg);
-    }
-    running = (ret == 0);
-    gettimeofday(&now, NULL);
-  }
-  if (!running) {
-    _process = static_cast<pid_t>(-1);
-    _close(_stream[in]);
-  }
-  return (!running);
+bool process::wait(unsigned long timeout) const {
+  concurrency::locker lock(&_lock_process);
+  if (!_is_running())
+    return (true);
+  _cv_process.wait(&_lock_process, timeout);
+  return (!_is_running());
 }
 
 /**
@@ -360,6 +338,7 @@ unsigned int process::write(std::string const& data) {
  *  @return Number of bytes actually written.
  */
 unsigned int process::write(void const* data, unsigned int size) {
+  concurrency::locker lock(&_lock_process);
   ssize_t wb(::write(_stream[in], data, size));
   if (wb < 0) {
     char const* msg(strerror(errno));
@@ -472,6 +451,18 @@ void process::_internal_copy(process const& p) {
   assert(!"process is not copyable");
   abort();
   return;
+}
+
+/**
+ *  Get is the current process run.
+ *
+ *  @return True is process run, otherwise false.
+ */
+bool process::_is_running() const throw () {
+  return (_process != static_cast<pid_t>(-1)
+          || _stream[in] != -1
+          || _stream[out] != -1
+          || _stream[err] != -1);
 }
 
 /**
