@@ -261,8 +261,8 @@ void process::kill() {
  */
 void process::read(std::string& data) {
   concurrency::locker lock(&_lock_process);
-  if (_buffer_out.empty())
-    _cv_process.wait(&_lock_process);
+  if (_buffer_out.empty() && _stream[out] != -1)
+    _cv_buffer_out.wait(&_lock_process);
   data.clear();
   data.swap(_buffer_out);
   return;
@@ -275,8 +275,8 @@ void process::read(std::string& data) {
  */
 void process::read_err(std::string& data) {
   concurrency::locker lock(&_lock_process);
-  if (_buffer_err.empty())
-    _cv_process.wait(&_lock_process);
+  if (_buffer_err.empty() && _stream[err] != -1)
+    _cv_buffer_err.wait(&_lock_process);
   data.clear();
   data.swap(_buffer_err);
   return;

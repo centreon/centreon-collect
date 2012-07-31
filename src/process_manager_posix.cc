@@ -174,6 +174,8 @@ void process_manager::_close_stream(int fd) throw () {
     else if (p->_stream[process::err] == fd)
       p->_close(p->_stream[process::err]);
     if (!p->_is_running()) {
+      p->_cv_buffer_err.wake_one();
+      p->_cv_buffer_out.wake_one();
       p->_cv_process.wake_one();
       if (p->_listener)
         (p->_listener->finished)(*p);
@@ -219,11 +221,14 @@ void process_manager::_read_stream(int fd) throw () {
     concurrency::locker lock(&p->_lock_process);
     char buffer[4096];
     unsigned int size(p->_read(fd, buffer, sizeof(buffer)));
-    if (p->_stream[process::out] == fd)
+    if (p->_stream[process::out] == fd) {
       p->_buffer_out.append(buffer, size);
-    else if (p->_stream[process::err] == fd)
+      p->_cv_buffer_out.wake_one();
+    }
+    else if (p->_stream[process::err] == fd) {
       p->_buffer_err.append(buffer, size);
-    p->_cv_process.wake_one();
+      p->_cv_buffer_err.wake_one();
+    }
   }
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
@@ -326,6 +331,8 @@ void process_manager::_wait_processes() throw () {
       p->_process = static_cast<pid_t>(-1);
       p->_close(p->_stream[process::in]);
       if (!p->_is_running()) {
+        p->_cv_buffer_err.wake_one();
+        p->_cv_buffer_out.wake_one();
         p->_cv_process.wake_one();
         if (p->_listener)
           (p->_listener->finished)(*p);
