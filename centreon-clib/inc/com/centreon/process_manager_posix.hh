@@ -25,7 +25,7 @@
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/concurrency/thread.hh"
 #  include "com/centreon/namespace.hh"
-#  include "com/centreon/htable.hh"
+#  include "com/centreon/unordered_hash.hh"
 
 CC_BEGIN()
 
@@ -52,7 +52,9 @@ private:
                           ~process_manager() throw ();
   process_manager&        operator=(process_manager const& p);
   void                    _close_stream(int fd) throw ();
+  void                    _erase_timeout(process* p);
   void                    _internal_copy(process_manager const& p);
+  void                    _kill_processes_timeout() throw ();
   void                    _read_stream(int fd) throw ();
   void                    _run();
   void                    _update_list();
@@ -62,8 +64,10 @@ private:
   unsigned int            _fds_capacity;
   unsigned int            _fds_size;
   concurrency::mutex      _lock_processes;
-  htable<int, process*>   _processes_fd;
-  htable<pid_t, process*> _processes_pid;
+  umap<int, process*>     _processes_fd;
+  umap<pid_t, process*>   _processes_pid;
+  umultimap<unsigned int, process*>
+                          _processes_timeout;
   bool                    _quit;
   bool                    _update;
 };

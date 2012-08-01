@@ -235,6 +235,14 @@ void timestamp::add_useconds(long usecs) {
 }
 
 /**
+ *  Reset timestamp.
+ */
+void timestamp::clear() throw () {
+  _secs = 0;
+  _usecs = 0;
+}
+
+/**
  *  Get the maximum time.
  *
  *  @return Maximum time.
