@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <assert.h>
+#include <cassert>
+#include <cstdlib>
 #if defined(_WIN32)
 #  include <windows.h> // for GetSystemInfo
 #elif defined(__FreeBSD__)

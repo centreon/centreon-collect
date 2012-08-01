@@ -18,8 +18,11 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <errno.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <pthread.h>
 #if defined(__FreeBSD__)
 #  include <pthread_np.h>
@@ -27,9 +30,6 @@
 #  include <signal.h>
 #  include <sys/time.h>
 #endif // BSD flavor.
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread_posix.hh"

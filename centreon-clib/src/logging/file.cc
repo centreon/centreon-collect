@@ -18,10 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/file.hh"

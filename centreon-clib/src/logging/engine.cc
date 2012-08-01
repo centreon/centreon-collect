@@ -25,11 +25,11 @@
 #  include <unistd.h>
 #endif // _WIN32
 
-#include <assert.h>
+#include <cassert>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
 #include <memory>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"

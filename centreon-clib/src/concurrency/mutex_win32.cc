@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 #include <windows.h>
 #include "com/centreon/concurrency/mutex_win32.hh"
 #include "com/centreon/exceptions/basic.hh"

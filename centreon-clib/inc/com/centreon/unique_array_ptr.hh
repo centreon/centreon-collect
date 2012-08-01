@@ -21,7 +21,7 @@
 #ifndef CC_UNIQUE_ARRAY_PTR_HH
 #  define CC_UNIQUE_ARRAY_PTR_HH
 
-#  include <stddef.h>
+#  include <cstddef>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()

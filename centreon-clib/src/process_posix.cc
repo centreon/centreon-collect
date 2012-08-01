@@ -21,11 +21,11 @@
 #include <algorithm>
 #include <cassert>
 #include <cerrno>
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <poll.h>
-#include <signal.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
