@@ -18,12 +18,12 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <sys/time.h>
-#include <time.h>
 #include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/semaphore_posix.hh"

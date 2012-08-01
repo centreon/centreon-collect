@@ -21,8 +21,8 @@
 #ifndef CC_CONCURRENCY_CONDVAR_POSIX_HH
 #  define CC_CONCURRENCY_CONDVAR_POSIX_HH
 
+#  include <climits>
 #  include <pthread.h>
-#  include <limits.h>
 #  include "com/centreon/namespace.hh"
 #  include "com/centreon/concurrency/mutex_posix.hh"
 

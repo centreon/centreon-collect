@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
+#include <cstring>
 #include "com/centreon/logging/backend.hh"
 
 using namespace com::centreon::logging;

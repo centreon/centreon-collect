@@ -21,7 +21,7 @@
 #ifndef CC_LOGGING_VERBOSITY_HH
 #  define CC_LOGGING_VERBOSITY_HH
 
-#  include <limits.h>
+#  include <climits>
 #  include "com/centreon/logging/verbosity.hh"
 #  include "com/centreon/namespace.hh"
 

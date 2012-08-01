@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <limits.h>
-#include <stdlib.h>
+#include <cassert>
+#include <climits>
+#include <cstdlib>
 #include <windows.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/semaphore_win32.hh"

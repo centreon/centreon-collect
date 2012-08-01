@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 #include "com/centreon/concurrency/locker.hh"
 
 using namespace com::centreon::concurrency;

@@ -21,7 +21,7 @@
 #ifndef CC_LOGGING_FILE_HH
 #  define CC_LOGGING_FILE_HH
 
-#  include <stdio.h>
+#  include <cstdio>
 #  include <string>
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/logging/backend.hh"

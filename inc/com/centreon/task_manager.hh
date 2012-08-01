@@ -21,8 +21,8 @@
 #ifndef CC_TASK_MANAGER_HH
 #  define CC_TASK_MANAGER_HH
 
+#  include <ctime>
 #  include <map>
-#  include <time.h>
 #  include "com/centreon/namespace.hh"
 #  include "com/centreon/task.hh"
 #  include "com/centreon/timestamp.hh"

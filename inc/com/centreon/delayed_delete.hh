@@ -21,7 +21,7 @@
 #ifndef CC_DELAYED_DELETE_HH
 #  define CC_DELAYED_DELETE_HH
 
-#  include <stddef.h>
+#  include <cstddef>
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
