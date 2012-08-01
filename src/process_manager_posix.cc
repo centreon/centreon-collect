@@ -53,21 +53,30 @@ static process_manager* _instance = NULL;
  *  @param[in] obj  The object to notify.
  */
 void process_manager::add(process* p) {
+  // Check viability pointer.
   if (!p)
     throw (basic_error() << "invalid process: null pointer");
 
   concurrency::locker lock_process(&p->_lock_process);
+  // Check if the process need to be manage.
   if (p->_process == static_cast<pid_t>(-1))
     throw (basic_error() << "invalid process: not running");
 
   concurrency::locker lock(&_lock_processes);
+  // Add pid process to use waitpid.
   _processes_pid[p->_process] = p;
+
+  // Monitor err/out output if necessary.
   if (p->_enable_stream[process::out])
     _processes_fd[p->_stream[process::out]] = p;
   if (p->_enable_stream[process::err])
     _processes_fd[p->_stream[process::err]] = p;
+
+  // Add timeout to kill process if necessary.
   if (p->_timeout)
     _processes_timeout.insert(std::make_pair(p->_timeout, p));
+
+  // Need to update file descriptor list.
   _update = true;
   return;
 }
@@ -115,6 +124,7 @@ process_manager::process_manager()
     _fds_size(0),
     _quit(false),
     _update(false) {
+  // Run process manager thread.
   exec();
 }
 
@@ -132,8 +142,11 @@ process_manager::process_manager(process_manager const& right)
  *  Destructor.
  */
 process_manager::~process_manager() throw () {
+  // Exit process manager thread.
   _quit = true;
+  // Waiting the end of the process manager thread.
   wait();
+  // Release memory.
   delete[] _fds;
 }
 
@@ -157,6 +170,8 @@ process_manager& process_manager::operator=(process_manager const& right) {
 void process_manager::_close_stream(int fd) throw () {
   try {
     process* p(NULL);
+    // Get process to link with fd and remove this
+    // fd to the process manager.
     {
       concurrency::locker lock(&_lock_processes);
       _update = true;
@@ -170,15 +185,18 @@ void process_manager::_close_stream(int fd) throw () {
       _processes_fd.erase(it);
     }
 
+    // Update process informations.
     concurrency::locker lock(&p->_lock_process);
     if (p->_stream[process::out] == fd)
       p->_close(p->_stream[process::out]);
     else if (p->_stream[process::err] == fd)
       p->_close(p->_stream[process::err]);
     if (!p->_is_running()) {
+      // Release condition variable.
       p->_cv_buffer_err.wake_one();
       p->_cv_buffer_out.wake_one();
       p->_cv_process.wake_one();
+      // Notify listener if necessary.
       if (p->_listener)
         (p->_listener->finished)(*p);
     }
@@ -194,12 +212,14 @@ void process_manager::_close_stream(int fd) throw () {
  *  @param[in] p The process to remove.
  */
 void process_manager::_erase_timeout(process* p) {
+  // Check process viability.
   if (!p || !p->_timeout)
     return;
   umultimap<unsigned int, process*>::iterator
     it(_processes_timeout.find(p->_timeout));
   umultimap<unsigned int, process*>::iterator
     end(_processes_timeout.end());
+  // Find and erase process from timeout list.
   while (it != end && it->first == p->_timeout) {
     if (it->second == p) {
       _processes_timeout.erase(it);
@@ -225,10 +245,12 @@ void process_manager::_internal_copy(process_manager const& right) {
  *  Kill process to reach the timeout.
  */
 void process_manager::_kill_processes_timeout() throw () {
+  // Get the current time.
   unsigned int now(time(NULL));
   umultimap<unsigned int, process*>::iterator
     it(_processes_timeout.begin());
   try {
+    // Kill process who timeout and remove it from timeout list.
     while (it != _processes_timeout.end()
            && now >= it->first) {
       process* p(it->second);
@@ -250,6 +272,7 @@ void process_manager::_kill_processes_timeout() throw () {
 void process_manager::_read_stream(int fd) throw () {
   try {
     process* p(NULL);
+    // Get process to link with fd.
     {
       concurrency::locker lock(&_lock_processes);
       umap<int, process*>::iterator it(_processes_fd.find(fd));
@@ -262,15 +285,22 @@ void process_manager::_read_stream(int fd) throw () {
     }
 
     concurrency::locker lock(&p->_lock_process);
+    // Read content of the stream and push it.
     char buffer[4096];
     unsigned int size(p->_read(fd, buffer, sizeof(buffer)));
     if (p->_stream[process::out] == fd) {
       p->_buffer_out.append(buffer, size);
       p->_cv_buffer_out.wake_one();
+      // Notify listener if necessary.
+      if (p->_listener)
+        (p->_listener->data_is_available)(*p);
     }
     else if (p->_stream[process::err] == fd) {
       p->_buffer_err.append(buffer, size);
       p->_cv_buffer_err.wake_one();
+      // Notify listener if necessary.
+      if (p->_listener)
+        (p->_listener->data_is_available_err)(*p);
     }
   }
   catch (std::exception const& e) {
@@ -284,26 +314,32 @@ void process_manager::_read_stream(int fd) throw () {
 void process_manager::_run() {
   try {
     while (!_quit) {
+      // Update the file descriptor list.
       _update_list();
-      if (!_fds_size) {
+
+      int ret(0);
+      // Sleep if no file descriptor.
+      if (!_fds_size)
         concurrency::thread::msleep(DEFAULT_TIMEOUT);
-        continue;
-      }
-      int ret(poll(_fds, _fds_size, DEFAULT_TIMEOUT));
-      if (ret < 0) {
+      // Wait event on file descriptor.
+      else if ((ret = poll(_fds, _fds_size, DEFAULT_TIMEOUT)) < 0) {
         char const* msg(strerror(errno));
         throw (basic_error() << "poll failed: " << msg);
       }
       for (unsigned int i(0), checked(0);
            checked < static_cast<unsigned int>(ret) && i < _fds_size;
            ++i) {
+        // No event.
         if (!_fds[i].revents)
           continue;
 
+        // Data are available.
         if (_fds[i].revents & (POLLIN | POLLPRI))
           _read_stream(_fds[i].fd);
+        // File descriptor was close.
         else if (_fds[i].revents & POLLHUP)
           _close_stream(_fds[i].fd);
+        //  Error!
         else if (_fds[i].revents & (POLLERR | POLLNVAL)) {
           _update = true;
           logging::error(logging::high)
@@ -311,7 +347,9 @@ void process_manager::_run() {
         }
         ++checked;
       }
+      // Release finished process.
       _wait_processes();
+      // Kill process in timeout.
       _kill_processes_timeout();
     }
   }
@@ -325,13 +363,16 @@ void process_manager::_run() {
  */
 void process_manager::_update_list() {
   concurrency::locker lock(&_lock_processes);
+  // No need update.
   if (!_update)
     return;
 
+  // Resize file descriptor list.
   if (_processes_fd.size() > _fds_capacity) {
     delete[] _fds;
     _fds = new pollfd[_processes_fd.size()];
   }
+  // Set file descriptor to wait event.
   _fds_size = 0;
   for (umap<int, process*>::const_iterator
          it(_processes_fd.begin()), end(_processes_fd.end());
@@ -342,6 +383,7 @@ void process_manager::_update_list() {
     _fds[_fds_size].revents = 0;
     ++_fds_size;
   }
+  // Disable update.
   _update = false;
 }
 
@@ -353,14 +395,18 @@ void process_manager::_wait_processes() throw () {
     while (true) {
       int status(0);
       pid_t pid(waitpid(-1, &status, WNOHANG));
+      // No process are finished.
       if (!pid)
         break;
+      // Error!
       if (pid < 0) {
         char const* msg(strerror(errno));
         throw (basic_error() << "waiting process failed: " << msg);
       }
 
       process* p(NULL);
+      // Get process to link with pid and remove this pid
+      // to the process manager.
       {
         concurrency::locker lock(&_lock_processes);
         umap<pid_t, process*>::iterator it(_processes_pid.find(pid));
@@ -370,6 +416,8 @@ void process_manager::_wait_processes() throw () {
         p = it->second;
         _processes_pid.erase(it);
       }
+
+      // Update process informations.
       concurrency::locker lock(&p->_lock_process);
       p->_end_time = timestamp::now();
       p->_status = status;
@@ -377,9 +425,11 @@ void process_manager::_wait_processes() throw () {
       p->_close(p->_stream[process::in]);
       _erase_timeout(p);
       if (!p->_is_running()) {
+        // Release condition variable.
         p->_cv_buffer_err.wake_one();
         p->_cv_buffer_out.wake_one();
         p->_cv_process.wake_one();
+        // Notify listener if necessary.
         if (p->_listener)
           (p->_listener->finished)(*p);
       }

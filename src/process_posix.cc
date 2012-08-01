@@ -76,10 +76,13 @@ process::~process() throw () {
 void process::enable_stream(stream s, bool enable) {
   concurrency::locker lock(&_lock_process);
   if (_enable_stream[s] != enable) {
+    // Process not running juste set variable.
     if (!_is_running())
       _enable_stream[s] = enable;
+    // Process running and stream is enable, close stream.
     else if (!enable)
       _close(_stream[s]);
+    // Do not change stream status.
     else
       throw (basic_error() << "cannot reenable \""
              << s << "\" while process is running");
@@ -177,12 +180,15 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
       _set_cloexec(pipe_stream[err][0]);
     }
 
+    // Parse and get command line arguments.
     misc::command_line cmdline(cmd);
     char** args(cmdline.get_argv());
+
     // volatile prevent compiler optimization
     // that might clobber variable.
     char** volatile my_env(env ? env : environ);
 
+    // Create new process.
     _process = vfork();
     if (_process == static_cast<pid_t>(-1)) {
       char const* msg(strerror(errno));
@@ -209,6 +215,7 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
       _stream[i] = pipe_stream[i][i == in ? 1 : 0];
     }
 
+    // Add process to the process manager.
     process_manager::instance().add(this);
   }
   catch (...) {
@@ -287,8 +294,10 @@ void process::kill() {
  */
 void process::read(std::string& data) {
   concurrency::locker lock(&_lock_process);
+  // If buffer is empty and stream is open, we waiting data.
   if (_buffer_out.empty() && _stream[out] != -1)
     _cv_buffer_out.wait(&_lock_process);
+  // Switch content.
   data.clear();
   data.swap(_buffer_out);
   return;
@@ -301,8 +310,10 @@ void process::read(std::string& data) {
  */
 void process::read_err(std::string& data) {
   concurrency::locker lock(&_lock_process);
+  // If buffer is empty and stream is open, we waiting data.
   if (_buffer_err.empty() && _stream[err] != -1)
     _cv_buffer_err.wait(&_lock_process);
+  // Switch content.
   data.clear();
   data.swap(_buffer_err);
   return;
