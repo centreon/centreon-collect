@@ -238,6 +238,7 @@ set(
   "${INC_DIR}/task_manager.hh"
   "${INC_DIR}/timestamp.hh"
   "${INC_DIR}/unique_array_ptr.hh"
+  "${INC_DIR}/unordered_hash.hh"
 )
 
 

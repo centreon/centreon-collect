@@ -37,9 +37,12 @@ using namespace com::centreon;
 /**
  *  Default constructor.
  */
-process::process()
+process::process(process_listener* listener)
   : _exit_code(0),
-    _process(NULL) {
+    _is_timeout(false),
+    _listener(listener),
+    _process(NULL),
+    _timeout(0) {
   memset(_enable_stream, 1, sizeof(_enable_stream));
   memset(_stream, NULL, sizeof(_stream));
 }
@@ -48,8 +51,8 @@ process::process()
  *  Destructor.
  */
 process::~process() throw () {
-  for (unsigned int i(0); i < 3; ++i)
-    _close(_stream[i]);
+  kill();
+  wait();
 }
 
 /**
@@ -59,6 +62,7 @@ process::~process() throw () {
  *  @param[in] enable Set to true to enable stderr.
  */
 void process::enable_stream(stream s, bool enable) {
+  concurrency::locker lock(&_lock_process);
   if (_enable_stream[s] != enable) {
     if (!_process)
       _enable_stream[s] = enable;
@@ -72,22 +76,42 @@ void process::enable_stream(stream s, bool enable) {
 }
 
 /**
+ *  Get the time when the process execution finished.
+ *
+ *  @return The ending timestamp.
+ */
+timestamp const& process::end_time() const throw () {
+  concurrency::locker lock(&_lock_process);
+  return (_end_time);
+}
+
+/**
  *  Run process.
  *
- *  @param[in] cmd Command line.
- *  @param[in] env Array of strings (on form key=value), which are
- *                 passed as environment to the new process. If env
- *                 is NULL, the current environement are passed of
- *                 the new process.
+ *  @param[in] cmd     Command line.
+ *  @param[in] env     Array of strings (on form key=value), which are
+ *                     passed as environment to the new process. If env
+ *                     is NULL, the current environement are passed of
+ *                     the new process.
+ *  @param[in] timeout Maximum time in seconde to execute process. After
+ *                     this time the process will be kill.
  */
-void process::exec(char const* cmd, char** env) {
+void process::exec(char const* cmd, char** env, unsigned int timeout) {
+  concurrency::locker lock(&_lock_process);
+
   // Check viability.
   if (_process)
     throw (basic_error() << "process " << _process->dwProcessId
            << " is already started and has not been waited");
 
   // Reset exit code.
+  _buffer_err.clear();
+  _buffer_out.clear();
+  _end_time.clear();
   _exit_code = 0;
+  _is_timeout = false;
+  _start_time.clear();
+  _timeout = timeout;
 
   HANDLE child_stream[3] = { NULL, NULL, NULL };
 
@@ -140,8 +164,12 @@ void process::exec(char const* cmd, char** env) {
              << errcode << ")");
     }
 
+    _start_time = timestamp::now();
+
     for (unsigned int i(0); i < 3; ++i)
       _close(child_stream[i]);
+
+    process_manager::instance().add(this);
   }
   catch (...) {
     delete _process;
@@ -158,10 +186,12 @@ void process::exec(char const* cmd, char** env) {
 /**
  *  Run process.
  *
- *  @param[in] cmd Command line.
+ *  @param[in] cmd     Command line.
+ *  @param[in] timeout Maximum time in seconde to execute process. After
+ *                     this time the process will be kill.
  */
-void process::exec(std::string const& cmd) {
-  exec(cmd.c_str());
+void process::exec(std::string const& cmd, unsigned int timeout) {
+  exec(cmd.c_str(), NULL, timeout);
   return;
 }
 
@@ -171,6 +201,7 @@ void process::exec(std::string const& cmd) {
  *  @return The exit code.
  */
 int process::exit_code() const throw () {
+  concurrency::locker lock(&_lock_process);
   return (_exit_code);
 }
 
@@ -180,13 +211,17 @@ int process::exit_code() const throw () {
  *  @return The exit status.
  */
 process::status process::exit_status() const throw () {
-  return (process::normal);
+  concurrency::locker lock(&_lock_process);
+  if (_is_timeout)
+    return (timeout);
+  return (normal);
 }
 
 /**
  *  Kill process.
  */
 void process::kill() {
+  concurrency::locker lock(&_lock_process);
   if (_process) {
     if (!TerminateProcess(_process->hProcess, EXIT_FAILURE)) {
       int errcode(GetLastError());
@@ -200,30 +235,45 @@ void process::kill() {
  *  Read data from stdout.
  *
  *  @param[in] data Destination buffer.
- *  @param[in] size Maximum number of bytes to read.
- *
- *  @return Number of bytes actually read.
  */
-unsigned int process::read(void* data, unsigned int size) {
-  return (_read(_out, data, size));
+void process::read(std::string& data) {
+  concurrency::locker lock(&_lock_process);
+  if (_buffer_out.empty() && _stream[out] != -1)
+    _cv_buffer_out.wait(&_lock_process);
+  data.clear();
+  data.swap(_buffer_out);
+  return;
 }
 
 /**
  *  Read data from stderr.
  *
  *  @param[in] data Destination buffer.
- *  @param[in] size Maximum number of bytes to read.
- *
- *  @return Number of bytes actually read.
  */
-unsigned int process::read_err(void* data, unsigned int size) {
-  return (_read(_err, data, size));
+void process::read_err(std::string& data) {
+  concurrency::locker lock(&_lock_process);
+  if (_buffer_err.empty() && _stream[err] != -1)
+    _cv_buffer_err.wait(&_lock_process);
+  data.clear();
+  data.swap(_buffer_err);
+  return;
+}
+
+/**
+ *  Get the time when the process execution start.
+ *
+ *  @return The starting timestamp.
+ */
+timestamp const& process::start_time() const throw () {
+  concurrency::locker lock(&_lock_process);
+  return (_start_time);
 }
 
 /**
  *  Terminate the process.
  */
 void process::terminate() {
+  concurrency::locker lock(&_lock_process);
   if (_process) {
     EnumWindows(
       &_terminate_window,
@@ -237,7 +287,10 @@ void process::terminate() {
  *  Wait for process termination.
  */
 void process::wait() {
-  _wait(INFINITE);
+  concurrency::locker lock(&_lock_process);
+  if (_is_running())
+    _cv_process.wait(&_lock_process);
+  return;
 }
 
 /**
@@ -248,7 +301,11 @@ void process::wait() {
  *  @return true if process exited.
  */
 bool process::wait(unsigned long timeout) {
-  return (_wait(timeout));
+  concurrency::locker lock(&_lock_process);
+  if (!_is_running())
+    return (true);
+  _cv_process.wait(&_lock_process, timeout);
+  return (!_is_running());
 }
 
 /**
@@ -271,6 +328,7 @@ unsigned int process::write(std::string const& data) {
  *  @retun Number of bytes actually written.
  */
 unsigned int process::write(void const* data, unsigned int size) {
+  concurrency::locker lock(&_lock_process);
   // Check viability.
   if (!_process)
     throw (basic_error() << "could not write on " \
@@ -341,6 +399,18 @@ void process::_internal_copy(process const& p) {
   assert(!"process is not copyable");
   abort();
   return;
+}
+
+/**
+ *  Get is the current process run.
+ *
+ *  @return True is process run, otherwise false.
+ */
+bool process::_is_running() const throw () {
+  return (_process
+          || _stream[in]
+          || _stream[out]
+          || _stream[err]);
 }
 
 /**

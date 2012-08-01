@@ -50,9 +50,11 @@ extern char** environ;
  *  Default constructor.
  */
 process::process(process_listener* listener)
-  : _listener(listener),
+  : _is_timeout(false),
+    _listener(listener),
     _process(static_cast<pid_t>(-1)),
-    _status(0) {
+    _status(0),
+    _timeout(0) {
   memset(_enable_stream, 1, sizeof(_enable_stream));
   memset(_stream, -1, sizeof(_stream));
 }
@@ -86,15 +88,27 @@ void process::enable_stream(stream s, bool enable) {
 }
 
 /**
+ *  Get the time when the process execution finished.
+ *
+ *  @return The ending timestamp.
+ */
+timestamp const& process::end_time() const throw () {
+  concurrency::locker lock(&_lock_process);
+  return (_end_time);
+}
+
+/**
  *  Run process.
  *
- *  @param[in] cmd Command line.
- *  @param[in] env Array of strings (on form key=value), which are
- *                 passed as environment to the new process. If env
- *                 is NULL, the current environement are passed of
- *                 the new process.
+ *  @param[in] cmd     Command line.
+ *  @param[in] env     Array of strings (on form key=value), which are
+ *                     passed as environment to the new process. If env
+ *                     is NULL, the current environement are passed of
+ *                     the new process.
+ *  @param[in] timeout Maximum time in seconde to execute process. After
+ *                     this time the process will be kill.
  */
-void process::exec(char const* cmd, char** env) {
+void process::exec(char const* cmd, char** env, unsigned int timeout) {
   concurrency::locker lock(&_lock_process);
 
   // Check if process already running.
@@ -103,9 +117,12 @@ void process::exec(char const* cmd, char** env) {
            << " is already started and has not been waited");
 
   // Reset variable.
-  _status = 0;
   _buffer_err.clear();
   _buffer_out.clear();
+  _end_time.clear();
+  _is_timeout = false;
+  _start_time.clear();
+  _status = 0;
 
   // Close the last file descriptor;
   for (unsigned int i(0); i < 3; ++i)
@@ -179,6 +196,8 @@ void process::exec(char const* cmd, char** env) {
     }
 
     // Parent execution.
+    _start_time = timestamp::now();
+    _timeout = (timeout ? time(NULL) + timeout : 0);
 
     // Restore original FDs.
     _dup2(std[0], STDIN_FILENO);
@@ -215,10 +234,12 @@ void process::exec(char const* cmd, char** env) {
 /**
  *  Run process.
  *
- *  @param[in] cmd Command line.
+ *  @param[in] cmd     Command line.
+ *  @param[in] timeout Maximum time in seconde to execute process. After
+ *                     this time the process will be kill.
  */
-void process::exec(std::string const& cmd) {
-  exec(cmd.c_str());
+void process::exec(std::string const& cmd, unsigned int timeout) {
+  exec(cmd.c_str(), NULL, timeout);
   return;
 }
 
@@ -236,13 +257,18 @@ int process::exit_code() const throw () {
 
 /**
  *  Get the exit status, return normal if the executed process end
- *  normaly, return crash if the executed process terminated abnormaly.
+ *  normaly, return crash if the executed process terminated abnormaly
+ *  or return timeout.
  *
  *  @return The exit status.
  */
 process::status process::exit_status() const throw () {
   concurrency::locker lock(&_lock_process);
-  return (static_cast<process::status>(!WIFEXITED(_status)));
+  if (_is_timeout)
+    return (timeout);
+  if (WIFEXITED(_status))
+    return (normal);
+  return (crash);
 }
 
 /**
@@ -283,6 +309,16 @@ void process::read_err(std::string& data) {
 }
 
 /**
+ *  Get the time when the process execution start.
+ *
+ *  @return The starting timestamp.
+ */
+timestamp const& process::start_time() const throw () {
+  concurrency::locker lock(&_lock_process);
+  return (_start_time);
+}
+
+/**
  *  Terminate process.
  */
 void process::terminate() {
@@ -306,7 +342,6 @@ void process::wait() const {
  *
  *  @param[in]  timeout Maximum number of milliseconds to wait for
  *                      process termination.
- *  @param[out] code    Will be set to the process' exit code.
  *
  *  @return true if process exited.
  */

@@ -51,6 +51,7 @@ public:
   void             add_mseconds(long msecs);
   void             add_seconds(time_t secs);
   void             add_useconds(long usecs);
+  void             clear() throw ();
   static timestamp max_time() throw ();
   static timestamp min_time() throw ();
   static timestamp now() throw ();

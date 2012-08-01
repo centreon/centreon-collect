@@ -26,6 +26,7 @@
 #  include "com/centreon/concurrency/condvar.hh"
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/namespace.hh"
+#  include "com/centreon/timestamp.hh"
 
 CC_BEGIN()
 
@@ -43,7 +44,8 @@ class                process {
 public:
   enum               status {
     normal = 0,
-    crash = 1
+    crash = 1,
+    timeout = 2
   };
   enum               stream {
     in = 0,
@@ -54,13 +56,20 @@ public:
                      process(process_listener* l = NULL);
   virtual            ~process() throw ();
   void               enable_stream(stream s, bool enable);
-  void               exec(char const* cmd, char** env = NULL);
-  void               exec(std::string const& cmd);
+  timestamp const&   end_time() const throw ();
+  void               exec(
+                       char const* cmd,
+                       char** env = NULL,
+                       unsigned int timeout = 0);
+  void               exec(
+                       std::string const& cmd,
+                       unsigned int timeout = 0);
   int                exit_code() const throw ();
   status             exit_status() const throw ();
   void               kill();
   void               read(std::string& data);
   void               read_err(std::string& data);
+  timestamp const&   start_time() const throw ();
   void               terminate();
   void               wait() const;
   bool               wait(unsigned long timeout) const;
@@ -90,12 +99,16 @@ private:
   mutable concurrency::condvar
                      _cv_process;
   bool               _enable_stream[3];
+  timestamp          _end_time;
+  bool               _is_timeout;
   process_listener*  _listener;
   mutable concurrency::mutex
                      _lock_process;
   pid_t              _process;
+  timestamp          _start_time;
   int                _status;
   int                _stream[3];
+  unsigned int       _timeout;
 };
 
 CC_END()

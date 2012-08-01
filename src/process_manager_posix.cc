@@ -66,6 +66,8 @@ void process_manager::add(process* p) {
     _processes_fd[p->_stream[process::out]] = p;
   if (p->_enable_stream[process::err])
     _processes_fd[p->_stream[process::err]] = p;
+  if (p->_timeout)
+    _processes_timeout.insert(std::make_pair(p->_timeout, p));
   _update = true;
   return;
 }
@@ -132,7 +134,7 @@ process_manager::process_manager(process_manager const& right)
 process_manager::~process_manager() throw () {
   _quit = true;
   wait();
-  delete _fds;
+  delete[] _fds;
 }
 
 /**
@@ -158,7 +160,7 @@ void process_manager::_close_stream(int fd) throw () {
     {
       concurrency::locker lock(&_lock_processes);
       _update = true;
-      htable<int, process*>::iterator it(_processes_fd.find(fd));
+      umap<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
         throw (basic_error() << "invalid fd: "
@@ -186,6 +188,26 @@ void process_manager::_close_stream(int fd) throw () {
   }
 }
 
+/**
+ *  Remove process from list of processes timeout.
+ *
+ *  @param[in] p The process to remove.
+ */
+void process_manager::_erase_timeout(process* p) {
+  if (!p || !p->_timeout)
+    return;
+  umultimap<unsigned int, process*>::iterator
+    it(_processes_timeout.find(p->_timeout));
+  umultimap<unsigned int, process*>::iterator
+    end(_processes_timeout.end());
+  while (it != end && it->first == p->_timeout) {
+    if (it->second == p) {
+      _processes_timeout.erase(it);
+      break;
+    }
+    ++it;
+  }
+}
 
 /**
  *  Copy internal data members.
@@ -200,6 +222,27 @@ void process_manager::_internal_copy(process_manager const& right) {
 }
 
 /**
+ *  Kill process to reach the timeout.
+ */
+void process_manager::_kill_processes_timeout() throw () {
+  unsigned int now(time(NULL));
+  umultimap<unsigned int, process*>::iterator
+    it(_processes_timeout.begin());
+  try {
+    while (it != _processes_timeout.end()
+           && now >= it->first) {
+      process* p(it->second);
+      p->kill();
+      p->_is_timeout = true;
+      it = _processes_timeout.erase(it);
+    }
+  }
+  catch (std::exception const& e) {
+    logging::error(logging::high) << e.what();
+  }
+}
+
+/**
  *  Read stream.
  *
  *  @param[in] fd  The file descriptor to read.
@@ -209,7 +252,7 @@ void process_manager::_read_stream(int fd) throw () {
     process* p(NULL);
     {
       concurrency::locker lock(&_lock_processes);
-      htable<int, process*>::iterator it(_processes_fd.find(fd));
+      umap<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
         throw (basic_error() << "invalid fd: "
@@ -269,6 +312,7 @@ void process_manager::_run() {
         ++checked;
       }
       _wait_processes();
+      _kill_processes_timeout();
     }
   }
   catch (std::exception const& e) {
@@ -289,7 +333,7 @@ void process_manager::_update_list() {
     _fds = new pollfd[_processes_fd.size()];
   }
   _fds_size = 0;
-  for (htable<int, process*>::const_iterator
+  for (umap<int, process*>::const_iterator
          it(_processes_fd.begin()), end(_processes_fd.end());
        it != end;
        ++it) {
@@ -319,7 +363,7 @@ void process_manager::_wait_processes() throw () {
       process* p(NULL);
       {
         concurrency::locker lock(&_lock_processes);
-        htable<pid_t, process*>::iterator it(_processes_pid.find(pid));
+        umap<pid_t, process*>::iterator it(_processes_pid.find(pid));
         if (it == _processes_pid.end())
           throw (basic_error() << "waiting process failed: " << pid
                  << " is not register");
@@ -327,9 +371,11 @@ void process_manager::_wait_processes() throw () {
         _processes_pid.erase(it);
       }
       concurrency::locker lock(&p->_lock_process);
+      p->_end_time = timestamp::now();
       p->_status = status;
       p->_process = static_cast<pid_t>(-1);
       p->_close(p->_stream[process::in]);
+      _erase_timeout(p);
       if (!p->_is_running()) {
         p->_cv_buffer_err.wake_one();
         p->_cv_buffer_out.wake_one();

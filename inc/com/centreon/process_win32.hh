@@ -24,8 +24,12 @@
 #  include <string>
 #  include <windows.h>
 #  include "com/centreon/namespace.hh"
+#  include "com/centreon/timestamp.hh"
 
 CC_BEGIN()
+
+class process_listener;
+class process_manager;
 
 /**
  *  @class process process_win32.hh "com/centreon/process_win32.hh"
@@ -34,10 +38,12 @@ CC_BEGIN()
  *  Execute external process.
  */
 class                  process {
+  friend class         process_manager;
 public:
   enum                 status {
     normal = 0,
-    crash = 1
+    crash = 1,
+    timeout = 2
   };
   enum                 stream {
     in = 0,
@@ -45,16 +51,23 @@ public:
     err = 2
   };
 
-                       process();
+                       process(process_listener* l = NULL);
   virtual              ~process() throw ();
   void                 enable_stream(stream s, bool enable);
-  void                 exec(char const* cmd, char** env);
-  void                 exec(std::string const& cmd);
+  timestamp const&     end_time() const throw ();
+  void                 exec(
+                         char const* cmd,
+                         char** env = NULL,
+                         unsigned int timeout = 0);
+  void                 exec(
+                         std::string const& cmd,
+                         unsigned int timeout = 0);
   int                  exit_code() const throw ();
   status               exit_status() const throw ();
   void                 kill();
   unsigned int         read(void* data, unsigned int size);
   unsigned int         read_err(void* data, unsigned int size);
+  timestamp const&     start_time() const throw ();
   void                 terminate();
   void                 wait();
   bool                 wait(unsigned long timeout);
@@ -71,10 +84,19 @@ private:
   static BOOL          _terminate_window(HWND hwnd, LPARAM proc_id);
   bool                 _wait(DWORD timeout, int* exit_code);
 
+  std::string          _buffer_err;
+  std::string          _buffer_out;
   bool                 _enable_stream[3];
+  timestamp            _end_time;
   DWORD                _exit_code;
+  bool                 _is_timeout;
+  process_listener*    _listener;
+  mutable concurrency::mutex
+                       _lock_process;
   PROCESS_INFORMATION* _process;
+  timestamp            _start_time;
   HANDLE               _stream[3];
+  unsigned int         _timeout;
 };
 
 CC_END()

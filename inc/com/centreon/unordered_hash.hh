@@ -18,18 +18,30 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_HTABLE_HH
-#  define CC_HTABLE_HH
+#ifndef CC_UNORDERED_HASH_HH
+#  define CC_UNORDERED_HASH_HH
 
 #  if defined(__GXX_EXPERIMENTAL_CXX0X__)
 #    include <unordered_map>
-#    define htable std::unordered_map
+#    include <unordered_set>
+#    define umap std::unordered_map
+#    define umultimap std::unordered_multimap
+#    define uset std::unordered_set
+#    define umultiset std::unordered_multiset
 #  elif defined(__GNUC__) && __GNUC__ >= 4
 #    include <tr1/unordered_map>
-#    define htable std::tr1::unordered_map
+#    include <tr1/unordered_set>
+#    define umap std::tr1::unordered_map
+#    define umultimap std::tr1::unordered_multimap
+#    define uset std::tr1::unordered_set
+#    define umultiset std::tr1::unordered_multiset
 #  else
 #    include <map>
-#    define htable std::map
+#    include <set>
+#    define umap std::map
+#    define umultimap std::multimap
+#    define uset std::set
+#    define umultiset std::multiset
 #  endif // CPP0X, GNUC4
 
-#endif // !CC_HTABLE_HH
+#endif // !CC_UNORDERED_HASH_HH
