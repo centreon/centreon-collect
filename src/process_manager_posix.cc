@@ -197,8 +197,10 @@ void process_manager::_close_stream(int fd) throw () {
       p->_cv_buffer_out.wake_one();
       p->_cv_process.wake_one();
       // Notify listener if necessary.
-      if (p->_listener)
+      if (p->_listener) {
+        lock.unlock();
         (p->_listener->finished)(*p);
+      }
     }
   }
   catch (std::exception const& e) {
@@ -292,15 +294,19 @@ void process_manager::_read_stream(int fd) throw () {
       p->_buffer_out.append(buffer, size);
       p->_cv_buffer_out.wake_one();
       // Notify listener if necessary.
-      if (p->_listener)
+      if (p->_listener) {
+        lock.unlock();
         (p->_listener->data_is_available)(*p);
+      }
     }
     else if (p->_stream[process::err] == fd) {
       p->_buffer_err.append(buffer, size);
       p->_cv_buffer_err.wake_one();
       // Notify listener if necessary.
-      if (p->_listener)
+      if (p->_listener) {
+        lock.unlock();
         (p->_listener->data_is_available_err)(*p);
+      }
     }
   }
   catch (std::exception const& e) {
@@ -430,8 +436,10 @@ void process_manager::_wait_processes() throw () {
         p->_cv_buffer_out.wake_one();
         p->_cv_process.wake_one();
         // Notify listener if necessary.
-        if (p->_listener)
+        if (p->_listener) {
+          lock.unlock();
           (p->_listener->finished)(*p);
+        }
       }
     }
   }
