@@ -30,7 +30,8 @@ using namespace com::centreon::concurrency;
  *  @param[in] m  The mutex to lock.
  */
 locker::locker(mutex* m)
-  : _m(m) {
+  : _is_lock(false),
+    _m(m) {
   if (_m)
     relock();
 }
@@ -39,7 +40,8 @@ locker::locker(mutex* m)
  *  Default destructor.
  */
 locker::~locker() throw () {
-  unlock();
+  if (_is_lock)
+    unlock();
 }
 
 /**
@@ -55,16 +57,20 @@ mutex* locker::get_mutex() const throw() {
  *  Lock the internal mutex.
  */
 void locker::relock() {
-  if (_m)
+  if (_m) {
+    _is_lock = true;
     _m->lock();
+  }
 }
 
 /**
  *  Unlock the internal mutex.
  */
 void locker::unlock() {
-  if (_m)
+  if (_m) {
     _m->unlock();
+    _is_lock = false;
+  }
 }
 
 /**
