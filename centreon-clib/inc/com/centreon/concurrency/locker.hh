@@ -46,6 +46,7 @@ namespace   concurrency {
     locker& operator=(locker const& right);
     locker& _internal_copy(locker const& right);
 
+    bool   _is_lock;
     mutex* _m;
   };
 }
