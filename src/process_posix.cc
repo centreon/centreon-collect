@@ -26,6 +26,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <poll.h>
+#include <spawn.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -184,22 +185,29 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     misc::command_line cmdline(cmd);
     char** args(cmdline.get_argv());
 
+
     // volatile prevent compiler optimization
     // that might clobber variable.
     char** volatile my_env(env ? env : environ);
 
     // Create new process.
-    _process = vfork();
-    if (_process == static_cast<pid_t>(-1)) {
+    if (posix_spawnp(&_process, args[0], NULL, NULL, args, my_env)) {
       char const* msg(strerror(errno));
       throw (basic_error() << "could not create process: " << msg);
     }
 
-    // Child execution.
-    if (!_process) {
-      ::execve(args[0], args, my_env);
-      ::_exit(EXIT_FAILURE);
-    }
+    // // Create new process.
+    // _process = vfork();
+    // if (_process == static_cast<pid_t>(-1)) {
+    //   char const* msg(strerror(errno));
+    //   throw (basic_error() << "could not create process: " << msg);
+    // }
+
+    // // Child execution.
+    // if (!_process) {
+    //   ::execve(args[0], args, my_env);
+    //   ::_exit(EXIT_FAILURE);
+    // }
 
     // Parent execution.
     _start_time = timestamp::now();
