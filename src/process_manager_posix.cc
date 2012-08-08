@@ -192,15 +192,16 @@ void process_manager::_close_stream(int fd) throw () {
     else if (p->_stream[process::err] == fd)
       p->_close(p->_stream[process::err]);
     if (!p->_is_running()) {
-      // Release condition variable.
-      p->_cv_buffer_err.wake_one();
-      p->_cv_buffer_out.wake_one();
-      p->_cv_process.wake_one();
       // Notify listener if necessary.
       if (p->_listener) {
         lock.unlock();
         (p->_listener->finished)(*p);
+        lock.relock();
       }
+      // Release condition variable.
+      p->_cv_buffer_err.wake_one();
+      p->_cv_buffer_out.wake_one();
+      p->_cv_process.wake_one();
     }
   }
   catch (std::exception const& e) {
@@ -431,15 +432,16 @@ void process_manager::_wait_processes() throw () {
       p->_close(p->_stream[process::in]);
       _erase_timeout(p);
       if (!p->_is_running()) {
-        // Release condition variable.
-        p->_cv_buffer_err.wake_one();
-        p->_cv_buffer_out.wake_one();
-        p->_cv_process.wake_one();
         // Notify listener if necessary.
         if (p->_listener) {
           lock.unlock();
           (p->_listener->finished)(*p);
+          lock.relock();
         }
+        // Release condition variable.
+        p->_cv_buffer_err.wake_one();
+        p->_cv_buffer_out.wake_one();
+        p->_cv_process.wake_one();
       }
     }
   }
