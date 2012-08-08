@@ -39,7 +39,9 @@ using namespace com::centreon::concurrency;
 /**
  *  Default constructor.
  */
-thread::thread() {}
+thread::thread() {
+  memset(&_th, 0, sizeof(&_th));
+}
 
 /**
  *  Destructor.
