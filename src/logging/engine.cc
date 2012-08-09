@@ -42,18 +42,7 @@ using namespace com::centreon::logging;
 using namespace com::centreon::misc;
 
 // Class instance.
-std::auto_ptr<engine> _instance;
-
-/**
- *  Destructor.
- */
-engine::~engine() throw () {
-  for (std::vector<backend_info*>::const_iterator
-         it(_backends.begin()), end(_backends.end());
-       it != end;
-       ++it)
-    delete *it;
-}
+static engine* _instance = NULL;
 
 /**
  *  Add backend into the logging engine.
@@ -166,7 +155,8 @@ bool engine::get_show_thread_id() const throw () {
  *  Create a new instance of the logging engine if no instance exist.
  */
 void engine::load() {
-  _instance.reset(new engine());
+  if (!_instance)
+    _instance = new engine;
   return ;
 }
 
@@ -334,8 +324,9 @@ void engine::set_show_thread_id(bool enable) throw () {
  *  Destroy the logging engine.
  */
 void engine::unload() {
-  _instance.reset();
-  return ;
+  delete _instance;
+  _instance = NULL;
+  return;
 }
 
 /**
@@ -357,6 +348,17 @@ engine::engine()
  */
 engine::engine(engine const& right) {
   _internal_copy(right);
+}
+
+/**
+ *  Destructor.
+ */
+engine::~engine() throw () {
+  for (std::vector<backend_info*>::const_iterator
+         it(_backends.begin()), end(_backends.end());
+       it != end;
+       ++it)
+    delete *it;
 }
 
 /**
