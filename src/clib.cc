@@ -40,7 +40,7 @@ static clib* _instance = NULL;
  */
 void clib::load() {
   delete _instance;
-  _instance = new clib();
+  _instance = new clib;
   return;
 }
 
