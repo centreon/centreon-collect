@@ -50,7 +50,6 @@ namespace                      logging {
       second = 3
     };
 
-                               ~engine() throw ();
     unsigned long              add(
                                  backend* obj,
                                  type_flags types,
@@ -87,6 +86,7 @@ namespace                      logging {
 
                                engine();
                                engine(engine const& right);
+                               ~engine() throw ();
     engine&                    operator=(engine const& right);
     engine&                    _internal_copy(engine const& right);
     void                       _rebuild_verbosities();

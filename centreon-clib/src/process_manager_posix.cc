@@ -94,8 +94,8 @@ process_manager& process_manager::instance() {
  *  Load the process manager.
  */
 void process_manager::load() {
-  delete _instance;
-  _instance = new process_manager();
+  if (!_instance)
+    _instance = new process_manager;
   return;
 }
 
