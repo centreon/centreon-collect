@@ -21,20 +21,33 @@
 #ifndef CC_UNORDERED_HASH_HH
 #  define CC_UNORDERED_HASH_HH
 
-#  if defined(__GXX_EXPERIMENTAL_CXX0X__)
+#  if __cplusplus == 201103L
+#    define CXX0X_UNORDERED 1
+#  elif defined(__clang__)
+#    if __has_feature(cxx_variadic_templates)
+#      define TR1_UNORDERED 1
+#    endif // cxx_variadic_templates.
+#  elif defined(__GNUC__) && __GNUC__ >= 4
+#    define TR1_UNORDERED 1
+#  endif // C++0x, tr1
+
+// Used c++0x implementation.
+#  ifdef CXX0X_UNORDERED
 #    include <unordered_map>
 #    include <unordered_set>
 #    define umap std::unordered_map
 #    define umultimap std::unordered_multimap
 #    define uset std::unordered_set
 #    define umultiset std::unordered_multiset
-#  elif defined(__GNUC__) && __GNUC__ >= 4
+// Used tr1 implementation.
+#  elif defined(TR1_UNORDERED)
 #    include <tr1/unordered_map>
 #    include <tr1/unordered_set>
 #    define umap std::tr1::unordered_map
 #    define umultimap std::tr1::unordered_multimap
 #    define uset std::tr1::unordered_set
 #    define umultiset std::tr1::unordered_multiset
+// Used std implementation.
 #  else
 #    include <map>
 #    include <set>
@@ -42,6 +55,6 @@
 #    define umultimap std::multimap
 #    define uset std::set
 #    define umultiset std::multiset
-#  endif // CPP0X, GNUC4
+#  endif // C++0X, tr1 or std
 
 #endif // !CC_UNORDERED_HASH_HH

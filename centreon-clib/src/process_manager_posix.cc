@@ -259,7 +259,8 @@ void process_manager::_kill_processes_timeout() throw () {
       process* p(it->second);
       p->kill();
       p->_is_timeout = true;
-      it = _processes_timeout.erase(it);
+      umultimap<unsigned int, process*>::iterator tmp(it++);
+      _processes_timeout.erase(tmp);
     }
   }
   catch (std::exception const& e) {
