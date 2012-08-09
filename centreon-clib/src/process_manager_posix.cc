@@ -404,13 +404,8 @@ void process_manager::_wait_processes() throw () {
       int status(0);
       pid_t pid(waitpid(-1, &status, WNOHANG));
       // No process are finished.
-      if (!pid)
+      if (pid <= 0)
         break;
-      // Error!
-      if (pid < 0) {
-        char const* msg(strerror(errno));
-        throw (basic_error() << "waiting process failed: " << msg);
-      }
 
       process* p(NULL);
       // Get process to link with pid and remove this pid
