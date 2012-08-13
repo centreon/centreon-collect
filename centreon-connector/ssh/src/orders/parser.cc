@@ -76,7 +76,7 @@ parser& parser::operator=(parser const& p) {
 void parser::error(handle& h) {
   (void)h;
   if (_listnr)
-    _listnr->on_error();
+    _listnr->on_error(0, "error on handle");
   return ;
 }
 
@@ -144,20 +144,23 @@ void parser::read(handle& h) {
       std::string cmd(_buffer.substr(0, bound));
       _buffer.erase(0, bound);
       bool error(false);
+      std::string error_msg;
       try {
         _parse(cmd);
       }
       catch (std::exception const& e) {
-        logging::error(logging::low) << "orders parsing error: "
-          << e.what();
         error = true;
+        error_msg = "orders parsing error: ";
+        error_msg.append(e.what());
+        logging::error(logging::low) << error_msg;
       }
       catch (...) {
-        logging::error(logging::low) << "unknown orders parsing error";
         error = true;
+        error_msg = "unknown orders parsing error";
+        logging::error(logging::low) << error_msg;
       }
       if (error && _listnr)
-        _listnr->on_error();
+        _listnr->on_error(0, error_msg.c_str());
       bound = _buffer.find(boundary, 0, sizeof(boundary));
     }
   }
@@ -262,16 +265,24 @@ void parser::_parse(std::string const& cmd) {
         throw (basic_error() << "invalid execution request received:" \
                " bad command line (" << cmd.c_str() + pos << ")");
       options opt;
-      opt.parse(cmdline);
-      if (opt.get_commands().empty())
-        throw (basic_error() << "invalid execution request received:" \
-               " bad command line (" << cmd.c_str() + pos << ")");
+      try {
+        opt.parse(cmdline);
+        if (opt.get_commands().empty())
+          throw (basic_error() << "invalid execution request " \
+                    "received: bad command line (" << cmd.c_str() + pos
+                 << ")");
 
-      if (opt.get_timeout() > 0 && opt.get_timeout() < timeout)
-        timeout = opt.get_timeout();
-      else if (opt.get_timeout() > timeout)
-        throw (basic_error() << "invalid execution request received:" \
-               " timeout > to monitoring engine timeout");
+        if (opt.get_timeout() > 0 && opt.get_timeout() < timeout)
+          timeout = opt.get_timeout();
+        else if (opt.get_timeout() > timeout)
+          throw (basic_error() << "invalid execution request " \
+                 "received: timeout > to monitoring engine timeout");
+      }
+      catch (std::exception const& e) {
+        if (_listnr)
+          _listnr->on_error(cmd_id, e.what());
+        return ;
+      }
 
       // Notify listener.
       if (_listnr)

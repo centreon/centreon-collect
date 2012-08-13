@@ -84,8 +84,15 @@ void fake_listener::on_eof() {
 
 /**
  *  Error callback.
+ *
+ *  @param[in] cmd_id Command ID.
+ *  @param[in] msg    Error message.
  */
-void fake_listener::on_error() {
+void fake_listener::on_error(
+                      unsigned long long cmd_id,
+                      char const* msg) {
+  (void)cmd_id;
+  (void)msg;
   callback_info ci;
   ci.callback = cb_error;
   _callbacks.push_back(ci);
