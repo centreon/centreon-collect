@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <csignal>
+#include <cstdlib>
 #include <iostream>
-#include <signal.h>
-#include <stdlib.h>
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/connector/perl/options.hh"
@@ -84,6 +84,8 @@ int main(int argc, char** argv, char** env) {
     }
     catch (exceptions::basic const& e) {
       std::cout << e.what() << std::endl << opts.usage() << std::endl;
+      multiplexer::unload();
+      logging::engine::unload();
       return (EXIT_FAILURE);
     }
     if (opts.get_argument("help").get_is_set()) {
