@@ -231,7 +231,7 @@ void options::parse(std::string const& cmdline) {
   char c;
   while ((c = getopt_long(ac, av, optstr, optlong, NULL)) > 0) {
     switch (c) {
-    case 'H': // Set Host name or IP address.
+    case 'H': // Set host name or IP address.
       _host = optarg;
       break;
 
@@ -243,7 +243,7 @@ void options::parse(std::string const& cmdline) {
       _authentication = optarg;
       break;
 
-    case 'l': // Set loggin name.
+    case 'l': // Set logging name.
       _user = optarg;
       break;
 
@@ -259,13 +259,13 @@ void options::parse(std::string const& cmdline) {
       _ip_protocol = ip_v6;
       break;
 
-    case '1': // Enable ssh protocole v1.
+    case '1': // Enable SSH v1.
       throw (basic_error() << "'" << c
              << "' option is not supported");
       break;
 
-    case '2': // Enable ssh protocole v2.
-      // Enable by default.
+    case '2': // Enable SSH v2.
+      // Enabled by default.
       break;
 
     case 'E': // Skip stderr.
@@ -296,7 +296,7 @@ void options::parse(std::string const& cmdline) {
              << "' option is not supported");
       break;
 
-    case 's': // services.
+    case 's': // Services.
       throw (basic_error() << "'" << c
              << "' option is not supported");
       break;
@@ -313,7 +313,7 @@ void options::parse(std::string const& cmdline) {
     case 'q': // Quiet.
     case 'v': // Verbose.
     case 'V': // Version.
-      // These options are ignore.
+      // These options are ignored.
       break;
 
     case '?': // Missing argument.
