@@ -43,7 +43,9 @@ namespace        orders {
     virtual      ~listener();
     listener&    operator=(listener const& l);
     virtual void on_eof() = 0;
-    virtual void on_error() = 0;
+    virtual void on_error(
+                   unsigned long long cmd_id,
+                   char const* msg) = 0;
     virtual void on_execute(
                    unsigned long long cmd_id,
                    time_t timeout,

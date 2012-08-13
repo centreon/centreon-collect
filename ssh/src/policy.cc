@@ -108,12 +108,24 @@ void policy::on_eof() {
 
 /**
  *  Called if an error occured on stdin.
+ *
+ *  @param[in] cmd_id Command ID.
+ *  @param[in] msg    Associated message.
  */
-void policy::on_error() {
-  logging::info(logging::low)
-    << "error occurred while parsing stdin";
-  _error = true;
-  on_quit();
+void policy::on_error(unsigned long long cmd_id, char const* msg) {
+  if (cmd_id) {
+    checks::result r;
+    r.set_command_id(cmd_id);
+    r.set_executed(false);
+    r.set_output(msg);
+    on_result(r);
+  }
+  else {
+    logging::info(logging::low)
+      << "error occurred while parsing stdin";
+    _error = true;
+    on_quit();
+  }
   return ;
 }
 

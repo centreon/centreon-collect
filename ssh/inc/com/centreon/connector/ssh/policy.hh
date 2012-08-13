@@ -54,7 +54,9 @@ public:
                   policy();
                   ~policy() throw ();
   void            on_eof();
-  void            on_error();
+  void            on_error(
+                    unsigned long long cmd_id,
+                    char const* msg);
   void            on_execute(
                     unsigned long long cmd_id,
                     time_t timeout,
