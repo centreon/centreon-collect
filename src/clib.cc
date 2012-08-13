@@ -37,10 +37,13 @@ static clib* _instance = NULL;
 
 /**
  *  Load the clib singleton.
+ *
+ *  @param[in] flags Specify which elements should be loaded.
  */
-void clib::load() {
+void clib::load(unsigned int flags) {
   delete _instance;
-  _instance = new clib;
+  _instance = NULL;
+  _instance = new clib(flags);
   return;
 }
 
@@ -61,10 +64,14 @@ void clib::unload() {
 
 /**
  *  Constructor.
+ *
+ *  @param[in] flags Specify which elements to load.
  */
-clib::clib() {
-  logging::engine::load();
-  process_manager::load();
+clib::clib(unsigned int flags) {
+  if (flags & with_logging_engine)
+    logging::engine::load();
+  if (flags & with_process_manager)
+    process_manager::load();
 }
 
 /**
