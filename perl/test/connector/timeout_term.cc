@@ -18,9 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstring>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <string.h>
 #include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/paths.hh"
@@ -45,11 +46,14 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
+  // Initialization.
   clib::load();
+
   // Process.
   process p;
   p.enable_stream(process::in, true);
   p.enable_stream(process::out, true);
+  p.enable_stream(process::err, false);
   p.exec(CONNECTOR_PERL_BINARY);
 
   // Write command.
@@ -71,7 +75,7 @@ int main() {
     std::string buffer;
     p.read(buffer);
     if (buffer.empty())
-      break;
+      break ;
     output.append(buffer);
   }
 
@@ -81,12 +85,20 @@ int main() {
     p.terminate();
     p.wait();
   }
-  else
+  else {
     retval = (p.exit_code() != 0);
+    std::cout << "connector exit code: " << p.exit_code() << std::endl;
+  }
 
+  // Cleanup.
   clib::unload();
+
+  // Data.
+  std::cout << "output size: " << output.size() << " (expected "
+            << (sizeof (RESULT) - 1) << ")" << std::endl;
+
   // Compare results.
   return (retval
-          || (output.size() != (sizeof(RESULT) - 1))
-          || (memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1)));
+          || (output.size() != (sizeof (RESULT) - 1))
+          || (memcmp(output.c_str(), RESULT, sizeof (RESULT) - 1)));
 }
