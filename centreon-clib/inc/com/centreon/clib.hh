@@ -33,11 +33,17 @@ CC_BEGIN()
  */
 class         clib {
 public:
-  static void load();
+  enum        load_flags {
+    with_logging_engine = 1 << 0,
+    with_process_manager = 1 << 1
+  };
+
+  static void load(unsigned int flags = with_logging_engine
+                                        | with_process_manager);
   static void unload();
 
 private:
-              clib();
+              clib(unsigned int flags);
               clib(clib const& right);
               ~clib() throw ();
   clib&       operator=(clib const& right);
