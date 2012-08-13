@@ -18,6 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdlib>
+#include <iostream>
 #include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
@@ -35,10 +37,12 @@ using namespace com::centreon;
 /**
  *  Check that connector exits when receiving an invalid command ID (0).
  *
- *  @return 0 on success.
+ *  @return EXIT_SUCCESS on success.
  */
 int main() {
+  // Initialization.
   clib::load();
+
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -59,10 +63,14 @@ int main() {
     p.terminate();
     p.wait();
   }
-  else
-    retval = (p.exit_code() != 0);
+  else {
+    int exit_code(p.exit_code());
+    retval = (exit_code == 0);
+    std::cout << "exit code: " << exit_code << std::endl;
+  }
 
+  // Cleanup.
   clib::unload();
 
-  return (retval);
+  return (retval ? EXIT_FAILURE : EXIT_SUCCESS);
 }
