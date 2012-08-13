@@ -6,5 +6,7 @@ $SIG{SEGV} = "IGNORE";
 $SIG{TERM} = "IGNORE";
 
 # Very long sleep.
-sleep 42424;
+while (1) {
+  sleep 42424;
+}
 exit 2;
