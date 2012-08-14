@@ -115,6 +115,17 @@ class        unique_array_ptr {
     _ptr = NULL;
     return (tmp);
   }
+
+  /**
+   *  Reset this automatic pointer.
+   *
+   *  @param[in] ptr New pointer (can be NULL).
+   */
+  void       reset(T* t = NULL) {
+    delete [] _ptr;
+    _ptr = t;
+    return ;
+  }
 };
 
 CC_END()
