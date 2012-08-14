@@ -55,7 +55,7 @@ private:
   void                    _erase_timeout(process* p);
   void                    _internal_copy(process_manager const& p);
   void                    _kill_processes_timeout() throw ();
-  void                    _read_stream(int fd) throw ();
+  unsigned int            _read_stream(int fd) throw ();
   void                    _run();
   void                    _update_list();
   void                    _wait_processes() throw ();
