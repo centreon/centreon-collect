@@ -26,7 +26,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <poll.h>
-#include <spawn.h>
+#ifdef HAVE_SPAWN_H
+#  include <spawn.h>
+#endif // HAVE_SPAWN_H
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -190,24 +192,26 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     // that might clobber variable.
     char** volatile my_env(env ? env : environ);
 
+#ifdef HAVE_SPAWN_H
     // Create new process.
     if (posix_spawnp(&_process, args[0], NULL, NULL, args, my_env)) {
       char const* msg(strerror(errno));
       throw (basic_error() << "could not create process: " << msg);
     }
+#else
+    // Create new process.
+    _process = vfork();
+    if (_process == static_cast<pid_t>(-1)) {
+      char const* msg(strerror(errno));
+      throw (basic_error() << "could not create process: " << msg);
+    }
 
-    // // Create new process.
-    // _process = vfork();
-    // if (_process == static_cast<pid_t>(-1)) {
-    //   char const* msg(strerror(errno));
-    //   throw (basic_error() << "could not create process: " << msg);
-    // }
-
-    // // Child execution.
-    // if (!_process) {
-    //   ::execve(args[0], args, my_env);
-    //   ::_exit(EXIT_FAILURE);
-    // }
+    // Child execution.
+    if (!_process) {
+      ::execve(args[0], args, my_env);
+      ::_exit(EXIT_FAILURE);
+    }
+#endif // spawn.h or not
 
     // Parent execution.
     _start_time = timestamp::now();
