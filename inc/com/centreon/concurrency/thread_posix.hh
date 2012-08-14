@@ -62,6 +62,7 @@ namespace            concurrency {
     static void      _sleep(timespec* ts);
     static void      _transfer(timespec* ts);
 
+    bool             _initialized;
     mutable mutex    _mtx;
     pthread_t        _th;
   };
