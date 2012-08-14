@@ -175,6 +175,15 @@ else ()
 endif ()
 
 
+# Find headers.
+include(CheckIncludeFileCXX)
+check_include_file_cxx("spawn.h" HAVE_SPAWN_H)
+if (HAVE_SPAWN_H)
+  add_definitions(-DHAVE_SPAWN_H)
+else ()
+  message(WARNING "Your plateform does not have spawn.h. Some features might be disabled.")
+endif ()
+
 # Platform-specific files.
 if (WIN32)
   set(SPECIFIC_SOURCES
