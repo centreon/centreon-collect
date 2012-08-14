@@ -272,8 +272,11 @@ void process_manager::_kill_processes_timeout() throw () {
  *  Read stream.
  *
  *  @param[in] fd  The file descriptor to read.
+ *
+ *  @return Number of bytes read.
  */
-void process_manager::_read_stream(int fd) throw () {
+unsigned int process_manager::_read_stream(int fd) throw () {
+  unsigned int size(0);
   try {
     process* p(NULL);
     // Get process to link with fd.
@@ -291,7 +294,7 @@ void process_manager::_read_stream(int fd) throw () {
     concurrency::locker lock(&p->_lock_process);
     // Read content of the stream and push it.
     char buffer[4096];
-    unsigned int size(p->_read(fd, buffer, sizeof(buffer)));
+    size = p->_read(fd, buffer, sizeof(buffer));
     if (p->_stream[process::out] == fd) {
       p->_buffer_out.append(buffer, size);
       p->_cv_buffer_out.wake_one();
@@ -314,6 +317,7 @@ void process_manager::_read_stream(int fd) throw () {
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
   }
+  return (size);
 }
 
 /**
@@ -342,10 +346,11 @@ void process_manager::_run() {
           continue;
 
         // Data are available.
+        unsigned int size(0);
         if (_fds[i].revents & (POLLIN | POLLPRI))
-          _read_stream(_fds[i].fd);
+          size = _read_stream(_fds[i].fd);
         // File descriptor was close.
-        else if (_fds[i].revents & POLLHUP)
+        if ((_fds[i].revents & POLLHUP) && !size)
           _close_stream(_fds[i].fd);
         //  Error!
         else if (_fds[i].revents & (POLLERR | POLLNVAL)) {
