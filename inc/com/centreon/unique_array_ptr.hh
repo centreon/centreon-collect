@@ -43,7 +43,7 @@ class        unique_array_ptr {
    *
    *  @param[in] t Array pointer.
    */
-             unique_array_ptr(T* t) : _ptr(t) {}
+             unique_array_ptr(T* t = NULL) : _ptr(t) {}
 
   /**
    *  Copy constructor.
