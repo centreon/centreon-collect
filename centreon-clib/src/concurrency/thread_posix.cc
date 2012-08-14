@@ -36,12 +36,16 @@
 
 using namespace com::centreon::concurrency;
 
+/**************************************
+*                                     *
+*           Public Methods            *
+*                                     *
+**************************************/
+
 /**
  *  Default constructor.
  */
-thread::thread() {
-  memset(&_th, 0, sizeof(&_th));
-}
+thread::thread() : _initialized(false) {}
 
 /**
  *  Destructor.
@@ -52,10 +56,12 @@ thread::~thread() throw () {}
  *  Execute the running method in the new thread.
  */
 void thread::exec() {
+  locker lock(&_mtx);
   int ret(pthread_create(&_th, NULL, &_execute, this));
   if (ret)
     throw (basic_error() << "failed to create thread: "
            << strerror(ret));
+  _initialized = true;
 }
 
 /**
@@ -172,10 +178,14 @@ void thread::wait() {
   locker lock(&_mtx);
 
   // Wait the end of the thread.
-  int ret(pthread_join(_th, NULL));
-  if (ret && ret != ESRCH)
-    throw (basic_error() << "failure while waiting thread: "
-           << strerror(ret));
+  if (_initialized) {
+    int ret(pthread_join(_th, NULL));
+    if (ret && ret != ESRCH)
+      throw (basic_error() << "failure while waiting thread: "
+             << strerror(ret));
+    _initialized = false;
+  }
+  return ;
 }
 
 /**
@@ -188,76 +198,80 @@ void thread::wait() {
  */
 bool thread::wait(unsigned long timeout) {
   locker lock(&_mtx);
-
+  if (_initialized) {
 #if defined(__NetBSD__) || defined(__OpenBSD__)
-  // Implementation based on pthread_kill and usleep.
+    // Implementation based on pthread_kill and usleep.
 
-  // Get the current time.
-  timeval now;
-  gettimeofday(&now, NULL);
-  timeval limit;
-  memcpy(&limit, &now, sizeof(limit));
-
-  // Add timeout.
-  limit.tv_sec += timeout / 1000;
-  timeout %= 1000;
-  limit.tv_usec += timeout * 1000;
-  if (limit.tv_usec > 1000000) {
-    limit.tv_usec -= 1000000;
-    ++limit.tv_sec;
-  }
-
-  // Wait for the end of thread or timeout.
-  bool running(true);
-  while (running
-         && ((now.tv_sec * 1000000ull + now.tv_usec)
-             < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
-    usleep(10000);
-    int ret(pthread_kill(_th, 0));
-    if (ret == ESRCH)
-      running = false;
-    else
-      throw (basic_error() << "failure while waiting thread: "
-             << strerror(ret));
+    // Get the current time.
+    timeval now;
     gettimeofday(&now, NULL);
-  }
+    timeval limit;
+    memcpy(&limit, &now, sizeof(limit));
 
-  // Join thread.
-  if (!running) {
-    int ret(pthread_join(_th, NULL));
-    if (ret)
-      throw (basic_error() << "failure while waiting thread: "
-             << strerror(ret));
-  }
+    // Add timeout.
+    limit.tv_sec += timeout / 1000;
+    timeout %= 1000;
+    limit.tv_usec += timeout * 1000;
+    if (limit.tv_usec > 1000000) {
+      limit.tv_usec -= 1000000;
+      ++limit.tv_sec;
+    }
 
-  return (!running);
+    // Wait for the end of thread or timeout.
+    bool running(true);
+    while (running
+           && ((now.tv_sec * 1000000ull + now.tv_usec)
+               < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
+      usleep(10000);
+      int ret(pthread_kill(_th, 0));
+      if (ret == ESRCH)
+        running = false;
+      else
+        throw (basic_error() << "failure while waiting thread: "
+               << strerror(ret));
+      gettimeofday(&now, NULL);
+    }
+
+    // Join thread.
+    if (!running) {
+      int ret(pthread_join(_th, NULL));
+      if (ret)
+        throw (basic_error() << "failure while waiting thread: "
+               << strerror(ret));
+      _initialized = false;
+    }
+    return (!running);
 #else // Other Unix systems.
-  // Implementation based on pthread_timedjoin_np.
+    // Implementation based on pthread_timedjoin_np.
 
-  // Get the current time.
-  timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
+    // Get the current time.
+    timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts))
+      throw (basic_error() << "failure while waiting thread: "
+             << strerror(errno));
+
+    // Add timeout.
+    ts.tv_sec += timeout / 1000;
+    timeout %= 1000;
+    ts.tv_nsec += timeout * 1000000l;
+    if (ts.tv_nsec > 1000000000l) {
+      ts.tv_nsec -= 1000000000l;
+      ++ts.tv_sec;
+    }
+
+    // Wait the end of the thread or timeout.
+    int ret(pthread_timedjoin_np(_th, NULL, &ts));
+    if (!ret || ret == ESRCH) {
+      _initialized = false;
+      return (true);
+    }
+    if (ret == ETIMEDOUT)
+      return (false);
     throw (basic_error() << "failure while waiting thread: "
-           << strerror(errno));
-
-  // Add timeout.
-  ts.tv_sec += timeout / 1000;
-  timeout %= 1000;
-  ts.tv_nsec += timeout * 1000000l;
-  if (ts.tv_nsec > 1000000000l) {
-    ts.tv_nsec -= 1000000000l;
-    ++ts.tv_sec;
-  }
-
-  // Wait the end of the thread or timeout.
-  int ret(pthread_timedjoin_np(_th, NULL, &ts));
-  if (!ret || ret == ESRCH)
-    return (true);
-  if (ret == ETIMEDOUT)
-    return (false);
-  throw (basic_error() << "failure while waiting thread: "
-         << strerror(ret));
+           << strerror(ret));
 #endif // Unix flavor.
+  }
+  return (true);
 }
 
 /**
@@ -267,6 +281,12 @@ bool thread::wait(unsigned long timeout) {
 void thread::yield() throw () {
   sched_yield();
 }
+
+/**************************************
+*                                     *
+*           Private Methods           *
+*                                     *
+**************************************/
 
 /**
  *  Default copy constructor.
