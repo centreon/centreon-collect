@@ -35,10 +35,7 @@ using namespace com::centreon;
  *  Default constructor.
  */
 library::library(std::string const& filename)
-  : _filename(filename),
-    _handle(NULL) {
-
-}
+  : _filename(filename), _handle(NULL) {}
 
 /**
  *  Destructor.
@@ -47,9 +44,7 @@ library::~library() throw () {
   try {
     unload();
   }
-  catch (...) {
-
-  }
+  catch (...) {}
 }
 
 /**
@@ -83,34 +78,52 @@ void library::load() {
 }
 
 /**
- *  Return the symbole address.
+ *  Return the symbol address.
  *
- *  @param[in] symbole  The exported symbole.
+ *  @param[in] symbol  The exported symbol.
  *
- *  @return Symbole adrress.
+ *  @return Symbol address.
  */
-void* library::resolve(char const* symbole) {
+void* library::resolve(char const* symbol) {
   if (!_handle)
-    throw (basic_error() << "resolve symbole failed: "
+    throw (basic_error() << "resolve symbol failed: "
            "library not loaded");
-  void* sym(GetProcAddress(_handle, symbole));
+  void* sym(GetProcAddress(_handle, symbol));
   if (!sym) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "resolve symbole failed: "
+    throw (basic_error() << "resolve symbol failed: "
            "error " << errcode);
   }
   return (sym);
 }
 
 /**
- *  Return the symbole address.
+ *  Overloaded method.
  *
- *  @param[in] symbole  The exported symbole.
- *
- *  @return Symbole adrress.
+ *  @see resolve
  */
-void* library::resolve(std::string const& symbole) {
-  return (resolve(symbole.c_str()));
+void* library::resolve(std::string const& symbol) {
+  return (resolve(symbol.c_str()));
+}
+
+/**
+ *  Return the process symbol address.
+ *
+ *  @param[in] symbol Symbol to resolve.
+ *
+ *  @return Symbol address.
+ */
+void (* library::resolve_proc(char const* symbol))() {
+  return ((void (*)())resolve(symbol));
+}
+
+/**
+ *  Overloaded method.
+ *
+ *  @see resolve_proc
+ */
+void (* library::resolve_proc(std::string const& symbol))() {
+  return (resolve_proc(symbol.c_str()));
 }
 
 /**
