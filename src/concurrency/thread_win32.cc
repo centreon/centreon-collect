@@ -102,7 +102,7 @@ void thread::sleep(unsigned long secs) {
  *  @param[in] usecs Number of us to sleep.
  */
 void thread::usleep(unsigned long usecs) {
-  Sleep(usecs * 1000);
+  Sleep(usecs / 1000);
   return ;
 }
 
