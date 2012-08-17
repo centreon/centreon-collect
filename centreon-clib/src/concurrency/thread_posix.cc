@@ -80,23 +80,12 @@ thread_id thread::get_current_id() throw () {
  *  @param[in] msecs  Time to sleep in milliseconds.
  */
 void thread::msleep(unsigned long msecs) {
-  // Get the current time.
   timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread: "
-           << strerror(errno));
-
-  // Add timeout.
-  ts.tv_sec += msecs / 1000;
-  msecs %= 1000;
-  ts.tv_nsec += msecs * 1000000l;
-  if (ts.tv_nsec > 1000000000l) {
-    ts.tv_nsec -= 1000000000l;
-    ++ts.tv_sec;
-  }
-
-  // Sleep the calling thread.
-  _sleep(&ts);
+  memset(&ts, 0, sizeof(ts));
+  ts.tv_sec = msecs / 1000;
+  ts.tv_nsec = (msecs % 1000) * 1000000l;
+  nanosleep(&ts, NULL);
+  return ;
 }
 
 /**
@@ -106,23 +95,12 @@ void thread::msleep(unsigned long msecs) {
  *  @param[in] nsecs  Time to sleep in nanoseconds.
  */
 void thread::nsleep(unsigned long nsecs) {
-  // Get the current time.
   timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread: "
-           << strerror(errno));
-
-  // Add timeout.
-  ts.tv_sec += nsecs / 1000000000l;
-  nsecs %= 1000000000l;
-  ts.tv_nsec += nsecs;
-  if (ts.tv_nsec > 1000000000l) {
-    ts.tv_nsec -= 1000000000l;
-    ++ts.tv_sec;
-  }
-
-  // Sleep the calling thread.
-  _sleep(&ts);
+  memset(&ts, 0, sizeof(ts));
+  ts.tv_sec = nsecs / 1000000000l;
+  ts.tv_nsec = nsecs % 1000000000l;
+  nanosleep(&ts, NULL);
+  return ;
 }
 
 /**
@@ -132,17 +110,12 @@ void thread::nsleep(unsigned long nsecs) {
  *  @param[in] secs  Time to sleep in seconds.
  */
 void thread::sleep(unsigned long secs) {
-  // Get the current time.
   timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread: "
-           << strerror(errno));
-
-  // Add timeout.
-  ts.tv_sec += secs;
-
-  // Sleep the calling thread.
-  _sleep(&ts);
+  memset(&ts, 0, sizeof(ts));
+  ts.tv_sec = secs;
+  ts.tv_nsec = 0;
+  nanosleep(&ts, NULL);
+  return ;
 }
 
 /**
@@ -152,23 +125,11 @@ void thread::sleep(unsigned long secs) {
  *  @param[in] usecs  Time to sleep in micoseconds.
  */
 void thread::usleep(unsigned long usecs) {
-  // Get the current time.
   timespec ts;
-  if (clock_gettime(CLOCK_REALTIME, &ts))
-    throw (basic_error() << "failed sleep thread: "
-           << strerror(errno));
-
-  // Add timeout.
-  ts.tv_sec += usecs / 1000000;
-  usecs %= 1000000;
-  ts.tv_nsec += usecs * 1000l;
-  if (ts.tv_nsec > 1000000000l) {
-    ts.tv_nsec -= 1000000000l;
-    ++ts.tv_sec;
-  }
-
-  // Sleep the calling thread.
-  _sleep(&ts);
+  memset(&ts, 0, sizeof(ts));
+  ts.tv_sec = usecs / 1000000l;
+  ts.tv_nsec = (usecs % 1000000l) * 1000l;
+  return ;
 }
 
 /**
@@ -334,39 +295,4 @@ void thread::_internal_copy(thread const& right) {
   assert(!"thread is not copyable");
   abort();
   return ;
-}
-
-/**
- *  Internal sleep, Makes the calling thread sleep untils timeout.
- *  @remark This function is static.
- *
- *  @param[in] ts  Time to sleep with timespec struct.
- */
-void thread::_sleep(timespec* ts) {
-  int ret(0);
-
-  // Create mutex.
-  pthread_mutex_t mtx;
-  pthread_mutex_init(&mtx, NULL);
-
-  // Create condition variable.
-  pthread_cond_t cnd;
-  pthread_cond_init(&cnd, NULL);
-
-  // Lock the mutex.
-  if ((ret = pthread_mutex_lock(&mtx)))
-    throw (basic_error() << "unable to sleep:" << strerror(ret));
-
-  // Wait the timeout of the condition variable.
-  if ((ret = pthread_cond_timedwait(&cnd, &mtx, ts))
-      && ret != ETIMEDOUT)
-    throw (basic_error() << "unable to sleep:" << strerror(ret));
-
-  // Release mutex.
-  if ((ret = pthread_mutex_unlock(&mtx)))
-    throw (basic_error() << "unable to sleep:" << strerror(ret));
-
-  // Cleanup.
-  pthread_cond_destroy(&cnd);
-  pthread_mutex_destroy(&mtx);
 }
