@@ -122,7 +122,7 @@ process_manager::process_manager()
     _fds(new pollfd[64]),
     _fds_capacity(64),
     _fds_size(0),
-    _update(false) {
+    _update(true) {
   // Create pipe to notify ending to the process manager thread.
   if (::pipe(_fds_exit)) {
     char const* msg(strerror(errno));
