@@ -122,8 +122,16 @@ process_manager::process_manager()
     _fds(new pollfd[64]),
     _fds_capacity(64),
     _fds_size(0),
-    _quit(false),
     _update(false) {
+  // Create pipe to notify ending to the process manager thread.
+  if (::pipe(_fds_exit)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "pipe creation failed: " << msg);
+  }
+
+  // Add exit fd to the file descriptor list.
+  _processes_fd[_fds_exit[0]] = NULL;
+
   // Run process manager thread.
   exec();
 }
@@ -142,12 +150,36 @@ process_manager::process_manager(process_manager const& right)
  *  Destructor.
  */
 process_manager::~process_manager() throw () {
+  // Kill all running process.
+  {
+    concurrency::locker lock(&_lock_processes);
+    for (umap<pid_t, process*>::iterator
+           it(_processes_pid.begin()), end(_processes_pid.end());
+         it != end;
+         ++it)
+      it->second->kill();
+  }
+
   // Exit process manager thread.
-  _quit = true;
+  ::close(_fds_exit[1]);
+
   // Waiting the end of the process manager thread.
   wait();
-  // Release memory.
-  delete[] _fds;
+
+  {
+    concurrency::locker lock(&_lock_processes);
+
+    // Release memory.
+    delete[] _fds;
+
+    // Release ressources.
+    ::close(_fds_exit[0]);
+
+    // Waiting all process.
+    int status(0);
+    while (waitpid(-1, &status, 0) > 0)
+      ;
+  }
 }
 
 /**
@@ -325,16 +357,13 @@ unsigned int process_manager::_read_stream(int fd) throw () {
  */
 void process_manager::_run() {
   try {
-    while (!_quit) {
+    while (true) {
       // Update the file descriptor list.
       _update_list();
 
       int ret(0);
-      // Sleep if no file descriptor.
-      if (!_fds_size)
-        concurrency::thread::msleep(DEFAULT_TIMEOUT);
       // Wait event on file descriptor.
-      else if ((ret = poll(_fds, _fds_size, DEFAULT_TIMEOUT)) < 0) {
+      if ((ret = poll(_fds, _fds_size, DEFAULT_TIMEOUT)) < 0) {
         char const* msg(strerror(errno));
         throw (basic_error() << "poll failed: " << msg);
       }
@@ -344,6 +373,13 @@ void process_manager::_run() {
         // No event.
         if (!_fds[i].revents)
           continue;
+
+        ++checked;
+
+        // The process manager destructor was call,
+        // it's time to quit the loop.
+        if (_fds[i].fd == _fds_exit[0])
+          return;
 
         // Data are available.
         unsigned int size(0);
@@ -358,7 +394,6 @@ void process_manager::_run() {
           logging::error(logging::high)
             << "invalid fd " << _fds[i].fd << " from process manager";
         }
-        ++checked;
       }
       // Release finished process.
       _wait_processes();
