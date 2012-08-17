@@ -62,13 +62,13 @@ private:
 
   pollfd*                 _fds;
   unsigned int            _fds_capacity;
+  int                     _fds_exit[2];
   unsigned int            _fds_size;
   concurrency::mutex      _lock_processes;
   umap<int, process*>     _processes_fd;
   umap<pid_t, process*>   _processes_pid;
   umultimap<unsigned int, process*>
                           _processes_timeout;
-  bool                    _quit;
   bool                    _update;
 };
 
