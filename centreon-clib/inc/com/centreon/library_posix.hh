@@ -40,8 +40,10 @@ public:
   std::string const& filename() const throw ();
   bool               is_loaded() const throw ();
   void               load();
-  void*              resolve(char const* symbole);
-  void*              resolve(std::string const& symbole);
+  void*              resolve(char const* symbol);
+  void*              resolve(std::string const& symbol);
+  void (*            resolve_proc(char const* symbol))();
+  void (*            resolve_proc(std::string const& symbol))();
   void               unload();
 
 private:
