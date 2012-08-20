@@ -28,11 +28,12 @@ set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(INC_DIR "${INCLUDE_DIR}/com/centreon")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 
 # Version.
-set(CLIB_MAJOR 0)
-set(CLIB_MINOR 1)
+set(CLIB_MAJOR 1)
+set(CLIB_MINOR 0)
 set(CLIB_PATCH 0)
 set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
@@ -127,12 +128,39 @@ endif ()
 if (WITH_PREFIX_LIB)
   set(PREFIX_LIB "${WITH_PREFIX_LIB}")
 else ()
-  set(PREFIX_LIB "lib")
+  set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib")
 endif ()
 if (WITH_PREFIX_INC)
   set(PREFIX_INC "${WITH_PREFIX_INC}")
 else ()
-  set(PREFIX_INC "include")
+  set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include")
+endif ()
+
+
+# Set pkg-config options.
+option(WITH_PKGCONFIG_SCRIPT "Generate and install pkg-config script." ON)
+if (WITH_PKGCONFIG_SCRIPT)
+  # Generate pkg-config file.
+  message(STATUS "Generating pkg-config file.")
+  configure_file(
+    "${SCRIPT_DIR}/centreon-clib.pc.in"
+    "${SCRIPT_DIR}/centreon-clib.pc"
+    @ONLY
+  )
+
+  # pkg-config file install directory.
+  if (WITH_PKGCONFIG_DIR)
+    set(PKGCONFIG_DIR "${WITH_PKGCONFIG_DIR}")
+  else ()
+    set(PKGCONFIG_DIR "/usr/lib/pkgconfig")
+  endif ()
+
+  # Install rule.
+  install(
+    FILES "${SCRIPT_DIR}/centreon-clib.pc"
+    DESTINATION "${PKGCONFIG_DIR}"
+    COMPONENT "runtime"
+  )
 endif ()
 
 
@@ -367,4 +395,7 @@ message(STATUS "    - Prefix                    ${PREFIX}")
 message(STATUS "    - Library directory         ${PREFIX_LIB}")
 message(STATUS "    - Include directory         ${PREFIX_INC}")
 message(STATUS "    - Package                   ${PACKAGE_LIST}")
+if (WITH_PKGCONFIG_SCRIPT)
+  message(STATUS "    - pkg-config directory       ${PKGCONFIG_DIR}")
+endif ()
 message(STATUS "")
