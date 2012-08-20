@@ -19,11 +19,11 @@
 ##
 
 libdir=@PREFIX_LIB@
-incdir=@PREFIX_INC@
+includedir=@PREFIX_INC@
 
 Name: Centreon Clib
 Description: Centreon Clib is common library for Centreon products.
 Version: @CLIB_VERSION@
 URL: http://forge.centreon.com/projects/centreon-clib
-Cflags: -I${incdir}
-Libs: ${libdir}/libcentreon-clib.so
+Cflags: -I${includedir}
+Libs: ${libdir}/libcentreon_clib.so
