@@ -37,8 +37,9 @@ add_definitions(-DCENTREON_CONNECTOR_SSH_VERSION=\"${CONNECTOR_SSH_VERSION}\")
 # We will use pkg-config if available.
 include(FindPkgConfig)
 if (PKG_CONFIG_FOUND)
-  pkg_check_modules(CLIB QUIET "centreon-clib") # Will be used below.
-  pkg_check_modules(LIBSSH2 QUIET "libssh2")    # Will be used below.
+  pkg_check_modules(CLIB QUIET "centreon-clib")  # Will be used below.
+  pkg_check_modules(LIBSSH2 QUIET "libssh2")     # Will be used below.
+  pkg_check_modules(LIBGCRYPT QUIET "libgcrypt") # Will be used below.
 endif ()
 
 # Find libssh2's headers.
@@ -109,6 +110,27 @@ if (LIBSSH2_WITH_LIBGCRYPT)
     find_file(LIBGCRYPT_HEADER_FOUND "gcrypt.h")
     if (NOT LIBGCRYPT_HEADER_FOUND)
       message(FATAL_ERROR "Could not find libgcrypt's headers (try WITH_LIBGCRYPT_INCLUDE_DIR).")
+    endif ()
+  endif ()
+
+  # Find libgcrypt's library.
+  if (WITH_LIBGCRYPT_LIBRARIES)
+    set(LIBGCRYPT_LIBRARIES "${WITH_LIBGCRYPT_LIBRARIES}")
+  elseif (WITH_LIBGCRYPT_LIBRARY_DIR)
+    find_library(
+      LIBGCRYPT_LIBRARIES
+      "gcrypt"
+      PATHS "${WITH_LIBGCRYPT_LIBRARY_DIR}"
+      NO_DEFAULT_PATH)
+    if (NOT LIBGCRYPT_LIBRARIES)
+      message(FATAL_ERROR "Could not find libgcrypt's library in ${WITH_LIBGCRYPT_LIBRARY_DIR}.")
+    endif ()
+  elseif (LIBGCRYPT_FOUND) # Was libgcrypt detected with pkg-config ?
+    set(LIBGCRYPT_LIBRARIES "${LIBGCRYPT_LDFLAGS}")
+  else ()
+    find_library(LIBGCRYPT_LIBRARIES "gcrypt")
+    if (NOT LIBGCRYPT_LIBRARIES)
+      message(FATAL_ERROR "Could not find libgcrypt's library (try WITH_LIBGCRYPT_LIBRARY_DIR).")
     endif ()
   endif ()
 
@@ -209,6 +231,7 @@ target_link_libraries(
   "${CONNECTORLIB}"
   ${LIBSSH2_LIBRARIES}
   ${CLIB_LIBRARIES}
+  ${LIBGCRYPT_LIBRARIES}
 )
 
 # SSH connector.
