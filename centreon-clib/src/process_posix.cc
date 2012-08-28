@@ -396,8 +396,10 @@ unsigned int process::write(std::string const& data) {
  */
 unsigned int process::write(void const* data, unsigned int size) {
   concurrency::locker lock(&_lock_process);
-  ssize_t wb(::write(_stream[in], data, size));
-  if (wb < 0) {
+  ssize_t wb(0);
+  while ((wb = ::write(_stream[in], data, size)) < 0) {
+    if (errno == EINTR)
+      continue;
     char const* msg(strerror(errno));
     throw (basic_error() << "could not write on process "
            << _process << "'s input: " << msg);
@@ -439,7 +441,8 @@ process& process::operator=(process const& p) {
  */
 void process::_close(int& fd) throw () {
   if (fd >= 0) {
-    ::close(fd);
+    while (::close(fd) < 0 && errno == EINTR)
+      ;
     fd = -1;
   }
   return;
@@ -452,7 +455,7 @@ void process::_close(int& fd) throw () {
  *  @param[in] flags Flags for open().
  */
 void process::_dev_null(int fd, int flags) {
-  int newfd(open("/dev/null", flags));
+  int newfd(::open("/dev/null", flags));
   if (newfd < 0) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not open /dev/null: " << msg);
@@ -461,10 +464,10 @@ void process::_dev_null(int fd, int flags) {
     _dup2(newfd, fd);
   }
   catch (...) {
-    ::close(newfd);
-    throw ;
+    _close(newfd);
+    throw;
   }
-  ::close(newfd);
+  _close(newfd);
   return;
 }
 
@@ -476,8 +479,10 @@ void process::_dev_null(int fd, int flags) {
  *  @return The new descriptor.
  */
 int process::_dup(int oldfd) {
-  int newfd(dup(oldfd));
-  if (newfd < 0) {
+  int newfd(0);
+  while ((newfd = dup(oldfd)) < 0) {
+    if (errno == EINTR)
+      continue;
     char const* msg(strerror(errno));
     throw (basic_error() << "could not duplicate FD: " << msg);
   }
@@ -491,7 +496,10 @@ int process::_dup(int oldfd) {
  *  @param[in] newfd New FD.
  */
 void process::_dup2(int oldfd, int newfd) {
-  if (dup2(oldfd, newfd) < 0) {
+  int ret(0);
+  while ((ret = dup2(oldfd, newfd)) < 0) {
+    if (errno == EINTR)
+      continue;
     char const* msg(strerror(errno));
     throw (basic_error() << "could not duplicate FD: " << msg);
   }
@@ -561,8 +569,10 @@ void process::_pipe(int fds[2]) {
  *  @return Number of bytes actually read.
  */
 unsigned int process::_read(int fd, void* data, unsigned int size) {
-  ssize_t rb(::read(fd, data, size));
-  if (rb < 0) {
+  ssize_t rb(0);
+  while ((rb = ::read(fd, data, size)) < 0) {
+    if (errno == EINTR)
+      continue;
     char const* msg(strerror(errno));
     throw (basic_error() << "could not read from process "
            << _process << ": " << msg);
@@ -576,13 +586,18 @@ unsigned int process::_read(int fd, void* data, unsigned int size) {
  *  @param[in] fd The file descriptor to set close on exec.
  */
 void process::_set_cloexec(int fd) {
-  int flags(fcntl(fd, F_GETFD));
-  if (flags < 0) {
+  int flags(0);
+  while ((flags = fcntl(fd, F_GETFD)) < 0) {
+    if (errno == EINTR)
+      continue;
     char const* msg(strerror(errno));
     throw (basic_error() << "Could not get file descriptor flags: "
            << msg);
   }
-  if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) {
+  int ret(0);
+  while ((ret = fcntl(fd, F_SETFD, flags | FD_CLOEXEC)) < 0) {
+    if (errno == EINTR)
+      continue;
     char const* msg(strerror(errno));
     throw (basic_error() << "Could not set close-on-exec flag: "
            << msg);

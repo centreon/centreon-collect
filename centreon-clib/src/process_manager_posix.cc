@@ -161,7 +161,7 @@ process_manager::~process_manager() throw () {
   }
 
   // Exit process manager thread.
-  ::close(_fds_exit[1]);
+  _close(_fds_exit[1]);
 
   // Waiting the end of the process manager thread.
   wait();
@@ -173,11 +173,13 @@ process_manager::~process_manager() throw () {
     delete[] _fds;
 
     // Release ressources.
-    ::close(_fds_exit[0]);
+    _close(_fds_exit[0]);
 
     // Waiting all process.
+    int ret(0);
     int status(0);
-    while (waitpid(-1, &status, 0) > 0)
+    while ((ret = ::waitpid(-1, &status, 0)) > 0
+           || (ret && errno == EINTR))
       ;
   }
 }
@@ -192,6 +194,20 @@ process_manager::~process_manager() throw () {
 process_manager& process_manager::operator=(process_manager const& right) {
   _internal_copy(right);
   return (*this);
+}
+
+/**
+ *  close syscall wrapper.
+ *
+ *  @param[in, out] fd The file descriptor to close.
+ */
+void process_manager::_close(int& fd) throw () {
+  if (fd >= 0) {
+    while (::close(fd) < 0 && errno == EINTR)
+      ;
+    fd = -1;
+  }
+  return;
 }
 
 /**
@@ -363,7 +379,7 @@ void process_manager::_run() {
 
       // Wait event on file descriptor.
       int ret(poll(_fds, _fds_size, DEFAULT_TIMEOUT));
-      if (ret == EINTR)
+      if (ret < 0 && errno == EINTR)
         ret = 0;
       else if (ret < 0) {
         char const* msg(strerror(errno));
@@ -444,7 +460,7 @@ void process_manager::_wait_processes() throw () {
   try {
     while (true) {
       int status(0);
-      pid_t pid(waitpid(-1, &status, WNOHANG));
+      pid_t pid(::waitpid(-1, &status, WNOHANG));
       // No process are finished.
       if (pid <= 0)
         break;
