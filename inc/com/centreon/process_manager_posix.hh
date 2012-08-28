@@ -51,6 +51,7 @@ private:
                           process_manager(process_manager const& p);
                           ~process_manager() throw ();
   process_manager&        operator=(process_manager const& p);
+  static void             _close(int& fd) throw ();
   void                    _close_stream(int fd) throw ();
   void                    _erase_timeout(process* p);
   void                    _internal_copy(process_manager const& p);
