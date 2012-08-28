@@ -187,7 +187,6 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     misc::command_line cmdline(cmd);
     char** args(cmdline.get_argv());
 
-
     // volatile prevent compiler optimization
     // that might clobber variable.
     char** volatile my_env(env ? env : environ);
