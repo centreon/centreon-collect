@@ -266,6 +266,7 @@ void process_manager::_erase_timeout(process* p) {
   // Check process viability.
   if (!p || !p->_timeout)
     return;
+  concurrency::locker lock(&_lock_processes);
   umultimap<unsigned int, process*>::iterator
     it(_processes_timeout.find(p->_timeout));
   umultimap<unsigned int, process*>::iterator
@@ -437,7 +438,8 @@ void process_manager::_update_list() {
   // Resize file descriptor list.
   if (_processes_fd.size() > _fds_capacity) {
     delete[] _fds;
-    _fds = new pollfd[_processes_fd.size()];
+    _fds_capacity = _processes_fd.size();
+    _fds = new pollfd[_fds_capacity];
   }
   // Set file descriptor to wait event.
   _fds_size = 0;
