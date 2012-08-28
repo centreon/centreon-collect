@@ -296,6 +296,7 @@ void process_manager::_internal_copy(process_manager const& right) {
  *  Kill process to reach the timeout.
  */
 void process_manager::_kill_processes_timeout() throw () {
+  concurrency::locker lock(&_lock_processes);
   // Get the current time.
   unsigned int now(time(NULL));
   umultimap<unsigned int, process*>::iterator
