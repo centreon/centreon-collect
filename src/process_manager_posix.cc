@@ -361,9 +361,11 @@ void process_manager::_run() {
       // Update the file descriptor list.
       _update_list();
 
-      int ret(0);
       // Wait event on file descriptor.
-      if ((ret = poll(_fds, _fds_size, DEFAULT_TIMEOUT)) < 0) {
+      int ret(poll(_fds, _fds_size, DEFAULT_TIMEOUT));
+      if (ret == EINTR)
+        ret = 0;
+      else if (ret < 0) {
         char const* msg(strerror(errno));
         throw (basic_error() << "poll failed: " << msg);
       }
