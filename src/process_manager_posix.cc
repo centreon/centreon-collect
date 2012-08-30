@@ -302,19 +302,19 @@ void process_manager::_kill_processes_timeout() throw () {
   unsigned int now(time(NULL));
   umultimap<unsigned int, process*>::iterator
     it(_processes_timeout.begin());
-  try {
-    // Kill process who timeout and remove it from timeout list.
-    while (it != _processes_timeout.end()
-           && now >= it->first) {
-      process* p(it->second);
+  // Kill process who timeout and remove it from timeout list.
+  while (it != _processes_timeout.end()
+         && now >= it->first) {
+    process* p(it->second);
+    try {
       p->kill();
       p->_is_timeout = true;
-      umultimap<unsigned int, process*>::iterator tmp(it++);
-      _processes_timeout.erase(tmp);
     }
-  }
-  catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    catch (std::exception const& e) {
+      (void)e;
+    }
+    umultimap<unsigned int, process*>::iterator tmp(it++);
+    _processes_timeout.erase(tmp);
   }
 }
 
