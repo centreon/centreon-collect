@@ -21,6 +21,7 @@
 #ifndef CC_PROCESS_MANAGER_POSIX_HH
 #  define CC_PROCESS_MANAGER_POSIX_HH
 
+#  include <map>
 #  include <poll.h>
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/concurrency/thread.hh"
@@ -68,7 +69,7 @@ private:
   concurrency::mutex      _lock_processes;
   umap<int, process*>     _processes_fd;
   umap<pid_t, process*>   _processes_pid;
-  umultimap<unsigned int, process*>
+  std::multimap<unsigned int, process*>
                           _processes_timeout;
   bool                    _update;
 };
