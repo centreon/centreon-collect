@@ -443,8 +443,8 @@ void process::_close(int& fd) throw () {
   if (fd >= 0) {
     while (::close(fd) < 0 && errno == EINTR)
       ;
-    fd = -1;
   }
+  fd = -1;
   return;
 }
 

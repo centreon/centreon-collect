@@ -156,8 +156,14 @@ process_manager::~process_manager() throw () {
     for (umap<pid_t, process*>::iterator
            it(_processes_pid.begin()), end(_processes_pid.end());
          it != end;
-         ++it)
-      it->second->kill();
+         ++it) {
+      try {
+        it->second->kill();
+      }
+      catch (std::exception const& e) {
+        (void)e;
+      }
+    }
   }
 
   // Exit process manager thread.
@@ -267,9 +273,9 @@ void process_manager::_erase_timeout(process* p) {
   if (!p || !p->_timeout)
     return;
   concurrency::locker lock(&_lock_processes);
-  umultimap<unsigned int, process*>::iterator
+  std::multimap<unsigned int, process*>::iterator
     it(_processes_timeout.find(p->_timeout));
-  umultimap<unsigned int, process*>::iterator
+  std::multimap<unsigned int, process*>::iterator
     end(_processes_timeout.end());
   // Find and erase process from timeout list.
   while (it != end && it->first == p->_timeout) {
@@ -300,7 +306,7 @@ void process_manager::_kill_processes_timeout() throw () {
   concurrency::locker lock(&_lock_processes);
   // Get the current time.
   unsigned int now(time(NULL));
-  umultimap<unsigned int, process*>::iterator
+  std::multimap<unsigned int, process*>::iterator
     it(_processes_timeout.begin());
   // Kill process who timeout and remove it from timeout list.
   while (it != _processes_timeout.end()
@@ -311,9 +317,9 @@ void process_manager::_kill_processes_timeout() throw () {
       p->_is_timeout = true;
     }
     catch (std::exception const& e) {
-      (void)e;
+      logging::error(logging::high) << e.what();
     }
-    umultimap<unsigned int, process*>::iterator tmp(it++);
+    std::multimap<unsigned int, process*>::iterator tmp(it++);
     _processes_timeout.erase(tmp);
   }
 }
