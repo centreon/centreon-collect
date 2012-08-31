@@ -21,6 +21,7 @@
 #ifndef CC_PROCESS_MANAGER_POSIX_HH
 #  define CC_PROCESS_MANAGER_POSIX_HH
 
+#  include <list>
 #  include <map>
 #  include <poll.h>
 #  include "com/centreon/concurrency/mutex.hh"
@@ -48,6 +49,12 @@ public:
   static void             unload();
 
 private:
+  struct                  orphan {
+                          orphan(pid_t _pid = 0, int _status = 0)
+                            : pid(_pid), status(_status) {}
+    pid_t                 pid;
+    int                   status;
+  };
                           process_manager();
                           process_manager(process_manager const& p);
                           ~process_manager() throw ();
@@ -59,7 +66,11 @@ private:
   void                    _kill_processes_timeout() throw ();
   unsigned int            _read_stream(int fd) throw ();
   void                    _run();
+  void                    _update_ending_process(
+                            process* p,
+                            int status) throw ();
   void                    _update_list();
+  void                    _wait_orphans_pid() throw ();
   void                    _wait_processes() throw ();
 
   pollfd*                 _fds;
@@ -67,6 +78,7 @@ private:
   int                     _fds_exit[2];
   unsigned int            _fds_size;
   concurrency::mutex      _lock_processes;
+  std::list<orphan>       _orphans_pid;
   umap<int, process*>     _processes_fd;
   umap<pid_t, process*>   _processes_pid;
   std::multimap<unsigned int, process*>
