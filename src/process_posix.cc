@@ -354,7 +354,7 @@ void process::terminate() {
  */
 void process::wait() const {
   concurrency::locker lock(&_lock_process);
-  if (_is_running())
+  while (_is_running())
     _cv_process.wait(&_lock_process);
   return;
 }

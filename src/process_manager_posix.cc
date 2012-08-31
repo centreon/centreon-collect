@@ -211,8 +211,8 @@ void process_manager::_close(int& fd) throw () {
   if (fd >= 0) {
     while (::close(fd) < 0 && errno == EINTR)
       ;
-    fd = -1;
   }
+  fd = -1;
   return;
 }
 
@@ -261,6 +261,7 @@ void process_manager::_close_stream(int fd) throw () {
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
   }
+  return;
 }
 
 /**
@@ -285,6 +286,7 @@ void process_manager::_erase_timeout(process* p) {
     }
     ++it;
   }
+  return;
 }
 
 /**
@@ -322,6 +324,7 @@ void process_manager::_kill_processes_timeout() throw () {
     std::multimap<unsigned int, process*>::iterator tmp(it++);
     _processes_timeout.erase(tmp);
   }
+  return;
 }
 
 /**
@@ -423,6 +426,7 @@ void process_manager::_run() {
       }
       // Release finished process.
       _wait_processes();
+      _wait_orphans_pid();
       // Kill process in timeout.
       _kill_processes_timeout();
     }
@@ -430,6 +434,42 @@ void process_manager::_run() {
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
   }
+  return;
+}
+
+/**
+ *  Update process informations at the end of the process.
+ *
+ *  @param[in] p       The process to update informations.
+ *  @param[in] status  The status of the process to set.
+ */
+void process_manager::_update_ending_process(
+                        process* p,
+                        int status) throw () {
+  // Check process viability.
+  if (!p)
+    return;
+
+  // Update process informations.
+  concurrency::locker lock(&p->_lock_process);
+  p->_end_time = timestamp::now();
+  p->_status = status;
+  p->_process = static_cast<pid_t>(-1);
+  p->_close(p->_stream[process::in]);
+  _erase_timeout(p);
+  if (!p->_is_running()) {
+    // Notify listener if necessary.
+    if (p->_listener) {
+      lock.unlock();
+      (p->_listener->finished)(*p);
+      lock.relock();
+    }
+    // Release condition variable.
+    p->_cv_buffer_err.wake_one();
+    p->_cv_buffer_out.wake_one();
+    p->_cv_process.wake_one();
+  }
+  return;
 }
 
 /**
@@ -460,6 +500,44 @@ void process_manager::_update_list() {
   }
   // Disable update.
   _update = false;
+  return;
+}
+
+/**
+ *  Waiting orphans pid.
+ */
+void process_manager::_wait_orphans_pid() throw () {
+  try {
+    concurrency::locker lock(&_lock_processes);
+    std::list<orphan>::iterator it(_orphans_pid.begin());
+    while (it != _orphans_pid.end()) {
+      process* p(NULL);
+      // Get process to link with pid and remove this pid
+      // to the process manager.
+      {
+        umap<pid_t, process*>::iterator
+          it_p(_processes_pid.find(it->pid));
+        if (it_p == _processes_pid.end()) {
+          ++it;
+          continue;
+        }
+        p = it_p->second;
+        _processes_pid.erase(it_p);
+      }
+
+      // Update process.
+      lock.unlock();
+      _update_ending_process(p, it->status);
+      lock.relock();
+
+      // Erase orphan pid.
+      it = _orphans_pid.erase(it);
+    }
+  }
+  catch (std::exception const& e) {
+    logging::error(logging::high) << e.what();
+  }
+  return;
 }
 
 /**
@@ -480,35 +558,20 @@ void process_manager::_wait_processes() throw () {
       {
         concurrency::locker lock(&_lock_processes);
         umap<pid_t, process*>::iterator it(_processes_pid.find(pid));
-        if (it == _processes_pid.end())
-          throw (basic_error() << "waiting process failed: " << pid
-                 << " is not register");
+        if (it == _processes_pid.end()) {
+          _orphans_pid.push_back(orphan(pid, status));
+          continue;
+        }
         p = it->second;
         _processes_pid.erase(it);
       }
 
-      // Update process informations.
-      concurrency::locker lock(&p->_lock_process);
-      p->_end_time = timestamp::now();
-      p->_status = status;
-      p->_process = static_cast<pid_t>(-1);
-      p->_close(p->_stream[process::in]);
-      _erase_timeout(p);
-      if (!p->_is_running()) {
-        // Notify listener if necessary.
-        if (p->_listener) {
-          lock.unlock();
-          (p->_listener->finished)(*p);
-          lock.relock();
-        }
-        // Release condition variable.
-        p->_cv_buffer_err.wake_one();
-        p->_cv_buffer_out.wake_one();
-        p->_cv_process.wake_one();
-      }
+      // Update process.
+      _update_ending_process(p, status);
     }
   }
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
   }
+  return;
 }
