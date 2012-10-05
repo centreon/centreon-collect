@@ -259,7 +259,7 @@ void process_manager::_close_stream(int fd) throw () {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
   return;
 }
@@ -319,7 +319,7 @@ void process_manager::_kill_processes_timeout() throw () {
       p->_is_timeout = true;
     }
     catch (std::exception const& e) {
-      logging::error(logging::high) << e.what();
+      log_error(logging::high) << e.what();
     }
     std::multimap<unsigned int, process*>::iterator tmp(it++);
     _processes_timeout.erase(tmp);
@@ -374,7 +374,7 @@ unsigned int process_manager::_read_stream(int fd) throw () {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
   return (size);
 }
@@ -420,7 +420,7 @@ void process_manager::_run() {
         //  Error!
         else if (_fds[i].revents & (POLLERR | POLLNVAL)) {
           _update = true;
-          logging::error(logging::high)
+          log_error(logging::high)
             << "invalid fd " << _fds[i].fd << " from process manager";
         }
       }
@@ -432,7 +432,7 @@ void process_manager::_run() {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
   return;
 }
@@ -535,7 +535,7 @@ void process_manager::_wait_orphans_pid() throw () {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
   return;
 }
@@ -571,7 +571,7 @@ void process_manager::_wait_processes() throw () {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
   return;
 }

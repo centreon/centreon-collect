@@ -45,7 +45,6 @@ set(
   "${SRC_DIR}/backend.cc"
   "${SRC_DIR}/engine.cc"
   "${SRC_DIR}/file.cc"
-  "${SRC_DIR}/logger.cc"
   "${SRC_DIR}/temp_logger.cc"
   "${SRC_DIR}/verbosity.cc"
   PARENT_SCOPE

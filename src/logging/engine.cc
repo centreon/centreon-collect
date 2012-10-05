@@ -171,7 +171,7 @@ void engine::log(
                type_number flag,
                verbosity const& verbose,
                char const* msg) {
-  if (!msg || !is_log(flag, verbose))
+  if (!msg)
     return;
 
   // Lock engine.

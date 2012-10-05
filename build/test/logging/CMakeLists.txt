@@ -93,12 +93,6 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# logger_copy
-set(TEST_NAME "logger_copy")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # engine_with_thread
 set(TEST_NAME "engine_with_thread")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")

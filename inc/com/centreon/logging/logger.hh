@@ -21,57 +21,60 @@
 #ifndef CC_LOGGING_LOGGER_HH
 #  define CC_LOGGING_LOGGER_HH
 
-#  include <string>
+#  include "com/centreon/logging/engine.hh"
 #  include "com/centreon/logging/temp_logger.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
-namespace              logging {
-  enum                 type_value {
+namespace logging {
+  enum    type_value {
     type_info = 0,
     type_debug = 1,
     type_error = 2
   };
 
-  enum                 verbosity_level {
+  enum    verbosity_level {
     none = 0,
     low = 1,
     medium = 2,
     high = 3
   };
-
-  /**
-   *  @class logger logger.hh "com/centreon/logging/logger.hh"
-   *  @brief Log messages.
-   *
-   *  This class provide basic logger (info, debug, error).
-   */
-  class                logger {
-  public:
-                       logger(
-                         type_number type,
-                         char const* prefix = NULL) throw ();
-                       logger(logger const& right);
-                       ~logger() throw ();
-    logger&            operator=(logger const& right);
-    temp_logger        operator()(verbosity const& verbose) const;
-    temp_logger        operator()(verbosity_level level) const;
-    std::string const& get_prefix() const throw ();
-    type_number        get_type() const throw ();
-
-  private:
-    logger&            _internal_copy(logger const& right);
-
-    std::string        _prefix;
-    type_number        _type;
-  };
-
-  extern logger        info;
-  extern logger        debug;
-  extern logger        error;
 }
 
 CC_END()
+
+#  define log_info(verbose) \
+  for (unsigned int i(0); \
+       !i && com::centreon::logging::engine::instance().is_log( \
+               com::centreon::logging::type_info, \
+               verbose); \
+       ++i) \
+    com::centreon::logging::temp_logger( \
+      com::centreon::logging::type_info, \
+      verbose) \
+        << "[info] "
+
+#  define log_debug(verbose) \
+  for (unsigned int i(0); \
+       !i && com::centreon::logging::engine::instance().is_log( \
+               com::centreon::logging::type_debug, \
+               verbose); \
+       ++i) \
+    com::centreon::logging::temp_logger( \
+      com::centreon::logging::type_debug, \
+      verbose) \
+      << "[debug] "
+
+#  define log_error(verbose) \
+  for (unsigned int i(0); \
+       !i && com::centreon::logging::engine::instance().is_log( \
+               com::centreon::logging::type_error, \
+               verbose); \
+       ++i) \
+    com::centreon::logging::temp_logger( \
+      com::centreon::logging::type_error, \
+      verbose) \
+      << "[error] "
 
 #endif // !CC_LOGGING_LOGGER_HH

@@ -50,64 +50,18 @@ namespace                     logging {
                               temp_logger(temp_logger const& right);
     virtual                   ~temp_logger() throw ();
     temp_logger&              operator=(temp_logger const& right);
-    temp_logger&              operator<<(char const* obj) throw ();
-    temp_logger&              operator<<(char obj) throw ();
-    temp_logger&              operator<<(double obj) throw ();
-    temp_logger&              operator<<(int obj) throw ();
-    temp_logger&              operator<<(long long obj) throw ();
-    temp_logger&              operator<<(long obj) throw ();
     temp_logger&              operator<<(setprecision const& obj) throw ();
-    temp_logger&              operator<<(std::string const& obj) throw ();
-    temp_logger&              operator<<(unsigned int obj) throw ();
-    temp_logger&              operator<<(unsigned long long obj) throw ();
-    temp_logger&              operator<<(unsigned long obj) throw ();
-    temp_logger&              operator<<(void const* obj) throw ();
+    template<typename T>
+    temp_logger&              operator<<(T obj) throw () {
+      _buffer << obj;
+      return (*this);
+    }
 
   private:
-    struct                    redirector {
-      temp_logger&            (temp_logger::*
-                               redir_char)(char) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_double)(double) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_int)(int) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_flush)() throw ();
-      temp_logger&            (temp_logger::*
-                               redir_long_long)(long long) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_long)(long) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_setprecision)(setprecision const&) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_std_string)(std::string const&) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_string)(char const*) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_uint)(unsigned int) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_ulong_long)(unsigned long long) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_ulong)(unsigned long) throw ();
-      temp_logger&            (temp_logger::*
-                               redir_void_ptr)(void const*) throw ();
-    };
-
-    template<typename T>
-    temp_logger&              _builder(T obj) throw ();
-    temp_logger&              _builder_setprecision(
-                                setprecision const& obj) throw ();
     temp_logger&              _internal_copy(temp_logger const& right);
-    temp_logger&              _flush() throw ();
-    template<typename T>
-    temp_logger&              _nothing(T obj) throw ();
-    temp_logger&              _nothing() throw ();
 
     misc::stringifier         _buffer;
     engine&                   _engine;
-    mutable redirector const* _redirector;
-    static redirector const   _redir_builder;
-    static redirector const   _redir_nothing;
     type_number               _type;
     verbosity                 _verbose;
   };
