@@ -177,7 +177,7 @@ void process_manager::_close_stream(HANDLE fd) throw () {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
 }
 
@@ -223,7 +223,7 @@ void process_manager::_read_stream(HANDLE fd) throw () {
     p->_cv_process.wake_one();
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    logerror(logging::high) << e.what();
   }
 }
 
@@ -244,7 +244,7 @@ void process_manager::_run() {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
 }
 
@@ -279,6 +279,6 @@ void process_manager::_wait_processes() throw () {
     // XXX: catch ending process.
   }
   catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_error(logging::high) << e.what();
   }
 }
