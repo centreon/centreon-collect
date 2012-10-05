@@ -49,9 +49,9 @@ volatile bool should_exit(false);
 static void term_handler(int signum) {
   (void)signum;
   int old_errno(errno);
-  logging::info(logging::high) << "termination request received";
+  log_info(logging::high) << "termination request received";
   should_exit = true;
-  logging::info(logging::high) << "reseting termination handler";
+  log_info(logging::high) << "reseting termination handler";
   signal(SIGTERM, SIG_DFL);
   errno = old_errno;
   return ;
@@ -118,11 +118,11 @@ int main(int argc, char** argv, char** env) {
           (1ull << logging::type_info) | (1ull << logging::type_error),
           logging::low);
       }
-      logging::info(logging::low) << "Centreon Connector Perl "
+      log_info(logging::low) << "Centreon Connector Perl "
         << CENTREON_CONNECTOR_PERL_VERSION << " starting";
 
       // Set termination handler.
-      logging::debug(logging::medium)
+      log_debug(logging::medium)
         << "installing termination handler";
       signal(SIGTERM, term_handler);
 
@@ -135,7 +135,7 @@ int main(int argc, char** argv, char** env) {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 
   // Deinitializations.

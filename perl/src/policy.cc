@@ -89,7 +89,7 @@ policy::~policy() throw () {
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  logging::info(logging::low) << "stdin is closed";
+  log_info(logging::low) << "stdin is closed";
   on_quit();
   return ;
 }
@@ -98,7 +98,7 @@ void policy::on_eof() {
  *  Called if an error occured on stdin.
  */
 void policy::on_error() {
-  logging::info(logging::low)
+  log_info(logging::low)
     << "error occurred while parsing stdin";
   _error = true;
   on_quit();
@@ -124,7 +124,7 @@ void policy::on_execute(
     chk.release();
   }
   catch (std::exception const& e) {
-    logging::info(logging::low) << "execution of check "
+    log_info(logging::low) << "execution of check "
       << cmd_id << " failed: " << e.what();
     checks::result r;
     r.set_command_id(cmd_id);
@@ -138,7 +138,7 @@ void policy::on_execute(
  */
 void policy::on_quit() {
   // Exiting.
-  logging::info(logging::low)
+  log_info(logging::low)
     << "quit request received";
   should_exit = true;
   multiplexer::instance().handle_manager::remove(&_sin);
@@ -166,7 +166,7 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  logging::info(logging::medium)
+  log_info(logging::medium)
     << "monitoring engine requested protocol version, sending 1.0";
   _reporter.send_version(1, 0);
   return ;
@@ -196,7 +196,7 @@ bool policy::run() {
       }
 
       // Handle process termination.
-      logging::info(logging::medium) << "process " << child
+      log_info(logging::medium) << "process " << child
         << " exited with status " << status;
       std::map<pid_t, checks::check*>::iterator it;
       it = _checks.find(child);
@@ -205,7 +205,7 @@ bool policy::run() {
         _checks.erase(it);
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
       }
-      logging::debug(logging::medium)
+      log_debug(logging::medium)
         << _checks.size() << " checks still running";
 
       // Is there any other terminated child ?
@@ -214,7 +214,7 @@ bool policy::run() {
   }
 
   // Run as long as some data remains.
-  logging::info(logging::low)
+  log_info(logging::low)
     << "reporting last data to monitoring engine";
   while (_reporter.can_report() && _reporter.want_write(_sout))
     multiplexer::instance().multiplex();

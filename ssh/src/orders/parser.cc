@@ -115,15 +115,15 @@ void parser::listen(listener* l) throw () {
  */
 void parser::read(handle& h) {
   // Read data.
-  logging::debug(logging::medium) << "reading data for parsing";
+  log_debug(logging::medium) << "reading data for parsing";
   char buffer[4096];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
-  logging::debug(logging::medium) << "read "
+  log_debug(logging::medium) << "read "
     << rb << " bytes from handle";
 
   // stdin's eof is reached.
   if (!rb) {
-    logging::debug(logging::high) << "got eof on read handle";
+    log_debug(logging::high) << "got eof on read handle";
     if (_listnr)
       _listnr->on_eof();
   }
@@ -138,7 +138,7 @@ void parser::read(handle& h) {
 
     // Parse command.
     while (bound != std::string::npos) {
-      logging::debug(logging::high)
+      log_debug(logging::high)
         << "got command boundary at offset " << bound;
       bound += sizeof(boundary);
       std::string cmd(_buffer.substr(0, bound));
@@ -152,12 +152,12 @@ void parser::read(handle& h) {
         error = true;
         error_msg = "orders parsing error: ";
         error_msg.append(e.what());
-        logging::error(logging::low) << error_msg;
+        log_error(logging::low) << error_msg;
       }
       catch (...) {
         error = true;
         error_msg = "unknown orders parsing error";
-        logging::error(logging::low) << error_msg;
+        log_error(logging::low) << error_msg;
       }
       if (error && _listnr)
         _listnr->on_error(0, error_msg.c_str());

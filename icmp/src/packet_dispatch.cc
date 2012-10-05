@@ -104,7 +104,7 @@ packet_dispatch& packet_dispatch::operator=(packet_dispatch const& right) {
 void packet_dispatch::close(handle& h) {
   (void)h;
   _quit = true;
-  logging::debug(logging::low) << "icmp socket was close";
+  log_debug(logging::low) << "icmp socket was close";
 }
 
 /**
@@ -115,7 +115,7 @@ void packet_dispatch::close(handle& h) {
 void packet_dispatch::error(handle& h) {
   (void)h;
   _quit = true;
-  logging::debug(logging::low) << "icmp socket has an error";
+  log_debug(logging::low) << "icmp socket has an error";
 }
 
 /**
@@ -130,12 +130,12 @@ void packet_dispatch::read(handle& h) {
     unsigned char buffer[4096];
     unsigned long size(sock.read(buffer, sizeof(buffer)));
     packet pkt(buffer, size, now);
-    // logging::debug(logging::high) << "read " << pkt;
+    // log_debug(logging::high) << "read " << pkt;
     if (_observer)
       _observer->emit_receive(pkt);
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }
 
@@ -178,14 +178,14 @@ void packet_dispatch::write(handle& h) {
     _mtx.unlock();
 
     void const* data(pkt.get_data());
-    // logging::debug(logging::high) << "write " << pkt;
+    // log_debug(logging::high) << "write " << pkt;
 
     sock.set_address(pkt.get_address());
     if (sock.write(data, pkt.get_size()) != pkt.get_size())
       throw (basic_error() << "icmp socket write failed");
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }
 
@@ -217,6 +217,6 @@ void packet_dispatch::_run() {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }

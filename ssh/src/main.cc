@@ -58,9 +58,9 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 static void term_handler(int signum) {
   (void)signum;
   int old_errno(errno);
-  logging::info(logging::high) << "termination request received";
+  log_info(logging::high) << "termination request received";
   should_exit = true;
-  logging::info(logging::high) << "reseting termination handler";
+  log_info(logging::high) << "reseting termination handler";
   signal(SIGTERM, SIG_DFL);
   errno = old_errno;
   return ;
@@ -124,11 +124,11 @@ int main(int argc, char* argv[]) {
           (1ull << logging::type_info) | (1ull << logging::type_error),
           logging::low);
       }
-      logging::info(logging::low) << "Centreon Connector SSH "
+      log_info(logging::low) << "Centreon Connector SSH "
         << CENTREON_CONNECTOR_SSH_VERSION << " starting";
 #if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.
-      logging::debug(logging::medium) << "initializing libssh2";
+      log_debug(logging::medium) << "initializing libssh2";
 #  ifdef LIBSSH2_WITH_LIBGCRYPT
       gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 #  endif // LIBSSH2_WITH_LIBGCRYPT
@@ -139,13 +139,13 @@ int main(int argc, char* argv[]) {
         if (!version)
           throw (basic_error() << "libssh2 version is too old (>= "
                    << LIBSSH2_VERSION << " required)");
-        logging::info(logging::low) << "libssh2 version "
+        log_info(logging::low) << "libssh2 version "
           << version << " successfully loaded";
       }
 #endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
-      logging::debug(logging::medium)
+      log_debug(logging::medium)
         << "installing termination handler";
       signal(SIGTERM, term_handler);
 
@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 
 #if LIBSSH2_VERSION_NUM >= 0x010205

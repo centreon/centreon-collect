@@ -55,7 +55,7 @@ embedded_perl::~embedded_perl() {
   // Clean only if within parent process.
   if (_self == getpid()) {
     // Clean Perl interpreter.
-    logging::info(logging::low) << "cleaning up Embedded Perl";
+    log_info(logging::low) << "cleaning up Embedded Perl";
     if (my_perl) {
       PL_perl_destruct_level = 1;
       perl_destruct(my_perl);
@@ -112,7 +112,7 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   }
   else
     file = cmd;
-  logging::debug(logging::medium)
+  log_debug(logging::medium)
     << "command " << cmd << "\n"
     << "  - file " << file << "\n"
     << "  - args " << args;
@@ -120,7 +120,7 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   // Compile Perl file.
   dSP;
   {
-    logging::debug(logging::medium) << "parsing file " << file;
+    log_debug(logging::medium) << "parsing file " << file;
     char const* argv[3];
     argv[0] = file.c_str();
     argv[1] = "0";
@@ -247,7 +247,7 @@ embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
 
   // Set original PID.
   _self = getpid();
-  logging::debug(logging::high) << "self PID is " << _self;
+  log_debug(logging::high) << "self PID is " << _self;
 
   // Temporary script path.
   char script_path[] = SCRIPT_PATH;
@@ -259,7 +259,7 @@ embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
       throw (basic_error()
              << "could not create temporary file: " << msg);
     }
-    logging::info(logging::high)
+    log_info(logging::high)
       << "temporary script path is " << script_path;
 
     // Write embedded script.
@@ -282,7 +282,7 @@ embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
   }
 
   // Initialize Perl interpreter.
-  logging::info(logging::low) << "loading Embedded Perl interpreter";
+  log_info(logging::low) << "loading Embedded Perl interpreter";
   PERL_SYS_INIT3(argc, argv, env);
   if (!(my_perl = perl_alloc()))
     throw (basic_error() << "could not allocate Perl interpreter");

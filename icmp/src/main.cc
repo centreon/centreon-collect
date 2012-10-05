@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
   }
   catch (std::exception const& e) {
     // Log error.
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
     ret = EXIT_FAILURE;
   }
 

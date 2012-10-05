@@ -91,7 +91,7 @@ pid_t check::execute(
   _err.set_fd(fds[2]);
 
   // Store command ID.
-  logging::debug(logging::low) << "check " << this
+  log_debug(logging::low) << "check " << this
     << " has ID " << cmd_id;
   _cmd_id = cmd_id;
 
@@ -121,7 +121,7 @@ pid_t check::execute(
  *  @param[in] listnr New listener.
  */
 void check::listen(listener* listnr) {
-  logging::debug(logging::medium) << "check " << this
+  log_debug(logging::medium) << "check " << this
     << " is listened by " << listnr;
   _listnr = listnr;
   return ;
@@ -134,7 +134,7 @@ void check::listen(listener* listnr) {
  */
 void check::on_timeout(bool final) {
   // Log message.
-  logging::error(logging::low) << "check " << _cmd_id
+  log_error(logging::low) << "check " << _cmd_id
     << " reached timeout";
 
   if (final) {
@@ -169,12 +169,12 @@ void check::read(handle& h) {
   char buffer[1024];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
   if (&h == &_err) {
-    logging::debug(logging::high) << "reading from process "
+    log_debug(logging::high) << "reading from process "
       << _child << "'s stdout";
     _stderr.append(buffer, rb);
   }
   else {
-    logging::debug(logging::high) << "reading from process "
+    log_debug(logging::high) << "reading from process "
       << _child << "' stderr";
     _stdout.append(buffer, rb);
   }
@@ -188,7 +188,7 @@ void check::read(handle& h) {
  */
 void check::terminated(int exit_code) {
   // Read possibly remaining data.
-  logging::debug(logging::medium)
+  log_debug(logging::medium)
     << "reading remaining data from process " << _child;
   try {
     char buffer[1024];
@@ -230,7 +230,7 @@ void check::terminated(int exit_code) {
  *  @param[in] listnr Old listener.
  */
 void check::unlisten(listener* listnr) {
-  logging::debug(logging::medium) << "listener " << listnr
+  log_debug(logging::medium) << "listener " << listnr
     << " stops listening check " << this;
   _listnr = NULL;
   return ;

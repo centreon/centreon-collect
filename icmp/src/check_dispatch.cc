@@ -120,7 +120,7 @@ void check_dispatch::submit(std::string const& command_line) {
 void check_dispatch::submit(
                        unsigned int command_id,
                        std::string const& command_line) {
-  logging::debug(logging::high)
+  log_debug(logging::high)
     << "submit(" << command_id << ", " << command_line << ")";
 
   locker lock(&_mtx);
@@ -158,7 +158,7 @@ void check_dispatch::_run() {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }
 
@@ -192,7 +192,7 @@ check_dispatch& check_dispatch::operator=(check_dispatch const& right) {
  */
 void check_dispatch::emit_receive(packet const& pkt) {
   if (pkt.get_id() != _id) {
-    logging::debug(logging::low) << "invalid packet:id";
+    log_debug(logging::low) << "invalid packet:id";
     return ;
   }
 
@@ -297,7 +297,7 @@ void check_dispatch::_build_response(check const& chk) {
   }
 
   std::string new_status(status_str[status] + oss.str());
-  logging::debug(logging::low)
+  log_debug(logging::low)
     << "build response(" << chk.get_command_id() << ", " << status
     << ", " << new_status << ")";
 
@@ -330,7 +330,7 @@ check_dispatch& check_dispatch::_internal_copy(check_dispatch const& right) {
  */
 void check_dispatch::_push_packet(icmp_info* info) {
   unsigned short seq(++_internal_sequence);
-  logging::debug(logging::low) << "push packet(" << seq << ")";
+  log_debug(logging::low) << "push packet(" << seq << ")";
 
   info->hst->has_send_packet();
   info->pkt->set_sequence(seq);
@@ -365,11 +365,11 @@ void check_dispatch::_process_checks() {
     }
     catch (std::exception const& e) {
       delete chk;
-      logging::error(logging::low) << e.what();
+      log_error(logging::low) << e.what();
       continue;
     }
 
-    // logging::debug(logging::medium) << "build " << *chk;
+    // log_debug(logging::medium) << "build " << *chk;
     std::list<host*> const& hosts(chk->get_hosts());
     for (std::list<host*>::const_iterator
            hst(hosts.begin()), end(hosts.end());
@@ -377,7 +377,7 @@ void check_dispatch::_process_checks() {
          ++hst) {
 
       (*hst)->set_id(_host_id++);
-      // logging::debug(logging::medium) << "build " << **hst;
+      // log_debug(logging::medium) << "build " << **hst;
 
       packet* pkt(new packet(chk->get_packet_data_size()));
       pkt->set_address((*hst)->get_address());
@@ -414,7 +414,7 @@ void check_dispatch::_process_receive() {
     htable<unsigned int, icmp_info>::iterator
       it(_checks.find(pkt.get_host_id()));
     if (it == _checks.end()) {
-      logging::debug(logging::low)
+      log_debug(logging::low)
         << "packet drop: " << pkt.get_host_id();
       continue;
     }
@@ -424,12 +424,12 @@ void check_dispatch::_process_receive() {
       = (pkt.get_recv_time() - pkt.get_send_time()).to_useconds();
     if (pkt.get_type() == packet::icmp_echoreply) {
       hst.has_recv_packet(elapsed_time);
-      // logging::debug(logging::high) << "packet receive " << hst;
+      // log_debug(logging::high) << "packet receive " << hst;
     }
     else {
       hst.has_lost_packet(elapsed_time);
       hst.set_error(pkt.get_error());
-      // logging::debug(logging::high) << "packet lost " << hst;
+      // log_debug(logging::high) << "packet lost " << hst;
     }
 
     check& chk(*it->second.chk);
@@ -587,7 +587,7 @@ check_dispatch::timeout& check_dispatch::timeout::_internal_copy(timeout const& 
  */
 void check_dispatch::timeout::_delay_push_packet() {
   locker lock(&_dispatcher->_mtx);
-  logging::debug(logging::high)
+  log_debug(logging::high)
     << "delay push packet hst_id(" << _host_id << ") pkt_id(" << _id << ")";
 
   htable<unsigned int, icmp_info>::iterator
@@ -616,7 +616,7 @@ void check_dispatch::timeout::_remove_target() {
   host& hst(*it->second.hst);
   check& chk(*it->second.chk);
 
-  // logging::debug(logging::low) << "remove target " << hst;
+  // log_debug(logging::low) << "remove target " << hst;
 
   unsigned int nb_packet(hst.get_packet_recv() + hst.get_packet_lost());
   if (nb_packet < chk.get_nb_packet()) {

@@ -96,7 +96,7 @@ void check::execute(
               std::list<std::string> const& cmds,
               time_t tmt) {
   // Log message.
-  logging::debug(logging::low) << "check "
+  log_debug(logging::low) << "check "
     << this << " has ID " << cmd_id;
 
   // Store command information.
@@ -126,7 +126,7 @@ void check::execute(
  *  @param[in] listnr Listener.
  */
 void check::listen(checks::listener* listnr) {
-  logging::debug(logging::medium) << "check "
+  log_debug(logging::medium) << "check "
     << this << " is listened by " << listnr;
   _listnr = listnr;
   return ;
@@ -141,30 +141,30 @@ void check::on_available(sessions::session& sess) {
   try {
     switch (_step) {
     case chan_open:
-      logging::info(logging::high)
+      log_info(logging::high)
         << "attempting to open channel for check " << _cmd_id;
       if (!_open()) {
-        logging::info(logging::high) << "check " << _cmd_id
+        log_info(logging::high) << "check " << _cmd_id
           << " channel was successfully opened";
         _step = chan_exec;
         on_available(sess);
       }
       break ;
     case chan_exec:
-      logging::info(logging::high)
+      log_info(logging::high)
         << "attempting to execute check " << _cmd_id;
       if (!_exec()) {
-        logging::info(logging::high)
+        log_info(logging::high)
           << "check " << _cmd_id << " was successfully executed";
         _step = chan_read;
         on_available(sess);
       }
       break ;
     case chan_read:
-      logging::info(logging::high)
+      log_info(logging::high)
         << "reading check " << _cmd_id << " result from channel";
       if (!_read()) {
-        logging::info(logging::high) << "result of check "
+        log_info(logging::high) << "result of check "
           << _cmd_id << " was successfully fetched";
         _step = chan_close;
         on_available(sess);
@@ -173,10 +173,10 @@ void check::on_available(sessions::session& sess) {
     case chan_close:
       {
         unsigned long long cmd_id(_cmd_id);
-        logging::info(logging::high) << "attempting to close check "
+        log_info(logging::high) << "attempting to close check "
           << cmd_id << " channel";
         if (!_close()) {
-          logging::info(logging::medium) << "channel of check "
+          log_info(logging::medium) << "channel of check "
             << cmd_id << " successfully closed";
           if (!_cmds.empty()) {
             _step = chan_open;
@@ -190,7 +190,7 @@ void check::on_available(sessions::session& sess) {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low)
+    log_error(logging::low)
       << "error occured while executing check " << _cmd_id
       << " on session " << sess.get_credentials().get_user() << "@"
       << sess.get_credentials().get_host() << ": " << e.what();
@@ -199,7 +199,7 @@ void check::on_available(sessions::session& sess) {
     _send_result_and_unregister(r);
   }
   catch (...) {
-    logging::error(logging::low)
+    log_error(logging::low)
       << "unknown error occured while executing check " << _cmd_id
       << " on session " << sess.get_credentials().get_user() << "@"
       << sess.get_credentials().get_host();
@@ -217,7 +217,7 @@ void check::on_available(sessions::session& sess) {
  */
 void check::on_close(sessions::session& sess) {
   (void)sess;
-  logging::error(logging::medium)
+  log_error(logging::medium)
     << "session closed before check could execute";
   result r;
   r.set_command_id(_cmd_id);
@@ -231,7 +231,7 @@ void check::on_close(sessions::session& sess) {
  *  @param[in] sess Connected session.
  */
 void check::on_connected(sessions::session& sess) {
-  logging::debug(logging::high) << "manually starting check "
+  log_debug(logging::high) << "manually starting check "
     << _cmd_id;
   on_available(sess);
   return ;
@@ -242,7 +242,7 @@ void check::on_connected(sessions::session& sess) {
  */
 void check::on_timeout() {
   // Log message.
-  logging::error(logging::low) << "check " << _cmd_id
+  log_error(logging::low) << "check " << _cmd_id
     << " reached timeout";
 
   // Reset timeout task ID.
@@ -262,7 +262,7 @@ void check::on_timeout() {
  *  @param[in] listnr Listener.
  */
 void check::unlisten(checks::listener* listnr) {
-  logging::debug(logging::medium) << "listener " << listnr
+  log_debug(logging::medium) << "listener " << listnr
     << " stops listening check " << this;
   _listnr = NULL;
   return ;
@@ -466,7 +466,7 @@ void check::_send_result_and_unregister(result const& r) {
   // Check that session is valid.
   if (_session) {
     // Unregister from session.
-    logging::debug(logging::high) << "check " << this
+    log_debug(logging::high) << "check " << this
       << " is unregistering from session " << _session;
 
     // Unregister from session.
