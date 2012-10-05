@@ -50,7 +50,7 @@ reporter::reporter(reporter const& r) : com::centreon::handle_listener(r) {
  *  Destructor.
  */
 reporter::~reporter() throw () {
-  logging::info(logging::medium) << "connector reporter " << _reported
+  log_info(logging::medium) << "connector reporter " << _reported
     << " check results to monitoring engine";
 }
 
@@ -108,7 +108,7 @@ std::string const& reporter::get_buffer() const throw () {
 void reporter::send_result(checks::result const& r) {
   // Update statistics.
   ++_reported;
-  logging::debug(logging::high)
+  log_debug(logging::high)
     << "reporting check result #" << _reported << " (check "
     << r.get_command_id() << ")";
 
@@ -153,7 +153,7 @@ void reporter::send_result(checks::result const& r) {
  */
 void reporter::send_version(unsigned int major, unsigned int minor) {
   // Build packet.
-  logging::debug(logging::medium) << "sending protocol version "
+  log_debug(logging::medium) << "sending protocol version "
     << major << "." << minor << " to monitoring engine";
   std::ostringstream oss;
   oss << "1";

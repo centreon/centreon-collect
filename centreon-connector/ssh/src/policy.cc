@@ -101,7 +101,7 @@ policy::~policy() throw () {
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  logging::info(logging::low) << "stdin is closed";
+  log_info(logging::low) << "stdin is closed";
   on_quit();
   return ;
 }
@@ -121,7 +121,7 @@ void policy::on_error(unsigned long long cmd_id, char const* msg) {
     on_result(r);
   }
   else {
-    logging::info(logging::low)
+    log_info(logging::low)
       << "error occurred while parsing stdin";
     _error = true;
     on_quit();
@@ -158,7 +158,7 @@ void policy::on_execute(
                bool use_ipv6) {
   try {
     // Log message.
-    logging::info(logging::medium) << "got request to execute check "
+    log_info(logging::medium) << "got request to execute check "
       << cmd_id << " on session " << user << "@" << host
       << " (timeout " << timeout << ", first command \""
       << cmds.front() << "\")";
@@ -178,7 +178,7 @@ void policy::on_execute(
     std::map<sessions::credentials, sessions::session*>::iterator it;
     it = _sessions.find(creds);
     if (it == _sessions.end()) {
-      logging::info(logging::low) << "creating session for "
+      log_info(logging::low) << "creating session for "
         << user << "@" << host << ":" << port;
       std::auto_ptr<sessions::session> sess(new sessions::session(creds));
       sess->connect(use_ipv6);
@@ -201,7 +201,7 @@ void policy::on_execute(
     chk_ptr->execute(*it->second, cmd_id, cmds, timeout);
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << "could not launch check ID "
+    log_error(logging::low) << "could not launch check ID "
       << cmd_id << " on host " << host << " because an error occurred: "
       << e.what();
     checks::result r;
@@ -209,7 +209,7 @@ void policy::on_execute(
     on_result(r);
   }
   catch (...) {
-    logging::error(logging::low) << "could not launch check ID "
+    log_error(logging::low) << "could not launch check ID "
       << cmd_id << " on host " << host << " because an error occurred";
     checks::result r;
     r.set_command_id(cmd_id);
@@ -224,7 +224,7 @@ void policy::on_execute(
  */
 void policy::on_quit() {
   // Exiting.
-  logging::info(logging::low)
+  log_info(logging::low)
     << "quit request received";
   should_exit = true;
   multiplexer::instance().handle_manager::remove(&_sin);
@@ -244,7 +244,7 @@ void policy::on_result(checks::result const& r) {
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator chk;
   chk = _checks.find(r.get_command_id());
   if (chk == _checks.end())
-    logging::error(logging::medium) << "got result of check "
+    log_error(logging::medium) << "got result of check "
       << r.get_command_id() << " which is not registered";
   else {
     try {
@@ -258,7 +258,7 @@ void policy::on_result(checks::result const& r) {
 
     // Check session.
     if (!sess->is_connected()) {
-      logging::debug(logging::medium) << "session " << sess << " is not"
+      log_debug(logging::medium) << "session " << sess << " is not"
            " connected, checking if any check working with it remains";
       bool found(false);
       for (std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >::iterator
@@ -278,10 +278,10 @@ void policy::on_result(checks::result const& r) {
             break ;
         }
         if (it == end)
-          logging::error(logging::high) << "session " << sess
+          log_error(logging::high) << "session " << sess
             << " was not found in policy list, deleting anyway";
         else {
-          logging::info(logging::high) << "session "
+          log_info(logging::high) << "session "
            << it->first.get_user() << "@" << it->first.get_host()
            << ":" << it->first.get_port()
            << " that is not connected and has "
@@ -311,7 +311,7 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  logging::info(logging::medium)
+  log_info(logging::medium)
     << "monitoring engine requested protocol version, sending 1.0";
   _reporter.send_version(1, 0);
   return ;
@@ -328,23 +328,23 @@ bool policy::run() {
 
   // Run multiplexer.
   while (!should_exit) {
-    logging::debug(logging::high) << "multiplexing";
+    log_debug(logging::high) << "multiplexing";
     multiplexer::instance().multiplex();
   }
 
   // Run as long as a check remains.
-  logging::info(logging::low) << "waiting for checks to terminate";
+  log_info(logging::low) << "waiting for checks to terminate";
   while (!_checks.empty()) {
-    logging::debug(logging::high)
+    log_debug(logging::high)
       << "multiplexing remaining checks (" << _checks.size() << ")";
     multiplexer::instance().multiplex();
   }
 
   // Run as long as some data remains.
-  logging::info(logging::low)
+  log_info(logging::low)
     << "reporting last data to monitoring engine";
   while (_reporter.can_report() && _reporter.want_write(_sout)) {
-    logging::debug(logging::high) << "multiplexing remaining data";
+    log_debug(logging::high) << "multiplexing remaining data";
     multiplexer::instance().multiplex();
   }
 

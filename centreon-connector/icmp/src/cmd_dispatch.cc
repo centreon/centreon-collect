@@ -95,7 +95,7 @@ void cmd_dispatch::exit() {
 void cmd_dispatch::close(handle& h) {
   (void)h;
   _quit = true;
-  logging::debug(logging::low) << "the standard output was close";
+  log_debug(logging::low) << "the standard output was close";
 }
 
 /**
@@ -129,7 +129,7 @@ void cmd_dispatch::emit_check_result(
 void cmd_dispatch::error(handle& h) {
   (void)h;
   _quit = true;
-  logging::debug(logging::low) << "the standard output had an error";
+  log_debug(logging::low) << "the standard output had an error";
 }
 
 /**
@@ -157,13 +157,13 @@ void cmd_dispatch::read(handle& h) {
         _requests.push_back(_buffer.substr(0, pos));
       }
       catch (std::exception const& e) {
-        logging::error(logging::low) << e.what();
+        log_error(logging::low) << e.what();
       }
       _buffer.erase(0, pos + sizeof(boundary) - 1);
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }
 
@@ -206,7 +206,7 @@ void cmd_dispatch::write(handle& h) {
       res.erase(0, size);
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }
 
@@ -232,7 +232,7 @@ void cmd_dispatch::_request_processing() {
     request& req(_requests.front());
     switch (req.id()) {
     case request::version: {
-      logging::debug(logging::low) << "receive request::version";
+      log_debug(logging::low) << "receive request::version";
 
       result res(result::version);
       res << version::get_engine_major()
@@ -251,7 +251,7 @@ void cmd_dispatch::_request_processing() {
           && req.next_argument(timeout)
           && req.next_argument(start_time)
           && req.next_argument(command)) {
-        logging::debug(logging::low)
+        log_debug(logging::low)
           << "receive request::execute (" << command_id << ", "
           << timeout << ", " << start_time << ", " << command << ")";
 
@@ -260,7 +260,7 @@ void cmd_dispatch::_request_processing() {
         ++_current_execution;
       }
       else {
-        logging::debug(logging::low)
+        log_debug(logging::low)
           << "receive request::execute (invalid request)";
 
         result res(result::error);
@@ -272,7 +272,7 @@ void cmd_dispatch::_request_processing() {
     }
 
     case request::quit: {
-      logging::debug(logging::low) << "receive request::quit";
+      log_debug(logging::low) << "receive request::quit";
 
       result res(result::quit);
       locker lock(&_mtx);
@@ -303,6 +303,6 @@ void cmd_dispatch::_run() {
     }
   }
   catch (std::exception const& e) {
-    logging::error(logging::low) << e.what();
+    log_error(logging::low) << e.what();
   }
 }
