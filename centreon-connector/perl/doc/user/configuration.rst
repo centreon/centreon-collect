@@ -12,6 +12,19 @@ followed by its arguments, just like one would on the command line. To
 make it simple, you just have to add a connector property to your
 command definition.
 
+Binary arguments
+~~~~~~~~~~~~~~~~
+
+These arguments are centreon_connector_ssh options.
+
+========== ========= ===================================================
+Short name Long name Description
+========== ========= ===================================================
+-d         --debug   If this flag is specified, print all logs messages.
+-h         --help    Print help and exit.
+-v         --version Print software version and exit.
+========== ========= ===================================================
+
 Exemple::
 
   define connector{
