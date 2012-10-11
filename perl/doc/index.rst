@@ -10,5 +10,4 @@ Contents:
 .. toctree::
 
    installation/index
-   user/configuration
-   user/technical_details
+   user/index

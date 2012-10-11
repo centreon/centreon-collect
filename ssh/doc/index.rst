@@ -1,5 +1,5 @@
 Welcome to Centreon Connector SSH's documentation!
-===================================================
+==================================================
 
 Centreon Connector SSH is a free software from Merethis available under
 the GNU Affero General Public License version 3 or later (AGPLv3+). It
@@ -10,5 +10,4 @@ Contents:
 .. toctree::
 
    installation/index
-   user/configuration
-   user/technical_details
+   user/index
