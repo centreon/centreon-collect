@@ -80,15 +80,15 @@ std::string options::help() const {
       << "  --debug    " << debug_description << "\n"
       << "  --help     " << help_description << "\n"
       << "  --version  " << version_description << "\n"
-      << "\n"
-      << "Commands must be sent on the connector's standard input.\n"
-      << "They must be sent using Centreon Connector protocol version\n"
-      << "1.0 and formatted as such:\n"
-      << "\n"
-      << "  <host> <user> <password> <command> [arg1] [arg2]\n"
-      << "Check results will be sent back using also the Centreon\n"
-      << "Connector protocol version 1.0, on the process' standard\n"
-      << "output.";
+      // << "\n"
+      // << "Commands must be sent on the connector's standard input.\n"
+      // << "They must be sent using Centreon Connector protocol version\n"
+      // << "1.0 and formatted as such:\n"
+      // << "\n"
+      // << "  <host> <user> <password> <command> [arg1] [arg2]\n"
+      // << "Check results will be sent back using also the Centreon\n"
+      // << "Connector protocol version 1.0, on the process' standard\n"
+      // << "output.";
   return (oss.str());
 }
 
