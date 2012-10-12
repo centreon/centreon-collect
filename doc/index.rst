@@ -1,4 +1,4 @@
-Welcome to Centreon clib's documentation!
+Welcome to Centreon Clib's documentation!
 =========================================
 
 Centreon Clib is a common library for all Centreon products written in
@@ -11,4 +11,3 @@ Contents:
 .. toctree::
 
    installation/index
-
