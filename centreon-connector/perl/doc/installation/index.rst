@@ -49,7 +49,7 @@ To build Centreon Connector Perl, you will need the following external
 dependencies:
 
 * a C++ compilation environment.
-* **CMake (>=2.8)**, a cross-platform build system.
+* CMake **(>=2.8)**, a cross-platform build system.
 * Centreon Clib, The centreon Core library.
 * Perl, the perl library to use embedded perl.
 
@@ -71,14 +71,16 @@ necessary.
 
 Package required to build:
 
-=========================== =================== ==========================================================
+=========================== =================== ================================
 Software                     Package Name       Description
-=========================== =================== ==========================================================
+=========================== =================== ================================
 C++ compilation environment gcc gcc-c++ make    Mandatory tools to compile.
-CMake (**>= 2.8**)          cmake               Read the build script and prepare sources for compilation.
-Centreon Clib (>= 1.0)      centreon-clib-devel Core library used by Centreon Connector.
+CMake **(>= 2.8)**          cmake               Read the build script and
+                                                prepare sources for compilation.
+Centreon Clib (>= 1.0)      centreon-clib-devel Core library used by Centreon
+                                                Connector.
 Perl                        perl                Scripting language.
-=========================== =================== ==========================================================
+=========================== =================== ================================
 
 #. Get and install cmake form official website::
 
@@ -109,16 +111,18 @@ binary packages from distribution repositories. Either use the Package
 Manager or the apt-get tool to install them. You should check packages
 version when necessary.
 
-Necessary package to build Centreon Connector Perl:
+Package required to build:
 
-=========================== ================= ==========================================================
+=========================== ================= ================================
 Software                    Package Name      Description
-=========================== ================= ==========================================================
+=========================== ================= ================================
 C++ compilation environment build-essential   Mandatory tools to compile.
-CMake (>= 2.8)              cmake             Read the build script and prepare sources for compilation.
-Centreon Clib               centreon-clib-dev Core library used by Centreon Connector.
+CMake **(>= 2.8)**          cmake             Read the build script and
+                                              prepare sources for compilation.
+Centreon Clib               centreon-clib-dev Core library used by Centreon
+                                              Connector.
 Perl                        libperl-dev       Scripting language.
-=========================== ================= ==========================================================
+=========================== ================= ================================
 
 #. Install compilation tools::
 
@@ -134,14 +138,16 @@ when necessary.
 
 Package required to build:
 
-=========================== =================== ==========================================================
+=========================== =================== ================================
 Software                    Package Name        Description
-=========================== =================== ==========================================================
+=========================== =================== ================================
 C++ compilation environment gcc gcc-c++ make    Mandatory tools to compile.
-CMake (>= 2.8)              cmake               Read the build script and prepare sources for compilation.
-Centreon Clib               centreon-clib-devel Core library used by Centreon Connector.
+CMake **(>= 2.8)**          cmake               Read the build script and
+                                                prepare sources for compilation.
+Centreon Clib               centreon-clib-devel Core library used by Centreon
+                                                Connector.
 Perl                        perl                Scripting language.
-=========================== =================== ==========================================================
+=========================== =================== ================================
 
 #. Install compilation tools::
 
@@ -183,16 +189,21 @@ using CMake's variable system. Variables can be set like this::
 
 Here's the list of variables available and their description:
 
-============================== =========================================================================================================================================== ==================
-Variable                       Description                                                                               Default value
-============================== =========================================================================================================================================== ==================
-WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include.                                                                                            auto detection
-WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.                                                                                                       auto detection
-WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't use it if you use WITH_CENTREON_CLIB_LIBRARIES).                                             auto detection
-WITH_PREFIX                    Base directory for Centreon Connector Perl installation. If other prefixes are expressed as relative paths, they are relative to this path. /usr/local
-WITH_PREFIX_BINARY             Define specific directory for Centreon Connector Perl binary.                                                                               ${WITH_PREFIX}/bin
-WITH_TESTING                   Enable generation of unit tests. They can later be run by typing //make test// .                                                            OFF
-============================== =========================================================================================================================================== ==================
+============================== ================================================ ==================
+Variable                       Description                                      Default value
+============================== ================================================ ==================
+WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include. auto detection
+WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.            auto detection
+WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't   auto detection
+                               use it if you use WITH_CENTREON_CLIB_LIBRARIES).
+WITH_PREFIX                    Base directory for Centreon Connector Perl
+                               installation. If other prefixes are expressed as /usr/local
+                               relative paths, they are relative to this path.
+WITH_PREFIX_BINARY             Define specific directory for Centreon Connector ${WITH_PREFIX}/bin
+                               Perl binary.
+WITH_TESTING                   Enable generation of unit tests. They can later  OFF
+                               be run by typing *make test*.
+============================== ===================================================================
 
 Example::
 
@@ -200,6 +211,10 @@ Example::
      -DWITH_PREFIX=/usr \
      -DWITH_PREFIX_BINARY=/usr/bin/centreon-connector \
      -DWITH_TESTING=0 .
+
+At this step, the software will check for existence and usability of the
+rerequisites. If one cannot be found, an appropriate error message will
+be printed. Otherwise an installation summary will be printed.
 
 Compilation
 -----------

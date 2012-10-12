@@ -7,7 +7,7 @@ Entreprise Server (CES) repository. Most of Merethis' endorsed
 software are available as RPM packages.
 
 Alternatively, you can build and install your own version of this
-software by following the :ref:`using_sources`.
+software by following the :ref:`user_installatoin_using_sources`.
 
 **************
 Using packages
@@ -39,7 +39,7 @@ Run the following commands as privileged user::
 
 All dependencies are automatically installed from Merethis repositories.
 
-.. _using_sources:
+.. _user_installation_using_sources:
 
 *************
 Using sources
@@ -49,15 +49,13 @@ To build Centreon Connector SSH, you will need the following external
 dependencies:
 
 * a C++ compilation environment.
-* **CMake (>=2.8)**, a cross-platform build system.
+* CMake **(>=2.8)**, a cross-platform build system.
 * Centreon Clib, The centreon Core library.
 * ssh2 library to use ssh functions.
 * gcrypt library to secure connections.
 
 This program is compatible only with Unix-like platforms (Linux,
 FreeBSD, Solaris, ...).
-
-.. _prerequisites:
 
 Prerequisites
 =============
@@ -72,15 +70,17 @@ necessary.
 
 Package required to build:
 
-=========================== =================== ==========================================================
+=========================== =================== ================================
 Software                     Package Name       Description
-=========================== =================== ==========================================================
+=========================== =================== ================================
 C++ compilation environment gcc gcc-c++ make    Mandatory tools to compile.
-CMake (**>= 2.8**)          cmake               Read the build script and prepare sources for compilation.
-Centreon Clib (>= 1.0)      centreon-clib-devel Core library used by Centreon Connector.
+CMake **(>= 2.8)**          cmake               Read the build script and
+                                                prepare sources for compilation.
+Centreon Clib (>= 1.0)      centreon-clib-devel Core library used by Centreon
+                                                Connector.
 ssh2 library                libssh2-devel       SSH library.
 gcrypt library              libgcrypt-devel     Gcrypt library.
-=========================== =================== ==========================================================
+=========================== =================== ================================
 
 #. Get and install cmake form official website::
 
@@ -111,17 +111,19 @@ binary packages from distribution repositories. Either use the Package
 Manager or the apt-get tool to install them. You should check packages
 version when necessary.
 
-Necessary package to build Centreon Connector SSH:
+Package required to build:
 
-=========================== ================= ==========================================================
+=========================== ================= ================================
 Software                    Package Name      Description
-=========================== ================= ==========================================================
+=========================== ================= ================================
 C++ compilation environment build-essential   Mandatory tools to compile.
-CMake (>= 2.8)              cmake             Read the build script and prepare sources for compilation.
-Centreon Clib               centreon-clib-dev Core library used by Centreon Connector.
+CMake **(>= 2.8)**          cmake             Read the build script and
+                                              prepare sources for compilation.
+Centreon Clib               centreon-clib-dev Core library used by Centreon
+                                              Connector.
 ssh2 library                libssh2-1-dev     SSH library.
 gcrypt library              libgcrypt11-dev   Gcrypt library.
-=========================== ================= ==========================================================
+=========================== ================= ================================
 
 #. Install compilation tools::
 
@@ -137,15 +139,17 @@ when necessary.
 
 Package required to build:
 
-=========================== =================== ==========================================================
+=========================== =================== ================================
 Software                    Package Name        Description
-=========================== =================== ==========================================================
+=========================== =================== ================================
 C++ compilation environment gcc gcc-c++ make    Mandatory tools to compile.
-CMake (>= 2.8)              cmake               Read the build script and prepare sources for compilation.
-Centreon Clib               centreon-clib-devel Core library used by Centreon Connector.
+CMake **(>= 2.8)**          cmake               Read the build script and
+                                                prepare sources for compilation.
+Centreon Clib               centreon-clib-devel Core library used by Centreon
+                                                Connector.
 ssh2 library                libssh2-devel       SSH library.
 gcrypt library              libgcrypt-devel     Gcrypt library.
-=========================== =================== ==========================================================
+=========================== =================== ================================
 
 #. Install compilation tools::
 
@@ -187,23 +191,32 @@ using CMake's variable system. Variables can be set like this::
 
 Here's the list of variables available and their description:
 
-============================== ========================================================================================================================================== ==================
-Variable                       Description                                                                                                                                Default value
-============================== ========================================================================================================================================== ==================
-WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include.                                                                                           auto detection
-WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.                                                                                                      auto detection
-WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't use it if you use WITH_CENTREON_CLIB_LIBRARIES)                                             auto detection
-WITH_KNOWN_HOSTS_CHECK         Enable or disable Check hosts against user's known_hosts file.                                                                             OFF
-WITH_LIBGCRYPT_INCLUDE_DIR     Set the directory path of libgcrypt include.                                                                                               auto detection
-WITH_LIBGCRYPT_LIBRARIES       Set the libgcrypt library to use.                                                                                                          auto detection
-WITH_LIBGCRYPT_LIBRARY_DIR     Set the libgcrypt library directory (don't use it if you use WITH_LIBGCRYPT_LIBRARIES)                                                     auto detection
-WITH_LIBSSH2_INCLUDE_DIR       Set the directory path of libssh2 include.                                                                                                 auto detection
-WITH_LIBSSH2_LIBRARIES         Set the libssh2 library to use.                                                                                                            auto detection
-WITH_LIBSSH2_LIBRARY_DIR       Set the libssh2 library directory (don't use it if you use WITH_LIBSSH2_LIBRARIES)                                                         auto detection
-WITH_PREFIX                    Base directory for Centreon Connector SSH installation. If other prefixes are expressed as relative paths, they are relative to this path. /usr/local
-WITH_PREFIX_BINARY             Define specific directory for Centreon Connector SSH binary.                                                                               ${WITH_PREFIX}/bin
-WITH_TESTING                   Enable generation of unit tests. They can later be run by typing //make test// .                                                           OFF
-============================== ========================================================================================================================================== ==================
+============================== ================================================ ==================
+Variable                       Description                                      Default value
+============================== ================================================ ==================
+WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include. auto detection
+WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.            auto detection
+WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't   auto detection
+                               use it if you use WITH_CENTREON_CLIB_LIBRARIES)
+WITH_KNOWN_HOSTS_CHECK         Enable or disable Check hosts against user's     OFF
+                               known_hosts file.
+WITH_LIBGCRYPT_INCLUDE_DIR     Set the directory path of libgcrypt include.     auto detection
+WITH_LIBGCRYPT_LIBRARIES       Set the libgcrypt library to use.                auto detection
+WITH_LIBGCRYPT_LIBRARY_DIR     Set the libgcrypt library directory (don't       auto detection
+                               use it if you use WITH_LIBGCRYPT_LIBRARIES)
+WITH_LIBSSH2_INCLUDE_DIR       Set the directory path of libssh2 include.       auto detection
+WITH_LIBSSH2_LIBRARIES         Set the libssh2 library to use.                  auto detection
+WITH_LIBSSH2_LIBRARY_DIR       Set the libssh2 library directory (don't use     auto detection
+                               it if you use WITH_LIBSSH2_LIBRARIES)
+WITH_PREFIX                    Base directory for Centreon Connector SSH        /usr/local
+                               installation. If other prefixes are expressed
+                               as relative paths, they are relative to this
+                               path.
+WITH_PREFIX_BINARY             Define specific directory for Centreon           ${WITH_PREFIX}/bin
+                               Connector SSH binary.
+WITH_TESTING                   Enable generation of unit tests. They can        OFF
+                               later be run by typing *make test*.
+============================== ================================================ ==================
 
 Example::
 
@@ -211,6 +224,10 @@ Example::
      -DWITH_PREFIX=/usr \
      -DWITH_PREFIX_BINARY=/usr/bin/centreon-connector \
      -DWITH_TESTING=0 .
+
+At this step, the software will check for existence and usability of the
+rerequisites. If one cannot be found, an appropriate error message will
+be printed. Otherwise an installation summary will be printed.
 
 Compilation
 -----------
