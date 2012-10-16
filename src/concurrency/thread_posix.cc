@@ -57,6 +57,8 @@ thread::~thread() throw () {}
  */
 void thread::exec() {
   locker lock(&_mtx);
+  if (_initialized)
+    throw (basic_error() << "execute thread failed: already running");
   int ret(pthread_create(&_th, NULL, &_execute, this));
   if (ret)
     throw (basic_error() << "failed to create thread: "
