@@ -49,7 +49,7 @@ To build Centreon Connector SSH, you will need the following external
 dependencies:
 
 * a C++ compilation environment.
-* CMake **(>=2.8)**, a cross-platform build system.
+* CMake **(>= 2.8)**, a cross-platform build system.
 * Centreon Clib, The centreon Core library.
 * ssh2 library to use ssh functions.
 * gcrypt library to secure connections.
@@ -98,6 +98,10 @@ gcrypt library              libgcrypt-devel     Gcrypt library.
 
     $ yum install gcc gcc-c++ make libssh2-devel libgcrypt-devel
 
+#. Install Centreon Clib
+
+See the Centreon Clib `documentation <XXX todo>`_.
+
 CentOS 6.x
 ----------
 
@@ -129,6 +133,10 @@ gcrypt library              libgcrypt11-dev   Gcrypt library.
 
     $ apt-get install build-essential cmake libssh2-1-dev libgcrypt11-dev
 
+#. Install Centreon Clib
+
+See the Centreon Clib `documentation <XXX todo>`_.
+
 OpenSUSE
 --------
 
@@ -154,6 +162,10 @@ gcrypt library              libgcrypt-devel     Gcrypt library.
 #. Install compilation tools::
 
     $ zypper install gcc gcc-c++ make cmake libssh2-devel libgcrypt-devel
+
+#. Install Centreon Clib
+
+See the Centreon Clib `documentation <XXX todo>`_.
 
 Build
 =====
