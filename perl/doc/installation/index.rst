@@ -49,7 +49,7 @@ To build Centreon Connector Perl, you will need the following external
 dependencies:
 
 * a C++ compilation environment.
-* CMake **(>=2.8)**, a cross-platform build system.
+* CMake **(>= 2.8)**, a cross-platform build system.
 * Centreon Clib, The centreon Core library.
 * Perl, the perl library to use embedded perl.
 
@@ -96,6 +96,10 @@ Perl                        perl                Scripting language.
 
     $ yum install gcc gcc-c++ make perl
 
+#. Install Centreon Clib
+
+See the Centreon Clib `documentation <XXX todo>`_.
+
 CentOS 6.x
 ----------
 
@@ -126,6 +130,10 @@ Perl                        libperl-dev       Scripting language.
 
     $ apt-get install build-essential cmake libperl-dev
 
+#. Install Centreon Clib
+
+See the Centreon Clib `documentation <XXX todo>`_.
+
 OpenSUSE
 --------
 
@@ -150,6 +158,10 @@ Perl                        perl                Scripting language.
 #. Install compilation tools::
 
     $ zypper install gcc gcc-c++ make cmake perl
+
+#. Install Centreon Clib
+
+See the Centreon Clib `documentation <XXX todo>`_.
 
 Build
 =====
