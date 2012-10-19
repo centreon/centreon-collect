@@ -48,10 +48,10 @@ Using sources
 To build Centreon Connector Perl, you will need the following external
 dependencies:
 
-* a C++ compilation environment.
-* CMake **(>= 2.8)**, a cross-platform build system.
-* Centreon Clib, The centreon Core library.
-* Perl, the perl library to use embedded perl.
+  * a C++ compilation environment.
+  * CMake **(>= 2.8)**, a cross-platform build system.
+  * Centreon Clib, The centreon Core library.
+  * Perl, the perl library to use embedded perl.
 
 This program is compatible only with Unix-like platforms (Linux,
 FreeBSD, Solaris, ...).
@@ -219,7 +219,7 @@ Example::
 
   $ cmake \
      -DWITH_PREFIX=/usr \
-     -DWITH_PREFIX_BINARY=/usr/bin/centreon-connector \
+     -DWITH_PREFIX_BINARY=/usr/lib/centreon-connector \
      -DWITH_TESTING=0 .
 
 At this step, the software will check for existence and usability of the

@@ -79,7 +79,7 @@ std::string options::help() const {
   oss << "centreon_connector_perl [args]\n"
       << "  --debug    " << debug_description << "\n"
       << "  --help     " << help_description << "\n"
-      << "  --version  " << version_description << "\n"
+      << "  --version  " << version_description << "\n";
       // << "\n"
       // << "Commands must be sent on the connector's standard input.\n"
       // << "They must be sent using Centreon Connector protocol version\n"
