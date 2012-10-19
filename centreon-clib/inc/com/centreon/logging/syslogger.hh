@@ -39,12 +39,17 @@ namespace              logging {
                        syslogger(syslogger const& right);
                        ~syslogger() throw ();
     syslogger&         operator=(syslogger const& right);
+    void               close() throw ();
     void               flush() throw ();
     void               log(char const* msg, unsigned int size) throw ();
+    void               open();
+    void               reopen();
 
   private:
     syslogger&         _internal_copy(syslogger const& right);
 
+    int                _facility;
+    std::string        _id;
     concurrency::mutex _mtx;
   };
 }

@@ -58,7 +58,7 @@ unsigned long engine::add(
                         type_flags types,
                         verbosity const& verbose) {
   if (!obj)
-    throw (basic_error() << "add backend on the logging engine " \
+    throw (basic_error() << "add backend on the logging engine "
            "failed:bad argument (null pointer)");
 
   std::auto_ptr<backend_info> info(new backend_info);
@@ -115,6 +115,7 @@ bool engine::is_log(
  *  @return True if synchronize, otherwise false.
  */
 bool engine::get_enable_sync() const throw () {
+  locker lock(&_mtx);
   return (_is_sync);
 }
 
@@ -257,7 +258,7 @@ bool engine::remove(unsigned long id) {
  */
 unsigned int engine::remove(backend* obj) {
   if (!obj)
-    throw (basic_error() << "remove backend on the logging engine " \
+    throw (basic_error() << "remove backend on the logging engine "
            "failed:bad argument (null pointer)");
 
   // Lock engine.
@@ -279,11 +280,24 @@ unsigned int engine::remove(backend* obj) {
 }
 
 /**
+ *  Close and open all backend.
+ */
+void engine::reopen() {
+  locker lock(&_mtx);
+  for (std::vector<backend_info*>::const_iterator
+         it(_backends.begin()), end(_backends.end());
+       it != end;
+       ++it)
+    (*it)->obj->reopen();
+}
+
+/**
  *  Set if all backends was synchronize.
  *
  *  @param[in] enable  True to synchronize backends data.
  */
 void engine::set_enable_sync(bool enable) throw () {
+  locker lock(&_mtx);
   _is_sync = enable;
 }
 

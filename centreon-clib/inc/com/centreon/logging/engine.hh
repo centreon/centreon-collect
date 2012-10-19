@@ -69,6 +69,7 @@ namespace                      logging {
                                  char const* msg);
     bool                       remove(unsigned long id);
     unsigned int               remove(backend* obj);
+    void                       reopen();
     void                       set_enable_sync(bool enable) throw ();
     void                       set_show_pid(bool enable) throw ();
     void                       set_show_timestamp(

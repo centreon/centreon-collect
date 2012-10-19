@@ -34,11 +34,14 @@ class                backend_test : public backend {
 public:
                      backend_test() {}
                      ~backend_test() throw () {}
+  void               close() throw () {}
   void               flush() throw () {}
   void               log(char const* msg, unsigned int size) throw () {
     _msg.append(msg, size);
   }
   std::string const& get_msg() const throw () { return (_msg); }
+  void               open() {}
+  void               reopen() {}
 
 private:
   std::string        _msg;

@@ -35,6 +35,7 @@ class                backend_test : public backend {
 public:
                      backend_test() {}
                      ~backend_test() throw () {}
+  void               close() throw () {}
   void               flush() throw () {}
   void               log(char const* msg, unsigned int size) throw () {
     (void)msg;
@@ -42,6 +43,8 @@ public:
     _data.append(msg, size);
   }
   std::string const& data() const throw () { return (_data); }
+  void               open() {}
+  void               reopen() {}
 
 private:
   std::string        _data;

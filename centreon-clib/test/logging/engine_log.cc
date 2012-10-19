@@ -33,6 +33,7 @@ class          backend_test : public backend {
 public:
                backend_test() : _nb_call(0) {}
                ~backend_test() throw () {}
+  void         close() throw () {}
   void         flush() throw () {}
   void         log(char const* msg, unsigned int size) throw () {
     (void)msg;
@@ -40,6 +41,8 @@ public:
     ++_nb_call;
   }
   unsigned int get_nb_call() const throw () { return (_nb_call); }
+  void         open() {}
+  void         reopen() {}
 
 private:
   unsigned int _nb_call;
