@@ -18,34 +18,35 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CC_LOGGING_BACKEND_HH
-#  define CC_LOGGING_BACKEND_HH
+#ifndef CC_CLIB_VERSION_HH
+# define CC_CLIB_VERSION_HH
 
-#  include "com/centreon/namespace.hh"
+// Compile-time values.
+# define CENTREON_CLIB_VERSION_MAJOR  1
+# define CENTREON_CLIB_VERSION_MINOR  0
+# define CENTREON_CLIB_VERSION_PATCH  0
+# define CENTREON_CLIB_VERSION_STRING "1.0.0"
+
+# include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
-namespace        logging {
-  /**
-   *  @class backend backend.hh "com/centreon/logging/backend.hh"
-   *  @brief Base logging backend class.
-   *
-   *  This class defines an interface to create logger backend, to
-   *  log data into many different objects.
-   */
-  class          backend {
-  public:
-                 backend();
-    virtual      ~backend() throw ();
-    virtual void close() throw () = 0;
-    virtual void flush() throw () = 0;
-    virtual void log(char const* msg) throw ();
-    virtual void log(char const* msg, unsigned int size) throw () = 0;
-    virtual void open() = 0;
-    virtual void reopen() = 0;
-  };
+namespace              clib {
+  namespace            version {
+    // Compile-time values.
+    unsigned int const major = 1;
+    unsigned int const minor = 0;
+    unsigned int const patch = 0;
+    char const* const  string = "1.0.0";
+
+    // Run-time values.
+    unsigned int       get_major() throw ();
+    unsigned int       get_minor() throw ();
+    unsigned int       get_patch() throw ();
+    char const*        get_string() throw ();
+  }
 }
 
 CC_END()
 
-#endif // !CC_LOGGING_BACKEND_HH
+#endif // !CC_HANDLE_HH

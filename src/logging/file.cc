@@ -45,10 +45,9 @@ file::file(FILE* file)
  *  @param[in] path  The path of the file to used.
  */
 file::file(std::string const& path)
-  : _out(NULL) {
-  if (!(_out = fopen(path.c_str(), "a")))
-    throw (basic_error() << "failed to open file \"" << path << "\":"
-           << strerror(errno));
+  : _path(path),
+    _out(NULL) {
+  open();
 }
 
 /**
@@ -65,13 +64,7 @@ file::file(file const& right)
  *  Default destructor.
  */
 file::~file() throw () {
-  locker lock(&_mtx);
-  if (_out) {
-    int ret;
-    do {
-      ret = fclose(_out);
-    } while (ret == -1 && errno == EINTR);
-  }
+  close();
 }
 
 /**
@@ -83,6 +76,31 @@ file::~file() throw () {
  */
 file& file::operator=(file const& right) {
   return (_internal_copy(right));
+}
+
+/**
+ *  Close file.
+ */
+void file::close() throw () {
+  locker lock(&_mtx);
+
+  if (!_out || _out == stdout || _out == stderr)
+    return;
+
+  int ret;
+  do {
+    ret = fclose(_out);
+  } while (ret == -1 && errno == EINTR);
+  _out = NULL;
+}
+
+/**
+ *  Get filename.
+ *
+ *  @return The filename string.
+ */
+std::string const& file::filename() const throw () {
+  return (_path);
 }
 
 /**
@@ -115,6 +133,39 @@ void file::log(char const* msg, unsigned int size) throw () {
       ret = fwrite(msg, size, 1, _out);
     } while (ret != 1 && ferror(_out) && errno == EINTR);
   }
+}
+
+/**
+ *  Open file.
+ */
+void file::open() {
+  locker lock(&_mtx);
+
+  if (_out && _path.empty())
+    return;
+
+  if (!(_out = fopen(_path.c_str(), "a")))
+    throw (basic_error() << "failed to open file \"" << _path << "\":"
+           << strerror(errno));
+}
+
+/**
+ *  Close and open file.
+ */
+void file::reopen() {
+  locker lock(&_mtx);
+
+  if (!_out || _out == stdout || _out == stderr)
+    return;
+
+  int ret;
+  do {
+    ret = fclose(_out);
+  } while (ret == -1 && errno == EINTR);
+
+  if (!(_out = fopen(_path.c_str(), "a")))
+    throw (basic_error() << "failed to open file \"" << _path << "\":"
+           << strerror(errno));
 }
 
 /**

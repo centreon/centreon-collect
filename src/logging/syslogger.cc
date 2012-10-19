@@ -34,10 +34,10 @@ using namespace com::centreon::logging;
  *  @param[in] id        The id prepended to every message.
  *  @param[in] facility  This is the syslog facility.
  */
-syslogger::syslogger(std::string const& id, int facility) {
-  openlog(id.c_str(), 0, facility);
-    throw (basic_error() << "failed to open syslogger \""
-           << id << "\"");
+syslogger::syslogger(std::string const& id, int facility)
+  : _facility(facility),
+    _id(id) {
+  open();
 }
 
 /**
@@ -54,8 +54,7 @@ syslogger::syslogger(syslogger const& right)
  *  Default destructor.
  */
 syslogger::~syslogger() throw () {
-  locker lock(&_mtx);
-  closelog();
+  close();
 }
 
 /**
@@ -67,6 +66,14 @@ syslogger::~syslogger() throw () {
  */
 syslogger& syslogger::operator=(syslogger const& right) {
   return (_internal_copy(right));
+}
+
+/**
+ *  Close syslog.
+ */
+void syslogger::close() throw () {
+  locker lock(&_mtx);
+  closelog();
 }
 
 /**
@@ -88,6 +95,23 @@ void syslogger::log(char const* msg, unsigned int size) throw () {
 
   locker lock(&_mtx);
   syslog(LOG_ERR, "%s", msg);
+}
+
+/**
+ *  Open syslog.
+ */
+void syslogger::open() {
+  locker lock(&_mtx);
+  openlog(_id.c_str(), 0, _facility);
+}
+
+/**
+ *  Close and open syslog.
+ */
+void syslogger::reopen() {
+  locker lock(&_mtx);
+  closelog();
+  openlog(_id.c_str(), 0, _facility);
 }
 
 /**

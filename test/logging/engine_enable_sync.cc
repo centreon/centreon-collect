@@ -36,12 +36,15 @@ class  backend_test : public backend {
 public:
        backend_test() : _is_flush(false) {}
        ~backend_test() throw () {}
+  void close() throw () {}
   void flush() throw () { _is_flush = true; }
   bool is_flush() const throw () { return (_is_flush); }
   void log(char const* msg, unsigned int size) throw () {
     (void)msg;
     (void)size;
   }
+  void open() {}
+  void reopen() {}
 
 private:
   bool _is_flush;

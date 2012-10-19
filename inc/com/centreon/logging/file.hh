@@ -41,13 +41,18 @@ namespace              logging {
                        file(file const& right);
                        ~file() throw ();
     file&              operator=(file const& right);
+    void               close() throw ();
+    std::string const& filename() const throw ();
     void               flush() throw ();
     void               log(char const* msg, unsigned int size) throw ();
+    void               open();
+    void               reopen();
 
   private:
     file&              _internal_copy(file const& right);
 
     concurrency::mutex _mtx;
+    std::string        _path;
     FILE*              _out;
   };
 }

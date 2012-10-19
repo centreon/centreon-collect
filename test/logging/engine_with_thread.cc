@@ -38,12 +38,15 @@ class                backend_test : public backend {
 public:
                      backend_test() {}
                      ~backend_test() throw () {}
+  void               close() throw () {}
   std::string const& data() const throw () { return (_buffer); }
   void               flush() throw () {}
   void               log(char const* msg, unsigned int size) throw () {
     locker lock(&_mtx);
     _buffer.append(msg, size);
   }
+  void               open() {}
+  void               reopen() {}
 
 private:
   std::string        _buffer;
