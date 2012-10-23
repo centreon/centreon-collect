@@ -203,9 +203,9 @@ using CMake's variable system. Variables can be set like this::
 
 Here's the list of variables available and their description:
 
-============================== ================================================ ==================
+============================== ================================================ ======================
 Variable                       Description                                      Default value
-============================== ================================================ ==================
+============================== ================================================ ======================
 WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include. auto detection
 WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.            auto detection
 WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't   auto detection
@@ -220,15 +220,15 @@ WITH_LIBSSH2_INCLUDE_DIR       Set the directory path of libssh2 include.       
 WITH_LIBSSH2_LIBRARIES         Set the libssh2 library to use.                  auto detection
 WITH_LIBSSH2_LIBRARY_DIR       Set the libssh2 library directory (don't use     auto detection
                                it if you use WITH_LIBSSH2_LIBRARIES)
-WITH_PREFIX                    Base directory for Centreon Connector SSH        /usr/local
+WITH_PREFIX                    Base directory for Centreon Connector SSH        ``/usr/local``
                                installation. If other prefixes are expressed
                                as relative paths, they are relative to this
                                path.
-WITH_PREFIX_BINARY             Define specific directory for Centreon           ${WITH_PREFIX}/bin
+WITH_PREFIX_BINARY             Define specific directory for Centreon           ``${WITH_PREFIX}/bin``
                                Connector SSH binary.
 WITH_TESTING                   Enable generation of unit tests. They can        OFF
                                later be run by typing *make test*.
-============================== ================================================ ==================
+============================== ================================================ ======================
 
 Example::
 

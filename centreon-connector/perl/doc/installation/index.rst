@@ -199,21 +199,21 @@ using CMake's variable system. Variables can be set like this::
 
 Here's the list of variables available and their description:
 
-============================== ================================================ ==================
+============================== ================================================ ======================
 Variable                       Description                                      Default value
-============================== ================================================ ==================
+============================== ================================================ ======================
 WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include. auto detection
 WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.            auto detection
 WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't   auto detection
                                use it if you use WITH_CENTREON_CLIB_LIBRARIES).
 WITH_PREFIX                    Base directory for Centreon Connector Perl
-                               installation. If other prefixes are expressed as /usr/local
+                               installation. If other prefixes are expressed as ``/usr/local``
                                relative paths, they are relative to this path.
-WITH_PREFIX_BINARY             Define specific directory for Centreon Connector ${WITH_PREFIX}/bin
+WITH_PREFIX_BINARY             Define specific directory for Centreon Connector ``${WITH_PREFIX}/bin``
                                Perl binary.
 WITH_TESTING                   Enable generation of unit tests. They can later  OFF
                                be run by typing *make test*.
-============================== ===================================================================
+============================== =======================================================================
 
 Example::
 
