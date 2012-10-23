@@ -48,8 +48,8 @@ Using sources
 To build Centreon Clib, you will need the following external
 dependencies:
 
-* a C++ compilation environment.
-* CMake **(>=2.8)**, a cross-platform build system.
+  * a C++ compilation environment.
+  * CMake **(>= 2.8)**, a cross-platform build system.
 
 This program is compatible only with Unix-like platforms (Linux,
 FreeBSD, Solaris, ...).
@@ -175,22 +175,22 @@ variable system. Variables can be set like this::
 
 Here's the list of variables available and their description:
 
-============================== =============================================== ======================================
+============================== =============================================== ==========================================
 Variable                        Description                                    Default value
-============================== =============================================== ======================================
-WITH_PKGCONFIG_DIR              Use to install pkg-config files.               ${WITH_PREFIX_LIB}/pkgconfig
+============================== =============================================== ==========================================
+WITH_PKGCONFIG_DIR              Use to install pkg-config files.               ``${WITH_PREFIX_LIB}/pkgconfig``
 WITH_PKGCONFIG_SCRIPT           Enable or disable install pkg-config files.    ON
-WITH_PREFIX                     Base directory for Centreon Clib installation. /usr/local
+WITH_PREFIX                     Base directory for Centreon Clib installation. ``/usr/local``
                                 If other prefixes are expressed as relative
                                 paths, they are relative to this path.
-WITH_PREFIX_INC                 Define specific directory for Centreon Engine  ${WITH_PREFIX}/include/centreon-engine
+WITH_PREFIX_INC                 Define specific directory for Centreon Engine  ``${WITH_PREFIX}/include/centreon-engine``
                                 headers.
-WITH_PREFIX_LIB                 Define specific directory for Centreon Engine  ${WITH_PREFIX}/lib/centreon-engine
+WITH_PREFIX_LIB                 Define specific directory for Centreon Engine  ``${WITH_PREFIX}/lib/centreon-engine``
                                 modules.
 WITH_SHARED_LIB                 Create or not a shared library.                ON
 WITH_STATIC_LIB                 Create or not a static library.                OFF
 WITH_TESTING                    Build unit test.                               OFF
-============================== =============================================== ======================================
+============================== =============================================== ==========================================
 
 Example::
 
