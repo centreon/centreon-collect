@@ -174,7 +174,7 @@ std::list<file_entry> const& directory_entry::entry_list(
     if (!result)
       break;
     if (!filter_ptr || _nmatch(entry.d_name, filter_ptr))
-      _entry_lst.push_back(file_entry(entry.d_name));
+      _entry_lst.push_back(file_entry(_entry.path() + "/" + entry.d_name));
   }
   closedir(dir);
 #endif // _WIN32
