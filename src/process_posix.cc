@@ -194,7 +194,8 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
 #ifdef HAVE_SPAWN_H
     // Create new process.
     if (posix_spawnp(&_process, args[0], NULL, NULL, args, my_env)) {
-      char const* msg(strerror(errno));
+      _process = static_cast<pid_t>(-1);
+      const* msg(strerror(errno));
       throw (basic_error() << "could not create process: " << msg);
     }
 #else
@@ -536,7 +537,7 @@ bool process::_is_running() const throw () {
  *  @param[in] sig The signal number.
  */
 void process::_kill(int sig) {
-  if (_process != static_cast<pid_t>(-1)) {
+  if (_process && _process != static_cast<pid_t>(-1)) {
     if (::kill(_process, sig) != 0) {
       char const* msg(strerror(errno));
       throw (basic_error() << "could not terminate process "
