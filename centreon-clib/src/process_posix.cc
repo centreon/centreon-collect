@@ -195,7 +195,7 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     // Create new process.
     if (posix_spawnp(&_process, args[0], NULL, NULL, args, my_env)) {
       _process = static_cast<pid_t>(-1);
-      const* msg(strerror(errno));
+      char const* msg(strerror(errno));
       throw (basic_error() << "could not create process: " << msg);
     }
 #else
