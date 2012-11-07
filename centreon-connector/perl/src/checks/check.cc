@@ -135,14 +135,18 @@ void check::listen(listener* listnr) {
 void check::on_timeout(bool final) {
   // Log message.
   log_error(logging::low) << "check " << _cmd_id
-    << " reached timeout";
+    << " (pid=" << _child << ") reached timeout";
+
+  // Reset timeout task ID.
+  _timeout = 0;
+
+  if (_child == (pid_t)-1 || !_child)
+    return ;
 
   if (final) {
-    // Reset timeout task ID.
-    _timeout = 0;
-
     // Send SIGKILL (not catchable, not ignorable).
     kill(_child, SIGKILL);
+    _child = (pid_t)-1;
   }
   else {
     // Try graceful shutdown.
@@ -306,7 +310,7 @@ void check::_internal_copy(check const& c) {
  */
 void check::_send_result_and_unregister(result const& r) {
   // Kill subprocess.
-  if (_child != (pid_t)-1) {
+  if (_child != (pid_t)-1 && _child) {
     kill(_child, SIGKILL);
     _child = (pid_t)-1;
   }

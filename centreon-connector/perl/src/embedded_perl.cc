@@ -214,6 +214,16 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     exit(3);
     abort();
   }
+  else if (child < 0) { // Error
+    char const* msg(strerror(errno));
+    close(in_pipe[0]);
+    close(in_pipe[1]);
+    close(out_pipe[0]);
+    close(out_pipe[1]);
+    close(err_pipe[0]);
+    close(err_pipe[1]);
+    throw (basic_error() << msg);
+  }
 
   return (child);
 }
