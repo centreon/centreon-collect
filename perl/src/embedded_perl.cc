@@ -117,25 +117,37 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     << "  - file " << file << "\n"
     << "  - args " << args;
 
-  // Compile Perl file.
+  // Check if file has already been compiled.
+  SV* handle;
+  umap<std::string, SV*>::const_iterator it(_parsed.find(file));
   dSP;
-  {
-    log_debug(logging::medium) << "parsing file " << file;
-    char const* argv[3];
-    argv[0] = file.c_str();
-    argv[1] = "0";
-    argv[2] = NULL;
-    if (call_argv("Embed::Persistent::eval_file",
-          G_EVAL | G_SCALAR,
-          (char**)argv)
-        != 1)
-      throw (basic_error() << "could not compile Perl script " << file);
+  if (it == _parsed.end()) {
+    // Compile Perl file.
+    {
+      log_debug(logging::medium) << "parsing file " << file;
+      char const* argv[3];
+      argv[0] = file.c_str();
+      argv[1] = "0";
+      argv[2] = NULL;
+      if (call_argv(
+            "Embed::Persistent::eval_file",
+	    G_EVAL | G_SCALAR,
+	    (char**)argv)
+	  != 1)
+	throw (basic_error() << "could not compile Perl script " << file);
+    }
+    SPAGAIN;
+    handle = POPs;
+    if (SvTRUE(ERRSV))
+      throw (basic_error() << "Embedded Perl error: "
+	     << SvPV_nolen(ERRSV));
+
+    // Insert in parsed file list.
+    _parsed.insert(std::make_pair(file, handle));
   }
-  SPAGAIN;
-  SV* handle(POPs);
-  if (SvTRUE(ERRSV))
-    throw (basic_error() << "Embedded Perl error: "
-           << SvPV_nolen(ERRSV));
+  // Already parsed.
+  else
+    handle = it->second;
 
   // Open pipes.
   int in_pipe[2];

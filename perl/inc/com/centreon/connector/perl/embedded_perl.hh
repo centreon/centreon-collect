@@ -21,11 +21,12 @@
 #ifndef CCCP_EMBEDDED_PERL_HH
 #  define CCCP_EMBEDDED_PERL_HH
 
+#  include "com/centreon/connector/perl/namespace.hh"
+#  include "com/centreon/unordered_hash.hh"
 #  include <string>
 #  include <sys/types.h>
 #  include <EXTERN.h>
 #  include <perl.h>
-#  include "com/centreon/connector/perl/namespace.hh"
 
 // Global Perl interpreter.
 extern PerlInterpreter*    my_perl;
@@ -55,6 +56,7 @@ private:
   embedded_perl&           operator=(embedded_perl const& ep);
   void                     _internal_copy(embedded_perl const& ep);
 
+  umap<std::string, SV*>   _parsed;
   static char const* const _script;
   pid_t                    _self;
 };
