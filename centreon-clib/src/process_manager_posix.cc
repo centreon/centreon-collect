@@ -129,6 +129,8 @@ process_manager::process_manager()
     throw (basic_error() << "pipe creation failed: " << msg);
   }
 
+  process::_set_cloexec(_fds_exit[1]);
+
   // Add exit fd to the file descriptor list.
   _processes_fd[_fds_exit[0]] = NULL;
 
@@ -384,9 +386,13 @@ unsigned int process_manager::_read_stream(int fd) throw () {
  */
 void process_manager::_run() {
   try {
+    bool quit(false);
     while (true) {
       // Update the file descriptor list.
       _update_list();
+
+      if (quit && !_fds_size)
+        break;
 
       // Wait event on file descriptor.
       int ret(poll(_fds, _fds_size, DEFAULT_TIMEOUT));
@@ -399,6 +405,7 @@ void process_manager::_run() {
       for (unsigned int i(0), checked(0);
            checked < static_cast<unsigned int>(ret) && i < _fds_size;
            ++i) {
+
         // No event.
         if (!_fds[i].revents)
           continue;
@@ -407,8 +414,12 @@ void process_manager::_run() {
 
         // The process manager destructor was call,
         // it's time to quit the loop.
-        if (_fds[i].fd == _fds_exit[0])
-          return;
+        if (_fds[i].fd == _fds_exit[0]) {
+          _processes_fd.erase(_fds[i].fd);
+          _update = true;
+          quit = true;
+          continue;
+        }
 
         // Data are available.
         unsigned int size(0);
