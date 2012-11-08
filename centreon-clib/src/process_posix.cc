@@ -193,11 +193,32 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
 
 #ifdef HAVE_SPAWN_H
     // Create new process.
-    if (posix_spawnp(&_process, args[0], NULL, NULL, args, my_env)) {
+    posix_spawnattr_t attr;
+    int ret;
+    ret = posix_spawnattr_init(&attr);
+    if (ret)
+      throw (basic_error() << "cannot initialize spawn attributes: "
+             << strerror(ret));
+    ret = posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
+    if (ret) {
+      posix_spawnattr_destroy(&attr);
+      throw (basic_error() << "cannot set spawn flag: "
+             << strerror(ret));
+    }
+    ret = posix_spawnattr_setpgroup(&attr, 0);
+    if (ret) {
+      posix_spawnattr_destroy(&attr);
+      throw (basic_error()
+             << "cannot set process group ID of to-be-spawned process: "
+             << strerror(ret));
+    }
+    if (posix_spawnp(&_process, args[0], NULL, &attr, args, my_env)) {
       _process = static_cast<pid_t>(-1);
       char const* msg(strerror(errno));
+      posix_spawnattr_destroy(&attr);
       throw (basic_error() << "could not create process: " << msg);
     }
+    posix_spawnattr_destroy(&attr);
 #else
     // Create new process.
     _process = vfork();
@@ -211,6 +232,9 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
       ::execve(args[0], args, my_env);
       ::_exit(EXIT_FAILURE);
     }
+
+    // Daddy set process to its own group.
+    setpgid(_process, _process);
 #endif // spawn.h or not
 
     // Parent execution.
