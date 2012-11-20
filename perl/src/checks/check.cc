@@ -140,7 +140,7 @@ void check::on_timeout(bool final) {
   // Reset timeout task ID.
   _timeout = 0;
 
-  if (_child == (pid_t)-1 || !_child)
+  if (_child <= 0)
     return ;
 
   if (final) {
@@ -310,7 +310,7 @@ void check::_internal_copy(check const& c) {
  */
 void check::_send_result_and_unregister(result const& r) {
   // Kill subprocess.
-  if (_child != (pid_t)-1 && _child) {
+  if (_child > 0) {
     kill(_child, SIGKILL);
     _child = (pid_t)-1;
   }
