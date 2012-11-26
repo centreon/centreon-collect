@@ -21,19 +21,15 @@
 #ifndef CC_LOGGING_ENGINE_HH
 #  define CC_LOGGING_ENGINE_HH
 
+#  include <climits>
 #  include <vector>
 #  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/logging/backend.hh"
-#  include "com/centreon/logging/verbosity.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
 namespace                      logging {
-  typedef unsigned long long   type_flags;
-  typedef unsigned int         type_number;
-  typedef verbosity            verbosities[sizeof(type_flags) * CHAR_BIT];
-
   /**
    *  @class engine engine.hh "com/centreon/logging/engine.hh"
    *  @brief Logging object manager.
@@ -43,46 +39,31 @@ namespace                      logging {
    */
   class                        engine {
   public:
-    enum                       time_precision {
-      none = 0,
-      microsecond = 1,
-      millisecond = 2,
-      second = 3
-    };
-
     unsigned long              add(
                                  backend* obj,
-                                 type_flags types,
-                                 verbosity const& verbose);
+                                 unsigned long long types,
+                                 unsigned int verbose);
     static engine&             instance();
     bool                       is_log(
-                                 type_number flag,
-                                 verbosity const& verbose) const throw ();
-    bool                       get_enable_sync() const throw ();
-    bool                       get_show_pid() const throw ();
-    time_precision             get_show_timestamp() const throw ();
-    bool                       get_show_thread_id() const throw ();
+                                 unsigned long long types,
+                                 unsigned int verbose) const throw ();
     static void                load();
     void                       log(
-                                 type_number flag,
-                                 verbosity const& verbose,
-                                 char const* msg);
+                                 unsigned long long types,
+                                 unsigned int verbose,
+                                 char const* msg,
+                                 unsigned int size);
     bool                       remove(unsigned long id);
     unsigned int               remove(backend* obj);
     void                       reopen();
-    void                       set_enable_sync(bool enable) throw ();
-    void                       set_show_pid(bool enable) throw ();
-    void                       set_show_timestamp(
-                                 time_precision p) throw ();
-    void                       set_show_thread_id(bool enable) throw ();
     static void                unload();
 
   private:
     struct                     backend_info {
       unsigned long            id;
       backend*                 obj;
-      type_flags               types;
-      verbosity                verbose;
+      unsigned long long       types;
+      unsigned int             verbose;
     };
 
                                engine();
@@ -90,16 +71,12 @@ namespace                      logging {
                                ~engine() throw ();
     engine&                    operator=(engine const& right);
     engine&                    _internal_copy(engine const& right);
-    void                       _rebuild_verbosities();
+    void                       _rebuild_types();
 
     std::vector<backend_info*> _backends;
     unsigned long              _id;
-    bool                       _is_sync;
-    verbosities                _list_verbose;
+    unsigned long long         _list_types[sizeof(unsigned int) * CHAR_BIT];
     mutable concurrency::mutex _mtx;
-    bool                       _show_pid;
-    time_precision             _show_timestamp;
-    bool                       _show_thread_id;
   };
 }
 

@@ -29,8 +29,8 @@ using namespace com::centreon::logging;
  *  @param[in] verbose  Verbosity level.
  */
 temp_logger::temp_logger(
-               unsigned int type,
-               verbosity verbose) throw ()
+               unsigned long long type,
+               unsigned int verbose) throw ()
   : _engine(engine::instance()),
     _type(type),
     _verbose(verbose) {
@@ -51,7 +51,7 @@ temp_logger::temp_logger(temp_logger const& right)
  *  Default destructor.
  */
 temp_logger::~temp_logger() throw () {
-  _engine.log(_type, _verbose, _buffer.data());
+  _engine.log(_type, _verbose, _buffer.data(), _buffer.size());
 }
 
 /**

@@ -29,16 +29,15 @@ CC_BEGIN()
 
 namespace logging {
   enum    type_value {
-    type_info = 0,
-    type_debug = 1,
-    type_error = 2
+    type_info = (1ull << 61),
+    type_debug = (1ull << 62),
+    type_error = (1ull << 63)
   };
 
   enum    verbosity_level {
-    none = 0,
-    low = 1,
-    medium = 2,
-    high = 3
+    low = 0,
+    medium = 1,
+    high = 2
   };
 }
 

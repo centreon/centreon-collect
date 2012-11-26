@@ -22,26 +22,9 @@
 #include <memory>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::logging;
-
-/**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
- */
-class  backend_test : public backend {
-public:
-       backend_test() {}
-       ~backend_test() throw () {}
-  void close() throw () {}
-  void flush() throw () {}
-  void log(char const* msg, unsigned int size) throw () {
-    (void)msg;
-    (void)size;
-  }
-  void open() {}
-  void reopen() {}
-};
 
 /**
  *  Check add backend on to the logging engine.
@@ -60,7 +43,7 @@ int main() {
       throw (basic_error() << "try to remove invalid id");
 
     std::auto_ptr<backend_test> obj(new backend_test);
-    unsigned long id(e.add(obj.get(), 0, verbosity()));
+    unsigned long id(e.add(obj.get(), 1, 0));
 
     if (!e.remove(id))
       throw (basic_error() << "remove id failed");

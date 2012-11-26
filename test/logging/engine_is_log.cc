@@ -22,26 +22,9 @@
 #include <memory>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::logging;
-
-/**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
- */
-class  backend_test : public backend {
-public:
-       backend_test() {}
-       ~backend_test() throw () {}
-  void close() throw () {}
-  void flush() throw () {}
-  void log(char const* msg, unsigned int size) throw () {
-    (void)msg;
-    (void)size;
-  }
-  void open() {}
-  void reopen() {}
-};
 
 /**
  *  Check is log.
@@ -55,22 +38,22 @@ int main() {
     engine& e(engine::instance());
     std::auto_ptr<backend_test> obj(new backend_test);
 
-    for (unsigned int i(1); i < 4; ++i) {
-      for (unsigned int j(0); j < sizeof(type_flags) * CHAR_BIT; ++j) {
-        verbosity verbose(i);
-        unsigned long id(e.add(obj.get(),
-                               (static_cast<type_flags>(1) << j),
-                               verbose));
-        for (unsigned int k(0); k < sizeof(type_flags) * CHAR_BIT; ++k) {
-          if (e.is_log(k, verbose) != (k == j))
+    unsigned int limits(sizeof(unsigned int) * CHAR_BIT);
+    for (unsigned int i(0); i < 3; ++i) {
+      for (unsigned int j(0); j < limits; ++j) {
+        unsigned long id(e.add(
+                             obj.get(),
+                             1 << j,
+                             i));
+        for (unsigned int k(0); k < limits; ++k) {
+          if (e.is_log(1 << k, i) != (k == j))
             throw (basic_error() << "is log failed with types("
-                   << j << ") verbose(" << verbose << ")");
+                   << j << ") verbose(" << i << ")");
 
-          for (unsigned int k(1); k < 4; ++k) {
-            verbosity tmp_verbose(k);
-            if (e.is_log(j, tmp_verbose) != (verbose >= tmp_verbose))
+          for (unsigned int k(0); k < 3; ++k) {
+            if (e.is_log(1 << j, k) != (i >= k))
               throw (basic_error() << "is log failed with types("
-                     << j << ") verbose(" << verbose << ")");
+                     << j << ") verbose(" << i << ")");
           }
         }
         if (!e.remove(id))

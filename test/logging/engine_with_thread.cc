@@ -26,32 +26,10 @@
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
-
-/**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
- */
-class                backend_test : public backend {
-public:
-                     backend_test() {}
-                     ~backend_test() throw () {}
-  void               close() throw () {}
-  std::string const& data() const throw () { return (_buffer); }
-  void               flush() throw () {}
-  void               log(char const* msg, unsigned int size) throw () {
-    locker lock(&_mtx);
-    _buffer.append(msg, size);
-  }
-  void               open() {}
-  void               reopen() {}
-
-private:
-  std::string        _buffer;
-  mutex              _mtx;
-};
 
 /**
  *  @class writter
@@ -68,7 +46,7 @@ private:
     for (unsigned int i(0); i < _nb_write; ++i) {
       std::ostringstream oss;
       oss << this << ":" << i;
-      e.log(0, verbosity(1), oss.str().c_str());
+      e.log(1, 0, oss.str().c_str(), oss.str().size());
     }
   }
   unsigned int       _nb_write;
@@ -87,12 +65,9 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    e.set_show_pid(false);
-    e.set_show_timestamp(engine::none);
-    e.set_show_thread_id(false);
 
     std::auto_ptr<backend_test> obj(new backend_test);
-    e.add(obj.get(), 1, verbosity(1));
+    e.add(obj.get(), 1, 0);
 
     std::vector<thread*> threads;
     for (unsigned int i(0); i < nb_writter; ++i)

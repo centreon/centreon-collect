@@ -24,18 +24,29 @@
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/syslogger.hh"
+#include "com/centreon/misc/stringifier.hh"
 
-using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
 
 /**
- *  Default constructor.
+ *  Constructor.
  *
- *  @param[in] id        The id prepended to every message.
- *  @param[in] facility  This is the syslog facility.
+ *  @param[in] id              The id prepended to every message.
+ *  @param[in] facility        This is the syslog facility.
+ *  @param[in] is_sync         Enable synchronization.
+ *  @param[in] show_pid        Enable show pid.
+ *  @param[in] show_timestamp  Enable show timestamp.
+ *  @param[in] show_thread_id  Enable show thread id.
  */
-syslogger::syslogger(std::string const& id, int facility)
-  : _facility(facility),
+syslogger::syslogger(
+             std::string const& id,
+             int facility,
+             bool is_sync,
+             bool show_pid,
+             time_precision show_timestamp,
+             bool show_thread_id)
+  : backend(is_sync, show_pid, show_timestamp, show_thread_id),
+    _facility(facility),
     _id(id) {
   open();
 }
@@ -72,36 +83,40 @@ syslogger& syslogger::operator=(syslogger const& right) {
  *  Close syslog.
  */
 void syslogger::close() throw () {
-  locker lock(&_mtx);
+  concurrency::locker lock(&_lock);
   closelog();
-}
-
-/**
- *  Do nothing.
- */
-void syslogger::flush() throw () {
-
 }
 
 /**
  *  Write message into the syslog.
  *  @remark This method is thread safe.
  *
- *  @param[in] msg   The message to write.
- *  @param[in] size  The message's size.
+ *  @param[in] type     Logging types.
+ *  @param[in] verbose  Verbosity level.
+ *  @param[in] msg      The message to write.
+ *  @param[in] size     The message's size.
  */
-void syslogger::log(char const* msg, unsigned int size) throw () {
+void syslogger::log(
+                  unsigned long long types,
+                  unsigned int verbose,
+                  char const* msg,
+                  unsigned int size) throw () {
+  (void)types;
+  (void)verbose;
   (void)size;
 
-  locker lock(&_mtx);
-  syslog(LOG_ERR, "%s", msg);
+  misc::stringifier header;
+  _build_header(header);
+
+  concurrency::locker lock(&_lock);
+  syslog(LOG_ERR, "%s%s", header.data(), msg);
 }
 
 /**
  *  Open syslog.
  */
 void syslogger::open() {
-  locker lock(&_mtx);
+  concurrency::locker lock(&_lock);
   openlog(_id.c_str(), 0, _facility);
 }
 
@@ -109,7 +124,7 @@ void syslogger::open() {
  *  Close and open syslog.
  */
 void syslogger::reopen() {
-  locker lock(&_mtx);
+  concurrency::locker lock(&_lock);
   closelog();
   openlog(_id.c_str(), 0, _facility);
 }

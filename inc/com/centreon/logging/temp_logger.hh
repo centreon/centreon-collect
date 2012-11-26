@@ -23,7 +23,6 @@
 
 #  include <string>
 #  include "com/centreon/logging/engine.hh"
-#  include "com/centreon/logging/verbosity.hh"
 #  include "com/centreon/namespace.hh"
 #  include "com/centreon/misc/stringifier.hh"
 
@@ -45,8 +44,8 @@ namespace                     logging {
   class                       temp_logger {
   public:
                               temp_logger(
-                                type_number type,
-                                verbosity verbose) throw ();
+                                unsigned long long types,
+                                unsigned int verbose) throw ();
                               temp_logger(temp_logger const& right);
     virtual                   ~temp_logger() throw ();
     temp_logger&              operator=(temp_logger const& right);
@@ -62,8 +61,8 @@ namespace                     logging {
 
     misc::stringifier         _buffer;
     engine&                   _engine;
-    type_number               _type;
-    verbosity                 _verbose;
+    unsigned long long        _type;
+    unsigned int              _verbose;
   };
 }
 

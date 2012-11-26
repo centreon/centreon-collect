@@ -22,26 +22,9 @@
 #include <memory>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::logging;
-
-/**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
- */
-class  backend_test : public backend {
-public:
-       backend_test() {}
-       ~backend_test() throw () {}
-  void close() throw () {}
-  void flush() throw () {}
-  void log(char const* msg, unsigned int size) throw () {
-    (void)msg;
-    (void)size;
-  }
-  void open() {}
-  void reopen() {}
-};
 
 /**
  *  Check remove by backend the null pointer argument.
@@ -75,15 +58,15 @@ int main() {
       throw (basic_error() << "try to remove with null pointer");
 
     std::auto_ptr<backend_test> obj(new backend_test);
-    e.add(obj.get(), 0, verbosity());
+    e.add(obj.get(), 1, 0);
     if (e.remove(obj.get()) != 1)
       throw (basic_error() << "remove one backend failed");
 
     static unsigned int const nb_backend(1000);
-    for (unsigned int i(0); i < nb_backend; ++i)
-      e.add(obj.get(), i, verbosity());
+    for (unsigned int i(1); i < nb_backend; ++i)
+      e.add(obj.get(), i, 0);
 
-    if (e.remove(obj.get()) != nb_backend)
+    if (e.remove(obj.get()) != nb_backend - 1)
       throw (basic_error() << "remove " << nb_backend
               << " backend failed");
     retval = 0;

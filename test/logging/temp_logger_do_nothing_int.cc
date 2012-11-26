@@ -23,31 +23,9 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/logging/temp_logger.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::logging;
-
-/**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
- */
-class          backend_test : public backend {
-public:
-               backend_test() : _nb_call(0) {}
-               ~backend_test() throw () {}
-  void         close() throw () {}
-  void         flush() throw () {}
-  void         log(char const* msg, unsigned int size) throw () {
-    (void)msg;
-    (void)size;
-    ++_nb_call;
-  }
-  unsigned int get_nb_call() const throw () { return (_nb_call); }
-  void         open() {}
-  void         reopen() {}
-
-private:
-  unsigned int _nb_call;
-};
 
 /**
  *  Check temp logger with nothing to do.
@@ -61,9 +39,9 @@ int main() {
   try {
     engine& e(engine::instance());
     std::auto_ptr<backend_test> obj(new backend_test);
-    e.add(obj.get(), 2, verbosity(1));
+    e.add(obj.get(), 2, 0);
 
-    temp_logger(1, verbosity(3)) << int(42);
+    temp_logger(1, 2) << int(42);
     if (obj->get_nb_call())
       throw (basic_error() << "invalid number of call log");
     retval = 0;

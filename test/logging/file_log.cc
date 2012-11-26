@@ -18,11 +18,11 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
-#include <iostream>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <fstream>
-#include <stdio.h>
-#include <string.h>
+#include <iostream>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/logging/file.hh"
@@ -51,9 +51,8 @@ int main() {
     char* tmp(com::centreon::io::file_stream::temp_path());
 
     {
-      file f(tmp);
-      f.log(msg, sizeof(msg));
-      f.flush();
+      file f(tmp, false, false, none, false);
+      f.log(1, 0, msg, sizeof(msg));
     }
     if (!check_log_message(tmp, msg))
       throw (basic_error() << "log message failed");
@@ -63,9 +62,8 @@ int main() {
       if (!(out = fopen(tmp, "w")))
         throw (basic_error() << "failed to open file \"" << tmp << "\":"
                << strerror(errno));
-      file f(out);
-      f.log(msg, sizeof(msg));
-      f.flush();
+      file f(out, false, false, none, false);
+      f.log(1, 0, msg, sizeof(msg));
     }
     if (!check_log_message(tmp, msg))
       throw (basic_error() << "log message failed");
