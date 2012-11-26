@@ -25,30 +25,9 @@
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::logging;
-
-/**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
- */
-class                backend_test : public backend {
-public:
-                     backend_test() {}
-                     ~backend_test() throw () {}
-  void               close() throw () {}
-  std::string const& data() const throw () { return (_buffer); }
-  void               flush() throw () {}
-  void               log(char const* msg, unsigned int size) throw () {
-    _buffer.append(msg, size);
-  }
-  void               open() {}
-  void               reopen() {}
-  void               reset() throw () { _buffer.clear(); }
-
-private:
-  std::string _buffer;
-};
 
 /**
  *  Check time.
@@ -80,27 +59,28 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    e.set_show_pid(false);
-    e.set_show_thread_id(false);
 
-    std::auto_ptr<backend_test> obj(new backend_test);
-    e.add(obj.get(), 1, verbosity(1));
-
-    e.set_show_timestamp(engine::second);
-    e.log(0, verbosity(1), msg);
+    std::auto_ptr<backend_test> obj(new backend_test(
+                                          false,
+                                          false,
+                                          none,
+                                          false));
+    e.add(obj.get(), 1, 0);
+    obj->show_timestamp(second);
+    e.log(1, 0, msg, sizeof(msg));
     if (!check_time(obj->data(), msg))
       throw (basic_error() << "log with timestamp in second failed");
     obj->reset();
 
-    e.set_show_timestamp(engine::millisecond);
-    e.log(0, verbosity(1), msg);
+    obj->show_timestamp(millisecond);
+    e.log(1, 0, msg, sizeof(msg));
     if (!check_time(obj->data(), msg))
       throw (basic_error() << "log with timestamp in millisecond " \
              "failed");
     obj->reset();
 
-    e.set_show_timestamp(engine::microsecond);
-    e.log(0, verbosity(1), msg);
+    obj->show_timestamp(microsecond);
+    e.log(1, 0, msg, sizeof(msg));
     if (!check_time(obj->data(), msg))
       throw (basic_error() << "log with timestamp in microsecond " \
              "failed");

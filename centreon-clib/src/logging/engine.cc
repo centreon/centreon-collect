@@ -18,28 +18,17 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#ifdef _WIN32
-#  include <windows.h>
-#else
-#  include <sys/types.h>
-#  include <unistd.h>
-#endif // _WIN32
-
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/misc/stringifier.hh"
-#include "com/centreon/timestamp.hh"
 #include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
-using namespace com::centreon::misc;
 
 // Class instance.
 static engine* _instance = NULL;
@@ -55,11 +44,14 @@ static engine* _instance = NULL;
  */
 unsigned long engine::add(
                         backend* obj,
-                        type_flags types,
-                        verbosity const& verbose) {
+                        unsigned long long types,
+                        unsigned int verbose) {
   if (!obj)
     throw (basic_error() << "add backend on the logging engine "
-           "failed:bad argument (null pointer)");
+           "failed: bad argument (null pointer)");
+  if (verbose >= sizeof(unsigned int) * CHAR_BIT)
+    throw (basic_error() << "add backend on the logging engine "
+           "failed: invalid verbose");
 
   std::auto_ptr<backend_info> info(new backend_info);
   info->obj = obj;
@@ -69,10 +61,8 @@ unsigned long engine::add(
   // Lock engine.
   locker lock(&_mtx);
   info->id = ++_id;
-  for (unsigned int i(0); i < sizeof(type_flags) * CHAR_BIT; ++i)
-    if ((types & (static_cast<type_flags>(1) << i))
-        && _list_verbose[i] < verbose)
-      _list_verbose[i] = verbose;
+  for (unsigned int i(0); i <= verbose; ++i)
+    _list_types[i] |= types;
 
   _backends.push_back(info.get());
   return (info.release()->id);
@@ -98,58 +88,14 @@ engine& engine::instance() {
  *          otherwise false.
  */
 bool engine::is_log(
-               type_number flag,
-               verbosity const& verbose) const throw () {
-  if (flag >= sizeof(type_flags) * CHAR_BIT)
+               unsigned long long types,
+               unsigned int verbose) const throw () {
+  if (verbose >= sizeof(unsigned int) * CHAR_BIT)
     return (false);
 
   // Lock engine.
   locker lock(&_mtx);
-  return (_list_verbose[flag] != verbosity()
-          && _list_verbose[flag] >= verbose);
-}
-
-/**
- *  Get if all backends was synchronize.
- *
- *  @return True if synchronize, otherwise false.
- */
-bool engine::get_enable_sync() const throw () {
-  locker lock(&_mtx);
-  return (_is_sync);
-}
-
-/**
- *  Get if the pid is display.
- *
- *  @return True if pid is display, otherwise false.
- */
-bool engine::get_show_pid() const throw () {
-  // Lock engine.
-  locker lock(&_mtx);
-  return (_show_pid);
-}
-
-/**
- *  Get if the timestamp is display.
- *
- *  @return Time precision is display, otherwise none.
- */
-engine::time_precision engine::get_show_timestamp() const throw () {
-  // Lock engine.
-  locker lock(&_mtx);
-  return (_show_timestamp);
-}
-
-/**
- *  Get if the thread id is display.
- *
- *  @return True if thread id is display, otherwise false.
- */
-bool engine::get_show_thread_id() const throw () {
-  // Lock engine.
-  locker lock(&_mtx);
-  return (_show_thread_id);
+  return (_list_types[verbose] & types);
 }
 
 /**
@@ -158,72 +104,33 @@ bool engine::get_show_thread_id() const throw () {
 void engine::load() {
   if (!_instance)
     _instance = new engine;
-  return ;
+  return;
 }
 
 /**
  *  Log messages.
  *
- *  @param[in] flag     The logging type to log.
+ *  @param[in] types    The logging type to log.
  *  @param[in] verbose  The verbosity level.
  *  @param[in] msg      The string to log.
+ *  @param[in] size     The string size to log.
  */
 void engine::log(
-               type_number flag,
-               verbosity const& verbose,
-               char const* msg) {
+               unsigned long long types,
+               unsigned int verbose,
+               char const* msg,
+               unsigned int size) {
   if (!msg)
     return;
 
   // Lock engine.
   locker lock(&_mtx);
-
-  // Build line header.
-  stringifier header;
-  if (_show_timestamp == second)
-    header << "[" << timestamp::now().to_seconds() << "] ";
-  else if (_show_timestamp == millisecond)
-    header << "[" << timestamp::now().to_mseconds() << "] ";
-  else if (_show_timestamp == microsecond)
-    header << "[" << timestamp::now().to_useconds() << "] ";
-  if (_show_pid) {
-#ifdef _WIN32
-    header << "[" << GetCurrentProcessId() << "] ";
-#else
-    header << "[" << getpid() << "] ";
-#endif
-  }
-  if (_show_thread_id)
-    header << "[" << thread::get_current_id() << "] ";
-
-  // Split msg by line.
-  stringifier buffer;
-  unsigned int i(0);
-  unsigned int last(0);
-  while (msg[i]) {
-    if (msg[i] == '\n') {
-      buffer << header;
-      buffer.append(msg + last, i - last) << "\n";
-      last = i + 1;
-    }
-    ++i;
-  }
-  if (last != i) {
-    buffer << header;
-    buffer.append(msg + last, i - last) << "\n";
-  }
-
   for (std::vector<backend_info*>::const_iterator
          it(_backends.begin()), end(_backends.end());
        it != end;
        ++it)
-    if (((*it)->types & (static_cast<type_flags>(1) << flag))
-        && (*it)->verbose != verbosity()
-        && (*it)->verbose >= verbose) {
-      (*it)->obj->log(buffer.data(), buffer.size());
-      if (_is_sync)
-        (*it)->obj->flush();
-    }
+    if (((*it)->types & types) && (*it)->verbose >= verbose)
+      (*it)->obj->log(types, verbose, msg, size);
 }
 
 /**
@@ -243,7 +150,7 @@ bool engine::remove(unsigned long id) {
     if ((*it)->id == id) {
       delete *it;
       _backends.erase(it);
-      _rebuild_verbosities();
+      _rebuild_types();
       return (true);
     }
   return (false);
@@ -275,7 +182,7 @@ unsigned int engine::remove(backend* obj) {
     }
   }
   if (count_remove)
-    _rebuild_verbosities();
+    _rebuild_types();
   return (count_remove);
 }
 
@@ -292,49 +199,6 @@ void engine::reopen() {
 }
 
 /**
- *  Set if all backends was synchronize.
- *
- *  @param[in] enable  True to synchronize backends data.
- */
-void engine::set_enable_sync(bool enable) throw () {
-  locker lock(&_mtx);
-  _is_sync = enable;
-}
-
-/**
- *  Set pid display.
- *
- *  @param[in] enable  Enable or disable display pid.
- */
-void engine::set_show_pid(bool enable) throw () {
-  // Lock engine.
-  locker lock(&_mtx);
-  _show_pid = enable;
-}
-
-/**
- *  Set timestamp display.
- *
- *  @param[in] enable  Enable or disable display timestamp.
- */
-void engine::set_show_timestamp(time_precision p) throw () {
-  // Lock engine.
-  locker lock(&_mtx);
-  _show_timestamp = p;
-}
-
-/**
- *  Set thread id display.
- *
- *  @param[in] enable  Enable or disable display thread id.
- */
-void engine::set_show_thread_id(bool enable) throw () {
-  // Lock engine.
-  locker lock(&_mtx);
-  _show_thread_id = enable;
-}
-
-/**
  *  Destroy the logging engine.
  */
 void engine::unload() {
@@ -347,12 +211,8 @@ void engine::unload() {
  *  Default constructor.
  */
 engine::engine()
-  : _id(0),
-    _is_sync(true),
-    _show_pid(true),
-    _show_timestamp(second),
-    _show_thread_id(true) {
-  memset(_list_verbose, 0, sizeof(_list_verbose));
+  : _id(0) {
+  memset(_list_types, 0, sizeof(_list_types));
 }
 
 /**
@@ -401,17 +261,15 @@ engine& engine::_internal_copy(engine const& right) {
 }
 
 /**
- *  Rebuild the verbosities information.
+ *  Rebuild the types information.
  */
-void engine::_rebuild_verbosities() {
-  memset(_list_verbose, 0, sizeof(_list_verbose));
+void engine::_rebuild_types() {
+  memset(_list_types, 0, sizeof(_list_types));
   for (std::vector<backend_info*>::const_iterator
          it(_backends.begin()), end(_backends.end());
        it != end;
        ++it) {
-    for (unsigned int i(0); i < sizeof(type_flags) * CHAR_BIT; ++i)
-      if (((*it)->types & (static_cast<type_flags>(1) << i))
-          && _list_verbose[i] < (*it)->verbose)
-        _list_verbose[i] = (*it)->verbose;
+    for (unsigned int i(0); i <= (*it)->verbose; ++i)
+      _list_types[i] |= (*it)->types;
   }
 }

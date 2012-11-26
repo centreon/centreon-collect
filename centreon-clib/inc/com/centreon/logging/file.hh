@@ -23,7 +23,6 @@
 
 #  include <cstdio>
 #  include <string>
-#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/logging/backend.hh"
 #  include "com/centreon/namespace.hh"
 
@@ -36,22 +35,35 @@ namespace              logging {
    */
   class                file : public backend {
   public:
-                       file(FILE* file);
-                       file(std::string const& path);
+                       file(
+                         FILE* file,
+                         bool is_sync = true,
+                         bool show_pid = true,
+                         time_precision show_timestamp = second,
+                         bool show_thread_id = false);
+                       file(
+                         std::string const& path,
+                         bool is_sync = true,
+                         bool show_pid = true,
+                         time_precision show_timestamp = second,
+                         bool show_thread_id = false);
                        file(file const& right);
                        ~file() throw ();
     file&              operator=(file const& right);
     void               close() throw ();
     std::string const& filename() const throw ();
-    void               flush() throw ();
-    void               log(char const* msg, unsigned int size) throw ();
+    void               log(
+                         unsigned long long types,
+                         unsigned int verbose,
+                         char const* msg,
+                         unsigned int size) throw ();
     void               open();
     void               reopen();
 
   private:
+    void               _flush() throw ();
     file&              _internal_copy(file const& right);
 
-    concurrency::mutex _mtx;
     std::string        _path;
     FILE*              _out;
   };

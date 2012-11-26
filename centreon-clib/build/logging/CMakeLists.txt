@@ -46,7 +46,6 @@ set(
   "${SRC_DIR}/engine.cc"
   "${SRC_DIR}/file.cc"
   "${SRC_DIR}/temp_logger.cc"
-  "${SRC_DIR}/verbosity.cc"
   PARENT_SCOPE
 )
 
@@ -60,6 +59,5 @@ set(
   "${INC_DIR}/file.hh"
   "${INC_DIR}/logger.hh"
   "${INC_DIR}/temp_logger.hh"
-  "${INC_DIR}/verbosity.hh"
   PARENT_SCOPE
 )

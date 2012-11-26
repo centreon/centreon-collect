@@ -18,13 +18,29 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <string>
+#include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/engine.hh"
-#include "./backend_test.hh"
+#include "com/centreon/io/file_stream.hh"
+#include "com/centreon/logging/file.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::logging;
+
+static bool check_log_message(
+              std::string const& path,
+              std::string const& msg) {
+  std::ifstream stream(path.c_str());
+  char buffer[32 * 1024];
+  memset(buffer, 0, sizeof(buffer));
+  stream.read(buffer, sizeof(buffer));
+  return (buffer == msg);
+}
 
 /**
  *  Check if log message works.
@@ -32,37 +48,34 @@ using namespace com::centreon::logging;
  *  @return 0 on success.
  */
 int main() {
+  static unsigned int const nb_line(1024);
   int retval;
 
-  engine::load();
   try {
-    engine& e(engine::instance());
-    std::auto_ptr<backend_test> obj(new backend_test);
+    char* tmpfile(com::centreon::io::file_stream::temp_path());
 
-    e.log(1, 0, NULL, 0);
-
-    unsigned int limits(sizeof(unsigned int) * CHAR_BIT);
-
-    for (unsigned int i(0); i < 3; ++i) {
-      for (unsigned int j(0); j < limits; ++j) {
-        unsigned long id(e.add(obj.get(),
-                               1 << j,
-                               i));
-        for (unsigned int k(0); k < limits; ++k)
-          e.log(1 << k, i, "", 0);
-        if (!e.remove(id))
-          throw (basic_error() << "remove id failed");
-      }
+    std::ostringstream tmp;
+    std::ostringstream tmpref;
+    for (unsigned int i(0); i < nb_line; ++i) {
+      tmp << i << "\n";
+      tmpref << "[" << concurrency::thread::get_current_id()
+             << "] " << i << "\n";
     }
+    std::string msg(tmp.str());
+    std::string ref(tmpref.str());
 
-    if (obj->get_nb_call() != 3 * limits)
-      throw (basic_error() << "invalid number of call log function");
+    {
+      file f(tmpfile, false, false, none, true);
+      f.log(1, 0, msg.c_str(), msg.size());
+    }
+    if (!check_log_message(tmpfile, ref))
+      throw (basic_error() << "log message failed");
+
     retval = 0;
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
   return (retval);
 }

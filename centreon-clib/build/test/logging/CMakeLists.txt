@@ -21,20 +21,26 @@
 # Set directories.
 set(TEST_DIR "${TEST_DIR}/logging")
 
+# backend_with_pid
+set(TEST_NAME "backend_with_pid")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# backend_with_timestamp
+set(TEST_NAME "backend_with_timestamp")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# backend_with_thread_id
+set(TEST_NAME "backend_with_thread_id")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # engine_add
 set(TEST_NAME "engine_add")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# engine_disable_sync
-set(TEST_NAME "engine_disable_sync")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# engine_enable_sync
-set(TEST_NAME "engine_enable_sync")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
@@ -51,12 +57,6 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# engine_log_multiline
-set(TEST_NAME "engine_log_multiline")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # engine_remove_by_backend
 set(TEST_NAME "engine_remove_by_backend")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
@@ -69,26 +69,14 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# engine_with_pid
-set(TEST_NAME "engine_with_pid")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# engine_with_timestamp
-set(TEST_NAME "engine_with_timestamp")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# engine_with_thread_id
-set(TEST_NAME "engine_with_thread_id")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # file_log
 set(TEST_NAME "file_log")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# file_log_multiline
+set(TEST_NAME "file_log_multiline")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

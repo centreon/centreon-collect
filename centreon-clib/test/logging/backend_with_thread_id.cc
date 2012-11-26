@@ -22,54 +22,53 @@
 #include <memory>
 #include <sstream>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
+#include "./backend_test.hh"
 
 using namespace com::centreon::logging;
 
 /**
- *  @class backend_test
- *  @brief litle implementation of backend to test logging engine.
+ *  Check thread id.
+ *
+ *  @return True on success, otherwise false.
  */
-class  backend_test : public backend {
-public:
-       backend_test() : _is_flush(false) {}
-       ~backend_test() throw () {}
-  void close() throw () {}
-  void flush() throw () { _is_flush = true; }
-  bool is_flush() const throw () { return (_is_flush); }
-  void log(char const* msg, unsigned int size) throw () {
-    (void)msg;
-    (void)size;
-  }
-  void open() {}
-  void reopen() {}
+static bool check_thread_id(std::string const& data, char const* msg) {
+  void* ptr(NULL);
+  char message[1024];
 
-private:
-  bool _is_flush;
-};
+  int ret(sscanf(
+            data.c_str(),
+            "[%p] %s\n",
+            &ptr,
+            message));
+  return (ret == 2 && !strncmp(msg, message, strlen(msg)));
+}
 
 /**
- *  Check if engine flush all data.
+ *  Check add backend on to the logging engine.
  *
  *  @return 0 on success.
  */
 int main() {
-  static char msg[] = "Centreon Clib test";
+  static char msg[] = "Centreon_Clib_test";
   int retval;
 
   engine::load();
   try {
     engine& e(engine::instance());
-    e.set_enable_sync(true);
-
-    std::auto_ptr<backend_test> obj(new backend_test);
-    e.add(obj.get(), 1, verbosity(1));
-
-    e.log(0, verbosity(1), msg);
-    if (obj->is_flush() == false)
-      throw (basic_error() << "data wasn't flush");
+    std::auto_ptr<backend_test> obj(new backend_test(
+                                          false,
+                                          false,
+                                          none,
+                                          true));
+    e.add(obj.get(), 1, 0);
+    e.log(1, 0, msg, sizeof(msg));
+    if (!check_thread_id(obj->data(), msg))
+      throw (basic_error() << "log with thread id failed");
     retval = 0;
   }
   catch (std::exception const& e) {

@@ -22,7 +22,6 @@
 #  define CC_LOGGING_SYSLOGGER_HH
 
 #  include <string>
-#  include "com/centreon/concurrency/mutex.hh"
 #  include "com/centreon/logging/backend.hh"
 #  include "com/centreon/namespace.hh"
 
@@ -35,13 +34,22 @@ namespace              logging {
    */
   class                syslogger : public backend {
   public:
-                       syslogger(std::string const& id, int facility);
+                       syslogger(
+                         std::string const& id,
+                         int facility,
+                         bool is_sync = true,
+                         bool show_pid = true,
+                         time_precision show_timestamp = second,
+                         bool show_thread_id = false);
                        syslogger(syslogger const& right);
                        ~syslogger() throw ();
     syslogger&         operator=(syslogger const& right);
     void               close() throw ();
-    void               flush() throw ();
-    void               log(char const* msg, unsigned int size) throw ();
+    void               log(
+                         unsigned long long types,
+                         unsigned int verbose,
+                         char const* msg,
+                         unsigned int size) throw ();
     void               open();
     void               reopen();
 
@@ -50,7 +58,6 @@ namespace              logging {
 
     int                _facility;
     std::string        _id;
-    concurrency::mutex _mtx;
   };
 }
 
