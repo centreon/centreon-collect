@@ -101,21 +101,21 @@ int main(int argc, char** argv, char** env) {
     else {
       // Set logging object.
       if (opts.get_argument("debug").get_is_set()) {
-        logging::engine::instance().set_show_pid(true);
-        logging::engine::instance().set_show_thread_id(true);
+        log_file.show_pid(true);
+        log_file.show_thread_id(true);
         logging::engine::instance().add(
           &log_file,
-          (1ull << logging::type_debug)
-          | (1ull << logging::type_info)
-          | (1ull << logging::type_error),
+          logging::type_debug
+          | logging::type_info
+          | logging::type_error,
           logging::high);
       }
       else {
-        logging::engine::instance().set_show_pid(false);
-        logging::engine::instance().set_show_thread_id(false);
+        log_file.show_pid(false);
+        log_file.show_thread_id(false);
         logging::engine::instance().add(
           &log_file,
-          (1ull << logging::type_info) | (1ull << logging::type_error),
+          logging::type_info | logging::type_error,
           logging::low);
       }
       log_info(logging::low) << "Centreon Connector Perl "
