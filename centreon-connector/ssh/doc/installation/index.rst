@@ -7,7 +7,7 @@ Entreprise Server (CES) repository. Most of Merethis' endorsed
 software are available as RPM packages.
 
 Alternatively, you can build and install your own version of this
-software by following the :ref:`user_installatoin_using_sources`.
+software by following the :ref:`user_installation_using_sources`.
 
 **************
 Using packages
