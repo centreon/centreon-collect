@@ -272,9 +272,10 @@ void parser::_parse(std::string const& cmd) {
                     "received: bad command line (" << cmd.c_str() + pos
                  << ")");
 
-        if (opt.get_timeout() > 0 && opt.get_timeout() < timeout)
+        if (opt.get_timeout()
+            && opt.get_timeout() < static_cast<unsigned int>(timeout))
           timeout = opt.get_timeout();
-        else if (opt.get_timeout() > timeout)
+        else if (opt.get_timeout() > static_cast<unsigned int>(timeout))
           throw (basic_error() << "invalid execution request " \
                  "received: timeout > to monitoring engine timeout");
       }
