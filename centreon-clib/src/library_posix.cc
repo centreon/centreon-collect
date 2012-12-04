@@ -113,7 +113,12 @@ void* library::resolve(std::string const& symbol) {
  *  @return Symbol address.
  */
 void (* library::resolve_proc(char const* symbol))() {
-  return ((void (*)())resolve(symbol));
+  union {
+    void (*func)();
+    void* data;
+  } type;
+  type.data = resolve(symbol);
+  return (type.func);
 }
 
 /**
