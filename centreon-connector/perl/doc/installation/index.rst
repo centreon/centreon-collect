@@ -223,7 +223,7 @@ Example::
      -DWITH_TESTING=0 .
 
 At this step, the software will check for existence and usability of the
-rerequisites. If one cannot be found, an appropriate error message will
+prerequisites. If one cannot be found, an appropriate error message will
 be printed. Otherwise an installation summary will be printed.
 
 Compilation
