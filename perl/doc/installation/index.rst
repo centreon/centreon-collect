@@ -2,7 +2,7 @@
 Installation
 ############
 
-Merethis recommend using its official packages from the Centreon
+Merethis recommends using its official packages from the Centreon
 Entreprise Server (CES) repository. Most of Merethis' endorsed
 software are available as RPM packages.
 
