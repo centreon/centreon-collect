@@ -40,7 +40,7 @@ int main() {
     if (p.wait(500) == true)
       throw (basic_error() << "wait timeout failed: "
              "waiting more than necessary");
-    if (p.wait(1000) == false)
+    if (p.wait(1500) == false)
       throw (basic_error() << "wait timeout failed: "
              "waiting less than necessary");
   }
