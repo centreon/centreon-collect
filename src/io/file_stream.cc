@@ -28,6 +28,7 @@
 #  include <windows.h>
 #else
 #  include <unistd.h>
+#  include <fcntl.h>
 #endif // Windows or POSIX.
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
@@ -153,6 +154,21 @@ void file_stream::open(char const* path, char const* mode) {
     throw (basic_error() << "could not open file '"
            << path << "': " << msg);
   }
+#ifndef _WIN32
+  int fd(fileno(_stream));
+  int flags(0);
+  while ((flags = fcntl(fd, F_GETFD)) < 0) {
+    if (errno == EINTR)
+      continue;
+    return ;
+  }
+  int ret(0);
+  while ((ret = fcntl(fd, F_SETFD, flags | FD_CLOEXEC)) < 0) {
+    if (errno == EINTR)
+      continue;
+    return;
+  }
+#endif // !_WIN32
   return ;
 }
 
