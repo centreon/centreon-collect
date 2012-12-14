@@ -1,3 +1,5 @@
+.. _centreon_clib_install:
+
 ############
 Installation
 ############
@@ -151,6 +153,13 @@ http://git.centreon.com/centreon-clib. On a Linux box with git
 installed this is just a matter of::
 
   $ git clone http://git.centreon.com/centreon-clib
+
+Or You can get the latest Centreon Clib's sources from its
+`download website <http://www.centreon.com/Centreon-Download/download-centreon-clib.html>`_
+Once downloaded, extract it::
+
+  $ tar xzf centreon-clib.tar.gz
+
 
 Configuration
 -------------
