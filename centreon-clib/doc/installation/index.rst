@@ -25,7 +25,7 @@ Prerequisites
 =============
 
 In order to use RPM from the CES repository, you have to install the
-appropriate repo file. Run the following command as privileged user::
+appropriate repo file. Run the following command as privileged user ::
 
   $ wget http://yum.centreon.com/standard/ces-standard.repo -O /etc/yum.repos.d/ces-standard.repo
 
@@ -34,7 +34,7 @@ The repo file is now installed.
 Install
 =======
 
-Run the following commands as privileged user::
+Run the following commands as privileged user ::
 
   $ yum clean all
   $ yum install centreon-clib centreon-clib-devel
@@ -59,10 +59,10 @@ FreeBSD, Solaris, ...).
 Prerequisites
 =============
 
-CentOS 5.x
-----------
+CentOS
+------
 
-In CentOS 5.x you need to add manually cmake. After that you can
+In CentOS you need to add manually cmake. After that you can
 install binary packages. Either use the Package Manager or the
 yum tool to install them. You should check packages version when
 necessary.
@@ -77,26 +77,23 @@ CMake **(>= 2.8)**          cmake             Read the build script and
                                               prepare sources for compilation.
 =========================== ================= ================================
 
-#. Get and install cmake form official website::
+#. Install basic compilation tools ::
 
-    $ wget http://www.cmake.org/files/v2.8/cmake-2.8.6-Linux-i386.sh
-    $ sh cmake-2.8.6-Linux-i386.sh
-    $ y
-    $ y
-    $ mv cmake-2.8.6-Linux-i386 /usr/local/cmake
+   $ yum install gcc gcc-c++ make
 
-#. Add cmake directory into the PATH environment variable::
+#. Get and install cmake
 
-    $ export PATH="$PATH:/usr/local/cmake/bin"
+   For CentOS 5 ::
 
-#. Install basic compilation tools::
+     $ ARCH=`uname -m`
+     $ wget http://apt.sw.be/redhat/el5/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
+     $ rpm -Uvh cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
 
-    $ yum install gcc gcc-c++ make
+   For CentOS 6 ::
 
-CentOS 6.x
-----------
-
-FIXME
+     $ ARCH=`uname -m`
+     $ wget http://apt.sw.be/redhat/el6/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
+     $ rpm -Uvh cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
 
 Debian/Ubuntu
 -------------
@@ -116,9 +113,9 @@ CMake **(>= 2.8)**          cmake            Read the build script and
                                              prepare sources for compilation.
 =========================== ================ ================================
 
-#. Install compilation tools::
+#. Install compilation tools ::
 
-    $ apt-get install build-essential cmake
+   $ apt-get install build-essential cmake
 
 OpenSUSE
 --------
@@ -138,9 +135,9 @@ CMake **(>= 2.8)**          cmake             Read the build script and
                                               prepare sources for compilation.
 =========================== ================= ================================
 
-#. Install compilation tools::
+#. Install compilation tools ::
 
-    $ zypper install gcc gcc-c++ make cmake
+   $ zypper install gcc gcc-c++ make cmake
 
 Build
 =====
@@ -150,35 +147,27 @@ Get sources
 
 Centreon Clib can be checked out from Merethis's git server at
 http://git.centreon.com/centreon-clib. On a Linux box with git
-installed this is just a matter of::
+installed this is just a matter of ::
 
   $ git clone http://git.centreon.com/centreon-clib
 
 Or You can get the latest Centreon Clib's sources from its
 `download website <http://www.centreon.com/Centreon-Download/download-centreon-clib.html>`_
-Once downloaded, extract it::
+Once downloaded, extract it ::
 
   $ tar xzf centreon-clib.tar.gz
-
 
 Configuration
 -------------
 
 At the root of the project directory you'll find a build directory
 which holds build scripts. Generate the Makefile by running the
-following command::
+following command ::
 
   $ cd /path_to_centreon_clib/build
-  $ cmake .
-
-Checking of necessary components is performed and if successfully
-executed a summary of your configuration is printed.
-
-Variables
-~~~~~~~~~
 
 Your Centreon Clib can be tweaked to your particular needs using CMake's
-variable system. Variables can be set like this::
+variable system. Variables can be set like this ::
 
   $ cmake -D<variable1>=<value1> [-D<variable2>=<value2>] .
 
@@ -201,7 +190,7 @@ WITH_STATIC_LIB                 Create or not a static library.                O
 WITH_TESTING                    Build unit test.                               OFF
 ============================== =============================================== ==========================================
 
-Example::
+Example ::
 
   $ cmake \
      -DWITH_TESTING=0 \
@@ -216,10 +205,16 @@ At this step, the software will check for existence and usability of the
 rerequisites. If one cannot be found, an appropriate error message will
 be printed. Otherwise an installation summary will be printed.
 
+.. note::
+  If you need to change the options you used to compile your software,
+  you might want to remove the *CMakeCache.txt* file that is in the
+  *build* directory. This will remove cache entries that might have been
+  computed during the last configuration step.
+
 Compilation
 -----------
 
-Once properly configured, the compilation process is really simple::
+Once properly configured, the compilation process is really simple ::
 
   $ make
 
@@ -229,7 +224,7 @@ Install
 =======
 
 Once compiled, the following command must be run as privileged user to
-finish installation::
+finish installation ::
 
   $ make install
 
