@@ -23,6 +23,7 @@
 #include <sstream>
 #include <string>
 #include "com/centreon/clib.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/paths.hh"
 
@@ -85,20 +86,26 @@ int main() {
     p.terminate();
     p.wait();
   }
-  else {
+  else
     retval = (p.exit_code() != 0);
-    std::cout << "connector exit code: " << p.exit_code() << std::endl;
-  }
 
   // Cleanup.
   clib::unload();
 
-  // Data.
-  std::cout << "output size: " << output.size() << " (expected "
-            << (sizeof (RESULT) - 1) << ")" << std::endl;
+  try {
+    if (retval)
+      throw (basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1))
+      throw (basic_error()
+             << "invalid output size: " << output.size()
+             << ", output: " << output);
+    if (memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw (basic_error() << "invalid output: " << output);
+  }
+  catch (std::exception const& e) {
+    retval = 1;
+    std::cerr << "error: " << e.what() << std::endl;
+  }
 
-  // Compare results.
-  return (retval
-          || (output.size() != (sizeof (RESULT) - 1))
-          || (memcmp(output.c_str(), RESULT, sizeof (RESULT) - 1)));
+  return (retval);
 }
