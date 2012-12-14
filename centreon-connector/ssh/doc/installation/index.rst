@@ -100,7 +100,7 @@ gcrypt library              libgcrypt-devel     Gcrypt library.
 
 #. Install Centreon Clib
 
-See the Centreon Clib `documentation <XXX todo>`_.
+See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 CentOS 6.x
 ----------
@@ -135,7 +135,7 @@ gcrypt library              libgcrypt11-dev   Gcrypt library.
 
 #. Install Centreon Clib
 
-See the Centreon Clib `documentation <XXX todo>`_.
+See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 OpenSUSE
 --------
@@ -165,7 +165,7 @@ gcrypt library              libgcrypt-devel     Gcrypt library.
 
 #. Install Centreon Clib
 
-See the Centreon Clib `documentation <XXX todo>`_.
+See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 Build
 =====

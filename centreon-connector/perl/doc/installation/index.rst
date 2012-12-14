@@ -98,7 +98,7 @@ Perl                        perl                Scripting language.
 
 #. Install Centreon Clib
 
-See the Centreon Clib `documentation <XXX todo>`_.
+See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 CentOS 6.x
 ----------
@@ -132,7 +132,7 @@ Perl                        libperl-dev       Scripting language.
 
 #. Install Centreon Clib
 
-See the Centreon Clib `documentation <XXX todo>`_.
+See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 OpenSUSE
 --------
@@ -161,7 +161,7 @@ Perl                        perl                Scripting language.
 
 #. Install Centreon Clib
 
-See the Centreon Clib `documentation <XXX todo>`_.
+See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 Build
 =====
