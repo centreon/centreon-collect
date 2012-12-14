@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdio>
 #include <list>
-#include <stdio.h>
 #include <sstream>
 #include "com/centreon/clib.hh"
 #include "com/centreon/io/file_stream.hh"

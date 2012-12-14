@@ -18,12 +18,14 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstring>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <string.h>
 #include <time.h>
 #include "com/centreon/clib.hh"
 #include "com/centreon/concurrency/thread.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
@@ -116,8 +118,20 @@ int main() {
 
   clib::unload();
 
-  // Compare results.
-  return (retval
-          || (output.size() != (sizeof(RESULT) - 1))
-          || (memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1)));;
+  try {
+    if (retval)
+      throw (basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1))
+      throw (basic_error()
+             << "invalid output size: " << output.size()
+             << ", output: " << output);
+    if (memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw (basic_error() << "invalid output: " << output);
+  }
+  catch (std::exception const& e) {
+    retval = 1;
+    std::cerr << "error: " << e.what() << std::endl;
+  }
+
+  return (retval);
 }

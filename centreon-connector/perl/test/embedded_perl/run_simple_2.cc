@@ -73,6 +73,9 @@ int main(int argc, char* argv[], char* env[]) {
     int status;
     if (waitpid(child, &status, 0) == child)
       retval = !(WIFEXITED(status) && (WEXITSTATUS(status) == 42));
+    if (retval)
+      std::cerr << "execute script failed: exit_code=" << retval
+                << ", status=" << WEXITSTATUS(status) << std::endl;
 
     // Remove temporary file.
     remove(script_path.c_str());
@@ -83,6 +86,5 @@ int main(int argc, char* argv[], char* env[]) {
   catch (...) {
     std::cerr << "unknown error" << std::endl;
   }
-
   return (retval);
 }
