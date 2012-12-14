@@ -85,8 +85,8 @@ void mutex::lock() {
 bool mutex::trylock() {
   int ret(pthread_mutex_trylock(&_mtx));
   if (ret && (ret != EBUSY))
-    throw (basic_error() << "failed mutex " << this
-           << " lock attempt: " << strerror(ret));
+    throw (basic_error() << "failed mutex "
+           << "lock attempt: " << strerror(ret));
   return (!ret);
 }
 
@@ -95,11 +95,9 @@ bool mutex::trylock() {
  */
 void mutex::unlock() {
   int ret(pthread_mutex_unlock(&_mtx));
-  if (ret) {
-    char const* msg(strerror(ret));
+  if (ret)
     throw (basic_error() << "failed to unlock mutex "
-           << this << msg);
-  }
+           << strerror(ret));
   return ;
 }
 
