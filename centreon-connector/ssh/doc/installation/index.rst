@@ -23,7 +23,7 @@ Prerequisites
 =============
 
 In order to use RPM from the CES repository, you have to install the
-appropriate repo file. Run the following command as privileged user::
+appropriate repo file. Run the following command as privileged user ::
 
   $ wget http://yum.centreon.com/standard/ces-standard.repo -O /etc/yum.repos.d/ces-standard.repo
 
@@ -32,7 +32,7 @@ The repo file is now installed.
 Install
 =======
 
-Run the following commands as privileged user::
+Run the following commands as privileged user ::
 
   $ yum clean all
   $ yum install centreon-connector-ssh
@@ -60,10 +60,10 @@ FreeBSD, Solaris, ...).
 Prerequisites
 =============
 
-CentOS 5.x
-----------
+CentOS
+------
 
-In CentOS 5.x you need to add manually cmake. After that you can
+In CentOS you need to add manually cmake. After that you can
 install binary packages. Either use the Package Manager or the
 yum tool to install them. You should check packages version when
 necessary.
@@ -82,30 +82,27 @@ ssh2 library                libssh2-devel       SSH library.
 gcrypt library              libgcrypt-devel     Gcrypt library.
 =========================== =================== ================================
 
-#. Get and install cmake form official website::
+#. Install basic compilation tools ::
 
-    $ wget http://www.cmake.org/files/v2.8/cmake-2.8.6-Linux-i386.sh
-    $ sh cmake-2.8.6-Linux-i386.sh
-    $ y
-    $ y
-    $ mv cmake-2.8.6-Linux-i386 /usr/local/cmake
+     $ yum install gcc gcc-c++ make libssh2-devel libgcrypt-devel
 
-#. Add cmake directory into the PATH environment variable::
+#. Get and install cmake
 
-    $ export PATH="$PATH:/usr/local/cmake/bin"
+   For CentOS 5 ::
 
-#. Install basic compilation tools::
+     $ ARCH=`uname -m`
+     $ wget http://apt.sw.be/redhat/el5/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
+     $ rpm -Uvh cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
 
-    $ yum install gcc gcc-c++ make libssh2-devel libgcrypt-devel
+   For CentOS 6 ::
+
+     $ ARCH=`uname -m`
+     $ wget http://apt.sw.be/redhat/el6/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
+     $ rpm -Uvh cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
 
 #. Install Centreon Clib
 
-See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
-
-CentOS 6.x
-----------
-
-FIXME
+   See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 Debian/Ubuntu
 -------------
@@ -129,13 +126,13 @@ ssh2 library                libssh2-1-dev     SSH library.
 gcrypt library              libgcrypt11-dev   Gcrypt library.
 =========================== ================= ================================
 
-#. Install compilation tools::
+#. Install compilation tools ::
 
-    $ apt-get install build-essential cmake libssh2-1-dev libgcrypt11-dev
+   $ apt-get install build-essential cmake libssh2-1-dev libgcrypt11-dev
 
 #. Install Centreon Clib
 
-See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
+   See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 OpenSUSE
 --------
@@ -159,13 +156,13 @@ ssh2 library                libssh2-devel       SSH library.
 gcrypt library              libgcrypt-devel     Gcrypt library.
 =========================== =================== ================================
 
-#. Install compilation tools::
+#. Install compilation tools ::
 
-    $ zypper install gcc gcc-c++ make cmake libssh2-devel libgcrypt-devel
+   $ zypper install gcc gcc-c++ make cmake libssh2-devel libgcrypt-devel
 
 #. Install Centreon Clib
 
-See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
+   See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 Build
 =====
@@ -176,13 +173,13 @@ Get sources
 Centreon Connector SSH can be checked out from Merethis's git
 server at http://git.centreon.com/centreon-connector. The SSH
 connector sources reside in the ssh subdirectory. On a Linux box
-with git installed this is just a matter of::
+with git installed this is just a matter of ::
 
   $ git clone http://git.centreon.com/centreon-connector
 
 Or You can get the latest Centreon Connector's sources from its
 `download website <http://www.centreon.com/Content-Download/download-centreon-connector>`_.
-Once downloaded, extract it::
+Once downloaded, extract it ::
 
   $ tar xzf centreon-connector.tar.gz
 
@@ -191,19 +188,12 @@ Configuration
 
 At the root of the project directory you'll find a ssh/build directory
 which holds build scripts. Generate the Makefile by running the
-following command::
+following command ::
 
   $ cd /path_to_centreon_connector/ssh/build
-  $ cmake .
-
-Checking of necessary components is performed and if successfully
-executed a summary of your configuration is printed.
-
-Variables
-~~~~~~~~~
 
 Your Centreon Connector SSH can be tweaked to your particular needs
-using CMake's variable system. Variables can be set like this::
+using CMake's variable system. Variables can be set like this ::
 
   $ cmake -D<variable1>=<value1> [-D<variable2>=<value2>] .
 
@@ -236,7 +226,7 @@ WITH_TESTING                   Enable generation of unit tests. They can        
                                later be run by typing *make test*.
 ============================== ================================================ ======================
 
-Example::
+Example ::
 
   $ cmake \
      -DWITH_PREFIX=/usr \
@@ -247,10 +237,16 @@ At this step, the software will check for existence and usability of the
 rerequisites. If one cannot be found, an appropriate error message will
 be printed. Otherwise an installation summary will be printed.
 
+.. note::
+  If you need to change the options you used to compile your software,
+  you might want to remove the *CMakeCache.txt* file that is in the
+  *build* directory. This will remove cache entries that might have been
+  computed during the last configuration step.
+
 Compilation
 -----------
 
-Once properly configured, the compilation process is really simple::
+Once properly configured, the compilation process is really simple ::
 
   $ make
 
@@ -260,7 +256,7 @@ Install
 =======
 
 Once compiled, the following command must be run as privileged user to
-finish installation::
+finish installation ::
 
   $ make install
 

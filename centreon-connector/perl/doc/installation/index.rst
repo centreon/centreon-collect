@@ -23,7 +23,7 @@ Prerequisites
 =============
 
 In order to use RPM from the CES repository, you have to install the
-appropriate repo file. Run the following command as privileged user::
+appropriate repo file. Run the following command as privileged user ::
 
   $ wget http://yum.centreon.com/standard/ces-standard.repo -O /etc/yum.repos.d/ces-standard.repo
 
@@ -32,7 +32,7 @@ The repo file is now installed.
 Install
 =======
 
-Run the following commands as privileged user::
+Run the following commands as privileged user ::
 
   $ yum clean all
   $ yum install centreon-connector-perl
@@ -59,10 +59,10 @@ FreeBSD, Solaris, ...).
 Prerequisites
 =============
 
-CentOS 5.x
-----------
+CentOS
+------
 
-In CentOS 5.x you need to add manually cmake. After that you can
+In CentOS you need to add manually cmake. After that you can
 install binary packages. Either use the Package Manager or the
 yum tool to install them. You should check packages version when
 necessary.
@@ -80,30 +80,27 @@ Centreon Clib (>= 1.0)      centreon-clib-devel Core library used by Centreon
 Perl                        perl                Scripting language.
 =========================== =================== ================================
 
-#. Get and install cmake form official website::
+#. Install basic compilation tools ::
 
-    $ wget http://www.cmake.org/files/v2.8/cmake-2.8.6-Linux-i386.sh
-    $ sh cmake-2.8.6-Linux-i386.sh
-    $ y
-    $ y
-    $ mv cmake-2.8.6-Linux-i386 /usr/local/cmake
+     $ yum install gcc gcc-c++ make perl
 
-#. Add cmake directory into the PATH environment variable::
+#. Get and install cmake
 
-    $ export PATH="$PATH:/usr/local/cmake/bin"
+   For CentOS 5 ::
 
-#. Install basic compilation tools::
+     $ ARCH=`uname -m`
+     $ wget http://apt.sw.be/redhat/el5/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
+     $ rpm -Uvh cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
 
-    $ yum install gcc gcc-c++ make perl
+   For CentOS 6 ::
+
+     $ ARCH=`uname -m`
+     $ wget http://apt.sw.be/redhat/el6/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
+     $ rpm -Uvh cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
 
 #. Install Centreon Clib
 
-See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
-
-CentOS 6.x
-----------
-
-FIXME
+   See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 Debian/Ubuntu
 -------------
@@ -126,13 +123,13 @@ Centreon Clib               centreon-clib-dev Core library used by Centreon
 Perl                        libperl-dev       Scripting language.
 =========================== ================= ================================
 
-#. Install compilation tools::
+#. Install compilation tools ::
 
-    $ apt-get install build-essential cmake libperl-dev
+   $ apt-get install build-essential cmake libperl-dev
 
 #. Install Centreon Clib
 
-See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
+   See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 OpenSUSE
 --------
@@ -155,13 +152,13 @@ Centreon Clib               centreon-clib-devel Core library used by Centreon
 Perl                        perl                Scripting language.
 =========================== =================== ================================
 
-#. Install compilation tools::
+#. Install compilation tools ::
 
-    $ zypper install gcc gcc-c++ make cmake perl
+   $ zypper install gcc gcc-c++ make cmake perl
 
 #. Install Centreon Clib
 
-See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
+   See the Centreon Clib :ref:`documentation <centreon-clib:centreon_clib_install>`.
 
 Build
 =====
@@ -172,13 +169,13 @@ Get sources
 Centreon Connector Perl can be checked out from Merethis's git
 server at http://git.centreon.com/centreon-connector. The Perl
 connector sources reside in the perl subdirectory. On a Linux box
-with git installed this is just a matter of::
+with git installed this is just a matter of ::
 
   $ git clone http://git.centreon.com/centreon-connector
 
 Or You can get the latest Centreon Connector's sources from its
 `download website <http://www.centreon.com/Content-Download/download-centreon-connector>`_.
-Once downloaded, extract it::
+Once downloaded, extract it ::
 
   $ tar xzf centreon-connector.tar.gz
 
@@ -187,19 +184,12 @@ Configuration
 
 At the root of the project directory you'll find a perl/build directory
 which holds build scripts. Generate the Makefile by running the
-following command::
+following command ::
 
   $ cd /path_to_centreon_connector/perl/build
-  $ cmake .
-
-Checking of necessary components is performed and if successfully
-executed a summary of your configuration is printed.
-
-Variables
-~~~~~~~~~
 
 Your Centreon Connector Perl can be tweaked to your particular needs
-using CMake's variable system. Variables can be set like this::
+using CMake's variable system. Variables can be set like this ::
 
   $ cmake -D<variable1>=<value1> [-D<variable2>=<value2>] .
 
@@ -221,7 +211,7 @@ WITH_TESTING                   Enable generation of unit tests. They can later  
                                be run by typing *make test*.
 ============================== =======================================================================
 
-Example::
+Example ::
 
   $ cmake \
      -DWITH_PREFIX=/usr \
@@ -229,13 +219,19 @@ Example::
      -DWITH_TESTING=0 .
 
 At this step, the software will check for existence and usability of the
-prerequisites. If one cannot be found, an appropriate error message will
+rerequisites. If one cannot be found, an appropriate error message will
 be printed. Otherwise an installation summary will be printed.
+
+.. note::
+  If you need to change the options you used to compile your software,
+  you might want to remove the *CMakeCache.txt* file that is in the
+  *build* directory. This will remove cache entries that might have been
+  computed during the last configuration step.
 
 Compilation
 -----------
 
-Once properly configured, the compilation process is really simple::
+Once properly configured, the compilation process is really simple ::
 
   $ make
 
@@ -245,7 +241,7 @@ Install
 =======
 
 Once compiled, the following command must be run as privileged user to
-finish installation::
+finish installation ::
 
   $ make install
 
