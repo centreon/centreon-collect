@@ -43,6 +43,9 @@ using namespace com::centreon;
 // environ is not declared on *BSD.
 extern char** environ;
 
+// Global process lock.
+static concurrency::mutex gl_process_lock;
+
 /**************************************
 *                                     *
 *           Public Methods            *
@@ -53,7 +56,8 @@ extern char** environ;
  *  Default constructor.
  */
 process::process(process_listener* listener)
-  : _is_timeout(false),
+  : _create_process(&_create_process_with_setpgid),
+    _is_timeout(false),
     _listener(listener),
     _process(static_cast<pid_t>(-1)),
     _status(0),
@@ -145,6 +149,7 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
   // volatile prevent compiler optimization that might clobber variable.
   volatile bool restore_std(false);
 
+  concurrency::locker gl_lock(&gl_process_lock);
   try {
     // Create backup FDs.
     std[0] = _dup(STDIN_FILENO);
@@ -191,51 +196,8 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     // that might clobber variable.
     char** volatile my_env(env ? env : environ);
 
-#ifdef HAVE_SPAWN_H
     // Create new process.
-    posix_spawnattr_t attr;
-    int ret;
-    ret = posix_spawnattr_init(&attr);
-    if (ret)
-      throw (basic_error() << "cannot initialize spawn attributes: "
-             << strerror(ret));
-    ret = posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
-    if (ret) {
-      posix_spawnattr_destroy(&attr);
-      throw (basic_error() << "cannot set spawn flag: "
-             << strerror(ret));
-    }
-    ret = posix_spawnattr_setpgroup(&attr, 0);
-    if (ret) {
-      posix_spawnattr_destroy(&attr);
-      throw (basic_error()
-             << "cannot set process group ID of to-be-spawned process: "
-             << strerror(ret));
-    }
-    if (posix_spawnp(&_process, args[0], NULL, &attr, args, my_env)) {
-      _process = static_cast<pid_t>(-1);
-      char const* msg(strerror(errno));
-      posix_spawnattr_destroy(&attr);
-      throw (basic_error() << "could not create process: " << msg);
-    }
-    posix_spawnattr_destroy(&attr);
-#else
-    // Create new process.
-    _process = vfork();
-    if (_process == static_cast<pid_t>(-1)) {
-      char const* msg(strerror(errno));
-      throw (basic_error() << "could not create process: " << msg);
-    }
-
-    // Child execution.
-    if (!_process) {
-      ::execve(args[0], args, my_env);
-      ::_exit(EXIT_FAILURE);
-    }
-
-    // Daddy set process to its own group.
-    setpgid(_process, _process);
-#endif // spawn.h or not
+    _process = _create_process(args, my_env);
 
     // Parent execution.
     _start_time = timestamp::now();
@@ -356,6 +318,29 @@ void process::read_err(std::string& data) {
 }
 
 /**
+ *  Used setpgid when exec is call.
+ *
+ *  @param[in] enable  True to  use setpgid, otherwise false.
+ */
+void process::setpgid_on_exec(bool enable) throw () {
+  concurrency::locker lock(&_lock_process);
+  if (enable)
+    _create_process = &_create_process_with_setpgid;
+  else
+    _create_process = &_create_process_without_setpgid;
+}
+
+/**
+ *  Get if used setpgid is enable.
+ *
+ *  @return True if setpgid is enable, otherwise false.
+ */
+bool process::setpgid_on_exec() const throw () {
+  concurrency::locker lock(&_lock_process);
+  return (_create_process == &_create_process_with_setpgid);
+}
+
+/**
  *  Get the time when the process execution start.
  *
  *  @return The starting timestamp.
@@ -471,6 +456,79 @@ void process::_close(int& fd) throw () {
   }
   fd = -1;
   return;
+}
+
+pid_t process::_create_process_with_setpgid(
+        char** args,
+        char** env) {
+  pid_t pid(static_cast<pid_t>(-1));
+#ifdef HAVE_SPAWN_H
+  posix_spawnattr_t attr;
+  int ret = posix_spawnattr_init(&attr);
+  if (ret)
+    throw (basic_error() << "cannot initialize spawn attributes: "
+           << strerror(ret));
+  ret = posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
+  if (ret) {
+    posix_spawnattr_destroy(&attr);
+    throw (basic_error() << "cannot set spawn flag: "
+           << strerror(ret));
+  }
+  ret = posix_spawnattr_setpgroup(&attr, 0);
+  if (ret) {
+    posix_spawnattr_destroy(&attr);
+    throw (basic_error()
+           << "cannot set process group ID of to-be-spawned process: "
+           << strerror(ret));
+  }
+  if (posix_spawnp(&pid, args[0], NULL, &attr, args, env)) {
+    char const* msg(strerror(errno));
+    posix_spawnattr_destroy(&attr);
+    throw (basic_error() << "could not create process: " << msg);
+  }
+  posix_spawnattr_destroy(&attr);
+#else
+  pid = fork();
+  if (pid == static_cast<pid_t>(-1)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not create process: " << msg);
+  }
+
+  // Child execution.
+  if (!pid) {
+    // Set process to its own group.
+    ::setpgid(0, 0);
+
+    ::execve(args[0], args, env);
+    ::_exit(EXIT_FAILURE);
+  }
+#endif // HAVE_SPAWN_H
+  return (pid);
+}
+
+pid_t process::_create_process_without_setpgid(
+        char** args,
+        char** env) {
+  pid_t pid(static_cast<pid_t>(-1));
+#ifdef HAVE_SPAWN_H
+  if (posix_spawnp(&pid, args[0], NULL, NULL, args, env)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not create process: " << msg);
+  }
+#else
+  pid = vfork();
+  if (pid == static_cast<pid_t>(-1)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not create process: " << msg);
+  }
+
+  // Child execution.
+  if (!pid) {
+    ::execve(args[0], args, env);
+    ::_exit(EXIT_FAILURE);
+  }
+#endif // HAVE_SPAWN_H
+  return (pid);
 }
 
 /**
