@@ -69,6 +69,8 @@ public:
   void               kill();
   void               read(std::string& data);
   void               read_err(std::string& data);
+  void               setpgid_on_exec(bool enable) throw ();
+  bool               setpgid_on_exec() const throw ();
   timestamp const&   start_time() const throw ();
   void               terminate();
   void               wait() const;
@@ -80,7 +82,12 @@ private:
                      process(process const& p);
   process&           operator=(process const& p);
   static void        _close(int& fd) throw ();
-  static pid_t       _create_process(char** args, char** env);
+  static pid_t       _create_process_with_setpgid(
+                       char** args,
+                       char** env);
+  static pid_t       _create_process_without_setpgid(
+                       char** args,
+                       char** env);
   static void        _dev_null(int fd, int flags);
   static int         _dup(int oldfd);
   static void        _dup2(int oldfd, int newfd);
@@ -93,6 +100,7 @@ private:
 
   std::string        _buffer_err;
   std::string        _buffer_out;
+  pid_t              (*_create_process)(char**, char**);
   mutable concurrency::condvar
                      _cv_buffer_err;
   mutable concurrency::condvar

@@ -26,11 +26,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <poll.h>
-#ifdef HAVE_SCHED_H
-#  include <sched.h>
-#elif defined(HAVE_SPAWN_H)
+#ifdef HAVE_SPAWN_H
 #  include <spawn.h>
-#endif // HAVE_SCHED_H, HAVE_SPAWN_H
+#endif // HAVE_SPAWN_H
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -58,7 +56,8 @@ static concurrency::mutex gl_process_lock;
  *  Default constructor.
  */
 process::process(process_listener* listener)
-  : _is_timeout(false),
+  : _create_process(&_create_process_with_setpgid),
+    _is_timeout(false),
     _listener(listener),
     _process(static_cast<pid_t>(-1)),
     _status(0),
@@ -319,6 +318,29 @@ void process::read_err(std::string& data) {
 }
 
 /**
+ *  Used setpgid when exec is call.
+ *
+ *  @param[in] enable  True to  use setpgid, otherwise false.
+ */
+void process::setpgid_on_exec(bool enable) throw () {
+  concurrency::locker lock(&_lock_process);
+  if (enable)
+    _create_process = &_create_process_with_setpgid;
+  else
+    _create_process = &_create_process_without_setpgid;
+}
+
+/**
+ *  Get if used setpgid is enable.
+ *
+ *  @return True if setpgid is enable, otherwise false.
+ */
+bool process::setpgid_on_exec() const throw () {
+  concurrency::locker lock(&_lock_process);
+  return (_create_process == &_create_process_with_setpgid);
+}
+
+/**
  *  Get the time when the process execution start.
  *
  *  @return The starting timestamp.
@@ -436,88 +458,11 @@ void process::_close(int& fd) throw () {
   return;
 }
 
-#ifdef HAVE_SCHED_H
-/**
- *  @struct childarg
- *
- *  This class provide data to create new
- *  process with clone syscall.
- */
-struct   childarg {
-  char** args;
-  char** env;
-  int    started[2];
-};
-
-/**
- *  Internal create child process for clone syscall.
- *
- *  @param[in] arg  The callback argument.
- *
- *  @return Exit status.
- */
-static int _create_child(void* arg) throw () {
-  childarg& carg(*(childarg*)arg);
-  ::close(carg.started[0]);
-  ::setpgid(0, 0);
-  ::execve(carg.args[0], carg.args, carg.env);
-  ::_exit(EXIT_FAILURE);
-  return (0);
-}
-#endif // HAVE_SCHED_H
-
-/**
- *  Create new process.
- *
- *  @param[in] args  Process argument.
- *  @param[in] env   Process environment.
- *
- *  @return The process id of the new process.
- */
-pid_t process::_create_process(char** args, char** env) {
+pid_t process::_create_process_with_setpgid(
+        char** args,
+        char** env) {
   pid_t pid(static_cast<pid_t>(-1));
-#ifdef HAVE_SCHED_H
-  int flags(CLONE_CHILD_CLEARTID
-            | CLONE_CHILD_SETTID
-            | CLONE_VFORK
-            | CLONE_VM
-            | SIGCHLD);
-
-  childarg carg;
-  carg.args = args;
-  carg.env = env;
-
-  _pipe(carg.started);
-  try {
-    _set_cloexec(carg.started[1]);
-
-    pid_t ptid(static_cast<pid_t>(-1));
-    pid_t ctid(static_cast<pid_t>(-1));
-    char stack[1024 * 8];
-    pid = ::clone(
-              &_create_child,
-              stack + sizeof(stack),
-              flags,
-              &carg,
-              &ptid,
-              NULL,
-              &ctid);
-    if (pid == static_cast<pid_t>(-1)) {
-      char const* msg(strerror(errno));
-      throw (basic_error() << "could not create process: " << msg);
-    }
-
-    while (::close(carg.started[1]) < 0 && errno == EINTR);
-    char c;
-    while (::read(carg.started[0], &c, 1) < 0 && errno == EINTR);
-    while (::close(carg.started[0]) < 0 && errno == EINTR);
-  }
-  catch (...) {
-    _close(carg.started[0]);
-    _close(carg.started[1]);
-    throw;
-  }
-#elif defined(HAVE_SPAWN_H)
+#ifdef HAVE_SPAWN_H
   posix_spawnattr_t attr;
   int ret = posix_spawnattr_init(&attr);
   if (ret)
@@ -554,6 +499,31 @@ pid_t process::_create_process(char** args, char** env) {
     // Set process to its own group.
     ::setpgid(0, 0);
 
+    ::execve(args[0], args, env);
+    ::_exit(EXIT_FAILURE);
+  }
+#endif // HAVE_SPAWN_H
+  return (pid);
+}
+
+pid_t process::_create_process_without_setpgid(
+        char** args,
+        char** env) {
+  pid_t pid(static_cast<pid_t>(-1));
+#ifdef HAVE_SPAWN_H
+  if (posix_spawnp(&pid, args[0], NULL, NULL, args, env)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not create process: " << msg);
+  }
+#else
+  pid = vfork();
+  if (pid == static_cast<pid_t>(-1)) {
+    char const* msg(strerror(errno));
+    throw (basic_error() << "could not create process: " << msg);
+  }
+
+  // Child execution.
+  if (!pid) {
     ::execve(args[0], args, env);
     ::_exit(EXIT_FAILURE);
   }
