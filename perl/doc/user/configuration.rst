@@ -15,7 +15,7 @@ command definition.
 Binary arguments
 ~~~~~~~~~~~~~~~~
 
-These arguments are centreon_connector_ssh options.
+These arguments are centreon_connector_perl options.
 
 ========== ========= ===================================================
 Short name Long name Description

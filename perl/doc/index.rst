@@ -8,6 +8,8 @@ speeds up execution of Perl scripts when used along Centreon Engine.
 Contents:
 
 .. toctree::
+   :maxdepth: 2
 
+   release_notes/index
    installation/index
    user/index
