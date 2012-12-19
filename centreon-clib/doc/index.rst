@@ -10,4 +10,5 @@ Contents:
 
 .. toctree::
 
+   release_notes/index
    installation/index
