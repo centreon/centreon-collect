@@ -10,6 +10,6 @@ First release
 =============
 
 Centreon Clib is a common library for all Centreon products written in
-C/C++. This project provide high level implementation of many basic
-system mechanism. The target is to have portable and powerful
+C/C++. This project provides high level implementation of many basic
+system mechanism. The target is to have a portable and powerful
 implementation.
