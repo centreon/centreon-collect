@@ -4,7 +4,7 @@
 Installation
 ############
 
-Merethis recommend using its official packages from the Centreon
+Merethis recommends using its official packages from the Centreon
 Entreprise Server (CES) repository. Most of Merethis' endorsed
 software are available as RPM packages.
 
@@ -34,7 +34,7 @@ The repo file is now installed.
 Install
 =======
 
-Run the following commands as privileged user ::
+Run the following commands as privileged user::
 
   $ yum clean all
   $ yum install centreon-clib centreon-clib-devel
@@ -50,8 +50,8 @@ Using sources
 To build Centreon Clib, you will need the following external
 dependencies:
 
-  * a C++ compilation environment.
-  * CMake **(>= 2.8)**, a cross-platform build system.
+* a C++ compilation environment
+* CMake **(>= 2.8)**, a cross-platform build system
 
 This program is compatible only with Unix-like platforms (Linux,
 FreeBSD, Solaris, ...).
@@ -62,34 +62,34 @@ Prerequisites
 CentOS
 ------
 
-In CentOS you need to add manually cmake. After that you can
-install binary packages. Either use the Package Manager or the
-yum tool to install them. You should check packages version when
+In CentOS, you first need to manually add cmake. After that you can
+install binary packages. Either use the Package Manager or the yum
+tool to install them. You should check package versions when
 necessary.
 
-Package required to build:
+Required packages:
 
 =========================== ================= ================================
 Software                    Package Name      Description
 =========================== ================= ================================
-C++ compilation environment gcc gcc-c++ make  Mandatory tools to compile.
+C++ compilation environment gcc gcc-c++ make  Mandatory tools to compile
 CMake **(>= 2.8)**          cmake             Read the build script and
-                                              prepare sources for compilation.
+                                              prepare sources for compilation
 =========================== ================= ================================
 
-#. Install basic compilation tools ::
+#. Install basic compilation tools::
 
    $ yum install gcc gcc-c++ make
 
 #. Get and install cmake
 
-   For CentOS 5 ::
+   For CentOS 5::
 
      $ ARCH=`uname -m`
      $ wget http://apt.sw.be/redhat/el5/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
      $ rpm -Uvh cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
 
-   For CentOS 6 ::
+   For CentOS 6::
 
      $ ARCH=`uname -m`
      $ wget http://apt.sw.be/redhat/el6/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
@@ -103,7 +103,7 @@ binary packages from distribution repositories. Either use the Package
 Manager or the apt-get tool to install them. You should check packages
 version when necessary.
 
-Package required to build:
+Required packages:
 
 =========================== ================ ================================
 Software                    Package Name     Description
@@ -113,7 +113,7 @@ CMake **(>= 2.8)**          cmake            Read the build script and
                                              prepare sources for compilation.
 =========================== ================ ================================
 
-#. Install compilation tools ::
+#. Install compilation tools::
 
    $ apt-get install build-essential cmake
 
@@ -214,7 +214,7 @@ be printed. Otherwise an installation summary will be printed.
 Compilation
 -----------
 
-Once properly configured, the compilation process is really simple ::
+Once properly configured, the compilation process is really simple::
 
   $ make
 
