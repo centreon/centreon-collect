@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-int const export_lib_version = 42;
+int export_lib_version = 42;
 char const* export_lib_name = "shared_testing_library";
 
 /**
