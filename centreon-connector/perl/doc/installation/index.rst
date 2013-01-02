@@ -69,20 +69,23 @@ necessary.
 
 Package required to build:
 
-=========================== =================== ================================
-Software                     Package Name       Description
-=========================== =================== ================================
-C++ compilation environment gcc gcc-c++ make    Mandatory tools to compile.
-CMake **(>= 2.8)**          cmake               Read the build script and
-                                                prepare sources for compilation.
-Centreon Clib (>= 1.0)      centreon-clib-devel Core library used by Centreon
-                                                Connector.
-Perl                        perl                Scripting language.
-=========================== =================== ================================
+=========================== ===================== ==================================
+Software                     Package Name         Description
+=========================== ===================== ==================================
+C++ compilation environment gcc gcc-c++ make      Mandatory tools to compile.
+CMake **(>= 2.8)**          cmake                 Read the build script and
+                                                  prepare sources for compilation.
+Centreon Clib (>= 1.0)      centreon-clib-devel   Core library used by Centreon
+                                                  Connector.
+Perl                        perl                  Scripting language.
+                            perl-devel (CentOS 6) Header perl (only for CentOS 6).
+                            perl-ExtUtils-Embed   Embedded perl (only for CentOS 6).
+=========================== ===================== ==================================
 
 #. Install basic compilation tools ::
 
      $ yum install gcc gcc-c++ make perl
+     $ yum install perl-devel perl-ExtUtils-Embed # Only for CentOS 6
 
 #. Get and install cmake
 
