@@ -44,6 +44,20 @@ using namespace com::centreon;
                "Merethis is wonderful\n\0\0\0\0"
 
 /**
+ *  Replace null char by string "\0".
+ *
+ *  @param[in, out] str  The string to replace.
+ *
+ *  @return The replace string.
+ */
+std::string& replace_null(std::string& str) {
+  size_t pos(0);
+  while ((pos = str.find('\0', pos)) != std::string::npos)
+    str.replace(pos++, 1, "\\0");
+  return (str);
+}
+
+/**
  *  Check that connector respond properly to version command.
  *
  *  @return 0 on success.
@@ -93,12 +107,11 @@ int main() {
   try {
     if (retval)
       throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1))
+    if (output.size() != (sizeof(RESULT) - 1)
+        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
       throw (basic_error()
-             << "invalid output size: " << output.size()
-             << ", output: " << output);
-    if (memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error() << "invalid output: " << output);
+             << "invalid output: size=" << output.size()
+             << ", output=" << replace_null(output));
   }
   catch (std::exception const& e) {
     retval = 1;
