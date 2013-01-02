@@ -20,10 +20,25 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include "com/centreon/exceptions/basic.hh"
 #include "test/connector/misc.hh"
 
 using namespace com::centreon;
+
+/**
+ *  Replace null char by string "\0".
+ *
+ *  @param[in, out] str  The string to replace.
+ *
+ *  @return The replace string.
+ */
+std::string& replace_null(std::string& str) {
+  size_t pos(0);
+  while ((pos = str.find('\0', pos)) != std::string::npos)
+    str.replace(pos++, 1, "\\0");
+  return (str);
+}
 
 /**
  *  Write a file.

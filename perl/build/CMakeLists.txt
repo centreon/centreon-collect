@@ -218,6 +218,11 @@ if (WITH_TESTING)
   add_test("connector_invalid_flag" "${CONNECTOR}" "--merethis")
   set_tests_properties("connector_invalid_flag"
     PROPERTIES WILL_FAIL TRUE)
+  # Execution library.
+  add_library("test_execute" STATIC
+    "${TEST_DIR}/connector/misc.cc"
+    "${TEST_DIR}/connector/misc.hh")
+  set(TEST_LIBRARIES ${CLIB_LIBRARIES} "test_execute")
   # EOF on stdin.
   set(TEST_NAME "connector_eof_on_stdin")
   add_executable("${TEST_NAME}"
@@ -228,25 +233,20 @@ if (WITH_TESTING)
   set(TEST_NAME "connector_non_existent_script")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/connector/non_existent_script.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
   # Graceful timeout.
   set(TEST_NAME "connector_timeout_term")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/connector/timeout_term.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
   # Forced timeout.
   set(TEST_NAME "connector_timeout_kill")
   add_executable("${TEST_NAME}"
     "${TEST_DIR}/connector/timeout_kill.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
-  # Execution library.
-  add_library("test_execute" STATIC
-    "${TEST_DIR}/connector/misc.cc"
-    "${TEST_DIR}/connector/misc.hh")
-  set(TEST_LIBRARIES ${CLIB_LIBRARIES} "test_execute")
   # Single script execution.
   set(TEST_NAME "connector_execute_single_script")
   add_executable("${TEST_NAME}"
