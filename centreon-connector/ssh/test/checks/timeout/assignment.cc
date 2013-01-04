@@ -45,6 +45,11 @@ int main() {
   t2 = t1;
 
   // Return check result.
-  return ((t1.get_check() != &c1)
-          || (t2.get_check() != &c1));
+  int retval ((t1.get_check() != &c1)
+              || (t2.get_check() != &c1));
+
+  // Unload.
+  multiplexer::unload();
+
+  return (retval);
 }

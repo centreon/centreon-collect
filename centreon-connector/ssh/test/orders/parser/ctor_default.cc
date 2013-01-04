@@ -38,8 +38,13 @@ int main() {
 
   // Check.
   buffer_handle bh;
-  return (!p.get_buffer().empty()
-          || p.get_listener()
-          || !p.want_read(bh)
-          || p.want_write(bh));
+  int retval (!p.get_buffer().empty()
+              || p.get_listener()
+              || !p.want_read(bh)
+              || p.want_write(bh));
+
+  // Unload.
+  com::centreon::logging::engine::unload();
+
+  return (retval);
 }

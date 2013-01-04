@@ -55,5 +55,8 @@ int main() {
     retval |= (listnr.get_callbacks().begin()->callback
                != fake_listener::cb_error);
 
+  // Unload.
+  com::centreon::logging::engine::unload();
+
   return (retval);
 }

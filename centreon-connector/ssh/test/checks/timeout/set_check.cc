@@ -52,6 +52,9 @@ int main() {
   t.set_check(&c2);
   retval |= (t.get_check() != &c2);
 
+  // Unload.
+  multiplexer::unload();
+
   // Return check result.
   return (static_cast<bool>(retval));
 }

@@ -36,21 +36,27 @@ int main() {
   // Initialization.
   com::centreon::logging::engine::load();
 
-  // Reporter.
-  reporter r;
-  r.send_version(42, 84);
-  
-  // Buffer handle.
-  buffer_handle bh;
-  while (r.want_write(bh))
-    r.write(bh);
-
-  // Compare what reporter wrote with what is expected.
   bool retval;
-  char buffer[sizeof(EXPECTED) - 1];
-  if (bh.read(buffer, sizeof(buffer)) != sizeof(buffer))
-    retval = 1;
-  else
-    retval = memcmp(buffer, EXPECTED, sizeof(buffer));
+  {
+    // Reporter.
+    reporter r;
+    r.send_version(42, 84);
+
+    // Buffer handle.
+    buffer_handle bh;
+    while (r.want_write(bh))
+      r.write(bh);
+
+    // Compare what reporter wrote with what is expected.
+    char buffer[sizeof(EXPECTED) - 1];
+    if (bh.read(buffer, sizeof(buffer)) != sizeof(buffer))
+      retval = 1;
+    else
+      retval = memcmp(buffer, EXPECTED, sizeof(buffer));
+  }
+
+  // Unload.
+  com::centreon::logging::engine::unload();
+
   return (retval);
 }

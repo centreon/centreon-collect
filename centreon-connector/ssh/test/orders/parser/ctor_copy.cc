@@ -52,8 +52,13 @@ int main() {
   parser p2(p1);
 
   // Check.
-  return ((p1.get_buffer() != std::string(DATA, sizeof(DATA)))
-          || (p1.get_listener() != &fl)
-          || (p2.get_buffer() != std::string(DATA, sizeof(DATA)))
-          || (p2.get_listener() != &fl));
+  int retval ((p1.get_buffer() != std::string(DATA, sizeof(DATA)))
+              || (p1.get_listener() != &fl)
+              || (p2.get_buffer() != std::string(DATA, sizeof(DATA)))
+              || (p2.get_listener() != &fl));
+
+  // Unload.
+  com::centreon::logging::engine::unload();
+
+  return (retval);
 }

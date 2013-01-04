@@ -37,29 +37,35 @@ int main() {
   // Initialization.
   com::centreon::logging::engine::load();
 
-  // Check result.
-  checks::result cr;
-  cr.set_command_id(42);
-  cr.set_executed(true);
-  cr.set_exit_code(3);
-  cr.set_output("this is my output");
-  cr.set_error("some error might have occurred");
-
-  // Reporter.
-  reporter r;
-  r.send_result(cr);
-  
-  // Buffer handle.
-  buffer_handle bh;
-  while (r.want_write(bh))
-    r.write(bh);
-
-  // Compare what reporter wrote with what is expected.
   bool retval;
-  char buffer[sizeof(EXPECTED) - 1];
-  if (bh.read(buffer, sizeof(buffer)) != sizeof(buffer))
-    retval = true;
-  else
-    retval = memcmp(buffer, EXPECTED, sizeof(buffer));
+  {
+    // Check result.
+    checks::result cr;
+    cr.set_command_id(42);
+    cr.set_executed(true);
+    cr.set_exit_code(3);
+    cr.set_output("this is my output");
+    cr.set_error("some error might have occurred");
+
+    // Reporter.
+    reporter r;
+    r.send_result(cr);
+
+    // Buffer handle.
+    buffer_handle bh;
+    while (r.want_write(bh))
+      r.write(bh);
+
+    // Compare what reporter wrote with what is expected.
+    char buffer[sizeof(EXPECTED) - 1];
+    if (bh.read(buffer, sizeof(buffer)) != sizeof(buffer))
+      retval = true;
+    else
+      retval = memcmp(buffer, EXPECTED, sizeof(buffer));
+  }
+
+  // Unload.
+  com::centreon::logging::engine::unload();
+
   return (retval);
 }
