@@ -86,5 +86,10 @@ int main(int argc, char* argv[], char* env[]) {
   catch (...) {
     std::cerr << "unknown error" << std::endl;
   }
+
+  // Unload.
+  embedded_perl::unload();
+  logging::engine::unload();
+
   return (retval);
 }
