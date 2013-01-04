@@ -45,6 +45,9 @@ int main() {
   checks::timeout t2(&c1);
   retval |= (t2.get_check() != &c1);
 
+  // Unload.
+  multiplexer::unload();
+
   // Return check result.
   return (static_cast<bool>(retval));
 }

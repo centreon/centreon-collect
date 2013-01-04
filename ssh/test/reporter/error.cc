@@ -36,30 +36,35 @@ int main() {
   // Initialization.
   com::centreon::logging::engine::load();
 
-  // Check result.
-  checks::result cr;
-  cr.set_command_id(42);
-
-  // Buffer handle.
-  buffer_handle bh;
-
-  // Reporter.
-  reporter r;
-  r.send_result(cr);
-
-  // Notify of error.
   int retval;
-  try {
-    r.error(bh);
-    retval = 1;
-  }
-  catch (com::centreon::exceptions::basic const& e) {
-    (void)e;
-    retval = 0;
+  {
+    // Check result.
+    checks::result cr;
+    cr.set_command_id(42);
+
+    // Buffer handle.
+    buffer_handle bh;
+
+    // Reporter.
+    reporter r;
+    r.send_result(cr);
+
+    // Notify of error.
+    try {
+      r.error(bh);
+      retval = 1;
+    }
+    catch (com::centreon::exceptions::basic const& e) {
+      (void)e;
+      retval = 0;
+    }
+
+    // Reporter cannot report anymore.
+    retval |= r.can_report();
   }
 
-  // Reporter cannot report anymore.
-  retval |= r.can_report();
+  // Unload.
+  com::centreon::logging::engine::unload();
 
   // Check.
   return (retval);

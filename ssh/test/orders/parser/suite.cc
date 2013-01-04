@@ -119,6 +119,11 @@ int main() {
   }
 
   // Compare parsed result with expected result.
-  return ((expected != listnr.get_callbacks())
-          || (!p.get_buffer().empty()));
+  int retval((expected != listnr.get_callbacks())
+             || (!p.get_buffer().empty()));
+
+  // Unload.
+  com::centreon::logging::engine::unload();
+
+  return (retval);
 }

@@ -32,9 +32,17 @@ int main() {
   // Initialization.
   com::centreon::logging::engine::load();
 
-  // Object.
-  reporter r;
+  int retval;
+  {
+    // Object.
+    reporter r;
 
-  // Check.
-  return (!r.can_report() || !r.get_buffer().empty());
+    // Check.
+    retval = (!r.can_report() || !r.get_buffer().empty());
+  }
+
+  // Unload.
+  com::centreon::logging::engine::unload();
+
+  return (retval);
 }

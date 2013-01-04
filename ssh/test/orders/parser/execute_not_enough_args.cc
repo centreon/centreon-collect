@@ -95,5 +95,8 @@ int main() {
   // Parser must be empty.
   retval |= !p.get_buffer().empty();
 
+  // Unload.
+  com::centreon::logging::engine::unload();
+
   return (retval);
 }
