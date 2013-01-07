@@ -2,7 +2,7 @@
 Technical details
 #################
 
-This article describes how Centreon Connector Perl allow much gain on
+This article describes how Centreon Perl Connector allow much gain on
 Perl script execution.
 
 First of all let's examine how a Perl script is executed traditionnally
@@ -25,10 +25,10 @@ Perl's steps to execute scripts are as follow.
   * Centreon Engine creates a resident process of Centreon Connector
     Perl once
   * For all Perl scripts execution requests are forwarded to this
-    process when requested to execute a script, Centreon Connector Perl
+    process when requested to execute a script, Centreon Perl Connector
     checks if this script has already been parsed if not it parses it
     using the Embedded Perl interpreter.
-  * Centreon Connector Perl forks itself.
+  * Centreon Perl Connector forks itself.
   * The precompiled script gets executed
 
 This way Perl scripts are only parsed once during the lifetime of the

@@ -2,10 +2,10 @@
 Configuration
 #############
 
-Centreon Connector SSH itself does not require any configuration. It
+Centreon SSH Connector itself does not require any configuration. It
 should only be configured as a connector of Centreon Engine.
 
-To execute SSH check over SSH with Centreon Connector SSH from Centreon
+To execute SSH check over SSH with Centreon SSH Connector from Centreon
 Engine, one might configure commands that relates to SSH check
 (like check_by_ssh).
 

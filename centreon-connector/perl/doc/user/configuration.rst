@@ -2,10 +2,10 @@
 Configuration
 #############
 
-Centreon Connector Perl itself does not require any configuration. It
+Centreon Perl Connector itself does not require any configuration. It
 should only be configured as a connector of Centreon Engine.
 
-To execute Perl scripts with Centreon Connector Perl from Centreon
+To execute Perl scripts with Centreon Perl Connector from Centreon
 Engine, one might configure commands that relates to Perl scripts. Such
 commands must only contain the path to the Perl script to execute
 followed by its arguments, just like one would on the command line. To

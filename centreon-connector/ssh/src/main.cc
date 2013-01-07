@@ -1,20 +1,20 @@
 /*
 ** Copyright 2011-2013 Merethis
 **
-** This file is part of Centreon Connector SSH.
+** This file is part of Centreon SSH Connector.
 **
-** Centreon Connector SSH is free software: you can redistribute it
+** Centreon SSH Connector is free software: you can redistribute it
 ** and/or modify it under the terms of the GNU Affero General Public
 ** License as published by the Free Software Foundation, either version
 ** 3 of the License, or (at your option) any later version.
 **
-** Centreon Connector SSH is distributed in the hope that it will be
+** Centreon SSH Connector is distributed in the hope that it will be
 ** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** Affero General Public License for more details.
 **
 ** You should have received a copy of the GNU Affero General Public
-** License along with Centreon Connector SSH. If not, see
+** License along with Centreon SSH Connector. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
       retval = EXIT_SUCCESS;
     }
     else if (opts.get_argument("version").get_is_set()) {
-      std::cout << "Centreon Connector SSH "
+      std::cout << "Centreon SSH Connector "
         << CENTREON_CONNECTOR_SSH_VERSION << std::endl;
       retval = EXIT_SUCCESS;
     }
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
           logging::type_info | logging::type_error,
           logging::low);
       }
-      log_info(logging::low) << "Centreon Connector SSH "
+      log_info(logging::low) << "Centreon SSH Connector "
         << CENTREON_CONNECTOR_SSH_VERSION << " starting";
 #if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.

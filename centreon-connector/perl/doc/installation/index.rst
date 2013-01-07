@@ -45,7 +45,7 @@ All dependencies are automatically installed from Merethis repositories.
 Using sources
 *************
 
-To build Centreon Connector Perl, you will need the following external
+To build Centreon Perl Connector, you will need the following external
 dependencies:
 
   * a C++ compilation environment.
@@ -169,7 +169,7 @@ Build
 Get sources
 -----------
 
-Centreon Connector Perl can be checked out from Merethis's git
+Centreon Perl Connector can be checked out from Merethis's git
 server at http://git.centreon.com/centreon-connector. The Perl
 connector sources reside in the perl subdirectory. On a Linux box
 with git installed this is just a matter of ::
@@ -191,7 +191,7 @@ following command ::
 
   $ cd /path_to_centreon_connector/perl/build
 
-Your Centreon Connector Perl can be tweaked to your particular needs
+Your Centreon Perl Connector can be tweaked to your particular needs
 using CMake's variable system. Variables can be set like this ::
 
   $ cmake -D<variable1>=<value1> [-D<variable2>=<value2>] .
@@ -205,7 +205,7 @@ WITH_CENTREON_CLIB_INCLUDE_DIR Set the directory path of centreon-clib include. 
 WITH_CENTREON_CLIB_LIBRARIES   Set the centreon-clib library to use.            auto detection
 WITH_CENTREON_CLIB_LIBRARY_DIR Set the centreon-clib library directory (don't   auto detection
                                use it if you use WITH_CENTREON_CLIB_LIBRARIES).
-WITH_PREFIX                    Base directory for Centreon Connector Perl
+WITH_PREFIX                    Base directory for Centreon Perl Connector
                                installation. If other prefixes are expressed as ``/usr/local``
                                relative paths, they are relative to this path.
 WITH_PREFIX_BINARY             Define specific directory for Centreon Connector ``${WITH_PREFIX}/bin``
