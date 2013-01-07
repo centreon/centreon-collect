@@ -30,8 +30,8 @@ on_centreon_rtd = os.environ.get('CENTREON_RTD', None) == 'True'
 extensions = ['sphinx.ext.intersphinx']
 
 intersphinx_mapping = {
-  'centreon-broker' : ('http://doc-dev.merethis.net/docs/centreon-broker/en/latest', None),
-  'centreon-clib' : ('http://doc-dev.merethis.net/docs/centreon-clib/en/latest', None)
+  'centreon-broker' : ('http://documentation.centreon.com/docs/centreon-broker/en/latest', None),
+  'centreon-clib' : ('http://documentation.centreon.com/docs/centreon-clib/en/latest', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Centreon Connector Perl'
-copyright = u'2012, Merethis'
+copyright = u'2013, Merethis'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
