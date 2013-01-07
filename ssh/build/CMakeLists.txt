@@ -1,26 +1,26 @@
 ##
 ## Copyright 2011-2013 Merethis
 ##
-## This file is part of Centreon Connector SSH.
+## This file is part of Centreon SSH Connector.
 ##
-## Centreon Connector SSH is free software: you can redistribute it
+## Centreon SSH Connector is free software: you can redistribute it
 ## and/or modify it under the terms of the GNU Affero General Public
 ## License as published by the Free Software Foundation, either version
 ## 3 of the License, or (at your option) any later version.
 ##
-## Centreon Connector SSH is distributed in the hope that it will be
+## Centreon SSH Connector is distributed in the hope that it will be
 ## useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ## of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ## Affero General Public License for more details.
 ##
 ## You should have received a copy of the GNU Affero General Public
-## License along with Centreon Connector SSH. If not, see
+## License along with Centreon SSH Connector. If not, see
 ## <http://www.gnu.org/licenses/>.
 ##
 
 # Global options.
 cmake_minimum_required(VERSION 2.8)
-project("Centreon Connector SSH" CXX)
+project("Centreon SSH Connector" CXX)
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/connector/ssh")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
@@ -615,7 +615,7 @@ message(STATUS "Configuration Summary")
 message(STATUS "---------------------")
 message(STATUS "")
 message(STATUS "  Project")
-message(STATUS "    - Name                       Centreon Connector SSH")
+message(STATUS "    - Name                       Centreon SSH Connector")
 message(STATUS "    - Version                    ${CONNECTOR_SSH_VERSION}")
 if (WITH_KNOWN_HOSTS_CHECK)
   message(STATUS "    - Known hosts check          enabled")

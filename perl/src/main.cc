@@ -1,20 +1,20 @@
 /*
 ** Copyright 2011-2013 Merethis
 **
-** This file is part of Centreon Connector Perl.
+** This file is part of Centreon Perl Connector.
 **
-** Centreon Connector Perl is free software: you can redistribute it
+** Centreon Perl Connector is free software: you can redistribute it
 ** and/or modify it under the terms of the GNU Affero General Public
 ** License as published by the Free Software Foundation, either version
 ** 3 of the License, or (at your option) any later version.
 **
-** Centreon Connector Perl is distributed in the hope that it will be
+** Centreon Perl Connector is distributed in the hope that it will be
 ** useful, but WITHOUT ANY WARRANTY; without even the implied warranty
 ** of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 ** Affero General Public License for more details.
 **
 ** You should have received a copy of the GNU Affero General Public
-** License along with Centreon Connector Perl. If not, see
+** License along with Centreon Perl Connector. If not, see
 ** <http://www.gnu.org/licenses/>.
 */
 
@@ -94,7 +94,7 @@ int main(int argc, char** argv, char** env) {
       retval = EXIT_SUCCESS;
     }
     else if (opts.get_argument("version").get_is_set()) {
-      std::cout << "Centreon Connector Perl "
+      std::cout << "Centreon Perl Connector "
         << CENTREON_CONNECTOR_PERL_VERSION << std::endl;
       retval = EXIT_SUCCESS;
     }
@@ -118,7 +118,7 @@ int main(int argc, char** argv, char** env) {
           logging::type_info | logging::type_error,
           logging::low);
       }
-      log_info(logging::low) << "Centreon Connector Perl "
+      log_info(logging::low) << "Centreon Perl Connector "
         << CENTREON_CONNECTOR_PERL_VERSION << " starting";
 
       // Set termination handler.

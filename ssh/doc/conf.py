@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Centreon Connector SSH documentation build configuration file, created by
+# Centreon SSH Connector documentation build configuration file, created by
 # sphinx-quickstart on Wed Oct 10 17:12:59 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Centreon Connector SSH'
+project = u'Centreon SSH Connector'
 copyright = u'2013, Merethis'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -193,7 +193,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'CentreonConnectorSSH.tex', u'Centreon Connector SSH Documentation',
+  ('index', 'CentreonConnectorSSH.tex', u'Centreon SSH Connector Documentation',
    u'Merethis', 'manual'),
 ]
 
@@ -223,7 +223,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'centreonconnectorssh', u'Centreon Connector SSH Documentation',
+    ('index', 'centreonconnectorssh', u'Centreon SSH Connector Documentation',
      [u'Merethis'], 1)
 ]
 
@@ -237,7 +237,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'CentreonConnectorSSH', u'Centreon Connector SSH Documentation',
+  ('index', 'CentreonConnectorSSH', u'Centreon SSH Connector Documentation',
    u'Merethis', 'CentreonConnectorSSH', 'One line description of project.',
    'Miscellaneous'),
 ]

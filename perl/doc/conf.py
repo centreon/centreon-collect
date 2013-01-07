@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Centreon Connector Perl documentation build configuration file, created by
+# Centreon Perl Connector documentation build configuration file, created by
 # sphinx-quickstart on Wed Oct 10 16:16:59 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Centreon Connector Perl'
+project = u'Centreon Perl Connector'
 copyright = u'2013, Merethis'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -193,7 +193,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'CentreonConnectorPerl.tex', u'Centreon Connector Perl Documentation',
+  ('index', 'CentreonConnectorPerl.tex', u'Centreon Perl Connector Documentation',
    u'Merethis', 'manual'),
 ]
 
@@ -223,7 +223,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'centreonconnectorperl', u'Centreon Connector Perl Documentation',
+    ('index', 'centreonconnectorperl', u'Centreon Perl Connector Documentation',
      [u'Merethis'], 1)
 ]
 
@@ -237,7 +237,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'CentreonConnectorPerl', u'Centreon Connector Perl Documentation',
+  ('index', 'CentreonConnectorPerl', u'Centreon Perl Connector Documentation',
    u'Merethis', 'CentreonConnectorPerl', 'One line description of project.',
    'Miscellaneous'),
 ]

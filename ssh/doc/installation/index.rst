@@ -45,7 +45,7 @@ All dependencies are automatically installed from Merethis repositories.
 Using sources
 *************
 
-To build Centreon Connector SSH, you will need the following external
+To build Centreon SSH Connector, you will need the following external
 dependencies:
 
   * a C++ compilation environment.
@@ -170,7 +170,7 @@ Build
 Get sources
 -----------
 
-Centreon Connector SSH can be checked out from Merethis's git
+Centreon SSH Connector can be checked out from Merethis's git
 server at http://git.centreon.com/centreon-connector. The SSH
 connector sources reside in the ssh subdirectory. On a Linux box
 with git installed this is just a matter of ::
@@ -192,7 +192,7 @@ following command ::
 
   $ cd /path_to_centreon_connector/ssh/build
 
-Your Centreon Connector SSH can be tweaked to your particular needs
+Your Centreon SSH Connector can be tweaked to your particular needs
 using CMake's variable system. Variables can be set like this ::
 
   $ cmake -D<variable1>=<value1> [-D<variable2>=<value2>] .
@@ -216,7 +216,7 @@ WITH_LIBSSH2_INCLUDE_DIR       Set the directory path of libssh2 include.       
 WITH_LIBSSH2_LIBRARIES         Set the libssh2 library to use.                  auto detection
 WITH_LIBSSH2_LIBRARY_DIR       Set the libssh2 library directory (don't use     auto detection
                                it if you use WITH_LIBSSH2_LIBRARIES)
-WITH_PREFIX                    Base directory for Centreon Connector SSH        ``/usr/local``
+WITH_PREFIX                    Base directory for Centreon SSH Connector        ``/usr/local``
                                installation. If other prefixes are expressed
                                as relative paths, they are relative to this
                                path.
