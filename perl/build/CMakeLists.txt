@@ -103,7 +103,7 @@ execute_process(COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "ccopts"
   RESULT_VARIABLE PERL_CFLAGS_ERROR
   OUTPUT_VARIABLE PERL_CFLAGS)
 if (NOT PERL_CFLAGS_ERROR)
-  set(CMAKE_CXX_FLAGS "${PERL_CFLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PERL_CFLAGS}")
 endif ()
 
 # Generate code to dynamically load modules.
