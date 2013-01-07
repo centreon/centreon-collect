@@ -21,22 +21,25 @@ repository.
 
 These packages have been successfully tested with CentOS 5 and RedHat 5.
 
+.. _user_installation_packages_prerequisites:
+
 Prerequisites
 =============
 
 In order to use RPM from the CES repository, you have to install the
 appropriate repo file. Run the following command as privileged user ::
 
-  $ wget http://yum.centreon.com/standard/ces-standard.repo -O /etc/yum.repos.d/ces-standard.repo
+  $ wget http://yum.centreon.com/standard/2.2/ces-standard.repo -O /etc/yum.repos.d/ces-standard.repo
 
-The repo file is now installed.
+The repo file is now installed. Don't forget to cleanup ::
+
+  $ yum clean all
 
 Install
 =======
 
-Run the following commands as privileged user::
+Run the following commands as privileged user ::
 
-  $ yum clean all
   $ yum install centreon-clib centreon-clib-devel
 
 All dependencies are automatically installed from Merethis repositories.
@@ -81,19 +84,15 @@ CMake **(>= 2.8)**          cmake             Read the build script and
 
    $ yum install gcc gcc-c++ make
 
-#. Get and install cmake
+#. Install Merethis repository
 
-   For CentOS 5::
+   You need to install Centreon Entreprise Server (CES) repos file as
+   explained :ref:`user_installation_packages_prerequisites` to use some
+   specific package version.
 
-     $ ARCH=`uname -m`
-     $ wget http://apt.sw.be/redhat/el5/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
-     $ rpm -Uvh cmake-2.8.8-1.el5.rfx.${ARCH}.rpm
+#. Install cmake ::
 
-   For CentOS 6::
-
-     $ ARCH=`uname -m`
-     $ wget http://apt.sw.be/redhat/el6/en/${ARCH}/extras/RPMS/cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
-     $ rpm -Uvh cmake-2.8.8-1.el6.rfx.${ARCH}.rpm
+   $ yum install cmake
 
 Debian/Ubuntu
 -------------
