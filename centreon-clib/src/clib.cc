@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include "com/centreon/clib.hh"
 #include "com/centreon/logging/engine.hh"
@@ -75,42 +74,9 @@ clib::clib(unsigned int flags) {
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-clib::clib(clib const& right) {
-  _internal_copy(right);
-}
-
-/**
  *  Destructor.
  */
 clib::~clib() throw () {
   process_manager::unload();
   logging::engine::unload();
-}
-
-/**
- *  Copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-clib& clib::operator=(clib const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Internal copy.
- *
- *  @param[right] right  The object to copy.
- */
-void clib::_internal_copy(clib const& right) {
-  (void)right;
-  assert(!"clib is not copyable");
-  abort();
-  return;
 }

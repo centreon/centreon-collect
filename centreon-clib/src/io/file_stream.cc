@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -361,43 +360,4 @@ unsigned long file_stream::write(void const* data, unsigned long size) {
   }
   return (static_cast<unsigned long>(wb));
 #endif // Windows or POSIX.
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] fs Object to copy.
- */
-file_stream::file_stream(file_stream const& fs) : handle(fs) {
-  _internal_copy(fs);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] fs Object to copy.
- *
- *  @return This object.
- */
-file_stream& file_stream::operator=(file_stream const& fs) {
-  _internal_copy(fs);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] fs Unused.
- */
-void file_stream::_internal_copy(file_stream const& fs) {
-  (void)fs;
-  assert(!"file stream is not copyable");
-  abort();
-  return ;
 }

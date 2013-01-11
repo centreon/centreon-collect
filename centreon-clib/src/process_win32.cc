@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <windows.h>
@@ -356,27 +355,6 @@ unsigned int process::write(void const* data, unsigned int size) {
 **************************************/
 
 /**
- *  Copy constructor.
- *
- *  @param[in] p Object to copy.
- */
-process::process(process const& p) {
-  _internal_copy(p);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] p Object to copy.
- *
- *  @return This object.
- */
-process& process::operator=(process const& p) {
-  _internal_copy(p);
-  return (*this);
-}
-
-/**
  *  close syscall wrapper.
  *
  *  @param[in, out] fd The file descriptor to close.
@@ -386,18 +364,6 @@ void process::_close(HANDLE& fd) throw () {
     CloseHandle(fd);
     fd = NULL;
   }
-  return;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] p Object to copy.
- */
-void process::_internal_copy(process const& p) {
-  (void)p;
-  assert(!"process is not copyable");
-  abort();
   return;
 }
 

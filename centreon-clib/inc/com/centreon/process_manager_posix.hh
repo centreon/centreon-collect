@@ -62,7 +62,6 @@ private:
   static void             _close(int& fd) throw ();
   void                    _close_stream(int fd) throw ();
   void                    _erase_timeout(process* p);
-  void                    _internal_copy(process_manager const& p);
   void                    _kill_processes_timeout() throw ();
   unsigned int            _read_stream(int fd) throw ();
   void                    _run();

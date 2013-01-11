@@ -46,7 +46,6 @@ namespace      concurrency {
   private:
                semaphore(semaphore const& s);
     semaphore& operator=(semaphore const& s);
-    void       _internal_copy(semaphore const& right);
 
     HANDLE     _sem;
   };

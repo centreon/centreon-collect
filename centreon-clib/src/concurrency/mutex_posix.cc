@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -98,46 +97,5 @@ void mutex::unlock() {
   if (ret)
     throw (basic_error() << "failed to unlock mutex "
            << strerror(ret));
-  return ;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-mutex::mutex(mutex const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-mutex& mutex::operator=(mutex const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Calls abort().
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-void mutex::_internal_copy(mutex const& right) {
-  (void)right;
-  assert(!"mutex is not copyable");
-  abort();
   return ;
 }

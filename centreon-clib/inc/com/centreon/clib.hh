@@ -47,7 +47,6 @@ private:
               clib(clib const& right);
               ~clib() throw ();
   clib&       operator=(clib const& right);
-  void        _internal_copy(clib const& right);
 };
 
 CC_END()

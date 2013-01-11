@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -253,27 +252,6 @@ void thread::yield() throw () {
 **************************************/
 
 /**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-thread::thread(thread const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-thread& thread::operator=(thread const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
  *  The thread start routine.
  *  @remark This function is static.
  *
@@ -286,16 +264,4 @@ void* thread::_execute(void* data) {
   if (self)
     self->_run();
   return (0);
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- */
-void thread::_internal_copy(thread const& right) {
-  (void)right;
-  assert(!"thread is not copyable");
-  abort();
-  return ;
 }

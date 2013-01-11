@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -123,43 +122,4 @@ void condvar::wake_one() {
   if (ret)
     throw (basic_error() << "could not wake one thread attached to " \
                 "condition variable: " << strerror(ret));
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-condvar::condvar(condvar const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-condvar& condvar::operator=(condvar const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- */
-void condvar::_internal_copy(condvar const& right) {
-  (void)right;
-  assert(!"cannot copy condition variable");
-  abort();
-  return ;
 }

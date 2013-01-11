@@ -41,9 +41,7 @@ namespace              logging {
                          bool show_pid = true,
                          time_precision show_timestamp = second,
                          bool show_thread_id = false);
-                       syslogger(syslogger const& right);
                        ~syslogger() throw ();
-    syslogger&         operator=(syslogger const& right);
     void               close() throw ();
     void               log(
                          unsigned long long types,
@@ -54,7 +52,8 @@ namespace              logging {
     void               reopen();
 
   private:
-    syslogger&         _internal_copy(syslogger const& right);
+                       syslogger(syslogger const& right);
+    syslogger&         operator=(syslogger const& right);
 
     int                _facility;
     std::string        _id;

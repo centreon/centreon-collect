@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include "com/centreon/concurrency/locker.hh"
 
@@ -71,38 +70,4 @@ void locker::unlock() {
     _m->unlock();
     _is_lock = false;
   }
-}
-
-/**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-locker::locker(locker const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-locker& locker::operator=(locker const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-locker& locker::_internal_copy(locker const& right) {
-  (void)right;
-  assert(!"impossible to copy locker");
-  abort();
-  return (*this);
 }

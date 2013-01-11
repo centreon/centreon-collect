@@ -46,7 +46,6 @@ namespace           concurrency {
   private:
                     mutex(mutex const& right);
     mutex&          operator=(mutex const& right);
-    void            _internal_copy(mutex const& right);
 
     pthread_mutex_t _mtx;
   };

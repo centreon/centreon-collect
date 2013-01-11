@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include <windows.h>
 #include "com/centreon/concurrency/mutex_win32.hh"
@@ -68,48 +67,5 @@ bool mutex::trylock() {
  */
 void mutex::unlock() {
   LeaveCriticalSection(&_csection);
-  return ;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] right Unused.
- */
-mutex::mutex(mutex const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in a call to abort().
- *
- *  @param[in] right Unused.
- *
- *  @return This object.
- */
-mutex& mutex::operator=(mutex const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Calls abort().
- *
- *  @param[in] right Unused.
- */
-void mutex::_internal_copy(mutex const& right) {
-  (void)right;
-  assert(!"mutex is not copyable");
-  abort();
   return ;
 }

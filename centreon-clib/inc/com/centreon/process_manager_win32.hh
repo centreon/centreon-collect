@@ -52,7 +52,6 @@ private:
                            ~process_manager() throw ();
   process_manager&         operator=(process_manager const& p);
   void                     _close_stream(HANDLE fd) throw ();
-  void                     _internal_copy(process_manager const& p);
   void                     _read_stream(HANDLE fd) throw ();
   void                     _run();
   void                     _update_list();

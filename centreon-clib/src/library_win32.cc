@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/library.hh"
@@ -137,43 +136,4 @@ void library::unload() {
     throw (basic_error() << "unload library failed: error " << errcode);
   }
   _handle = NULL;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-library::library(library const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-library& library::operator=(library const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Calls abort().
- *
- *  @param[in] t Unused.
- */
-void library::_internal_copy(library const& right) {
-  (void)right;
-  assert(!"library is not copyable");
-  abort();
-  return ;
 }

@@ -48,7 +48,6 @@ namespace              concurrency {
   private:
                        condvar(condvar const& cv);
     condvar&           operator=(condvar const& cv);
-    void               _internal_copy(condvar const& cv);
     bool               _wait(mutex* mutx, DWORD timeout);
 
     CONDITION_VARIABLE _cond;

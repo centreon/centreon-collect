@@ -45,7 +45,6 @@ namespace            concurrency {
   private:
                      write_locker(write_locker const& right);
     write_locker&    operator=(write_locker const& right);
-    void             _internal_copy(write_locker const& right);
 
     bool             _locked;
     read_write_lock* _rwl;

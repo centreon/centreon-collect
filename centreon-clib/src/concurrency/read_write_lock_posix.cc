@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -197,45 +196,5 @@ void read_write_lock::write_unlock() {
   if (ret)
     throw (basic_error() << "cannot unlock readers-writer lock: "
            << strerror(ret));
-  return ;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-read_write_lock::read_write_lock(read_write_lock const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-read_write_lock& read_write_lock::operator=(
-                                    read_write_lock const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void read_write_lock::_internal_copy(read_write_lock const& right) {
-  (void)right;
-  assert(!"readers/writer lock is not copyable");
-  abort();
   return ;
 }

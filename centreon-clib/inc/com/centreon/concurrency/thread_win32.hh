@@ -57,7 +57,6 @@ namespace            concurrency {
     thread&          operator=(thread const& t);
     void             _close() throw ();
     static DWORD     _helper(void* data);
-    void             _internal_copy(thread const& t);
 
     HANDLE           _th;
   };

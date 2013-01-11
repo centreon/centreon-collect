@@ -47,9 +47,7 @@ namespace              logging {
                          bool show_pid = true,
                          time_precision show_timestamp = second,
                          bool show_thread_id = false);
-                       file(file const& right);
                        ~file() throw ();
-    file&              operator=(file const& right);
     void               close() throw ();
     std::string const& filename() const throw ();
     void               log(
@@ -61,8 +59,9 @@ namespace              logging {
     void               reopen();
 
   private:
+                       file(file const& right);
+    file&              operator=(file const& right);
     void               _flush() throw ();
-    file&              _internal_copy(file const& right);
 
     std::string        _path;
     FILE*              _out;
