@@ -39,6 +39,36 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
 
+# thread_msleep
+set(TEST_NAME "thread_msleep")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# thread_nsleep
+set(TEST_NAME "thread_nsleep")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# thread_sleep
+set(TEST_NAME "thread_sleep")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# thread_usleep
+set(TEST_NAME "thread_usleep")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# thread_wait
+set(TEST_NAME "thread_wait")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # thread_pool_constructor
 set(TEST_NAME "thread_pool_constructor")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")

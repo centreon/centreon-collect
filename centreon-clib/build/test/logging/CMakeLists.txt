@@ -21,6 +21,12 @@
 # Set directories.
 set(TEST_DIR "${TEST_DIR}/logging")
 
+# backend_copy
+set(TEST_NAME "backend_copy")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
 # backend_with_pid
 set(TEST_NAME "backend_with_pid")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
