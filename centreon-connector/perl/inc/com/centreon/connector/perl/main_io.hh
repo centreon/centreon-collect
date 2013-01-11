@@ -35,14 +35,6 @@ CCC_PERL_BEGIN()
  *  (provide check results).
  */
 class             main_io {
- private:
-  std::string     _rbuffer;
-  std::string     _wbuffer;
-                  main_io();
-                  main_io(main_io const& mio);
-  main_io&        operator=(main_io const& mio);
-  int             _parse(std::string const& cmd);
-
  public:
                   ~main_io();
   static main_io& instance();
@@ -50,6 +42,15 @@ class             main_io {
   int             write();
   void            write(std::string const& data);
   bool            write_wanted() const;
+
+ private:
+                  main_io();
+                  main_io(main_io const& mio);
+  main_io&        operator=(main_io const& mio);
+  int             _parse(std::string const& cmd);
+
+  std::string     _rbuffer;
+  std::string     _wbuffer;
 };
 
 CCC_PERL_END()

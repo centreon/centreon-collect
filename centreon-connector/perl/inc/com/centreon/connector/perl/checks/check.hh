@@ -60,7 +60,6 @@ namespace              checks {
   private:
                        check(check const& c);
     check&             operator=(check const& c);
-    void               _internal_copy(check const& c);
     void               _send_result_and_unregister(result const& r);
 
     pid_t              _child;

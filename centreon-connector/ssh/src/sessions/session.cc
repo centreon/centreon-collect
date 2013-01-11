@@ -19,7 +19,6 @@
 */
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libssh2.h>
@@ -421,35 +420,6 @@ void session::write(handle& h) {
 *           Private Methods           *
 *                                     *
 **************************************/
-
-/**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] s Object to copy.
- */
-session::session(session const& s) : com::centreon::handle_listener(s) {
-  (void)s;
-  assert(!"session is not copyable");
-  abort();
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in a call to abort().
- *
- *  @param[in] s Object to copy.
- *
- *  @return This object.
- */
-session& session::operator=(session const& s) {
-  (void)s;
-  assert(!"session is not copyable");
-  abort();
-  return (*this);
-}
 
 /**
  *  Session is available for operation.

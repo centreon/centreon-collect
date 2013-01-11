@@ -18,14 +18,13 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
 #include <stdlib.h>
 #include "com/centreon/connector/perl/multiplexer.hh"
 
 using namespace com::centreon::connector::perl;
 
 // Class instance pointer.
-std::auto_ptr<multiplexer> multiplexer::_instance;
+static multiplexer* _instance = NULL;
 
 /**************************************
 *                                     *
@@ -51,8 +50,8 @@ multiplexer& multiplexer::instance() throw () {
  *  Load singleton.
  */
 void multiplexer::load() {
-  if (!_instance.get())
-    _instance.reset(new multiplexer);
+  if (!_instance)
+    _instance = new multiplexer;
   return ;
 }
 
@@ -60,7 +59,8 @@ void multiplexer::load() {
  *  Unload singleton.
  */
 void multiplexer::unload() {
-  _instance.reset();
+  delete _instance;
+  _instance = NULL;
   return ;
 }
 
@@ -75,34 +75,3 @@ void multiplexer::unload() {
  */
 multiplexer::multiplexer()
   : com::centreon::handle_manager(this) {}
-
-/**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] m Unused.
- */
-multiplexer::multiplexer(multiplexer const& m)
-  : com::centreon::task_manager(),
-    com::centreon::handle_manager() {
-  (void)m;
-  assert(false);
-  abort();
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in a call to abort().
- *
- *  @param[in] m Unused.
- *
- *  @return This object.
- */
-multiplexer& multiplexer::operator=(multiplexer const& m) {
-  (void)m;
-  assert(false);
-  abort();
-  return (*this);
-}

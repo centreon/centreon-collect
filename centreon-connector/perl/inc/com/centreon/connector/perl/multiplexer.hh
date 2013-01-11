@@ -21,7 +21,6 @@
 #ifndef CCCP_MULTIPLEXER_HH
 #  define CCCP_MULTIPLEXER_HH
 
-#  include <memory>
 #  include "com/centreon/handle_manager.hh"
 #  include "com/centreon/task_manager.hh"
 #  include "com/centreon/connector/perl/namespace.hh"
@@ -35,8 +34,9 @@ CCCP_BEGIN()
  *  Singleton that aggregates multiplexing features such as file
  *  descriptor monitoring and task execution.
  */
-class                 multiplexer : public com::centreon::task_manager,
-                                    public com::centreon::handle_manager {
+class                 multiplexer
+  : public com::centreon::task_manager,
+    public com::centreon::handle_manager {
 public:
                       ~multiplexer() throw ();
   static multiplexer& instance() throw ();
@@ -46,10 +46,6 @@ public:
 private:
                       multiplexer();
                       multiplexer(multiplexer const& m);
-  multiplexer&        operator=(multiplexer const& m);
-
-  static std::auto_ptr<multiplexer>
-                      _instance;
 };
 
 CCCP_END()

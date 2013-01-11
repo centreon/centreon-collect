@@ -54,7 +54,6 @@ private:
                              char*** env);
                            embedded_perl(embedded_perl const& ep);
   embedded_perl&           operator=(embedded_perl const& ep);
-  void                     _internal_copy(embedded_perl const& ep);
 
   umap<std::string, SV*>   _parsed;
   static char const* const _script;

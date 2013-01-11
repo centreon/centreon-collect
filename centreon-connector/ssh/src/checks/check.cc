@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
@@ -273,35 +272,6 @@ void check::unlisten(checks::listener* listnr) {
 *           Private Methods           *
 *                                     *
 **************************************/
-
-/**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] c Unused.
- */
-check::check(check const& c) : sessions::listener(c) {
-  (void)c;
-  assert(!"check is not copyable");
-  abort();
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in a call to abort().
- *
- *  @param[in] c Unused.
- *
- *  @return This object.
- */
-check& check::operator=(check const& c) {
-  (void)c;
-  assert(!"check is not copyable");
-  abort();
-  return (*this);
-}
 
 /**
  *  Attempt to close channel.

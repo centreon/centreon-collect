@@ -19,7 +19,6 @@
 */
 
 #include <iostream>
-#include <memory>
 #include <stdlib.h>
 #include <unistd.h>
 #include <EXTERN.h>
@@ -35,7 +34,7 @@ using namespace com::centreon::connector::perl;
 #define SCRIPT_PATH "/tmp/centreon_connector_perl.XXXXXX"
 
 // Embedded Perl instance.
-static std::auto_ptr<embedded_perl> _instance;
+static embedded_perl* _instance = NULL;
 // Perl interpreter object.
 PerlInterpreter* my_perl(NULL);
 
@@ -83,8 +82,8 @@ embedded_perl& embedded_perl::instance() {
  *  @param[in] env  Program environment.
  */
 void embedded_perl::load(int* argc, char*** argv, char*** env) {
-  unload();
-  _instance.reset(new embedded_perl(argc, argv, env));
+  if (!_instance)
+    _instance = new embedded_perl(argc, argv, env);
   return ;
 }
 
@@ -244,7 +243,8 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
  *  Unload Embedded Perl.
  */
 void embedded_perl::unload() {
-  _instance.reset();
+  delete _instance;
+  _instance = NULL;
   return ;
 }
 
@@ -325,37 +325,4 @@ embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
     throw (basic_error() << "could not parse embedded Perl script");
   PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
   perl_run(my_perl);
-}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] ep Unused.
- */
-embedded_perl::embedded_perl(embedded_perl const& ep) {
-  _internal_copy(ep);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] ep Unused.
- *
- *  @return This object.
- */
-embedded_perl& embedded_perl::operator=(embedded_perl const& ep) {
-  _internal_copy(ep);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] ep Object to copy.
- */
-void embedded_perl::_internal_copy(embedded_perl const& ep) {
-  (void)ep;
-  assert(!"Embedded Perl cannot be copied");
-  abort();
-  return ;
 }

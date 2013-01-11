@@ -63,7 +63,6 @@ public:
 private:
                   policy(policy const& p);
   policy&         operator=(policy const& p);
-  void            _internal_copy(policy const& p);
 
   std::map<pid_t, checks::check*>
                   _checks;

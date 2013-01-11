@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
 #include <memory>
 #include <stdio.h>
 #include <stdlib.h>
@@ -349,48 +348,4 @@ bool policy::run() {
   }
 
   return (!_error);
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] p Unused.
- */
-policy::policy(policy const& p)
-  : orders::listener(p), checks::listener(p) {
-  _internal_copy(p);
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in a call to abort().
- *
- *  @param[in] p Unused.
- *
- *  @return This object.
- */
-policy& policy::operator=(policy const& p) {
-  _internal_copy(p);
-  return (*this);
-}
-
-/**
- *  Calls abort().
- *
- *  @param[in] p Unused.
- */
-void policy::_internal_copy(policy const& p) {
-  (void)p;
-  assert(!"policy is not copyable");
-  abort();
-  return ;
 }

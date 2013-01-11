@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
 #include <errno.h>
 #include <iostream>
 #include <sstream>
@@ -41,31 +40,6 @@ using namespace com::centreon::connector::perl;
  *  Default constructor.
  */
 main_io::main_io() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] mio Object to copy.
- */
-main_io::main_io(main_io const& mio) {
-  (void)mio;
-  assert(false);
-  abort();
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] mio Object to copy.
- *
- *  @return This object.
- */
-main_io& main_io::operator=(main_io const& mio) {
-  (void)mio;
-  assert(false);
-  abort();
-  return (*this);
-}
 
 /**
  *  Parse a command.
