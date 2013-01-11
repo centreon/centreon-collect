@@ -151,7 +151,7 @@ installed this is just a matter of ::
   $ git clone http://git.centreon.com/centreon-clib
 
 Or You can get the latest Centreon Clib's sources from its
-`download website <http://www.centreon.com/Centreon-Download/download-centreon-clib.html>`_
+`download website <http://www.centreon.com/Content-Download/download-centreon-clib>`_
 Once downloaded, extract it ::
 
   $ tar xzf centreon-clib.tar.gz
