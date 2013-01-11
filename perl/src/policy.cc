@@ -18,11 +18,11 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <memory>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/wait.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/mutex.hh"

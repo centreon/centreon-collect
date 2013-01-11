@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
-#include <stdio.h>
-#include <stdlib.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/result.hh"

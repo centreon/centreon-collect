@@ -21,7 +21,7 @@
 #ifndef CCCS_CHECKS_TIMEOUT_HH
 #  define CCCS_CHECKS_TIMEOUT_HH
 
-#  include <stddef.h>
+#  include <cstddef>
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/task.hh"
 

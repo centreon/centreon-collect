@@ -23,7 +23,7 @@
 
 #  include <list>
 #  include <string>
-#  include <time.h>
+#  include <ctime>
 #  include "com/centreon/connector/ssh/checks/listener.hh"
 #  include "com/centreon/connector/ssh/namespace.hh"
 #  include "com/centreon/connector/ssh/sessions/listener.hh"

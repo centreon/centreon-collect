@@ -21,7 +21,7 @@
 #ifndef CCCP_CHECKS_TIMEOUT_HH
 #  define CCCP_CHECKS_TIMEOUT_HH
 
-#  include <stddef.h>
+#  include <cstddef>
 #  include "com/centreon/connector/perl/namespace.hh"
 #  include "com/centreon/task.hh"
 

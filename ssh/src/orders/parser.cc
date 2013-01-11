@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstring>
 #include <string>
-#include <string.h>
 #include "com/centreon/connector/ssh/orders/parser.hh"
 #include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/exceptions/basic.hh"

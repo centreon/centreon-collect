@@ -18,15 +18,15 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
+#include <cerrno>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #ifdef LIBSSH2_WITH_LIBGCRYPT
 #  include <gcrypt.h>
 #endif // LIBSSH2_WITH_LIBGCRYPT
 #include <iostream>
 #include <libssh2.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
