@@ -131,6 +131,7 @@ void thread::usleep(unsigned long usecs) {
   memset(&ts, 0, sizeof(ts));
   ts.tv_sec = usecs / 1000000l;
   ts.tv_nsec = (usecs % 1000000l) * 1000l;
+  nanosleep(&ts, NULL);
   return ;
 }
 
