@@ -77,7 +77,6 @@ public:
 private:
                   policy(policy const& p);
   policy&         operator=(policy const& p);
-  void            _internal_copy(policy const& p);
 
   std::map<unsigned long long, std::pair<checks::check*, sessions::session*> >
                   _checks;

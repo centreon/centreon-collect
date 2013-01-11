@@ -21,7 +21,6 @@
 #ifndef CCCS_MULTIPLEXER_HH
 #  define CCCS_MULTIPLEXER_HH
 
-#  include <memory>
 #  include "com/centreon/handle_manager.hh"
 #  include "com/centreon/task_manager.hh"
 #  include "com/centreon/connector/ssh/namespace.hh"
@@ -35,8 +34,9 @@ CCCS_BEGIN()
  *  Singleton that aggregates multiplexing features such as file
  *  descriptor monitoring and task execution.
  */
-class                 multiplexer : public com::centreon::task_manager,
-                                    public com::centreon::handle_manager {
+class                 multiplexer
+  : public com::centreon::task_manager,
+    public com::centreon::handle_manager {
 public:
                       ~multiplexer() throw ();
   static multiplexer& instance() throw ();
@@ -47,9 +47,6 @@ private:
                       multiplexer();
                       multiplexer(multiplexer const& m);
   multiplexer&        operator=(multiplexer const& m);
-
-  static std::auto_ptr<multiplexer>
-                      _instance;
 };
 
 CCCS_END()

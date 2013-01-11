@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
+#include <memory>
 #include <signal.h>
 #include <stdlib.h>
 #include "com/centreon/connector/perl/checks/check.hh"
@@ -269,39 +269,6 @@ void check::write(handle& h) {
 *           Private Methods           *
 *                                     *
 **************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] c Unused.
- */
-check::check(check const& c) : handle_listener(c) {
-  _internal_copy(c);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] c Unused.
- *
- *  @return This object.
- */
-check& check::operator=(check const& c) {
-  _internal_copy(c);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] c Object to copy.
- */
-void check::_internal_copy(check const& c) {
-  (void)c;
-  assert(!"check is not copyable");
-  abort();
-  return ;
-}
 
 /**
  *  Send check result and unregister.
