@@ -36,12 +36,7 @@ using namespace com::centreon;
              "5\0" \
              "123456789\0"
 #define CMD3 "\0\0\0\0"
-#define RESULT1 "3\0"
-#define RESULT2 "\0" \
-                "1\0" \
-                "2\0" \
-                " \0" \
-                "Merethis is wonderful\n\0\0\0\0"
+#define RESULT "Merethis is wonderful\n"
 
 #define COUNT 300
 
@@ -101,20 +96,6 @@ int main() {
   }
   p.enable_stream(process::in, false);
 
-  // Generate result strings.
-  std::list<std::string> expected_result;
-  {
-    for (unsigned int i = 0;
-         i < COUNT;
-         ++i) {
-      std::ostringstream oss;
-      oss.write(RESULT1, sizeof(RESULT1) - 1);
-      oss << i + 1;
-      oss.write(RESULT2, sizeof(RESULT2) - 1);
-      expected_result.push_back(oss.str());
-    }
-  }
-
   // Read reply.
   std::string output;
   while (true) {
@@ -140,25 +121,21 @@ int main() {
        ++i)
     remove(script_paths[i].c_str());
 
-  // Find all expected results.
-  while (!retval && !expected_result.empty()) {
-    std::string current(expected_result.front());
-    expected_result.pop_front();
-    size_t pos(output.find(current));
-    if (std::string::npos == pos)
-      retval = 1;
-    else
-      output.erase(pos, current.size());
-  }
+  unsigned int nb_right_output(0);
+  for (size_t pos(0);
+       (pos = output.find(RESULT, pos)) != std::string::npos;
+       ++nb_right_output, ++pos)
+    ;
 
   try {
-    if (retval)
+    if (nb_right_output != COUNT)
       throw (basic_error()
              << "invalid output: size=" << output.size()
              << ", output=" << replace_null(output));
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
+    retval = 1;
   }
 
   clib::unload();
