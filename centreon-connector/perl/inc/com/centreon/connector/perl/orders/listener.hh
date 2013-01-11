@@ -21,8 +21,8 @@
 #ifndef CCCP_ORDERS_LISTENER_HH
 #  define CCCP_ORDERS_LISTENER_HH
 
+#  include <ctime>
 #  include <string>
-#  include <time.h>
 #  include "com/centreon/connector/perl/namespace.hh"
 
 CCCP_BEGIN()

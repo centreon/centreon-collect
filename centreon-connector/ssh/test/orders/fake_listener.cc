@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <math.h>
+#include <cmath>
 #include "test/orders/fake_listener.hh"
 
 using namespace com::centreon::connector::ssh::orders;

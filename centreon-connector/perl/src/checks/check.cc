@@ -18,9 +18,9 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <csignal>
+#include <cstdlib>
 #include <memory>
-#include <signal.h>
-#include <stdlib.h>
 #include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/connector/perl/checks/listener.hh"
 #include "com/centreon/connector/perl/checks/result.hh"

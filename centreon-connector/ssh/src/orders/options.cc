@@ -21,13 +21,13 @@
 #ifdef _WIN32
 #  include <windows.h>
 #else
-#  include <errno.h>
+#  include <cerrno>
+#  include <cstring>
 #  include <pwd.h>
-#  include <string.h>
 #  include <unistd.h>
 #endif // Windows or POSIX.
+#include <cstdlib>
 #include <getopt.h>
-#include <stdlib.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
 #include "com/centreon/connector/ssh/orders/options.hh"

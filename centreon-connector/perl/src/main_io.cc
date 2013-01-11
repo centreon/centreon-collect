@@ -18,12 +18,12 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <sstream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 #include "com/centreon/connector/perl/embedded.hh"
 #include "com/centreon/connector/perl/main_io.hh"

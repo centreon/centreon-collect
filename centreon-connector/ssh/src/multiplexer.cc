@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
+#include <cstdlib>
 #include "com/centreon/connector/ssh/multiplexer.hh"
 
 using namespace com::centreon::connector::ssh;

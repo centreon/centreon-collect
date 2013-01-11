@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <time.h>
+#include <ctime>
 #include "com/centreon/connector/ssh/orders/parser.hh"
 #include "com/centreon/logging/engine.hh"
 #include "test/orders/buffer_handle.hh"

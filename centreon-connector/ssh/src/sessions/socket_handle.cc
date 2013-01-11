@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>

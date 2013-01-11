@@ -21,9 +21,9 @@
 #ifndef CCCS_ORDERS_LISTENER_HH
 #  define CCCS_ORDERS_LISTENER_HH
 
+#  include <ctime>
 #  include <list>
 #  include <string>
-#  include <time.h>
 #  include "com/centreon/connector/ssh/namespace.hh"
 
 CCCS_BEGIN()

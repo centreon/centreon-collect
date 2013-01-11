@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
+#include <cstring>
 #include "com/centreon/connector/ssh/reporter.hh"
 #include "com/centreon/logging/engine.hh"
 #include "test/orders/buffer_handle.hh"

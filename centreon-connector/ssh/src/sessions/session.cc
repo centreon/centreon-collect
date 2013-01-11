@@ -19,15 +19,15 @@
 */
 
 #include <arpa/inet.h>
-#include <errno.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
 #include <libssh2.h>
 #include <memory>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pwd.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/sessions/session.hh"

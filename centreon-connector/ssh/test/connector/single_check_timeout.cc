@@ -19,10 +19,10 @@
 */
 
 #include <cstring>
+#include <ctime>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <time.h>
 #include "com/centreon/clib.hh"
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"

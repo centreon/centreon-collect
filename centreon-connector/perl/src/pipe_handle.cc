@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
 #include <unistd.h>
 #include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"

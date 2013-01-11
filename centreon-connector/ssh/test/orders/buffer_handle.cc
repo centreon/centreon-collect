@@ -18,7 +18,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
+#include <cstring>
 #include "test/orders/buffer_handle.hh"
 
 using namespace com::centreon;

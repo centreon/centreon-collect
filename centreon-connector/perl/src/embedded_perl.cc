@@ -18,8 +18,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdlib>
 #include <iostream>
-#include <stdlib.h>
 #include <unistd.h>
 #include <EXTERN.h>
 #include <perl.h>

@@ -18,10 +18,10 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdio>
+#include <cstring>
 #include <iostream>
-#include <stdio.h>
 #include <string>
-#include <string.h>
 #include <sys/wait.h>
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/io/file_stream.hh"
