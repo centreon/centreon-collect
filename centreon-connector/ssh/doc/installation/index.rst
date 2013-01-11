@@ -177,7 +177,7 @@ with git installed this is just a matter of ::
   $ git clone http://git.centreon.com/centreon-connector
 
 Or You can get the latest Centreon Connector's sources from its
-`download website <http://www.centreon.com/Content-Download/download-centreon-connector>`_.
+`download website <http://www.centreon.com/Content-Download/download-centreon-connectors>`_.
 Once downloaded, extract it ::
 
   $ tar xzf centreon-connector.tar.gz
