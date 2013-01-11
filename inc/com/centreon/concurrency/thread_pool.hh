@@ -70,7 +70,6 @@ namespace                concurrency {
 
                          thread_pool(thread_pool const& right);
     thread_pool&         operator=(thread_pool const& right);
-    thread_pool&         _internal_copy(thread_pool const& right);
 
     condvar              _cnd_pool;
     condvar              _cnd_thread;

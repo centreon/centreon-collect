@@ -19,7 +19,6 @@
 */
 
 #include <algorithm>
-#include <cassert>
 #include <cerrno>
 #include <csignal>
 #include <cstdlib>
@@ -424,27 +423,6 @@ unsigned int process::write(void const* data, unsigned int size) {
 **************************************/
 
 /**
- *  Copy constructor.
- *
- *  @param[in] p Object to copy.
- */
-process::process(process const& p) {
-  _internal_copy(p);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] p Object to copy.
- *
- *  @return This object.
- */
-process& process::operator=(process const& p) {
-  _internal_copy(p);
-  return (*this);
-}
-
-/**
  *  close syscall wrapper.
  *
  *  @param[in, out] fd The file descriptor to close.
@@ -586,18 +564,6 @@ void process::_dup2(int oldfd, int newfd) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not duplicate FD: " << msg);
   }
-  return;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] p Object to copy.
- */
-void process::_internal_copy(process const& p) {
-  (void)p;
-  assert(!"process is not copyable");
-  abort();
   return;
 }
 

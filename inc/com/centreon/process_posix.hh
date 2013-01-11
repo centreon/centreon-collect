@@ -91,7 +91,6 @@ private:
   static void        _dev_null(int fd, int flags);
   static int         _dup(int oldfd);
   static void        _dup2(int oldfd, int newfd);
-  void               _internal_copy(process const& p);
   bool               _is_running() const throw ();
   void               _kill(int sig);
   static void        _pipe(int fds[2]);

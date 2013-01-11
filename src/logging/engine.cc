@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -216,15 +215,6 @@ engine::engine()
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-engine::engine(engine const& right) {
-  _internal_copy(right);
-}
-
-/**
  *  Destructor.
  */
 engine::~engine() throw () {
@@ -233,31 +223,6 @@ engine::~engine() throw () {
        it != end;
        ++it)
     delete *it;
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-engine& engine::operator=(engine const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-engine& engine::_internal_copy(engine const& right) {
-  (void)right;
-  assert(!"impossible to copy logging::engine");
-  abort();
-  return (*this);
 }
 
 /**

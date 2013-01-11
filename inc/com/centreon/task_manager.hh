@@ -85,7 +85,6 @@ private:
 
                    task_manager(task_manager const& right);
   task_manager&    operator=(task_manager const& right);
-  task_manager&    _internal_copy(task_manager const& right);
 
   unsigned long    _current_id;
   mutable concurrency::mutex

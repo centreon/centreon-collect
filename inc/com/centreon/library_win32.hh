@@ -49,7 +49,6 @@ public:
 private:
                      library(library const& right);
   library&           operator=(library const& right);
-  void               _internal_copy(library const& right);
 
   std::string        _filename;
   HMODULE            _handle;

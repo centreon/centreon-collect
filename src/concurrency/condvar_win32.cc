@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include "com/centreon/concurrency/condvar_win32.hh"
 #include "com/centreon/concurrency/mutex_win32.hh"
@@ -86,39 +85,6 @@ void condvar::wake_one() {
 *           Private Methods           *
 *                                     *
 **************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] cv Unused.
- */
-condvar::condvar(condvar const& cv) {
-  _internal_copy(cv);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] cv Unused.
- *
- *  @return This object.
- */
-condvar& condvar::operator=(condvar const& cv) {
-  _internal_copy(cv);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] cv Object to copy.
- */
-void condvar::_internal_copy(condvar const& cv) {
-  (void)cv;
-  assert(!"condition variable is not copyable");
-  abort();
-  return ;
-}
 
 /**
  *  Wait on condition variable.

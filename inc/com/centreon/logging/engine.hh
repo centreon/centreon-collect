@@ -70,7 +70,6 @@ namespace                      logging {
                                engine(engine const& right);
                                ~engine() throw ();
     engine&                    operator=(engine const& right);
-    engine&                    _internal_copy(engine const& right);
     void                       _rebuild_types();
 
     std::vector<backend_info*> _backends;

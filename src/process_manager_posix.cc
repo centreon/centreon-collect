@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -139,16 +138,6 @@ process_manager::process_manager()
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-process_manager::process_manager(process_manager const& right)
-  : concurrency::thread() {
-  _internal_copy(right);
-}
-
-/**
  *  Destructor.
  */
 process_manager::~process_manager() throw () {
@@ -190,18 +179,6 @@ process_manager::~process_manager() throw () {
            || (ret && errno == EINTR))
       ;
   }
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-process_manager& process_manager::operator=(process_manager const& right) {
-  _internal_copy(right);
-  return (*this);
 }
 
 /**
@@ -288,18 +265,6 @@ void process_manager::_erase_timeout(process* p) {
     }
     ++it;
   }
-  return;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] p Object to copy.
- */
-void process_manager::_internal_copy(process_manager const& right) {
-  (void)right;
-  assert(!"process_manager is not copyable");
-  abort();
   return;
 }
 

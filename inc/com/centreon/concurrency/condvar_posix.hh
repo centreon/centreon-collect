@@ -47,7 +47,6 @@ namespace          concurrency {
   private:
                    condvar(condvar const& right);
     condvar&       operator=(condvar const& right);
-    void           _internal_copy(condvar const& right);
 
     pthread_cond_t _cnd;
   };

@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -71,31 +70,10 @@ file::file(
 }
 
 /**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-file::file(file const& right)
-  : backend(right) {
-  _internal_copy(right);
-}
-
-/**
  *  Default destructor.
  */
 file::~file() throw () {
   close();
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-file& file::operator=(file const& right) {
-  return (_internal_copy(right));
 }
 
 /**
@@ -206,18 +184,4 @@ void file::reopen() {
   if (!(_out = fopen(_path.c_str(), "a")))
     throw (basic_error() << "failed to open file \"" << _path << "\":"
            << strerror(errno));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-file& file::_internal_copy(file const& right) {
-  (void)right;
-  assert(!"impossible to copy logging::file");
-  abort();
-  return (*this);
 }

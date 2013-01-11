@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -176,43 +175,4 @@ bool semaphore::try_acquire() {
     throw (basic_error() << "unable to acquire semaphore: " << msg);
   }
   return (!failed);
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-semaphore::semaphore(semaphore const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-semaphore& semaphore::operator=(semaphore const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- */
-void semaphore::_internal_copy(semaphore const& right) {
-  (void)right;
-  assert(!"semaphore is not copyable");
-  abort();
-  return ;
 }

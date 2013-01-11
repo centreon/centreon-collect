@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/task_manager.hh"
@@ -261,40 +260,6 @@ bool task_manager::remove(unsigned long id) {
       return (true);
     }
   return (false);
-}
-
-/**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-task_manager::task_manager(task_manager const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-task_manager& task_manager::operator=(task_manager const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-task_manager& task_manager::_internal_copy(task_manager const& right) {
-  (void)right;
-  assert(!"impossible to copy task_manager");
-  abort();
-  return (*this);
 }
 
 /**

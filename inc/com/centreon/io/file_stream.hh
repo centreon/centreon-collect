@@ -64,7 +64,6 @@ namespace         io {
   private:
                   file_stream(file_stream const& fs);
     file_stream&  operator=(file_stream const& fs);
-    void          _internal_copy(file_stream const& fs);
 
     bool          _auto_close;
     FILE*         _stream;

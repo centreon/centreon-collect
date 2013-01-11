@@ -50,7 +50,6 @@ namespace            concurrency {
   private:
                      read_write_lock(read_write_lock const& right);
     read_write_lock& operator=(read_write_lock const& right);
-    void             _internal_copy(read_write_lock const& right);
 
     pthread_rwlock_t _rwl;
   };

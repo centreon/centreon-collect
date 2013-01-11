@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #if defined(_WIN32)
 #  include <windows.h> // for GetSystemInfo
@@ -188,40 +187,6 @@ void thread_pool::wait_for_done() {
 }
 
 /**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-thread_pool::thread_pool(thread_pool const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-thread_pool& thread_pool::operator=(thread_pool const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-thread_pool& thread_pool::_internal_copy(thread_pool const& right) {
-  (void)right;
-  assert(!"impossible to copy thread_pool");
-  abort();
-  return (*this);
-}
-
-/**
  *  Default constructor.
  *
  *  @param[in] th_pool  The thread pool which is attached to this
@@ -250,41 +215,6 @@ void thread_pool::internal_thread::quit() {
   locker lock(&_th_pool->_mtx_thread);
   _quit = true;
   _th_pool->_cnd_thread.wake_all();
-}
-
-/**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-thread_pool::internal_thread::internal_thread(internal_thread const& right)
-  : thread() {
-  _internal_copy(right);
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-thread_pool::internal_thread& thread_pool::internal_thread::operator=(internal_thread const& right) {
-  return (_internal_copy(right));
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-thread_pool::internal_thread& thread_pool::internal_thread::_internal_copy(internal_thread const& right) {
-  (void)right;
-  assert(!"thread_pool::internal_thread is not copyable");
-  abort();
-  return (*this);
 }
 
 /**

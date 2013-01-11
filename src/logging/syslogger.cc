@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include <syslog.h>
 #include "com/centreon/concurrency/locker.hh"
@@ -52,31 +51,10 @@ syslogger::syslogger(
 }
 
 /**
- *  Default copy constructor.
- *
- *  @param[in] right  The object to copy.
- */
-syslogger::syslogger(syslogger const& right)
-  : backend(right) {
-  _internal_copy(right);
-}
-
-/**
  *  Default destructor.
  */
 syslogger::~syslogger() throw () {
   close();
-}
-
-/**
- *  Default copy operator.
- *
- *  @param[in] right  The object to copy.
- *
- *  @return This object.
- */
-syslogger& syslogger::operator=(syslogger const& right) {
-  return (_internal_copy(right));
 }
 
 /**
@@ -127,18 +105,4 @@ void syslogger::reopen() {
   concurrency::locker lock(&_lock);
   closelog();
   openlog(_id.c_str(), 0, _facility);
-}
-
-/**
- *  Internal copy.
- *
- *  @param[in] right The object to copy.
- *
- *  @return This object.
- */
-syslogger& syslogger::_internal_copy(syslogger const& right) {
-  (void)right;
-  assert(!"impossible to copy logging::syslogger");
-  abort();
-  return (*this);
 }

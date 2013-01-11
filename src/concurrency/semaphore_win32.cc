@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <climits>
 #include <cstdlib>
 #include <windows.h>
@@ -118,43 +117,4 @@ void semaphore::release() {
  */
 bool semaphore::try_acquire() {
   return (acquire(0));
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] s Object to copy.
- */
-semaphore::semaphore(semaphore const& s) {
-  _internal_copy(s);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] s Object to copy.
- *
- *  @return This object.
- */
-semaphore& semaphore::operator=(semaphore const& s) {
-  _internal_copy(s);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] s Object to copy.
- */
-void semaphore::_internal_copy(semaphore const& s) {
-  (void)s;
-  assert(!"semaphore is not copyable");
-  abort();
-  return ;
 }

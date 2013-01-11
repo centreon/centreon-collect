@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include "com/centreon/concurrency/read_write_lock.hh"
 #include "com/centreon/concurrency/write_locker.hh"
@@ -65,44 +64,5 @@ void write_locker::relock() {
 void write_locker::unlock() {
   _rwl->write_unlock();
   _locked = false;
-  return ;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-write_locker::write_locker(write_locker const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-write_locker& write_locker::operator=(write_locker const& right) {
-  _internal_copy(right);
-  return (*this);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void write_locker::_internal_copy(write_locker const& right) {
-  (void)right;
-  assert(!"write locker is not copyable");
-  abort();
   return ;
 }

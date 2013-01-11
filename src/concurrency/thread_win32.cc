@@ -18,7 +18,6 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <cstdlib>
 #include <windows.h>
 #include "com/centreon/concurrency/thread_win32.hh"
@@ -151,31 +150,6 @@ void thread::yield() throw () {
 **************************************/
 
 /**
- *  @brief Copy constructor.
- *
- *  Any call to this constructor will result in a call to abort().
- *
- *  @param[in] t Unused.
- */
-thread::thread(thread const& t) {
-  _internal_copy(t);
-}
-
-/**
- *  @brief Assignment operator.
- *
- *  Any call to this method will result in call to abort().
- *
- *  @param[in] t Unused.
- *
- *  @return This object.
- */
-thread& thread::operator=(thread const& t) {
-  _internal_copy(t);
-  return (*this);
-}
-
-/**
  *  Close thread.
  */
 void thread::_close() throw () {
@@ -200,16 +174,4 @@ DWORD thread::_helper(void* data) {
   thread* self(static_cast<thread*>(data));
   self->_run();
   return (0);
-}
-
-/**
- *  Calls abort().
- *
- *  @param[in] t Unused.
- */
-void thread::_internal_copy(thread const& t) {
-  (void)t;
-  assert(!"thread is not copyable");
-  abort();
-  return ;
 }
