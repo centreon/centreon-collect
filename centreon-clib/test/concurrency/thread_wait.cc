@@ -36,17 +36,17 @@ int main() {
   try {
     concurrency::thread_test tt;
     tt.exec();
-    unsigned long waiting(500);
+    unsigned long waiting(2000);
     timestamp start(timestamp::now());
     if (tt.wait(waiting))
       throw (basic_error() << "invalid return of wait: true");
     timestamp end(timestamp::now());
     timestamp diff(end - start);
-    if (diff.to_mseconds() > waiting * 1.05)
+    if (diff.to_mseconds() > waiting * 1.10)
       throw (basic_error()
              << "waiting more than necessary: "
              << diff.to_mseconds() << "/" << waiting);
-    if (diff.to_mseconds() < waiting * 0.95)
+    if (diff.to_mseconds() < waiting * 0.90)
       throw (basic_error()
              << "waiting less than necessary: "
              << diff.to_mseconds() << "/" << waiting);
