@@ -33,12 +33,12 @@ using namespace com::centreon;
  */
 int main() {
   try {
-    unsigned long waiting(2000);
+    unsigned long waiting(5000);
     timestamp start(timestamp::now());
     concurrency::thread::msleep(waiting);
     timestamp end(timestamp::now());
     timestamp diff(end - start);
-    if (diff.to_mseconds() > waiting * 1.10)
+    if (diff.to_mseconds() > waiting * 1.20)
       throw (basic_error()
              << "waiting more than necessary: "
              << diff.to_mseconds() << "/" << waiting);
