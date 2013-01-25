@@ -35,11 +35,54 @@ namespace   concurrency {
    */
   class     locker {
   public:
-            locker(mutex* m = NULL);
-            ~locker() throw ();
-    mutex*  get_mutex() const throw();
-    void    relock();
-    void    unlock();
+    /**
+     *  Default constructor.
+     *
+     *  @param[in] m  The mutex to lock.
+     */
+            locker(mutex* m = NULL)
+      : _is_lock(false),
+        _m(m) {
+      if (_m)
+        relock();
+    }
+
+    /**
+     *  Default destructor.
+     */
+            ~locker() throw () {
+      if (_is_lock)
+        unlock();
+    }
+
+    /**
+     *  Get the mutex.
+     *
+     *  @return The internal mutex.
+     */
+    mutex*  get_mutex() const throw() {
+      return (_m);
+    }
+
+    /**
+     *  Lock the internal mutex.
+     */
+    void    relock() {
+      if (_m) {
+        _is_lock = true;
+        _m->lock();
+      }
+    }
+
+    /**
+     *  Unlock the internal mutex.
+     */
+    void    unlock() {
+      if (_m) {
+        _m->unlock();
+        _is_lock = false;
+      }
+    }
 
   private:
             locker(locker const& right);

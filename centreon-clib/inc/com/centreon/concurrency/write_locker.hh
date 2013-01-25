@@ -21,14 +21,12 @@
 #ifndef CC_CONCURRENCY_WRITE_LOCKER_HH
 #  define CC_CONCURRENCY_WRITE_LOCKER_HH
 
+#  include "com/centreon/concurrency/read_write_lock.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
 namespace            concurrency {
-  // Forward declaration.
-  class              read_write_lock;
-
   /**
    *  @class write_locker write_locker.hh "com/centreon/concurrency/write_locker.hh"
    *  @brief Handle write locking of a readers-writer lock.
@@ -37,10 +35,42 @@ namespace            concurrency {
    */
   class              write_locker {
   public:
-                     write_locker(read_write_lock* rwl);
-                     ~write_locker() throw ();
-    void             relock();
-    void             unlock();
+    /**
+     *  Constructor.
+     */
+                     write_locker(read_write_lock* rwl)
+      : _locked(false), _rwl(rwl) {
+      relock();
+    }
+
+    /**
+     *  Destructor.
+     */
+                     ~write_locker() throw () {
+      try {
+        if (_locked)
+          unlock();
+      }
+      catch (...) {}
+    }
+
+    /**
+     *  Relock.
+     */
+    void             relock() {
+      _rwl->write_lock();
+      _locked = true;
+      return ;
+    }
+
+    /**
+     *  Unlock.
+     */
+    void             unlock() {
+      _rwl->write_unlock();
+      _locked = false;
+      return ;
+    }
 
   private:
                      write_locker(write_locker const& right);

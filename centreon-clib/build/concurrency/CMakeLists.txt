@@ -41,7 +41,6 @@ if (WIN32)
 else ()
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/condvar_posix.cc"
-    "${SRC_DIR}/mutex_posix.cc"
     "${SRC_DIR}/read_write_lock_posix.cc"
     "${SRC_DIR}/semaphore_posix.cc"
     "${SRC_DIR}/thread_posix.cc"
@@ -60,11 +59,8 @@ set(
   SOURCES
   ${SOURCES}
   ${SPECIFIC_SOURCES}
-  "${SRC_DIR}/locker.cc"
-  "${SRC_DIR}/read_locker.cc"
   "${SRC_DIR}/runnable.cc"
   "${SRC_DIR}/thread_pool.cc"
-  "${SRC_DIR}/write_locker.cc"
   PARENT_SCOPE
 )
 
