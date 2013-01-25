@@ -33,7 +33,7 @@ using namespace com::centreon;
  */
 int main() {
   try {
-    unsigned long waiting(5000000000l);
+    unsigned long waiting(4000000000l);
     timestamp start(timestamp::now());
     concurrency::thread::nsleep(waiting);
     timestamp end(timestamp::now());

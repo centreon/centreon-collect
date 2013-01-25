@@ -41,7 +41,7 @@ handle::handle() {
  *  @param[in] right  The object to copy.
  */
 handle::handle(handle const& right) {
-
+  (void)right;
 }
 
 /**
