@@ -24,13 +24,14 @@
 #include <memory>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/logging/backend.hh"
 #include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
 
 // Class instance.
-static engine* _instance = NULL;
+engine* engine::_instance = NULL;
 
 /**
  *  Add backend into the logging engine.
@@ -65,36 +66,6 @@ unsigned long engine::add(
 
   _backends.push_back(info.get());
   return (info.release()->id);
-}
-
-
-/**
- *  Get the logger engine singleton.
- *
- *  @return The unique instance of logger engine.
- */
-engine& engine::instance() {
-  return (*_instance);
-}
-
-/**
- *  Check if at least one backend can log with this parameter.
- *
- *  @param[in] flag     The logging type to log.
- *  @param[in] verbose  The verbosity level.
- *
- *  @return True if at least one backend can log with this parameter,
- *          otherwise false.
- */
-bool engine::is_log(
-               unsigned long long types,
-               unsigned int verbose) const throw () {
-  if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-    return (false);
-
-  // Lock engine.
-  locker lock(&_mtx);
-  return (_list_types[verbose] & types);
 }
 
 /**

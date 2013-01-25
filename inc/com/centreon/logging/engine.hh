@@ -24,12 +24,13 @@
 #  include <climits>
 #  include <vector>
 #  include "com/centreon/concurrency/mutex.hh"
-#  include "com/centreon/logging/backend.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
 namespace                      logging {
+  class                        backend;
+
   /**
    *  @class engine engine.hh "com/centreon/logging/engine.hh"
    *  @brief Logging object manager.
@@ -43,10 +44,31 @@ namespace                      logging {
                                  backend* obj,
                                  unsigned long long types,
                                  unsigned int verbose);
-    static engine&             instance();
+    /**
+     *  Get the logger engine singleton.
+     *
+     *  @return The unique instance of logger engine.
+     */
+    static engine&             instance() throw () {
+      return (*_instance);
+    }
+
+    /**
+     *  Check if at least one backend can log with this parameter.
+     *
+     *  @param[in] flag     The logging type to log.
+     *  @param[in] verbose  The verbosity level.
+     *
+     *  @return True if at least one backend can log with this
+     *          parameter, otherwise false.
+     */
     bool                       is_log(
                                  unsigned long long types,
-                                 unsigned int verbose) const throw ();
+                                 unsigned int verbose) const throw () {
+      if (verbose >= sizeof(unsigned int) * CHAR_BIT)
+        return (false);
+      return (_list_types[verbose] & types);
+    }
     static void                load();
     void                       log(
                                  unsigned long long types,
@@ -74,6 +96,7 @@ namespace                      logging {
 
     std::vector<backend_info*> _backends;
     unsigned long              _id;
+    static engine*             _instance;
     unsigned long long         _list_types[sizeof(unsigned int) * CHAR_BIT];
     mutable concurrency::mutex _mtx;
   };

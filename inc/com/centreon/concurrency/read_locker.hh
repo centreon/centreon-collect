@@ -21,14 +21,12 @@
 #ifndef CC_CONCURRENCY_READ_LOCKER_HH
 #  define CC_CONCURRENCY_READ_LOCKER_HH
 
+#  include "com/centreon/concurrency/read_write_lock.hh"
 #  include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
 namespace            concurrency {
-  // Forward declaration.
-  class              read_write_lock;
-
   /**
    *  @class read_locker read_locker.hh "com/centreon/concurrency/read_locker.hh"
    *  @brief Handle read locking of a readers-writer lock.
@@ -37,12 +35,71 @@ namespace            concurrency {
    */
   class              read_locker {
   public:
-                     read_locker(read_write_lock* rwl);
-                     read_locker(read_locker const& right);
-                     ~read_locker() throw ();
-    read_locker&     operator=(read_locker const& right);
-    void             relock();
-    void             unlock();
+    /**
+     *  Constructor.
+     *
+     *  @param[in] rwl Target RWL.
+     */
+                     read_locker(read_write_lock* rwl)
+      : _locked(false), _rwl(rwl) {
+      relock();
+    }
+
+    /**
+     *  Copy constructor.
+     *
+     *  @param[in] right Object to copy.
+     */
+                     read_locker(read_locker const& right)
+      : _locked(false), _rwl(right._rwl) {
+      relock();
+    }
+
+    /**
+     *  Destructor.
+     */
+                     ~read_locker() throw () {
+      try {
+        if (_locked)
+          unlock();
+      }
+      catch (...) {}
+    }
+
+    /**
+     *  Assignment operator.
+     *
+     *  @param[in] right Object to copy.
+     *
+     *  @return This object.
+     */
+    read_locker&     operator=(read_locker const& right) {
+      if (this != &right) {
+        if (_locked)
+          unlock();
+        _rwl = right._rwl;
+        relock();
+      }
+      return (*this);
+    }
+
+    /**
+     *  Relock.
+     */
+    void             relock() {
+      _rwl->read_lock();
+      _locked = true;
+      return ;
+    }
+
+    /**
+     *  Unlock.
+     */
+    void             unlock() {
+      _rwl->read_unlock();
+      _locked = false;
+      return ;
+    }
 
   private:
     bool             _locked;
