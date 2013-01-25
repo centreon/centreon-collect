@@ -33,7 +33,7 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 # Version.
 set(CLIB_MAJOR 1)
-set(CLIB_MINOR 0)
+set(CLIB_MINOR 1)
 set(CLIB_PATCH 0)
 set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
