@@ -85,6 +85,17 @@ int main() {
              << "parsing error: try to parse invalid command line");
 
     {
+      std::string cmdline("test \"|\" \"\" \"|\"");
+      std::vector<std::string> res;
+      res.push_back("test");
+      res.push_back("|");
+      res.push_back("");
+      res.push_back("|");
+      if (!check(cmdline, res))
+        throw (basic_error() << "parsing error: " << cmdline);
+    }
+
+    {
       std::string cmdline("");
       std::vector<std::string> res;
       if (!check(cmdline, res))
@@ -182,6 +193,14 @@ int main() {
       res.push_back("12\t 34 56");
       res.push_back(" 12 12 12 ");
       res.push_back("99 9 9");
+      if (!check(cmdline, res))
+        throw (basic_error() << "parsing error: " << cmdline);
+    }
+
+    {
+      std::string cmdline("\\.\\/\\-\\*\\0\\1");
+      std::vector<std::string> res;
+      res.push_back("./-*01");
       if (!check(cmdline, res))
         throw (basic_error() << "parsing error: " << cmdline);
     }
