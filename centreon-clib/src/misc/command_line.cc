@@ -173,20 +173,17 @@ void command_line::parse(char const* cmdline, unsigned int size) {
       case 't':
         c = '\t';
         break ;
-      case '\a':
+      case 'a':
         c = '\a';
         break ;
-      case '\b':
+      case 'b':
         c = '\b';
         break ;
-      case '\v':
+      case 'v':
         c = '\v';
         break ;
-      case '\f':
+      case 'f':
         c = '\f';
-        break ;
-      case '\0':
-        c = '\0';
         break ;
       // default:
       //   if (c != '"' && c != '\'')
@@ -196,8 +193,8 @@ void command_line::parse(char const* cmdline, unsigned int size) {
     }
 
     // End of token.
-    if (!sep && isspace(c)) {
-      if (last && !isspace(last)) {
+    if (!sep && isspace(c) && !escap) {
+      if (_size && last != '\\' && !isspace(last)) {
         str[_size++] = 0;
         ++_argc;
       }
