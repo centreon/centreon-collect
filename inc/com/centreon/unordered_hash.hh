@@ -47,6 +47,28 @@
 #    define umultimap std::tr1::unordered_multimap
 #    define uset std::tr1::unordered_set
 #    define umultiset std::tr1::unordered_multiset
+
+// Missing equal operator for unrodered map on tr1.
+namespace std {
+  template<class Key, class T, class Hash, class Pred, class Alloc>
+  bool operator==(
+         umap<Key, T, Hash, Pred, Alloc> const& lhs,
+         umap<Key, T, Hash, Pred, Alloc> const& rhs) {
+    if (lhs.size() != rhs.size())
+      return (false);
+    for (typename umap<Key, T, Hash, Pred, Alloc>::const_iterator
+           it(lhs.begin()), end(lhs.end());
+         it != end;
+         ++it) {
+      typename umap<Key, T, Hash, Pred, Alloc>::const_iterator
+        it_find(rhs.find(it->first));
+      if (it_find == rhs.end() || it_find->second != it->second)
+        return (false);
+    }
+    return (true);
+  }
+}
+
 // Used std implementation.
 #  else
 #    include <map>
