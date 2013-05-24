@@ -36,6 +36,8 @@ CC_BEGIN()
  */
 template <typename T>
 class           shared_ptr {
+  template          <typename U>
+  friend class      shared_ptr;
 public:
   /**
    *  Constructor.
