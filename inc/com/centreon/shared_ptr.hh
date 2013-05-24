@@ -58,6 +58,18 @@ public:
   }
 
   /**
+   *  Copy constructor.
+   *
+   *  @param[in] right Object to copy.
+   */
+                template<typename U>
+                shared_ptr(shared_ptr<U> const& right)
+                  : _count(NULL),
+                    _data(NULL) {
+    operator=(right);
+  }
+
+  /**
    *  Destructor.
    */
                 ~shared_ptr() throw () {
@@ -78,6 +90,27 @@ public:
       _count = right._count;
       if (_count)
         ++(*_count);
+    }
+    return (*this);
+  }
+
+  /**
+   *  Assignment operator.
+   *
+   *  @param[in] right Object to copy.
+   *
+   *  @return This object.
+   */
+  template<typename U>
+  shared_ptr&   operator=(shared_ptr<U> const& right) {
+    if (_data != static_cast<T*>(right._data)) {
+      clear();
+      if (right._data) {
+        _data = static_cast<T*>(right._data);
+        _count = right._count;
+        if (_count)
+          ++(*_count);
+      }
     }
     return (*this);
   }
@@ -139,3 +172,4 @@ private:
 CC_END()
 
 #endif // !CC_SHARED_PTR_HH
+
