@@ -39,14 +39,17 @@ class           shared_ptr {
   template          <typename U>
   friend class      shared_ptr;
 public:
+  typedef void (*pdeleter)(void*);
+
   /**
    *  Constructor.
    *
    *  @param[in] data Pointer.
    */
-                shared_ptr(T* data = NULL)
+                shared_ptr(T* data = NULL, pdeleter deleter = &operator delete)
                   : _count(data ? new unsigned int(1) : NULL),
-                    _data(data) {}
+                    _data(data),
+                    _deleter(deleter) {}
 
   /**
    *  Copy constructor.
@@ -55,7 +58,8 @@ public:
    */
                 shared_ptr(shared_ptr const& right)
                   : _count(NULL),
-                    _data(NULL) {
+                    _data(NULL),
+                    _deleter(NULL) {
     operator=(right);
   }
 
@@ -67,7 +71,8 @@ public:
                 template<typename U>
                 shared_ptr(shared_ptr<U> const& right)
                   : _count(NULL),
-                    _data(NULL) {
+                    _data(NULL),
+                    _deleter(NULL) {
     operator=(right);
   }
 
@@ -89,6 +94,7 @@ public:
     if (this != &right) {
       clear();
       _data = right._data;
+      _deleter = right._deleter;
       _count = right._count;
       if (_count)
         ++(*_count);
@@ -109,6 +115,7 @@ public:
       clear();
       if (right._data) {
         _data = static_cast<T*>(right._data);
+        _deleter = right._deleter;
         _count = right._count;
         if (_count)
           ++(*_count);
@@ -140,7 +147,7 @@ public:
    */
   void          clear() throw () {
     if (_count && !(--(*_count))) {
-      delete _data;
+      _deleter(_data);
       delete _count;
     }
     _count = NULL;
@@ -169,6 +176,7 @@ public:
 private:
   unsigned int* _count;
   T*            _data;
+  pdeleter      _deleter;
 };
 
 CC_END()
