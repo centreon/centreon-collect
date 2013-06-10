@@ -33,20 +33,53 @@
 
 // Used c++0x implementation.
 #  ifdef CXX0X_UNORDERED
+#    include <functional>
 #    include <unordered_map>
 #    include <unordered_set>
+#    include <utility>
+
 #    define umap std::unordered_map
 #    define umultimap std::unordered_multimap
 #    define uset std::unordered_set
 #    define umultiset std::unordered_multiset
+
+// Missing std::pair hash.
+namespace std {
+  template <typename T, typename U>
+  struct hash<std::pair<T, U> > {
+    std::size_t operator()(std::pair<T, U> const& p) const {
+      std::hash<T> h1;
+      std::hash<U> h2;
+      return (h1(p.first) ^ h2(p.second));
+    }
+  };
+}
+
 // Used tr1 implementation.
 #  elif defined(TR1_UNORDERED)
+#    include <functional>
 #    include <tr1/unordered_map>
 #    include <tr1/unordered_set>
+#    include <utility>
+
 #    define umap std::tr1::unordered_map
 #    define umultimap std::tr1::unordered_multimap
 #    define uset std::tr1::unordered_set
 #    define umultiset std::tr1::unordered_multiset
+
+// Missing std::pair hash.
+namespace std {
+  namespace tr1 {
+    template <typename T, typename U>
+    struct hash<std::pair<T, U> > {
+      std::size_t operator()(std::pair<T, U> const& p) const {
+        std::tr1::hash<T> h1;
+        std::tr1::hash<U> h2;
+        return (h1(p.first) ^ h2(p.second));
+      }
+    };
+  }
+}
 
 // Missing equal operator for unrodered map on tr1.
 namespace std {
