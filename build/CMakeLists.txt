@@ -266,6 +266,7 @@ set(
   "${INC_DIR}/handle_action.hh"
   "${INC_DIR}/handle_listener.hh"
   "${INC_DIR}/handle_manager.hh"
+  "${INC_DIR}/hash.hh"
   "${INC_DIR}/library.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/process_manager.hh"
