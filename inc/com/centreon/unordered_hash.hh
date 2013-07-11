@@ -100,6 +100,13 @@ namespace std {
     }
     return (true);
   }
+
+  template<class Key, class T, class Hash, class Pred, class Alloc>
+  bool operator!=(
+         umap<Key, T, Hash, Pred, Alloc> const& lhs,
+         umap<Key, T, Hash, Pred, Alloc> const& rhs) {
+    return (!operator==(lhs, rhs));
+  }
 }
 
 // Used std implementation.
