@@ -125,6 +125,28 @@ public:
   }
 
   /**
+   *  Equal operator.
+   *
+   *  @param[in] right The object to compare.
+   *
+   *  @return True if is the same object, otherwize false.
+   */
+  bool          operator==(shared_ptr<T> const& right) const throw () {
+    return (_data == right._data);
+  }
+
+  /**
+   *  Equal operator.
+   *
+   *  @param[in] right The object to compare.
+   *
+   *  @return True if is the same object, otherwize false.
+   */
+  bool          operator!=(shared_ptr<T> const& right) const throw () {
+    return (!operator!=(right));
+  }
+
+  /**
    *  Dereferencing pointer.
    *
    *  @return Dereferenced pointer.
