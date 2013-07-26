@@ -81,8 +81,8 @@ namespace std {
   }
 }
 
-// Missing equal operator for unrodered map on tr1.
 namespace std {
+  // Missing equal operator for unrodered map on tr1.
   template<class Key, class T, class Hash, class Pred, class Alloc>
   bool operator==(
          umap<Key, T, Hash, Pred, Alloc> const& lhs,
@@ -100,11 +100,45 @@ namespace std {
     }
     return (true);
   }
-
+  // Missing not equal operator for unrodered map on tr1.
   template<class Key, class T, class Hash, class Pred, class Alloc>
   bool operator!=(
          umap<Key, T, Hash, Pred, Alloc> const& lhs,
          umap<Key, T, Hash, Pred, Alloc> const& rhs) {
+    return (!operator==(lhs, rhs));
+  }
+
+  // Missing equal operator for unrodered multimap on tr1.
+  template<class Key, class T, class Hash, class Pred, class Alloc>
+  bool operator==(
+         umultimap<Key, T, Hash, Pred, Alloc> const& lhs,
+         umultimap<Key, T, Hash, Pred, Alloc> const& rhs) {
+    if (lhs.size() != rhs.size())
+      return (false);
+    for (typename umap<Key, T, Hash, Pred, Alloc>::const_iterator
+           it(lhs.begin()), end(lhs.end());
+         it != end;
+         ++it) {
+      bool find(false);
+      for (typename umap<Key, T, Hash, Pred, Alloc>::const_iterator
+             it_find(rhs.find(it->first)), end(rhs.end());
+           it_find != end && it_find->first == it->first;
+           ++it_find) {
+        if (it_find->second == it->second) {
+          find = true;
+          break;
+        }
+      }
+      if (!find)
+        return (false);
+    }
+    return (true);
+  }
+  // Missing not equal operator for unrodered multimap on tr1.
+  template<class Key, class T, class Hash, class Pred, class Alloc>
+  bool operator!=(
+         umultimap<Key, T, Hash, Pred, Alloc> const& lhs,
+         umultimap<Key, T, Hash, Pred, Alloc> const& rhs) {
     return (!operator==(lhs, rhs));
   }
 }
