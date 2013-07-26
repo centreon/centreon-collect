@@ -42,6 +42,10 @@ namespace         io {
                     bool auto_close = false);
                   ~file_stream() throw ();
     void          close();
+    static void   copy(char const* src, char const* dst);
+    static void   copy(
+                    std::string const& src,
+                    std::string const& dst);
     static bool   exists(char const* path);
     static bool   exists(std::string const& path);
     void          flush();
