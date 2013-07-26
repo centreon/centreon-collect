@@ -29,6 +29,7 @@
 #  include <unistd.h>
 #  include <fcntl.h>
 #endif // Windows or POSIX.
+#include <fstream>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 
@@ -67,6 +68,25 @@ void file_stream::close() {
     _stream = NULL;
   }
   return ;
+}
+
+/**
+ *  Copy source file to the destination file.
+ *
+ *  @param[in] src The path of the source file.
+ *  @param[in] dst The path of the destination file.
+ */
+void file_stream::copy(char const* src, char const* dst) {
+  std::ifstream source(src, std::ios::binary);
+  std::ofstream dest(dst, std::ios::binary);
+  dest << source.rdbuf();
+}
+
+/**
+ *  Overload of copy method.
+ */
+void file_stream::copy(std::string const& src, std::string const& dst) {
+  copy(src.c_str(), dst.c_str());
 }
 
 /**
