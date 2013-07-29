@@ -143,7 +143,7 @@ public:
    *  @return True if is the same object, otherwize false.
    */
   bool          operator!=(shared_ptr<T> const& right) const throw () {
-    return (!operator!=(right));
+    return (!operator==(right));
   }
 
   /**
