@@ -46,7 +46,7 @@ public:
    *
    *  @param[in] data Pointer.
    */
-                shared_ptr(T* data = NULL, pdeleter deleter = &operator delete)
+                shared_ptr(T* data = NULL, pdeleter deleter = NULL)
                   : _count(data ? new unsigned int(1) : NULL),
                     _data(data),
                     _deleter(deleter) {}
@@ -169,11 +169,15 @@ public:
    */
   void          clear() throw () {
     if (_count && !(--(*_count))) {
-      _deleter(_data);
+      if (_deleter)
+        _deleter(_data);
+      else
+        delete _data;
       delete _count;
     }
     _count = NULL;
     _data = NULL;
+    _deleter = NULL;
     return ;
   }
 
