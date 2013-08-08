@@ -233,6 +233,7 @@ target_link_libraries(
   ${LIBSSH2_LIBRARIES}
   ${CLIB_LIBRARIES}
   ${LIBGCRYPT_LIBRARIES}
+  "pthread"
 )
 
 # SSH connector.

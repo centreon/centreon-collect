@@ -29,6 +29,7 @@
 #include <netinet/in.h>
 #include <pwd.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/sessions/session.hh"
 #include "com/centreon/exceptions/basic.hh"
