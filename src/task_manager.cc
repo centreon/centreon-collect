@@ -170,15 +170,15 @@ unsigned int task_manager::execute(timestamp const& now) {
       // Reset iterator.
       it = _tasks.begin();
     }
-  }
 
-  // Update the task table with the recurring task.
-  for (std::list<std::pair<timestamp, internal_task*> >::const_iterator
-         it(recurring.begin()), end(recurring.end());
-       it != end;
-       ++it) {
-    it->second->when = it->first;
-    _tasks.insert(*it);
+    // Update the task table with the recurring task.
+    for (std::list<std::pair<timestamp, internal_task*> >::const_iterator
+           it(recurring.begin()), end(recurring.end());
+         it != end;
+         ++it) {
+      it->second->when = it->first;
+      _tasks.insert(*it);
+    }
   }
 
   // Wait task ending.
