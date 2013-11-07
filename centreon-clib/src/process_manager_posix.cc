@@ -320,7 +320,9 @@ unsigned int process_manager::_read_stream(int fd) throw () {
     concurrency::locker lock(&p->_lock_process);
     // Read content of the stream and push it.
     char buffer[4096];
-    size = p->_read(fd, buffer, sizeof(buffer));
+    if (!(size = p->_read(fd, buffer, sizeof(buffer))))
+      return (0);
+
     if (p->_stream[process::out] == fd) {
       p->_buffer_out.append(buffer, size);
       p->_cv_buffer_out.wake_one();
