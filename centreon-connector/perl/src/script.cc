@@ -62,6 +62,7 @@ char const* const com::centreon::connector::perl::embedded_perl::_script =
   "  my $sub;\n" \
   "  sysread $fh, $sub, -s $fh;\n" \
   "  close $fh;\n" \
+  "  $sub =~ s/__END__/\;}\n__END__/;\n" \
   "\n" \
   "  # Wrap the code into a subroutine.\n" \
   "  my $hndlr = <<EOSUB;\n" \
