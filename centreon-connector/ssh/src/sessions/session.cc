@@ -89,10 +89,11 @@ void session::close() {
 
   // Notify listeners.
   {
-    for (_listnrs_it = _listnrs.begin();
-         _listnrs_it != _listnrs.end();
-         ++_listnrs_it)
-      (*_listnrs_it)->on_close(*this);
+    _listnrs_it = _listnrs.begin();
+    while (_listnrs_it != _listnrs.end()) {
+      std::set<listener*>::iterator it(_listnrs_it++);
+      (*it)->on_close(*this);
+    }
   }
 
   // Close socket.
@@ -492,10 +493,11 @@ void session::_key() {
     _step = session_keepalive;
     _step_string = "keep-alive";
     {
-      for (_listnrs_it = _listnrs.begin();
-           _listnrs_it != _listnrs.end();
-           ++_listnrs_it)
-        (*_listnrs_it)->on_connected(*this);
+      _listnrs_it = _listnrs.begin();
+      while (_listnrs_it != _listnrs.end()) {
+        std::set<listener*>::iterator it(_listnrs_it++);
+        (*it)->on_connected(*this);
+      }
     }
   }
   return ;
@@ -550,10 +552,11 @@ void session::_passwd() {
     _step = session_keepalive;
     _step_string = "keep-alive";
     {
-      for (_listnrs_it = _listnrs.begin();
-           _listnrs_it != _listnrs.end();
-           ++_listnrs_it)
-        (*_listnrs_it)->on_connected(*this);
+      _listnrs_it = _listnrs.begin();
+      while (_listnrs_it != _listnrs.end()) {
+        std::set<listener*>::iterator it(_listnrs_it++);
+        (*it)->on_connected(*this);
+      }
     }
   }
   return ;
