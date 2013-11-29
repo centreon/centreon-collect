@@ -49,9 +49,7 @@ volatile bool should_exit(false);
 static void term_handler(int signum) {
   (void)signum;
   int old_errno(errno);
-  log_info(logging::high) << "termination request received";
   should_exit = true;
-  log_info(logging::high) << "reseting termination handler";
   signal(SIGTERM, SIG_DFL);
   errno = old_errno;
   return ;
