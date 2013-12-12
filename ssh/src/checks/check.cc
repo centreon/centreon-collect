@@ -177,10 +177,6 @@ void check::on_available(sessions::session& sess) {
         if (!_close()) {
           log_info(logging::medium) << "channel of check "
             << cmd_id << " successfully closed";
-          if (!_cmds.empty()) {
-            _step = chan_open;
-            on_available(sess);
-          }
         }
       }
       break ;
@@ -323,6 +319,10 @@ bool check::_close() {
         r.set_exit_code(exitcode);
         r.set_output(_stdout);
         _send_result_and_unregister(r);
+      }
+      else {
+	_step = chan_open;
+	on_available(*_session);
       }
     }
   }
