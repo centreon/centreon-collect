@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -28,9 +28,7 @@ using namespace com::centreon::exceptions;
 /**
  *  Default constructor.
  */
-basic::basic() throw () {
-
-}
+basic::basic() {}
 
 /**
  *  Constructor with debugging informations.
@@ -39,36 +37,41 @@ basic::basic() throw () {
  *  @param[in] function  The function from calling this object.
  *  @param[in] line      The line from calling this object.
  */
-basic::basic(char const* file, char const* function, int line) throw () {
+basic::basic(
+         char const* file,
+         char const* function,
+         int line) {
   *this << "[" << file << ":" << line << "(" << function << ")] ";
 }
 
 /**
  *  Copy constructor.
  *
- *  @param[in] right  Object to copy.
+ *  @param[in] other  Object to copy.
  */
-basic::basic(basic const& right) throw ()
-  : std::exception(right) {
-  _internal_copy(right);
+basic::basic(basic const& other)
+  : std::exception(other) {
+  _internal_copy(other);
 }
 
 /**
  *  Destructor.
  */
-basic::~basic() throw () {
-
-}
+basic::~basic() throw () {}
 
 /**
  *  Assignment operator.
  *
- *  @param[in] right  Object to copy.
+ *  @param[in] other  Object to copy.
  *
  *  @return This object.
  */
-basic& basic::operator=(basic const& right) throw () {
-  return (_internal_copy(right));
+basic& basic::operator=(basic const& other) {
+  if (this != &other) {
+    std::exception::operator=(other);
+    _internal_copy(other);
+  }
+  return (*this);
 }
 
 /**
@@ -83,14 +86,9 @@ char const* basic::what() const throw () {
 /**
  *  Internal copy method.
  *
- *  @param[in] right  Object to copy.
- *
- *  @return This object.
+ *  @param[in] other  Object to copy.
  */
-basic& basic::_internal_copy(basic const& right) {
-  if (this != &right) {
-    std::exception::operator=(right);
-    _buffer = right._buffer;
-  }
-  return (*this);
+void basic::_internal_copy(basic const& other) {
+  _buffer = other._buffer;
+  return ;
 }
