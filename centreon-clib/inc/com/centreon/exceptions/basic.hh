@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -37,23 +37,23 @@ namespace               exceptions {
    */
   class                 basic : public std::exception {
   public:
-                        basic() throw();
+                        basic();
                         basic(
                           char const* file,
                           char const* function,
-                          int line) throw ();
-                        basic(basic const& right) throw ();
+                          int line);
+                        basic(basic const& other);
     virtual             ~basic() throw ();
-    virtual basic&      operator=(basic const& right) throw ();
-    template<typename T>
-    basic&              operator<<(T t) throw () {
+    virtual basic&      operator=(basic const& other);
+    template <typename T>
+    basic&              operator<<(T t) {
       _buffer << t;
       return (*this);
     }
     virtual char const* what() const throw ();
 
   private:
-    basic&              _internal_copy(basic const& right);
+    void                _internal_copy(basic const& other);
 
     misc::stringifier   _buffer;
   };
@@ -77,4 +77,5 @@ CC_END()
 #  else
 #    define basic_error() com::centreon::exceptions::basic()
 #  endif // !NDEBUG
+
 #endif // !CC_EXCEPTIONS_BASIC_HH

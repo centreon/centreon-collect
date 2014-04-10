@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2013 Merethis
+## Copyright 2011-2014 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -27,6 +27,7 @@ set(
   SOURCES
   ${SOURCES}
   "${SRC_DIR}/basic.cc"
+  "${SRC_DIR}/interruption.cc"
   PARENT_SCOPE
 )
 
@@ -35,5 +36,6 @@ set(
   HEADERS
   ${HEADERS}
   "${INC_DIR}/basic.hh"
+  "${INC_DIR}/interruption.hh"
   PARENT_SCOPE
 )
