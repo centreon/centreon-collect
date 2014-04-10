@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/interruption.hh"
 #include "com/centreon/misc/command_line.hh"
 #include "com/centreon/process_manager_posix.hh"
 #include "com/centreon/process_posix.hh"
@@ -407,9 +408,9 @@ unsigned int process::write(void const* data, unsigned int size) {
   concurrency::locker lock(&_lock_process);
   ssize_t wb(0);
   while ((wb = ::write(_stream[in], data, size)) < 0) {
-    if (errno == EINTR)
-      continue;
     char const* msg(strerror(errno));
+    if (errno == EINTR)
+      throw (interruption_error() << msg);
     throw (basic_error() << "could not write on process "
            << _process << "'s input: " << msg);
   }
@@ -620,9 +621,9 @@ void process::_pipe(int fds[2]) {
 unsigned int process::_read(int fd, void* data, unsigned int size) {
   ssize_t rb(0);
   while ((rb = ::read(fd, data, size)) < 0) {
-    if (errno == EINTR)
-      continue;
     char const* msg(strerror(errno));
+    if (errno == EINTR)
+      throw (interruption_error() << msg);
     throw (basic_error() << "could not read from process "
            << _process << ": " << msg);
   }
