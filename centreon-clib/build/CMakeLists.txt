@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2013 Merethis
+## Copyright 2011-2014 Merethis
 ##
 ## This file is part of Centreon Clib.
 ##
@@ -33,8 +33,8 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 # Version.
 set(CLIB_MAJOR 1)
-set(CLIB_MINOR 2)
-set(CLIB_PATCH 1)
+set(CLIB_MINOR 3)
+set(CLIB_PATCH 0)
 set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
 
