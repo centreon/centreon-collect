@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -36,36 +36,40 @@ using namespace com::centreon::logging;
  *  @param[in] show_pid        Enable show pid.
  *  @param[in] show_timestamp  Enable show timestamp.
  *  @param[in] show_thread_id  Enable show thread id.
+ *  @param[in] max_size        Maximum file size.
  */
 file::file(
         FILE* file,
         bool is_sync,
         bool show_pid,
         time_precision show_timestamp,
-        bool show_thread_id)
+        bool show_thread_id,
+        long long max_size)
   : backend(is_sync, show_pid, show_timestamp, show_thread_id),
-    _out(file) {
-
-}
+    _max_size(max_size), _out(file), _size(0) {}
 
 /**
  *  Constructor with file path name.
  *
- *  @param[in] path  The path of the file to used.
+ *  @param[in] path            The path of the file to used.
  *  @param[in] is_sync         Enable synchronization.
  *  @param[in] show_pid        Enable show pid.
  *  @param[in] show_timestamp  Enable show timestamp.
  *  @param[in] show_thread_id  Enable show thread id.
+ *  @param[in] max_size        Maximum file size.
  */
 file::file(
         std::string const& path,
         bool is_sync,
         bool show_pid,
         time_precision show_timestamp,
-        bool show_thread_id)
+        bool show_thread_id,
+        long long max_size)
   : backend(is_sync, show_pid, show_timestamp, show_thread_id),
+    _max_size(max_size),
     _path(path),
-    _out(NULL) {
+    _out(NULL),
+    _size(0) {
   open();
 }
 
@@ -141,6 +145,12 @@ void file::log(
 
   concurrency::locker lock(&_lock);
   if (_out) {
+    // Size control.
+    if ((_max_size > 0) && (_size + buffer.size() > _max_size))
+      _max_size_reached();
+    _size += buffer.size();
+
+    // Physical write.
     size_t ret;
     do {
       clearerr(_out);
@@ -163,8 +173,11 @@ void file::open() {
     return;
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw (basic_error() << "failed to open file \"" << _path << "\":"
+    throw (basic_error() << "failed to open file '" << _path << "': "
            << strerror(errno));
+  _size = ftell(_out);
+
+  return ;
 }
 
 /**
@@ -182,6 +195,19 @@ void file::reopen() {
   } while (ret == -1 && errno == EINTR);
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw (basic_error() << "failed to open file \"" << _path << "\":"
+    throw (basic_error() << "failed to open file '" << _path << "': "
            << strerror(errno));
+  _size = ftell(_out);
+
+  return ;
+}
+
+/**
+ *  Method called when max size is reached.
+ */
+void file::_max_size_reached() {
+  close();
+  remove(_path.c_str());
+  open();
+  return ;
 }

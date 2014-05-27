@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Clib.
 **
@@ -40,14 +40,16 @@ namespace              logging {
                          bool is_sync = true,
                          bool show_pid = true,
                          time_precision show_timestamp = second,
-                         bool show_thread_id = false);
+                         bool show_thread_id = false,
+                         long long max_size = 0);
                        file(
                          std::string const& path,
                          bool is_sync = true,
                          bool show_pid = true,
                          time_precision show_timestamp = second,
-                         bool show_thread_id = false);
-                       ~file() throw ();
+                         bool show_thread_id = false,
+                         long long max_size = 0);
+    virtual            ~file() throw ();
     void               close() throw ();
     std::string const& filename() const throw ();
     void               log(
@@ -58,13 +60,18 @@ namespace              logging {
     void               open();
     void               reopen();
 
+  protected:
+    virtual void       _max_size_reached();
+
   private:
                        file(file const& right);
     file&              operator=(file const& right);
     void               _flush() throw ();
 
+    long long          _max_size;
     std::string        _path;
     FILE*              _out;
+    long long          _size;
   };
 }
 
