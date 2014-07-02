@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon SSH Connector.
 **
@@ -274,7 +274,7 @@ void parser::_parse(std::string const& cmd) {
 
         if (opt.get_timeout()
             && opt.get_timeout() < static_cast<unsigned int>(timeout))
-          timeout = opt.get_timeout();
+          timeout = time(NULL) + opt.get_timeout();
         else if (opt.get_timeout() > static_cast<unsigned int>(timeout))
           throw (basic_error() << "invalid execution request " \
                  "received: timeout > to monitoring engine timeout");
