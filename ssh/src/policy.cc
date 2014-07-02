@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon SSH Connector.
 **
@@ -116,7 +116,7 @@ void policy::on_error(unsigned long long cmd_id, char const* msg) {
     checks::result r;
     r.set_command_id(cmd_id);
     r.set_executed(false);
-    r.set_output(msg);
+    r.set_error(msg);
     on_result(r);
   }
   else {
