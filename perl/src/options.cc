@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Perl Connector.
 **
@@ -24,6 +24,8 @@
 using namespace com::centreon::connector::perl;
 
 // Options descriptions.
+static char const* const code_description
+  = "Argument is some Perl code that will be executed by the embedded interpreter.";
 static char const* const debug_description
   = "If this flag is specified, print all logs messages.";
 static char const* const help_description
@@ -79,7 +81,8 @@ std::string options::help() const {
   oss << "centreon_connector_perl [args]\n"
       << "  --debug    " << debug_description << "\n"
       << "  --help     " << help_description << "\n"
-      << "  --version  " << version_description << "\n";
+      << "  --version  " << version_description << "\n"
+      << "  --code     " << code_description << "\n";
       // << "\n"
       // << "Commands must be sent on the connector's standard input.\n"
       // << "They must be sent using Centreon Connector protocol version\n"
@@ -120,6 +123,15 @@ std::string options::usage() const {
  *  Init argument table.
  */
 void options::_init() {
+  // Code.
+  {
+    misc::argument& arg(_arguments['c']);
+    arg.set_name('c');
+    arg.set_long_name("code");
+    arg.set_description(code_description);
+    arg.set_has_value(true);
+  }
+
   // Debug.
   {
     misc::argument& arg(_arguments['d']);

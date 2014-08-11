@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Perl Connector.
 **
@@ -43,7 +43,11 @@ class                      embedded_perl {
 public:
                            ~embedded_perl();
   static embedded_perl&    instance();
-  static void              load(int* argc, char*** argv, char*** env);
+  static void              load(
+                             int* argc,
+                             char*** argv,
+                             char*** env,
+                             char const* code = NULL);
   pid_t                    run(std::string const& cmd, int fds[3]);
   static void              unload();
 
@@ -51,9 +55,11 @@ private:
                            embedded_perl(
                              int* argc,
                              char*** argv,
-                             char*** env);
+                             char*** env,
+                             char const* code = NULL);
                            embedded_perl(embedded_perl const& ep);
   embedded_perl&           operator=(embedded_perl const& ep);
+  void                     _write(char const* data, size_t len);
 
   umap<std::string, SV*>   _parsed;
   static char const* const _script;

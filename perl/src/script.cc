@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Perl Connector.
 **
@@ -108,4 +108,4 @@ char const* const com::centreon::connector::perl::embedded_perl::_script =
   "    die \"could not run '$filename': $@\";\n" \
   "  }\n" \
   "  return ($res);\n" \
-  "}\n";
+  "}\n\n";

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Perl Connector.
 **
@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <list>
 #include <unistd.h>
 #include <EXTERN.h>
 #include <perl.h>
@@ -80,10 +81,15 @@ embedded_perl& embedded_perl::instance() {
  *  @param[in] argc Argument count.
  *  @param[in] argv Argument values.
  *  @param[in] env  Program environment.
+ *  @param[in] code Additional code to run by interpreter.
  */
-void embedded_perl::load(int* argc, char*** argv, char*** env) {
+void embedded_perl::load(
+                      int* argc,
+                      char*** argv,
+                      char*** env,
+                      char const* code) {
   if (!_instance)
-    _instance = new embedded_perl(argc, argv, env);
+    _instance = new embedded_perl(argc, argv, env, code);
   return ;
 }
 
@@ -255,13 +261,18 @@ void embedded_perl::unload() {
 **************************************/
 
 /**
- *  Default constructor.
+ *  Constructor.
  *
  *  @param[in] argc Argument count.
  *  @param[in] argv Argument values.
  *  @param[in] env  Program environment.
+ *  @param[in] code Additional code to run by interpreter.
  */
-embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
+embedded_perl::embedded_perl(
+                 int* argc,
+                 char*** argv,
+                 char*** env,
+                 char const* code) {
   // Do not warn if unused by PERL_SYS_INIT3 macro.
   (void)argc;
   (void)argv;
@@ -285,19 +296,30 @@ embedded_perl::embedded_perl(int* argc, char*** argv, char*** env) {
       << "temporary script path is " << script_path;
 
     // Write embedded script.
-    char const* data(_script);
-    size_t len(strlen(data));
-    while (len > 0) {
-      ssize_t wb(write(script_fd, data, len));
-      if (wb <= 0) {
-        char const* msg(strerror(errno));
-        close(script_fd);
-        unlink(script_path);
-        throw (basic_error()
-               << "could not write embedded script: " << msg);
+    std::list<char const*> l;
+    l.push_back(_script);
+    if (code) {
+      l.push_back(code);
+      l.push_back("\n");
+    }
+    for (std::list<char const*>::const_iterator
+           it(l.begin()), end(l.end());
+         it != end;
+         ++it) {
+      char const* data(*it);
+      size_t len(strlen(data));
+      while (len > 0) {
+        ssize_t wb(write(script_fd, data, len));
+        if (wb <= 0) {
+          char const* msg(strerror(errno));
+          close(script_fd);
+          unlink(script_path);
+          throw (basic_error()
+                 << "could not write embedded script: " << msg);
+        }
+        len -= wb;
+        data += wb;
       }
-      len -= wb;
-      data += wb;
     }
     fsync(script_fd);
     close(script_fd);
