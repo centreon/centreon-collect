@@ -264,6 +264,12 @@ if (WITH_TESTING)
     "${TEST_DIR}/connector/execute_multiple_scripts.cc")
   target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
   add_test("${TEST_NAME}" "${TEST_NAME}")
+  # Additional code.
+  set(TEST_NAME "connector_execute_with_additional_code")
+  add_executable("${TEST_NAME}"
+    "${TEST_DIR}/connector/execute_with_additional_code.cc")
+  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
+  add_test("${TEST_NAME}" "${TEST_NAME}")
   # Module loading from script.
   set(TEST_NAME "connector_execute_module_loading")
   add_executable("${TEST_NAME}"

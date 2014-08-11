@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2014 Merethis
 **
 ** This file is part of Centreon Perl Connector.
 **
@@ -125,7 +125,13 @@ int main(int argc, char** argv, char** env) {
       signal(SIGTERM, term_handler);
 
       // Load Embedded Perl.
-      embedded_perl::load(&argc, &argv, &env);
+      embedded_perl::load(
+                       &argc,
+                       &argv,
+                       &env,
+                       (opts.get_argument("code").get_is_set()
+                        ? opts.get_argument("code").get_value().c_str()
+                        : NULL));
 
       // Program policy.
       policy p;
