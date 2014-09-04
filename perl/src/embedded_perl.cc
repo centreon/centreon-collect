@@ -25,6 +25,7 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include "com/centreon/connector/perl/embedded_perl.hh"
+#include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
@@ -188,6 +189,9 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     fds[2] = err_pipe[0];
   }
   else if (!child) { // Child
+    // Close existing file descriptors.
+    pipe_handle::close_all_handles();
+
     // Setup process.
     close(in_pipe[1]);
     close(err_pipe[0]);

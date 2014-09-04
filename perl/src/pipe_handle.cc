@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013 Merethis
+** Copyright 2012-2014 Merethis
 **
 ** This file is part of Centreon Perl Connector.
 **
@@ -20,12 +20,24 @@
 
 #include <cerrno>
 #include <cstring>
+#include <set>
 #include <unistd.h>
+#include "com/centreon/concurrency/locker.hh"
+#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
+
+/**************************************
+*                                     *
+*           Local Objects             *
+*                                     *
+**************************************/
+
+static std::multiset<int>* gl_fds(NULL);
+static concurrency::mutex* gl_fdsm(NULL);
 
 /**************************************
 *                                     *
@@ -79,9 +91,32 @@ pipe_handle& pipe_handle::operator=(pipe_handle const& ph) {
  */
 void pipe_handle::close() throw () {
   if (_fd >= 0) {
+    {
+      concurrency::locker lock(gl_fdsm);
+      std::multiset<int>::iterator it(gl_fds->find(_fd));
+      if (it != gl_fds->end())
+        gl_fds->erase(it);
+    }
     ::close(_fd);
     _fd = -1;
   }
+  return ;
+}
+
+/**
+ *  Close all handles.
+ */
+void pipe_handle::close_all_handles() {
+  concurrency::locker lock(gl_fdsm);
+  for (std::multiset<int>::const_iterator
+         it(gl_fds->begin()),
+         end(gl_fds->end());
+       it != end;
+       ++it)
+    do {
+      ::close(*it);
+    } while (EINTR == errno);
+  gl_fds->clear();
   return ;
 }
 
@@ -92,6 +127,17 @@ void pipe_handle::close() throw () {
  */
 int pipe_handle::get_native_handle() throw () {
   return (_fd);
+}
+
+/**
+ *  Initialize static members of the pipe_handle class.
+ */
+void pipe_handle::load() {
+  if (!gl_fds) {
+    gl_fds = new std::multiset<int>();
+    gl_fdsm = new concurrency::mutex();
+  }
+  return ;
 }
 
 /**
@@ -119,6 +165,21 @@ unsigned long pipe_handle::read(void* data, unsigned long size) {
 void pipe_handle::set_fd(int fd) {
   close();
   _fd = fd;
+  {
+    concurrency::locker lock(gl_fdsm);
+    gl_fds->insert(fd);
+  }
+  return ;
+}
+
+/**
+ *  Cleanup static ressources used by the pipe_handle class.
+ */
+void pipe_handle::unload() {
+  delete gl_fds;
+  gl_fds = NULL;
+  delete gl_fdsm;
+  gl_fdsm = NULL;
   return ;
 }
 
@@ -156,6 +217,10 @@ void pipe_handle::_internal_copy(pipe_handle const& ph) {
     if (_fd < 0) {
       char const* msg(strerror(errno));
       throw (basic_error() << "could not duplicate pipe: " << msg);
+    }
+    {
+      concurrency::locker lock(gl_fdsm);
+      gl_fds->insert(_fd);
     }
   }
   else
