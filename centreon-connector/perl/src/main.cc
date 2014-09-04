@@ -25,6 +25,7 @@
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/connector/perl/options.hh"
+#include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/file.hh"
@@ -74,6 +75,7 @@ int main(int argc, char** argv, char** env) {
   try {
     // Initializations.
     clib::load(clib::with_logging_engine);
+    pipe_handle::load();
     multiplexer::load();
 
     // Command line parsing.
@@ -84,6 +86,7 @@ int main(int argc, char** argv, char** env) {
     catch (exceptions::basic const& e) {
       std::cout << e.what() << std::endl << opts.usage() << std::endl;
       multiplexer::unload();
+      pipe_handle::unload();
       clib::unload();
       return (EXIT_FAILURE);
     }
@@ -145,6 +148,7 @@ int main(int argc, char** argv, char** env) {
   // Deinitializations.
   embedded_perl::unload();
   multiplexer::unload();
+  pipe_handle::unload();
   clib::unload();
 
   return (retval);
