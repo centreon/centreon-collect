@@ -26,6 +26,7 @@
 #include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
@@ -97,7 +98,10 @@ void pipe_handle::close() throw () {
       if (it != gl_fds->end())
         gl_fds->erase(it);
     }
-    ::close(_fd);
+    if (::close(_fd) != 0) {
+      char const* msg(strerror(errno));
+      log_error(logging::medium) << "could not close pipe FD: " << msg;
+    }
     _fd = -1;
   }
   return ;
@@ -112,10 +116,17 @@ void pipe_handle::close_all_handles() {
          it(gl_fds->begin()),
          end(gl_fds->end());
        it != end;
-       ++it)
+       ++it) {
+    int retval;
     do {
-      ::close(*it);
-    } while (EINTR == errno);
+      retval = ::close(*it);
+    } while ((retval != 0) && (EINTR == errno));
+    if (retval != 0) {
+      char const* msg(strerror(errno));
+      gl_fds->erase(gl_fds->begin(), it);
+      throw (basic_error() << msg);
+    }
+  }
   gl_fds->clear();
   return ;
 }
@@ -165,7 +176,7 @@ unsigned long pipe_handle::read(void* data, unsigned long size) {
 void pipe_handle::set_fd(int fd) {
   close();
   _fd = fd;
-  {
+  if (_fd >= 0) {
     concurrency::locker lock(gl_fdsm);
     gl_fds->insert(fd);
   }
