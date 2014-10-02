@@ -190,7 +190,18 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   }
   else if (!child) { // Child
     // Close existing file descriptors.
-    pipe_handle::close_all_handles();
+    try {
+      pipe_handle::close_all_handles();
+    }
+    catch (std::exception const& e) {
+      std::cerr << "could not close all inherited FDs: "
+                << e.what() << std::endl;
+      exit(3);
+    }
+    catch (...) {
+      std::cerr << "could not close all inherited FDs" << std::endl;
+      exit(3);
+    }
 
     // Setup process.
     close(in_pipe[1]);
