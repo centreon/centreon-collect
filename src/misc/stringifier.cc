@@ -303,7 +303,7 @@ stringifier& stringifier::_insert(
 
   unsigned int size(static_cast<unsigned int>(ret + 1));
   if (size + _current > _size) {
-    if (!_realloc(size))
+    if (!_realloc(size + _current))
       return (*this);
     if ((ret = snprintf(_buffer + _current,
                         _size - _current,
