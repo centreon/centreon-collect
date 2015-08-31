@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2014 Merethis
+## Copyright 2011-2015 Merethis
 ##
 ## This file is part of Centreon SSH Connector.
 ##
@@ -30,7 +30,7 @@ include_directories("${PROJECT_SOURCE_DIR}/inc")
 # Project version.
 set(CONNECTOR_SSH_MAJOR 1)
 set(CONNECTOR_SSH_MINOR 1)
-set(CONNECTOR_SSH_PATCH 1)
+set(CONNECTOR_SSH_PATCH 2)
 set(CONNECTOR_SSH_VERSION "${CONNECTOR_SSH_MAJOR}.${CONNECTOR_SSH_MINOR}.${CONNECTOR_SSH_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_SSH_VERSION=\"${CONNECTOR_SSH_VERSION}\")
 
