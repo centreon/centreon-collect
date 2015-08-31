@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2014 Merethis
+## Copyright 2011-2015 Merethis
 ##
 ## This file is part of Centreon Perl Connector.
 ##
@@ -30,7 +30,7 @@ include_directories("${PROJECT_SOURCE_DIR}/inc")
 # Project version.
 set(CONNECTOR_PERL_MAJOR 1)
 set(CONNECTOR_PERL_MINOR 1)
-set(CONNECTOR_PERL_PATCH 1)
+set(CONNECTOR_PERL_PATCH 2)
 set(CONNECTOR_PERL_VERSION "${CONNECTOR_PERL_MAJOR}.${CONNECTOR_PERL_MINOR}.${CONNECTOR_PERL_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_PERL_VERSION=\"${CONNECTOR_PERL_VERSION}\")
 
