@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2013,2015 Merethis
 **
 ** This file is part of Centreon SSH Connector.
 **
@@ -237,7 +237,21 @@ void session::connect(bool use_ipv6) {
 }
 
 /**
- *  Error callback.
+ *  @brief Set session in error.
+ *
+ *  This method is usually called by channels on I/O errors to make the
+ *  session immediately aware that it is not valid anymore. Otherwise we
+ *  would have to wait an extra cycle to detect this I/O error (when
+ *  another channel is requested).
+ */
+void session::error() {
+  _step = session_error;
+  _step_string = "error";
+  return ;
+}
+
+/**
+ *  Error callback (from I/O multiplexing).
  *
  *  @param[in,out] h Handle.
  */
@@ -320,8 +334,11 @@ LIBSSH2_CHANNEL* session::new_channel() {
               &msg,
               NULL,
               0));
-    if (ret != LIBSSH2_ERROR_EAGAIN)
+    if (ret != LIBSSH2_ERROR_EAGAIN) {
+      if (ret == LIBSSH2_ERROR_SOCKET_SEND)
+        error();
       throw (basic_error() << "could not open SSH channel: " << msg);
+    }
   }
 
   // Return channel.

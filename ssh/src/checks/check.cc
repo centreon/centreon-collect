@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2013,2015 Merethis
 **
 ** This file is part of Centreon SSH Connector.
 **
@@ -57,6 +57,7 @@ check::check(int skip_stdout, int skip_stderr)
 check::~check() throw () {
   try {
     // Send result if we haven't already done so.
+    sessions::session* sess(_session);
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
@@ -68,11 +69,14 @@ check::~check() throw () {
       // waits for it to exits (more or less forced by SIGPIPE if
       // process writes). However if process does not write we will hang
       // until it exits (which could be like forever).
+      int ret(LIBSSH2_ERROR_EAGAIN);
       for (unsigned int i = 0;
-           (i < 32)
-           && (libssh2_channel_close(_channel) == LIBSSH2_ERROR_EAGAIN);
-           ++i)
-        ;
+           (i < 32) && (ret == LIBSSH2_ERROR_EAGAIN);
+           ++i) {
+        ret = libssh2_channel_close(_channel);
+        if ((ret == LIBSSH2_ERROR_SOCKET_SEND) && sess)
+          sess->error();
+      }
 
       // Free channel.
       libssh2_channel_free(_channel);
@@ -289,6 +293,8 @@ bool check::_close() {
           &msg,
           NULL,
           0);
+        if (ret == LIBSSH2_ERROR_SOCKET_SEND)
+          _session->error();
         throw (basic_error() << "could not close channel: " << msg);
       }
       retval = true;
@@ -351,6 +357,8 @@ bool check::_exec() {
       &msg,
       NULL,
       0);
+    if (ret == LIBSSH2_ERROR_SOCKET_SEND)
+      _session->error();
     throw (basic_error()
              << "could not execute command on SSH channel: "
              << msg << " (error " << ret << ")");
@@ -397,6 +405,8 @@ bool check::_read() {
         &msg,
         NULL,
         0);
+      if (orb == LIBSSH2_ERROR_SOCKET_SEND)
+        _session->error();
       throw (basic_error() << "failed to read command output: " << msg);
     }
   }
