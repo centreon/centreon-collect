@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2013,2015 Merethis
 **
 ** This file is part of Centreon SSH Connector.
 **
@@ -45,6 +45,7 @@ namespace                 sessions {
                           ~session() throw ();
     void                  close();
     void                  connect(bool use_ipv6 = false);
+    void                  error();
     void                  error(handle& h);
     credentials const&    get_credentials() const throw ();
     LIBSSH2_SESSION*      get_libssh2_session() const throw ();
@@ -63,7 +64,8 @@ namespace                 sessions {
       session_startup = 0,
       session_password,
       session_key,
-      session_keepalive
+      session_keepalive,
+      session_error
     };
 
                           session(session const& s);
