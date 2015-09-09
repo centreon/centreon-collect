@@ -5,7 +5,7 @@ execution daemons designed to work with
 [Centreon Engine](https://github.com/centreon/centreon-engine).
 It is a low-level component of the [Centreon software suite](https://www.centreon.com).
 
-Centreon Connectors are released under the General Public License version 2
+Centreon Connectors are released under the Apache Software License version 2
 and is endorsed by the [Centreon company](https://www.centreon.com).
 
 There are currently two open-source connectors :
