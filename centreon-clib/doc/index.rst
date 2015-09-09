@@ -2,9 +2,8 @@ Welcome to Centreon Clib's documentation!
 =========================================
 
 Centreon Clib is a common library for all Centreon products written in
-C/C++. It is licensed under the terms of the `GNU General Public
-License Version 3 <https://www.gnu.org/licenses/gpl-3.0.html>`_ as
-published by the Free Software Foundation.
+C/C++. It is licensed under the terms of the `Apache Software License
+Version 2 <http://www.apache.org/licenses/LICENSE-2.0>`_.
 
 Contents:
 
