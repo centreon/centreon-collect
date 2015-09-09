@@ -4,8 +4,8 @@
 Installation
 ############
 
-Merethis recommends using its official packages from the Centreon
-Entreprise Server (CES) repository. Most of Merethis' endorsed
+Centreon recommends using its official packages from the Centreon
+Entreprise Server (CES) repository. Most of Centreon' endorsed
 software are available as RPM packages.
 
 Alternatively, you can build and install your own version of this
@@ -15,7 +15,7 @@ software by following the :ref:`user_installation_using_sources`.
 Using packages
 **************
 
-Merethis provides RPM for its products through Centreon Entreprise
+Centreon provides RPM for its products through Centreon Entreprise
 Server (CES). Open source products are freely available from our
 repository.
 
@@ -42,7 +42,7 @@ Run the following commands as privileged user ::
 
   $ yum install centreon-clib centreon-clib-devel
 
-All dependencies are automatically installed from Merethis repositories.
+All dependencies are automatically installed from Centreon repositories.
 
 .. _user_installation_using_sources:
 
@@ -84,7 +84,7 @@ CMake **(>= 2.8)**          cmake             Read the build script and
 
    $ yum install gcc gcc-c++ make
 
-#. Install Merethis repository
+#. Install Centreon repository
 
    You need to install Centreon Entreprise Server (CES) repos file as
    explained :ref:`user_installation_packages_prerequisites` to use some
@@ -144,11 +144,11 @@ Build
 Get sources
 -----------
 
-Centreon Clib can be checked out from Merethis's git server at
-http://git.centreon.com/centreon-clib. On a Linux box with git
+Centreon Clib can be checked out from GitHub at
+https://github.com/centreon/centreon-clib. On a Linux box with git
 installed this is just a matter of ::
 
-  $ git clone http://git.centreon.com/centreon-clib
+  $ git clone https://github.com/centreon/centreon-clib
 
 Or You can get the latest Centreon Clib's sources from its
 `download website <http://www.centreon.com/Content-Download/download-centreon-clib>`_
