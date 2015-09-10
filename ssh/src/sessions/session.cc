@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013,2015 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -379,7 +379,7 @@ void session::unlisten(listener* listnr) {
   std::set<listener*>::iterator it(_listnrs.find(listnr));
   if (it != _listnrs.end()) {
     if (_listnrs_it == it)
-      --_listnrs_it;
+      ++_listnrs_it;
     _listnrs.erase(it);
   }
   log_debug(logging::low) << "session " << this
