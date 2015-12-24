@@ -145,10 +145,11 @@ Get sources
 -----------
 
 Centreon Clib can be checked out from GitHub at
-https://github.com/centreon/centreon-clib. On a Linux box with git
-installed this is just a matter of ::
+https://github.com/centreon/centreon-clib. Currently, only the 1.4
+branch works with Centreon components. On a Linux box with git installed
+this is just a matter of ::
 
-  $ git clone https://github.com/centreon/centreon-clib
+  $ git clone -b 1.4 https://github.com/centreon/centreon-clib
 
 Or You can get the latest Centreon Clib's sources from its
 `download website <http://www.centreon.com/Content-Download/download-centreon-clib>`_
