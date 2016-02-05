@@ -15,6 +15,6 @@ RUN chmod +x /tmp/install.sh
 RUN /tmp/install.sh
 
 # Main script.
-COPY run.sh /usr/bin/centreon
-RUN chmod +x /usr/bin/centreon
-ENTRYPOINT /usr/bin/centreon
+COPY run.sh /usr/share/centreon/container.sh
+RUN chmod +x /usr/share/centreon/container.sh
+ENTRYPOINT /usr/share/centreon/container.sh
