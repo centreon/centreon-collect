@@ -45,7 +45,7 @@ cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
 docker-rpm-builder dir 10.24.11.199:5000/monitoring-build-dependencies:centos6 input output
 
 # Copy files to server.
-CES_VERSION='3.3'
+CES_VERSION='3.0'
 FILES='output/x86_64/*.rpm'
-scp $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
-ssh "root@srvi-ces-repository.merethis.net" createrepo "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/"
+scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/"
