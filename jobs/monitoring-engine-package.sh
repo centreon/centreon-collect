@@ -41,6 +41,9 @@ else
 fi
 cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
 
+# Retrieve additional sources.
+cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
+
 # Build RPMs.
 docker-rpm-builder dir 10.24.11.199:5000/monitoring-build-dependencies:centos6 input output
 
