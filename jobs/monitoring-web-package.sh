@@ -1,0 +1,92 @@
+#!/bin/sh
+
+# Pull monitoring-build-dependencies container.
+docker pull 10.24.11.199:5000/monitoring-build-dependencies:centos6
+
+# Create input and output directories for docker-rpm-builder.
+rm -rf input
+mkdir input
+rm -rf output
+mkdir output
+
+# Get Centreon Web sources.
+if [ \! -d centreon-web ] ; then
+  git clone https://github.com/centreon/centreon centreon-web
+fi
+
+# Get Centreon Plugins sources.
+if [ \! -d centreon-plugins ] ; then
+  git clone https://github.com/centreon/centreon-plugins.git
+fi
+
+# Get version.
+VERSION=
+VERSION_NUM=0
+VERSION_EXTRA=
+for file in centreon-web/www/install/sql/centreon/*.sql ; do
+  full_version=`echo "$file" | cut -d _ -f 3 | sed 's/.sql$//'`
+  major=`echo "$full_version" | cut -d . -f 1`
+  minor=`echo "$full_version" | cut -d . -f 2`
+  # Patch is not necessarily set.
+  patch=`echo "$full_version" | cut -d . -f 3 | cut -d - -f 1`
+  if [ -z "$patch" ] ; then
+    patch=0
+  fi
+  extra=`echo "$full_version" | grep - | cut -d - -f 2`
+  current_num=$(($major*10000+$minor*100+$patch))
+  # If version number is greater than current version, directly set variables.
+  if [ \( "$current_num" -gt "$VERSION_NUM" \) ] ; then
+    VERSION="$major.$minor.$patch"
+    VERSION_NUM="$current_num"
+    VERSION_EXTRA="$extra"
+  # If version numbers are equal, the empty extra has priority.
+  # Otherwise the 'greater' extra is prefered.
+  elif [ \( \( "$current_num" -eq "$VERSION_NUM" \) ] ; then
+    if [ \( \( \! -z "$VERSION_EXTRA" \) -a \( "$extra" '>' "$VERSION_EXTRA" \) \) -o \( -z "$extra" \) ] ; then
+      VERSION_EXTRA="$extra"
+    fi
+  fi
+done
+export VERSION="$VERSION"
+export VERSION_EXTRA="$VERSION_EXTRA"
+
+# Get release.
+cd centreon-web
+commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
+now=`date +%s`
+if [ -z "$VERSION_EXTRA" ] ; then
+  export RELEASE="$now.$commit"
+else
+  export RELEASE="$VERSION_EXTRA.$now.$commit"
+fi
+
+# Create source tarball.
+rm -rf "../centreon-$VERSION"
+mkdir "../centreon-$VERSION"
+git archive "$GIT_BRANCH" | tar -C "../centreon-$VERSION" -x
+cd ../centreon-plugins
+git archive --prefix=plugins/ "$GIT_BRANCH" | tar -C "../centreon-$VERSION" -x
+cd ..
+tar czf "input/centreon-$VERSION.tar.gz" "centreon-$VERSION"
+
+# Retrieve spec file.
+if [ \! -d packaging-centreon-web ] ; then
+  git clone http://gitbot:gitbot@git.merethis.net/packaging-centreon packaging-centreon-web
+else
+  cd packaging-centreon-web
+  git pull
+  cd ..
+fi
+cp packaging-centreon-web/rpm/centreon.spectemplate input/
+
+# Retrieve additional sources.
+cp packaging-centreon-web/src/* input
+
+# Build RPMs.
+docker-rpm-builder dir 10.24.11.199:5000/monitoring-build-dependencies:centos6 input output
+
+# Copy files to server.
+CES_VERSION='3.0'
+FILES='output/noarch/*.rpm'
+scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/"
