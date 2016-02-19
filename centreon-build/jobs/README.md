@@ -36,6 +36,8 @@ Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
 (srvi-ces-repository, branch testing).
 
+## Global jobs
+
 ### monitoring-bundle.sh
 
 Bundle all software pieces together. It mainly consists of installing
