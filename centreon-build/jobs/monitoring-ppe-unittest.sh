@@ -13,6 +13,7 @@ docker cp centreon-export/www/modules/centreon-export "$containerid:/usr/local/s
 
 # Run unit tests.
 docker start -a "$containerid"
+docker cp "$containerid:/tmp/centreon-export.xml" centreon-export.xml
 
 # Stop container.
 docker stop "$containerid"
