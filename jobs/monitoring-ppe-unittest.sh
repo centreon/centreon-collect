@@ -8,6 +8,9 @@ containerid=`docker create 10.24.11.199:5000/monitoring-unittest:centos6 /usr/lo
 if [ \! -d centreon-web ] ; then
   git clone https://github.com/centreon/centreon centreon-web
 fi
+cd centreon-web
+git checkout origin/2.8.x
+cd ..
 docker cp centreon-web "$containerid:/usr/local/src/centreon-web"
 docker cp centreon-export/www/modules/centreon-export "$containerid:/usr/local/src/centreon-web/www/modules/centreon-export"
 
