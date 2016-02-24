@@ -13,8 +13,8 @@ RUN yum install -y php-phpunit-PHPUnit
 RUN yum install -y composer
 
 # Install unit tests scripts.
-COPY unittest-broker.sh /usr/local/bin/unittest-broker
-COPY unittest-engine.sh /usr/local/bin/unittest-engine
-COPY unittest-ppe.sh /usr/local/bin/unittest-ppe
-COPY unittest-lm.sh /usr/local/bin/unittest-sh
+COPY broker/unittest-broker.sh /usr/local/bin/unittest-broker
+COPY engine/unittest-engine.sh /usr/local/bin/unittest-engine
+COPY ppe/unittest-ppe.sh /usr/local/bin/unittest-ppe
+COPY lm/unittest-lm.sh /usr/local/bin/unittest-sh
 RUN chmod +x /usr/local/bin/unittest-broker /usr/local/bin/unittest-engine /usr/local/bin/unittest-ppe

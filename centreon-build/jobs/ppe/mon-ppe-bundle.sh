@@ -9,7 +9,7 @@ scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/cent
 tar xzf centreon-export.tar.gz
 
 # CentOS 6 running image.
-cd centreon-build/containers/centos6
+cd centreon-build/containers/centos6/ppe/
 rm -rf centreon-export
 cp -r ../../../centreon-export/www/modules/centreon-export .
 docker build -t monitoring-ppe-running:centos6 -f ppe-running.Dockerfile .
