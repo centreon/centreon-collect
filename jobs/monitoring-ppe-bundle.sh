@@ -11,7 +11,7 @@ tar xzf centreon-export.tar.gz
 # CentOS 6 running image.
 cd centreon-build/containers/centos6
 rm -rf centreon-export
-cp ../../../centreon-export/www/modules/centreon-export .
-docker build -t monitoring-ppe-running:centos6 -f ppe-running.Dockerfile
+cp -r ../../../centreon-export/www/modules/centreon-export .
+docker build -t monitoring-ppe-running:centos6 -f ppe-running.Dockerfile .
 docker tag -f monitoring-ppe-running:centos6 10.24.11.199:5000/monitoring-ppe-running:centos6
 docker push 10.24.11.199:5000/monitoring-ppe-running:centos6
