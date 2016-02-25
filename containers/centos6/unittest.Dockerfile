@@ -17,5 +17,5 @@ RUN yum install -y composer
 COPY broker/unittest-broker.sh /usr/local/bin/unittest-broker
 COPY engine/unittest-engine.sh /usr/local/bin/unittest-engine
 COPY ppe/unittest-ppe.sh /usr/local/bin/unittest-ppe
-COPY lm/unittest-lm.sh /usr/local/bin/unittest-sh
+COPY lm/unittest-lm.sh /usr/local/bin/unittest-lm
 RUN chmod +x /usr/local/bin/unittest-broker /usr/local/bin/unittest-engine /usr/local/bin/unittest-ppe
