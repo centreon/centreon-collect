@@ -10,6 +10,7 @@ RUN yum install -y `cat /usr/share/monitoring/build-dependencies.txt`
 RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
 RUN yum install --nogpgcheck -y epel-release-latest-6.noarch.rpm
 RUN yum install -y php-phpunit-PHPUnit
+RUN yum install -y php-pecl-xdebug
 RUN yum install -y composer
 
 # Install unit tests scripts.
