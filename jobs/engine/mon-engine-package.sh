@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Pull monitoring-build-dependencies container.
-docker pull 10.24.11.199:5000/monitoring-build-dependencies:centos6
+# Pull mon-build-dependencies container.
+docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -45,7 +45,7 @@ cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
 cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
 
 # Build RPMs.
-docker-rpm-builder dir 10.24.11.199:5000/monitoring-build-dependencies:centos6 input output
+docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output
 
 # Copy files to server.
 CES_VERSION='3.0'
