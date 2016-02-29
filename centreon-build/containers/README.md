@@ -1,6 +1,6 @@
 # Centreon Build : Containers
 
-## Introduction.
+## Introduction
 
 Centreon continuous integration system uses Docker to provide fast
 testing environments. Usually any image is provided with two tags :
@@ -13,27 +13,43 @@ registry you need to configure Docker to explicit trust it. Add
 command line (either */lib/systemd/system/docker.service*,
 */etc/default/docker* or some similar file).
 
-## mon-build-dependencies
+## Building images
+
+Images can be built directly using *docker build*. The sole tricky part
+is the context directory which must be set to *containers*. For example
+if you wish to build the *mon-build-dependencies:centos6* image, you
+could do it like so.
+
+```shell
+cd centreon-build/containers
+docker build -t ci.int.centreon.com:5000/mon-build-dependencies:centos6 -f build-dependencies.centos6.Dockerfile .
+```
+
+Note the ending dot. This is directory context we're talking about.
+
+## Image list
+
+### mon-build-dependencies
 
 These images contain downloaded build dependencies required to build
 Centreon software. They are used to build RPMs with docker-rpm-builder.
 
-## mon-dependencies
+### mon-dependencies
 
 These images have all dependencies required to run Centreon installed.
 They are not used directly but to build mon-unittest and mon-web images.
 
-## mon-unittest
+### mon-unittest
 
 These images contain all software needed to run tests on Centreon
 software. They are used to run unit tests.
 
-## mon-web
+### mon-web
 
 These images contain Centreon already installed and ready to run. They
 are used in the continuous integration system to run acceptance tests.
 
-## mon-ppe
+### mon-ppe
 
 Has Centreon Plugin Pack Exporter module installed on top of Centreon
 Web. Therefore it reuse the *mon-web* images.
