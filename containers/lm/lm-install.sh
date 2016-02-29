@@ -1,7 +1,5 @@
 #!/bin/sh
 
-service mysql start
-service httpd start
-#TODO
-service httpd stop
-service mysql stop
+cd /usr/share/centreon/www/modules/centreon-license-manager/frontend
+npm install
+gulp
