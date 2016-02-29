@@ -1,9 +1,0 @@
-centreon-clib-devel
-cmake
-gcc
-gcc-c++
-make
-gnutls-devel
-qt4-devel
-rrdtool-devel
-redhat-lsb
