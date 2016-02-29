@@ -5,7 +5,7 @@ MAINTAINER Alexandre Fouille <afouille@centreon.com>
 # Copy LM sources.
 COPY centreon-license-manager /usr/share/centreon/www/modules/
 
-# TODO
+# Install the tools needed for the License Manager installation.
 RUN yum install -y curl
 RUN curl -sL https://rpm.nodesource.com/setup_4.x | bash -
 RUN yum install -y nodejs
