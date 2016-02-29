@@ -2,51 +2,85 @@
 
 ## Unit tests jobs
 
-### monitoring-engine-unittest.sh
+### mon-engine-unittest.sh
 
 Build instrumented Centreon Engine binaries and run unit tests in
-monitoring-unittest images. Report unit test results.
+mon-unittest images. Report unit test results.
 
-### monitoring-broker-unittest.sh
+### mon-broker-unittest.sh
 
 Build instrumented Centreon Broker binaries and run unit tests in
-monitoring-unittest images. Report unit test results.
+mon-unittest images. Report unit test results.
 
-### monitoring-web-unittest.sh
+### mon-web-unittest.sh
 
 To be done. Will run Centreon Web unit tests and report test results.
 
+### mon-lm-unittest.sh
+
+Run Centreon License Manager unit tests and report test results.
+
+### mon-ppe-unittest.sh
+
+Run Centreon Plugin Pack Exporter unit tests and report test results.
+
 ## Packaging jobs
 
-### monitoring-engine-package.sh
+### mon-engine-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
 (srvi-ces-repository, branch testing).
 
-### monitoring-broker-package.sh
+### mon-broker-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
 (srvi-ces-repository, branch testing).
 
-### monitoring-web-package.sh
+### mon-web-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
 (srvi-ces-repository, branch testing).
 
-## Global jobs
+### mon-lm-package.sh
 
-### monitoring-bundle.sh
+Build a tarball of Centreon License Manager and upload it to
+srvi-ces-repository in /tmp.
 
-Bundle all software pieces together. It mainly consists of installing
-RPMs and running web installation steps to generate Docker images
-(monitoring-running). These images will be used in the
-*monitoring-acceptance* job.
+### mon-ppe-package.sh
 
-### monitoring-acceptance.sh
+Build a tarball of Centreon Plugin Pack Exporter and upload it to
+srvi-ces-repository in /tmp.
 
-To be done. Run acceptance tests with Behat on software components that
-are available in Docker images (monitoring-running). When finished,
-report test results.
+## Bundle jobs
+
+### mon-web-bundle.sh
+
+Bundle core software pieces together. It mainly consists of installing
+RPMs of core components (Centreon Engine, Centreon Broker and Centreon
+Web) and running web installation steps to generate Docker images
+(mon-web). These images will be used in the *mon-web-acceptance* job.
+
+### mon-lm-bundle.sh
+
+Install Centreon License Manager to the *mon-lm* images by using the
+*mon-web* images.
+
+### mon-ppe-bundle.sh
+
+Install Centreon Plugin Pack Exporter to the *mon-ppe* images by using
+the *mon-web* images.
+
+## Acceptance jobs
+
+### mon-web-acceptance.sh
+
+Run acceptance tests with Behat on core software components that are
+installed in the *mon-web* images. When finished, report test results.
+
+### mon-ppe-acceptance.sh
+
+Run acceptance tests with Behat on Centreon Plugin Pack Exporter
+(*mon-ppe* images). When finished, report test results.
