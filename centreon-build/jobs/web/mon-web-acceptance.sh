@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # Pull monitoring-running container.
-docker pull ci.int.centreon.com:5000/monitoring-web:centos6
+docker pull ci.int.centreon.com:5000/mon-web:centos6
 
 # Start a container.
-containerid=`docker run -d -t -p 80 ci.int.centreon.com:5000/monitoring-web:centos6`
+containerid=`docker run -d -t -p 80 ci.int.centreon.com:5000/mon-web:centos6`
 port=`docker port "$containerid" 80 | cut -d : -f 2`
 
 # Copy acceptance tests from container to host.
