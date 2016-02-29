@@ -1,5 +1,5 @@
 # Base information.
-FROM monitoring-dependencies:centos6
+FROM ci.int.centreon.com:5000/mon-dependencies:centos6
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install all build dependencies of Centreon components.
