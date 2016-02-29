@@ -7,4 +7,4 @@ RUN mkdir /usr/share/monitoring
 COPY build-dependencies.centos6.txt /usr/share/monitoring/build-dependencies.txt
 RUN yum install --downloadonly `cat /usr/share/monitoring/build-dependencies.txt`
 # Workaround, yum does not seem to exit correctly.
-rm -f /var/run/yum.pid
+RUN rm -f /var/run/yum.pid
