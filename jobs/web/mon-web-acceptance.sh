@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Pull monitoring-running container.
+# Pull main image.
 docker pull ci.int.centreon.com:5000/mon-web:centos6
 
 # Start a container.
