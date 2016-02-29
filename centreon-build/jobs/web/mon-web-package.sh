@@ -83,7 +83,7 @@ cp packaging-centreon-web/rpm/centreon.spectemplate input/
 cp packaging-centreon-web/src/* input
 
 # Build RPMs.
-docker-rpm-builder dir ci.int.centreon.com:5000/monitoring-build-dependencies:centos6 input output
+docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output
 
 # Copy files to server.
 CES_VERSION='3.0'
