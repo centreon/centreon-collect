@@ -4,8 +4,8 @@
 docker pull ci.int.centreon.com:5000/mon-dependencies:centos6
 
 # CentOS 6 main image.
-cd centreon-build/containers/web
-docker build -t ci.int.centreon.com:5000/mon-web:centos6 -f web.centos6.Dockerfile .
+cd centreon-build/containers
+docker build -t ci.int.centreon.com:5000/mon-web:centos6 -f web/web.centos6.Dockerfile .
 docker push ci.int.centreon.com:5000/mon-web:centos6
 
 # Pull mon-dependencies images.
