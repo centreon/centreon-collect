@@ -9,10 +9,9 @@ port=`docker port "$containerid" 80 | cut -d : -f 2`
 
 # Prepare for acceptance tests run.
 cd centreon-web
-sed 's/@CENTREONSERVER@/localhost:$port/g' < behat.yml.in > behat.yml
 
 # Run acceptance tests.
-/opt/behat/vendor/bin/behat --format junit --out ../mon-web-acceptance.xml
+/opt/behat/vendor/bin/behat --strict --format junit --out ../mon-web-acceptance.xml
 
 # Stop container.
 docker stop "$containerid"
