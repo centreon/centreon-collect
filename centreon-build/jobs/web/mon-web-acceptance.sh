@@ -8,11 +8,11 @@ containerid=`docker run -d -t -p 80 ci.int.centreon.com:5000/mon-web:centos6`
 port=`docker port "$containerid" 80 | cut -d : -f 2`
 
 # Prepare for acceptance tests run.
-cd centreon-web/www
+cd centreon-web
 sed 's/@CENTREONSERVER@/localhost:$port/g' < behat.yml.in > behat.yml
 
 # Run acceptance tests.
-/opt/behat/vendor/bin/behat --format junit --out ../../mon-web-acceptance.xml
+/opt/behat/vendor/bin/behat --format junit --out ../mon-web-acceptance.xml
 
 # Stop container.
 docker stop "$containerid"
