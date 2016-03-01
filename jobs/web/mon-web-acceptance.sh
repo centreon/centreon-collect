@@ -7,15 +7,11 @@ docker pull ci.int.centreon.com:5000/mon-web:centos6
 containerid=`docker run -d -t -p 80 ci.int.centreon.com:5000/mon-web:centos6`
 port=`docker port "$containerid" 80 | cut -d : -f 2`
 
-# Copy acceptance tests from container to host.
-docker cp "$containerid:/usr/local/src/centreon-web" .
-
 # Prepare for acceptance tests run.
-cd centreon-web/www
-sed 's/@CENTREONSERVER@/localhost:$port/g' < behat.yml.in > behat.yml
+cd centreon-web
 
 # Run acceptance tests.
-/opt/behat/vendor/bin/behat --format junit --out ../../mon-web-acceptance.xml
+/opt/behat/vendor/bin/behat --strict --format junit --out ../mon-web-acceptance.xml
 
 # Stop container.
 docker stop "$containerid"

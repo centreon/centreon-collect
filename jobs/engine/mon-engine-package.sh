@@ -51,4 +51,4 @@ docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos6 i
 CES_VERSION='3.0'
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "/srv/repos/standard/$CES_VERSION/testing/x86_64/"
