@@ -41,7 +41,7 @@ for file in centreon-web/www/install/sql/centreon/*.sql ; do
     VERSION_EXTRA="$extra"
   # If version numbers are equal, the empty extra has priority.
   # Otherwise the 'greater' extra is prefered.
-  elif [ \( \( "$current_num" -eq "$VERSION_NUM" \) ] ; then
+  elif [ \( "$current_num" -eq "$VERSION_NUM" \) ] ; then
     if [ \( \( \! -z "$VERSION_EXTRA" \) -a \( "$extra" '>' "$VERSION_EXTRA" \) \) -o \( -z "$extra" \) ] ; then
       VERSION_EXTRA="$extra"
     fi
@@ -89,4 +89,4 @@ docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos6 i
 CES_VERSION='3.0'
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "/srv/repos/standard/$CES_VERSION/testing/x86_64/"
