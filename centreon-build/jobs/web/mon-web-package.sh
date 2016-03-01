@@ -41,7 +41,7 @@ for file in centreon-web/www/install/sql/centreon/*.sql ; do
     VERSION_EXTRA="$extra"
   # If version numbers are equal, the empty extra has priority.
   # Otherwise the 'greater' extra is prefered.
-  elif [ \( \( "$current_num" -eq "$VERSION_NUM" \) ] ; then
+  elif [ \( "$current_num" -eq "$VERSION_NUM" \) ] ; then
     if [ \( \( \! -z "$VERSION_EXTRA" \) -a \( "$extra" '>' "$VERSION_EXTRA" \) \) -o \( -z "$extra" \) ] ; then
       VERSION_EXTRA="$extra"
     fi
