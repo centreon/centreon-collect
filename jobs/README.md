@@ -71,7 +71,8 @@ Install Centreon License Manager to the *mon-lm* images by using the
 ### mon-ppe-bundle.sh
 
 Install Centreon Plugin Pack Exporter to the *mon-ppe* images by using
-the *mon-web* images.
+the *mon-web* images. This includes source copy and web-install (well
+a custom helper script in fact).
 
 ## Acceptance jobs
 
