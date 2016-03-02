@@ -10,7 +10,7 @@ port=`docker port "$containerid" 80 | cut -d : -f 2`
 # Run acceptance tests.
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos6
 cd centreon-web
-/opt/behat/vendor/bin/behat --strict --format=junit --out=../mon-web-acceptance.xml
+/opt/behat/vendor/bin/behat --strict --format=junit --out="$WORKSPACE/mon-web-acceptance.xml"
 
 # Stop container.
 docker stop "$containerid"
