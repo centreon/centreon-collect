@@ -3,7 +3,7 @@ FROM ci.int.centreon.com:5000/mon-dependencies:centos6
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Centreon Web.
-RUN yum install -y centreon-base-config-centreon-engine mysql-server git
+RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine mysql-server git
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Prepare environment for autoinstall.
