@@ -9,8 +9,9 @@ port=`docker port "$containerid" 80 | cut -d : -f 2`
 
 # Run acceptance tests.
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-ppe:centos6
+rm -rf xunit-reports
 cd centreon-export/www/modules/centreon-export
-/opt/behat/vendor/bin/behat --strict --format=junit --out="$WORKSPACE/mon-ppe-acceptance.xml"
+/opt/behat/vendor/bin/behat --strict --format=junit --out="../../../../xunit-reports"
 
 # Stop container.
 docker stop "$containerid"
