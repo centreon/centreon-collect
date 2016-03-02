@@ -6,6 +6,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY centreon-export /usr/share/centreon/www/modules/
 
 # Install script.
+COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppe/ppe-install.sh /tmp/ppe-install.sh
-RUN chmod +x /tmp/ppe-install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/ppe-install.sh
 RUN /tmp/ppe-install.sh
