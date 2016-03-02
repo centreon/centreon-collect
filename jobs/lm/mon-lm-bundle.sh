@@ -12,5 +12,5 @@ tar xzf centreon-license-manager.tar.gz
 cd centreon-build/containers/lm/
 rm -rf centreon-license-manager
 cp -R ../../../centreon-license-manager/www/modules/centreon-license-manager .
-docker build -t mon-lm-running:centos6 -f lm-running.Dockerfile .
+docker build -t mon-lm-running:centos6 -f lm.centos6.Dockerfile .
 docker push ci.int.centreon.com:5000/mon-lm-running:centos6
