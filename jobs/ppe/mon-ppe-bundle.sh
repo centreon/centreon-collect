@@ -8,8 +8,8 @@ scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/cent
 tar xzf centreon-export.tar.gz
 
 # CentOS 6 running image.
-cd centreon-build/containers/ppe
+cd centreon-build/containers
 rm -rf centreon-export
-cp -r ../../../centreon-export/www/modules/centreon-export .
-docker build -t ci.int.centreon.com:5000/mon-ppe:centos6 -f ppe.centos6.Dockerfile ..
+cp -r ../../centreon-export/www/modules/centreon-export .
+docker build -t ci.int.centreon.com:5000/mon-ppe:centos6 -f ppe/ppe.centos6.Dockerfile ..
 docker push ci.int.centreon.com:5000/mon-ppe:centos6
