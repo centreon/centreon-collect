@@ -4,6 +4,7 @@ MAINTAINER Alexandre Fouille <afouille@centreon.com>
 
 # Copy LM sources.
 COPY centreon-license-manager /usr/share/centreon/www/modules/
+RUN ls -R /usr/share/centreon/www/modules/
 
 # Install the tools needed for the License Manager installation.
 RUN yum install -y curl
