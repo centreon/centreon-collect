@@ -3,8 +3,7 @@ FROM ci.int.centreon.com:5000/mon-web:centos6
 MAINTAINER Alexandre Fouille <afouille@centreon.com>
 
 # Copy LM sources.
-COPY centreon-license-manager /usr/share/centreon/www/modules/
-RUN ls -R /usr/share/centreon/www/modules/
+COPY centreon-license-manager /usr/share/centreon/www/modules/centreon-license-manager
 
 # Install the tools needed for the License Manager installation.
 RUN yum install -y curl
