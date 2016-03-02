@@ -2,5 +2,5 @@
 
 cd /usr/share/centreon/www/modules/centreon-license-manager/frontend/app
 npm install
-npm install gulp
+npm install -g gulp
 gulp
