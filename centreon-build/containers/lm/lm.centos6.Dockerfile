@@ -1,5 +1,5 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-lm:centos6
+FROM ci.int.centreon.com:5000/mon-web:centos6
 MAINTAINER Alexandre Fouille <afouille@centreon.com>
 
 # Copy LM sources.
