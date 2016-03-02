@@ -2,7 +2,6 @@
 
 # Pull monitoring-running image.
 docker pull ci.int.centreon.com:5000/mon-web:centos6
-docker tag -f ci.int.centreon.com:5000/mon-web:centos6 mon-web:centos6
 
 # Fetch LM sources.
 scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/centreon-license-manager.tar.gz" .
@@ -12,5 +11,5 @@ tar xzf centreon-license-manager.tar.gz
 cd centreon-build/containers/lm/
 rm -rf centreon-license-manager
 cp -R ../../../centreon-license-manager/www/modules/centreon-license-manager .
-docker build -t mon-lm-running:centos6 -f lm.centos6.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-lm-running:centos6
+docker build -t mon-lm:centos6 -f lm.centos6.Dockerfile .
+docker push ci.int.centreon.com:5000/mon-lm:centos6
