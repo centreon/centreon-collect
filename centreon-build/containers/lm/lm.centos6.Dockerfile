@@ -11,6 +11,7 @@ RUN curl -sL https://rpm.nodesource.com/setup_4.x | bash -
 RUN yum install -y nodejs
 
 # Install script.
-COPY lm-install.sh /tmp/lm-install.sh
-RUN chmod +x /tmp/lm-install.sh
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY lm/lm-install.sh /tmp/lm-install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/lm-install.sh
 RUN /tmp/lm-install.sh
