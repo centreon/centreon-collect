@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 # Pull mon-ppe image.
 docker pull ci.int.centreon.com:5000/mon-ppe:centos6
 
@@ -17,6 +19,7 @@ fi
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-ppe:centos6
 rm -rf xunit-reports
 cd centreon-export
+composer install
 /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports"
 
 # Stop container.
