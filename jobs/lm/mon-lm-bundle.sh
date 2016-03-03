@@ -8,8 +8,8 @@ scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/cent
 tar xzf centreon-license-manager.tar.gz
 
 # CentOS 6 running image.
-cd centreon-build/containers/lm/
+cd centreon-build/containers/
 rm -rf centreon-license-manager
-cp -R ../../../centreon-license-manager/www/modules/centreon-license-manager .
-docker build -t ci.int.centreon.com:5000/mon-lm:centos6 -f lm.centos6.Dockerfile .
+cp -R ../../centreon-license-manager/www/modules/centreon-license-manager .
+docker build -t ci.int.centreon.com:5000/mon-lm:centos6 -f lm/lm.centos6.Dockerfile .
 docker push ci.int.centreon.com:5000/mon-lm:centos6
