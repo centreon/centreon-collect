@@ -3,7 +3,7 @@ FROM ci.int.centreon.com:5000/mon-web:centos6
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Copy PPE sources.
-COPY centreon-export /usr/share/centreon/www/modules/
+COPY centreon-export /usr/share/centreon/www/modules/centreon-export
 
 # Install script.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
