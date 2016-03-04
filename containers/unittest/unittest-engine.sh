@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Out-of-source build.
 rm -rf /tmp/build
 mkdir /tmp/build

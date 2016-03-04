@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 service mysql start
 service httpd start
 cd /usr/share/centreon/www/modules/centreon-license-manager/frontend/app
