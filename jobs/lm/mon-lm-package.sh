@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Generate archive of Centreon LM.
 cd centreon-license-manager
 git archive --prefix="centreon-license-manager/" "$GIT_BRANCH" | gzip > "../centreon-license-manager.tar.gz"

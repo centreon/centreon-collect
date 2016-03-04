@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Pull mon-dependencies image.
 docker pull ci.int.centreon.com:5000/mon-dependencies:centos6
 

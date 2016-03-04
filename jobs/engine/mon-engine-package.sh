@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Pull mon-build-dependencies container.
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
 
