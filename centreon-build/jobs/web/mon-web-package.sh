@@ -69,7 +69,7 @@ mkdir "../centreon-$VERSION"
 git archive "$GIT_BRANCH" | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
 # We should use "$GIT_BRANCH" instead of 2.7.x. However nothing seems to work as expected.
-git archive --prefix=plugins/ "2.7.x" | tar -C "../centreon-$VERSION" -x
+git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
 cd ..
 tar czf "input/centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
