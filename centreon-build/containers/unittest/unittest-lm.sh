@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Run unit tests.
 cd /usr/local/src/centreon-license-manager/
 composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
