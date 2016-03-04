@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Pull Centreon Web image.
 docker pull ci.int.centreon.com:5000/mon-web:centos6
 
