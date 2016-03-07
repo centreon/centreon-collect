@@ -14,5 +14,5 @@ tar xzf centreon-export.tar.gz
 cd centreon-build/containers
 rm -rf centreon-export
 cp -r ../../centreon-export/www/modules/centreon-export .
-docker build -t ci.int.centreon.com:5000/mon-ppe:centos6 -f ppe/ppe.centos6.Dockerfile .
+docker build --no-cache -t ci.int.centreon.com:5000/mon-ppe:centos6 -f ppe/ppe.centos6.Dockerfile .
 docker push ci.int.centreon.com:5000/mon-ppe:centos6
