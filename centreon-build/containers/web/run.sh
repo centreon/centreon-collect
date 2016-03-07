@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+#set -e
 set -x
 
 service mysql start
