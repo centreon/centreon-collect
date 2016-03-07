@@ -6,6 +6,8 @@ httpd
 initscripts
 libgcrypt
 libssh2
+mysql
+mysql-server
 redhat-lsb
 nagios-plugins
 net-snmp
