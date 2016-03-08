@@ -10,7 +10,7 @@ RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/build-dependencies.tx
 RUN yum install -y wget
 RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
 RUN yum install --nogpgcheck -y epel-release-latest-6.noarch.rpm
-RUN yum install -y php-phpunit-PHPUnit
+RUN yum install -y php-phpunit-PHPUnit php-phpunit-PHPUnit-MockObject
 RUN yum install -y php-pecl-xdebug
 RUN yum install -y curl
 RUN curl -sS https://getcomposer.org/installer | php
