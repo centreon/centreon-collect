@@ -10,7 +10,7 @@ RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/build-dependencies.tx
 RUN yum install -y wget
 RUN wget http://iut-info.univ-reims.fr/remirpms/enterprise/6/remi/x86_64/remi-release-6.6-2.el6.remi.noarch.rpm
 RUN yum install --nogpgcheck -y remi-release-6.6-2.el6.remi.noarch.rpm
-RUN yum install --enablerepo=remi -y php-phpunit-PHPUnit php-phpunit-PHPUnit-MockObject
+RUN yum install --enablerepo=remi --nogpgcheck -y php-phpunit-PHPUnit php-phpunit-PHPUnit-MockObject
 RUN yum install -y php-pecl-xdebug
 RUN yum install -y curl
 RUN curl -sS https://getcomposer.org/installer | php
