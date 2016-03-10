@@ -8,10 +8,8 @@ RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/build-dependencies.tx
 
 # Install unit test specific components.
 RUN yum install -y wget
-RUN wget http://iut-info.univ-reims.fr/remirpms/enterprise/6/remi/x86_64/remi-release-6.6-2.el6.remi.noarch.rpm
-RUN yum install --nogpgcheck -y remi-release-6.6-2.el6.remi.noarch.rpm
-RUN yum install --enablerepo=remi --nogpgcheck -y php-phpunit-PHPUnit php-phpunit-PHPUnit-MockObject
-RUN yum install -y php-pecl-xdebug
+RUN wget -O /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-4.8.23.phar
+RUN chmod +x /usr/local/bin/phpunit
 RUN yum install -y curl
 RUN curl -sS https://getcomposer.org/installer | php
 RUN mv composer.phar /usr/local/bin/composer
