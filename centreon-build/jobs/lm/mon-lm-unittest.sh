@@ -12,7 +12,8 @@ docker cp centreon-license-manager "$containerid:/usr/local/src/centreon-license
 
 # Run unit tests.
 docker start -a "$containerid"
-docker cp "$containerid:/tmp/centreon-license-manager.xml" centreon-license-manager.xml
+docker cp "$containerid:/tmp/centreon-license-manager_ut.xml" centreon-license-manager_ut.xml
+docker cp "$containerid:/tmp/centreon-license-manager_coverage.xml" centreon-license-manager_coverage.xml
 
 # Stop container.
 docker stop "$containerid"
