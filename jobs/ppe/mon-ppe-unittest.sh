@@ -18,7 +18,8 @@ docker cp centreon-export "$containerid:/usr/local/src/centreon-export"
 
 # Run unit tests.
 docker start -a "$containerid"
-docker cp "$containerid:/tmp/centreon-export.xml" centreon-export.xml
+docker cp "$containerid:/tmp/centreon-ppe_ut.xml" centreon-ppe_ut.xml
+docker cp "$containerid:/tmp/centreon-ppe_coverage.xml" centreon-ppe_coverage.xml
 
 # Stop container.
 docker stop "$containerid"
