@@ -8,8 +8,13 @@ RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/build-dependencies.tx
 
 # Install unit test specific components.
 RUN yum install -y wget
+# Install PHPUnit (the 4.8 release being the latest to support PHP 5.3).
 RUN wget -O /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-4.8.23.phar
 RUN chmod +x /usr/local/bin/phpunit
+# Install Xdebug PHP extension (for PHPUnit code coverage).
+RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+RUN yum install --nogpgcheck -y epel-release-latest-6.noarch.rpm
+RUN yum install -y php-pecl-xdebug
 RUN yum install -y curl
 RUN curl -sS https://getcomposer.org/installer | php
 RUN mv composer.phar /usr/local/bin/composer
