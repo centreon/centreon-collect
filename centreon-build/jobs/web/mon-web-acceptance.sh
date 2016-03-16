@@ -21,7 +21,7 @@ fi
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos6
 rm -rf xunit-reports
 cd centreon-web
-alreadyset=`grep ci.int.centreon.com < composer.json`
+alreadyset=`grep ci.int.centreon.com < composer.json || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    "require-dev": {#    "repositories": [\n      { "type": "composer", "url": "http://ci.int.centreon.com" }\n    ],\n    "config": {\n        "secure-http": false\n    },\n    "require-dev": {#g' composer.json
 fi
