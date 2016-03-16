@@ -21,6 +21,8 @@ fi
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos6
 rm -rf xunit-reports
 cd centreon-web
+composer install
+composer update
 /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports"
 
 # Stop container.
