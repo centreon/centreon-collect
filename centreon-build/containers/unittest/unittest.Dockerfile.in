@@ -1,9 +1,9 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-dependencies:centos6
+FROM ci.int.centreon.com:5000/mon-dependencies:centos@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install all build dependencies of Centreon components.
-COPY build-dependencies.centos6.txt /usr/share/monitoring/build-dependencies.txt
+COPY build-dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/build-dependencies.txt
 RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/build-dependencies.txt`
 
 # Install unit test specific components.
@@ -12,8 +12,8 @@ RUN yum install -y wget
 RUN wget -O /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-4.8.23.phar
 RUN chmod +x /usr/local/bin/phpunit
 # Install Xdebug PHP extension (for PHPUnit code coverage).
-RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
-RUN yum install --nogpgcheck -y epel-release-latest-6.noarch.rpm
+RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-@CENTOS_VERSION@.noarch.rpm
+RUN yum install --nogpgcheck -y epel-release-latest-@CENTOS_VERSION@.noarch.rpm
 RUN yum install -y php-pecl-xdebug
 RUN yum install -y curl
 RUN curl -sS https://getcomposer.org/installer | php
