@@ -12,30 +12,30 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-[ces-standard-testing-deps]
-name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
-baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/dependencies/$basearch/
-enabled=1
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+# [ces-standard-testing-deps]
+# name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
+# baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/dependencies/$basearch/
+# enabled=1
+# gpgcheck=1
+# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-[ces-standard-testing-deps-noarch]
-name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
-baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/dependencies/noarch/
-enabled=1
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+# [ces-standard-testing-deps-noarch]
+# name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
+# baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/dependencies/noarch/
+# enabled=1
+# gpgcheck=1
+# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-[ces-standard-testing-devel]
-name=Centreon Enterprise Server development RPM repository for ces $releasever
-baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/devel/$basearch/
-enabled=0
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+# [ces-standard-testing-devel]
+# name=Centreon Enterprise Server development RPM repository for ces $releasever
+# baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/devel/$basearch/
+# enabled=0
+# gpgcheck=1
+# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-[ces-standard-testing-devel-noarch]
-name=Centreon Enterprise Server development RPM repository for ces $releasever
-baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/devel/noarch/
-enabled=0
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+# [ces-standard-testing-devel-noarch]
+# name=Centreon Enterprise Server development RPM repository for ces $releasever
+# baseurl=http://srvi-ces-repository.merethis.net/repos/standard/4/testing/devel/noarch/
+# enabled=0
+# gpgcheck=1
+# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
