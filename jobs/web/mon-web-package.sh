@@ -97,7 +97,11 @@ cp packaging-centreon-web/src/* input
 docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
 
 # Copy files to server.
-CES_VERSION='3.0'
+if [ "$CENTOS_VERSION" = 6 ] ; then
+  CES_VERSION='3.0'
+else
+  CES_VERSION='4'
+fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/noarch/RPMS"
 ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "/srv/repos/standard/$CES_VERSION/testing/noarch/"
