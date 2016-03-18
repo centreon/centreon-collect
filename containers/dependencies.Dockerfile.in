@@ -6,4 +6,4 @@ COPY ces-standard-testing.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-stand
 RUN mkdir /usr/share/monitoring
 COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
 RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/dependencies.txt`
-RUN yum install --nogpgcheck -y git
+RUN yum install --nogpgcheck -y nc git
