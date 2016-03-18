@@ -3,18 +3,17 @@
 set -e
 set -x
 
+# Check arguments.
+if [ "$#" -lt 1 ] ; then
+  echo "USAGE: $0 <6|7>"
+  exit 1
+fi
+CENTOS_VERSION="$1"
+
 # Pull mon-dependencies image.
-docker pull ci.int.centreon.com:5000/mon-dependencies:centos6
+docker pull ci.int.centreon.com:5000/mon-dependencies:centos$CENTOS_VERSION
 
-# CentOS 6 main image.
+# CentOS main image.
 cd centreon-build/containers
-docker build --no-cache -t ci.int.centreon.com:5000/mon-web:centos6 -f web/web.centos6.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-web:centos6
-
-# Pull mon-dependencies images.
-#docker pull ci.int.centreon.com:5000/mon-dependencies:centos7
-
-# CentOS 7 main image.
-#cd ../centos7
-#docker build -t ci.int.centreon.com:5000/mon-web:centos7 -f web.centos7.Dockerfile .
-#docker push ci.int.centreon.com:5000/mon-web:centos7
+docker build --no-cache -t ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION -f web/web.centos$CENTOS_VERSION.Dockerfile .
+docker push ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
