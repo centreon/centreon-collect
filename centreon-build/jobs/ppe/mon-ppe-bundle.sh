@@ -17,8 +17,11 @@ docker pull ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/centreon-export.centos$CENTOS_VERSION.tar.gz" .
 tar xzf centreon-export.centos$CENTOS_VERSION.tar.gz
 
-# CentOS PPE image.
+# Prepare Dockerfile.
 cd centreon-build/containers
+sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < ppe/ppe.Dockerfile.in > ppe/ppe.centos$CENTOS_VERSION.Dockerfile
+
+# CentOS PPE image.
 rm -rf centreon-export
 cp -r ../../centreon-export/www/modules/centreon-export .
 docker build --no-cache -t ci.int.centreon.com:5000/mon-ppe:centos$CENTOS_VERSION -f ppe/ppe.centos$CENTOS_VERSION.Dockerfile .
