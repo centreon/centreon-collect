@@ -16,10 +16,5 @@ done
 service cbd start
 service centengine start
 service centcore start
-service httpd start
+httpd
 bash
-service httpd stop
-service centcore stop
-service centengine stop
-service cbd stop
-service mysql stop
