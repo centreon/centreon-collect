@@ -16,5 +16,5 @@ git archive --prefix="centreon-export/" "$GIT_BRANCH" | gzip > "../centreon-expo
 cd ..
 
 # Copy files to server.
-FILES="centreon-export.cento$CENTOS_VERSION.tar.gz"
+FILES="centreon-export.centos$CENTOS_VERSION.tar.gz"
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/tmp/"
