@@ -38,3 +38,4 @@ composer update
 
 # Stop container.
 docker stop "$containerid"
+docker rm "$containerid"
