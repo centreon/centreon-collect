@@ -12,6 +12,6 @@ RUN yum install -y nodejs
 
 # Install script.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
-COPY lm/lm-install-centos6.sh /tmp/lm-install-centos7.sh
+COPY lm/lm-install-centos7.sh /tmp/lm-install-centos7.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/lm-install-centos7.sh
 RUN /tmp/lm-install-centos7.sh
