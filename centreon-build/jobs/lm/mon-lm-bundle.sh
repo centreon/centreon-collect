@@ -11,7 +11,7 @@ fi
 CENTOS_VERSION="$1"
 
 # Pull monitoring-running image.
-docker pull ci.int.centreon.com:5000/mon-web:centos6$CENTOS_VERSION
+docker pull ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 
 # Fetch LM sources.
 scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/centreon-license-manager.centos$CENTOS_VERSION.tar.gz" .
