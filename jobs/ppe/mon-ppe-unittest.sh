@@ -14,12 +14,6 @@ CENTOS_VERSION="$1"
 docker pull ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION
 containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION /usr/local/bin/unittest-ppe`
 
-# Install project dependencies.
-cd centreon-export
-composer install
-composer update
-cd ..
-
 # Copy sources to container.
 docker cp centreon-export "$containerid:/usr/local/src/centreon-export"
 
