@@ -44,10 +44,17 @@ They are not used directly but to build mon-unittest and mon-web images.
 These images contain all software needed to run tests on Centreon
 software. They are used to run unit tests.
 
-### mon-web
+### mon-web-fresh
 
-These images contain Centreon already installed and ready to run. They
-are used in the continuous integration system to run acceptance tests.
+These images contain Centreon fresh installed and ready to run. They
+are used in the continuous integration system to run some acceptance
+tests.
+
+### mon-web-standard
+
+These images contain a standard configuration on top of *mon-web-fresh*.
+This is supposed to reflect what a standard installation is most of the
+time.
 
 ### mon-ppe
 
