@@ -16,5 +16,5 @@ done
 service cbd start
 service centengine start
 service centcore start
-httpd
+httpd -k start
 bash

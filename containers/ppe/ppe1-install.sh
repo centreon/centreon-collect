@@ -4,7 +4,7 @@ set -e
 set -x
 
 service mysql start
-httpd
+httpd -k start
 /tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-export
-# Stop httpd. killall ?
+httpd -k stop
 service mysql stop
