@@ -299,14 +299,6 @@ INSERT INTO `host_service_relation` (`hostgroup_hg_id`, `host_host_id`, `service
 INSERT INTO `contactgroup_service_relation` (`cgsr_id`, `contactgroup_cg_id`, `service_service_id`) VALUES (121, 5, 1);
 
 --
--- Contenu de la table `service_categories`
---
-INSERT INTO `service_categories` (`sc_id`, `sc_name`, `sc_description`, `sc_activate`) VALUES(1, 'Ping', 'ping', '1');
-INSERT INTO `service_categories` (`sc_id`, `sc_name`, `sc_description`, `sc_activate`) VALUES(2, 'Traffic', 'Traffic', '1');
-INSERT INTO `service_categories` (`sc_id`, `sc_name`, `sc_description`, `sc_activate`) VALUES(3, 'Disk', 'Disk', '0');
-INSERT INTO `service_categories` (`sc_id`, `sc_name`, `sc_description`, `sc_activate`) VALUES(4, 'Memory', 'Memory', '0');
-
---
 -- Contenu de la table `service_categories_relation`
 --
 INSERT INTO `service_categories_relation` (`scr_id`, `service_service_id`, `sc_id`) VALUES(70, 5, 3);
