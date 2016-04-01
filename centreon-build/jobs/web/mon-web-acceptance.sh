@@ -21,6 +21,7 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
 fi
 
 # Run acceptance tests.
+export CENTREON_WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 rm -rf xunit-reports
 cd centreon-web
