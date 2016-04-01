@@ -61,7 +61,7 @@ srvi-ces-repository in /tmp.
 Bundle core software pieces together. It mainly consists of installing
 RPMs of core components (Centreon Engine, Centreon Broker and Centreon
 Web) and running web installation steps to generate Docker images
-(mon-web). These images will be used in the *mon-web-acceptance* job.
+(mon-web-*). These images will be used in the *mon-web-acceptance* job.
 
 ### mon-lm-bundle.sh
 
