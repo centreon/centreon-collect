@@ -10,6 +10,7 @@ RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install script (web-wizard install).
+COPY web/default.sql /tmp/default.sql
 COPY web/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 RUN /tmp/install.sh
