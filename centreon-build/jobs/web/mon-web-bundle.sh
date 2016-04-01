@@ -23,5 +23,5 @@ docker build --no-cache -t ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_
 docker push ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
 
 # Build 'standard' image.
-docker build --no-cache -t ci.int.centreon.com:5000/mon-web-standard:centos$CENTOS_VERSION -f web/standard.centos$CENTOS_VERSION.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-web-standard:centos$CENTOS_VERSION
+docker build --no-cache -t ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION -f web/standard.centos$CENTOS_VERSION.Dockerfile .
+docker push ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION

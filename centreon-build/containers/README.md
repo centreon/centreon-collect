@@ -50,7 +50,7 @@ These images contain Centreon fresh installed and ready to run. They
 are used in the continuous integration system to run some acceptance
 tests.
 
-### mon-web-standard
+### mon-web
 
 These images contain a standard configuration on top of *mon-web-fresh*.
 This is supposed to reflect what a standard installation is most of the
