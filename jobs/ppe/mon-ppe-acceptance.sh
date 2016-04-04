@@ -28,4 +28,4 @@ rm -rf xunit-reports
 cd centreon-export
 composer install
 composer update
-/opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports"
+ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{.}.xml" "{}"
