@@ -10,8 +10,8 @@ if [ "$#" -lt 1 ] ; then
 fi
 CENTOS_VERSION="$1"
 
-# Pull main image.
-docker pull ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
+# Pull mon-lm image.
+docker pull ci.int.centreon.com:5000/mon-lm:centos$CENTOS_VERSION
 
 # Check that phantomjs is running.
 export PHANTOMJS_RUNNING=1
@@ -21,11 +21,11 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
 fi
 
 # Run acceptance tests.
-export CENTREON_WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
+export CENTREON_PPE_IMAGE=ci.int.centreon.com:5000/mon-lm:centos$CENTOS_VERSION
 rm -rf xunit-reports
 mkdir xunit-reports
-cd centreon-web
+cd centreon-license-manager
 alreadyset=`grep ci.int.centreon.com < composer.json || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    "require-dev": {#    "repositories": [\n      { "type": "composer", "url": "http://ci.int.centreon.com" }\n    ],\n    "config": {\n        "secure-http": false\n    },\n    "require-dev": {#g' composer.json
