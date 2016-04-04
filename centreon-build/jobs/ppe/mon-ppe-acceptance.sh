@@ -25,6 +25,7 @@ export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 export CENTREON_PPE_IMAGE=ci.int.centreon.com:5000/mon-ppe:centos$CENTOS_VERSION
 export CENTREON_PPE1_IMAGE=ci.int.centreon.com:5000/mon-ppe1:centos$CENTOS_VERSION
 rm -rf xunit-reports
+mkdir xunit-reports
 cd centreon-export
 composer install
 composer update
