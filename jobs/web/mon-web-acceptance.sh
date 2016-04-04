@@ -24,6 +24,7 @@ fi
 export CENTREON_WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
 export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 rm -rf xunit-reports
+mkdir xunit-reports
 cd centreon-web
 alreadyset=`grep ci.int.centreon.com < composer.json || true`
 if [ -z "$alreadyset" ] ; then
