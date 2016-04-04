@@ -21,14 +21,18 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
 fi
 
 # Run acceptance tests.
-export CENTREON_WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
-export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
-rm -rf xunit-reports
-cd centreon-web
-alreadyset=`grep ci.int.centreon.com < composer.json || true`
-if [ -z "$alreadyset" ] ; then
-  sed -i 's#    "require-dev": {#    "repositories": [\n      { "type": "composer", "url": "http://ci.int.centreon.com" }\n    ],\n    "config": {\n        "secure-http": false\n    },\n    "require-dev": {#g' composer.json
-fi
-composer install
-composer update
-/opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports"
+do_acceptance_test() {
+  export CENTREON_WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
+  export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
+  rm -rf xunit-reports
+  cd centreon-web
+  alreadyset=`grep ci.int.centreon.com < composer.json || true`
+  if [ -z "$alreadyset" ] ; then
+    sed -i 's#    "require-dev": {#    "repositories": [\n      { "type": "composer", "url": "http://ci.int.centreon.com" }\n    ],\n    "config": {\n        "secure-http": false\n    },\n    "require-dev": {#g' composer.json
+  fi
+  composer install
+  composer update
+  /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports" "{}"
+}
+export -f do_acceptance_test
+ls features/*.feature | parallel do_acceptance_test
