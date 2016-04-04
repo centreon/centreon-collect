@@ -31,4 +31,4 @@ if [ -z "$alreadyset" ] ; then
 fi
 composer install
 composer update
-ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{.}.xml" "{}"
+ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}.xml" "{}"
