@@ -21,8 +21,7 @@ RUN mv composer.phar /usr/local/bin/composer
 RUN chmod +x /usr/local/bin/composer
 RUN curl --silent --location https://rpm.nodesource.com/setup_5.x | bash -
 RUN yum install --nogpgcheck -y nodejs
-COPY unittest/nodejs.txt /usr/share/monitoring/nodejs.txt
-RUN npm install -g `cat /usr/share/monitoring/nodejs.txt`
+RUN npm install -g gulp
 
 # Install unit tests scripts.
 COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
