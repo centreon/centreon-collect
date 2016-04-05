@@ -3,8 +3,15 @@
 set -e
 set -x
 
+# Check arguments.
+if [ "$#" -lt 1 ] ; then
+  echo "USAGE: $0 <6|7>"
+  exit 1
+fi
+CENTOS_VERSION="$1"
+
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -48,10 +55,16 @@ cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
 cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
 
 # Build RPMs.
-docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output
+docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
 
 # Copy files to server.
-CES_VERSION='4'
+if [ "$CENTOS_VERSION" = 6 ] ; then
+  CES_VERSION='3'
+else
+  CES_VERSION='4'
+fi
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "/srv/repos/standard/$CES_VERSION/testing/x86_64/"
+DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" mktemp`
+scp -o StrictHostKeyChecking=no `dirname $0`/../clean_repositories.sh "root@srvi-ces-repository.merethis.net:$DESTFILE"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" sh -c "'chmod +x $DESTFILE ; $DESTFILE ; rm $DESTFILE ; createrepo /srv/repos/standard/$CES_VERSION/testing/x86_64/"
