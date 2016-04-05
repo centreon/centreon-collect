@@ -104,6 +104,6 @@ else
 fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/noarch/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" tempfile`
+DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" mktemp`
 scp -o StrictHostKeyChecking=no `dirname $0`/../clean_repositories.sh "root@srvi-ces-repository.merethis.net:$DESTFILE"
 ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" sh -c "chmod +x $DESTFILE ; $DESTFILE ; rm $DESTFILE ; createrepo /srv/repos/standard/$CES_VERSION/testing/noarch/"
