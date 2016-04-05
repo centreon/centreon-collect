@@ -25,4 +25,5 @@ COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
 COPY unittest/unittest-engine.sh /usr/local/bin/unittest-engine
 COPY unittest/unittest-ppe.sh /usr/local/bin/unittest-ppe
 COPY unittest/unittest-lm.sh /usr/local/bin/unittest-lm
-RUN chmod +x /usr/local/bin/unittest-broker /usr/local/bin/unittest-engine /usr/local/bin/unittest-ppe /usr/local/bin/unittest-lm
+COPY unittest/unittest-middleware.sh /usr/local/bin/unittest-middleware
+RUN chmod +x /usr/local/bin/unittest-broker /usr/local/bin/unittest-engine /usr/local/bin/unittest-ppe /usr/local/bin/unittest-lm /usr/local/bin/unittest-middleware
