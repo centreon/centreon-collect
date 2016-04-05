@@ -98,7 +98,7 @@ docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CE
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then
-  CES_VERSION='3.0'
+  CES_VERSION='3'
 else
   CES_VERSION='4'
 fi

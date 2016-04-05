@@ -48,7 +48,7 @@ cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output
 
 # Copy files to server.
-CES_VERSION='4.0'
+CES_VERSION='4'
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
 ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "/srv/repos/standard/$CES_VERSION/testing/x86_64/"

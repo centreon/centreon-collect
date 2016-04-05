@@ -51,7 +51,7 @@ cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centre
 docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output
 
 # Copy files to server.
-CES_VERSION='3.0'
+CES_VERSION='3'
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/x86_64/RPMS"
 ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" createrepo "/srv/repos/standard/$CES_VERSION/testing/x86_64/"
