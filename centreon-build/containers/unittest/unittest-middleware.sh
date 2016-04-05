@@ -12,4 +12,4 @@ gulp test:xunit
 
 # Copy reports.
 mv xunit.xml /tmp/centreon-middleware_ut.xml
-mv build/reports/coverage.xml /tmp/centreon-middleware_coverage.xml
+mv build/reports/clover.xml /tmp/centreon-middleware_coverage.xml
