@@ -28,7 +28,7 @@ clean_repository() {
         centreon-engine-devel
         centreon-engine-extcommands"
   for rpm in $rpms ; do
-    old=`ls | grep $rpm'-[0-9]\.[0-9]\.[0-9]-[0-9]\+\.[0-9a-f]\+.el[67].\(noarch\|i386\|x86_64\)\.rpm' | head -n -1`
+    old=`ls | grep '^'$rpm'-[0-9]\.[0-9]\.[0-9]-[0-9]\+\.[0-9a-f]\+.el[67].\(noarch\|i386\|x86_64\)\.rpm' | head -n -1`
     if [ -n "$old" ] ; then
       for to_delete in $old ; do
         echo "REMOVING $to_delete"
