@@ -7,6 +7,7 @@ set -x
 rm -f /tmp/centreon-middleware_ut.xml
 rm -f /tmp/centreon-middleware_coverage.xml
 cd /usr/local/src/centreon-imp-portal-api/
+npm install gulp
 gulp test:xunit
 
 # Copy reports.
