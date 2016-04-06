@@ -49,7 +49,7 @@ module.exports = {
       // The path to the private key file
       path: 'private.asc',
       // The password for load the private key file
-      password: 'centreon'
+      password: ''
     }
   },
   // Information for kayako
