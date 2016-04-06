@@ -6,4 +6,7 @@ COPY ces-standard-testing.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-stand
 RUN mkdir /usr/share/monitoring
 COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
 RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/dependencies.txt`
-RUN yum install --nogpgcheck -y bzip2 git nc
+RUN yum install --nogpgcheck -y bzip2 curl git nc wget
+RUN curl --silent --location https://rpm.nodesource.com/setup_5.x | bash -
+RUN yum install --nogpgcheck -y nodejs
+RUN npm install -g gulp
