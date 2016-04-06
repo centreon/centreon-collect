@@ -15,14 +15,14 @@ module.exports = {
     // For more options see http://ldapjs.org/client.html
     connect: {
       // The ldap url in format ldap://ip:port
-      url: '',
+      url: 'ldap://localhost:389',
       // Milliseconds after last activity before client emits idle event
       idleTimeout: 360000
     },
     config: {
       // The user / pass for connect to ldap server
-      binddn: '',
-      password: '',
+      binddn: 'admin',
+      password: 'centreon',
       // The filter for find users, the macro %username% will be replace by the
       // login
       authFilter: '(uid=%username%)',
@@ -54,7 +54,7 @@ module.exports = {
   },
   // Information for kayako
   supportPlatform: {
-    url: '',
+    url: 'localhost',
     apiKey: '',
     secretKey: '',
     organizationId: 1,
