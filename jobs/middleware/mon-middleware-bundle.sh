@@ -11,7 +11,7 @@ fi
 CENTOS_VERSION="$1"
 
 # Pull Centreon Web image.
-docker pull ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
+docker pull ci.int.centreon.com:5000/mon-dependencies:centos$CENTOS_VERSION
 
 # Fetch middleware sources.
 scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net:/tmp/centreon-imp-portal-api.centos$CENTOS_VERSION.tar.gz" .
