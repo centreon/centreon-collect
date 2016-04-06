@@ -1,0 +1,24 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-dependencies:centos@CENTOS_VERSION@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Copy middleware sources.
+COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
+
+# Installation steps.
+WORKDIR /usr/local/src/centreon-imp-portal-api
+RUN npm install
+RUN wget http://download.redis.io/releases/redis-2.8.24.tar.gz -O /usr/local/src/redis-2.8.24.tar.gz
+WORKDIR /usr/local/src
+RUN tar xzf redis-2.8.24.tar.gz
+WORKDIR /usr/local/src/redis-2.8.24
+RUN make && make install && cd utils && ./install_server.sh
+
+# Install script.
+COPY middleware/install.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
+
+# Entry point.
+COPY middleware/run.sh /usr/local/bin/container.sh
+ENTRYPOINT /usr/local/bin/container.sh
