@@ -6,8 +6,6 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY build-dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/build-dependencies.txt
 RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/build-dependencies.txt`
 
-# Install unit test specific components.
-RUN yum install -y wget
 # Install PHPUnit (the 4.8 release being the latest to support PHP 5.3).
 RUN wget -O /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-4.8.23.phar
 RUN chmod +x /usr/local/bin/phpunit
@@ -15,13 +13,10 @@ RUN chmod +x /usr/local/bin/phpunit
 RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-@CENTOS_VERSION@.noarch.rpm
 RUN yum install --nogpgcheck -y epel-release-latest-@CENTOS_VERSION@.noarch.rpm
 RUN yum install -y php-pecl-xdebug
-RUN yum install -y curl
+# Install composer.
 RUN curl -sS https://getcomposer.org/installer | php
 RUN mv composer.phar /usr/local/bin/composer
 RUN chmod +x /usr/local/bin/composer
-RUN curl --silent --location https://rpm.nodesource.com/setup_5.x | bash -
-RUN yum install --nogpgcheck -y nodejs
-RUN npm install -g gulp
 
 # Install unit tests scripts.
 COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
