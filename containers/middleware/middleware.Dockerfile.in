@@ -8,6 +8,7 @@ COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
 # Installation steps.
 WORKDIR /usr/local/src/centreon-imp-portal-api
 RUN npm install
+RUN yum install gcc gcc-c++
 RUN wget http://download.redis.io/releases/redis-2.8.24.tar.gz -O /usr/local/src/redis-2.8.24.tar.gz
 WORKDIR /usr/local/src
 RUN tar xzf redis-2.8.24.tar.gz
