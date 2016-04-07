@@ -5,20 +5,23 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 # Copy middleware sources.
 COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
 
-# Installation steps.
+# Install OpenLDAP.
 RUN yum install -y openldap openldap-clients openldap-servers
 RUN echo 'olcRootPW: {SSHA}2pMsLy5/tCfxzQpBah2YWflQdzTKH0Py' >> '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
 RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
 RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif'
 COPY middleware/ldap.ldif /tmp/ldap.ldif
+
+# Install Redis.
 RUN yum install -y gcc gcc-c++
 RUN wget http://download.redis.io/releases/redis-2.8.24.tar.gz -O /usr/local/src/redis-2.8.24.tar.gz
-WORKDIR /usr/local/src
-RUN tar xzf redis-2.8.24.tar.gz
-WORKDIR /usr/local/src/redis-2.8.24
-RUN make && make install && cd utils && ./install_server.sh
+RUN cd /usr/local/src && tar xzf redis-2.8.24.tar.gz
+RUN cd /usr/local/src/redis-2.8.24 && make && make install && cd utils && ./install_server.sh
+
+# Install middleware.
 WORKDIR /usr/local/src/centreon-imp-portal-api
 COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js
+RUN echo '10.30.2.27 support.centreon.com' >> /etc/hosts
 COPY middleware/private.asc /usr/local/src/centreon-imp-portal-api/private.asc
 RUN npm install
 
