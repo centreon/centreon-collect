@@ -1,0 +1,6 @@
+dn: dc=centreon,dc=com
+objectClass: dcObject
+objectClass: organization
+dc: centreon
+o : centreon
+
