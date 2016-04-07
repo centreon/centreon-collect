@@ -58,6 +58,6 @@ module.exports = {
     apiKey: '4e942cec-6e77-3f44-110c-9848a9ffd8a1',
     secretKey: 'ZjFlZGVhZmUtMTE5NC1iY2I0LTk1MjgtM2IwYmJmZDMzYzIwNGFlYmFmNjUtMmY1Yi04MWE0LWU5NWUtZWZlYTYwNmMyMDYy',
     organizationId: 104,
-    departmantId: 25
+    departmantId: 363
   }
 };
