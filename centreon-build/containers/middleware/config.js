@@ -3,7 +3,7 @@ module.exports = {
   database: {
     host: 'localhost',
     user: 'root',
-    password: 'centreon',
+    password: '',
     database: 'imp',
     debug: false
   },
@@ -21,13 +21,13 @@ module.exports = {
     },
     config: {
       // The user / pass for connect to ldap server
-      binddn: 'admin',
+      binddn: 'cn=Manager,dn=centreon,dn=com',
       password: 'centreon',
       // The filter for find users, the macro %username% will be replace by the
       // login
       authFilter: '(uid=%username%)',
       // The base dn for find users
-      authBase: ''
+      authBase: 'dn=centreon,dn=com'
     }
   },
   // The api full base url example : http://localhost:3000/api
