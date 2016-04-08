@@ -20,7 +20,10 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
   screen -d -m phantomjs --webdriver=4444
 fi
 
-# Copy public key of private key used in container.
+# Checkout centreon-build
+if [ \! -d centreon-build ] ; then
+  git clone ssh://github.com/centreon/centreon-build
+fi
 cp centreon-build/jobs/middleware/public.asc centreon-imp-portal-api
 
 # Run acceptance tests.
