@@ -20,6 +20,9 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
   screen -d -m phantomjs --webdriver=4444
 fi
 
+# Copy public key of private key used in container.
+cp centreon-build/jobs/middleware/public.asc centreon-imp-portal-api
+
 # Run acceptance tests.
 export CENTREON_MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:centos$CENTOS_VERSION
 rm -rf xunit-reports
