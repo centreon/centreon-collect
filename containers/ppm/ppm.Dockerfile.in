@@ -3,7 +3,7 @@ FROM ci.int.centreon.com:5000/mon-web:centos@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Copy PPM sources.
-COPY centreon-import /usr/share/centreon/www/modules/centreon-import
+COPY centreon-pp-manager /usr/share/centreon/www/modules/centreon-pp-manager
 
 # Install script.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
