@@ -25,6 +25,6 @@ export CENTREON_PPM_IMAGE=ci.int.centreon.com:5000/mon-ppm:centos$CENTOS_VERSION
 rm -rf xunit-reports
 mkdir xunit-reports
 cd centreon-import
-composer install
-composer update
-ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
+#composer install
+#composer update
+#ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
