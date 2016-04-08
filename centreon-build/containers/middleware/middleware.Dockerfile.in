@@ -7,10 +7,10 @@ COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
 
 # Install OpenLDAP.
 RUN yum install -y openldap openldap-clients openldap-servers
-RUN echo 'olcRootPW: {SSHA}2pMsLy5/tCfxzQpBah2YWflQdzTKH0Py' >> '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
-RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
-RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif'
-COPY middleware/ldap.ldif /tmp/ldap.ldif
+#RUN echo 'olcRootPW: {SSHA}2pMsLy5/tCfxzQpBah2YWflQdzTKH0Py' >> '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
+#RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
+#RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif'
+#COPY middleware/ldap.ldif /tmp/ldap.ldif
 
 # Install Redis.
 RUN yum install -y gcc gcc-c++
