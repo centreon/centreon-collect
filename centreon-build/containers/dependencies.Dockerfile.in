@@ -12,7 +12,7 @@ RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/dependencies.txt`
 RUN yum install --nogpgcheck -y bzip2 curl git nc wget
 
 # Install Node.js and related elements.
-RUN curl --silent --location https://rpm.nodesource.com/setup_5.x | bash -
+RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
 RUN yum install --nogpgcheck -y nodejs
 RUN npm install -g gulp
 
