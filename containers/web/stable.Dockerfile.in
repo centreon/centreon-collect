@@ -1,0 +1,23 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-dependencies:centos@CENTOS_VERSION@
+MAINTAINER Alexandre Fouille <afouille@centreon.com>
+
+# Install Centreon Web Stable.
+RUN yum clean all
+RUN rm /etc/yum.repos.d/ces-standard-testing.repo
+COPY ces-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-standard-stable.repo
+RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine mysql-server git
+RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
+
+# Prepare environment for autoinstall.
+COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
+
+# Install script (web-wizard install).
+COPY web/fresh.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
+
+# Main script.
+COPY web/run.sh /usr/share/centreon/container.sh
+RUN chmod +x /usr/share/centreon/container.sh
+ENTRYPOINT /usr/share/centreon/container.sh
