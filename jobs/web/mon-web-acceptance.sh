@@ -5,13 +5,16 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
+DISTRIB="$1"
 
-# Pull main image.
-docker pull ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
+# Pull images.
+WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
+WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:$DISTRIB
+docker pull $WEB_IMAGE
+docker pull $WEB_FRESH_IMAGE
 
 # Check that phantomjs is running.
 export PHANTOMJS_RUNNING=1
@@ -21,8 +24,6 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
 fi
 
 # Run acceptance tests.
-export CENTREON_WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
-export CENTREON_WEB_IMAGE=ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 rm -rf xunit-reports
 mkdir xunit-reports
 cd centreon-web
@@ -32,4 +33,8 @@ if [ -z "$alreadyset" ] ; then
 fi
 composer install
 composer update
+alreadyset=`grep ci.int.centreon.com < behat.yml || true`
+if [ -z "$alreadyset" ] ; then
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      images:\n        web: '$WEB_IMAGE'\n        web_fresh: '$WEB_FRESH_IMAGE'#g' behat.yml
+fi
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
