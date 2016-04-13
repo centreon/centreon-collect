@@ -1,11 +1,25 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-dependencies:centos@CENTOS_VERSION@
+FROM centos:@CENTOS_VERSION@
 MAINTAINER Alexandre Fouille <afouille@centreon.com>
 
-# Install Centreon Web Stable.
-RUN yum clean all
-RUN rm /etc/yum.repos.d/ces-standard-testing.repo
+# Prepare the machine
+RUN echo 'gpgcheck=0' >> /etc/yum.conf
+RUN echo 'http_caching=none' >> /etc/yum.conf
+RUN mkdir /usr/share/monitoring
 COPY ces-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-standard-stable.repo
+
+# Install Node.js and related elements.
+RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
+RUN yum install --nogpgcheck -y nodejs
+RUN npm install -g gulp
+
+# Install PhantomJS.
+RUN wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2
+RUN tar xjf phantomjs-2.1.1-linux-x86_64.tar.bz2
+RUN mv phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/phantomjs
+RUN chmod +x /usr/local/bin/phantomjs
+
+# Install Centreon Web Stable.
 RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine mysql-server git
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
