@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Check arguments.
-if [ "$#" -lt 2 ] ; then
+if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <6|7>"
   exit 1
 fi
