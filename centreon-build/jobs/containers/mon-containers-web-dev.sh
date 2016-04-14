@@ -18,4 +18,3 @@ sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/dev.Dockerfile.in > web/dev.cen
 rm -rf centreon
 cp -r ../../centreon .
 docker build --no-cache -t ci.int.centreon.com:5000/mon-web-dev:centos$CENTOS_VERSION -f web/dev.centos$CENTOS_VERSION.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-web-dev:centos$CENTOS_VERSION
