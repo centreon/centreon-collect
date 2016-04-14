@@ -85,3 +85,10 @@ installed in the *mon-web* images. When finished, report test results.
 
 Run acceptance tests with Behat on Centreon Plugin Pack Exporter
 (*mon-ppe* images). When finished, report test results.
+
+## Standalone Container jobs
+
+### mon-containers-web-stable.sh
+
+Build an image docker containing the last released, stable Centreon
+Web.
