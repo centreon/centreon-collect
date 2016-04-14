@@ -5,13 +5,14 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
+DISTRIB="$1"
 
-# Pull mon-ppm image.
-docker pull ci.int.centreon.com:5000/mon-ppm:centos$CENTOS_VERSION
+# Pull images.
+PPM_IMAGE=ci.int.centreon.com:5000/mon-ppm:$DISTRIB
+docker pull $PPM_IMAGE
 
 # Check that phantomjs is running.
 export PHANTOMJS_RUNNING=1
@@ -25,6 +26,10 @@ export CENTREON_PPM_IMAGE=ci.int.centreon.com:5000/mon-ppm:centos$CENTOS_VERSION
 rm -rf xunit-reports
 mkdir xunit-reports
 cd centreon-import
-#composer install
-#composer update
-#ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
+composer install
+composer update
+alreadyset=`grep ci.int.centreon.com < behat.yml || true`
+if [ -z "$alreadyset" ] ; then
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      images:\n        ppm: '$PPM_IMAGE'#g' behat.yml
+fi
+ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
