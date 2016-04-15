@@ -17,4 +17,4 @@ service cbd start
 service centengine start
 service centcore start
 httpd -k start
-bash
+tailf /var/log/httpd/error_log
