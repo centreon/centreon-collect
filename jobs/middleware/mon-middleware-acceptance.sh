@@ -5,13 +5,14 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
+DISTRIB="$1"
 
-# Pull mon-ppe image.
-docker pull ci.int.centreon.com:5000/mon-middleware:centos$CENTOS_VERSION
+# Pull image.
+MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:$DISTRIB
+docker pull $MIDDLEWARE_IMAGE
 
 # Check that phantomjs is running.
 export PHANTOMJS_RUNNING=1
@@ -26,11 +27,19 @@ if [ \! -d centreon-build ] ; then
 fi
 cp centreon-build/jobs/middleware/public.asc centreon-imp-portal-api
 
-# Run acceptance tests.
-export CENTREON_MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:centos$CENTOS_VERSION
-rm -rf xunit-reports
-mkdir xunit-reports
+# Prepare Docker compose file.
 cd centreon-imp-portal-api
+sed 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml > docker-compose-middleware.yml
+
+# Prepare behat.yml.
+alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
+if [ -z "$alreadyset" ] ; then
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      middleware: docker-compose-middleware.yml#g' behat.yml
+fi
+
+# Run acceptance tests.
+rm -rf ../xunit-reports
+mkdir ../xunit-reports
 composer install
 composer update
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
