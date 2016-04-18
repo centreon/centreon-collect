@@ -1,0 +1,11 @@
+version: '2'
+services:
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+  middleware:
+    image: @MIDDLEWARE_IMAGE@
+    ports:
+    - "3000"
+    - "3306"
