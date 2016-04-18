@@ -19,8 +19,8 @@ docker cp centreon-import "$containerid:/usr/local/src/centreon-import"
 
 # Run unit tests.
 docker start -a "$containerid"
-# docker cp "$containerid:/tmp/centreon-ppm_ut.xml" centreon-ppm_ut.xml
-# docker cp "$containerid:/tmp/centreon-ppm_coverage.xml" centreon-ppm_coverage.xml
+docker cp "$containerid:/tmp/centreon-ppm_ut.xml" centreon-ppm_ut.xml
+docker cp "$containerid:/tmp/centreon-ppm_coverage.xml" centreon-ppm_coverage.xml
 
 # Stop container.
 docker stop "$containerid"
