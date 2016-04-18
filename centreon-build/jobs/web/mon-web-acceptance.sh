@@ -23,18 +23,20 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
   screen -d -m phantomjs --webdriver=4444
 fi
 
-# Run acceptance tests.
-rm -rf xunit-reports
-mkdir xunit-reports
+# Prepare Docker Compose file.
 cd centreon-web
-alreadyset=`grep ci.int.centreon.com < composer.json || true`
+sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-web.yml
+sed 's#@WEB_IMAGE@#'$WEB_FRESH_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-web-fresh.yml
+
+# Prepare Behat.yml
+alreadyset=`grep docker-compose-web.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    "require-dev": {#    "repositories": [\n      { "type": "composer", "url": "http://ci.int.centreon.com" }\n    ],\n    "config": {\n        "secure-http": false\n    },\n    "require-dev": {#g' composer.json
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      web: docker-compose-web.yml\n      web_fresh: docker-compose-web-fresh.yml#g' behat.yml
 fi
+
+# Run acceptance tests.
+rm -rf ../xunit-reports
+mkdir ../xunit-reports
 composer install
 composer update
-alreadyset=`grep ci.int.centreon.com < behat.yml || true`
-if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      images:\n        web: '$WEB_IMAGE'\n        web_fresh: '$WEB_FRESH_IMAGE'#g' behat.yml
-fi
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
