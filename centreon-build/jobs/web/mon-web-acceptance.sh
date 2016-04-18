@@ -31,7 +31,7 @@ sed 's#@WEB_IMAGE@#'$WEB_FRESH_IMAGE'#g' < `dirname $0`/../../containers/web/doc
 # Prepare Behat.yml
 alreadyset=`grep docker-compose-web.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      web: docker-compose-web.yml'$WEB_IMAGE'\n      web_fresh: docker-compose-web-fresh.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      web: docker-compose-web.yml\n      web_fresh: docker-compose-web-fresh.yml#g' behat.yml
 fi
 
 # Run acceptance tests.
