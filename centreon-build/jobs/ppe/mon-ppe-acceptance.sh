@@ -25,14 +25,19 @@ if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
   screen -d -m phantomjs --webdriver=4444
 fi
 
-# Run acceptance tests.
-rm -rf xunit-reports
-mkdir xunit-reports
+# Prepare Docker Compose file.
 cd centreon-export
+sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-web.yml
+sed 's#@WEB_IMAGE@#'$PPE_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-ppe.yml
+sed 's#@WEB_IMAGE@#'$PPE1_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-ppe1.yml
+
+# Run acceptance tests.
+rm -rf ../xunit-reports
+mkdir ../xunit-reports
 composer install
 composer update
-alreadyset=`grep ci.int.centreon.com < behat.yml || true`
+alreadyset=`grep docker-compose-ppe.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      images:\n        web: '$WEB_IMAGE'\n        ppe: '$PPE_IMAGE'\n        ppe1: '$PPE1_IMAGE'#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      web: docker-compose-web.yml\n      ppe: docker-compose-ppe.yml\n      ppe1: docker-compose-ppe1.yml#g' behat.yml
 fi
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
