@@ -29,7 +29,7 @@ cp centreon-build/jobs/middleware/public.asc centreon-imp-portal-api
 
 # Prepare Docker compose file.
 cd centreon-imp-portal-api
-sed 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml > docker-compose-middleware.yml
+sed 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > docker-compose-middleware.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
