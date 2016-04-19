@@ -4,6 +4,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Copy PPM sources.
 COPY centreon-pp-manager /usr/share/centreon/www/modules/centreon-pp-manager
+RUN sed -i 's#http://10.30.2.33:3000/api#http://middleware:3000/api#g' /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
 
 # Install script.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
