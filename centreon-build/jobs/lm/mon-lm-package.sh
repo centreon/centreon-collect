@@ -17,4 +17,4 @@ cd ..
 
 # Copy files to server.
 FILES="centreon-license-manager.centos$CENTOS_VERSION.tar.gz"
-scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/tmp/"
+scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/tmp/"
