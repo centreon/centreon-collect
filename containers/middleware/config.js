@@ -62,7 +62,7 @@ module.exports = {
   },
   // Information for sugar crm
   crmPlatform: {
-    url: 'http://crm.merethis.net/rest/v10/',
+    url: 'http://crm.int.centreon.com/rest/v10/',
     clientId: 'middleware',
     clientSecret: 'secret',
     username: 'dp.dev',
