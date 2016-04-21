@@ -11,7 +11,8 @@ function getVersion() {
   global $pearDB;
 
   $query_result = $pearDB->query("SELECT `value` FROM `informations` WHERE `key` = 'version'");
-  return ($query_result->fetRow()[0]);
+  $row = $query_result->fetchRow();
+  return ($row['value']);
 }
 
 $options = getopt("c:m:h"); 
@@ -41,25 +42,35 @@ if (false === isset($centreon_path)) {
 
 require_once $centreon_path . '/www/class/centreonDB.class.php';
 
-$oreon = true;
 $pearDB = new CentreonDB();
-$version = getVersion();
-
-if (!isset($version) || $version == false || $version == 0) [
-  echo "Couldn't find version from DB.\n"
-  exit(1);
-}
+$oreon = true;
 
 require_once $centreon_path . '/www/include/options/oreon/modules/DB-Func.php';
 
-for () {
-  
+while (true) {
+  $version = getVersion();
+  if (!isset($version) || $version == false || $version == 0) {
+    echo "Couldn't find version from DB.\n";
+    exit(1);
+  }
+
+  unset($next);
+  if ($handle = opendir($centreon_path . '/www/install/sql/centreon')) {
+    while (false !== ($file = readdir($handle))) {
+      if (preg_match('/Update-DB-'.preg_quote($version).'_to_([a-zA-Z0-9\-\.]+)\.sql/', $file, $matches)) {
+        $next = $matches[1];
+        break;
+      }
+    }
+    closedir($handle);
+  }
+
+  if (isset($next)) {
+    $_POST['current'] = $version;
+    $_POST['next'] = $next;
+    chdir($centreon_path . '/www/install/step_upgrade/process/');
+    include $centreon_path . '/www/install/step_upgrade/process/process_step4.php';
+  }
+  else break;
 }
 
-if ($module_conf[$options['m']]["sql_files"] && file_exists($centreon_path . '/www/modules/' . $options['m'] . '/sql/install.sql')) {
-  execute_sql_file('install.sql', $centreon_path . '/www/modules/' . $options['m'] . '/sql/');
-}
-
-if ($module_conf[$options['m']]["php_files"] && file_exists($centreon_path . '/www/modules/' . $options['m'] . '/php/install.php')) {
-  include_once $centreon_path . '/www/modules/' . $options['m'] . '/php/install.php';
-}
