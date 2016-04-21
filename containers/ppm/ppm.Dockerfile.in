@@ -2,8 +2,10 @@
 FROM ci.int.centreon.com:5000/mon-web:centos@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Copy PPM sources.
+# Copy sources.
+COPY centreon-license-manager /usr/share/centreon/www/modules/centreon-license-manager
 COPY centreon-pp-manager /usr/share/centreon/www/modules/centreon-pp-manager
+RUN sed -i 's#http://10.30.2.33:3000/api#http://middleware:3000/api#g' /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
 
 # Install script.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
