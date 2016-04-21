@@ -59,5 +59,13 @@ module.exports = {
     secretKey: 'ZjFlZGVhZmUtMTE5NC1iY2I0LTk1MjgtM2IwYmJmZDMzYzIwNGFlYmFmNjUtMmY1Yi04MWE0LWU5NWUtZWZlYTYwNmMyMDYy',
     organizationId: 104,
     departmantId: 363
+  },
+  // Information for sugar crm
+  crmPlatform: {
+    url: 'http://crm.int.centreon.com/rest/v10/',
+    clientId: 'middleware',
+    clientSecret: 'secret',
+    username: 'dp.dev',
+    password: 'centreon'
   }
 };

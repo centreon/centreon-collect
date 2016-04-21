@@ -4,7 +4,8 @@ services:
     image: ci.int.centreon.com:5000/mon-phantomjs:latest
     ports:
     - "4444"
-  web:
-    image: @WEB_IMAGE@
+  middleware:
+    image: @MIDDLEWARE_IMAGE@
     ports:
-    - "80"
+    - "3000"
+    - "3306"
