@@ -11,17 +11,12 @@ fi
 DISTRIB="$1"
 
 # Pull images.
+WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 PPM_IMAGE=ci.int.centreon.com:5000/mon-ppm:$DISTRIB
 MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:$DISTRIB
+docker pull $WEBDRIVER_IMAGE
 docker pull $PPM_IMAGE
 docker pull $MIDDLEWARE_IMAGE
-
-# Check that phantomjs is running.
-export PHANTOMJS_RUNNING=1
-nc -w 0 localhost 4444 || export PHANTOMJS_RUNNING=0 || true
-if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
-  screen -d -m phantomjs --webdriver=4444
-fi
 
 # Prepare Docker compose file.
 cd centreon-import
