@@ -1,9 +1,5 @@
 version: '2'
 services:
-  webdriver:
-    image: ci.int.centreon.com:5000/mon-phantomjs:latest
-    ports:
-    - "4444"
   middleware:
     image: @MIDDLEWARE_IMAGE@
     ports:
