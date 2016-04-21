@@ -11,19 +11,14 @@ fi
 DISTRIB="$1"
 
 # Pull images.
+WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
 PPE_IMAGE=ci.int.centreon.com:5000/mon-ppe:$DISTRIB
 PPE1_IMAGE=ci.int.centreon.com:5000/mon-ppe1:$DISTRIB
+docker pull $WEBDRIVER_IMAGE
 docker pull $WEB_IMAGE
 docker pull $PPE_IMAGE
 docker pull $PPE1_IMAGE
-
-# Check that phantomjs is running.
-export PHANTOMJS_RUNNING=1
-nc -w 0 localhost 4444 || export PHANTOMJS_RUNNING=0 || true
-if [ "$PHANTOMJS_RUNNING" -ne 1 ] ; then
-  screen -d -m phantomjs --webdriver=4444
-fi
 
 # Prepare Docker Compose file.
 cd centreon-export
