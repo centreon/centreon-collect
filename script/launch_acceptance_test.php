@@ -9,10 +9,22 @@ function xcopy($source, $dest) {
     return (false);
 }
 
+// Replace all the elements of a file
+function replace_in_file($in, $out, $to_replace, $replaced) {
+  $str = file_get_contents($in);
+  $str = str_replace("$to_replace", "$replaced", $str);
+  file_put_contents($out, $str);
+
+  return (true);
+}
+
 function get_project_files($project_name) {
   $project_files["web"]["acceptance"] = "./centreon-build/jobs/web/mon-web-acceptance.sh";
   $project_files["web"]["dev"] = "./centreon-build/jobs/containers/mon-containers-web-dev.sh";
   $project_files["web"]["input_directory"] = "centreon";
+  $project_files["web"]["compose"] = "./centreon-build/containers/web/docker-compose.yml";
+  $project_files["web"]["compose-replace"] = "@WEB_IMAGE@";
+  $project_files["web"]["image"] = "mon-web-dev";
 
   return ($project_files[$project_name]);
 }
@@ -65,17 +77,29 @@ if (!chdir($tmp_directory)) {
   return (-1);
 }
 
+// Replace the compose .yml.in.
+if (isset($project_files["compose"])) {
+  if (!replace_in_file($project_files["compose"] . ".in", $project_files["compose"], $project_files["compose-replace"], $project_files["image"])) {
+    echo "couldn't replace in the file " . $project_files["compose"];
+    return (-1);
+  }
+}
+
+echo "Building dev container...\n";
+
 // Execute the dev container script.
-exec($project_files["dev"] . " " . $arch, $output, $return_var);
+passthru($project_files["dev"] . " " . $arch, $output);//, $return_var);
 if ($return_var != 0) {
-  echo $project_files["dev"] . " error: " . $return_var;
+  echo $project_files["dev"] . " error: " . $return_var . "\n" . implode("\n", $output);
   return (-1);
 }
+
+echo "Starting acceptance tests...\n";
 
 // Execute the acceptance script.
 exec($project_files["acceptance"]  . " " . $arch, $output, $return_var);
 if ($return_var != 0) {
-  echo $project_files["acceptance"] . " error: " . $return_var;
+  echo $project_files["acceptance"] . " error: " . $return_var . "\n" . implode("\n", $output);
   return (-1);
 }
 
