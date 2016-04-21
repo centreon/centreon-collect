@@ -82,7 +82,7 @@ tar czf "input/centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-web ] ; then
-  git clone http://gitbot:gitbot@git.merethis.net/packaging-centreon packaging-centreon-web
+  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
 else
   cd packaging-centreon-web
   git pull
@@ -103,7 +103,7 @@ else
   CES_VERSION='4'
 fi
 FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.merethis.net:/srv/repos/standard/$CES_VERSION/testing/noarch/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../clean_repositories.sh "root@srvi-ces-repository.merethis.net:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.merethis.net" sh -c "'chmod +x $DESTFILE ; $DESTFILE ; rm $DESTFILE ; createrepo /srv/repos/standard/$CES_VERSION/testing/noarch/'"
+scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/$CES_VERSION/testing/noarch/RPMS"
+DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" mktemp`
+scp -o StrictHostKeyChecking=no `dirname $0`/../clean_repositories.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh -c "'chmod +x $DESTFILE ; $DESTFILE ; rm $DESTFILE ; createrepo /srv/repos/standard/$CES_VERSION/testing/noarch/'"
