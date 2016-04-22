@@ -67,5 +67,10 @@ module.exports = {
     clientSecret: 'secret',
     username: 'dp.dev',
     password: 'centreon'
+  },
+  // Information for mailchimp
+  newsletter: {
+    apiKey: 'QmFzaWM6OGU1NGVjMTNhNDQ5NGMyNjlkNGExNzc4ZmNkOGI2MzctdXMy',
+    listId: '1eeddd2b3a'
   }
 };
