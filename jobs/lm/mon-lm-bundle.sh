@@ -19,10 +19,10 @@ scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com:/tmp/
 tar xzf centreon-license-manager.$DISTRIB.tar.gz
 
 # Prepare Dockerfile.
+cd centreon-build/containers/
 sed "s/@DISTRIB@/$DISTRIB/g" < lm/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
 
 # Build image.
-cd centreon-build/containers/
 rm -rf centreon-license-manager
 cp -R ../../centreon-license-manager/www/modules/centreon-license-manager .
 docker build --no-cache -t ci.int.centreon.com:5000/mon-lm:$DISTRIB -f lm/lm.$DISTRIB.Dockerfile .
