@@ -30,19 +30,19 @@ Run Centreon Plugin Pack Exporter unit tests and report test results.
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
-(srvi-ces-repository, branch testing).
+(srvi-ces-repository, branch unstable).
 
 ### mon-broker-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
-(srvi-ces-repository, branch testing).
+(srvi-ces-repository, branch unstable).
 
 ### mon-web-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
-(srvi-ces-repository, branch testing).
+(srvi-ces-repository, branch unstable).
 
 ### mon-lm-package.sh
 
