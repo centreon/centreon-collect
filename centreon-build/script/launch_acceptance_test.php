@@ -2,7 +2,7 @@
 
 // Copy directory recursively
 function xcopy($source, $dest) {
-  exec("cp -r $source $dest", $output, $return);
+  exec("cp -r '$source' '$dest'", $output, $return);
   if ($return == 0)
     return (true);
   else
@@ -10,31 +10,53 @@ function xcopy($source, $dest) {
 }
 
 // Replace all the elements of a file
-function replace_in_file($in, $out, $to_replace, $replaced) {
+function replace_in_file($in, $out, $to_replace) {
   $str = file_get_contents($in);
-  $str = str_replace("$to_replace", "$replaced", $str);
+  foreach ($to_replace as $content) {
+    $str = str_replace($content["from"], $content["to"], $str);
+  }
   file_put_contents($out, $str);
 
   return (true);
 }
 
 function get_project_files($project_name) {
+  global $arch;
+
   $project_files["web"]["acceptance"] = "./centreon-build/jobs/web/mon-web-acceptance.sh";
   $project_files["web"]["dev"] = "./centreon-build/jobs/containers/mon-containers-web-dev.sh";
   $project_files["web"]["input_directory"] = "centreon";
-  $project_files["web"]["compose"] = "./centreon-build/containers/web/docker-compose.yml";
-  $project_files["web"]["compose-replace"] = "@WEB_IMAGE@";
-  $project_files["web"]["image"] = "mon-web-dev";
+  $project_files["web"]["compose-in"] = "./centreon-build/containers/web/docker-compose.yml.in";
+  $project_files["web"]["compose-out"] = "./centreon-build/containers/web/docker-compose.yml";
+  $project_files["web"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
+  $project_files["web"]["compose-replace"][0]["to"] = "mon-web-dev:centos$arch";
+
+  $project_files["ppm"]["acceptance"] = "./centreon-build/jobs/ppm/mon-ppm-acceptance.sh";
+  $project_files["ppm"]["dev"] = "./centreon-build/jobs/containers/mon-containers-ppm-dev.sh";
+  $project_files["ppm"]["input_directory"] = "centreon-import";
+  $project_files["ppm"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-web.yml.in";
+  $project_files["ppm"]["compose-out"] = "mon-ppm-dev.yml";
+  $project_files["ppm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
+  $project_files["ppm"]["compose-replace"][0]["to"] = "mon-ppm-dev:centos$arch";
+  $project_files["ppm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
+  $project_files["ppm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
 
   return ($project_files[$project_name]);
 }
 
 // Parse the options.
-$opts = getopt("p:a:s:d::");
+$opts = getopt("p:a:s:d::f::");
 if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
-  echo "usage: launch_acceptance_test [-d a_docker_machine] -p project_name -a centos6|centos7 -s source_directory";
+  echo "usage: launch_acceptance_test [-d a_docker_machine] -f[feature_file] -p project_name -a centos6|centos7 -s source_directory\n";
   return (0);
 }
+
+// Get the feature file[s]
+$feature;
+if (isset($opts["f"]))
+  $feature = pathinfo($opts["f"])['filename'];
+else
+  $feature = "*.feature";
 
 // Get the architecture.
 $archs["centos6"] = "6";
@@ -50,7 +72,7 @@ $project_name = $opts["p"];
 $source_directory = $opts["s"];
 $project_files = get_project_files($project_name);
 if (!isset($project_files)) {
-  echo "project $project_name not supported: supported projects are 'web', 'lm', 'ppe', 'ppm'";
+  echo "project $project_name not supported: supported projects are 'web', 'lm', 'ppe', 'ppm'\n";
   return (0);
 }
 
@@ -61,7 +83,7 @@ mkdir($tmp_directory);
 
 // Copy the source directory to the tmp directory.
 if (!xcopy($source_directory, $tmp_directory . "/" . $project_files["input_directory"])) {
-  echo "couldn't copy \"$source_directory\" to \"" . $tmp_directory . "/" . $project_files["input_directory"] . "\"";
+  echo "couldn't copy \"$source_directory\" to \"" . $tmp_directory . "/" . $project_files["input_directory"] . "\"\n";
   return (-1);
 }
 
@@ -78,9 +100,9 @@ if (!chdir($tmp_directory)) {
 }
 
 // Replace the compose .yml.in.
-if (isset($project_files["compose"])) {
-  if (!replace_in_file($project_files["compose"] . ".in", $project_files["compose"], $project_files["compose-replace"], $project_files["image"])) {
-    echo "couldn't replace in the file " . $project_files["compose"];
+if (isset($project_files["compose-in"])) {
+  if (!replace_in_file($project_files["compose-in"], $project_files["input_directory"] . "/" . $project_files["compose-out"], $project_files["compose-replace"])) {
+    echo "couldn't replace in the file " . $project_files["compose"] . "\n";
     return (-1);
   }
 }
@@ -88,19 +110,21 @@ if (isset($project_files["compose"])) {
 echo "Building dev container...\n";
 
 // Execute the dev container script.
-passthru($project_files["dev"] . " " . $arch, $output);//, $return_var);
+exec($project_files["dev"] . " " . $arch, $output, $return_var);
 if ($return_var != 0) {
-  echo $project_files["dev"] . " error: " . $return_var . "\n" . implode("\n", $output);
+  echo $project_files["dev"] . " error: " . $return_var . "\n" . implode("\n", $output) . "\n";
   return (-1);
 }
 
 echo "Starting acceptance tests...\n";
 
-// Execute the acceptance script.
-exec($project_files["acceptance"]  . " " . $arch, $output, $return_var);
+// Start acceptance test.
+chdir($project_files["input_directory"]);
+exec('composer install');
+exec('composer update');
+exec("ls 'features'/$feature | parallel ./vendor/bin/behat --strict \"{}\"", $output, $return_var);
 if ($return_var != 0) {
-  echo $project_files["acceptance"] . " error: " . $return_var . "\n" . implode("\n", $output);
+  echo "acceptance error: " . $return_var . "\n" . implode("\n", $output) . "\n";
   return (-1);
 }
-
 ?>
