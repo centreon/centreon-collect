@@ -70,7 +70,7 @@ module.exports = {
   },
   // Information for mailchimp
   newsletter: {
-    apiKey: 'QmFzaWM6OGU1NGVjMTNhNDQ5NGMyNjlkNGExNzc4ZmNkOGI2MzctdXMy',
+    apiKey: '8e54ec13a4494c269d4a1778fcd8b637-us2',
     listId: '1eeddd2b3a'
   }
 };
