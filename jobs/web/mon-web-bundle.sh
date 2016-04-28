@@ -5,11 +5,10 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 2 ] ; then
-  echo "USAGE: $0 <6|7> web_version"
+  echo "USAGE: $0 <6|7>"
   exit 1
 fi
 CENTOS_VERSION="$1"
-WEB_VERSION="$2"
 
 # Pull mon-dependencies image.
 docker pull ci.int.centreon.com:5000/mon-dependencies:centos$CENTOS_VERSION

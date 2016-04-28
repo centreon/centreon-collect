@@ -58,10 +58,12 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
 
 // Get the feature file[s]
 $feature;
-if (isset($opts["f"]))
-  $feature = pathinfo($opts["f"])['filename'];
-else
+if (isset($opts["f"])) {
+  $pathinfo = pathinfo($opts["f"]);
+  $feature = $pathinfo['filename'];
+} else {
   $feature = "*.feature";
+}
 
 // Get the architecture.
 $archs["centos6"] = "6";
@@ -115,9 +117,9 @@ if (isset($project_files["compose-in"])) {
 echo "Building dev container...\n";
 
 // Execute the dev container script.
-passthru($project_files["dev"] . " " . $arch, $output/*, $return_var*/);
+passthru($project_files["dev"] . " " . $arch, $return_var);
 if ($return_var != 0) {
-  echo $project_files["dev"] . " error: " . $return_var . "\n" . implode("\n", $output) . "\n";
+  echo $project_files["dev"] . " error: " . $return_var . "\n";
   return (-1);
 }
 
@@ -127,9 +129,9 @@ echo "Starting acceptance tests...\n";
 chdir($project_files["input_directory"]);
 exec('composer install');
 exec('composer update');
-passthru("ls 'features'/$feature | parallel ./vendor/bin/behat --strict \"{}\"", $output/*, $return_var*/);
+passthru("ls 'features'/$feature | parallel ./vendor/bin/behat --strict \"{}\"", $return_var);
 if ($return_var != 0) {
-  echo "acceptance error: " . $return_var . "\n" . implode("\n", $output) . "\n";
+  echo "acceptance error: " . $return_var . "\n";
   return (-1);
 }
 ?>
