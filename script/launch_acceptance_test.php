@@ -53,10 +53,12 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
 
 // Get the feature file[s]
 $feature;
-if (isset($opts["f"]))
-  $feature = pathinfo($opts["f"])['filename'];
-else
+if (isset($opts["f"])) {
+  $pathinfo = pathinfo($opts["f"]);
+  $feature = $pathinfo['filename'];
+} else {
   $feature = "*.feature";
+}
 
 // Get the architecture.
 $archs["centos6"] = "6";
