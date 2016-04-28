@@ -23,7 +23,6 @@ function replace_in_file($in, $out, $to_replace) {
 function get_project_files($project_name) {
   global $arch;
 
-  $project_files["web"]["acceptance"] = "./centreon-build/jobs/web/mon-web-acceptance.sh";
   $project_files["web"]["dev"] = "./centreon-build/jobs/containers/mon-containers-web-dev.sh";
   $project_files["web"]["input_directory"] = "centreon";
   $project_files["web"]["compose-in"] = "./centreon-build/containers/web/docker-compose.yml.in";
@@ -31,7 +30,6 @@ function get_project_files($project_name) {
   $project_files["web"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["web"]["compose-replace"][0]["to"] = "mon-web-dev:centos$arch";
 
-  $project_files["ppm"]["acceptance"] = "./centreon-build/jobs/ppm/mon-ppm-acceptance.sh";
   $project_files["ppm"]["dev"] = "./centreon-build/jobs/containers/mon-containers-ppm-dev.sh";
   $project_files["ppm"]["input_directory"] = "centreon-import";
   $project_files["ppm"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-web.yml.in";
@@ -40,6 +38,13 @@ function get_project_files($project_name) {
   $project_files["ppm"]["compose-replace"][0]["to"] = "mon-ppm-dev:centos$arch";
   $project_files["ppm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["ppm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
+
+  $project_files["imp"]["dev"] = "./centreon-build/jobs/containers/mon-containers-middleware-dev.sh";
+  $project_files["imp"]["input_directory"] = "centreon-imp-portal-api";
+  $project_files["imp"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-standalone.yml.in";
+  $project_files["imp"]["compose-out"] = "mon-middleware-dev.yml";
+  $project_files["imp"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
+  $project_files["imp"]["compose-replace"][0]["to"] = "mon-middleware-dev:centos$arch";
 
   return ($project_files[$project_name]);
 }
@@ -72,7 +77,7 @@ $project_name = $opts["p"];
 $source_directory = $opts["s"];
 $project_files = get_project_files($project_name);
 if (!isset($project_files)) {
-  echo "project $project_name not supported: supported projects are 'web', 'lm', 'ppe', 'ppm'\n";
+  echo "project $project_name not supported: supported projects are 'web', 'lm', 'ppe', 'ppm', 'imp'\n";
   return (0);
 }
 
@@ -110,7 +115,7 @@ if (isset($project_files["compose-in"])) {
 echo "Building dev container...\n";
 
 // Execute the dev container script.
-exec($project_files["dev"] . " " . $arch, $output, $return_var);
+passthru($project_files["dev"] . " " . $arch, $output/*, $return_var*/);
 if ($return_var != 0) {
   echo $project_files["dev"] . " error: " . $return_var . "\n" . implode("\n", $output) . "\n";
   return (-1);
@@ -122,7 +127,7 @@ echo "Starting acceptance tests...\n";
 chdir($project_files["input_directory"]);
 exec('composer install');
 exec('composer update');
-exec("ls 'features'/$feature | parallel ./vendor/bin/behat --strict \"{}\"", $output, $return_var);
+passthru("ls 'features'/$feature | parallel ./vendor/bin/behat --strict \"{}\"", $output/*, $return_var*/);
 if ($return_var != 0) {
   echo "acceptance error: " . $return_var . "\n" . implode("\n", $output) . "\n";
   return (-1);
