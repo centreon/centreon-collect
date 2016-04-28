@@ -129,7 +129,7 @@ echo "Starting acceptance tests...\n";
 chdir($project_files["input_directory"]);
 exec('composer install');
 exec('composer update');
-passthru("ls 'features'/$feature | parallel ./vendor/bin/behat --strict \"{}\"", $return_var);
+passthru("ls 'features'/$feature | parallel --semaphore ./vendor/bin/behat --strict \"{}\"", $return_var);
 if ($return_var != 0) {
   echo "acceptance error: " . $return_var . "\n";
   return (-1);
