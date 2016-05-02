@@ -8,12 +8,15 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
 }
 
 // Create tmp directory.
+echo "creating tmp directory...\n";
 $tmp_directory = sys_get_temp_dir() . '/behat_docker';
 mkdir($tmp_directory);
 
 // Build and execute behat container.
+echo "creating behat docker image...\n";
 copy('./centreon-build/containers/behat/behat.Dockerfile', "$tmp_directory/behat.Dockerfile");
 exec("docker build -t behat -f $tmp_directory/behat.Dockerfile $tmp_directory");
+echo "starting bethat docker image...\n";
 exec("docker run -v /var/run/docker.sock:/var/run/docker.sock -ti -d behat", $output, $return_var);
 if ($return_var != 0) {
   echo "couldn't launch behat: " . implode('\n', $output) . "\n";
@@ -22,10 +25,12 @@ if ($return_var != 0) {
 $id = $output[0];
 
 // Copy files
+echo "copying files to docker...\n";
 exec("docker cp ./centreon-build $id:/tmp/");
 exec("docker cp " . $opts['s'] . " $id:/tmp/");
 
 // Launch acceptance script.
+echo "starting acceptance script...\n";
 array_shift($argv);
 passthru("docker exec $id sh -c 'cd /tmp/; php /tmp/centreon-build/script/launch_acceptance_test.php " . implode(' ', $argv) . "'");
 
