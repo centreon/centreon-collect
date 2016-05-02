@@ -1,5 +1,14 @@
 <?php
 
+function should_use_docker_machine() {
+  $os = php_uname('s');
+
+  if ($os == 'Windows NT' || $os == 'Darwin')
+    return (true);
+  else
+    return (false);
+}
+
 // Copy directory recursively
 function xcopy($source, $dest) {
   exec("cp -r '$source' '$dest'", $output, $return);
