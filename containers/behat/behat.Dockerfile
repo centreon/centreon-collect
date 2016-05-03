@@ -6,7 +6,10 @@ RUN echo 'http_caching=none' >> /etc/yum.conf
 
 # Install properly packaged dependencies.
 RUN mkdir /usr/share/monitoring
-RUN yum install --nogpgcheck -y php-cli php-mbstring wget gcc bzip2 make curl perl php-xml git
+RUN yum install --nogpgcheck -y php-cli php-mbstring php-xml wget gcc bzip2 make curl perl git
+
+# Init php timezone
+RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Install Parallel
 RUN curl -fsSL https://get.docker.com/ | sh

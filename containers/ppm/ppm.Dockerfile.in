@@ -12,3 +12,4 @@ COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 RUN /tmp/install.sh
+
