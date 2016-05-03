@@ -15,4 +15,5 @@ RUN /tmp/install.sh
 
 # Init php vars
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
+RUN httpd -k restart
 
