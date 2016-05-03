@@ -8,6 +8,9 @@ RUN echo 'http_caching=none' >> /etc/yum.conf
 RUN mkdir /usr/share/monitoring
 RUN yum install --nogpgcheck -y php-cli php-mbstring wget gcc bzip2 make curl perl
 
+# Init php timezone
+RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
+
 # Install Parallel
 RUN curl -fsSL https://get.docker.com/ | sh
 RUN wget ftp://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2
