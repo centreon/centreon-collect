@@ -132,12 +132,13 @@ if ($return_var != 0) {
   return (-1);
 }
 
-echo "Starting acceptance tests...\n";
+echo "Running composer install...\n";
 
 // Start acceptance test.
 chdir($project_files["input_directory"]);
 exec('composer install');
 exec('composer update');
+echo "Starting acceptance tests...\n";
 passthru("ls 'features'/$feature | parallel --semaphore ./vendor/bin/behat --strict \"{}\"", $return_var);
 if ($return_var != 0) {
   echo "acceptance error: " . $return_var . "\n";

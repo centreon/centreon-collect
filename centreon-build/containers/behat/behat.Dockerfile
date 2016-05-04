@@ -1,5 +1,5 @@
 # Base.
-FROM centos:6
+FROM centos:7
 MAINTAINER Alexandre Fouille <afouille@centreon.com>
 RUN echo 'gpgcheck=0' >> /etc/yum.conf
 RUN echo 'http_caching=none' >> /etc/yum.conf
