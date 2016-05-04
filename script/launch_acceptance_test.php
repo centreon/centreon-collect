@@ -101,16 +101,19 @@ if (!isset($project_files)) {
 
 // Get tmp directory.
 $tmp_directory = sys_get_temp_dir() . '/launch_acceptance';
+echo "creating tmp directory...\n";
 exec("rm -rf $tmp_directory");
 mkdir($tmp_directory);
 
 // Copy the source directory to the tmp directory.
+echo "copying sources to tmp directory...\n";
 if (!xcopy($source_directory, $tmp_directory . "/" . $project_files["input_directory"])) {
   echo "couldn't copy \"$source_directory\" to \"" . $tmp_directory . "/" . $project_files["input_directory"] . "\"\n";
   return (-1);
 }
 
 // Copy centreon-build to the tmp directory.
+echo "copying centreon build to tmp directory...\n";
 if (!xcopy("./centreon-build", $tmp_directory . "/centreon-build")) {
   echo "couldn't copy \"centreon-build\" to \"$tmp_directory\"";
   return (-1);
@@ -124,6 +127,7 @@ if (!chdir($tmp_directory)) {
 
 // Replace the compose .yml.in.
 if (isset($project_files["compose-in"])) {
+  echo "replacing compose.yml\n";
   if (!replace_in_file($project_files["compose-in"], $project_files["input_directory"] . "/" . $project_files["compose-out"], $project_files["compose-replace"])) {
     echo "couldn't replace in the file " . $project_files["compose"] . "\n";
     return (-1);
