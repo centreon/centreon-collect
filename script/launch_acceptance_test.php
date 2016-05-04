@@ -1,5 +1,12 @@
 <?php
 
+require_once(dirname(__FILE__) . '/../conf/acceptance.conf.php');
+
+if (!defined('_GITHUB_TOKEN_') || _GITHUB_TOKEN_ == "") {
+    echo "Please fill your github token in acceptance.conf.php file\n";
+    return (-1);
+}
+
 function should_use_docker_machine() {
   $os = php_uname('s');
 
@@ -136,6 +143,7 @@ echo "Running composer install...\n";
 
 // Start acceptance test.
 chdir($project_files["input_directory"]);
+exec('composer config github-oauth.github.com ' . _GITHUB_TOKEN_);
 exec('composer install');
 exec('composer update');
 echo "Starting acceptance tests...\n";
