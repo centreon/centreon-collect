@@ -23,7 +23,7 @@ echo "creating behat docker image...\n";
 copy('./centreon-build/containers/behat/behat.Dockerfile', "$tmp_directory/behat.Dockerfile");
 exec("docker build -t behat -f $tmp_directory/behat.Dockerfile $tmp_directory");
 echo "starting bethat docker image...\n";
-exec("docker run -v /var/run/docker.sock:/var/run/docker.sock -v $centreon_build_directory:/tmp/centreon-build -v $source_directory:/tmp/$source_directory_name -ti --dns=10.50.1.1 --dns-search=int.centreon.com -d behat", $output, $return_var);
+exec("docker run -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker:/var/lib/docker -v $centreon_build_directory:/tmp/centreon-build -v $source_directory:/tmp/$source_directory_name -ti --dns=10.50.1.1 --dns-search=int.centreon.com -d behat", $output, $return_var);
 if ($return_var != 0) {
   echo "couldn't launch behat: " . implode('\n', $output) . "\n";
   return (-1);
