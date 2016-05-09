@@ -62,6 +62,15 @@ function get_project_files($project_name) {
   $project_files["imp"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["imp"]["compose-replace"][0]["to"] = "mon-middleware-dev:centos$arch";
 
+  $project_files["ppe"]["dev"] = "./centreon-build/jobs/containers/mon-containers-ppe-dev.sh";
+  $project_files["ppe"]["input_directory"] = "centreon-export";
+  $project_files["ppe"]["compose-in"] = "./centreon-build/containers/web/docker-compose.yml.in";
+  $project_files["ppe"]["compose-out"] = "mon-ppe-dev.yml";
+  $project_files["ppe"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
+  $project_files["ppe"]["compose-replace"][0]["to"] = "mon-ppe-dev:centos$arch";
+  $project_files["ppe"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
+  $project_files["ppe"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
+
   return ($project_files[$project_name]);
 }
 
