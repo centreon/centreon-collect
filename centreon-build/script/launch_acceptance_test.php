@@ -160,7 +160,7 @@ exec('composer config github-oauth.github.com ' . _GITHUB_TOKEN_);
 exec('composer install');
 exec('composer update');
 echo "Starting acceptance tests...\n";
-passthru("ls 'features'/$feature | parallel --semaphore ./vendor/bin/behat --strict \"{}\"", $return_var);
+passthru("ls 'features'/$feature | parallel -j1 -u ./vendor/bin/behat --strict \"{}\"", $return_var);
 if ($return_var != 0) {
   echo "acceptance error: " . $return_var . "\n";
   return (-1);
