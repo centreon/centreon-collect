@@ -6,7 +6,18 @@ RUN echo 'http_caching=none' >> /etc/yum.conf
 
 # Install properly packaged dependencies.
 RUN mkdir /usr/share/monitoring
-RUN yum install --nogpgcheck -y php-cli php-mbstring php-xml wget gcc bzip2 make curl perl git
+RUN printf "[Remi]\n\
+name=Remi for Centos 7\n\
+baseurl=http://rpms.famillecollet.com/enterprise/5/remi/x86_64/\n\
+enabled=1\n\
+gpgcheck=0\n\
+\n\
+[PHP55]\n\
+name=PHP55 for Centos 7\n\
+baseurl=http://rpms.famillecollet.com/enterprise/7/php55/x86_64/\n\
+enabled=1\n\
+gpgcheck=0\n" > /etc/yum.repos.d/ces-standard-unstable.centos7.repo
+RUN yum install --nogpgcheck -y libzip php-cli php-mbstring php-xml wget gcc bzip2 make curl perl git
 
 # Init php timezone
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
