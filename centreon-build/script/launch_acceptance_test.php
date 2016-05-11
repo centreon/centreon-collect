@@ -81,6 +81,9 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
   return (0);
 }
 
+// Chdir to the good directory.
+chdir(dirname(__FILE__) . '/../../');
+
 // Get the feature file[s]
 $feature;
 if (isset($opts["f"])) {

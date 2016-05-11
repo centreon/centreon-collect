@@ -6,6 +6,10 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
   echo "usage: create_behat_env [-d a_docker_machine] -f[feature_file] -p project_name -a centos6|centos7 -s source_directory\n";
   return (0);
 }
+
+// Chdir to the good directory
+chdir(dirname(__FILE__) . '/../../');
+
 $centreon_build_directory = realpath('centreon-build');
 $source_directory = realpath($opts['s']);
 $source_directory_name = $opts['s'];
