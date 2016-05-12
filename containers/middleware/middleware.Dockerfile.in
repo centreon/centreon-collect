@@ -27,7 +27,7 @@ RUN npm install
 # Install script.
 RUN mkdir /usr/local/src/data
 COPY middleware/data/*.sql  /usr/local/src/data/
-RUN cat /usr/local/src/data/*.sql /usr/local/src/imp.sql
+RUN cat /usr/local/src/data/*.sql > /usr/local/src/imp.sql
 RUN rm -rf /usr/local/src/data
 COPY middleware/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
