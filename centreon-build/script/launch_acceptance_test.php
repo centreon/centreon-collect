@@ -46,6 +46,15 @@ function get_project_files($project_name) {
   $project_files["web"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["web"]["compose-replace"][0]["to"] = "mon-web-dev:centos$arch";
 
+  $project_files["lm"]["dev"] = "./centreon-build/jobs/containers/mon-containers-lm-dev.sh";
+  $project_files["lm"]["input_directory"] = "centreon-license-manager";
+  $project_files["lm"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-web.yml.in";
+  $project_files["lm"]["compose-out"] = "mon-lm-dev.yml";
+  $project_files["lm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
+  $project_files["lm"]["compose-replace"][0]["to"] = "mon-lm-dev:centos$arch";
+  $project_files["lm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
+  $project_files["lm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
+
   $project_files["ppm"]["dev"] = "./centreon-build/jobs/containers/mon-containers-ppm-dev.sh";
   $project_files["ppm"]["input_directory"] = "centreon-import";
   $project_files["ppm"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-web.yml.in";
