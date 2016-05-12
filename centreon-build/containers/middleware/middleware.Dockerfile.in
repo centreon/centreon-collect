@@ -25,7 +25,7 @@ COPY middleware/private.asc /usr/local/src/centreon-imp-portal-api/private.asc
 RUN npm install
 
 # Install script.
-RUN cat middleware/data/*.sql /usr/local/src/imp.sql
+RUN cat middleware/data/*.sql > /usr/local/src/imp.sql
 COPY middleware/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 RUN /tmp/install.sh
