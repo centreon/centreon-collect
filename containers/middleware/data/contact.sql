@@ -1,4 +1,4 @@
 INSERT INTO `company` VALUES (1,'Centreon','1','7a272af06ea1885f510ba0ad76bee1bc',1);
 INSERT INTO `subscription` VALUES (1,1,'2016-02-16 00:00:00','2016-05-16 00:00:00','IMP_6_MONTH',1,0,99.99,NULL,'IMP_6_MONTH','2016-05-02 10:50:53','9999-12-12 00:00:00');
-INSERT INTO `contact` VALUES (1,'centreon','centreon','centreon@centreon.com','Administrateur','Centreon',1,1,1,'1');
+INSERT INTO `contact` VALUES (1,'centreon','af36ae1c4c957e64a91d12e374c213db9d923f7946bb1ae963cd6cd7c48367032f6c218d7c93cb067aa4dfb3e6a9bb5b0ff9306d08b4bea60c2671bf2465e273::10000::898da9c46b56dfa5a2fd4390890c3fc6261158ba810f9a241da7fba8fad18647d4bd1ed73cd60fb877df870af67ad3d2e193193e65406b9b0f08f6e7f7af7774','centreon@centreon.com','Administrateur','Centreon',1,1,1,'1');
 
