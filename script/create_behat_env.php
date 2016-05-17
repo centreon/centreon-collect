@@ -1,10 +1,16 @@
 <?php
 
 // Parse the options.
-$opts = getopt('p:a:s:d::f::');
+$opts = getopt('p:a:s:f::');
 if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
-  echo "usage: create_behat_env [-d a_docker_machine] -f[feature_file] -p project_name -a centos6|centos7 -s source_directory\n";
+  echo "usage: create_behat_env -f[feature_file] -p project_name -a centos6|centos7 -s source_directory\n";
   return (0);
+}
+
+// Get absolute paths.
+$opts["s"] = realpath($opts["s"]);
+if (isset($opts["f"])) {
+  $opts["f"] = realpath($opts["f"]);
 }
 
 // Chdir to the good directory
