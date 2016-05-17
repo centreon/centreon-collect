@@ -1,6 +1,7 @@
 <?php
 
 require_once(dirname(__FILE__) . '/../conf/acceptance.conf.php');
+$centreon_build_directory = dirname(__FILE__) . '/../../';
 
 if (!defined('_GITHUB_TOKEN_') || _GITHUB_TOKEN_ == "") {
     echo "Please fill your github token in acceptance.conf.php file\n";
@@ -39,41 +40,41 @@ function replace_in_file($in, $out, $to_replace) {
 function get_project_files($project_name) {
   global $arch;
 
-  $project_files["web"]["dev"] = "./centreon-build/jobs/containers/mon-containers-web-dev.sh";
+  $project_files["web"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-web-dev.sh";
   $project_files["web"]["input_directory"] = "centreon";
-  $project_files["web"]["compose-in"] = "./centreon-build/containers/web/docker-compose.yml.in";
-  $project_files["web"]["compose-out"] = "./centreon-build/containers/web/docker-compose.yml";
+  $project_files["web"]["compose-in"] = "$centreon_build_directory/containers/web/docker-compose.yml.in";
+  $project_files["web"]["compose-out"] = "$centreon_build_directory/containers/web/docker-compose.yml";
   $project_files["web"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["web"]["compose-replace"][0]["to"] = "mon-web-dev:centos$arch";
 
-  $project_files["lm"]["dev"] = "./centreon-build/jobs/containers/mon-containers-lm-dev.sh";
+  $project_files["lm"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-lm-dev.sh";
   $project_files["lm"]["input_directory"] = "centreon-license-manager";
-  $project_files["lm"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-web.yml.in";
+  $project_files["lm"]["compose-in"] = "$centreon_build_directory/containers/middleware/docker-compose-web.yml.in";
   $project_files["lm"]["compose-out"] = "mon-lm-dev.yml";
   $project_files["lm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["lm"]["compose-replace"][0]["to"] = "mon-lm-dev:centos$arch";
   $project_files["lm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["lm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
 
-  $project_files["ppm"]["dev"] = "./centreon-build/jobs/containers/mon-containers-ppm-dev.sh";
+  $project_files["ppm"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-ppm-dev.sh";
   $project_files["ppm"]["input_directory"] = "centreon-import";
-  $project_files["ppm"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-web.yml.in";
+  $project_files["ppm"]["compose-in"] = "$centreon_build_directory/containers/middleware/docker-compose-web.yml.in";
   $project_files["ppm"]["compose-out"] = "mon-ppm-dev.yml";
   $project_files["ppm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["ppm"]["compose-replace"][0]["to"] = "mon-ppm-dev:centos$arch";
   $project_files["ppm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["ppm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
 
-  $project_files["imp"]["dev"] = "./centreon-build/jobs/containers/mon-containers-middleware-dev.sh";
+  $project_files["imp"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-middleware-dev.sh";
   $project_files["imp"]["input_directory"] = "centreon-imp-portal-api";
-  $project_files["imp"]["compose-in"] = "./centreon-build/containers/middleware/docker-compose-standalone.yml.in";
+  $project_files["imp"]["compose-in"] = "$centreon_build_directory/containers/middleware/docker-compose-standalone.yml.in";
   $project_files["imp"]["compose-out"] = "mon-middleware-dev.yml";
   $project_files["imp"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["imp"]["compose-replace"][0]["to"] = "mon-middleware-dev:centos$arch";
 
-  $project_files["ppe"]["dev"] = "./centreon-build/jobs/containers/mon-containers-ppe-dev.sh";
+  $project_files["ppe"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-ppe-dev.sh";
   $project_files["ppe"]["input_directory"] = "centreon-export";
-  $project_files["ppe"]["compose-in"] = "./centreon-build/containers/web/docker-compose.yml.in";
+  $project_files["ppe"]["compose-in"] = "$centreon_build_directory/containers/web/docker-compose.yml.in";
   $project_files["ppe"]["compose-out"] = "mon-ppe-dev.yml";
   $project_files["ppe"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["ppe"]["compose-replace"][0]["to"] = "mon-ppe-dev:centos$arch";
@@ -95,9 +96,6 @@ $opts["s"] = realpath($opts["s"]);
 if (isset($opts["f"])) {
   $opts["f"] = realpath($opts["f"]);
 }
-
-// Chdir to the good directory.
-chdir(dirname(__FILE__) . '/../../');
 
 // Get the feature file[s]
 $feature;
@@ -141,7 +139,7 @@ if (!xcopy($source_directory, $tmp_directory . "/" . $project_files["input_direc
 
 // Copy centreon-build to the tmp directory.
 echo "copying centreon build to tmp directory...\n";
-if (!xcopy("./centreon-build", $tmp_directory . "/centreon-build")) {
+if (!xcopy($centreon_build_directory, $tmp_directory . "/centreon-build")) {
   echo "couldn't copy \"centreon-build\" to \"$tmp_directory\"";
   return (-1);
 }

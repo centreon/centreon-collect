@@ -7,16 +7,7 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
   return (0);
 }
 
-// Get absolute paths.
-$opts["s"] = realpath($opts["s"]);
-if (isset($opts["f"])) {
-  $opts["f"] = realpath($opts["f"]);
-}
-
-// Chdir to the good directory
-chdir(dirname(__FILE__) . '/../../');
-
-$centreon_build_directory = realpath('centreon-build');
+$centreon_build_directory = dirname(__FILE__) . '/../../';
 $source_directory = realpath($opts['s']);
 $source_directory_name = $opts['s'];
 // Remove ./ as the docker mount dislikes this.
@@ -32,7 +23,7 @@ mkdir($tmp_directory);
 echo "creating behat docker image...\n";
 copy('./centreon-build/containers/behat/behat.Dockerfile', "$tmp_directory/behat.Dockerfile");
 exec("docker build -t behat -f $tmp_directory/behat.Dockerfile $tmp_directory");
-echo "starting bethat docker image...\n";
+echo "starting behat docker image...\n";
 exec("docker run -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker:/var/lib/docker -v $centreon_build_directory:/tmp/centreon-build -v $source_directory:/tmp/$source_directory_name -ti --net host -d behat", $output, $return_var);
 if ($return_var != 0) {
   echo "couldn't launch behat: " . implode('\n', $output) . "\n";
