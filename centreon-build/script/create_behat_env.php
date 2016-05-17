@@ -31,10 +31,17 @@ if ($return_var != 0) {
 }
 $id = $output[0];
 
+// Get args
+$opts['s'] = $source_directory_name;
+$imploded_args = "";
+foreach ($opts as $key => $value) {
+  $imploded_args = $imploded_args . " -$key $value";
+}
+
 // Launch acceptance script.
 echo "starting acceptance script...\n";
 array_shift($argv);
-passthru("docker exec $id sh -c 'cd /tmp/; php /tmp/centreon-build/script/launch_acceptance_test.php " . implode(' ', $argv) . "'");
+passthru("docker exec $id sh -c 'cd /tmp/; php /tmp/centreon-build/script/launch_acceptance_test.php $imploded_args'");
 
 exec("docker stop $id");
 ?>
