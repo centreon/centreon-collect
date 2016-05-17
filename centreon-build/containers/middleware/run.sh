@@ -9,7 +9,7 @@ service mysql start
 screen -d -m slapd -u ldap -h ldap:// -F /etc/openldap/slapd.d/
 started=1
 while [ "$started" -ne 0 ] ; do
-  started=`nc -q 1 localhost 389 ; echo $?`
+  started=`nc -w 1 localhost 389 ; echo $?`
 done
 ldapadd -f /tmp/ldap.ldif -D 'cn=Manager,dc=centreon,dc=com' -w centreon || true
 /etc/init.d/redis_6379 start
