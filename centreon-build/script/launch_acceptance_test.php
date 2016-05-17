@@ -1,7 +1,7 @@
 <?php
 
 require_once(dirname(__FILE__) . '/../conf/acceptance.conf.php');
-$centreon_build_directory = dirname(__FILE__) . '/../../';
+$centreon_build_directory = dirname(__FILE__) . '/..';
 
 if (!defined('_GITHUB_TOKEN_') || _GITHUB_TOKEN_ == "") {
     echo "Please fill your github token in acceptance.conf.php file\n";
@@ -39,6 +39,7 @@ function replace_in_file($in, $out, $to_replace) {
 
 function get_project_files($project_name) {
   global $arch;
+  global $centreon_build_directory;
 
   $project_files["web"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-web-dev.sh";
   $project_files["web"]["input_directory"] = "centreon";
