@@ -19,6 +19,9 @@ sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < lm/lm-dev.Dockerfile.in > lm/lm-dev
 
 # CentOS PPM image.
 rm -rf centreon-license-manager
+cd ../../centreon-license-manager/www/modules/centreon-license-manager/frontend/app
+gulp
+cd ../../../../../../centreon-build/containers
 cp -r ../../centreon-license-manager/www/modules/centreon-license-manager .
-docker build --no-cache -t mon-lm-dev:centos$CENTOS_VERSION -f lm/lm-dev.centos$CENTOS_VERSION.Dockerfile .
+docker build -t mon-lm-dev:centos$CENTOS_VERSION -f lm/lm-dev.centos$CENTOS_VERSION.Dockerfile .
 
