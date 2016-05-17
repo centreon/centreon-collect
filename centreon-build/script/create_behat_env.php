@@ -9,7 +9,7 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
 
 $centreon_build_directory = dirname(__FILE__) . '/..';
 $source_directory = realpath($opts['s']);
-$source_directory_name = $opts['s'];
+$source_directory_name = basename($source_directory);
 // Remove ./ as the docker mount dislikes this.
 if (0 === strpos($source_directory_name, './'))
   $source_directory_name = substr($source_directory_name, strlen('./'));
