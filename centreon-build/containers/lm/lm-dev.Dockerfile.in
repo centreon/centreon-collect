@@ -2,12 +2,13 @@
 FROM ci.int.centreon.com:5000/mon-lm:centos@CENTOS_VERSION@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
-# Copy LM sources.
-COPY centreon-license-manager /usr/share/centreon/www/modules/centreon-license-manager
-
-# Install script.
+# Copy install scripts.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY lm/install-dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
-RUN /tmp/install.sh
 
+# Copy LM sources.
+COPY centreon-license-manager /usr/share/centreon/www/modules/centreon-license-manager
+
+# Run install script.
+RUN /tmp/install.sh
