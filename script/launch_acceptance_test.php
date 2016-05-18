@@ -66,12 +66,12 @@ function get_project_files($project_name) {
   $project_files["ppm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["ppm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:centos$arch";
 
-  $project_files["imp"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-middleware-dev.sh";
-  $project_files["imp"]["input_directory"] = "centreon-imp-portal-api";
-  $project_files["imp"]["compose-in"] = "$centreon_build_directory/containers/middleware/docker-compose-standalone.yml.in";
-  $project_files["imp"]["compose-out"] = "mon-middleware-dev.yml";
-  $project_files["imp"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
-  $project_files["imp"]["compose-replace"][0]["to"] = "mon-middleware-dev:centos$arch";
+  $project_files["middleware"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-middleware-dev.sh";
+  $project_files["middleware"]["input_directory"] = "centreon-imp-portal-api";
+  $project_files["middleware"]["compose-in"] = "$centreon_build_directory/containers/middleware/docker-compose-standalone.yml.in";
+  $project_files["middleware"]["compose-out"] = "mon-middleware-dev.yml";
+  $project_files["middleware"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
+  $project_files["middleware"]["compose-replace"][0]["to"] = "mon-middleware-dev:centos$arch";
 
   $project_files["ppe"]["dev"] = "$centreon_build_directory/jobs/containers/mon-containers-ppe-dev.sh";
   $project_files["ppe"]["input_directory"] = "centreon-export";
@@ -121,7 +121,7 @@ $project_name = $opts["p"];
 $source_directory = $opts["s"];
 $project_files = get_project_files($project_name);
 if (!isset($project_files)) {
-  echo "project $project_name not supported: supported projects are 'web', 'lm', 'ppe', 'ppm', 'imp'\n";
+  echo "project $project_name not supported: supported projects are 'web', 'lm', 'ppe', 'ppm', 'middleware'\n";
   return (0);
 }
 
