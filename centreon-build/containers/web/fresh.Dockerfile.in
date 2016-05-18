@@ -5,7 +5,6 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 # Install Centreon Web.
 RUN yum clean all
 RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine mysql-server git
-RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
