@@ -19,7 +19,7 @@ name=PHP55 for Centos 7\n\
 baseurl=http://rpms.famillecollet.com/enterprise/7/php55/x86_64/\n\
 enabled=1\n\
 gpgcheck=0\n" > /etc/yum.repos.d/ces-standard-unstable.centos7.repo
-RUN yum install --nogpgcheck -y libzip php-cli php-mbstring php-mysql php-pdo php-xml wget gcc bzip2 make curl perl git
+RUN yum install --nogpgcheck -y libzip php-cli php-mbstring php-mysql php-pdo php-pecl-gnupg php-xml wget gcc bzip2 make curl perl git
 
 # Init php timezone
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
