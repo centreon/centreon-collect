@@ -10,6 +10,7 @@ RUN mkdir /usr/share/monitoring
 COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
 RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/dependencies.txt`
 RUN yum install --nogpgcheck -y bzip2 curl git nc wget
+RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Install Node.js and related elements.
 RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
