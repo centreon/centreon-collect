@@ -3,12 +3,14 @@ FROM centos:7
 MAINTAINER Alexandre Fouille <afouille@centreon.com>
 RUN echo 'gpgcheck=0' >> /etc/yum.conf
 RUN echo 'http_caching=none' >> /etc/yum.conf
+RUN echo '10.30.2.62 support.centreon.com' >> /etc/hosts
+RUN echo '10.24.11.73 crm.int.centreon.com' >> /etc/hosts
 
 # Install properly packaged dependencies.
 RUN mkdir /usr/share/monitoring
 RUN printf "[Remi]\n\
 name=Remi for Centos 7\n\
-baseurl=http://rpms.famillecollet.com/enterprise/5/remi/x86_64/\n\
+baseurl=http://rpms.famillecollet.com/enterprise/7/remi/x86_64/\n\
 enabled=1\n\
 gpgcheck=0\n\
 \n\
@@ -17,7 +19,7 @@ name=PHP55 for Centos 7\n\
 baseurl=http://rpms.famillecollet.com/enterprise/7/php55/x86_64/\n\
 enabled=1\n\
 gpgcheck=0\n" > /etc/yum.repos.d/ces-standard-unstable.centos7.repo
-RUN yum install --nogpgcheck -y libzip php-cli php-mbstring php-xml wget gcc bzip2 make curl perl git
+RUN yum install --nogpgcheck -y libzip php-cli php-mbstring php-mysql php-pdo php-xml wget gcc bzip2 make curl perl git
 
 # Init php timezone
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
