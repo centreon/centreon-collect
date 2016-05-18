@@ -4,6 +4,7 @@ set -e
 set -x
 
 service mysql start
+mysql -e 'DROP DATABASE IF EXISTS imp'
 mysql -e 'CREATE DATABASE imp'
 mysql imp < /usr/local/src/centreon-imp-portal-api/database/create.sql
 mysql imp < /usr/local/src/imp.sql
