@@ -2,12 +2,14 @@
 FROM ci.int.centreon.com:5000/mon-lm:centos@CENTOS_VERSION@
 MAINTAINER Alexandre Fouille <afouille@centreon.com>
 
+# Copy install scripts.
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY ppm/install-dev.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+
 # Copy sources.
 COPY centreon-pp-manager /usr/share/centreon/www/modules/centreon-pp-manager
 RUN sed -i -e s#"^define('CENTREON_IMP_API_URL', '.*');\$#define('CENTREON_IMP_API_URL', 'http://middleware:3000/api');"#g /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
 
-# Install script.
-COPY install-centreon-module.php /tmp/install-centreon-module.php
-COPY ppm/install-dev.sh /tmp/install.sh
-RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+# Run install script.
 RUN /tmp/install.sh

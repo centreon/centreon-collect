@@ -20,5 +20,4 @@ sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < ppm/ppm-dev.Dockerfile.in > ppm/ppm
 # CentOS PPM image.
 rm -rf centreon-pp-manager
 cp -r ../../centreon-import/www/modules/centreon-pp-manager .
-docker build --no-cache -t mon-ppm-dev:centos$CENTOS_VERSION -f ppm/ppm-dev.centos$CENTOS_VERSION.Dockerfile .
-
+docker build -t mon-ppm-dev:centos$CENTOS_VERSION -f ppm/ppm-dev.centos$CENTOS_VERSION.Dockerfile .
