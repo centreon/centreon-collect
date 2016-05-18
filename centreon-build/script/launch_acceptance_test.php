@@ -86,7 +86,7 @@ function get_project_files($project_name) {
 }
 
 // Parse the options.
-$opts = getopt("p:a:s:f::");
+$opts = getopt("p:a:s:f:");
 if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
   echo "usage: launch_acceptance_test -f[feature_file] -p project_name -a centos6|centos7 -s source_directory\n";
   return (0);
@@ -94,9 +94,6 @@ if (!isset($opts["p"]) || !isset($opts["s"]) || !isset($opts["a"])) {
 
 // Get absolute paths.
 $opts["s"] = realpath($opts["s"]);
-if (isset($opts["f"])) {
-  $opts["f"] = realpath($opts["f"]);
-}
 
 // Get the feature file[s]
 $feature;
