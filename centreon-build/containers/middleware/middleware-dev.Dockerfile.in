@@ -3,4 +3,5 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
 COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js
 COPY middleware/private.asc /usr/local/src/centreon-imp-portal-api/private.asc
+RUN npm install
 RUN /tmp/install.sh
