@@ -1,11 +1,11 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-web:centos@CENTOS_VERSION@
+FROM ci.int.centreon.com:5000/mon-lm:centos@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Copy sources.
 COPY centreon-license-manager /usr/share/centreon/www/modules/centreon-license-manager
 COPY centreon-pp-manager /usr/share/centreon/www/modules/centreon-pp-manager
-RUN sed -i -e s#"^define('CENTREON_IMP_API_URL', '.*');\$#define('CENTREON_IMP_API_URL', 'http://middleware:3000/api');#g" /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
+RUN sed -i -e s#"^define('CENTREON_IMP_API_URL', '.*');\$#define('CENTREON_IMP_API_URL', 'http://middleware:3000/api');"#g /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
 
 # Install script.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
