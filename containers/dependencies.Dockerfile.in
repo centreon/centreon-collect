@@ -9,7 +9,7 @@ COPY ces-standard-unstable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-stan
 RUN mkdir /usr/share/monitoring
 COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
 RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/dependencies.txt`
-RUN yum install --nogpgcheck -y bzip2 curl git nc wget
+RUN yum install --nogpgcheck -y bzip2 curl git nc wget php-process
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Install Node.js and related elements.
