@@ -11,6 +11,7 @@ set +e
 started=1
 while [ "$started" -ne 0 ] ; do
   started=`nc -w 1 localhost 389 ; echo $?`
+  sleep 1
 done
 set -e
 ldapadd -f /tmp/ldap.ldif -D 'cn=Manager,dc=centreon,dc=com' -w centreon || true
