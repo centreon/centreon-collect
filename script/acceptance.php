@@ -159,9 +159,9 @@ if ($return_var != 0) {
 
 // Start acceptance tests.
 echo "[5/5] Finally running acceptance tests...\n";
-$cmd = "./vendor/bin/behat --strict ";
+$cmd = "./vendor/bin/behat --strict";
 foreach ($argv as $feature) {
-    $cmd .= $feature;
+    $cmd .= ' ' . $feature;
 }
 passthru($cmd, $return_var);
 
