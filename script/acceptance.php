@@ -160,10 +160,20 @@ if (!isset($project_files)) {
 }
 
 // Replace the compose .yml.in.
-echo "[3/5] Generating execution files...\n";
+echo "[3/5] Preparing for execution...\n";
 if (!replace_in_file($project_files["compose-in"], $source_dir . "/" . $project_files["compose-out"], $project_files["compose-replace"])) {
     echo "Couldn't replace in the file " . $project_files["compose"] . "\n";
     return (1);
+}
+if (should_use_docker_machine()) {
+    unset($output);
+    exec('docker-machine env --shell bash default', $output);
+    foreach ($output as $line) {
+        // 'export '
+        if (substr($line, 0, 7) == 'export ') {
+            putenv(substr($line, 7));
+        }
+    }
 }
 
 // Execute the dev container script.
