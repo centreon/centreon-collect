@@ -87,9 +87,26 @@ array_shift($argv);
 if (isset($opts['h'])) {
     echo "USAGE: acceptance.php [-h] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
+    echo "  Description:\n";
+    echo "    Feature files are optional. By default all of them will be run.\n";
+    echo "    Log files and screenshots will be saved in system temporary\n";
+    echo "    directory in case of an error in a scenario.\n";
+    echo "\n";
+    echo "  Arguments:\n";
     echo "    -h  Print this help.\n";
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
-    echo "    Feature files are optional. By default all of them will be run.\n";
+    echo "\n";
+    echo "  Prerequisites:\n";
+    echo "    - *Docker*\n";
+    echo "    - *Docker Compose*\n";
+    echo "    - *Docker Machine* if running from Windows or MacOS\n";
+    echo "    - *PHP*\n";
+    echo "    - *PDO* extension for PHP\n";
+    echo "    - *PDO MySQL* extension for PHP\n";
+    echo "    - *composer*\n";
+    echo "    - the following hosts must be resolved to the corresponding IP addresses:\n";
+    echo "        crm.int.centreon.com 10.24.11.73\n";
+    echo "        support.centreon.com 10.30.2.62\n";
     return (0);
 }
 if (isset($opts['d'])) {
