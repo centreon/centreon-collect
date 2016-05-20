@@ -5,11 +5,6 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY centreon-imp-portal-api/package.json /usr/local/src/centreon-imp-portal-api/package.json
 RUN npm install
 
-# Compose packages.
-COPY centreon-imp-portal-api/composer.json /usr/local/src/centreon-imp-portal-api/composer.json
-RUN composer install
-RUN composer update
-
 # Database.
 COPY centreon-imp-portal-api/database/create.sql /usr/local/src/centreon-imp-portal-api/database/create.sql
 RUN /tmp/install.sh
