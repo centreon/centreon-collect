@@ -4,20 +4,17 @@ set -e
 set -x
 
 # Check arguments.
+CENTREON_BUILD=`dirname "$0"`/../..
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
-
-# Pull Centreon Web image.
-docker pull ci.int.centreon.com:5000/mon-lm:centos$CENTOS_VERSION
+DISTRIB="$1"
 
 # Prepare Dockerfile.
-cd centreon-build/containers
-sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < ppm/ppm-dev.Dockerfile.in > ppm/ppm-dev.centos$CENTOS_VERSION.Dockerfile
+sed "s/@DISTRIB@/$DISTRIB/g" < "$CENTREON_BUILD/containers/ppm/ppm-dev.Dockerfile.in" > "$CENTREON_BUILD/containers/ppm/ppm-dev.$DISTRIB.Dockerfile"
 
-# CentOS PPM image.
-rm -rf centreon-pp-manager
-cp -r ../../centreon-import/www/modules/centreon-pp-manager .
-docker build -t mon-ppm-dev:centos$CENTOS_VERSION -f ppm/ppm-dev.centos$CENTOS_VERSION.Dockerfile .
+# Build PPM image.
+rm -rf "$CENTREON_BUILD/containers/centreon-pp-manager"
+cp -r ./www/modules/centreon-pp-manager "$CENTREON_BUILD/containers/centreon-pp-manager"
+docker build -t mon-ppm-dev:$DISTRIB -f "$CENTREON_BUILD/containers/ppm/ppm-dev.$DISTRIB.Dockerfile" "$CENTREON_BUILD/containers"

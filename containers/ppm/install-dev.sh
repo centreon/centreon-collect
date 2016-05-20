@@ -4,7 +4,6 @@ set -e
 set -x
 
 service mysql start
-httpd -k start
-/tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-pp-manager
-httpd -k stop
+mysql centreon < /usr/share/centreon/www/modules/centreon-pp-manager/sql/uninstall.sql
+mysql centreon < /usr/share/centreon/www/modules/centreon-pp-manager/sql/install.sql
 service mysql stop
