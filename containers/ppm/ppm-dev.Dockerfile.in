@@ -13,8 +13,8 @@ COPY centreon-pp-manager/centreon-pluginpack-manager.conf.php /usr/share/centreo
 RUN sed -i -e s#"^define('CENTREON_IMP_API_URL', '.*');\$#define('CENTREON_IMP_API_URL', 'http://middleware:3000/api');"#g /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
 
 # Static sources.
-COPY centreon-pp-manager/static
-COPY centreon-pp-manager/locale
-COPY centreon-pp-manager/UPGRADE
-COPY centreon-pp-manager/webServices
-COPY centreon-pp-manager/core
+COPY centreon-pp-manager/static /usr/share/centreon/www/modules/centreon-pp-manager/static
+COPY centreon-pp-manager/locale /usr/share/centreon/www/modules/centreon-pp-manager/locale
+COPY centreon-pp-manager/UPGRADE /usr/share/centreon/www/modules/centreon-pp-manager/UPGRADE
+COPY centreon-pp-manager/webServices /usr/share/centreon/www/modules/centreon-pp-manager/webServices
+COPY centreon-pp-manager/core /usr/share/centreon/www/modules/centreon-pp-manager/core
