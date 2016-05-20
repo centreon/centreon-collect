@@ -164,8 +164,7 @@ if (empty($argv)) {
     $argv[] = '';
 }
 foreach ($argv as $feature) {
-    $cmd .= ' ' . $feature;
+    passthru($cmd . ' ' . $feature, $return_var);
 }
-passthru($cmd, $return_var);
 
 ?>
