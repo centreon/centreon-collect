@@ -160,6 +160,9 @@ if ($return_var != 0) {
 // Start acceptance tests.
 echo "[5/5] Finally running acceptance tests...\n";
 $cmd = "./vendor/bin/behat --strict";
+if (empty($argv)) {
+    $argv[] = '';
+}
 foreach ($argv as $feature) {
     $cmd .= ' ' . $feature;
 }
