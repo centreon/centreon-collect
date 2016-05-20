@@ -164,6 +164,10 @@ if ($return_var != 0) {
 
 // Start acceptance tests.
 echo "[5/5] Finally running acceptance tests...\n";
-passthru("ls 'features'/*.feature | parallel -j1 -u ./vendor/bin/behat --strict \"{}\"", $return_var);
+$cmd = "./vendor/bin/behat --strict ";
+foreach ($argv as $feature) {
+    $cmd .= $feature;
+}
+passthru($cmd, $return_var);
 
 ?>
