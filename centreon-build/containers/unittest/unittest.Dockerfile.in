@@ -13,10 +13,6 @@ RUN chmod +x /usr/local/bin/phpunit
 RUN wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-@CENTOS_VERSION@.noarch.rpm
 RUN yum install --nogpgcheck -y epel-release-latest-@CENTOS_VERSION@.noarch.rpm
 RUN yum install -y php-pecl-xdebug
-# Install composer.
-RUN curl -sS https://getcomposer.org/installer | php
-RUN mv composer.phar /usr/local/bin/composer
-RUN chmod +x /usr/local/bin/composer
 
 # Install unit tests scripts.
 COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
