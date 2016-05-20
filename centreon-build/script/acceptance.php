@@ -90,7 +90,7 @@ pcntl_signal(SIGINT, 'call_exit');
 $opts = getopt("d:h");
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: launch_acceptance_test.php [-h] [-d distrib] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "    -h  Print this help.\n";
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
