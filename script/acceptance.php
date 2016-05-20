@@ -34,14 +34,12 @@ function get_project_files($project_name) {
   global $centreon_build_dir;
 
   $project_files["web"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-web-dev.sh";
-  $project_files["web"]["input_directory"] = "centreon";
   $project_files["web"]["compose-in"] = "$centreon_build_dir/containers/web/docker-compose.yml.in";
   $project_files["web"]["compose-out"] = "mon-web-dev.yml";
   $project_files["web"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["web"]["compose-replace"][0]["to"] = "mon-web-dev:$distrib";
 
   $project_files["lm"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-lm-dev.sh";
-  $project_files["lm"]["input_directory"] = "centreon-license-manager";
   $project_files["lm"]["compose-in"] = "$centreon_build_dir/containers/middleware/docker-compose-web.yml.in";
   $project_files["lm"]["compose-out"] = "mon-lm-dev.yml";
   $project_files["lm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
@@ -50,7 +48,6 @@ function get_project_files($project_name) {
   $project_files["lm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:$distrib";
 
   $project_files["ppm"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-ppm-dev.sh";
-  $project_files["ppm"]["input_directory"] = "centreon-import";
   $project_files["ppm"]["compose-in"] = "$centreon_build_dir/containers/middleware/docker-compose-web.yml.in";
   $project_files["ppm"]["compose-out"] = "mon-ppm-dev.yml";
   $project_files["ppm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
@@ -59,14 +56,12 @@ function get_project_files($project_name) {
   $project_files["ppm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:$distrib";
 
   $project_files["middleware"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-middleware-dev.sh";
-  $project_files["middleware"]["input_directory"] = "centreon-imp-portal-api";
   $project_files["middleware"]["compose-in"] = "$centreon_build_dir/containers/middleware/docker-compose-standalone.yml.in";
   $project_files["middleware"]["compose-out"] = "mon-middleware-dev.yml";
   $project_files["middleware"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["middleware"]["compose-replace"][0]["to"] = "mon-middleware-dev:$distrib";
 
   $project_files["ppe"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-ppe-dev.sh";
-  $project_files["ppe"]["input_directory"] = "centreon-export";
   $project_files["ppe"]["compose-in"] = "$centreon_build_dir/containers/web/docker-compose.yml.in";
   $project_files["ppe"]["compose-out"] = "mon-ppe-dev.yml";
   $project_files["ppe"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
@@ -149,7 +144,7 @@ if (!isset($project_files)) {
 
 // Replace the compose .yml.in.
 echo "[3/5] Generating execution files...\n";
-if (!replace_in_file($project_files["compose-in"], $project_files["input_directory"] . "/" . $project_files["compose-out"], $project_files["compose-replace"])) {
+if (!replace_in_file($project_files["compose-in"], $source_dir . "/" . $project_files["compose-out"], $project_files["compose-replace"])) {
     echo "Couldn't replace in the file " . $project_files["compose"] . "\n";
     return (1);
 }
