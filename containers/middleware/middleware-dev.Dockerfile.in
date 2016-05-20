@@ -1,7 +1,15 @@
 FROM ci.int.centreon.com:5000/mon-middleware:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
-COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
-COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js
-COPY middleware/private.asc /usr/local/src/centreon-imp-portal-api/private.asc
+
+COPY centreon-imp-portal-api/package.json /usr/local/src/centreon-imp-portal-api/package.json
 RUN npm install
+
+COPY centreon-imp-portal-api/composer.json /usr/local/src/centreon-imp-portal-api/composer.json
+RUN composer install
+RUN composer update
+
+COPY centreon-imp-portal-api/database/create.sql /usr/local/src/centreon-imp-portal-api/database/create.sql
 RUN /tmp/install.sh
+
+COPY centreon-imp-portal-api/lib /usr/local/src/centreon-imp-portal-api/lib
+COPY centreon-imp-portal-api/localserver /usr/local/src/centreon-imp-portal-api/localserver
