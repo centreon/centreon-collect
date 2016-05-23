@@ -78,8 +78,10 @@ function call_exit(int $signo)
 }
 
 // Set signal handlers.
-pcntl_signal(SIGTERM, 'call_exit');
-pcntl_signal(SIGINT, 'call_exit');
+if (function_exists('pcntl_signal')) {
+    pcntl_signal(SIGTERM, 'call_exit');
+    pcntl_signal(SIGINT, 'call_exit');
+}
 
 // Parse the options.
 $opts = getopt("d:h");
