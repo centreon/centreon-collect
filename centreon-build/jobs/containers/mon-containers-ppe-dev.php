@@ -1,43 +1,10 @@
 <?php
 
-// Copy directory recursively
-function xcopy($source, $dest) {
-    if (defined(PHP_WINDOWS_VERSION_MAJOR)) {
-        $cmd = "xcopy /E '$source' '$dest'";
-    }
-    else {
-        $cmd = "cp -r '$source' '$dest'";
-    }
-    exec($cmd, $output, $return);
-    if ($return == 0)
-        return (true);
-    else
-        return (false);
-}
-
-// Replace slashes with platform-specific directory separator.
-function xpath($path) {
-    return str_replace('/', DIRECTORY_SEPARATOR, $path);
-}
-
-// Remove directory recursively.
-function xrmdir($dir) {
-    if (is_dir($dir)) {
-        $objects = scandir($dir);
-        foreach ($objects as $object) {
-            if ($object != "." && $object != "..") {
-                if (is_dir($dir."/".$object))
-                    xrmdir($dir."/".$object);
-                else
-                    unlink($dir."/".$object);
-            }
-        }
-        rmdir($dir);
-    }
-}
+// Load Centreon Build library.
+$centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..';
+require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
 
 # Check arguments.
-$centreon_build_dir = xpath(dirname(__FILE__) . '/../..');
 if ($argc <= 1) {
     echo "USAGE: $0 <centos6|centos7>\n";
     exit(1);
