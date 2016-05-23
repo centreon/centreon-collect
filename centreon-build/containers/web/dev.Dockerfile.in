@@ -1,18 +1,22 @@
 FROM ci.int.centreon.com:5000/mon-web-stable:@DISTRIB@
-MAINTAINER Alexandre Fouille <afouille@centreon.com>
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Prepare environment for autoinstall.
-COPY centreon /tmp/centreon
-COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
-
-# Install script (web-wizard install).
+# Centreon update is made through custom scripts.
+COPY web/update-centreon.php /tmp/update-centreon.php
 COPY web/dev.sh /tmp/install.sh
-COPY web/vars /tmp/vars
-COPY update-centreon.php /tmp/update-centreon.php
 RUN chmod +x /tmp/install.sh
+COPY centreon/www/install /usr/share/centreon/www/install
 RUN /tmp/install.sh
 
-# Main script.
-COPY web/run.sh /usr/share/centreon/container.sh
-RUN chmod +x /usr/share/centreon/container.sh
-ENTRYPOINT /usr/share/centreon/container.sh
+# Static sources.
+COPY centreon/www/sounds /usr/share/centreon/www/sounds
+COPY centreon/www/img /usr/share/centreon/www/img
+COPY centreon/www/include /usr/share/centreon/www/include
+COPY centreon/www/modules /usr/share/centreon/www/modules
+COPY centreon/www/index.php /usr/share/centreon/www/index.php
+COPY centreon/www/main.php /usr/share/centreon/www/main.php
+COPY centreon/www/Themes /usr/share/centreon/www/Themes
+COPY centreon/www/widgets /usr/share/centreon/www/widgets
+COPY centreon/www/api /usr/share/centreon/www/api
+COPY centreon/www/class /usr/share/centreon/www/class
+COPY centreon/www/lib /usr/share/centreon/www/lib
