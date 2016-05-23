@@ -2,11 +2,22 @@
 
 // Copy directory recursively
 function xcopy($source, $dest) {
-    exec("cp -r '$source' '$dest'", $output, $return);
+    if (defined(PHP_WINDOWS_VERSION_MAJOR)) {
+        $cmd = "xcopy /E '$source' '$dest'";
+    }
+    else {
+        $cmd = "cp -r '$source' '$dest'";
+    }
+    exec($cmd, $output, $return);
     if ($return == 0)
         return (true);
     else
         return (false);
+}
+
+// Replace slashes with platform-specific directory separator.
+function xpath($path) {
+    return str_replace('/', DIRECTORY_SEPARATOR, $path);
 }
 
 // Remove directory recursively.
@@ -26,7 +37,7 @@ function xrmdir($dir) {
 }
 
 # Check arguments.
-$centreon_build_dir = dirname(__FILE__) . '/../..';
+$centreon_build_dir = xpath(dirname(__FILE__) . '/../..');
 if ($argc <= 1) {
     echo "USAGE: $0 <centos6|centos7>\n";
     exit(1);
@@ -34,14 +45,14 @@ if ($argc <= 1) {
 $distrib = $argv[1];
 
 # Prepare Dockerfile.
-$content = file_get_contents($centreon_build_dir . '/containers/ppe/ppe-dev.Dockerfile.in');
+$content = file_get_contents(xpath($centreon_build_dir . '/containers/ppe/ppe-dev.Dockerfile.in'));
 $content = str_replace('@DISTRIB@', $distrib, $content);
-$dockerfile = $centreon_build_dir . '/containers/ppe/ppe-dev.' . $distrib . '.Dockerfile';
+$dockerfile = xpath($centreon_build_dir . '/containers/ppe/ppe-dev.' . $distrib . '.Dockerfile');
 file_put_contents($dockerfile, $content);
 
 # Build middleware image.
-xrmdir($centreon_build_dir . '/containers/centreon-export');
-xcopy('www/modules/centreon-export', $centreon_build_dir . '/containers/centreon-export');
-passthru('docker build -t mon-ppe-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . $centreon_build_dir . '/containers');
+xrmdir(xpath($centreon_build_dir . '/containers/centreon-export'));
+xcopy(xpath('www/modules/centreon-export'), xpath($centreon_build_dir . '/containers/centreon-export'));
+passthru('docker build -t mon-ppe-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
 
 ?>
