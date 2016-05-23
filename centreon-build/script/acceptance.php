@@ -18,6 +18,11 @@ function xcopy($source, $dest) {
     return (false);
 }
 
+// Replace slashes with platform-specific directory separator.
+function xpath($path) {
+    return str_replace('/', DIRECTORY_SEPARATOR, $path);
+}
+
 // Replace all the elements of a file
 function replace_in_file($in, $out, $to_replace) {
   $str = file_get_contents($in);
@@ -33,36 +38,36 @@ function get_project_files($project_name) {
   global $distrib;
   global $centreon_build_dir;
 
-  $project_files["web"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-web-dev.php";
-  $project_files["web"]["compose-in"] = "$centreon_build_dir/containers/web/docker-compose.yml.in";
+  $project_files["web"]["dev"] = xpath("$centreon_build_dir/jobs/containers/mon-containers-web-dev.php");
+  $project_files["web"]["compose-in"] = xpath("$centreon_build_dir/containers/web/docker-compose.yml.in");
   $project_files["web"]["compose-out"] = "mon-web-dev.yml";
   $project_files["web"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["web"]["compose-replace"][0]["to"] = "mon-web-dev:$distrib";
 
-  $project_files["lm"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-lm-dev.php";
-  $project_files["lm"]["compose-in"] = "$centreon_build_dir/containers/middleware/docker-compose-web.yml.in";
+  $project_files["lm"]["dev"] = xpath("$centreon_build_dir/jobs/containers/mon-containers-lm-dev.php");
+  $project_files["lm"]["compose-in"] = xpath("$centreon_build_dir/containers/middleware/docker-compose-web.yml.in");
   $project_files["lm"]["compose-out"] = "mon-lm-dev.yml";
   $project_files["lm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["lm"]["compose-replace"][0]["to"] = "mon-lm-dev:$distrib";
   $project_files["lm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["lm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:$distrib";
 
-  $project_files["ppm"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-ppm-dev.php";
-  $project_files["ppm"]["compose-in"] = "$centreon_build_dir/containers/middleware/docker-compose-web.yml.in";
+  $project_files["ppm"]["dev"] = xpath("$centreon_build_dir/jobs/containers/mon-containers-ppm-dev.php");
+  $project_files["ppm"]["compose-in"] = xpath("$centreon_build_dir/containers/middleware/docker-compose-web.yml.in");
   $project_files["ppm"]["compose-out"] = "mon-ppm-dev.yml";
   $project_files["ppm"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["ppm"]["compose-replace"][0]["to"] = "mon-ppm-dev:$distrib";
   $project_files["ppm"]["compose-replace"][1]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["ppm"]["compose-replace"][1]["to"] = "ci.int.centreon.com:5000/mon-middleware:$distrib";
 
-  $project_files["middleware"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-middleware-dev.php";
-  $project_files["middleware"]["compose-in"] = "$centreon_build_dir/containers/middleware/docker-compose-standalone.yml.in";
+  $project_files["middleware"]["dev"] = xpath("$centreon_build_dir/jobs/containers/mon-containers-middleware-dev.php");
+  $project_files["middleware"]["compose-in"] = xpath("$centreon_build_dir/containers/middleware/docker-compose-standalone.yml.in");
   $project_files["middleware"]["compose-out"] = "mon-middleware-dev.yml";
   $project_files["middleware"]["compose-replace"][0]["from"] = "@MIDDLEWARE_IMAGE@";
   $project_files["middleware"]["compose-replace"][0]["to"] = "mon-middleware-dev:$distrib";
 
-  $project_files["ppe"]["dev"] = "$centreon_build_dir/jobs/containers/mon-containers-ppe-dev.php";
-  $project_files["ppe"]["compose-in"] = "$centreon_build_dir/containers/web/docker-compose.yml.in";
+  $project_files["ppe"]["dev"] = xpath("$centreon_build_dir/jobs/containers/mon-containers-ppe-dev.php");
+  $project_files["ppe"]["compose-in"] = xpath("$centreon_build_dir/containers/web/docker-compose.yml.in");
   $project_files["ppe"]["compose-out"] = "mon-ppe-dev.yml";
   $project_files["ppe"]["compose-replace"][0]["from"] = "@WEB_IMAGE@";
   $project_files["ppe"]["compose-replace"][0]["to"] = "mon-ppe-dev:$distrib";
@@ -119,12 +124,12 @@ if (isset($opts['d'])) {
 else {
     $distrib = 'centos6';
 }
-$centreon_build_dir = dirname(__FILE__) . '/..';
+$centreon_build_dir = xpath(dirname(__FILE__) . '/..');
 $source_dir = realpath('.');
 
 // Load configuration file.
 echo "[1/5] Loading configuration file...\n";
-require_once($centreon_build_dir . '/conf/acceptance.conf.php');
+require_once(xpath($centreon_build_dir . '/conf/acceptance.conf.php'));
 if (!defined('_GITHUB_TOKEN_') || _GITHUB_TOKEN_ == "") {
     echo "Please fill your GitHub token in acceptance.conf.php file.\n";
     return (1);
@@ -163,7 +168,7 @@ if (!isset($project_files)) {
 
 // Replace the compose .yml.in.
 echo "[3/5] Preparing for execution...\n";
-if (!replace_in_file($project_files["compose-in"], $source_dir . "/" . $project_files["compose-out"], $project_files["compose-replace"])) {
+if (!replace_in_file($project_files["compose-in"], xpath($source_dir . "/" . $project_files["compose-out"]), $project_files["compose-replace"])) {
     echo "Couldn't replace in the file " . $project_files["compose"] . "\n";
     return (1);
 }
@@ -188,7 +193,7 @@ if ($return_var != 0) {
 
 // Start acceptance tests.
 echo "[5/5] Finally running acceptance tests...\n";
-$cmd = "./vendor/bin/behat --strict";
+$cmd = xpath("./vendor/bin/behat --strict");
 if (empty($argv)) {
     $argv[] = '';
 }
