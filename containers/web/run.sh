@@ -13,6 +13,7 @@ while true ; do
     sleep 1
   fi
 done
+mysql -e "GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'centreon'"
 service cbd start
 service centengine start
 service centcore start
