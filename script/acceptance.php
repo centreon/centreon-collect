@@ -1,5 +1,9 @@
 <?php
 
+// Load Centreon Build library.
+$centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..';
+require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
+
 function should_use_docker_machine() {
   $os = php_uname('s');
 
@@ -7,20 +11,6 @@ function should_use_docker_machine() {
     return (true);
   else
     return (false);
-}
-
-// Copy directory recursively
-function xcopy($source, $dest) {
-  exec("cp -r '$source' '$dest'", $output, $return);
-  if ($return == 0)
-    return (true);
-  else
-    return (false);
-}
-
-// Replace slashes with platform-specific directory separator.
-function xpath($path) {
-    return str_replace('/', DIRECTORY_SEPARATOR, $path);
 }
 
 // Replace all the elements of a file
@@ -124,7 +114,6 @@ if (isset($opts['d'])) {
 else {
     $distrib = 'centos6';
 }
-$centreon_build_dir = xpath(dirname(__FILE__) . '/..');
 $source_dir = realpath('.');
 
 // Load configuration file.
