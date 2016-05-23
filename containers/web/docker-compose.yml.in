@@ -8,3 +8,4 @@ services:
     image: @WEB_IMAGE@
     ports:
     - "80"
+    - "3306"
