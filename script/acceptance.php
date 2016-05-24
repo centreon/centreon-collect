@@ -4,15 +4,6 @@
 $centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..';
 require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
 
-function should_use_docker_machine() {
-  $os = php_uname('s');
-
-  if ($os == 'Windows NT' || $os == 'Darwin')
-    return (true);
-  else
-    return (false);
-}
-
 // Replace all the elements of a file
 function replace_in_file($in, $out, $to_replace) {
   $str = file_get_contents($in);
@@ -94,9 +85,8 @@ if (isset($opts['h'])) {
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
     echo "\n";
     echo "  Prerequisites:\n";
-    echo "    - *Docker*\n";
+    echo "    - *Docker* (connected to Docker Machine on Windows or MacOS)\n";
     echo "    - *Docker Compose*\n";
-    echo "    - *Docker Machine* if running from Windows or MacOS\n";
     echo "    - *PHP*\n";
     echo "    - *PDO* extension for PHP\n";
     echo "    - *PDO MySQL* extension for PHP\n";
@@ -160,16 +150,6 @@ echo "[3/5] Preparing for execution...\n";
 if (!replace_in_file($project_files["compose-in"], xpath($source_dir . "/" . $project_files["compose-out"]), $project_files["compose-replace"])) {
     echo "Couldn't replace in the file " . $project_files["compose"] . "\n";
     return (1);
-}
-if (should_use_docker_machine()) {
-    unset($output);
-    exec('docker-machine env --shell bash default', $output);
-    foreach ($output as $line) {
-        // 'export '
-        if (substr($line, 0, 7) == 'export ') {
-            putenv(substr($line, 7));
-        }
-    }
 }
 
 // Execute the dev container script.
