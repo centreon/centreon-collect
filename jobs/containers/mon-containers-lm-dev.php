@@ -1,7 +1,7 @@
 <?php
 
 // Load Centreon Build library.
-$centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..';
+$centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..';
 require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
 
 # Check arguments.
