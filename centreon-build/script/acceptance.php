@@ -70,10 +70,10 @@ if (function_exists('pcntl_signal')) {
 }
 
 // Parse the options.
-$opts = getopt("d:h");
+$opts = getopt("d:gh");
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: acceptance.php [-h] [-d distrib] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] [-g] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "  Description:\n";
     echo "    Feature files are optional. By default all of them will be run.\n";
@@ -83,6 +83,7 @@ if (isset($opts['h'])) {
     echo "  Arguments:\n";
     echo "    -h  Print this help.\n";
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
+    echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "\n";
     echo "  Prerequisites:\n";
     echo "    - *Docker* (connected to Docker Machine on Windows or MacOS)\n";
@@ -103,6 +104,13 @@ if (isset($opts['d'])) {
 }
 else {
     $distrib = 'centos6';
+}
+if (isset($opts['g'])) {
+    $only_generate = TRUE;
+    array_shift($argv);
+}
+else {
+    $only_generate = FALSE;
 }
 $source_dir = realpath('.');
 
@@ -162,12 +170,14 @@ if ($return_var != 0) {
 
 // Start acceptance tests.
 echo "[5/5] Finally running acceptance tests...\n";
-$cmd = xpath("./vendor/bin/behat --strict");
-if (empty($argv)) {
-    $argv[] = '';
-}
-foreach ($argv as $feature) {
-    passthru($cmd . ' ' . $feature, $return_var);
+if (!$only_generate) {
+    $cmd = xpath("./vendor/bin/behat --strict");
+    if (empty($argv)) {
+        $argv[] = '';
+    }
+    foreach ($argv as $feature) {
+        passthru($cmd . ' ' . $feature, $return_var);
+    }
 }
 
 ?>
