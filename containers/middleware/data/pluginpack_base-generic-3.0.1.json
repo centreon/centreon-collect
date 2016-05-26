@@ -1,1 +1,136 @@
-{"information":{"slug":"base-generic","name":"base-generic","icon":null,"version":"3.0.1","update_date":"1464180984","status":"stable","status_message":"First generation with new system","tags":["base","generic"],"author":"Centreon","email":"imp@centreon.com","website":"www.centreon.com","changelog":"Same pack but generated with the new system of plugin pack export","monitoring_procedure":"#Centreon Configuration\r\n##Create a host using the appropriate template\r\n\r\nGo to \"Configuration > Hosts\" menu and click on \"Add\" button. Then, fill the form as shown by the following table:\r\n<table>\r\n<tr><td>Field</td><td>Value</td></tr>\r\n<tr><td>Host name</td><td>Name of the host</td></tr>\r\n<tr><td>Alias</td><td>Host description</td></tr>\r\n<tr><td>IP</td><td>Host IP Address</td></tr>\r\n<tr><td>Monitored from</td><td>Monitoring Poller to use</td></tr>\r\n<tr><td>Host Multiple Templates</td><td>generic-active-host</td></tr>\r\n<table> \r\n\r\nClick on the Save button.","description":[{"lang":"en","value":"This plugin pack insert the basic elements required for the installation of other packages. Once installed it can control the equipment via a PING."},{"lang":"fr","value":"Ce pack de plugin insère les éléments de base nécessaires à l\\'installation des autres packs. Une fois installé il permet de contrôler les équipements via un PING."}],"dependencies":[],"requirement":[]},"timeperiods":{"timeperiod":[{"name":"24x7","alias":"24_Hours_A_Day,_7_Days_A_Week","sunday":"00:00-24:00","monday":"00:00-24:00","tuesday":"00:00-24:00","wednesday":"00:00-24:00","thursday":"00:00-24:00","friday":"00:00-24:00","saturday":"00:00-24:00"}]},"commands":[{"name":"base_host_alive","line":"\\\"$USER1$\\\\/check_icmp -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1\\\"","type":"2"},{"name":"base_centreon_dummy","line":"\\\"$USER1$\\\\/check_centreon_dummy - $ARG1$ - o $ARG2$\\\"","type":"2"},{"name":"base_centreon_ping","line":"\\\"$USER1$\\\\/check_icmp -H $HOSTADDRESS$ -n $_SERVICEPACKETNUMBER$ -w $_SERVICEWARNING$ -c $_SERVICECRITICAL$\\\"","type":"2"}],"service_templates":[{"name":"Base-Ping-LAN-custom","alias":"Ping","parent_template":"Base-Ping-LAN","_comment":"","macros":[],"discovery_list_mode":"","icon":""},{"name":"Base-Ping-LAN","alias":"Ping","parent_template":"generic-active-service","_comment":"","macros":[{"key":"$_SERVICECRITICAL$","value":"400,50%","password":false,"description":""},{"key":"$_SERVICEPACKETNUMBER$","value":"5","password":false,"description":""},{"key":"$_SERVICEWARNING$","value":"200,20%","password":false,"description":""}],"command_name":"base_centreon_ping","discovery_list_mode":"","icon":""},{"name":"generic-active-service","alias":"generic-active-service","parent_template":"","_comment":"","macros":[],"discovery_list_mode":"","icon":""}],"host_templates":[{"name":"generic-active-host","parent_template":"","alias":"generic-active-host","macros":[],"services":["Base-Ping-LAN-custom"],"icon":"","discovery_validator":""},{"name":"generic-passive-host","parent_template":"","alias":"generic-passive-host","macros":[],"services":[],"icon":"","discovery_validator":""}],"images":[]}
+{
+    "commands": [
+        {
+            "line": "\\\"$USER1$\\\\/check_icmp -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1\\\"",
+            "name": "base_host_alive",
+            "type": "2"
+        },
+        {
+            "line": "\\\"$USER1$\\\\/check_centreon_dummy - $ARG1$ - o $ARG2$\\\"",
+            "name": "base_centreon_dummy",
+            "type": "2"
+        },
+        {
+            "line": "\\\"$USER1$\\\\/check_icmp -H $HOSTADDRESS$ -n $_SERVICEPACKETNUMBER$ -w $_SERVICEWARNING$ -c $_SERVICECRITICAL$\\\"",
+            "name": "base_centreon_ping",
+            "type": "2"
+        }
+    ],
+    "host_templates": [
+        {
+            "alias": "generic-active-host",
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "name": "generic-active-host",
+            "parent_template": "",
+            "services": [
+                "Base-Ping-LAN-custom"
+            ]
+        },
+        {
+            "alias": "generic-passive-host",
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "name": "generic-passive-host",
+            "parent_template": "",
+            "services": []
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but generated with the new system of plugin pack export",
+        "dependencies": [],
+        "description": [
+            {
+                "lang": "en",
+                "value": "This plugin pack insert the basic elements required for the installation of other packages. Once installed it can control the equipment via a PING."
+            },
+            {
+                "lang": "fr",
+                "value": "Ce pack de plugin ins\u00c3\u00a8re les \u00c3\u00a9l\u00c3\u00a9ments de base n\u00c3\u00a9cessaires \u00c3\u00a0 l\\'installation des autres packs. Une fois install\u00c3\u00a9 il permet de contr\u00c3\u00b4ler les \u00c3\u00a9quipements via un PING."
+            }
+        ],
+        "email": "imp@centreon.com",
+        "icon": null,
+        "monitoring_procedure": "#Centreon Configuration\r\n##Create a host using the appropriate template\r\n\r\nGo to \"Configuration > Hosts\" menu and click on \"Add\" button. Then, fill the form as shown by the following table:\r\n<table>\r\n<tr><td>Field</td><td>Value</td></tr>\r\n<tr><td>Host name</td><td>Name of the host</td></tr>\r\n<tr><td>Alias</td><td>Host description</td></tr>\r\n<tr><td>IP</td><td>Host IP Address</td></tr>\r\n<tr><td>Monitored from</td><td>Monitoring Poller to use</td></tr>\r\n<tr><td>Host Multiple Templates</td><td>generic-active-host</td></tr>\r\n<table> \r\n\r\nClick on the Save button.",
+        "name": "base-generic",
+        "requirement": [],
+        "slug": "base-generic",
+        "status": "stable",
+        "status_message": "First generation with new system",
+        "tags": [
+            "base",
+            "generic"
+        ],
+        "update_date": "1464180984",
+        "version": "3.0.1",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "",
+            "alias": "Ping",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [],
+            "name": "Base-Ping-LAN-custom",
+            "parent_template": "Base-Ping-LAN"
+        },
+        {
+            "_comment": "",
+            "alias": "Ping",
+            "command_name": "base_centreon_ping",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "400,50%"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPACKETNUMBER$",
+                    "password": false,
+                    "value": "5"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "200,20%"
+                }
+            ],
+            "name": "Base-Ping-LAN",
+            "parent_template": "generic-active-service"
+        },
+        {
+            "_comment": "",
+            "alias": "generic-active-service",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [],
+            "name": "generic-active-service",
+            "parent_template": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": [
+            {
+                "alias": "24_Hours_A_Day,_7_Days_A_Week",
+                "friday": "00:00-24:00",
+                "monday": "00:00-24:00",
+                "name": "24x7",
+                "saturday": "00:00-24:00",
+                "sunday": "00:00-24:00",
+                "thursday": "00:00-24:00",
+                "tuesday": "00:00-24:00",
+                "wednesday": "00:00-24:00"
+            }
+        ]
+    }
+}

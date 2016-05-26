@@ -1,1 +1,191 @@
-{"information":{"slug":"hardware-servers-dell-cmc-snmp","name":"hardware-servers-dell-cmc-snmp","icon":null,"version":"2.0.1","update_date":"1460645006","status":"stable","status_message":"Generation for export","tags":["Dell","hardware","CMC","SNMP"],"author":"Centreon","email":"contact@centreon.com","website":"www.centreon.com","changelog":"N/A","description":[{"lang":"en","value":"description 1"},{"lang":"fr","value":""}]},"commands":[{"name":"HW-Dell-CMC-SNMP-Hardware","type": "0","line":"\\\"$USER1$\\\\/centreon_plugins.pl --plugin=hardware::server::dell::cmc::snmp::plugin --mode=hardware --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --component=\\'$_SERVICECOMPONENT$\\' $_SERVICEEXTRAOPTIONS$\\\""},{"name":"HW-Dell-CMC-SNMP-Uptime","line":"\\\"$USER1$\\\\/centreon_plugins.pl --plugin=hardware::server::dell::cmc::snmp::plugin --mode=uptime --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\""}],"service_templates":[{"name":"HW-Dell-CMC-Hardware-Global-SNMP-Custom","alias":"Hardware-Global","parent_template":"HW-Dell-CMC-Hardware-Global-SNMP","_comment":"","macros":[],"discovery_list_mode":"","icon":""},{"name":"HW-Dell-CMC-Hardware-Global-SNMP","alias":"Hardware-Global","parent_template":"generic-active-service","_comment":"{FR: Contrôle l'ensemble des sondes ('chassis', 'alimentation', 'statut', 'température').}\n\n{EN: Check all sensors ('chassis', 'power supply', 'status', 'temperature').}","macros":[{"key":"$_SERVICECOMPONENT$","value":".*","password":false,"description":""},{"key":"$_SERVICEEXTRAOPTIONS$","value":"--verbose","password":false,"description":""}],"command_name":"HW-Dell-CMC-SNMP-Hardware","discovery_list_mode":"","icon":""},{"name":"generic-active-service","alias":"generic-active-service","parent_template":"","_comment":"","macros":[],"discovery_list_mode":"","icon":""},{"name":"Base-Ping-LAN-custom","alias":"Ping","parent_template":"Base-Ping-LAN","_comment":"","macros":[],"discovery_list_mode":"","icon":""},{"name":"Base-Ping-LAN","alias":"Ping","parent_template":"generic-active-service","_comment":"","macros":[{"key":"$_SERVICECRITICAL$","value":"400,50%","password":false,"description":""},{"key":"$_SERVICEPACKETNUMBER$","value":"5","password":false,"description":""},{"key":"$_SERVICEWARNING$","value":"200,20%","password":false,"description":""}],"command_name":"base_centreon_ping","discovery_list_mode":"","icon":""},{"name":"HW-Dell-CMC-Uptime-SNMP","alias":"Uptime","parent_template":"generic-active-service","_comment":"{FR: Durée depuis laquelle le serveur tourne sans interruption.}\n\n{EN: Time since the server has been working and available.}","macros":[{"key":"$_SERVICECRITICAL$","value":"","password":false,"description":""},{"key":"$_SERVICEEXTRAOPTIONS$","value":"","password":false,"description":""},{"key":"$_SERVICEWARNING$","value":"","password":false,"description":""}],"command_name":"HW-Dell-CMC-SNMP-Uptime","discovery_list_mode":"","icon":""},{"name":"HW-Dell-CMC-Uptime-SNMP-Custom","alias":"Uptime","parent_template":"HW-Dell-CMC-Uptime-SNMP","_comment":"","macros":[],"discovery_list_mode":"","icon":""}],"host_templates":[{"name":"HW-Server-Dell-CMC-SNMP","parent_template":"generic-active-host","alias":"Template to check Dell server through CMC using SNMP protocol","macros":[{"key":"$_HOSTSNMPEXTRAOPTIONS$","value":""}],"services":["HW-Dell-CMC-Hardware-Global-SNMP-Custom"],"icon":"","discovery_validator":""},{"name":"generic-active-host","parent_template":"","alias":"generic-active-host","macros":[],"services":["Base-Ping-LAN-custom"],"icon":"","discovery_validator":""}],"images":[]}
+{
+    "commands": [
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin=hardware::server::dell::cmc::snmp::plugin --mode=hardware --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --component=\\'$_SERVICECOMPONENT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Dell-CMC-SNMP-Hardware",
+            "type": "0"
+        },
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin=hardware::server::dell::cmc::snmp::plugin --mode=uptime --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Dell-CMC-SNMP-Uptime"
+        }
+    ],
+    "host_templates": [
+        {
+            "alias": "Template to check Dell server through CMC using SNMP protocol",
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTSNMPEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "name": "HW-Server-Dell-CMC-SNMP",
+            "parent_template": "generic-active-host",
+            "services": [
+                "HW-Dell-CMC-Hardware-Global-SNMP-Custom"
+            ]
+        },
+        {
+            "alias": "generic-active-host",
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "name": "generic-active-host",
+            "parent_template": "",
+            "services": [
+                "Base-Ping-LAN-custom"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "N/A",
+        "description": [
+            {
+                "lang": "en",
+                "value": "description 1"
+            },
+            {
+                "lang": "fr",
+                "value": ""
+            }
+        ],
+        "email": "contact@centreon.com",
+        "icon": null,
+        "name": "hardware-servers-dell-cmc-snmp",
+        "slug": "hardware-servers-dell-cmc-snmp",
+        "status": "stable",
+        "status_message": "Generation for export",
+        "tags": [
+            "Dell",
+            "hardware",
+            "CMC",
+            "SNMP"
+        ],
+        "update_date": "1460645006",
+        "version": "2.0.1",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "",
+            "alias": "Hardware-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [],
+            "name": "HW-Dell-CMC-Hardware-Global-SNMP-Custom",
+            "parent_template": "HW-Dell-CMC-Hardware-Global-SNMP"
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le l'ensemble des sondes ('chassis', 'alimentation', 'statut', 'temp\u00c3\u00a9rature').}\n\n{EN: Check all sensors ('chassis', 'power supply', 'status', 'temperature').}",
+            "alias": "Hardware-Global",
+            "command_name": "HW-Dell-CMC-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "name": "HW-Dell-CMC-Hardware-Global-SNMP",
+            "parent_template": "generic-active-service"
+        },
+        {
+            "_comment": "",
+            "alias": "generic-active-service",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [],
+            "name": "generic-active-service",
+            "parent_template": ""
+        },
+        {
+            "_comment": "",
+            "alias": "Ping",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [],
+            "name": "Base-Ping-LAN-custom",
+            "parent_template": "Base-Ping-LAN"
+        },
+        {
+            "_comment": "",
+            "alias": "Ping",
+            "command_name": "base_centreon_ping",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "400,50%"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPACKETNUMBER$",
+                    "password": false,
+                    "value": "5"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "200,20%"
+                }
+            ],
+            "name": "Base-Ping-LAN",
+            "parent_template": "generic-active-service"
+        },
+        {
+            "_comment": "{FR: Dur\u00c3\u00a9e depuis laquelle le serveur tourne sans interruption.}\n\n{EN: Time since the server has been working and available.}",
+            "alias": "Uptime",
+            "command_name": "HW-Dell-CMC-SNMP-Uptime",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "name": "HW-Dell-CMC-Uptime-SNMP",
+            "parent_template": "generic-active-service"
+        },
+        {
+            "_comment": "",
+            "alias": "Uptime",
+            "discovery_list_mode": "",
+            "icon": "",
+            "macros": [],
+            "name": "HW-Dell-CMC-Uptime-SNMP-Custom",
+            "parent_template": "HW-Dell-CMC-Uptime-SNMP"
+        }
+    ]
+}
