@@ -1,6 +1,10 @@
 FROM ci.int.centreon.com:5000/mon-web-stable:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Update to the latest engine and broker
+COPY centreon/*.rpm /tmp/
+RUN yum -y --nogpgcheck install /tmp/*.rpm
+
 # Centreon update is made through custom scripts.
 COPY web/update-centreon.php /tmp/update-centreon.php
 COPY web/dev.sh /tmp/install.sh
