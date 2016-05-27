@@ -69,6 +69,7 @@
                 "value": "File Transfer Protocol (protocole de transfert de fichiers), ou FTP, est un protocole de communication destin\u00e9 \u00e0 l\\'\u00e9change informatique de fichiers sur un r\u00e9seau TCP/IP. Il permet, depuis un ordinateur, de copier des fichiers vers un autre ordinateur du r\u00e9seau, ou encore de supprimer ou de modifier des fichiers sur cet ordinateur. Ce m\u00e9canisme de copie est souvent utilis\u00e9 pour alimenter un site web h\u00e9berg\u00e9 chez un tiers."
             }
         ],
+	"discovery_category": "protocol",
         "email": "contact@centreon.com",
         "icon": null,
         "name": "applications-protocol-ftp",
