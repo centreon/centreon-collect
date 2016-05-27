@@ -102,6 +102,7 @@
                 "value": "Centreon est un progiciel Open Source et gratuit qui vous permet de superviser l\u0092ensemble de vos infrastructures et applications composant votre syst\u00e8me d\u0092information.\r\n\r\nGr\u00e2ce \u00e0 ses composants techniques et fonctionnels pertinents Centreon vous offre toutes les fonctionnalit\u00e9s indispensables \u00e0 une supervision professionnelle compl\u00e8te. Il r\u00e9pond aux besoins des Directions des Syst\u00e8mes d\u0092Informations (DSI) les plus exigeantes tout en apportant la flexibilit\u00e9 li\u00e9e \u00e0 l\u0092Open Source."
             }
         ],
+	"discovery_category": "centreon",
         "email": "contact@centreon.com",
         "icon": null,
         "name": "applications-monitoring-centreon-database",
