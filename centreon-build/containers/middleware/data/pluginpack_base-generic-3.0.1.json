@@ -68,7 +68,13 @@
         ],
         "update_date": "1464180984",
         "version": "3.0.1",
-        "website": "www.centreon.com"
+        "website": "www.centreon.com",
+        "dependencies": [
+            {
+                "name" : "applications-databases-mysql",
+                "version" : "2.1.1"
+            }
+        ]
     },
     "service_templates": [
         {
