@@ -60,7 +60,17 @@
         ],
         "update_date": "1460032484",
         "version": "2.1.2",
-        "website": "www.centreon.com"
+        "website": "www.centreon.com",
+        "dependencies": [
+            {
+                "name" : "base-generic",
+                "version" : "3.0.1"
+            },
+            {
+                "name" : "applications-elasticsearch",
+                "version" : "2.0.1"
+            }
+        ]
     },
     "service_templates": [
         {
