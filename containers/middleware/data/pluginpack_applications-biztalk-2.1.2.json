@@ -63,8 +63,8 @@
         "website": "www.centreon.com",
         "dependencies": [
             {
-                "name" : "base-generic",
-                "version" : "3.0.1"
+                "name" : "applications-voip-asterisk",
+                "version" : "2.1.1"
             },
             {
                 "name" : "applications-elasticsearch",
