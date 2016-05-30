@@ -13,6 +13,7 @@ cat ../../../../autoinstall.php createDbUser.php | php
 cat ../../../../autoinstall.php insertBaseConf.php | php
 cat ../../../../autoinstall.php configFileSetup.php | php
 rm -rf /usr/share/centreon/www/install
+mysql -e "GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'centreon'"
 mkdir -m 777 /etc/centreon/license.d
 centreon -d -u admin -p centreon -a POLLERGENERATE -v 1
 centreon -d -u admin -p centreon -a CFGMOVE -v 1

@@ -1,0 +1,99 @@
+{
+    "commands": [
+        {
+            "line": "\\\"\\\\/usr\\\\/share\\\\/centreon\\\\/plugins\\\\/centreon_centreon_database.pl --plugin=database::mysql::plugin --dyn-mode=apps::centreon::sql::mode::partitioning --host=\\'$HOSTADDRESS$\\' --username=\\'$_HOSTMYSQLUSERNAME$\\' --password=\\'$_HOSTMYSQLPASSWORD$\\' --tablename=\\'$_SERVICETABLENAME1$\\' --tablename=\\'$_SERVICETABLENAME2$\\' --tablename=\\'$_SERVICETABLENAME3$\\' --tablename=\\'$_SERVICETABLENAME4$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'\\\"",
+            "name": "App-Centreon-MySQL-Partitioning",
+            "type": "2"
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": "2",
+            "alias": "Template to check Centreon Database Server",
+            "check_interval": null,
+            "checks_enabled": "2",
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [
+                {
+                    "key": "$_HOSTMYSQLPASSWORD$",
+                    "value": "PASSWORD"
+                },
+                {
+                    "key": "$_HOSTMYSQLPORT$",
+                    "value": "3306"
+                },
+                {
+                    "key": "$_HOSTMYSQLUSERNAME$",
+                    "value": "centreon"
+                }
+            ],
+            "max_check_attempts": null,
+            "name": "App-Monitoring-Centreon-Database",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "services": [
+                "App-Centreon-MySQL-Partitioning-custom"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but generated with the new system of plugin pack export",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor the Centreon databases server:\r\n* Partitionning\r\n\r\n"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un serveur de base de donn\u00c3\u00a9es Centreon :\r\n* Partitionnement"
+            }
+        ],
+        "discovery_category": "centreon",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "#Monitoring procedure\r\n##Prerequisites\r\n###SQL\r\nConnect to your Database\r\n\r\n###SNMP\r\nEnable SNMP Agent\r\n\r\n#Centreon Configuration\r\n##Create a new Centreon-Central server\r\n\r\nGo to \"Configuration > Hosts\" menu and click on \"Add\" button. Then, fill the form as shown by the following table:\r\n<table>\r\n<tr><td>Field</td><td>Value</td></tr>\r\n<tr><td>Host name</td><td>Name of the host</td></tr>\r\n<tr><td>Alias</td><td>Host description</td></tr>\r\n<tr><td>IP</td><td>Host IP Address</td></tr>\r\n<tr><td>Monitored from</td><td>Monitoring Poller to use</td></tr>\r\n<tr><td>Host Multiple Templates</td><td>App-Monitoring-Centreon-Database</td></tr>\r\n</table> \r\nClick on the \"Save\" button.",
+        "name": "Centreon DB",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Monitoring-Centreon-Database",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "applications-monitoring-centreon-database",
+        "status": "stable",
+        "status_message": "First generation with new system",
+        "tags": [
+            "Centreon",
+            "DBMS",
+            "MariaDB",
+            "MySQL",
+            "Replication",
+            "SGBD",
+            "SQL",
+            "Synchronisation",
+            "Synchronization"
+        ],
+        "update_date": "1464278901",
+        "version": "3.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

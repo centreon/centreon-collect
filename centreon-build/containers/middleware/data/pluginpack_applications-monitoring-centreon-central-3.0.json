@@ -1,0 +1,355 @@
+{
+    "commands": [
+        {
+            "line": "\\\"\\\\/usr\\\\/share\\\\/centreon\\\\/plugins\\\\/centreon_centreon_central.pl --plugin=apps::centreon::local::plugin --mode=retention-broker --broker-config=\\'$_HOSTRRDCFGFILE$\\' --broker-config=\\'$_HOSTSQLCFGFILE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-CentreonBroker-Retention-Local",
+            "type": "2"
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": "2",
+            "alias": "Template to check Centreon Central Server",
+            "check_interval": null,
+            "checks_enabled": "2",
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [
+                {
+                    "key": "$_HOSTRRDCFGFILE$",
+                    "value": "/etc/centreon-broker/central-rrd.xml"
+                },
+                {
+                    "key": "$_HOSTSQLCFGFILE$",
+                    "value": "/etc/centreon-broker/central-broker.xml"
+                }
+            ],
+            "max_check_attempts": null,
+            "name": "App-Monitoring-Centreon-Central",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "services": [
+                "App-Monitoring-CentreonBroker-Retention",
+                "App-Monitoring-Centreon-Process-sshd",
+                "App-Monitoring-Centreon-Process-ntpd",
+                "App-Monitoring-Centreon-Process-httpd",
+                "App-Monitoring-Centreon-Process-crond",
+                "App-Monitoring-Centreon-Process-centengine",
+                "App-Monitoring-Centreon-Process-centcore",
+                "App-Monitoring-Centreon-Process-broker-sql",
+                "App-Monitoring-Centreon-Process-broker-rrd"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but generated with the new system of plugin pack export",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor the Centreon central server:\r\n* Process-Centreon-Broker-RRD\r\n* Process-Centreon-Broker-SQL\r\n* Process-centcore\r\n* Process-centengine\r\n* Process-centreontrapd\r\n* Process-crond\r\n* Process-httpd\r\n* Process-ntpd\r\n* Process-snmptrapd\r\n* Process-sshd\r\n* Centreon Broker retnetion"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un serveur central Centreon :\r\n* Process-Centreon-Broker-RRD\r\n* Process-Centreon-Broker-SQL\r\n* Process-centcore\r\n* Process-centengine\r\n* Process-centreontrapd\r\n* Process-crond\r\n* Process-httpd\r\n* Process-ntpd\r\n* Process-snmptrapd\r\n* Process-sshd\r\n* Centreon Broker retnetion"
+            }
+        ],
+        "discovery_category": "centreon",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "#Monitoring procedure\r\n##Prerequisites\r\n###SNMP\r\nConnect to your Central and configure SNMP.\r\n\r\n#Centreon Configuration\r\n##Create a new Centreon-Central server\r\n\r\nGo to \"Configuration > Hosts\" menu and click on \"Add\" button. Then, fill the form as shown by the following table:\r\n<table>\r\n<tr><td>Field</td><td>Value</td></tr>\r\n<tr><td>Host name</td><td>Name of the host</td></tr>\r\n<tr><td>Alias</td><td>Host description</td></tr>\r\n<tr><td>IP</td><td>Host IP Address</td></tr>\r\n<tr><td>Monitored from</td><td>Monitoring Poller to use</td></tr>\r\n<tr><td>Host Multiple Templates</td><td>App-Monitoring-Centreon-Central</td></tr>\r\n</table> \r\nClick on the \"Save\" button.",
+        "name": "Centreon",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Monitoring-Centreon-Central",
+                "version": "20160324-3"
+            }
+        ],
+        "slug": "applications-monitoring-centreon-central",
+        "status": "stable",
+        "status_message": "First generation with new system",
+        "tags": [
+            "central",
+            "Centreon",
+            "Monitoring",
+            "Server"
+        ],
+        "update_date": "1464278474",
+        "version": "3.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le qu'il n'y a pas de fichier de retention broker (blocage d'un flux).}\r\n\r\n{EN: Check if there is some broker retention file (broker flow error).}",
+            "active_checks_enabled": "2",
+            "alias": "Broker-Retention",
+            "command_name": "App-CentreonBroker-Retention-Local",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-CentreonBroker-Retention",
+            "normal_check_interval": "",
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus sshd.}\r\n\r\n{EN: Check sshd process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-sshd",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "sshd"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-sshd",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus NTP.}\r\n\r\n{EN: Check NTP process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-ntpd",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "ntpd"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1:1"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-ntpd",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus Apache.}\r\n\r\n{EN: Check Apache process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-httpd",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "httpd"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-httpd",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus crond.}\r\n\r\n{EN: Check crond process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-crond",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "crond"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ":1"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-crond",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus centreon-engine.}\r\n\r\n{EN: Check centreon-engine process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-centengine",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "centengine"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1:1"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-centengine",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus centcore.}\r\n\r\n{EN: Check centcore process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-centcore",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "centcore"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1:1"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-centcore",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus Broker SQL.}\r\n\r\n{EN: Check Broker SQL process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-broker-sql",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "cbd"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSARGS$",
+                    "password": false,
+                    "value": "'/etc/centreon-broker/central-broker.xml'"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1:1"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-broker-sql",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00c3\u00b4le permettant de v\u00c3\u00a9rifier le fonctionnement du processus Broker RRD.}\r\n\r\n{EN: Check Broker RRD process.}",
+            "active_checks_enabled": "2",
+            "alias": "proc-broker-rrd",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": "2",
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": "cbd"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSARGS$",
+                    "password": false,
+                    "value": "'/etc/centreon-broker/central-rrd.xml'"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1:1"
+                }
+            ],
+            "max_check_attempts": "",
+            "name": "App-Monitoring-Centreon-Process-broker-rrd",
+            "normal_check_interval": "",
+            "parent_template": "OS-Linux-Process-Generic-SNMP",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
