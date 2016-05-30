@@ -1,6 +1,10 @@
 FROM ci.int.centreon.com:5000/mon-web-stable:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Update to the latest Engine and Broker.
+COPY centreon/@DISTRIB@/*.rpm /tmp/
+RUN yum -y --nogpgcheck '--disablerepo=*' install /tmp/*.rpm
+
 # Centreon update is made through custom scripts.
 COPY web/update-centreon.php /tmp/update-centreon.php
 COPY web/dev.sh /tmp/install.sh
