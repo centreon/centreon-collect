@@ -35,12 +35,24 @@ module.exports = {
   // Configure logger
   logger: {
     // Logger transport type Console or ElasticSearch
-    type: 'Console',
-    options: {
-      host: '',
-      // Level
-      level: 'debug',
-      indexPrefix: 'centreon-imp-'
+    transports: {
+      defaultTransports: {
+        type: 'Console',
+        level: 'error'
+      },
+      httpTransports: {
+        type: 'Console',
+        level: 'debug'
+      },
+      appTransports: {
+        type: 'Console',
+        level: 'debug'
+      }
+    },
+    loggers: {
+      default: ['defaultTransports'],
+      httpLogs: ['httpTransports'],
+      appLogs: ['appTransports']
     }
   },
   // Information for sign license
