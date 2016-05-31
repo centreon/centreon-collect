@@ -13,8 +13,8 @@ while true ; do
     sleep 1
   fi
 done
-service cbd start
-service centengine start
-service centcore start
+/etc/init.d/cbd start
+/etc/init.d/centengine start
+su - centreon -c centcore &
 httpd -k start
 tailf /var/log/httpd/error_log
