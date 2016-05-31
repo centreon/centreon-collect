@@ -53,6 +53,23 @@
                 "HW-Printer-Errors-standard-SNMP",
                 "HW-Printer-CoverStatus-Hardware-standard-SNMP"
             ]
+        },
+        {
+            "active_checks_enabled": "2",
+            "alias": "Host template of v3",
+            "check_interval": null,
+            "checks_enabled": "2",
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [],
+            "max_check_attempts": null,
+            "name": "HW-Printer-standard-rfc3805-v3",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "services": [
+                "HW-Printer-Hardware-standard-SNMP"
+            ]
         }
     ],
     "images": [
