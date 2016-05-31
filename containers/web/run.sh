@@ -13,8 +13,8 @@ while true ; do
     sleep 1
   fi
 done
-service cbd start
-service centengine start
+su - centreon-broker /usr/sbin/cbwd /etc/centreon-broker/watchdog.xml &
+su - centreon-engine /usr/sbin/centengine /etc/centreon-engine/centengine.cfg &
 su - centreon -c centcore &
 httpd -k start
 tailf /var/log/httpd/error_log
