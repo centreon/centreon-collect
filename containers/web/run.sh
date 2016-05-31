@@ -15,6 +15,6 @@ while true ; do
 done
 service cbd start
 service centengine start
-service centcore start
+su - centreon -c centcore &
 httpd -k start
 tailf /var/log/httpd/error_log
