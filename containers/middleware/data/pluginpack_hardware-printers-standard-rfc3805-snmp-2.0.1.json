@@ -24,11 +24,6 @@
             "line": "\\\"\\\\/usr\\\\/share\\\\/centreon\\\\/plugins\\\\/centreon_printers_generic_snmp.pl --plugin=hardware::printers::standard::rfc3805::plugin --mode=markersupply-usage --hostname=$HOSTADDRESS$ --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --snmp-version=\\'$_HOSTSNMPVERSION$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning \\'$_SERVICEWARNING$\\' --critical \\'$_SERVICECRITICAL$\\' \\'$_SERVICEEXTRAOPTIONS$\\'\\\"",
             "name": "HW-Printer-Markersupply-Usage-standard",
             "type": "2"
-        },
-        {
-            "line": "\\\"\\\\/usr\\\\/share\\\\/centreon\\\\/plugins\\\\/centreon_printers_generic_snmp.pl --plugin=hardware::printers::standard::rfc3805::plugin --mode=papertray-usage --hostname=$HOSTADDRESS$ --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --snmp-version=\\'$_HOSTSNMPVERSION$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning \\'$_SERVICEWARNING$\\' --critical \\'$_SERVICECRITICAL$\\' \\'$_SERVICEEXTRAOPTIONS$\\'\\\"",
-            "name": "HW-Printer-Papertray-Usage-standard",
-            "type": "2"
         }
     ],
     "host_templates": [
