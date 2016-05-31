@@ -1,0 +1,13 @@
+[ces-standard-stable]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://yum.centreon.com/standard/4/unstable/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+
+[ces-standard-stable-noarch]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://yum.centreon.com/standard/4/unstable/noarch/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
