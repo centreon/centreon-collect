@@ -17,4 +17,7 @@ done
 /etc/init.d/centengine start
 su - centreon -c centcore &
 httpd -k start
+# Fix to allow Centreon Web to use our special init.d script and not
+# call this cumbersome init system.
+rm -rf /etc/systemd
 tailf /var/log/httpd/error_log
