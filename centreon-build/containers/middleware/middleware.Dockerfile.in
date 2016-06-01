@@ -30,9 +30,7 @@ COPY middleware/data/*.json /etc/centreon/ppm/
 # Install script.
 RUN mkdir /usr/local/src/data
 COPY middleware/json2sql.php /usr/local/src/json2sql.php
-COPY middleware/data/*.sql  /usr/local/src/data/
-RUN cat /usr/local/src/data/*.sql > /usr/local/src/imp.sql
-RUN rm -rf /usr/local/src/data
+COPY middleware/data/contact.sql  /usr/local/src/contact.sql
 COPY middleware/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 RUN /tmp/install.sh
