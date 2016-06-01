@@ -13,11 +13,13 @@ while [ "$started" -ne 0 ] ; do
   started=`nc -w 1 localhost 389 ; echo $?`
   sleep 1
 done
+while [ "$started" -ne 0 ] ; do
+  started=`nc -w 1 redis 6379 ; echo $?`
+  sleep 1
+done
 set -e
 ldapadd -f /tmp/ldap.ldif -D 'cn=Manager,dc=centreon,dc=com' -w centreon || true
-/etc/init.d/redis_6379 start
 cd /usr/local/src/centreon-imp-portal-api
 node localserver/app.js
-/etc/init.d/redis_6379 stop
 killall -TERM slapd
 service mysql stop
