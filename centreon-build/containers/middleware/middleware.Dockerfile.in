@@ -12,12 +12,6 @@ RUN yum install -y screen openldap openldap-clients openldap-servers
 #RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif'
 #COPY middleware/ldap.ldif /tmp/ldap.ldif
 
-# Install Redis.
-RUN yum install -y gcc gcc-c++
-RUN wget http://download.redis.io/releases/redis-2.8.24.tar.gz -O /usr/local/src/redis-2.8.24.tar.gz
-RUN cd /usr/local/src && tar xzf redis-2.8.24.tar.gz
-RUN cd /usr/local/src/redis-2.8.24 && make && make install && cd utils && ./install_server.sh
-
 # Install middleware.
 WORKDIR /usr/local/src/centreon-imp-portal-api
 COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js

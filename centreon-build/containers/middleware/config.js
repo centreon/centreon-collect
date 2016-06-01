@@ -9,7 +9,7 @@ module.exports = {
   },
   cache: {
      // The redis server
-    host: 'localhost'
+    host: 'redis'
   },
   ldap: {
     // For more options see http://ldapjs.org/client.html

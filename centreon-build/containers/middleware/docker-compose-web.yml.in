@@ -14,3 +14,5 @@ services:
     ports:
     - "3000"
     - "3306"
+  redis:
+    image: redis:latest
