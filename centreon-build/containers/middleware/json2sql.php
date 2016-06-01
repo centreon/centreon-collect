@@ -2,8 +2,9 @@
 
 // Prepare queries.
 $dbh = new \PDO('mysql:host=localhost;dbname=imp', 'root', '');
+$dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 $ppinsert = $dbh->prepare(
-    'INSERT INTO pluginpack (name, slug, community, certified, icon) '
+    'INSERT IGNORE INTO pluginpack (name, slug, community, certified, icon) '
     . 'VALUES (:name, :slug, :community, :certified, :icon)'
 );
 $ppvinsert = $dbh->prepare(
@@ -24,7 +25,7 @@ $pptinsert = $dbh->prepare(
     . 'VALUES (:pluginpack_id, :version, :tag)'
 );
 $cppinsert = $dbh->prepare(
-    'INSERT INTO catalog_pluginpack (catalog_id, pluginpack_id) '
+    'INSERT IGNORE INTO catalog_pluginpack (catalog_id, pluginpack_id) '
     . 'VALUES (:catalog_id, :pluginpack_id)'
 );
 
@@ -43,9 +44,10 @@ foreach ($pp_list as $pp_file) {
     // INSERT INTO pluginpack.
     $ppinsert->bindParam(':name', $ppcontent['information']['name']);
     $ppinsert->bindParam(':slug', $ppcontent['information']['slug']);
-    $dummy = 0;
-    $ppinsert->bindParam(':community', $dummy);
-    $ppinsert->bindParam(':certified', $dummy);
+    $community = 0;
+    $ppinsert->bindParam(':community', $community);
+    $certified = 0;
+    $ppinsert->bindParam(':certified', $certified);
     $ppinsert->bindParam(':icon', $ppcontent['information']['icon']);
     $ppinsert->execute();
     $res = $dbh->query(
@@ -63,11 +65,17 @@ foreach ($pp_list as $pp_file) {
     $ppvinsert->bindParam(':nb_ht', count($ppcontent['host_templates']));
     $ppvinsert->bindParam(':nb_st', count($ppcontent['service_templates']));
     $ppvinsert->bindParam(':nb_c', count($ppcontent['commands']));
-    $dummy = 0;
-    $ppvinsert->bindParam(':download_count', $dummy);
-    $dummy = true;
-    $ppvinsert->bindParam(':released', $dummy);
-    $ppvinsert->bindParam(':category', $ppcontent['information']['discovery_category']);
+    $download_count = 0;
+    $ppvinsert->bindParam(':download_count', $download_count);
+    $released = true;
+    $ppvinsert->bindParam(':released', $released);
+    if (!empty($ppcontent['information']['discovery_category'])) {
+        $ppvinsert->bindParam(':category', $ppcontent['information']['discovery_category']);
+    }
+    else {
+        $category = 'unknown';
+        $ppvinsert->bindParam(':category', $category);
+    }
     if (!empty($ppcontent['information']['requirement'])) {
         $dummy = '[' . json_encode($ppcontent['information']['requirement'][0]);
         foreach (array_slice($ppcontent['information']['requirement'], 1) as $requirement) {
