@@ -60,7 +60,8 @@ foreach ($pp_list as $pp_file) {
     // INSERT INTO pluginpack_version.
     $ppvinsert->bindParam(':pluginpack_id', $ppid);
     $ppvinsert->bindParam(':version', $ppversion);
-    $ppvinsert->bindParam(':release_date', $ppcontent['information']['update_date']);
+    $release_date = date('Y-m-d H:i:s', $ppcontent['information']['update_date']);
+    $ppvinsert->bindParam(':release_date', $release_date);
     $ppvinsert->bindParam(':status', $ppcontent['information']['status']);
     $ppvinsert->bindParam(':nb_ht', count($ppcontent['host_templates']));
     $ppvinsert->bindParam(':nb_st', count($ppcontent['service_templates']));
