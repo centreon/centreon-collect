@@ -44,7 +44,7 @@
                 "value": "Le Domain Name System (ou DNS, syst\u00e8me de noms de domaine) est un service permettant de traduire un nom de domaine en informations de plusieurs types qui y sont associ\u00e9es, notamment en adresses IP de la machine portant ce nom."
             }
         ],
-	"discovery_category": "protocol",
+        "discovery_category": "protocol",
         "email": "contact@centreon.com",
         "icon": null,
         "name": "applications-protocol-dns",
