@@ -42,7 +42,12 @@
     "information": {
         "author": "Centreon",
         "changelog": "Same pack but generated with the new system of plugin pack export",
-        "dependencies": [],
+        "dependencies": [
+            {
+                "name": "applications-databases-mysql",
+                "version": "2.1.1"
+            }
+        ],
         "description": [
             {
                 "lang": "en",
@@ -53,7 +58,7 @@
                 "value": "Ce pack de plugin ins\u00c3\u00a8re les \u00c3\u00a9l\u00c3\u00a9ments de base n\u00c3\u00a9cessaires \u00c3\u00a0 l\\'installation des autres packs. Une fois install\u00c3\u00a9 il permet de contr\u00c3\u00b4ler les \u00c3\u00a9quipements via un PING."
             }
         ],
-	"discovery_category": "centreon",
+        "discovery_category": "centreon",
         "email": "imp@centreon.com",
         "icon": null,
         "monitoring_procedure": "#Centreon Configuration\r\n##Create a host using the appropriate template\r\n\r\nGo to \"Configuration > Hosts\" menu and click on \"Add\" button. Then, fill the form as shown by the following table:\r\n<table>\r\n<tr><td>Field</td><td>Value</td></tr>\r\n<tr><td>Host name</td><td>Name of the host</td></tr>\r\n<tr><td>Alias</td><td>Host description</td></tr>\r\n<tr><td>IP</td><td>Host IP Address</td></tr>\r\n<tr><td>Monitored from</td><td>Monitoring Poller to use</td></tr>\r\n<tr><td>Host Multiple Templates</td><td>generic-active-host</td></tr>\r\n<table> \r\n\r\nClick on the Save button.",
@@ -68,13 +73,7 @@
         ],
         "update_date": "1464180984",
         "version": "3.0.1",
-        "website": "www.centreon.com",
-        "dependencies": [
-            {
-                "name" : "applications-databases-mysql",
-                "version" : "2.1.1"
-            }
-        ]
+        "website": "www.centreon.com"
     },
     "service_templates": [
         {

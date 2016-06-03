@@ -53,7 +53,7 @@
                 "value": ""
             }
         ],
-	"discovery_category": "hardware-server",
+        "discovery_category": "hardware-server",
         "email": "contact@centreon.com",
         "icon": null,
         "name": "hardware-servers-dell-cmc-snmp",
