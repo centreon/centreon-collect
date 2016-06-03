@@ -1,0 +1,547 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=snapshotage --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --name=\\'$_SERVICEVOLUMENAME$\\' --regexp --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Snapshot-Age-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=snapshotage --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --name=\\'$_SERVICEVOLUMENAME$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Snapshot-Age-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=aggregatestate --hostname $HOSTADDRESS$ --filter-name=\\'$_SERVICEFILTER$\\' --snmp-version \\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Aggregate-State",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=qtree-usage --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --filter-qtree=\\'$_SERVICEFILTERQTREE$\\' --filter-volume=\\'$_SERVICEFILTERVOLUME$\\' --warning-usage=\\'$_SERVICEWARNING$\\' --critical-usage=\\'$_SERVICECRITICAL$\\' --units=\\'$_SERVICEUNIT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Qtree-Usage",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=fan --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Fan",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=ndmpsessions --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Ndmpsessions",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=share-calls --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTION$ --warning-cifs=\\'$_SERVICEWARNINGCIFS$\\' --critical-cifs=\\'$_SERVICECRITICALCIFS$\\'  --warning-nfs=\\'$_SERVICEWARNINGNFS$\\' --critical-nfs=\\'$_SERVICECRITICALNFS$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Share-Calls",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=psu --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Psu",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=temperature --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTION$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Temperature",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=filesys --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --filter-name=\\'$_SERVICEFILTER$\\'  --warning-usage=\\'$_SERVICEWARNING$\\' --critical-usage=\\'$_SERVICECRITICAL$\\'  --warning-inodes=\\'$_SERVICEWARNINGINODES$\\' --critical-inodes=\\'$_SERVICECRITICALINODES$\\' --units=\\'$_SERVICEUNIT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-File-System",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=volumeoptions --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --option=\\'$_SERVICEOPTIONS$\\' --$_SERVICECRITICITY$ --name=\\'$_SERVICEVOLUMENAME$\\' --regexp $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Volume-Options",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=partnerstatus --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Partner-Status",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=cpuload --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Cpu-load",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=diskfailed --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTION$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Disk-failed",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=global-status --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTION$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Global-status",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=nvram --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Nvram",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=shelf --hostname $HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --component=\\'$_SERVICECOMPONENT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Shelf",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=cp-statistics --hostname $HOSTADDRESS$ --snmp-version \\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTION$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Cp-Statistics",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_netapp.pl --plugin=storage::netapp::snmp::plugin --mode=numeric-value --hostname $HOSTADDRESS$ --snmp-version \\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTION$ --oid=\\'$_SERVICEOID$\\' --perfdata-name=\\'$_SERVICEPERFNAME$\\' --perfdata-unit=\\'$_SERVICEPERFUNIT$\\' --perfdata-min=\\'$_SERVICEPERFMIN$\\' --perfdata-max=\\'$_SERVICEPERFMAX$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' --format=\\'$_SERVICEFORMAT$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-NetApp-SNMP-Cache-Age",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Netapp Storage using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "HW-Storage-NetApp-SNMP",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "HW-Storage-NetApp-Shelf-SNMP-custom",
+                "HW-Storage-NetApp-Nvram-SNMP-custom",
+                "HW-Storage-NetApp-Global-status-SNMP-custom",
+                "HW-Storage-NetApp-Disk-Failed-SNMP-custom",
+                "HW-Storage-NetApp-Cpu-Load-SNMP-custom",
+                "HW-Storage-NetApp-Cp-Statistics-SNMP-custom",
+                "HW-Storage-NetApp-Cache-Age-SNMP-custom"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor NetApp storage via SNMP:\r\n* Aggregate-State-Global\r\n* Cache-Age\r\n* CP-Statistics\r\n* Cpu-Load\r\n* Disk-Failed\r\n* Fan\r\n* File-system-Global\r\n* Global-Stauts\r\n* Ndmpsessions\r\n* Nvram\r\n* Partner-Status\r\n* Psu\r\n* Qtree-Usage-Global* Share-Calls\r\n* Shelf\r\n* Snapshot-Age (Global or by Name)\r\n* Temperature\r\n* Volume-Options-Generic"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour superviser le stockage NetApp via SNMP :\r\n* Aggregate-State-Global\r\n* Cache-Age\r\n* CP-Statistics\r\n* Cpu-Load\r\n* Disk-Failed\r\n* Fan\r\n* File-system-Global\r\n* Global-Stauts\r\n* Ndmpsessions\r\n* Nvram\r\n* Partner-Status\r\n* Psu\r\n* Qtree-Usage-Global* Share-Calls\r\n* Shelf\r\n* Snapshot-Age (Global or by Name)\r\n* Temperature\r\n* Volume-Options-Generic"
+            }
+        ],
+        "discovery_category": "storage",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### SNMP\r\nConnect to your NetApp server and configure SNMP.\r\n\r\n## Centreon Configuration\r\n### Create a new NetApp server\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>HW-Storage-NetApp-SNMP</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.\r\n\r\n### Notes\r\nIf your netapp storage is in 'c-mode', following services won't work:\r\n* Global-Status\r\n* Share-Calls\r\n* Cache-Age\r\n* Ndmpsessions",
+        "name": "NetApp",
+        "requirement": [
+            {
+                "name": "ces-plugins-Hardware-Storage-Netapp-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "hardware-storage-netapp-snmp",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Hardware",
+            "NetApp",
+            "SAN",
+            "SNMP",
+            "Storage"
+        ],
+        "update_date": "1464768359",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{EN : Check if power supplies are failed.}\n\n{FR : Contr",
+            "active_checks_enabled": 2,
+            "alias": "Psu",
+            "command_name": "HW-Storage-NetApp-SNMP-Psu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Psu-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{EN: Check if hardware is currently operating outside of its recommended temperature range.}\n\n{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Temperature",
+            "command_name": "HW-Storage-NetApp-SNMP-Temperature",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Temperature-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "File-System-Global",
+            "command_name": "HW-Storage-NetApp-SNMP-File-System",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose --filter-perfdata='used|inodes'"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEUNIT$",
+                    "password": false,
+                    "value": "%"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINODES$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINODES$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-File-System-Global-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{EN: Check options from volumes.}\n\n{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Volume-Options-Generic",
+            "command_name": "HW-Storage-NetApp-SNMP-Volume-Options",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICITY$",
+                    "password": false,
+                    "value": "crit"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEVOLUMENAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Volume-Options-Generic-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR : Contr",
+            "active_checks_enabled": 2,
+            "alias": "Partner-Status",
+            "command_name": "HW-Storage-NetApp-SNMP-Partner-Status",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Partner-Status-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cpu-Load",
+            "command_name": "HW-Storage-NetApp-SNMP-Cpu-load",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Cpu-Load-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Disk-Failed",
+            "command_name": "HW-Storage-NetApp-SNMP-Disk-failed",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Disk-failed-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Global-status",
+            "command_name": "HW-Storage-NetApp-SNMP-Global-status",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Global-status-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Nvram",
+            "command_name": "HW-Storage-NetApp-SNMP-Nvram",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Nvram-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Shelf",
+            "command_name": "HW-Storage-NetApp-SNMP-Shelf",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Shelf-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cp-Statistics",
+            "command_name": "HW-Storage-NetApp-SNMP-Cp-Statistics",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Cp-Statistics-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cache-Age",
+            "command_name": "HW-Storage-NetApp-SNMP-Cache-Age",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPERFUNIT$",
+                    "password": false,
+                    "value": "min"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPERFNAME$",
+                    "password": false,
+                    "value": "cache_age"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPERFMIN$",
+                    "password": false,
+                    "value": "0"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPERFMAX$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFORMAT$",
+                    "password": false,
+                    "value": "cache age is %s min(s)"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEOID$",
+                    "password": false,
+                    "value": ".1.3.6.1.4.1.789.1.2.2.23.0"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-NetApp-Cache-Age-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

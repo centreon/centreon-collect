@@ -1,0 +1,229 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_cisco_waas.pl --plugin=network::cisco::WaaS::plugin --mode=sessions --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Cisco-WaaS-Sessions",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Cisco Waas using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTSNMPEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Cisco-WaaS-SNMP",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "HW-Printer-PaperTray-Usage-standard-SNMP",
+                "HW-Printer-Markersupply-Usage-standard-SNMP",
+                "HW-Printer-Impressions-Usage-standard-SNMP",
+                "HW-Printer-Hardware-standard-SNMP",
+                "HW-Printer-Errors-standard-SNMP",
+                "HW-Printer-CoverStatus-Hardware-standard-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monirot Cisco Wide Area Application Services equipment via SNMP"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack tpour surveiller un \u00e9quipement Cisco Wide Area Application Services via SNMP"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "iVBORw0KGgoAAAANSUhEUgAAAIAAAABICAIAAACx52pFAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuOWwzfk4AAAwYSURBVHhe7ZyJdxRVFsbnbxAE3GYUFdwgCCi4DIiKMgRwAUQE2RGUVUMA0RHBfRwBWQUDQQQEQfYtTgii6SSdhSxgCGA2Q/ak00uSTnqpzNepS/P6VVWnqjtNx3Pqd+7hUHXve/XqfVXv3VdVnb+16IQVXYAwowsQZnQBwswNEuBiUcm+BMPvBX/SdkdFaGlBI9FUNJh2hZgbIcD2EwndIiff/K/X8e83B0/R3g7J5kNxXcWmjpi8/fhp2htKQi6A0+XqPvoNnJJo94yd3djUTL4Ohq3R/o+XZjBNneVwusgXMkIuQI3Z6j0lGG4Ck9VGvg5GaXWteKdSU0dMrjZbyBcydAGuIyNAnS7ADUQXIMzoAoQZXYAwowsQZv5iApis9at+OBy1dtuplHO0Sw5NAgiCEJ+WvWhd7Je7DqIg7Q0aZJP/2Xkgel1sQnoO7ZJDkwBo6smkDJw+OiGYSypAAZocjqfmvCc2tMvwSd+dSCCHBE0C7E8woDYx8vE3ltib22HJZm92oCqxzq7DJx34JZkcEjQJEHv8tLep6AqsN8mhkQAFSD6f520obMic98khQZMAzy1Yzgb7v2BVkpCRw9YZGfUROSSoFwCX/2MzF3sjYYnZueTTSIACxBkz2cP3nxqFNpHPF00C9J8WxQb7uVrVg0rYOp+YtZQcEtQL4HS5I15f4I2EHfktlXwa0QW4ji6ALoBqdAFCJUCtxbrtaPyWw3EVtXW0S46OIAB6J+bIzzClbhLpCAKU15g2H4qLPXYauTvtuoaPAFUms7fe+8a9VVxRRQ4JYRegrLr2wdfmimG9Js6vNCleLmEXoKi8sscrb4ph/aa8U2fz0cBHgA37j3trhH3w7W5ySAi7AFipsZH/3XWQHBLCLsCKrXvYyA0/nSBHKz4CfBjzAxv61pffkENC2AWIWhfLRkav304OCWEXYN5XW9hIdDI5WvnrCrCNjYxeH0sOCboAugC6AEykLoAugLIAH23by4bO/WozOSTEp2axkQOmR7eLAANnRLPBh381kkPCko3fsZFLN+0ghwR0DRs5+M1l5JCgXgCX291n0kJvJOxEUjr5JCxYHcNGopPJ0YqPAMcS09hQP18mXa2qvW3UVG/kzM82kEOCJgEWrrne1ltGTCksqySHhH2nE72RsP0JBnJIQCXit1aivb0mhhwS1AsApn681huJriirMZFDArrRGwnD4EGOVnwEgLDvb96J6nDyC1fH+H/GvTf+N3F9MXLRx5UmM+2VoEkABL+09LMuwyfdM2bWjpNnaK8caOri9dtvHTkVtnTjd0r3n8j3p87cPWYWqh2z7HNuHcSiSYDy2rrIqJUI6/HK7D3xv9FeORxOF0ahW0ZMvn3UtJVb93BN9RFApMnhUPnxGnrB2tBIGwpoEkDE1mh3udy04Rd7s0PlSxtcTLYGO20ooEkAEZw+OoE2/IIuRcfSBoOMAO1LAAKEiwAECJ6QC1BrsXlPCYY7sU7yQKqDUCYRAFcP+UJGyAVwu4WHJszznhX+3yx3J3YEMEr0HEdPzWC9JsxTObwEQ8gFAD8bM+8e4/lAuvvoN/zkyx0B5IF3vTwTTcWkHef3a4/24kYIACz1DZmXC8z1DbTdgTHbGrIuF1jr20gu2osbJICOEroAYUYXIMzoAoQZXYAwowsQZnQBwky7CSA0O5wms6Pa5LLWt/h9NhkYbnuTo8bkqK51WW1CYAtUQUDbUAna6Q7op7KuhkZHbZ2neHt8ti0SrAD2gj9LvtqS/fzE5L8PTOrW39C1X9Ktj6Te/3Tua/PLvvV59ePl8lvv5U5c4DWLQfFVBkCPX10bm/X0+KTbB6BysX7jvYNyRkwtXL7aqeJZDZSrPZ5wafay1AefRVlPDd36Jd8xMHPQ2IJ3v2i4+AfFKeEWbOcuFLz/ZcaAUUm3PWrohuL9cbLZz00sWRVjD/oH9YEL0FxRfWnWu4YufRNv6i1raC6F+mK8dzAbVrXvODkkVB84lXzn42ywj3WOaPyjiEJlcQs1h39O6/08X5AxqEvBcjRcyj//wozEThFcKa8Zuva9Mn85bgsqoJ0ABbCknOP6UWpBCoDeN3Tuw0by5lcADDKX5/zbT9+J5keAqv0ncApcvKyl9hpafz6PimkkEAGsqVkYELhGSC0YAZwWa8rd/2TDZExZAMHpujglio+XMyUB0CrDzX7l9zW0tu3RTA7NAuB2S73/Ge7w14254oIRoHLvUTYGhlL5Sz4ri9lTHvtj8ecb86ZHp/cfoSRAyZqtXPHrhhYyjZQVoCH3CmYLb4xKy3h0FOYbqkI1mgVAL3AHhqX1eq5k1bcWY2bj5UJbVi76FDOtscdTVMYXNQJwR8FM0Fyu+KUwR1NJmbT7MJrhnsCUgM5tyMs3nzWiwZmDX5EKgBQrJ3IKVxyWM3xy+fZ9luSMurMpJatj0vsO5wJgRR+vpVpUo00A5CRJt/Tnjpo3bZG7UeZ1q8si/+pRjQCY3tkYY88h7ma1r3EKP1zFloWl3PUEeo3cvkgbiQGWmzmQaKDryX0NzDFX3l7JhsEwELnbevPMoU2Ayt2HuEMiGxM0/kBQjQCFy/lOvPDyLKSDSGwoQgHB4UQS7FO2U0Rt3FlyqyB/8ac+xW/qjeudfByCkDt+HheM3IG86tAmwJV5H3DHMytcWX5QI0DdL8lsDFmniLSIYYUfrq7PyfP8bSs57MVXMTmzpTCekE8NgsCNLakPPCM4neSVgCGXu12uLFxBPnVoEyB76AT2YMm3D9B6+QM1AqDanMipbJiPdY7ACq65XOazLfOvRi5Y8fqVw2VrwEmxxS/P/YB8CmQMeIGNzxk5jRzq0CZAxiMj2YPhYiGHFtQIABxVNZmDxrCRnGFlK12I1hxP4MKQUJFPBcjxsNBlixcrf/QncmH0bDY+c/BYcqhDmwConT0YupIcWlApAEBWV/TRWkyhbDxrWc+M554LmeITuRilJyKyYP3BZVAF735BPgWynvUZFTApkkMd2gS4OPkd9mAY/jAIkk816gUQcVltFTt+Ov/iTGkCBjOd9vkqFFkmF5A3YzH5VCC43Mie2eJZQ8aRTw6n2Wro1o+Nz5uu4XBAmwDSBY7WOQdoFcBLU2lF7usL2bKwopVfk7sVl60++Y6BbACuaHtxKblVwF9kN/WuO6P4lTyWhFxw6abvyacObQLUX7jE5RiJnftU7tEwyIKABQCu+kauf6+8zV8BuRMWsAEwjFQYW8jdFsgjueKeyUbuL54iuzV09bn8sdms/EW3LNoEaHG7s4dNYg/psc590AvsUwF3QyMalzctmrZ9CUYArIe5MbpwxWryXcOTCPmmhjDkC9UHT11/VCAIaDAWw5V7jtCea2AlhdSTK57S/cnSTTsd175Bb8wvzl/6uaHLw1wYtBcD1KNRACwU07KlBxbNeN+Qc0+OTuszzHCzJyCYZ0HFn67HUIARD1mNNT2nPueiOTGtdMOO9If5BwA1R+OpzDUwLf8+bg4XJhoynIxHR5177EXvxC77LKjqp5NSCT3WKcLYY3DKnfJJAfJXe34xVaEazQIAZNbcsWUtGAHyF33CxihZ6gPPyr7bclTW+H8N4DX5p6GCgPSfi/Rvhs59KnYq/lbZD4EIgPYVfbIOIw/XCM5CLYChS18/zxgwaqf3jeSKSE3pcbTgcF6auYQLVjIMCaUbFX8jhTEDlyzGOtysTSVllbsPk6OVgARoBdWlPjSUawprIRUAg3LNkf9RtALOOkvezCXieKhkSgJ4cAul3+z090qu1TDkcqmwFNwcmJlK1saizSVfb6O9rQQuAMCcVrZ5V9bTr0ozdLT7/KjpFOcL5kN4vVZ9KI4cDFh/eoZpyUCMOx0nXLh8lXc+bBPMH5feXGbsOYSrDZdtWsSwNlV0VJuKVqxJ7xfJvZ/BKWOJULZlt5r3+5V7j1kM6bhfK3YdRBHa20pQAhCCgCTPmppVfeAkbrTaU2ftBcV+Xk3A5W60e03paRLCHFU11ozzNcdOo9rKvUfrziQhCwrg6RMQHA57UQm6AEkz5lhLSqbTZMayi9xtgcjmimosCKp+PIbTtBgzPd8DqP74A232rNjdAuoRfP8geHsIoBMEugBhRhcgzOgChJWWlv8DzT7noBiA7DQAAAAASUVORK5CYII=",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your equipment\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](http://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp).\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"35%\" />\r\n<col width=\"64%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Cisco-WaaS-SNMP</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Cisco Waas",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Cisco-Waas-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-cisco-waas-snmp",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Cisco",
+            "Network",
+            "SNMP",
+            "WAAS",
+            "Wan Optimization",
+            "Wide Area Application Services"
+        ],
+        "update_date": "1464782033",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 1,
+            "alias": "PaperTray-Usage",
+            "command_name": "HW-Printer-Papertray-Usage-standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "Paper tray threshold",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "30:"
+                },
+                {
+                    "description": "Paper tray threshold",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "20:"
+                }
+            ],
+            "max_check_attempts": 2,
+            "name": "HW-Printer-PaperTray-Usage-standard-SNMP",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 1,
+            "alias": "MarkerSupply-Usage",
+            "command_name": "HW-Printer-Markersupply-Usage-standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "Marker supply  threshold",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "30:"
+                },
+                {
+                    "description": "Marker supply  threshold",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "20:"
+                }
+            ],
+            "max_check_attempts": 2,
+            "name": "HW-Printer-Markersupply-Usage-standard-SNMP",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 1,
+            "alias": "Impressions",
+            "command_name": "HW-Printer-Impressions-standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "Page count threshold",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "30"
+                },
+                {
+                    "description": "Page count threshold",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "40"
+                }
+            ],
+            "max_check_attempts": 2,
+            "name": "HW-Printer-Impressions-Usage-standard-SNMP",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Controle diff",
+            "active_checks_enabled": 1,
+            "alias": "Printer-Hardware",
+            "command_name": "HW-Printer-Hardware-standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 2,
+            "name": "HW-Printer-Hardware-standard-SNMP",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 1,
+            "alias": "Printer-Errors",
+            "command_name": "HW-Printer-Error-standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 2,
+            "name": "HW-Printer-Errors-standard-SNMP",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 1,
+            "alias": "Cover-Status",
+            "command_name": "HW-Printer-Cover-Status-standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 2,
+            "name": "HW-Printer-CoverStatus-Hardware-standard-SNMP",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

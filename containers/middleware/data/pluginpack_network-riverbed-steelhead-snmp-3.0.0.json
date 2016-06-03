@@ -1,0 +1,292 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=temperature --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Temperature",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=service-uptime --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Service-Uptime",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=service-status --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Service-Status",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=load-average --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Load-Average",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=health --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Health",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=disk-utilization --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Disk-Utilization",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=connections --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Connections",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=bandwidth-passthrough --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Bandwidth-Passthrough",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_riverbed-steelhead.pl --plugin=network::riverbed::steelhead::snmp::plugin --mode=bandwidth-optimization --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Riverbed-Steelhead-SNMP-Bandwidth-Optimization",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Riverbed Steelhead devices using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Riverbed-Steelhead-SNMP",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-Riverbed-Steelhead-Temperature-SNMP",
+                "Net-Riverbed-Steelhead-Service-Uptime-SNMP",
+                "Net-Riverbed-Steelhead-Service-Status-SNMP",
+                "Net-Riverbed-Steelhead-Load-Average-SNMP",
+                "Net-Riverbed-Steelhead-Health-SNMP",
+                "Net-Riverbed-Steelhead-Disk-Utilization-SNMP",
+                "Net-Riverbed-Steelhead-Connections-SNMP",
+                "Net-Riverbed-Steelhead-Bandwidth-Passthrough-SNMP",
+                "Net-Riverbed-Steelhead-Bandwidth-Optimization-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Riverbed SteelHead via SNMP:\r\n* Bandwidth-Optimization\r\n* Bandwidth-Passthrough\r\n* Connections\r\n* Disk-Utilization\r\n* Health\r\n* Load-Average\r\n* Services-Status\r\n* Service-Uptime\r\n* Temperature"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un \u00e9quipement Riverbed SteelHead via SNMP :\r\n* Bandwidth-Optimization\r\n* Bandwidth-Passthrough\r\n* Connections\r\n* Disk-Utilization\r\n* Health\r\n* Load-Average\r\n* Services-Status\r\n* Service-Uptime\r\n* Temperature"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your server\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](https://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp).\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Riverbed-Steelhead-SNMP</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Riverbed SteelHead",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Riverbed-Steelhead-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-riverbed-steelhead-snmp",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Hardware",
+            "Network",
+            "Riverbed",
+            "SNMP",
+            "SteelHead",
+            "Wan Optimization"
+        ],
+        "update_date": "1464877590",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le la temp\u00e9rature de la machine.}\r\n\r\n{EN: Check the temperature for the machine.}",
+            "active_checks_enabled": 2,
+            "alias": "Temperature",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Temperature",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Temperature-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'uptime du service d'optimisation.}\r\n\r\n{EN: Check uptime of optimization service.}",
+            "active_checks_enabled": 2,
+            "alias": "Service-Uptime",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Service-Uptime",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Service-Uptime-SNMP",
+            "normal_check_interval": 60,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le statut du service d'optimisation.}\r\n\r\n{EN: Check the current status of the optimization service.}",
+            "active_checks_enabled": 2,
+            "alias": "Service-Status",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Service-Status",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Service-Status-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le 'load-average'.}\r\n\r\n{EN: Check system load-average.}",
+            "active_checks_enabled": 2,
+            "alias": "Load-Average",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Load-Average",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Load-Average-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'\u00e9tat de sant\u00e9 global.}\r\n\r\n{EN: Check the current health of the system.}",
+            "active_checks_enabled": 2,
+            "alias": "Health",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Health",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Health-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation du disque.}\r\n\r\n{EN: Check disk usage.}",
+            "active_checks_enabled": 2,
+            "alias": "Disk-Utilization",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Disk-Utilization",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Disk-Utilization-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les connexions.}\r\n\r\n{EN: Check connections.}",
+            "active_checks_enabled": 2,
+            "alias": "Connections",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Connections",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Connections-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le la bande passante.}\r\n\r\n{EN: Check passthrough bandwidth in both directions.}",
+            "active_checks_enabled": 2,
+            "alias": "Bandwidth-Passthrough",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Bandwidth-Passthrough",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Bandwidth-Passthrough-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'optimisation totale du trafic de toutes les applications.}\r\n\r\n{EN: Check total optimized bytes across all application ports.}",
+            "active_checks_enabled": 2,
+            "alias": "Bandwidth-Optimization",
+            "command_name": "Net-Riverbed-Steelhead-SNMP-Bandwidth-Optimization",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Riverbed-Steelhead-Bandwidth-Optimization-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

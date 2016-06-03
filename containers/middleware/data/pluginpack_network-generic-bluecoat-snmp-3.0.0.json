@@ -1,0 +1,551 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=hardware --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Hardware",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=cpu --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Cpu",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=memory --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Memory",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=client-connections --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Client-Connections",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=client-requests --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-errors=\\'$_SERVICEWARNINGERRORS$\\' --critical-errors=\\'$_SERVICECRITICALERRORS$\\' --warning-misses=\\'$_SERVICEWARNINGMISSES$\\' --critical-misses=\\'$_SERVICECRITICALMISSES$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Client-Requests",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=client-traffic --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-received=\\'$_SERVICEWARNINGRECEIVED$\\' --critical -received=\\'$_SERVICECRITICALRECEIVED$\\' --warning-delivered=\\'$_SERVICEWARNINGDELIVERED$\\' --critical-delivered=\\'$_SERVICECRITICALDELIVERED$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Client-Traffic",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=server-connections --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Server-Connections",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_bluecoat.pl --plugin=network::bluecoat::snmp::plugin --mode=disk --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Bluecoat-SNMP-Disk",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Bluecoat using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTSNMPEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-SNMP",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-Bluecoat-Server-Connections-SNMP-Custom",
+                "Net-Bluecoat-Memory-SNMP-Custom",
+                "Net-Bluecoat-Hardware-SNMP-Custom",
+                "Net-Bluecoat-Disk-SNMP-Custom",
+                "Net-Bluecoat-Cpu-SNMP-Custom",
+                "Net-Bluecoat-Client-Traffic-SNMP-Custom",
+                "Net-Bluecoat-Client-Requests-SNMP-Custom",
+                "Net-Bluecoat-Client-Connections-SNMP-Custom"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Bluecoat network equipment via SNMP:\r\n* Client-Connections\r\n* Client-Requests\r\n* Client-Traffic\r\n* Cpu\r\n* Disk\r\n* Hardware\r\n* Memory* Server-Connections"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour superviser les \u00e9quipements r\u00e9seau Bluecoat via SNMP :\r\n* Client-Connections\r\n* Client-Requests\r\n* Client-Traffic\r\n* Cpu\r\n* Disk\r\n* Hardware\r\n* Memory* Server-Connections"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nThis chapter describes the prerequisites installation needed by plugins\r\nto run.\r\n\r\n### SNMP\r\nIt's necessary to enable SNMP on your equipment\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Bluecoat-SNMP</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.\r\n\r\nThose services were automatically created for this host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"49%\" />\r\n<col width=\"50%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Service</th>\r\n<th align=\"left\">Description</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Ping</p></td>\r\n<td align=\"left\"><p>Monitor host response time</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Cpu</p></td>\r\n<td align=\"left\"><p>Check CPU usage on Bluecoat</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Memory</p></td>\r\n<td align=\"left\"><p>Check memory usage on Bluecoat</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Disk</p></td>\r\n<td align=\"left\"><p>Check disk usage on Bluecoat</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Hardware</p></td>\r\n<td align=\"left\"><p>Check the hardware sensors on Bluecoat</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Client-Connections</p></td>\r\n<td align=\"left\"><p>Check current client connections on Bluecoat</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Client-Requests</p></td>\r\n<td align=\"left\"><p>Check http client requests (in percent by type : hit, partial, misses, errors)</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Client-Traffic</p></td>\r\n<td align=\"left\"><p>Check bytes/s received/delivered to clients</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Server-Connections</p></td>\r\n<td align=\"left\"><p>Check current server connections on Bluecoat</p></td>\r\n</tr>\r\n</tbody>\r\n</table>",
+        "name": "Bluecoat generic",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Generic-Bluecoat-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-generic-bluecoat-snmp",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Bluecoat",
+            "Hardware",
+            "Network",
+            "SNMP"
+        ],
+        "update_date": "1464868970",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Server-Connections",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Server-Connections-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Server-Connections-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Server-Connections",
+            "command_name": "Net-Bluecoat-SNMP-Server-Connections",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Server-Connections-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Memory-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Memory-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "Net-Bluecoat-SNMP-Memory",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--nocache"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Memory-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Hardware-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Hardware-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware",
+            "command_name": "Net-Bluecoat-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Hardware-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 5,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Disk",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Disk-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Disk-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Disk",
+            "command_name": "Net-Bluecoat-SNMP-Disk",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "95"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Disk-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Cpu-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Cpu-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "Net-Bluecoat-SNMP-Cpu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Cpu-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Client-Traffic",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Client-Traffic-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Client-Traffic-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Client-Traffic",
+            "command_name": "Net-Bluecoat-SNMP-Client-Traffic",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGRECEIVED$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALRECEIVED$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGDELIVERED$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALDELIVERED$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Client-Traffic-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Client-Requests",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Client-Requests-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Client-Requests-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Client-Requests",
+            "command_name": "Net-Bluecoat-SNMP-Client-Requests",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGERRORS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALERRORS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGMISSES$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALMISSES$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Client-Requests-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "Client-Connections",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Bluecoat-Client-Connections-SNMP-Custom",
+            "normal_check_interval": 0,
+            "parent_template": "Net-Bluecoat-Client-Connections-SNMP",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Client-Connections",
+            "command_name": "Net-Bluecoat-SNMP-Client-Connections",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Bluecoat-Client-Connections-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
