@@ -115,11 +115,15 @@ foreach ($pp_list as $pp_file) {
     $registred_id = 2;
     $subscription_id = 3;
     switch ($ppcontent['information']['slug']) {
+    case 'applications-databases-mysql':
     case 'applications-monitoring-centreon-central':
     case 'applications-monitoring-centreon-database':
     case 'applications-monitoring-centreon-poller':
     case 'base-generic':
     case 'hardware-printers-standard-rfc3805-snmp':
+    case 'hardware-ups-standard-rfc1628-snmp':
+    case 'network-cisco-standard-snmp':
+    case 'operatingsystems-linux-snmp':
         $catalog_id = $free_id;
         break ;
     case 'applications-protocol-bgp':
