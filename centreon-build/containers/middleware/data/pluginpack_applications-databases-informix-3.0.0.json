@@ -1,0 +1,514 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=table-locks --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning-deadlks=\\'$_SERVICEWARNINGDEADLKS$\\'  --critical-deadlks=\\'$_SERVICECRITICALDEADLKS$\\'  --warning-lockwts=\\'$_SERVICEWARNINGLOCKWTS$\\'  --critical-lockwts=\\'$_SERVICECRITICALLOCKWTS$\\'  --warning-lockreqs=\\'$_SERVICEWARNINGLOCKREQS$\\'  --critical-lockreqs=\\'$_SERVICECRITICALLOCKREQS$\\'  --warning-lktouts=\\'$_SERVICEWARNINGLKTOUTS$\\'  --critical-lktouts=\\'$_SERVICECRITICALLKTOUTS$\\' --name=\\'$_SERVICEDBNAME$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Table-Locks-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=dbspace-usage --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  --name=\\'$_SERVICEFILTER$\\' --regexp $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Dbspace-Usage-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=dbspace-usage --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  --name=\\'$_SERVICEDBSPACENAME$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Dbspace-Usage-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=logfile-usage --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Logfile-Usage",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=archivelevel0 --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  --name=\\'$_SERVICEDBSPACENAME$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Archivelevel0-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=table-locks --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning-deadlks=\\'$_SERVICEWARNINGDEADLKS$\\'  --critical-deadlks=\\'$_SERVICECRITICALDEADLKS$\\'  --warning-lockwts=\\'$_SERVICEWARNINGLOCKWTS$\\'  --critical-lockwts=\\'$_SERVICECRITICALLOCKWTS$\\'  --warning-lockreqs=\\'$_SERVICEWARNINGLOCKREQS$\\'  --critical-lockreqs=\\'$_SERVICECRITICALLOCKREQS$\\'  --warning-lktouts=\\'$_SERVICEWARNINGLKTOUTS$\\'  --critical-lktouts=\\'$_SERVICECRITICALLKTOUTS$\\' --name=\\'$_SERVICEDBFILTER$\\' --regexp $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Table-Locks-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=connection-time --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Connection-Time",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=archivelevel0 --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  --name=\\'$_SERVICEFILTER$\\' --regexp $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Archivelevel0-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=global-cache --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning-read=\\'$_SERVICEWARNINGREAD$\\'  --critical-read=\\'$_SERVICECRITICALREAD$\\' --warning-write=\\'$_SERVICEWARNINGWRITE$\\'  --critical-write=\\'$_SERVICECRITICALWRITE$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Global-Cache",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=sessions --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Sessions",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=chunkstates --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' --chunk-state=\\'$_SERVICESTATE$\\'  --name=\\'$_SERVICEFILTER$\\' --regexp --global-ok-msg=\\'$_SERVICEGLOBALOKMSG$\\' --ok-msg=\\'$_SERVICEOKMSG$\\' --error-msg=\\'$_SERVICEERRORMSG$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Chunkstate-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=checkpoints --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning-cp=\\'$_SERVICEWARNINGCP$\\'  --critical-cp=\\'$_SERVICECRITICALCP$\\'  --warning-flush=\\'$_SERVICEWARNINGFLUSH$\\'  --critical-flush=\\'$_SERVICECRITICALFLUSH$\\' --warning-crit=\\'$_SERVICEWARNINGCRIT$\\'  --critical-crit=\\'$_SERVICECRITICALCRIT$\\'  --warning-block=\\'$_SERVICEWARNINGBLOCK$\\'  --critical-block=\\'$_SERVICECRITICALBLOCK$\\' --filter-trigger=\\'$_SERVICEFILTERTRIGGER$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Checkpoints",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=lockoverflow --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Lockoverflow",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_informix.pl --plugin=database::informix::plugin --mode=longtxs --host=$HOSTADDRESS$ --port=$_HOSTINFORMIXPORT$ --username=\\'$_HOSTINFORMIXUSERNAME$\\' --password=\\'$_HOSTINFORMIXPASSWORD$\\' --instance=\\'$_HOSTINFORMIXINSTANCENAME$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Informix-Longtxs",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Informix Database",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [
+                {
+                    "key": "$_HOSTINFORMIXINSTANCENAME$",
+                    "value": ""
+                },
+                {
+                    "key": "$_HOSTINFORMIXPASSWORD$",
+                    "value": ""
+                },
+                {
+                    "key": "$_HOSTINFORMIXPORT$",
+                    "value": "33333"
+                },
+                {
+                    "key": "$_HOSTINFORMIXUSERNAME$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-DB-Informix",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-DB-Informix-Sessions-Custom",
+                "App-DB-Informix-Longtxs-Custom",
+                "App-DB-Informix-Lockoverflow-Custom",
+                "App-DB-Informix-Global-Cache-Custom",
+                "App-DB-Informix-Connection-Custom",
+                "App-DB-Informix-Chunk-Down-Global-Custom",
+                "App-DB-Informix-Checkpoints-Custom",
+                "App-DB-Informix-Archivelevel0-Global-Custom"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor IBM Informix DBMS using SQL request.\r\nSeveral indicators are available but not linked to the template of host.\r\nYou have to use them manually:\r\n* Archivelevel0-Generic-Name\r\n* Archivelevel0-Global\r\n* Checkpoints\r\n* Chunk-Down-Global\r\n* Connection\r\n* Dbspace-Usage-Generic-Name\r\n* Dbspace-Usage-Global\r\n* Global-Cache\r\n* Lockoverflow\r\n*  Logfiles-Usage\r\n* Longtxs\r\n* Sessions\r\n*  Table-Locks-Generic-Name\r\n* Table-Locks-Global"
+            },
+            {
+                "lang": "fr",
+                "value": "Pack Plugin pour surveiller les SGBD IBM Informix en utilisant des requ\u00eates SQL.\r\nDe nombreux indicateurs sont disponibles mais ne sont pas associ\u00e9s au mod\u00e8le d\\'h\u00f4te.\r\nIls doivent \u00eatre d\u00e9ploy\u00e9s manuellement :\r\n* Archivelevel0-Generic-Name\r\n* Archivelevel0-Global\r\n* Checkpoints\r\n* Chunk-Down-Global\r\n* Connection\r\n* Dbspace-Usage-Generic-Name\r\n* Dbspace-Usage-Global\r\n* Global-Cache\r\n* Lockoverflow\r\n*  Logfiles-Usage\r\n* Longtxs\r\n* Sessions\r\n*  Table-Locks-Generic-Name\r\n* Table-Locks-Global"
+            }
+        ],
+        "discovery_category": "database",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### Informix Client SDK:\r\nGo to download \"Informix Client Software Development Kit for Linux\r\nx86\\_64, 64-bit\" (clientsdk.3.50.FC9.LINUX.tar) on IBM website.\r\n\r\nInstall with the following procedure::\r\n1. Copy archive on the poller\r\n2. Create an user informix\r\n\r\n\r\n    useradd informix\r\n    chmod 775 /home/informix\r\n\r\n3. Need to install Sun JRE 1.6.x\r\n4. Install SDK (choose Typical Installation)::\r\n\r\n\r\n    ./installclientsdk -javahome /usr/java/jre1.6.0\\_45/\r\n    .... Please specify a directory or press Enter to accept the default directory.\r\n    Directory Name: \\[/root/informix/sdkclient/\\]\r\n    /home/informix/sdkclient\r\n\r\n### Perl DBD Informix\r\nTo compile DBD Informix, you need an access to an Informix Database,\r\nrun:\r\n\r\n    # cd /usr/local/src \r\n    # wget http://search.cpan.org/CPAN/authors/id/J/JO/JOHNL/DBD-Informix-2013.0521.tar.gz\r\n    # tar xzf DBD-Informix-2013.0521.tar.gz \r\n    # cd DBD-Informix-2013.0521 \r\n    # export INFORMIXDIR=/home/informix/sdkclient \r\n    # export LD\\_LIBRARY\\_PATH=$ORACLE\\_HOME/lib  \r\n    # export PATH=${PATH}:/home/informix/sdkclient/bin\r\n    # export LD\\_LIBRARY\\_PATH=/home/informix/sdkclient/lib/esql/:/home/informix/sdkclient/lib/\r\n    # export DBD\\_INFORMIX\\_USERNAME=root \r\n    # export DBD\\_INFORMIX\\_PASSWORD=xxxx \\# export DBD\\_INFORMIX\\_DATABASE=xxxx\r\n\r\nSet Informix Instance in \"/home/informix/sdkclient/etc/sqlhosts\" file:\r\n\r\n    INSTANCE onsoctcp IP PORT\r\n\r\nCompile the library:\r\n\r\n    $ perl Makefile.PL $ make\r\n\r\nThen install it:\r\n\r\n    $ make install\r\n\r\nThen create the file : /etc/ld.so.conf.d/informix.conf and link to the Informix Library:\r\n\r\n    $ touch /etc/ld.so.conf.d/informix.conf vi /etc/ld.so.conf.d/informix.conf\r\n\r\nYou just have to enter in the file: \r\n\r\n    /home/informix/sdkclient/lib/esql/ /home/informix/sdkclient/lib/\r\n\r\nThen:\r\n\r\n    /sbin/ldconfig\r\n\r\n### user account\r\nThe safest way to retrieve information from the Oracle server is to\r\ncreate a dedicated user for Centreon.\r\n\r\nThis user account must have the read permission on \"sysmaster\" database.\r\n\r\n## Centreon Configuration\r\n### Create a new Informix server\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-DB-Informix</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Informix DB",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Databases-Informix",
+                "version": "20160324-2"
+            }
+        ],
+        "slug": "applications-databases-informix",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Database",
+            "DB",
+            "DBMS",
+            "IBM",
+            "Informix",
+            "SGBD"
+        ],
+        "update_date": "1464536696",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Archivelevel0-Global",
+            "command_name": "App-DB-Informix-Archivelevel0-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Archivelevel0-Global",
+            "normal_check_interval": 60,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Global-Cache",
+            "command_name": "App-DB-Informix-Global-Cache",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGREAD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALREAD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGWRITE$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALWRITE$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Global-Cache",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Sessions",
+            "command_name": "App-DB-Informix-Sessions",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Sessions",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Chunk-Down-Global",
+            "command_name": "App-DB-Informix-Chunkstate-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "@1:1"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICESTATE$",
+                    "password": false,
+                    "value": "is_offline"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEGLOBALOKMSG$",
+                    "password": false,
+                    "value": "All chunks are ok."
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEOKMSG$",
+                    "password": false,
+                    "value": "Chunk %s is ok"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEERRORMSG$",
+                    "password": false,
+                    "value": "Chunk %s is down"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Chunk-Down-Global",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Checkpoints",
+            "command_name": "App-DB-Informix-Checkpoints",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALBLOCK$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALCP$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALCRIT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALFLUSH$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--filter-perfdata='^(?!(.*))'"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTERTRIGGER$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGBLOCK$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGCP$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGCRIT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGFLUSH$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Checkpoints",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Lockoverflow",
+            "command_name": "App-DB-Informix-Lockoverflow",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Lockoverflow",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Longtxs",
+            "command_name": "App-DB-Informix-Longtxs",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Informix-Longtxs",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

@@ -1,0 +1,103 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_elasticsearch.pl --plugin=apps::elasticsearch::plugin --mode=cluster --hostname=$HOSTADDRESS$ --port=\\'$_HOSTELASTICSEARCHPORT$\\' --proto=\\'$_HOSTELASTICSEARCHPROTO$\\' --urlpath=\\'$_SERVICEURLPATH$\\' $_HOSTEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Elasticsearch-Cluster-State",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_elasticsearch.pl --plugin=apps::elasticsearch::plugin --mode=nodescount --hostname=$HOSTADDRESS$ --port=\\'$_HOSTELASTICSEARCHPORT$\\' --proto=\\'$_HOSTELASTICSEARCHPROTO$\\' --urlpath=\\'$_SERVICEURLPATH$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_HOSTEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Elasticsearch-Nodes-Count",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$/centreon_elasticsearch.pl --plugin=apps::elasticsearch::plugin --mode=indices --hostname=$HOSTADDRESS$ --port=\\'$_HOSTELASTICSEARCHPORT$\\' --proto=\\'$_HOSTELASTICSEARCHPROTO$\\' --urlpath=\\'$_SERVICEURLPATH$\\' $_HOSTEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Elasticsearch-Indices-State",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Elasticsearch Server",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTELASTICSEARCHPORT$",
+                    "value": "9200"
+                },
+                {
+                    "key": "$_HOSTELASTICSEARCHPROTO$",
+                    "value": "http"
+                },
+                {
+                    "key": "$_HOSTEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Elasticsearch",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-Elasticsearch-Node-Count-custom",
+                "App-Elasticsearch-Indices-State-custom",
+                "App-Elasticsearch-Cluster-State-custom"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor ElasticSearch database:\r\n* Cluster-state\r\n* Indices-state\r\n*  Node-count"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour superviser une base de donn\u00e9es ElasticSearch :\r\n* Cluster-state\r\n* Indices-state\r\n*  Node-count"
+            }
+        ],
+        "discovery_category": "database",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nThis chapter describes the prerequisites installation needed by plugins\r\nto run.\r\n\r\n### Remote server\r\nThe remote server must have an elasticsearch instance running and its\r\nAPI available on the port 9200\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-Elascticsearch</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Onglet <em>Relations</em> &gt; Parent Hostgroups</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.\r\n\r\nThis service was automatically created for this host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"29%\" />\r\n<col width=\"65%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Service</th>\r\n<th align=\"left\">Description</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Cluster-state</p></td>\r\n<td align=\"left\"><p>Monitor state of cluster</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Nodes-count</p></td>\r\n<td align=\"left\"><p>Monitor number of nodes in a cluster</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Indices-state</p></td>\r\n<td align=\"left\"><p>Monitor state of indices in a cluster</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\n### Host Macro Configuration\r\nThe following macros must be configured on host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"24%\" />\r\n<col width=\"44%\" />\r\n<col width=\"17%\" />\r\n<col width=\"12%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>ELASTICSEARCHPORT</p></td>\r\n<td align=\"left\"><p>the imap user</p></td>\r\n<td align=\"left\"><p>9200</p></td>\r\n<td align=\"left\"><p>9200</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>ELASTICSEARCHPROTO</p></td>\r\n<td align=\"left\"><p>the imap user's password</p></td>\r\n<td align=\"left\"><p>http</p></td>\r\n<td align=\"left\"><p>http</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\n### Service Macro Configuration\r\nThe following macros must be configured on services:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"24%\" />\r\n<col width=\"44%\" />\r\n<col width=\"17%\" />\r\n<col width=\"12%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>URLPATH</p></td>\r\n<td align=\"left\"><p>Path to connect to web inteface</p></td>\r\n<td align=\"left\"><p>/</p></td>\r\n<td align=\"left\"><p>/</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Thresold (number of nodes)</p></td>\r\n<td align=\"left\"><p>2:</p></td>\r\n<td align=\"left\"><p>2:</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Thresold (number of nodes)</p></td>\r\n<td align=\"left\"><p>1:</p></td>\r\n<td align=\"left\"><p>1:</p></td>\r\n</tr>\r\n</tbody>\r\n</table>",
+        "name": "ElasticSearch",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Elasticsearch",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "applications-elasticsearch",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Database",
+            "DB",
+            "DBMS",
+            "Elastic",
+            "ElasticSearch",
+            "NoSQL",
+            "SGBD"
+        ],
+        "update_date": "1464544906",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
