@@ -72,7 +72,7 @@
             }
         ],
         "slug": "applications-jenkins",
-        "status": "stable",
+        "status": "testing",
         "status_message": "First generation",
         "tags": [
             "Automation",
