@@ -83,23 +83,23 @@ $source_dir = realpath('.');
 //
 if ($synchronize) {
     $images = array(
-        'mon-phantomjs:latest',
-        'mon-lm:centos6',
-        'mon-lm:centos7',
-        'mon-middleware:centos6',
-        'mon-middleware:centos7',
-        'mon-ppe:centos6',
-        'mon-ppe:centos7',
-        'mon-ppe1:centos6',
-        'mon-ppe1:centos7',
-        'mon-ppm:centos6',
-        'mon-ppm:centos7',
-        'mon-web-fresh:centos6',
-        'mon-web-fresh:centos7',
-        'mon-web:centos6',
-        'mon-web:centos7',
-        'mon-web-stable:centos6',
-        'mon-web-stable:centos7',
+        '/mon-phantomjs:latest',
+        '/mon-lm:centos6',
+        '/mon-lm:centos7',
+        '/mon-middleware:centos6',
+        '/mon-middleware:centos7',
+        '/mon-ppe:centos6',
+        '/mon-ppe:centos7',
+        '/mon-ppe1:centos6',
+        '/mon-ppe1:centos7',
+        '/mon-ppm:centos6',
+        '/mon-ppm:centos7',
+        '/mon-web-fresh:centos6',
+        '/mon-web-fresh:centos7',
+        '/mon-web:centos6',
+        '/mon-web:centos7',
+        '/mon-web-stable:centos6',
+        '/mon-web-stable:centos7',
         'redis:latest'
     );
     $count = count($images);
@@ -107,7 +107,10 @@ if ($synchronize) {
     foreach ($images as $image) {
         ++$i;
         echo '[' . $i . '/' . $count . '] Pulling ' . $image . "\n";
-        passthru('docker pull ci.int.centreon.com:5000/' . $image);
+        if ($image[0] == '/') {
+            $image = 'ci.int.centreon.com:5000' . $image;
+        }
+        passthru('docker pull ' . $image);
     }
 }
 
