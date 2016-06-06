@@ -106,7 +106,7 @@
             }
         ],
         "slug": "hardware-storage-synology-snmp",
-        "status": "stable",
+        "status": "testing",
         "status_message": "First generation",
         "tags": [
             "Hardware",
