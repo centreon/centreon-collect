@@ -1,7 +1,7 @@
 <?php
 
 // Prepare queries.
-$dbh = new \PDO('mysql:host=localhost;dbname=imp', 'root', '');
+$dbh = new \PDO('mysql:host=localhost;dbname=imp', 'root', 'centreon');
 $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 $ppinsert = $dbh->prepare(
     'INSERT IGNORE INTO pluginpack (name, slug, community, certified, icon) '
@@ -63,9 +63,12 @@ foreach ($pp_list as $pp_file) {
     $release_date = date('Y-m-d H:i:s', $ppcontent['information']['update_date']);
     $ppvinsert->bindParam(':release_date', $release_date);
     $ppvinsert->bindParam(':status', $ppcontent['information']['status']);
-    $ppvinsert->bindParam(':nb_ht', count($ppcontent['host_templates']));
-    $ppvinsert->bindParam(':nb_st', count($ppcontent['service_templates']));
-    $ppvinsert->bindParam(':nb_c', count($ppcontent['commands']));
+    $ht_count = count($ppcontent['host_templates']);
+    $ppvinsert->bindParam(':nb_ht', $ht_count);
+    $st_count = count($ppcontent['service_templates']);
+    $ppvinsert->bindParam(':nb_st', $st_count);
+    $cmd_count = count($ppcontent['commands']);
+    $ppvinsert->bindParam(':nb_c', $cmd_count);
     $download_count = 0;
     $ppvinsert->bindParam(':download_count', $download_count);
     $released = true;
