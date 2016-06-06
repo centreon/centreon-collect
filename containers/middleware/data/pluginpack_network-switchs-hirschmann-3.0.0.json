@@ -1,0 +1,263 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=traffic --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --regexp --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Traffic-Standard-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=traffic --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACENAME$\\' --name --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Traffic-Standard-NAME",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=traffic --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Traffic-Standard-ID",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=temperature --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --warning=$_SERVICEWARNING$ --critical=$_SERVICECRITICAL$ $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Temperature-Standard",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=led --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-RS-Led",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=processcount --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --warning=$_SERVICEWARNING$ --critical=$_SERVICECRITICAL$ $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Processes-Standard",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=memory --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --warning=$_SERVICEWARNING$ --critical=$_SERVICECRITICAL$ $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Memory-Standard",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=environment --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Environment-Standard",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_hirschmann.pl --plugin=network::hirschmann::standard::snmp::plugin --mode=cpu --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --warning=$_SERVICEWARNING$ --critical=$_SERVICECRITICAL$ $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Hirschmann-Cpu-Standard",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Hirschmann devices using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTSNMPEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Hirschmann",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-Hirschmann-Temperature-Standard",
+                "Net-Hirschmann-Processes-Standard",
+                "Net-Hirschmann-Memory-Standard",
+                "Net-Hirschmann-Environment-Standard",
+                "Net-Hirschmann-Cpu-Standard"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "Same pack but with new system",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monirtor Hirschmann switches via SNMP:\r\n* Cpu\r\n* Environment\r\n* Memory\r\n* Processes\r\n* RS-Leds\r\n* Temperature\r\n* Traffic (by interface name, ID or all interfaces)"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un switch Hirschmann via SNMP :\r\n* Cpu\r\n* Environment\r\n* Memory\r\n* Processes\r\n* RS-Leds\r\n* Temperature\r\n* Traffic (by interface name, ID or all interfaces)"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your server\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](https://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp).\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Cisco-Sb-Standard-SNMP</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"33%\" />\r\n<col width=\"66%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Optionnal Service</th>\r\n<th align=\"left\">Description</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>leds</p></td>\r\n<td align=\"left\"><p>Monitor led status</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Traffic-Generic-Name</p></td>\r\n<td align=\"left\"><p>Monitor traffic of an network interface</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Traffic-Generic-id</p></td>\r\n<td align=\"left\"><p>Monitor traffic of an network interface</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Traffic-Global</p></td>\r\n<td align=\"left\"><p>Monitor traffic of multiple network interfaces</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nHost Macro Configuration\r\n------------------------\r\n\r\nThe following macros must be configured on host (\\* means mandatory\r\noptions):\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"24%\" />\r\n<col width=\"44%\" />\r\n<col width=\"17%\" />\r\n<col width=\"12%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>SNMPEXTRAOPTIONS</p></td>\r\n<td align=\"left\"><p>Extra options for SNMP connection</p></td>\r\n<td align=\"left\"></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>",
+        "name": "Hirschmann switch",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Switchs-Hirschmann",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-switchs-hirschmann",
+        "status": "stable",
+        "status_message": "First generation",
+        "tags": [
+            "Hardware",
+            "Hirschmann",
+            "Network",
+            "SNMP",
+            "Switch"
+        ],
+        "update_date": "1464954408",
+        "version": "3.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le la temperature de l'\u00e9quipement}\r\n\r\n{EN: Check device temperature.}",
+            "active_checks_enabled": 2,
+            "alias": "Temperature",
+            "command_name": "Net-Hirschmann-Temperature-Standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "45"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "50"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Hirschmann-Temperature-Standard",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de processus de l'\u00e9quipement}\r\n\r\n{EN: Check process number of device.}",
+            "active_checks_enabled": 2,
+            "alias": "Processes",
+            "command_name": "Net-Hirschmann-Processes-Standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "110"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Hirschmann-Processes-Standard",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation m\u00e9moire de l'\u00e9quipement}\r\n\r\n{EN: Check device memory usage.}",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "Net-Hirschmann-Memory-Standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Hirschmann-Memory-Standard",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'\u00e9tat de l'\u00e9quipement (Ventilateurs, alimentations).}\r\n\r\n{EN: Check hardware environment (Fans, Power Supplies).}",
+            "active_checks_enabled": 2,
+            "alias": "Environment",
+            "command_name": "Net-Hirschmann-Environment-Standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Hirschmann-Environment-Standard",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le du taux d'utilisation du CPU de l'\u00e9quipement.}\r\n\r\n{EN: Check the rate of utilization of CPU for the device.}",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "Net-Hirschmann-Cpu-Standard",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Hirschmann-Cpu-Standard",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
