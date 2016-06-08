@@ -5,7 +5,7 @@ set -x
 
 # Launch mon-unittest container.
 docker pull ci.int.centreon.com:5000/mon-unittest:centos7
-containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION /usr/local/bin/unittest-middleware`
+containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos7 /usr/local/bin/unittest-middleware`
 
 # Copy sources to container.
 docker cp centreon-imp-portal-api "$containerid:/usr/local/src/centreon-imp-portal-api"
