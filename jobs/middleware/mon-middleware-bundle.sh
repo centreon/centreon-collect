@@ -3,26 +3,16 @@
 set -e
 set -x
 
-# Check arguments.
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
-  exit 1
-fi
-CENTOS_VERSION="$1"
-
-# Pull Centreon Web image.
-docker pull ci.int.centreon.com:5000/mon-dependencies:centos$CENTOS_VERSION
+# Pull base image.
+docker pull ubuntu:16.04
 
 # Fetch middleware sources.
-scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com:/tmp/centreon-imp-portal-api.centos$CENTOS_VERSION.tar.gz" .
-tar xzf centreon-imp-portal-api.centos$CENTOS_VERSION.tar.gz
-
-# Prepare Dockerfile.
-cd centreon-build/containers
-sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < middleware/middleware.Dockerfile.in > middleware/middleware.centos$CENTOS_VERSION.Dockerfile
+scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com:/tmp/centreon-imp-portal-api.tar.gz" .
+tar xzf centreon-imp-portal-api.tar.gz
 
 # CentOS middleware image.
+cd centreon-build/containers
 rm -rf centreon-imp-portal-api
 cp -r ../../centreon-imp-portal-api .
-docker build --no-cache -t ci.int.centreon.com:5000/mon-middleware:centos$CENTOS_VERSION -f middleware/middleware.centos$CENTOS_VERSION.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-middleware:centos$CENTOS_VERSION
+docker build --no-cache -t ci.int.centreon.com:5000/mon-middleware:latest -f middleware/latest.Dockerfile .
+docker push ci.int.centreon.com:5000/mon-middleware:latest

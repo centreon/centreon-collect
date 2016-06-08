@@ -3,15 +3,8 @@
 set -e
 set -x
 
-# Check arguments.
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
-  exit 1
-fi
-CENTOS_VERSION="$1"
-
 # Launch mon-unittest container.
-docker pull ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION
+docker pull ci.int.centreon.com:5000/mon-unittest:centos7
 containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION /usr/local/bin/unittest-middleware`
 
 # Copy sources to container.
