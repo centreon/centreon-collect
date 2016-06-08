@@ -8,7 +8,7 @@ rm -f /tmp/centreon-middleware_ut.xml
 rm -f /tmp/centreon-middleware_coverage.xml
 cd /usr/local/src/centreon-imp-portal-api/
 npm install
-gulp test:xunit
+gulp test:xunit || true
 
 # Copy reports.
 mv xunit.xml /tmp/centreon-middleware_ut.xml
