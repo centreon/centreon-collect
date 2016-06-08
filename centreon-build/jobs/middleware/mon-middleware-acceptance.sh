@@ -3,16 +3,9 @@
 set -e
 set -x
 
-# Check arguments.
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
-  exit 1
-fi
-DISTRIB="$1"
-
 # Pull image.
 WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
-MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:$DISTRIB
+MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $MIDDLEWARE_IMAGE
 
