@@ -10,9 +10,6 @@ RUN echo 'mysql-server mysql-server/root_password password centreon' | debconf-s
 RUN echo 'mysql-server mysql-server/root_password_again password centreon' | debconf-set-selections
 RUN apt-get install -y build-essential mysql-client mysql-server netcat nodejs nodejs-legacy npm phantomjs php-cli php-curl php-mysql unicode-data
 
-# Copy middleware sources.
-COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
-
 # Install OpenLDAP.
 RUN apt-get install -y screen slapd ldap-utils
 #RUN echo 'olcRootPW: {SSHA}2pMsLy5/tCfxzQpBah2YWflQdzTKH0Py' >> '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
@@ -21,6 +18,7 @@ RUN apt-get install -y screen slapd ldap-utils
 #COPY middleware/ldap.ldif /tmp/ldap.ldif
 
 # Install middleware.
+COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
 WORKDIR /usr/local/src/centreon-imp-portal-api
 COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js
 COPY middleware/private.asc /usr/local/src/centreon-imp-portal-api/private.asc
