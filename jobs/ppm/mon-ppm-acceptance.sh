@@ -13,7 +13,7 @@ DISTRIB="$1"
 # Pull images.
 WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 PPM_IMAGE=ci.int.centreon.com:5000/mon-ppm:$DISTRIB
-MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:$DISTRIB
+MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $PPM_IMAGE
 docker pull $MIDDLEWARE_IMAGE
