@@ -4,22 +4,9 @@
 $centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..';
 require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
 
-# Check arguments.
-if ($argc <= 1) {
-    echo "USAGE: $0 <centos6|centos7>\n";
-    exit(1);
-}
-$distrib = $argv[1];
-
-# Prepare Dockerfile.
-$content = file_get_contents(xpath($centreon_build_dir . '/containers/middleware/middleware-dev.Dockerfile.in'));
-$content = str_replace('@DISTRIB@', $distrib, $content);
-$dockerfile = xpath($centreon_build_dir . '/containers/middleware/middleware.' . $distrib . '.Dockerfile');
-file_put_contents($dockerfile, $content);
-
 # Build middleware image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-imp-portal-api'));
 xcopy('.', xpath($centreon_build_dir . '/containers/centreon-imp-portal-api'));
-passthru('docker build -t mon-middleware-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
+passthru('docker build -t mon-middleware-dev:latest -f ' . xpath($centreon_build_dir) . '/containers/middleware/dev.Dockerfile ' . xpath($centreon_build_dir . '/containers'));
 
 ?>
