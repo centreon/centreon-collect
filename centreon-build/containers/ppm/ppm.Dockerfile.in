@@ -1,15 +1,14 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-lm:centos@CENTOS_VERSION@
+FROM ci.int.centreon.com:5000/mon-web:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Copy sources.
-COPY centreon-pp-manager /usr/share/centreon/www/modules/centreon-pp-manager
-RUN sed -i -e s#"^define('CENTREON_IMP_API_URL', '.*');\$#define('CENTREON_IMP_API_URL', 'http://middleware:3000/api');"#g /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
+# Install package.
+RUN yum install -y --nogpgcheck centreon-pp-manager
 
 # Install Plugin Pack JSON files.
 COPY middleware/data/*.json /etc/centreon/ppm/
 
-# Install script.
+# Install module in Centreon.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
