@@ -39,7 +39,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-curl -F "file=@centreon-license-manager-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-license-manager' 'http://encode.int.centreon.com/api/' -o "input/centreon-license-manager-$VERSION-php$phpversion.tar.gz"
+curl -F "file=@centreon-license-manager-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-license-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-license-manager-$VERSION-php$phpversion.tar.gz"
 
 # Build RPMs.
 cp centreon-license-manager/packaging/centreon-license-manager.spectemplate input
