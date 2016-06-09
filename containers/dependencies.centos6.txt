@@ -50,6 +50,7 @@ php-pear-Validate
 php-pecl-json
 php-snmp
 php-xml
+php-zend-guard-loader
 qt4
 qt4-mysql
 rrdtool
