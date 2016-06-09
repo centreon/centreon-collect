@@ -9,6 +9,8 @@ services:
     ports:
     - "80"
     - "3306"
+    links:
+    - "middleware:api.imp.centreon.com"
   middleware:
     image: @MIDDLEWARE_IMAGE@
     ports:
