@@ -41,9 +41,13 @@ else
 fi
 curl -F "file=@centreon-license-manager-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-license-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-license-manager-$VERSION-php$phpversion.tar.gz"
 
+# Pull latest build dependencies.
+BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
+docker pull "$BUILD_IMG"
+
 # Build RPMs.
 cp centreon-license-manager/packaging/centreon-license-manager.spectemplate input
-docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
+docker-rpm-builder dir "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
