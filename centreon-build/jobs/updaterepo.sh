@@ -1,5 +1,37 @@
 #!/bin/sh
 
+#
+# Update repo with new RPMs.
+#
+
+PID_FILE="/tmp/updaterepo.pid"
+CES_VERSION="$1"
+ARCH="$2"
+
+if [ -n "$CES_VERSION" -a -n "$ARCH" ] ; then
+  sucess=0
+  while [ "$sucess" = 0 ] ; do
+    if [ -f "$PID_FILE" ] ; then
+      concurrent=`cat $PID_FILE | head -n 1`
+      while [ -d "/proc/$concurrent" ] ; do
+        sleep 1
+      done
+    else
+      echo $$ >> "$PID_FILE"
+      concurrent=`cat $PID_FILE | head -n 1`
+      if [ "$concurrent" = $$ ] ; then
+        createrepo "/srv/repos/standard/$CES_VERSION/unstable/$ARCH/"
+        rm -f "$PID_FILE"
+        sucess=1
+      fi
+    fi
+  done
+fi
+
+#
+# Clean the repositories.
+#
+
 clean_repository() {
   cd $1
   rpms="centreon
