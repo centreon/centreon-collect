@@ -12,6 +12,8 @@ clean_repository() {
         centreon-poller-centreon-engine
         centreon-trap
         centreon-web
+        centreon-license-manager
+        centreon-pp-manager
         centreon-broker
         centreon-broker-cbd
         centreon-broker-cbmod
