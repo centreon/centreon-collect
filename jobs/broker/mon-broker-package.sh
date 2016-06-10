@@ -63,5 +63,5 @@ fi
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/$CES_VERSION/unstable/x86_64/RPMS"
 DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../clean_repositories.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh -c "'chmod +x $DESTFILE ; $DESTFILE ; rm $DESTFILE ; createrepo /srv/repos/standard/$CES_VERSION/unstable/x86_64/'"
+scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" $DESTFILE $CES_VERSION x86_64
