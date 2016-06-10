@@ -8,10 +8,6 @@ RUN chmod +x /tmp/install.sh
 COPY centreon-pp-manager/sql /usr/share/centreon/www/modules/centreon-pp-manager/sql
 RUN /tmp/install.sh
 
-# Module configuration.
-COPY centreon-pp-manager/centreon-pluginpack-manager.conf.php /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
-RUN sed -i -e s#"^define('CENTREON_IMP_API_URL', '.*');\$#define('CENTREON_IMP_API_URL', 'http://middleware:3000/api');"#g /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
-
 # Static sources.
 COPY centreon-pp-manager/static /usr/share/centreon/www/modules/centreon-pp-manager/static
 COPY centreon-pp-manager/locale /usr/share/centreon/www/modules/centreon-pp-manager/locale
