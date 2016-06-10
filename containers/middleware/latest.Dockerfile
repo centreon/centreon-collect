@@ -8,9 +8,13 @@ RUN apt-get update
 RUN apt-get install -y debconf-utils
 RUN echo 'mysql-server mysql-server/root_password password centreon' | debconf-set-selections
 RUN echo 'mysql-server mysql-server/root_password_again password centreon' | debconf-set-selections
-RUN apt-get install -y build-essential mysql-client mysql-server netcat nodejs nodejs-legacy npm phantomjs php-cli php-curl php-mysql unicode-data
+RUN apt-get install -y build-essential mysql-client mysql-server netcat phantomjs php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# Install Node.js and NPM.
+RUN curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
+RUN sudo apt-get install -y nodejs
 
 # Install OpenLDAP.
 RUN apt-get install -y screen slapd ldap-utils
