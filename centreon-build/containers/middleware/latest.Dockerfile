@@ -8,7 +8,7 @@ RUN apt-get update
 RUN apt-get install -y debconf-utils
 RUN echo 'mysql-server mysql-server/root_password password centreon' | debconf-set-selections
 RUN echo 'mysql-server mysql-server/root_password_again password centreon' | debconf-set-selections
-RUN apt-get install -y build-essential mysql-client mysql-server netcat phantomjs php-cli php-curl php-mysql unicode-data
+RUN apt-get install -y build-essential curl mysql-client mysql-server netcat phantomjs php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
 
