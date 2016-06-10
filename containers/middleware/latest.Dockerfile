@@ -13,8 +13,8 @@ RUN apt-get install -y build-essential curl mysql-client mysql-server netcat pha
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
 
 # Install Node.js and NPM.
-RUN curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
-RUN sudo apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_4.x | bash -
+RUN apt-get install -y nodejs
 
 # Install OpenLDAP.
 RUN apt-get install -y screen slapd ldap-utils
