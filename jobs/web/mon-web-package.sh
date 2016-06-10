@@ -106,4 +106,4 @@ FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/$CES_VERSION/unstable/noarch/RPMS"
 DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" mktemp`
 scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" $DESTFILE $CES_VERSION noarch
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh $DESTFILE $CES_VERSION noarch
