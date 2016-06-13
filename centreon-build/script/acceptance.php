@@ -158,13 +158,13 @@ else {
         xpath('mon-lm-dev.yml'),
         array(
             '@WEB_IMAGE@' => 'mon-lm-dev:' . $distrib,
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:' . $distrib
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-standalone.yml.in'),
         xpath('mon-middleware-dev.yml'),
-        array('@MIDDLEWARE_IMAGE@' => 'mon-middleware-dev:' . $distrib)
+        array('@MIDDLEWARE_IMAGE@' => 'mon-middleware-dev:latest')
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
@@ -181,7 +181,7 @@ else {
         xpath('mon-ppm-dev.yml'),
         array(
             '@WEB_IMAGE@' => 'mon-ppm-dev:' . $distrib,
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:' . $distrib
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
