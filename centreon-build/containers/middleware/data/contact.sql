@@ -1,6 +1,6 @@
 INSERT INTO `company` (`id`, `name`, `crm_id`, `token`, `enabled`) VALUES (1,'Centreon','1','7a272af06ea1885f510ba0ad76bee1bc',1);
 INSERT INTO `subscription` (`id`, `company_id`, `dp_id`, `start`, `end`, `type`, `payed`, `cancelled`, `amount`, `billing_info`, `next_type`, `datelog_start`, `datelog_end`) VALUES (1,1,1,'2016-02-16 00:00:00','9999-12-12 00:00:00','IMP_6_MONTH',1,0,99.99,NULL,'IMP_6_MONTH','2016-05-02 10:50:53','9999-12-12 00:00:00');
 INSERT INTO `customer` (`id`, `username`, `password`, `email`, `firstname`, `lastname`, `enabled`, `company_id`, `kayako_user_id`, `crm_contact_id`, `datelog_start`) VALUES (1,'centreon','8dd90e453bb87a7502331014281dd1ccf37ec1cbf86fa8ba668748cbc3ab88d549f999ebdd8857040b7568dba78c754f4e7b307999731029647182ce6240a102::10000::5982f43a046f626a100ed149f9ace453dead179dbdeba39735a9b317e591357fbda1fdec02417c6b60612d01151da945a8db8a8f439264eb4949bad43434d08d','centreon@centreon.com','Administrateur','Centreon',1,1,1,'1','2016-05-02 10:50:53');
-INSERT INTO `catalog` (`id`, `name`, `description`, `slug`, `enabled`, `sort`, `catalog_level`) VALUES (1,'Free','Gratuit','free',1,1,1);
-INSERT INTO `catalog` (`id`, `name`, `description`, `slug`, `enabled`, `sort`, `catalog_level`) VALUES (2,'Registred','Registred','registred',1,2,2);
-INSERT INTO `catalog` (`id`, `name`, `description`, `slug`, `enabled`, `sort`, `catalog_level`) VALUES (3,'Subscription','Subscription','subs',1,3,3);
+INSERT INTO `catalog` (`id`, `name`, `description`, `slug`, `enabled`, `sort`, `catalog_level`, `visible`) VALUES (1,'Free','Gratuit','free',1,1,1,1);
+INSERT INTO `catalog` (`id`, `name`, `description`, `slug`, `enabled`, `sort`, `catalog_level`, `visible`) VALUES (2,'Registred','Registred','registred',1,2,2,1);
+INSERT INTO `catalog` (`id`, `name`, `description`, `slug`, `enabled`, `sort`, `catalog_level`, `visible`) VALUES (3,'Subscription','Subscription','subs',1,3,3,1);
