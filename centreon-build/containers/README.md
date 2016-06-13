@@ -44,6 +44,11 @@ They are not used directly but to build mon-unittest and mon-web images.
 These images contain all software needed to run tests on Centreon
 software. They are used to run unit tests.
 
+### mon-middleware
+
+This single image (:latest) hosts Centreon IMP Portal API which is used
+notably by Centreon Plugin Pack Manager.
+
 ### mon-web-fresh
 
 These images contain Centreon fresh installed and ready to run. They
@@ -60,3 +65,13 @@ time.
 
 Has Centreon Plugin Pack Exporter module installed on top of Centreon
 Web. Therefore it reuse the *mon-web* images.
+
+### mon-lm
+
+Has Centreon License Manager module installed on top of Centreon Web.
+Therefore it reuse the *mon-web* images.
+
+### mon-ppm
+
+Has Centreon Plugin Pack Manager and Centreon License Manager installed
+on top of Centreon Web. It reuse *mon-web* images.
