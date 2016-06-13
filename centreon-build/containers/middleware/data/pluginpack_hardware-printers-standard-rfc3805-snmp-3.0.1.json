@@ -21,7 +21,7 @@
             "type": 2
         },
         {
-            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_printers_generic_snmp.pl --plugin=hardware::printers::standard::rfc3805::plugin --mode=markersupply-usage --hostname=$HOSTADDRESS$ --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --snmp-version=\\'$_HOSTSNMPVERSION$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning \\'$_SERVICEWARNING$\\' --critical \\'$_SERVICECRITICAL$\\' \\'$_SERVICEEXTRAOPTIONS$\\'\\\"",
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_printers_generic_snmp.pl --plugin=hardware::printers::standard::rfc3805::plugin --mode=markersupply-usage --hostname=$HOSTADDRESS$ --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --snmp-version=\\'$_HOSTSNMPVERSION$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning \\'$_SERVICEWARNING$\\' --critical \\'$_SERVICECRITICAL$\\' \\'$_SERVICEEXTRAOPTIONS$\\' v3\\\"",
             "name": "HW-Printer-Markersupply-Usage-standard",
             "type": 2
         },
@@ -34,7 +34,7 @@
     "host_templates": [
         {
             "active_checks_enabled": 2,
-            "alias": "Host template to check printer according to RFC 3805",
+            "alias": "Host template to check printer according to RFC 3805 v3",
             "check_interval": 0,
             "checks_enabled": 2,
             "discovery_validator": "",
@@ -52,7 +52,24 @@
                 "HW-Printer-Errors-standard-SNMP",
                 "HW-Printer-CoverStatus-Hardware-standard-SNMP"
             ]
-        }
+        },
+        {
+            "active_checks_enabled": "2",
+            "alias": "Host template of v3",
+            "check_interval": null,
+            "checks_enabled": "2",
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [],
+            "max_check_attempts": null,
+            "name": "HW-Printer-standard-rfc3805-v3",
+            "parent_template": "generic-active-host",
+            "passive_checks_enabled": "2",
+            "retry_check_interval": "",
+            "services": [
+                "HW-Printer-Hardware-standard-SNMP"
+            ]
+         }
     ],
     "images": [
         {
@@ -133,23 +150,29 @@
         {
             "_comment": "{FR: Contr",
             "active_checks_enabled": 1,
-            "alias": "MarkerSupply-Usage",
+            "alias": "MarkerSupply-Usage-v3",
             "command_name": "HW-Printer-Markersupply-Usage-standard",
             "discovery_list_mode": "",
             "icon": "",
             "is_volatile": 2,
             "macros": [
                 {
-                    "description": "Marker supply  threshold",
+                    "description": "Marker supply  threshold v3",
                     "key": "$_SERVICEWARNING$",
                     "password": false,
                     "value": "30:"
                 },
                 {
-                    "description": "Marker supply  threshold",
+                    "description": "Marker supply  threshold v3",
                     "key": "$_SERVICECRITICAL$",
                     "password": false,
                     "value": "20:"
+                },
+                {
+                    "description": "Macro v3",
+                    "key": "$_SERVICEMACROV3$",
+                    "password": true,
+                    "value": "55:"
                 }
             ],
             "max_check_attempts": 2,
@@ -163,7 +186,7 @@
         {
             "_comment": "{FR: Contr",
             "active_checks_enabled": 1,
-            "alias": "Impressions",
+            "alias": "Impressions-v3",
             "command_name": "HW-Printer-Impressions-standard",
             "discovery_list_mode": "",
             "icon": "",
@@ -193,7 +216,7 @@
         {
             "_comment": "{FR: Controle diff",
             "active_checks_enabled": 1,
-            "alias": "Printer-Hardware",
+            "alias": "Printer-Hardware-v3",
             "command_name": "HW-Printer-Hardware-standard",
             "discovery_list_mode": "",
             "icon": "",
@@ -210,7 +233,7 @@
         {
             "_comment": "{FR: Contr",
             "active_checks_enabled": 1,
-            "alias": "Printer-Errors",
+            "alias": "Printer-Errors-v3",
             "command_name": "HW-Printer-Error-standard",
             "discovery_list_mode": "",
             "icon": "",
@@ -227,7 +250,7 @@
         {
             "_comment": "{FR: Contr",
             "active_checks_enabled": 1,
-            "alias": "Cover-Status",
+            "alias": "Cover-Status-v3",
             "command_name": "HW-Printer-Cover-Status-standard",
             "discovery_list_mode": "",
             "icon": "",
