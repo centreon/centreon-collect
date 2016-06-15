@@ -1,0 +1,1144 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=processcount --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --process-name=\\'$_SERVICEPROCESSNAME$\\' --process-path=\\'$_SERVICEPROCESSPATH$\\' --process-args=\\'$_SERVICEPROCESSARGS$\\' --regexp-name --regexp-path --regexp-args --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Process-Generic",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=tcpcon --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Tcpcon",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=cpu-detailed --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-idle=\\'$_SERVICEWARNINGIDLE$\\'  --critical-idle=\\'$_SERVICECRITICALIDLE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Cpu-Detailed",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --add-status --add-errors --warning-in-discard=\\'$_SERVICEWARNINGINDISCARD$\\' --critical-in-discard=\\'$_SERVICECRITICALINDISCARD$\\' --warning-out-discard=\\'$_SERVICEWARNINGOUTDISCARD$\\' --critical-out-discard=\\'$_SERVICECRITICALOUTDISCARD$\\' --warning-in-error=\\'$_SERVICEWARNINGINERROR$\\' --critical-in-error=\\'$_SERVICECRITICALINERROR$\\' --warning-out-error=\\'$_SERVICEWARNINGOUTERROR$\\' --critical-out-error=\\'$_SERVICECRITICALOUTERROR$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Packet-Errors-Id",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'^$_SERVICEINTERFACENAME$$$\\' --name --add-status --add-errors --warning-in-discard=\\'$_SERVICEWARNINGINDISCARD$\\' --critical-in-discard=\\'$_SERVICECRITICALINDISCARD$\\' --warning-out-discard=\\'$_SERVICEWARNINGOUTDISCARD$\\' --critical-out-discard=\\'$_SERVICECRITICALOUTDISCARD$\\' --warning-in-error=\\'$_SERVICEWARNINGINERROR$\\' --critical-in-error=\\'$_SERVICECRITICALINERROR$\\' --warning-out-error=\\'$_SERVICEWARNINGOUTERROR$\\' --critical-out-error=\\'$_SERVICECRITICALOUTERROR$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Packet-Errors-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --add-status --add-errors --critical-status=\\'$_SERVICECRITICALSTATUS$\\' --warning-in-discard=\\'$_SERVICEWARNINGINDISCARD$\\' --critical-in-discard=\\'$_SERVICECRITICALINDISCARD$\\' --warning-out-discard=\\'$_SERVICEWARNINGOUTDISCARD$\\' --critical-out-discard=\\'$_SERVICECRITICALOUTDISCARD$\\' --warning-in-error=\\'$_SERVICEWARNINGINERROR$\\' --critical-in-error=\\'$_SERVICECRITICALINERROR$\\' --warning-out-error=\\'$_SERVICEWARNINGOUTERROR$\\' --critical-out-error=\\'$_SERVICECRITICALOUTERROR$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Packet-Errors-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=uptime --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Uptime",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=inodes --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --diskpath=\\'$_SERVICEFILTER$\\' --name --regexp --warning-usage=\\'$_SERVICEWARNING$\\' --critical-usage=\\'$_SERVICECRITICAL$\\' --filter-device=\\'$_SERVICEFILTERDEVICE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Inodes-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=diskio --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --device \\'$_SERVICEDISKNAME$\\' --name --warning-read=\\'$_SERVICEWARNINGREAD$\\' --critical-read=\\'$_SERVICECRITICALREAD$\\' --warning-write=\\'$_SERVICEWARNINGWRITE$\\' --critical-write=\\'$_SERVICECRITICALWRITE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Disk-Io",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --add-status --add-traffic --critical-status=\\'$_SERVICECRITICALSTATUS$\\' --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Traffic-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Traffic-Id",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'^$_SERVICEINTERFACENAME$$$\\' --name --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Traffic-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=storage --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --storage=\\'$_SERVICEFILTER$\\' --name --regexp --display-transform-src=\\'$_SERVICETRANSFORMSRC$\\' --display-transform-dst=\\'$_SERVICETRANSFORMDST$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Disk-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=storage --hostname=$HOSTADDRESS$ --snmp-version=$_HOSTSNMPVERSION$ --snmp-community=$_HOSTSNMPCOMMUNITY$ $_HOSTSNMPEXTRAOPTIONS$ --storage \\'$_SERVICEDISKID$\\' --display-transform-src=\\'$_SERVICETRANSFORMSRC$\\' --display-transform-dst=\\'$_SERVICETRANSFORMDST$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Disk-Id",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=storage --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --storage \\'$_SERVICEDISKNAME$\\' --name --display-transform-src=\\'$_SERVICETRANSFORMSRC$\\' --display-transform-dst=\\'$_SERVICETRANSFORMDST$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Disk-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=load --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Load",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=memory --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Memory",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=cpu --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Cpu",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=swap --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Linux-SNMP-Swap",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Linux server using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "OS-Linux-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "OS-Linux-Swap-SNMP",
+                "OS-Linux-Memory-SNMP",
+                "OS-Linux-Load-SNMP",
+                "OS-Linux-Cpu-SNMP"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor GNU/Linux operating system using SNMP protocole.\r\nSeveral indicators are available but not linked to the template of host.\r\nYou have to use them manually:\r\n* CPU usage\r\n* CPU detailed usage\r\n* Disk-Global (all disk, by name, by ID)\r\n* Disk I/O\r\n* Global Inodes\r\n* Load usage (1m, 5m, 15m)\r\n* Memory usage\r\n* Packets error (all interfaces, by name, by ID)\r\n* Process state\r\n* Swap usage\r\n* Traffic (Bandwidth usage for all interfaces, by name, by ID)\r\n* TCP connection\r\n* Uptime"
+            },
+            {
+                "lang": "fr",
+                "value": "Pack Plugin pour surveiller les syst\u00e8mes d\\'exploitation GNU/Linux en utilisant le protocole SNMP.\r\nDe nombreux indicateurs sont disponibles mais ne sont pas associ\u00e9s au mod\u00e8le d\\'h\u00f4te.\r\nIls doivent \u00eatre d\u00e9ploy\u00e9s manuellement:\r\n* Utilisation CPU\r\n* Utilisation d\u00e9taill\u00e9e du CPU\r\n* Disk-Global (pour toutes les partitions, par nom ou pas ID)\r\n* Disk I/O\r\n* Global Inodes\r\n* Load usage (1m, 5m, 15m)\r\n* Utilisation m\u00e9moire\r\n* Erreurs de paquets (all interfaces, by name, by ID)\r\n* Etat d\\'un processus\r\n* Utilisation du SWAP\r\n* Trafic (Utilisation de la bande passante pour toutes les interfaces, par nom ou par id)\r\n* TCP connexion\r\n* Uptime"
+            }
+        ],
+        "discovery_category": "operating-system",
+        "email": "imp@centreon.com",
+        "icon": "iVBORw0KGgoAAAANSUhEUgAAAG4AAACACAIAAABld8teAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC45bDN+TgAAIqRJREFUeF7tXWdYVMcaHhArWLATFXtHBTTqfSQx0cQU04wak5hcU4wt9hZNFGOsUSzRa6+oCKgoiCBSpEjvVYqNElBEBcUCCux958xwWJbdZRe25EfeZ+TZPW2+eeer55wdieRfaAj/Uqkx/EulxvAvlRrDv1RqDP9SqTH8E6lMS0vbs2fPtGnTRo4caW5u3rp167Zt2/bs2XP06NFz5sw5depUfn4+P/SfhH8QlQ8fPty6deuAAQNIbWjQoMG4ceMuXLhQXl7OT/4H4B9BZVFR0YoVK0xMTDhVKmPIkCFeXl78KvqG/qn09fXt1KkT50Y1QCsB/oWQzz///N69e/xy+oOeqTxy5Ig0KSqiS5cuAwcO7NChg5GREdvSsWPH4OBgflE9QZ9UwtkZGhoyLlQHTrG2tv72228//fRTCwsLY2Njtr1p06be3t780vqA3qjMzc1t1aoVY0EtNGzYEKEcvnXZsmWTJk2ytLRs3rw524UPKSkpvAOdQ29U/vDDD2z86qJJkybvvffevHnzpk6dijgODYWrFb3EoEGDSkpKeB+6hX6ozMvLg3KxwasLGPKbb75pY2PTr18/uMtmzZrJeNv169fzbnQL/VC5fft2Pm710bhx486dO8NFKvKzMPP79+/znnQI/VA5ZswYPm71YSCAf1GAVatW8Z50CD1Q+erVK1glH7R20L59+9LSUt6frqAHKlNTU/mItQlXV1fen66gByovXrzIh6tNIPHk/ekKeqBy3759fLiVQNGCAhzxhH+vDaampqh2kAMpyfBh4xUVFbxLnUAPVK5bt44PtxLIZszNzZHi9O/fX3n9g70s9QGb48ePnzhxopKkSsfpuh6oRJXCxyoA+oj0ENliixYtkHJbWVnJDdDgGjn5r7/+amtru3jx4o8++ggnjhgx4p133uFH1AAKfN6lTqAHKlGo8LEKd8mQUe/cuXPr1q0ff/wxVGzs2LE1C0pUhzt27HB0dHRzc3N3d0fx7uDgsHz5clQ+I0eObNmyJT+uOubOncu71An0QOXs2bPZUGGke/bsCQwMjI2NTUhICA0N/eqrr6CeMk4TOnv69Onk5OScnJx7AlC/37p1C8dDT2Hyim50QmF5lzqBPqmcMmVKdnY2SuaysjKEiPLy8sLCQugp2ysCFv38+XN+shRevnyJOXjttdf4cTWAypIfqhPogUrYHRuqi4sLvvr4+GzcuDEpKYntPXv2LNvLAAcKHWS7MjMzf//9d5zu5OTEojP+orDhh9ZAly5d2Im6gR6oXLJkCRsqbNbT0xNBxszMrE2bNuzRAuyX7WUYPHgwe4ADhWU324cPH47otHr1auFikvT0dEU3j/v06cOO0Q30QOVvv/3GhpqRkfHll1/iw+TJk5EhWVtbYy9smaWZCOWI2kOHDmVn7d69m51lbGyMgy0sLPLy8rAdBaIiG0d2xc7VDfRAJcyZDTUxMRG5IT6gJLezs0MgLi4uLioqQiRp1KhRr169oIAglJ01Y8YMdhYALcYphw4dwnboLHwi31EdkyZNYufqBnqgcteuXWyoly9fnjZtGvv8ySefgJ0HDx5ERkbiawND0qIpadYILDd9/Pgxzvrpp5/YkSLWrFmD7Qg+Xbt25ZuqAyovdKgj6IHK48ePs6Eio0TkYZ/hMWHXeSmXEs8MSz5Bss6SPFdy140kHiNpF8cU3vFduXIlO1IEMiRcDewju+SbqgMqz3rUDfRAJRJsNtQ33ngD5mljY4PPTRqSpZ8YpBwhyYfJq3AiiSaSKIKvfmvJYz9SGmJwbmt/EynGYPjswQNUm2+qAeRVrEfdQA9UBgQEsKGitsnKysrPz39rRL+Ds0j+JZJwgP6lPMY0kcR1LY8wzDxD8t2FLdEk25VsmUXGDGmwZMFsZvVIhlAjsavVBGKXLu9o6IFKFDZ8rEJkyLvu67/J9N5FzhdvsZ0kCZaS6AbVNkYbSKINK6IMinwb3g8ck594cOvm9fxCCnDjxg3eq/ahBypR4fCBEvJ2f+Kz1uC+B6mIkqaMSOJ60ya9JbqRJLaDJM5cEtteEm2ELeWRJHwf6auw2KFA2c571T70QOXTp0/ZON8bSK6uI/fca/AY05iqZExLqY2NJHHdJAlWkoShkrhekujG4i7vP9nF5GP+/Pm8V+1DD1TCfzVu3NikMTm7kNw4ScoiRL4qG/QOxFFzZluMqDIyHuMHSGJaYGNJCLm2kyrmTQeaOSmCpaUl71X70AOVAHLsPh2I9xpS4CHFIG+GktiOkuiGUl/NBB6tJXHdqcIi/lwgVzaSF8H0gFCepMoHsn2dvYypHypR9nVoQbxWkQJPxpd0gx8UeTSgGgpjjx8siW0nxBwSe5Ak2/ODoZU7q2fuKJP4p0ro7AawfqgcPXo0BvnHRBK+nTwP4rzIaXCXcX2oscc0xddMFxK+hzwNrDog+xwZN6SKO+jgF198MXbsWGlCP/jgA96rlqEfKj///HMMctiAzs4Lm1xeTfLcqtip3pogwUT2c8OJhO0md1nKKbTSEHLrNHFeM3jiRHopER999BGq9e+++w6ZP3tlEH/v3r3LO9Ym9EPljz/+iEEOGzbsz1Wzzyw2vrKGRP2PFFyuFsrx+Z4HidhLQnaR/Eo/UBFJinxoReS7xfzigXku585t27ZN+q577969QSUDq6MA3bxFpB8q2WtsI0aM2Lt377YNK04saBe2jaTZk9STJMWeukL8TThKclypNxRJfOxLkg4Rz429fV12R0VFxcfHR0dHu7u7Dx48mFEGwMaZYgLQTaaYnTp10sHLGvqh8u2338YIhw8f7uTkdOrUqT832B6Z1ylkK80xRe7EhmwJJKafQDLf2OPA7OioyJs3b967d+/Ro0cPHjxIT09fuHChQCMHlBT+EVTir/jw8uDBg7xvrUEPVBYXFzdt2hTDGzp0qIeHR2BgoL29/cZ1aw7O6xa0mWQ6k0JvUnyVPLlKP+S5kutHif96cn6tld8lx+Tk5Ly8vOfPn4vF9cuXL4OCgtq2bcsoYwCDrVu3ln5Ebm5uru33LvVA5YEDB9jwrKysgoODb9265efnh5Rl/brfd82zcltm4LuWBGygze8P4rGSnFnZ6/yh1TgyLS0NalhWVsYvVAkwu2DBAnZNJdi8eTM/QTvQNZUvXrzo1q0bGxvCDniEsmRkZHh6eh46dGjTpk22Kxf/sfS/m5dP3bHqu30bfz5xcMelS5fCwsJg1EVFRYru9OA6ffr0YZdVhObNm//999/8BC1A11SKD3aAqVOnwjyxEWqFGIIAcvTo0b/++mv79u27d+8+fPiws7PzlStXEGHu3LkDt6Dkjhl27d+/X+5rHdJAEsZP0AJ0SiWUi4VUwMTEJC4uju+QSAoKCkAZXKejoyMCEUgEswEBAaA4Oztb7nNwGTx8+HDgwIHs4kqAQMdP0DR0RyWGKj6Egfps2bKF7xAAD5iTkwM2r1696uPjAxIjIiJSU1ORXaseLuAf2PWVAAGKParUOHREZXl5OVITPhrhqcuTJ0/4vkog9YMCIkYnJCRcv349MzMT6c6rV6/4bhUAj6nK+8Tvv/++El9RZ+iISul3KDp27IjUmu+oDijg/fv3kTNChRGg1B0wVFvFt9x37NjBz9EcdEGlm5ubdECwtbVVomvQX/YKEf+uJsQ3D5QDaXxsbCw/R0PQOpUwOumX/Hr06AHj5fu0ALgFRc9yZdC3b9+nT5/y0zQB7VIJ9/f6669z2QXMmTOnppfUIKDUqv+S5YcffuCnaQLapfKXX37hUgswNTU9duwYnCDfrR0gOeX9qQBkXfy0ekOLVCKLlHnHbNSoUQ4ODij++BH1AJwp0vtnz54VFhYiTKGMQS6Fcgi7ELJkSnIlwOziRHbNekJbVGKcFhYWXN5KwKD27dsXHh4uN+WG4SN8wydgL+gGRzWDD7ZgL/J5uGDkTJgt5KFeXl4oLpHS+/v7I3/CYeIrnKpg3LhxdY5y0tAWlXZ2dlzSSrRu3Xrp0qXIQlxcXBA95RbUSMiDgoJCQ0OhaHKHh0CBwBITE+Pt7Y26BcXlwYMHD1QCVTxohaoiOZV5C1s54BN4B/WAVqiEidV8Nd/Kymr16tXQSldXV1QyWVlZcssYlCLKnSkSKegvknloZWBgIJQRnMIFM07xFxthE5MnT2b9Ghsbd+7cWfkPfdu0aVN/t6MVKlesWMFllMI333xz4sQJaBz8Goy0/jaFYI3rwCdkZGRgbjw9PU+ePMl0MykpCVWA+LAMTP3nP/9RvkLHzJkz+XXrCs1TCW8lLhsghh3UczDGGzdusFtBmgXjNDc3F4Z/4cIFKKa9vX1+fv5XX33FegdA6/Dhw/v376/o7hFETUxM5FesEzRPpXhPwcTEBPGRfX777bdTUlIwZn6QdgDPcPv2bXbrE4EIHlk6XTc0NBw4cGD37t0Vsfnhhx/yC9UJGqYSNZ+5uTnEgm/q168fWyPEyMgIOVDNu9/aAGYLIcvHxweKmZ6eDq8isMQBNrt06aJkzY76LAujYSqhC0wmOKbevXuz+Ue2wV6H1BngZEAK4k9ISIh4h7Rp06ZQUhgyvI2iH1W8++67/BLqQ8NUsncFIPSgQYPYj7yQlGBIfLcOUVxcjGIfDvStt96CGCC0a9euvXr1ateuHSwGM62IzcjISH4JNaFJKpFPwLtDE5F89OzZk0n29ddfq3XPUYNAto/sFX4TYkAw8NinT58ePXqASvxV9BMVZFH8fDWhSSrZD72hkqhzWBCHYtYzLNYfUExYBnQQAQdUmpmZwWO2aNHizTfflKuY0F8krfxkdaBJKlFiQyUhq5hzfP/999qO2rUCCSy7OwVCEQbF8P3GG2+0b9+efZaB+FM1taAxKpEzQkrYEWa+Q4cOEAg+vs5+R7NYtGgR40gakFPRb6cQ5eugARqjkj1ygOFAJVmZAX+PzJnv1itOnz4tUFQNUMmhQ4fyLzXg6+vLT1YZmqESgQUxEVrZtm1b0Z0jV+e79Q3UkUwkacDYUf+I9i6DGTNm8JNVhmaodHZ2Rvdw58h+2ftA8OjI6fhu1aC93BOJUc0bRTCdIUOGQGb+vTo6duyoro1rgEr49WHDhqF70MeSIXxGzaPWvZaSkpLk5GT+RdOAhHB/AkVVQKRGeqSISgAVPT9fNWiASnHdoNYC2OfPPvtMrVktKCjQaiYPW2aCiQCJcJeKDByws7PjJ6uG+lL58uVLxBnWNxI38f2L7du38yNUQ0ZGhlapZL+WlgaoVP5scuLEifxk1VBfKsVfJEMyFIswGfY1NDSUH6EaoqOjw8LC+BctAEUXE0wEKnHRhuQCY+Enq4Z6UVlYWNimTRvWMaox5BaMSpQ66r6XExAQoK5vUgvTp09ncopAKaH8ZjCcqVolb72otLW15d0KtQSKir59++Jzt27d1H3Y7enpKa5Eog3MmjWLySnC0tKy1geTaj2MrDuVpaWlokoC0ErkFgA+Dx48WK2H3YiwFy5cSE9P59+1gJkzZzI5RYwdOxYy8y8KoNZSZHWnMjw8nHcoAKGwZ8+eKMPxGbmRWlQi1iMzvXXrFv+uBcgYuImJCWpw/kUx1Honp+5UXr16lXdYCVNTUxSLqCLgNJEV8+NUQFlZGWq7zMxM/l0LkFl6A9bNbhQoh1oL3dadSgQW3mElkKIPHDgQcRxmrlbpAiodHByysrL4dy2A/eiKAXWEhYUFUg4IDBtXlFrCfan1WLReYad3797osqsZmfo+mfAWadSQ3qxEMjxy5Mg6UHnnzh3+XdMAI0gSISqzGxsbG9gNSEQQh0caPXq0tbU1KkWZ25cTJkzg56uGelH585xZ2xaRssofLV0/S/p3p7cJoJVqJUPwlU5OTtpbnAFJG7I0+EcYTc1Qg6SnVatWMPkvvvhCOqYfP36cn68a6kFl+atnie8LJBoKPzumvzx+eJVY96PRfMOGDQjx/MjaAK1xdXXV/MqdFWWS0lxJ6d97dm0ANeBLSZkIgE3Uu+wOIRJ4dW+v1J3KkptLBR4bSWLbSmK70IUE6BINBvk+pGdnGtC///77Z8+e8aNrA4KYZl/Drbi7syK+uyS2tSTGFIL57WugdLlWCnYHk93ZmjZtGr+QyqgjlUXZAa/CoYzg0UwS35+vIkBXYzABvylnSXPhP8mAY1LxB8RIOzR4y/35w4wKzGvCULFVRLc3re2/80GRBgOf8q7BHfcmTyIsyouj+OVUQ12oLH32ONu9u7CEQDtJvIW0xMIaIdTSz1auDoJkMyEhgZ+pGI8ePdJgin4/9Xx5ZGNhjq2ZYDkXWihZYoMBMb1dS4MCn6Z0UYQEq/Lk1/nlVIPaVMKvxTtNeRkK025IF7OQ5pE2K2HxGrqCyOxJXEQ4KQ8PD36+AiDyaPDF6qyIgy+CG9DFimAoCUNeRrRzq/oRmzIcXEYkcV35WOI6VZSo8UM+talMcPv1tqMQsmHLVFBpHoUW34+tz/AsmPStXHcOFfr+/fvVStPqg1Q/uyIfSNiK+p+Ypnfd6OoxjeS/QlCFSSNJSXATqpJ0XJaSuG7lT9W4LaAGlU8f5YUe/W/YNvIyDFTCuttK4ofI8kgbFLOjENZJ+PGqlWsQiObNm6ftF9Gh3bm5ud5H5wnLacHV0JVL7jiRy7+RH0cRQwUBHEJOs6Er9VCXRcOUMV0eKva18ucZ/LoqoBYq4RbzUnyTPdcH7h5zaYVR+A76G22qktFGktjOoieSbVQxjYXDyJJq7z/RQKSpd79rAlqPfDYwMPD0lq8ynZmcdOGIHBcSsoW4LCALxxKTGi8Dm7Uk6yYSDK0EPkFw9EIzlMQ0qyhVIzuWT+Xzx/dvXF1747x15hnDAg/y4DJdEKjAkzwNoAv40Z7AVFxvWQarGhTzNbbc19NrpJsZF5rB3NxcSzfMnz9/npSUdP78+UO2n6Yd51SiPbxCl9vw30DOLyKHppHZo8nHg8k7/ciHFmT+WOI8l4RuJfer1jiBowehEN6gojicX1oFyKGyuCAzel/7Z1Jr0NRo8OjtJfGDajAo1RA94aqE+HNpJydRBCqiffv2afxdIgSumJgYR0fHvSvHx+2tWlcLQTLPlSQdJNc208WN3JZRTtHclpIrq0nETpJzTjgYLh4xh44LuR18ZffyG1/wS6sAOVTe8P2tNERkDS4P84MG5WcNuWQbuvyPIuvmzVpYDIwvnjaxxq+SUPAuXrxYs+8coCJA4nXmzJl9v34Uvp28uCaOgn4Gm1DVuD0kYgeBx8cBMbvpahLYTr0/XRuqxojiupbf28+vXhvkUJl2aRpfpCamBa1h4noKrbvQekji+wppV/Uu5Ta6ZBVPjHI8SXN5P4mdNWuWBl+pxqVSU1NRgx747eOgTaJb5w36AUvPvUCXbM06QzURoenJVVJO9bGRIs2oiO1WXujJO1AKOVSmes4X1jU1kJc2qtmk4s+OxZw+aaDg1eBzCITv27dvu7u7H/h1vN8fVN1EHlmDirwKo5yi4UPV6jFIOWQkl2oV8X3KC2v/P0zlGXjANsyV0EEHmYuq32DmXdmKnq8iiBV98COLEydO8I41gezsbGjlnqVjvNfQHEjOMoRymhE1NVnJq7WKuH7lBad4Hwogh8rs2PPIaYU+UHtVrwvr0oZIYlozoSPt5SyQqNmfZmdmZh45cuSP//ZFPEGeKOX0xQaHI90a0gQZQUZW7BotfkB59ipJucLbXXKofHAn+qYD69VQSB5rXFTdRs2cx595UziDIg4Jy5trCuHh4ePHj581moZmBJnnVZHHgAZoehMLuTfLw1vSv3Sl1lpUUqpZll8fV/FE/iN+OVQWF2SnHKnsnpY0qgUZZc2aTglVAfI4kHSqfD+0SZMm48aNy8hQo6JQDuQDX3/9NcqqlR8SnzUk3Z48E5chRAilVszuYA2huRpbA5fWiMpTEdlWETegPF/O9MuhsuTpI6RglVS20YSNQzEHSWKas1FdsKNvFMFFgkQNhm+UOvPnz2eTtH0KXe4JBl6plXLvvNS9lSMXlMi+ESVLJYJgcdGD1GNMAmGBU/mFtroN8cecxR+0VbN6aHb1JPAovtprZEhO/kQCN5LbjsxXwrRNNaMQla0itqukQlYJqqiENGVlZSUlJQV5t1G00jHTxckxmerpv8IGa6pUzIe+ZMGMzzSVnz98+HDChAmMR+C1lsT5Z1oLZp9jq9UjsMDjC0sFa6hVpMn53RmnEjyijHvx4sXTp09zUoP5SqdwzPTuqeyF6tgQfOB5hTtGaP5/GWzfuhFGwASoGzD3hw8flnk7//WutCiM+ov+vwk0c8T8ocSQEaYerSLRuvypnGcnnEqmj+CxqKgoN/EoGy0topUX2mo1zAotfvitF5jetunN3N0vMgHURWlp6alTp+S+l/+5FXH/hcTvo3dhqEvhZW4NeerSLF8lj6t4Jv9xHqUSqgHJUMA+fvwYxlKYvKCSSmOqSpoycMRKZB6VVEJfUP/+9IGZn5+f6rqJMJWSkmJra8t+SSkXi96h9yxSDtNVL4U7Bu1VuGNQW4sf/CysT1H6ltIXz2DBXJrqINgB+eC2njx58ujRo/v3779IsOFUUofdnN4uo0kDu19Sow/VGxx/dSozzxDX5aR7R+OZM2ciH8REwji4XALwFYLl5+fHx8efPHny559/HjRokMyD/5rY+SUN38iEiv3RUROByt51Fd4KKdRj/7bZAd/m56QXFxfDB8oIKYIwlWSm/eDBg7t375ZFN6ukUmCTrl3cioZyemujF7VTSivKAzXnGZkAvbvOgzhK4KwzdJHK6cJbUIaGhp07dx41ahQCyNSpU5EefvLJJzY2Nn379jU1NVX+/FoaTRoSh5kkYCPNhOjdVU5lL3WoxLgsMcyK2E6FPs2SnIalx1zGdMJeMdmYWmieXMUk4BhMg+/CwsKCgoLc3L8rpP5bgcoGQtndtka0ZoCqohaMNaO30WA7NM9QofCCiLFdhIvQa5YE0xr52mZy6HuiMlG1w9yUhu+gzeTGKXrXhz+mpze0lKR0UD3heQ7Ggowl1qw8qsVDL6PIvW0jL9ndvn07JycHGgY9g7ZB56B5cj0SYYEbVDLrzsvLK4iaIkWiksb4BbnGgrjmQrhXxCm1FKEYpzUPGlTm5ik6ZqfZpI3w0FwjGNyJnJlLL5txgjy6AjdiSOsc7qPAplDtUHnwFyINolJBIXAAhhDTvCyi0YPLBpF/Gfjtn5QQE44iAlRmZ2eDSugZtA1UIj7LtfEqKnEco/J2RlKSg0V25f/DxP7ecyf3PchDL1LkS1l4EUxvl1Zf4riBJKaZwGlXGqygqnSq0SAuJryr8O4Gz4RKQ2l4hTtDIu00h3ThaxloACO6kbPzSOAmGtPuXSTPAklFlJHAJhxUV+HGK+pFaF8v+hWGhfge0xyGWBpiiAEm7Ccea9oFuu5JSEhAfFOPSmzFPtHAcQ70+WZGevAZ20tre1/6hfj8TgeMjDdyJ4ndQ2/rpx2j/wlG1llKMRiBdwc1FVW0glO4VziBVkJrKbyyAafB9RGmjbMynUniAfo/mzjOJp0VrhqgNkAlDByXBSno4oEnLcPLIyES/FIL4f4FuGstSNWsIqrRqzBDyA91ST5EfH8nrhvfCgnwiY2NTUxMvH79Oqi8c+eOqgYukwmxlaQyMzNv3ryZlpYWFeTpfWzFhfVjnBa0huG4LqHrGPusoeEiZCuJ2kUlTrOnsTjfnfqml+BU5n98kWrY9eIa1W6UdIkHSagdubyKnPqJmKrzf9izlyIBubHIwoycnsWf2KD8hW0VeJAnfrTfl2EGZRGGZRENXoUbwqoe+1FJIHnSIeqyXRY38ji0NCwsLCoqKi4uLjk5GcMHCaAChIhhB0QpDDtinSOjmJiNGzdupKamJiUl4dLoIODyOY+jq89tmuC4rN+pmQ0Zs56/0swDtEJh047ToAz5wClUDx6gLJzefEX1hs8lIXSJbjB+y4Hmz8FbaPZ3bgHZNpmAEiMjI0tLy08//fSbb76ZPn363Llzly5divzxzz//3LNnj729vYuLi5eX17Vr10JDQ/HX39//ypUrzs7Ou3btWr58+eTJk62srIyNjeF2T/xI3JdTG4/9H2UTwS33Au23wJM6KDRImHueGhbMgk7nb8RpUQfv84dx5cjISGmVFGMOs25QpCwZwj9pxRSDDxwELoTL4aIim8j+2JoUvt5X3B12n905+/Qqm1Nzmp+ZRwsM37VUMtAEJwjjwgCoh71EG0YCb5BzjkaDuL00LGAOMBn7ppJRA9rOnj3b29sbXSB/BOCnAPZZBPYCGKcoRkBAANJ7nOjp6enu7u7m5ga67ezsjs5od24+Vcxrf5Lo3dQjgVD0iyh36zSdSIiHjVBbKMGFxcRxWX//KxehjzI83rp1KysrKzc3FyoJWpB3K8mEgKrCUdrMcbLIJtNNKDzGExMTg/7QKyOUrct72dPT9fgWp3Ufn/q51dn51AP4r6eP9JhjvX6EjiT1KP3v76AFKI2R9F1aQaPNyfndjv5vM3QBA2BuHh3JBcbGIIoRERHB1FMkFDrr4eEBTk9vnAqnAY68VnNHFLGD9gtaY3ZTpxS+nXp/+BYEKKcV1kH+vpib6OhoTBWUBr0wfRR5FE1bkZdk4FQC0myKugn1Zn4zPT0dfaAnaUJDQkKCgoIwGHBKx+Pl5XZ0vZPtmw6zGp5fRPWOLha/kXoiKAgaPiOIXVxGQ43j8iGhQX64FC6Iy4IvpghwLDWBgQFMDDAOxcGwMXhGKJtXmDxkwNR6ebgdm9URibrLQmrpsF9vW9ovhEHzXkMFg2uCS3VeZRN6LRBqzuaS+UeoDnqEGmH4MjwqMm2GKioBZumsiIRrQMxCFMLM4Lq4ujSh6BjdYzDgFFOK8YBWDAlqAnL9rri77V3ouHwAxoOZh4JAdNel9AO+npxOzq19JzoijEkPEnFZXBxdYOYwAHQqAn6KgYkBQjFUDJgRyuYVXIBTNrVMAJ+Ljifm97L/gZyeSQM6OoVTpm0+9SqQyn6GiceBRTgRU4LrMDFEo0acQY/wj8yua9VHhmpUAmIUQtRn6okrYkgioegMXWIwzNzYeEArhgRmIRzIFXHNx9Xz4JJzv7/lML/LiZktT85pd2bVf/yd7XAiTmcqgAtC8RmJ0ALMH2YRXYtACsLEwPAwSAxVnFeMX+QUpEjLEB4W5n16q8umCaeXDT45t/OJ2e1PzDE7vaS/y/oPvO3XRIcHMwYhBq4DMTBJIomwSCgjS31AhRL/KA1ZKhkwAzhfhlDmQMXBgAJIwGhlQ4JkAHQWgKAA+4yN2AuhcRgOxikgAqKDQUwPk14kkWkBUl3MKAyqphhsXpnnYVYvI4PYO7ReBBNGlKSmGLimNIkI1rDOWo1aGvKpZBAJxdgwQnSAbhin6JWNB0JAFDALmUAuhANAsQi2BbtwAA7DNDD6mOiMQXDEpBdJlLYm6XkVPQ/GDE7Z1ErLIPYOpqTBNoqS4HhIAvllxMCESZOoijKKUEYlAy7HIpI0pxgPo5UNCdJgVBALwNhkgI3YC+BICI1TIDdOZ4bMGMTFwZcS6UEoKGaunCkpk0GkVZQBPYIjNs0M7KsoCY7E8TgL8suIgYmEGOhLLRIZaqdSBOMUPaE/jAcdo3swCzkYuZhVSMaAETK+GLALB+AwHIxTwAWjD9QwQ1ZRdBwmcsqmlqkqY5YJwLoGTdJgG6UlwVniLDIx6sagCDWoFIH+xCGBWcgBciEQ+GUUS4NtxF4Ah4nc1VNugMnAZldaBnQKfmtCWhgcj7PqT5806kKlXFB2BUA4GfAdGpJYEXgflQKAYmmwjQA7hp+jQUgk/wckFhUlwLLwEQAAAABJRU5ErkJggg==",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nThis chapter describes the prerequisites installation needed by plugins\r\nto run. Prerequistes concerns a RHEL like distribution, you may need to\r\nadapt it if you run an other Linux distro.\r\n\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the monitoring server\r\n\r\n### Install the SNMP service\r\n\r\nWith the `root` user, install the following package and its dependencies:\r\n\r\n    root@yourserver\\#&gt; yum install net-snmp\r\n\r\n### Configure SNMP on your server\r\n\r\n1.  Open the file */etc/snmp/snmpd.conf* with your favorite text editor\r\n2.  Modify the following lines (Replace the `<SNMPCOMMUNITY>`):\r\n\r\n\r\n    com2sec notConfigUser default <SNMPCOMMUNITY>\r\n\r\n3.  Comment all the lines which begin by `view`:\r\n\r\n\r\n    view systemview included .1.3.6.1.2\r\n    view systemview included .1.3.6.1.2.1.25\r\n\r\n4.  Just after the previous lines, add the following line:\r\n\r\n\r\n    view systemview included .1\r\n\r\n5.  save the file\r\n6.  start the snmp service:\r\n\r\n\r\n    service snmpd start\r\n7.  Add SNMP to booting services:\r\n\r\n\r\n    chkconfig --add snmpd chkconfig --level 2345 snmpd on\r\n\r\n#### Check your SNMP installation\r\nTry to execute this command:\r\n\r\n    $ snmpwalk -v 1 -c <SNMPCOMMUNITY> <IPSERVER> .1.3.6.1.2.1.1.1\r\n\r\nYou should get a response looking like the following:\r\n\r\n    SNMPv2-MIB::sysDescr.0 = STRING: Linux <SERVER> 2.6.18-128.1.10.el5 #1 SMP Thu May 7 10:39:21 EDT 2009 i686\r\n\r\n### SNMP Permissions\r\nYou need a SNMP read access on following OIDs:\r\n* HOST-RESOURCES-MIB: .1.3.6.1.2.1.25 (cpu, uptime, storage, process)\r\n* UCD-SNMP-MIB: .1.3.6.1.4.1.2021 (swap, memory, inodes, diskio)\r\n* IF-MIB: .1.3.6.1.2.1.2 (traffic)\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](http://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp);\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"35%\" />\r\n<col width=\"64%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>OS-Linux-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Linux SNMP",
+        "requirement": [
+            {
+                "name": "ces-plugins-Operatingsystems-Linux-Snmp",
+                "version": "20160220-1"
+            }
+        ],
+        "slug": "operatingsystems-linux-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Debian",
+            "GNU",
+            "Linux",
+            "Operating System",
+            "OS",
+            "RedHat",
+            "RHEL",
+            "Server",
+            "SLES",
+            "SNMP",
+            "Suse",
+            "System",
+            "Ubuntu"
+        ],
+        "update_date": "1465909800",
+        "version": "3.0.5",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Swap",
+            "command_name": "OS-Linux-SNMP-Swap",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "30"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "10"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Swap-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "OS-Linux-SNMP-Memory",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Memory-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Load",
+            "command_name": "OS-Linux-SNMP-Load",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "6,5,4"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "4,3,2"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Load-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "OS-Linux-SNMP-Cpu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Cpu-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Process-Generic",
+            "command_name": "OS-Linux-SNMP-Process-Generic",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1:"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSARGS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSNAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPROCESSPATH$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Process-Generic-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Tcpcon-Generic",
+            "command_name": "OS-Linux-SNMP-Tcpcon",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Tcpcon-Generic-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cpu-Detailed",
+            "command_name": "OS-Linux-SNMP-Cpu-Detailed",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIDLE$",
+                    "password": false,
+                    "value": "10:"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIDLE$",
+                    "password": false,
+                    "value": "20:"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Cpu-Detailed-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Packet-Errors-Generic-Id",
+            "command_name": "OS-Linux-SNMP-Packet-Errors-Id",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUTDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUTERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACEID$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUTDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUTERROR$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Os-Linux-Packet-Errors-Generic-Id-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Packet-Errors-Generic-Name",
+            "command_name": "OS-Linux-SNMP-Packet-Errors-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUTDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUTERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACENAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUTDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUTERROR$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Os-Linux-Packet-Errors-Generic-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Packet-Errors-Global",
+            "command_name": "OS-Linux-SNMP-Packet-Errors-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALINERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUTDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUTERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGINERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUTDISCARD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUTERROR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALSTATUS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Os-Linux-Packet-Errors-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Dur",
+            "active_checks_enabled": 2,
+            "alias": "Uptime",
+            "command_name": "OS-Linux-SNMP-Uptime",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Uptime-SNMP",
+            "normal_check_interval": 60,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Inodes-Global",
+            "command_name": "OS-Linux-SNMP-Inodes-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTERDEVICE$",
+                    "password": false,
+                    "value": "^(?!(tmpfs|devpts|none|proc|sysfs|sunrpc|\\/\\/.*)$)"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Inodes-Global-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Disk-IO",
+            "command_name": "OS-Linux-SNMP-Disk-Io",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEDISKNAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGREAD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGWRITE$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALREAD$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALWRITE$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Disk-IO-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Global",
+            "command_name": "OS-Linux-SNMP-Traffic-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALSTATUS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Traffic-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Id",
+            "command_name": "OS-Linux-SNMP-Traffic-Id",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACEID$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Traffic-Generic-Id-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Name",
+            "command_name": "OS-Linux-SNMP-Traffic-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACENAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Traffic-Generic-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Disk-Global",
+            "command_name": "OS-Linux-SNMP-Disk-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICETRANSFORMDST$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETRANSFORMSRC$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Disk-Global-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Disk-Generic-Id",
+            "command_name": "OS-Linux-SNMP-Disk-Id",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEDISKID$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETRANSFORMSRC$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETRANSFORMDST$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Disk-Generic-Id-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Disk-Generic-Name",
+            "command_name": "OS-Linux-SNMP-Disk-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEDISKNAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETRANSFORMDST$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETRANSFORMSRC$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Linux-Disk-Generic-Name-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

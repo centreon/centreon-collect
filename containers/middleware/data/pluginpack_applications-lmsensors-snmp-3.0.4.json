@@ -1,0 +1,242 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lmsensors.pl --plugin=apps::lmsensors::plugin --mode=fan --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lm-Sensors-SNMP-Fan",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lmsensors.pl --plugin=apps::lmsensors::plugin --mode=voltage --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lm-Sensors-SNMP-Voltage",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lmsensors.pl --plugin=apps::lmsensors::plugin --mode=temperature --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lm-Sensors-SNMP-Temperature",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lmsensors.pl --plugin=apps::lmsensors::plugin --mode=misc --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lm-Sensors-SNMP-Misc",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check LM Sensors using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "App-Lm-Sensors-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-Lm-Sensors-Voltage-SNMP",
+                "App-Lm-Sensors-Temperature-SNMP",
+                "App-Lm-Sensors-Misc-SNMP",
+                "App-Lm-Sensors-Fan-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor indicator on Linux Server:\r\n* Hardware-Fan\r\n* Hardware-Misc\r\n* Hardware-Temperature\r\n* Hardware-Voltage"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin packpour superviser certains indicateurs sur les syst\u00e8mes Linux :\r\n* Hardware-Fan\r\n* Hardware-Misc\r\n* Hardware-Temperature\r\n* Hardware-Voltage"
+            }
+        ],
+        "discovery_category": "sensor",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### SNMP\r\nSNMP must be configured on the monitored system.\r\n\r\n### LM Sensors\r\nLM Sensors must be installed and configured on the monitored system.\r\n\r\n## Centreon Configuration\r\n### Create a new Host\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-Lm-Sensors-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "LM Sensors",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Lmsensors-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "applications-lmsensors-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "FAN",
+            "Hardware",
+            "Linux",
+            "Sensor",
+            "Temperature",
+            "Voltage"
+        ],
+        "update_date": "1465837468",
+        "version": "3.0.4",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Voltage",
+            "command_name": "App-Lm-Sensors-SNMP-Voltage",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-Lm-Sensors-Voltage-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Temperature",
+            "command_name": "App-Lm-Sensors-SNMP-Temperature",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-Lm-Sensors-Temperature-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Misc",
+            "command_name": "App-Lm-Sensors-SNMP-Misc",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-Lm-Sensors-Misc-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Fan",
+            "command_name": "App-Lm-Sensors-SNMP-Fan",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-Lm-Sensors-Fan-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

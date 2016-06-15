@@ -1,0 +1,404 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Traffic-Id",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'^$_SERVICEINTERFACENAME$$$\\' --name --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Traffic-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --add-status --add-traffic --critical-status=\\'$_SERVICECRITICALSTATUS$\\' --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Traffic-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=stack --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Stack",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=cpu --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-total=\\'$_SERVICEWARNINGTOTAL$\\' --critical-total=\\'$_SERVICECRITICALTOTAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Cpu",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=hardware --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --component=\\'$_SERVICECOMPONENT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Hardware",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_extreme.pl --plugin=network::extreme::snmp::plugin --mode=memory --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-usage=\\'$_SERVICEWARNINGUSAGE$\\' --critical-usage=\\'$_SERVICECRITICALUSAGE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Extreme-SNMP-Memory",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Extreme Networks devices using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Extreme-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-Extreme-Memory-SNMP",
+                "Net-Extreme-Hardware-Global-SNMP",
+                "Net-Extreme-Cpu-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Extreme Network equipment via SNMP:\r\n* Cpu\r\n* Global\r\n* Memory\r\n* Stack\r\n* Traffic (by interface name, ID or global)"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un \u00e9quipement r\u00e9seau Extreme Network via sNMP : \r\n* Cpu\r\n* Global\r\n* Memory\r\n* Stack\r\n* Traffic (by interface name, ID or global)"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your equipment\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](http://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp).\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"35%\" />\r\n<col width=\"64%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Extreme-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Extreme Network",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Extreme-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-extreme-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Extreme",
+            "Hardware",
+            "Network",
+            "SNMP"
+        ],
+        "update_date": "1465838382",
+        "version": "3.0.3",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "Net-Extreme-SNMP-Memory",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALUSAGE$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGUSAGE$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Memory-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Global",
+            "command_name": "Net-Extreme-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Hardware-Global-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "Net-Extreme-SNMP-Cpu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALTOTAL$",
+                    "password": false,
+                    "value": "95"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGTOTAL$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Cpu-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Id",
+            "command_name": "Net-Extreme-SNMP-Traffic-Id",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACEID$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Traffic-Generic-Id-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Name",
+            "command_name": "Net-Extreme-SNMP-Traffic-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACENAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Traffic-Generic-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Global",
+            "command_name": "Net-Extreme-SNMP-Traffic-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALSTATUS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Traffic-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Stack",
+            "command_name": "Net-Extreme-SNMP-Stack",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Extreme-Stack-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

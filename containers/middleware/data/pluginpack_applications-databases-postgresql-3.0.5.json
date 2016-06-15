@@ -1,0 +1,481 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=backends --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\' --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' --exclude=\\'$_SERVICEFILTER$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Backends",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=tablespace --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' --tablespace=\\'$_SERVICETABLESPACE$\\'\\\"",
+            "name": "App-DB-Postgres-Tablespace-Size",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=statistics --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\' --warning-total-commit=\\'$_SERVICEWARNINGTOTALCOMMIT$\\' --critical-total-commit=\\'$_SERVICECRITICALTOTALCOMMIT$\\' --filter-database=\\'$_SERVICEFILTER$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Statistics",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=vacuum --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_SERVICEPOSTGRESDATABASE$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Vacuum",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=timesync --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Timesync",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=connection-time --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Connection-Time",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=hitratio --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' --exclude=\\'$_SERVICEFILTER$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Hitratio",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=locks --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' --exclude=\\'$_SERVICEFILTER$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Locks",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_postgresql.pl --plugin=database::postgres::plugin --mode=query-time --host=$HOSTADDRESS$ --username=\\'$_HOSTPOSTGRESUSERNAME$\\' --password=\\'$_HOSTPOSTGRESPASSWORD$\\' --port=\\'$_HOSTPOSTGRESPORT$\\' --database=\\'$_HOSTPOSTGRESDATABASE$\\'  --warning=\\'$_SERVICEWARNING$\\'  --critical=\\'$_SERVICECRITICAL$\\' --exclude=\\'$_SERVICEFILTER$\\' --exclude-user=\\'$_SERVICEFILTERUSER$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-Postgres-Query-Time",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Postgres Database",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [
+                {
+                    "key": "$_HOSTPOSTGRESDATABASE$",
+                    "value": "postgres"
+                },
+                {
+                    "key": "$_HOSTPOSTGRESPASSWORD$",
+                    "value": "PASSWORD"
+                },
+                {
+                    "key": "$_HOSTPOSTGRESPORT$",
+                    "value": "5432"
+                },
+                {
+                    "key": "$_HOSTPOSTGRESUSERNAME$",
+                    "value": "USERNAME"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-DB-Postgres",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-DB-Postgres-Query-Time",
+                "App-DB-Postgres-Locks",
+                "App-DB-Postgres-Connection-Number",
+                "App-DB-Postgres-Connection",
+                "App-DB-Postgres-Cache-Hitratio"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor PostgreSQL DBMS using SQL request.\r\nSeveral indicators are available but not linked to the template of host.\r\nYou have to use them manually:\r\n* Cache-Hitratio\r\n* Connection\r\n* Connection-Number\r\n* Locks\r\n* Query-Time\r\n* Statistics\r\n* Tablespace-Size\r\n* Time-Sync\r\n* Vacuum"
+            },
+            {
+                "lang": "fr",
+                "value": "Pack Plugin pour surveiller les SGBD PostgreSQL en utilisant des requ\u00eates SQL.\r\nDe nombreux indicateurs sont disponibles mais ne sont pas associ\u00e9s au mod\u00e8le d\\'h\u00f4te.\r\nIls doivent \u00eatre d\u00e9ploy\u00e9s manuellement :\r\n* Cache-Hitratio\r\n* Connection\r\n* Connection-Number\r\n* Locks\r\n* Query-Time\r\n* Statistics\r\n* Tablespace-Size\r\n* Time-Sync\r\n* Vacuum"
+            }
+        ],
+        "discovery_category": "database",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nIn order to use this template, the following RPM are needed on your\r\npoller:\r\n* postgresql\r\n* postgresql-libs\r\n* perl-DBD-Pg\r\n\r\n## Centreon Configuration\r\n### Create a new server postgresql\r\nGo to \"Configuration &gt; Hosts\" and click \"Add\". Then, fill the form as\r\nshown by the following table :\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-DB-Postgre-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Onglet <em>Relations</em> &gt; Parent Hostgroups</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick \"Save\" button.\r\n\r\nThose services were automatically created for this host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"18%\" />\r\n<col width=\"81%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Service</th>\r\n<th align=\"left\">Description</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Bloat</p></td>\r\n<td align=\"left\"><p>Check bloat (unused amount of dead space) in table and indexes of the Postgres server</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Cache-Hitratio</p></td>\r\n<td align=\"left\"><p>Check the &quot;buffer cache hitratio&quot; of the Postgres server</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Connection</p></td>\r\n<td align=\"left\"><p>Monitor to the connection time to the db</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Connection-Number</p></td>\r\n<td align=\"left\"><p>Monitor the number of connections</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Locks</p></td>\r\n<td align=\"left\"><p>Check locks of the Postgres server</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Ping</p></td>\r\n<td align=\"left\"><p>Monitor host response time</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Query-time</p></td>\r\n<td align=\"left\"><p>Check how long a specific query takes to run</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Time-Sync</p></td>\r\n<td align=\"left\"><p>Check time between poller and the Postgres server</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\n### Host Macro Configuration\r\nThe following macros must be configured on host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"22%\" />\r\n<col width=\"45%\" />\r\n<col width=\"18%\" />\r\n<col width=\"12%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>POSTGRESPORT</p></td>\r\n<td align=\"left\"><p>Port used to connect to the DB server</p></td>\r\n<td align=\"left\"><p>5432</p></td>\r\n<td align=\"left\"><p>5432</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>POSTGRESUSERNAME</p></td>\r\n<td align=\"left\"><p>the postgres db user</p></td>\r\n<td align=\"left\"><p>USERNAME</p></td>\r\n<td align=\"left\"><p>root</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>POSTGRESPASSWORD</p></td>\r\n<td align=\"left\"><p>the postgres db user's password</p></td>\r\n<td align=\"left\"><p>PASSWORD</p></td>\r\n<td align=\"left\"><p>p@ssw0rd</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\n### Service Macro configuration\r\nThe following macros must be configured on services:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"17%\" />\r\n<col width=\"9%\" />\r\n<col width=\"22%\" />\r\n<col width=\"29%\" />\r\n<col width=\"20%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Service</th>\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default Value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Bloat</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>1GB</p></td>\r\n<td align=\"left\"><p>1GB</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Bloat</p></td>\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>2GB</p></td>\r\n<td align=\"left\"><p>2GB</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Bloat</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>bloat</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Bloat</p></td>\r\n<td align=\"left\"><p>EXTRAEXCLUDE</p></td>\r\n<td align=\"left\"><p>Database to exclude</p></td>\r\n<td align=\"left\"><p>--exclude=postgres,template0,template1</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Cache-Hitratio</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>90%</p></td>\r\n<td align=\"left\"><p>90%</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Cache-Hitratio</p></td>\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>80%</p></td>\r\n<td align=\"left\"><p>80%</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Cache-Hitratio</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>hitratio</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Cache-Hitratio</p></td>\r\n<td align=\"left\"><p>EXTRAEXCLUDE</p></td>\r\n<td align=\"left\"><p>Database to exclude</p></td>\r\n<td align=\"left\"><p>--exclude=postgres,template0,template1</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Connection</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>connection</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Connection</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>0</p></td>\r\n<td align=\"left\"><p>0</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Connection</p></td>\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>0</p></td>\r\n<td align=\"left\"><p>0</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Connetions-Number</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>backends</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>connections-Number</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>90%</p></td>\r\n<td align=\"left\"><p>90%</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Connection-Number</p></td>\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>95%</p></td>\r\n<td align=\"left\"><p>95%</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Connection-Number</p></td>\r\n<td align=\"left\"><p>EXTRAEXCLUDE</p></td>\r\n<td align=\"left\"><p>Database to exclude</p></td>\r\n<td align=\"left\"><p>--exclude=postgres,template0,template1</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Locks</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>200</p></td>\r\n<td align=\"left\"><p>200</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Locks</p></td>\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>total=250:waiting=5:exclusive=20</p></td>\r\n<td align=\"left\"><p>total=250:waiting=5:exclusive=2</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Locks</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>locks</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Query-Time</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>30 secondes</p></td>\r\n<td align=\"left\"><p>30 secondes</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Query-Time</p></td>\r\n<td align=\"left\"><p>CRITICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>1 minutes</p></td>\r\n<td align=\"left\"><p>1 minutes</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Query-Time</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>query_time</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Query-Time</p></td>\r\n<td align=\"left\"><p>EXTRAEXCLUDE</p></td>\r\n<td align=\"left\"><p>Database to exclude</p></td>\r\n<td align=\"left\"><p>--exclude=postgres,template0,template1</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Query-Time</p></td>\r\n<td align=\"left\"><p>EXTRAEXCLUDEUSER</p></td>\r\n<td align=\"left\"><p>User to exclude</p></td>\r\n<td align=\"left\"><p>--excludeuser=postgres</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Time-Sync</p></td>\r\n<td align=\"left\"><p>WARNING</p></td>\r\n<td align=\"left\"><p>Warning Threshold</p></td>\r\n<td align=\"left\"><p>2</p></td>\r\n<td align=\"left\"><p>2</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Time-Sync</p></td>\r\n<td align=\"left\"><p>CRTICAL</p></td>\r\n<td align=\"left\"><p>Critical Threshold</p></td>\r\n<td align=\"left\"><p>5</p></td>\r\n<td align=\"left\"><p>5</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Time-Sync</p></td>\r\n<td align=\"left\"><p>ACTION</p></td>\r\n<td align=\"left\"><p>The test determined by the plugin</p></td>\r\n<td align=\"left\"><p>timesync</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Time-Sync</p></td>\r\n<td align=\"left\"><p>EXTRAEXCLUDE</p></td>\r\n<td align=\"left\"><p>Database to exclude</p></td>\r\n<td align=\"left\"><p>--exclude=postgres,template0,template1</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>",
+        "name": "PostgreSQL DB",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Databases-Postgresql",
+                "version": "20160324-2"
+            }
+        ],
+        "slug": "applications-databases-postgresql",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "DB",
+            "DBMS",
+            "Postgres",
+            "PostgreSQL",
+            "SGBD",
+            "SQL"
+        ],
+        "update_date": "1465837427",
+        "version": "3.0.5",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Query-Time",
+            "command_name": "App-DB-Postgres-Query-Time",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "60"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "^(?!(postgres|template1|template0))"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTERUSER$",
+                    "password": false,
+                    "value": "postgres"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "30"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Query-Time",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Locks",
+            "command_name": "App-DB-Postgres-Locks",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "total=250,waiting=5,exclusive=20"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "^(?!(postgres|template1|template0))"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "total=200"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Locks",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Connection-Number",
+            "command_name": "App-DB-Postgres-Backends",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "95"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "^(?!(postgres|template1|template0))"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Connection-Number",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Connection",
+            "command_name": "App-DB-Postgres-Connection-Time",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Connection",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cache-Hitratio",
+            "command_name": "App-DB-Postgres-Hitratio",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "^(?!(postgres|template1|template0))"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Cache-Hitratio",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Tablespace-Size",
+            "command_name": "App-DB-Postgres-Tablespace-Size",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETABLESPACE$",
+                    "password": false,
+                    "value": "pg_default"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Tablespace-Size",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Statistics",
+            "command_name": "App-DB-Postgres-Statistics",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALTOTALCOMMIT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "^(?!(postgres|template1|template0)$)"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGTOTALCOMMIT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Statistics",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Vacuum",
+            "command_name": "App-DB-Postgres-Vacuum",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "App-DB-Postgres-Vacuum",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Time-Sync",
+            "command_name": "App-DB-Postgres-Timesync",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "3.0:3.0"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "1.0:1.0"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-Postgres-Time-Sync",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

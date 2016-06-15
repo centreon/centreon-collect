@@ -1,0 +1,370 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_brocade.pl --plugin=network::brocade::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID\\'\\' --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Brocade-Traffic-ID",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_brocade.pl --plugin=network::brocade::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'^$_SERVICEINTERFACENAME$$$\\' --name --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Brocade-Traffic-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_brocade.pl --plugin=network::brocade::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --add-status --add-traffic --critical-status=\\'$_SERVICECRITICALSTATUS$\\' --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Brocade-SNMP-Traffic-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_brocade.pl --plugin=network::brocade::plugin --mode=cpu --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Brocade-SNMP-Cpu",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_brocade.pl --plugin=network::brocade::plugin --mode=memory --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Brocade-SNMP-Memory",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_brocade.pl --plugin=network::brocade::plugin --mode=hardware --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Brocade-SNMP-Hardware",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Brocade switch using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "Net-Brocade-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-Brocade-Memory-SNMP",
+                "Net-Brocade-Hardware-SNMP",
+                "Net-Brocade-Cpu-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Brocade switches via SNMP:\r\n* Cpu\r\n* Hardware\r\n* Memory\r\n* Traffic (by interface name, ID or all interfaces)"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un switch Brocade via SNMP : \r\n* Cpu\r\n* Hardware\r\n* Memory\r\n* Traffic (by interface name, ID or all interfaces)"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your server\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](https://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp).\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Brocade-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Brocade switch",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Switchs-Brocade-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-switchs-brocade-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Brocade",
+            "Hardware",
+            "Switch",
+            "Fiber",
+            "Fiber channel"
+        ],
+        "update_date": "1465838618",
+        "version": "3.0.4",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "Net-Brocade-SNMP-Memory",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Brocade-Memory-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Hardware",
+            "command_name": "Net-Brocade-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Brocade-Hardware-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 5,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "Net-Brocade-SNMP-Cpu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Brocade-Cpu-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-ID",
+            "command_name": "Net-Brocade-Traffic-ID",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACEID$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Brocade-Traffic-Generic-ID-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Name",
+            "command_name": "Net-Brocade-Traffic-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACENAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-brocade-Traffic-Generic-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Global",
+            "command_name": "Net-Brocade-SNMP-Traffic-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALSTATUS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Brocade-Traffic-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
