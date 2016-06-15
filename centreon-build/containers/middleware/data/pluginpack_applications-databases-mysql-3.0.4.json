@@ -1,0 +1,467 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_mysql.pl --plugin=database::mysql::plugin --host=$HOSTADDRESS$ --username=\\'$_HOSTMYSQLUSERNAME$\\' --password=\\'$_HOSTMYSQLPASSWORD$\\' --port=\\'$_HOSTMYSQLPORT$\\' --mode=\\'$_SERVICEMODE$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-MySQL",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_mysql.pl --plugin=database::mysql::plugin  --host=$HOSTADDRESS$ --username=\\'$_HOSTMYSQLUSERNAME$\\' --password=\\'$_HOSTMYSQLPASSWORD$\\' --port=\\'$_HOSTMYSQLPORT$\\' --mode=qcache-hitrate --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-MySQL-Qcache-Hitrate",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_mysql.pl --plugin=database::mysql::plugin  --host=$HOSTADDRESS$ --username=\\'$_HOSTMYSQLUSERNAME$\\' --password=\\'$_HOSTMYSQLPASSWORD$\\' --port=\\'$_HOSTMYSQLPORT$\\' --mode=long-queries --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' --filter-user=\\'$_SERVICEFILTERUSER$\\' --seconds=\\'$_SERVICESECONDS$\\' --filter-command=\\'$_SERVICEFILTERCOMMAND$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-MySQL-Long-Queries",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_mysql.pl --plugin=database::mysql::plugin  --host=$HOSTADDRESS$ --username=\\'$_HOSTMYSQLUSERNAME$\\' --password=\\'$_HOSTMYSQLPASSWORD$\\' --port=\\'$_HOSTMYSQLPORT$\\' --mode=databases-size --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' --filter=\\'$_SERVICEEXCLUDEREGEXP$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-DB-MySQL-Database-Size",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check MySQL Database",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [
+                {
+                    "key": "$_HOSTMYSQLPASSWORD$",
+                    "value": "PASSWORD"
+                },
+                {
+                    "key": "$_HOSTMYSQLPORT$",
+                    "value": "MYSQL_PORT"
+                },
+                {
+                    "key": "$_HOSTMYSQLUSERNAME$",
+                    "value": "USERNAME"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-DB-MySQL",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-DB-MySQL-Slowqueries",
+                "App-DB-MySQL-Queries",
+                "App-DB-MySQL-Open-Files",
+                "App-DB-MySQL-Myisam-Keycache",
+                "App-DB-MySQL-Database-Size",
+                "App-DB-MySQL-Connections-Number",
+                "App-DB-MySQL-Connection-Time"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor MySQL or MariaDB DBMS using SQL request.\r\nSeveral indicators are available but not linked to the template of host.\r\nYou have to use them manually:\r\n* Connection-Time\r\n* Connections-Number\r\n* Database-Size\r\n* Innodb-Bufferpool\r\n* Long-Queries\r\n* Myisam-Keycache\r\n* Open-Files\r\n* Qcache-Hitrate\r\n* Queries\r\n* Slowqueries\r\n* Uptime"
+            },
+            {
+                "lang": "fr",
+                "value": "Pack Plugin pour surveiller les SGBD MySQL ou MariaDB en utilisant des requ\u00eates SQL.\r\nDe nombreux indicateurs sont disponibles mais ne sont pas associ\u00e9s au mod\u00e8le d\\'h\u00f4te.\r\nIls doivent \u00eatre d\u00e9ploy\u00e9s manuellement:\r\n* Temps de connexion\r\n* Nombre de connexions actives\r\n* Taille des bases de donn\u00e9es\r\n* Innodb-Bufferpool\r\n* Long-Queries\r\n* Myisam-Keycache\r\n* Open-Files\r\n* Qcache-Hitrate\r\n* Queries\r\n* Slowqueries\r\n* Uptime"
+            }
+        ],
+        "discovery_category": "database",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nThis chapter describes the prerequisites installation needed by plugins\r\nto run.\r\n\r\n### MySQL, perl-dbi, perl-dbd-mysql\r\nAll prerequisites needed to run mysql plugins are packaged and installed\r\nwith Centreon Entreprise Server: perl-DBI , perl-DBD-mysql , mysql.\r\n\r\n## Centreon Configuration\r\n### Create a new MySQL server\r\nGo to \"Configuration &gt; Hosts\" and click \"Add\". Then, fill the form as\r\nshown by the following table :\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Fields</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-DB-MySQL-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Onglet <em>Relations</em> &gt; Parent Hostgroups</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick \"Save\" button.\r\n\r\nThose services were automatically created for this host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"29%\" />\r\n<col width=\"65%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Service</th>\r\n<th align=\"left\">Description</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Ping</p></td>\r\n<td align=\"left\"><p>Monitor host response time</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Connection-Time</p></td>\r\n<td align=\"left\"><p>Monitor to the connection time to the server</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Connections-Number</p></td>\r\n<td align=\"left\"><p>Monitor the number of open connections</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Database-Size</p></td>\r\n<td align=\"left\"><p>Monitor all the databases size</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Innodb-Bufferpool</p></td>\r\n<td align=\"left\"><p>Monitor the InnoDB buffer pool hitrate</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Myisam-Keycache</p></td>\r\n<td align=\"left\"><p>Monitor the MyISAM key cache hitrate</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Open-Files</p></td>\r\n<td align=\"left\"><p>percentage of openned files</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Queries</p></td>\r\n<td align=\"left\"><p>Monitor the average of queries per second</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Slowqueries</p></td>\r\n<td align=\"left\"><p>Monitor the number of slow queries</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"29%\" />\r\n<col width=\"65%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Optionnal Service</th>\r\n<th align=\"left\">Description</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Uptime</p></td>\r\n<td align=\"left\"><p>Monitor the server's uptime</p></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\n### Host Macro Configuration\r\nThe following macros must be configured on host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"20%\" />\r\n<col width=\"47%\" />\r\n<col width=\"19%\" />\r\n<col width=\"13%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>MYSQLPORT</p></td>\r\n<td align=\"left\"><p>Port used to connect to the DB server</p></td>\r\n<td align=\"left\"><p>MYSQLPORT</p></td>\r\n<td align=\"left\"><p>3306</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>MYSQLUSERNAME</p></td>\r\n<td align=\"left\"><p>the mysql db user</p></td>\r\n<td align=\"left\"><p>MYSQLUSERNAME</p></td>\r\n<td align=\"left\"><p>root</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>MYSQLPASSWORD</p></td>\r\n<td align=\"left\"><p>the mysql db user's password</p></td>\r\n<td align=\"left\"><p>MYSQLPASSWORD</p></td>\r\n<td align=\"left\"><p>HuGr6834</p></td>\r\n</tr>\r\n</tbody>\r\n</table>",
+        "name": "MySQL DB",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Databases-Mysql",
+                "version": "20160324-4"
+            }
+        ],
+        "slug": "applications-databases-mysql",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Database",
+            "DB",
+            "DBMS",
+            "MariaDB",
+            "MySQL",
+            "SGBD",
+            "SQL"
+        ],
+        "update_date": "1465837409",
+        "version": "3.0.4",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le nombre de requ\u00eates lentes depuis la derni\u00e8re v\u00e9rification. Renvoie le taux moyen par seconde.}\r\n\r\n{EN: Check the number of slow queries since the last check. Gives the average rate per second.}",
+            "active_checks_enabled": 2,
+            "alias": "Slowqueries",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "slow-queries"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "0"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "0"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Slowqueries",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le nombre moyen de requ\u00eates ex\u00e9cut\u00e9es par seconde.}\r\n\r\n{EN: Check the average of queries per second.}",
+            "active_checks_enabled": 2,
+            "alias": "Queries",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "queries"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "100"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "300"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Queries",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le nombre de fichiers ouverts.}\r\n\r\n{EN: Check the number of files that currently are open.}",
+            "active_checks_enabled": 2,
+            "alias": "Open-Files",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "open-files"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "95"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Open-Files",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le taux de succ\u00e8s des tables MyISAM.}\r\n\r\n{EN: Check the hit rate of the MyISAM tables.}",
+            "active_checks_enabled": 2,
+            "alias": "Myisam-Keycache",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "myisam-keycache-hitrate"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Myisam-Keycache",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier la taille des bases de donn\u00e9es. Aucunes alertes par d\u00e9faut.}\r\n\r\n{EN: Check size of databases. No Alerts by default.}",
+            "active_checks_enabled": 2,
+            "alias": "Database-Size",
+            "command_name": "App-DB-MySQL-Database-Size",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXCLUDEREGEXP$",
+                    "password": false,
+                    "value": "^(?!(information_schema|performance_schema|test))"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Database-Size",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le nombre de connexions ouvertes.}\r\n\r\n{EN: Check the number of open connections.}",
+            "active_checks_enabled": 2,
+            "alias": "Connections-Number",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "threads-connected"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "60"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "80"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Connections-Number",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier la dur\u00e9e de connexion au serveur. Ce temps est donn\u00e9 en secondes.}\r\n\r\n{EN: Check the connection time to the server. This time is given in seconds.}",
+            "active_checks_enabled": 2,
+            "alias": "Connection-Time",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "connection-time"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "1000"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "5000"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Connection-Time",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant d'indiquer le temps de fonctionnement du serveur depuis son dernier d\u00e9marrage. Ce temps est exprim\u00e9 en minutes.}\r\n\r\n{EN: This check indicates the operation time since the server is running. This time in given in minutes.}",
+            "active_checks_enabled": 2,
+            "alias": "Uptime",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "uptime"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "525600"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "1051200"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Uptime",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le taux d'utilisation du 'query cache'.}\r\n\r\n{EN: Check query cache hitrate.}",
+            "active_checks_enabled": 2,
+            "alias": "Qcache-Hitrate",
+            "command_name": "App-DB-MySQL-Qcache-Hitrate",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "App-DB-MySQL-Qcache-Hitrate",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier les requ\u00eates courantes longues.}\r\n\r\n{EN: Check current number of long queries.}",
+            "active_checks_enabled": 2,
+            "alias": "Long-Queries",
+            "command_name": "App-DB-MySQL-Long-Queries",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICESECONDS$",
+                    "password": false,
+                    "value": "60"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTERCOMMAND$",
+                    "password": false,
+                    "value": "^(?!(sleep)$)"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Long-Queries",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier le taux de succ\u00e8s du tampon InnoDB.}\r\n\r\n{EN: Check the hit rate of the InnoDB buffer.}",
+            "active_checks_enabled": 2,
+            "alias": "Innodb-Bufferpool",
+            "command_name": "App-DB-MySQL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "innodb-bufferpool-hitrate"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-DB-MySQL-Innodb-Bufferpool",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

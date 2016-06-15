@@ -1,0 +1,149 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_nimble.pl --plugin=storage::nimble::snmp::plugin --mode=volume-usage --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --filter-name=\\'$_SERVICEFILTERNAME$\\' --warning-usage=\\'$_SERVICEWARNINGUSAGE$\\' --critical-usage=\\'$_SERVICECRITICALUSAGE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-Nimble-SNMP-Volume-Usage",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_nimble.pl --plugin=storage::nimble::snmp::plugin --mode=global-stats --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning-read=\\'$_SERVICEWARNINGREAD$\\' --critical-read=\\'$_SERVICECRITICALREAD$\\' --warning-read-iops=\\'$_SERVICEWARNINGREADIOPS$\\' --critical-read-iops=\\'$_SERVICECRITICALREADIOPS$\\' --warning-read-time=\\'$_SERVICEWARNINGREADTIME$\\' --critical-read-time=\\'$_SERVICECRITICALREADTIME$\\' --warning-write=\\'$_SERVICEWARNINGWRITE$\\' --critical-write=\\'$_SERVICECRITICALWRITE$\\' --warning-write-iops=\\'$_SERVICEWARNINGWRITEIOPS$\\' --critical-write-iops=\\'$_SERVICECRITICALWRITEIOPS$\\' --warning-write-time=\\'$_SERVICEWARNINGWRITETIME$\\' --critical-write-time=\\'$_SERVICECRITICALWRITETIME$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "HW-Storage-Nimble-SNMP-Global-Stats",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Nimble Storage using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "IMAGE_1",
+            "macros": [],
+            "max_check_attempts": 0,
+            "name": "HW-Storage-Nimble-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "HW-Storage-Nimble-Volume-Usage-Global-SNMP",
+                "HW-Storage-Nimble-Global-Stats-SNMP"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "IMAGE_1"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Nimble Storage via SNMp:\r\n* Global-Stats\r\n* Volume-Usage"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller les stockage Nimble via SNMP : \r\n* Global-Stats\r\n* Volume-Usage"
+            }
+        ],
+        "discovery_category": "storage",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your server\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](http://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp)\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"35%\" />\r\n<col width=\"64%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>HW-Storage-Nimble-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Nimble Storage",
+        "requirement": [
+            {
+                "name": "ces-plugins-Hardware-Storage-Nimble-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "hardware-storage-nimble-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Hardware",
+            "Nimble",
+            "SAN",
+            "SNMP",
+            "Storage"
+        ],
+        "update_date": "1465838163",
+        "version": "3.0.2",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation des volumes.}\r\n\r\n{EN: Check volume usages.}",
+            "active_checks_enabled": 2,
+            "alias": "Volume-Usage-Global",
+            "command_name": "HW-Storage-Nimble-SNMP-Volume-Usage",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTERNAME$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGUSAGE$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALUSAGE$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-Nimble-Volume-Usage-Global-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les statistiques globales du stockage (IOPs, latence,...).}\r\n\r\n{EN: Check global storage statistics (IOPs, latency,...).}",
+            "active_checks_enabled": 2,
+            "alias": "Global-Stats",
+            "command_name": "HW-Storage-Nimble-SNMP-Global-Stats",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "HW-Storage-Nimble-Global-Stats-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
