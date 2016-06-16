@@ -86,11 +86,11 @@
     "images": [],
     "information": {
         "author": "Centreon",
-        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "changelog": "* Update Pack dependency",
         "dependencies": [
             {
-                "name": "0",
-                "version": null
+                "name": "base-generic",
+                "version": "3.0.2"
             }
         ],
         "description": [
@@ -128,8 +128,8 @@
             "Network",
             "SNMP"
         ],
-        "update_date": "1465838545",
-        "version": "3.0.6",
+        "update_date": "1466078643",
+        "version": "3.0.7",
         "website": "www.centreon.com"
     },
     "service_templates": [
