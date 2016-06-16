@@ -19,4 +19,4 @@ RUN /tmp/install.sh
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh
 RUN chmod +x /usr/share/centreon/container.sh
-ENTRYPOINT /usr/share/centreon/container.sh
+ENTRYPOINT ["/usr/share/centreon/container.sh"]

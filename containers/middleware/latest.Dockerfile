@@ -43,4 +43,4 @@ RUN /tmp/install.sh
 
 # Entry point.
 COPY middleware/run.sh /usr/local/bin/container.sh
-ENTRYPOINT /usr/local/bin/container.sh
+ENTRYPOINT ["/usr/local/bin/container.sh"]
