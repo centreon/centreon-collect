@@ -65,7 +65,10 @@
             "macros": [],
             "max_check_attempts": null,
             "name": "HW-Printer-standard-rfc3805-v3",
-            "parent_template": "generic-active-host",
+            "parent_template": [
+                "generic-passive-host",
+                "HW-Printer-standard-rfc3805"
+	    ],
             "passive_checks_enabled": 2,
             "retry_check_interval": "",
             "services": [
