@@ -61,8 +61,8 @@
             "type": 2
         },
         {
-            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=load --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
-            "name": "OS-Linux-SNMP-Load",
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_solaris_snmp.pl --plugin=os::solaris::snmp::plugin --mode=load --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "OS-Solaris-SNMP-Load",
             "type": 2
         }
     ],
@@ -95,7 +95,7 @@
     ],
     "information": {
         "author": "Centreon",
-        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "changelog": "* Correct command on a service's template",
         "dependencies": [
             {
                 "name": "base-generic",
@@ -135,8 +135,8 @@
             "Solaris",
             "System"
         ],
-        "update_date": "1465838697",
-        "version": "3.0.4",
+        "update_date": "1465918413",
+        "version": "3.0.5",
         "website": "www.centreon.com"
     },
     "service_templates": [
@@ -144,30 +144,11 @@
             "_comment": "{FR: Contr",
             "active_checks_enabled": 2,
             "alias": "Load",
-            "command_name": "OS-Linux-SNMP-Load",
+            "command_name": "OS-Solaris-SNMP-Load",
             "discovery_list_mode": "",
             "icon": "",
             "is_volatile": 2,
-            "macros": [
-                {
-                    "description": "",
-                    "key": "$_SERVICECRITICAL$",
-                    "password": false,
-                    "value": ""
-                },
-                {
-                    "description": "",
-                    "key": "$_SERVICEEXTRAOPTIONS$",
-                    "password": false,
-                    "value": ""
-                },
-                {
-                    "description": "",
-                    "key": "$_SERVICEWARNING$",
-                    "password": false,
-                    "value": ""
-                }
-            ],
+            "macros": [],
             "max_check_attempts": 3,
             "name": "OS-Solaris-Load-SNMP",
             "normal_check_interval": 5,

@@ -56,15 +56,15 @@
     ],
     "information": {
         "author": "Centreon",
-        "changelog": "* Update relation between HTPL and STPL\r\n* Correct name of HTPL to use in monitoring procedure",
+        "changelog": "* Change PP dependency",
         "dependencies": [
             {
                 "name": "base-generic",
-                "version": "3.0.0"
+                "version": "3.0.2"
             },
             {
-                "name": "operatingsystems-solaris-snmp",
-                "version": "2.1"
+                "name": "operatingsystems-linux-snmp",
+                "version": "3.0.5"
             }
         ],
         "description": [
@@ -97,8 +97,8 @@
             "poller",
             "Server"
         ],
-        "update_date": "1465837561",
-        "version": "3.0.3",
+        "update_date": "1466171642",
+        "version": "3.0.4",
         "website": "www.centreon.com"
     },
     "service_templates": [
