@@ -11,4 +11,5 @@ docker pull $MIDDLEWARE_IMAGE
 sed "s#@MIDDLEWARE_IMAGE@#$MIDDLEWARE_IMAGE#g" < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > /opt/middleware/docker-compose.yml
 
 # Update container.
+cd /opt/middleware
 docker-compose up -d
