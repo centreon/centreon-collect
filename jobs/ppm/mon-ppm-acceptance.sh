@@ -13,14 +13,12 @@ DISTRIB="$1"
 # Pull images.
 WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 PPM_IMAGE=ci.int.centreon.com:5000/mon-ppm:$DISTRIB
-MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $PPM_IMAGE
-docker pull $MIDDLEWARE_IMAGE
 
 # Prepare Docker compose file.
 cd centreon-import
-sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-web.yml.in > docker-compose-ppm.yml
+sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-ppm.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-ppm.yml < behat.yml || true`
