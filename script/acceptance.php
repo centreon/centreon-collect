@@ -177,7 +177,7 @@ else {
         array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-ppe1:' . $distrib)
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/middleware/docker-compose-web.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-ppm-dev.yml'),
         array(
             '@WEB_IMAGE@' => 'mon-ppm-dev:' . $distrib,
