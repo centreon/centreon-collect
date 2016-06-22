@@ -128,7 +128,7 @@
             "alias": "PaperTray-Usage-v3",
             "command_name": "HW-Printer-Papertray-Usage-standard",
             "discovery_list_mode": "",
-            "icon": "",
+            "icon": "IMAGE_1",
             "is_volatile": 2,
             "macros": [
                 {
