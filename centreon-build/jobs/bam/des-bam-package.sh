@@ -53,7 +53,7 @@ else
   git pull
   cd ..
 fi
-cp packaging-centreon-bam/rpm/bam.spectemplate input
+cp packaging-centreon-bam/rpm/centreon-bam-server.spectemplate input
 
 # Build RPMs.
 docker-rpm-builder dir "$BUILD_IMG" input output
