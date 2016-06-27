@@ -51,15 +51,15 @@ docker-rpm-builder dir "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  CES_VERSION='3'
+  REPO='centreon-bam/3/noarch'
 elif [ "$DISTRIB" = 'centos7' ] ; then
-  CES_VERSION='4'
+  REPO='centreon-bam/4/noarch'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
 FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/$CES_VERSION/unstable/noarch/RPMS"
+scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/$REPO/RPMS"
 DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" mktemp`
 scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh $DESTFILE $CES_VERSION noarch
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh $DESTFILE $REPO
