@@ -45,17 +45,8 @@ curl -F "file=@centreon-bam-server-$VERSION.tar.gz" -F "version=$phpversion" -F 
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
-# Retrieve spec file.
-if [ \! -d packaging-centreon-bam ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon-bam
-else
-  cd packaging-centreon-bam
-  git pull
-  cd ..
-fi
-cp packaging-centreon-bam/rpm/centreon-bam-server.spectemplate input
-
 # Build RPMs.
+cp centreon-bam/packaging/centreon-bam-server.spectemplate input
 docker-rpm-builder dir "$BUILD_IMG" input output
 
 # Copy files to server.
