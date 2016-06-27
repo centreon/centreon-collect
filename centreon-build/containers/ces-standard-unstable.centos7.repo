@@ -26,16 +26,9 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 # gpgcheck=1
 # gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-# [ces-standard-unstable-devel]
-# name=Centreon Enterprise Server development RPM repository for ces $releasever
-# baseurl=http://srvi-ces-repository.int.centreon.com/repos/standard/4/unstable/devel/$basearch/
-# enabled=0
-# gpgcheck=1
-# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
-
-# [ces-standard-unstable-devel-noarch]
-# name=Centreon Enterprise Server development RPM repository for ces $releasever
-# baseurl=http://srvi-ces-repository.int.centreon.com/repos/standard/4/unstable/devel/noarch/
-# enabled=0
-# gpgcheck=1
-# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+[ces-bam-unstable-noarch]
+name=Centreon BAM for Centreon Enterprise Server
+baseurl=http://srvi-ces-repository.int.centreon.com/repos/centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3/4/unstable/noarch
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
