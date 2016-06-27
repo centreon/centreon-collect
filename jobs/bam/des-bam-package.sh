@@ -17,7 +17,7 @@ rm -rf output
 mkdir output
 
 # Get version.
-cd centreon-ba,
+cd centreon-bam
 VERSION=`grep mod_release www/modules/centreon-bam-server/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
