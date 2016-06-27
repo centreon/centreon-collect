@@ -56,12 +56,12 @@ docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CE
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then
-  CES_VERSION='3'
+  REPO='standard/3/unstable/x86_64'
 else
-  CES_VERSION='4'
+  REPO='standard/4/unstable/x86_64'
 fi
 FILES='output/x86_64/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/$CES_VERSION/unstable/x86_64/RPMS"
+scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/$REPO/RPMS"
 DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" mktemp`
 scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh $DESTFILE $CES_VERSION x86_64
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh $DESTFILE $REPO
