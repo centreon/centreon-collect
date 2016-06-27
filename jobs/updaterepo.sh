@@ -76,6 +76,8 @@ clean_repository /srv/repos/standard/3/unstable/i386/RPMS
 clean_repository /srv/repos/standard/3/unstable/x86_64/RPMS
 clean_repository /srv/repos/standard/4/unstable/noarch/RPMS
 clean_repository /srv/repos/standard/4/unstable/x86_64/RPMS
+clean_repository /srv/repos/centreon-bam/3/unstable/noarch/RPMS
+clean_repository /srv/repos/centreon-bam/4/unstable/noarch/RPMS
 
 #
 # Clean after ourselves.
