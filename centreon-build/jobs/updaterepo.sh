@@ -5,10 +5,10 @@
 #
 
 PID_FILE="/tmp/updaterepo.pid"
-CES_VERSION="$1"
+REPO="$1"
 ARCH="$2"
 
-if [ -n "$CES_VERSION" -a -n "$ARCH" ] ; then
+if [ -n "$REPO" -a -n "$ARCH" ] ; then
   sucess=0
   while [ "$sucess" = 0 ] ; do
     if [ -f "$PID_FILE" ] ; then
@@ -20,7 +20,7 @@ if [ -n "$CES_VERSION" -a -n "$ARCH" ] ; then
       echo $$ >> "$PID_FILE"
       concurrent=`cat $PID_FILE | head -n 1`
       if [ "$concurrent" = $$ ] ; then
-        createrepo "/srv/repos/standard/$CES_VERSION/unstable/$ARCH/"
+        createrepo "/srv/repos/$REPO/unstable/$ARCH/"
         rm -f "$PID_FILE"
         sucess=1
       fi
