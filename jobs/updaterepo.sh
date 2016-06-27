@@ -6,9 +6,8 @@
 
 PID_FILE="/tmp/updaterepo.pid"
 REPO="$1"
-ARCH="$2"
 
-if [ -n "$REPO" -a -n "$ARCH" ] ; then
+if [ -n "$REPO" ] ; then
   sucess=0
   while [ "$sucess" = 0 ] ; do
     if [ -f "$PID_FILE" ] ; then
@@ -20,7 +19,7 @@ if [ -n "$REPO" -a -n "$ARCH" ] ; then
       echo $$ >> "$PID_FILE"
       concurrent=`cat $PID_FILE | head -n 1`
       if [ "$concurrent" = $$ ] ; then
-        createrepo "/srv/repos/$REPO/unstable/$ARCH/"
+        createrepo "/srv/repos/$REPO"
         rm -f "$PID_FILE"
         sucess=1
       fi
