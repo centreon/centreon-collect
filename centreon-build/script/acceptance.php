@@ -99,6 +99,8 @@ if ($synchronize) {
         '/mon-web:centos7',
         '/mon-web-stable:centos6',
         '/mon-web-stable:centos7',
+        '/des-bam:centos6',
+        '/des-bam:centos7',
         'redis:latest'
     );
     $count = count($images);
