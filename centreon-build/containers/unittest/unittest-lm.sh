@@ -12,4 +12,4 @@ vendor/bin/phing unittest
 vendor/bin/phing codestyle
 mv build/phpunit.xml /tmp/centreon-license-manager_ut.xml
 mv build/coverage.xml /tmp/centreon-license-manager_coverage.xml
-mv build/checkstyle.xml /tmp/centreon-license-manager_checkstyle.xml
+mv build/checkstyle.xml /tmp/centreon-license-manager_codestyle.xml
