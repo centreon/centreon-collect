@@ -21,6 +21,7 @@ docker cp centreon-export "$containerid:/usr/local/src/centreon-export"
 docker start -a "$containerid"
 docker cp "$containerid:/tmp/centreon-ppe_ut.xml" centreon-ppe_ut.xml
 docker cp "$containerid:/tmp/centreon-ppe_coverage.xml" centreon-ppe_coverage.xml
+docker cp "$containerid:/tmp/centreon-ppe_codestyle.xml" centreon-ppe_codestyle.xml
 
 # Stop container.
 docker stop "$containerid"
