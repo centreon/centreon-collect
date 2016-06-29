@@ -9,5 +9,7 @@ cd /usr/local/src/centreon-license-manager/
 composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
 composer install
 vendor/bin/phing unittest
+vendor/bin/phing codestyle
 mv build/phpunit.xml /tmp/centreon-license-manager_ut.xml
 mv build/coverage.xml /tmp/centreon-license-manager_coverage.xml
+mv build/checkstyle.xml /tmp/centreon-license-manager_checkstyle.xml
