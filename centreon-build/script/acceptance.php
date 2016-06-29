@@ -148,6 +148,9 @@ else {
     case 'centreon-web':
         $project = 'web';
         break ;
+    case 'centreon-bam':
+        $project = 'bam';
+        break ;
     default:
         echo 'Unknown project ' . $project . ": perhaps you are not running acceptance.php from the root of a supported project ?\n";
         return (1);
@@ -196,10 +199,15 @@ else {
         xpath('mon-web-fresh-dev.yml'),
         array('@WEB_IMAGE@' => 'mon-web-fresh-dev:' . $distrib)
     );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath('des-bam-dev.yml'),
+        array('@WEB_IMAGE@' => 'des-bam-dev:' . $distrib)
+    );
 
     // Execute the dev container script.
     echo "[3/4] Building development container from current sources...\n";
-    passthru('php ' . xpath($centreon_build_dir . '/jobs/containers/mon-containers-' . $project . '-dev.php') . ' ' . $distrib, $return_var);
+    passthru('php ' . xpath($centreon_build_dir . '/script/' . $project . '-dev.php') . ' ' . $distrib, $return_var);
     if ($return_var != 0) {
         echo 'Could not build development container of ' . $project . "\n";
         return (1);
