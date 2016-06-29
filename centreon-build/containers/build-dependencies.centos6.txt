@@ -1,4 +1,5 @@
 centreon-clib-devel
+centreon-devel
 cmake
 gcc
 gcc-c++
