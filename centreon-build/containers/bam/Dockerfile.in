@@ -6,6 +6,9 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 RUN yum --disablerepo='*' --enablerepo=ces-standard-unstable-noarch clean all
 RUN yum install -y --nogpgcheck centreon-bam-server
 
+# Install license file.
+COPY bam/merethis_lic.zl /usr/share/centreon/www/modules/centreon-bam-server/license/merethis_lic.zl
+
 # Install module in Centreon.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY bam/install.sh /tmp/install.sh
