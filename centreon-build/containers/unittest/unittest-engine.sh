@@ -9,9 +9,10 @@ mkdir /tmp/build
 cd /tmp/build
 
 # Configure project.
-cmake /usr/local/src/centreon-engine/build
+cmake -DWITH_TESTING=1 /usr/local/src/centreon-engine/build
 
 # Build project.
 make -j 4
 
 # Run unit tests.
+./tests/ut --gtest_output=xml:/tmp/ut.xml
