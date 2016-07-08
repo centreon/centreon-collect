@@ -1,0 +1,339 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_pfsense.pl --plugin=apps::pfsense::snmp::plugin --mode=blocked-packets --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Pfsense-SNMP-Blocked-Packets-ID",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_pfsense.pl --plugin=apps::pfsense::snmp::plugin --mode=blocked-packets --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACENAME$\\' --name --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Pfsense-SNMP-Blocked-Packets-NAME",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_pfsense.pl --plugin=apps::pfsense::snmp::plugin --mode=runtime --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Pfsense-SNMP-Runtime",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_pfsense.pl --plugin=apps::pfsense::snmp::plugin --mode=blocked-packets --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --regexp --warning-in=\\'$_SERVICEWARNINGIN$\\' --critical-in=\\'$_SERVICECRITICALIN$\\' --warning-out=\\'$_SERVICEWARNINGOUT$\\' --critical-out=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Pfsense-SNMP-Blocked-Packets-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_pfsense.pl --plugin=apps::pfsense::snmp::plugin --mode=memory-dropped-packets --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Pfsense-SNMP-Memory-Dropped-Packets",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Pfsense firewall using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTSNMPEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-FW-Pfsense-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-FW-Pfsense-Runtime-SNMP",
+                "Net-FW-Pfsense-Memory-Dropped-Packets-SNMP",
+                "Net-FW-Pfsense-Blocked-Packets-Global-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor pfSense firewall via SNMP:\r\n* Blocked-Packets (by interface ID, name or global)\r\n* Memory-Dropped-Packets\r\n* Runtime"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un pare-feu pfSense via SNMP :\r\n* Blocked-Packets (by interface ID, name or global)\r\n* Memory-Dropped-Packets\r\n* Runtime"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nThis chapter describes the prerequisites installation needed by plugins\r\nto run.\r\n\r\n### Centreon Plugin\r\nInstall this plugin on each needed poller:\r\n\r\n    # yum install ces-plugins-Network-Firewalls-Pfsense-Snmp\r\n\r\n\r\n### SNMP\r\nIt's necessary to enable SNMP on your equipment\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-FW-Pfsense-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "pfSense",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Firewalls-Pfsense-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-firewalls-pfsense-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Firewall",
+            "Network",
+            "psSense",
+            "SNMP"
+        ],
+        "update_date": "1466511245",
+        "version": "3.0.6",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Dur",
+            "active_checks_enabled": 2,
+            "alias": "Runtime",
+            "command_name": "Net-FW-Pfsense-SNMP-Runtime",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Pfsense-Runtime-SNMP",
+            "normal_check_interval": 60,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de paquets rejet\u00e9s du \u00e0 une trop forte utilisation de la m\u00e9moire.}\r\n\r\n{EN: Check count of packets dropped due to memory limitations.}",
+            "active_checks_enabled": 2,
+            "alias": "Memory-Dropped-Packets",
+            "command_name": "Net-FW-Pfsense-SNMP-Memory-Dropped-Packets",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Pfsense-Memory-Dropped-Packets-SNMP",
+            "normal_check_interval": 60,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de paquets bloqu\u00e9s par seconde sur plusieurs interfaces r\u00e9seau.}\r\n\r\n{EN: Check count of packets blocked on multiple network interfaces.}",
+            "active_checks_enabled": 2,
+            "alias": "Blocked-Packets-Global",
+            "command_name": "Net-FW-Pfsense-SNMP-Blocked-Packets-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Pfsense-Blocked-Packets-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de paquets bloqu\u00e9s par seconde sur une interface r\u00e9seau.}\r\n\r\n{EN: Check count of packets blocked on network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Blocked-Packets-ID",
+            "command_name": "Net-FW-Pfsense-SNMP-Blocked-Packets-ID",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACEID$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Pfsense-Blocked-Packets-ID-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de paquets bloqu\u00e9s par seconde sur une interface r\u00e9seau.}\r\n\r\n{EN: Check count of packets blocked on network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Blocked-Packets-ID",
+            "command_name": "Net-FW-Pfsense-SNMP-Blocked-Packets-NAME",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACENAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Pfsense-Blocked-Packets-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
