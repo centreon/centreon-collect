@@ -1,0 +1,226 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin network::checkpoint::plugin --mode memory --hostname $HOSTADDRESS$ --snmp-version $_HOSTSNMPVERSION$ --snmp-community $_HOSTSNMPCOMMUNITY$ $_HOSTSNMPEXTRAOPTIONS$ --warning $_SERVICEWARNING$ --critical $_SERVICECRITICAL$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Checkpoint-Memory-SNMP",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin network::checkpoint::plugin --mode hardware --hostname $HOSTADDRESS$ --snmp-version $_HOSTSNMPVERSION$ --snmp-community $_HOSTSNMPCOMMUNITY$ $_HOSTSNMPEXTRAOPTIONS$ --component \\'$_SERVICECOMPONENT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Checkpoint-Hardware-SNMP",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin network::checkpoint::plugin --mode hastate --hostname $HOSTADDRESS$ --snmp-version $_HOSTSNMPVERSION$ --snmp-community $_HOSTSNMPCOMMUNITY$ $_HOSTSNMPEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Checkpoint-HA-State-SNMP",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin network::checkpoint::plugin --mode cpu --hostname $HOSTADDRESS$ --snmp-version $_HOSTSNMPVERSION$ --snmp-community $_HOSTSNMPCOMMUNITY$ $_HOSTSNMPEXTRAOPTIONS$ --warning $_SERVICEWARNING$ --critical $_SERVICECRITICAL$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Checkpoint-Cpu-SNMP",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/centreon_plugins.pl --plugin network::checkpoint::plugin --mode connections --hostname $HOSTADDRESS$ --snmp-version $_HOSTSNMPVERSION$ --snmp-community $_HOSTSNMPCOMMUNITY$ $_HOSTSNMPEXTRAOPTIONS$ --warning $_SERVICEWARNING$ --critical $_SERVICECRITICAL$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-FW-Checkpoint-Connections-SNMP",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Checkpoint firewall using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTAGENT$",
+                    "value": "SNMP"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-FW-Checkpoint-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-FW-Checkpoint-Memory-SNMP",
+                "Net-FW-Checkpoint-Hardware-SNMP",
+                "Net-FW-Checkpoint-HA-State-SNMP",
+                "Net-FW-Checkpoint-Cpu-SNMP",
+                "Net-FW-Checkpoint-Connections-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.2"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin Pack to monitor CheckPoint firewall via SNMP:\r\n* Connections\r\n* Cpu\r\n* HA-State\r\n* Hardware\r\n* Memory"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin Pack pour surveiller un pare-feu CheckPoint firewall via SNMP :\r\n* Connections\r\n* Cpu\r\n* HA-State\r\n* Hardware\r\n* Memory"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\nThis chapter describes the prerequisites installation needed by plugins\r\nto run.\r\n\r\n### Centreon Plugin\r\nInstall this plugin on each needed poller:\r\n\r\n    # yum install ces-plugins-Network-Firewalls-Checkpoint-Snmp\r\n\r\n\r\n### SNMP\r\nIt's necessary to enable SNMP on your equipment\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-FW-Checkpoint-SNMP</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "CheckPoint firewall",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Firewalls-Checkpoint-Snmp",
+                "version": "20160524-1"
+            }
+        ],
+        "slug": "network-firewalls-checkpoint-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "CheckPoint",
+            "Firewall",
+            "Hardware",
+            "Network",
+            "SNMP"
+        ],
+        "update_date": "1466511189",
+        "version": "3.0.4",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation m\u00e9moire}\r\n\r\n{EN: Check memory usage.}",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "Net-FW-Checkpoint-Memory-SNMP",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Checkpoint-Memory-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'\u00e9tat des composants hardware}\r\n\r\n{EN: Check hardware components health.}",
+            "active_checks_enabled": 2,
+            "alias": "Hardware",
+            "command_name": "Net-FW-Checkpoint-Hardware-SNMP",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": ".*"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Checkpoint-Hardware-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'\u00e9tat de la haute-disponibilit\u00e9}\r\n\r\n{EN: Check HA State.}",
+            "active_checks_enabled": 2,
+            "alias": "HA-State",
+            "command_name": "Net-FW-Checkpoint-HA-State-SNMP",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Checkpoint-HA-State-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation du CPU}\r\n\r\n{EN: Check CPU usage.}",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "Net-FW-Checkpoint-Cpu-SNMP",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Checkpoint-Cpu-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de connexions}\r\n\r\n{EN: Check connections number.}",
+            "active_checks_enabled": 2,
+            "alias": "Connections",
+            "command_name": "Net-FW-Checkpoint-Connections-SNMP",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-FW-Checkpoint-Connections-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

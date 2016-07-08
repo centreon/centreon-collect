@@ -1,0 +1,567 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lync_2k13.pl --plugin database::mssql::plugin --dyn-mode apps::lync::2013::mssql::mode::lyncusers --hostname $HOSTADDRESS$ --username \\'$_HOSTMSSQLUSERNAME$\\' --password \\'$_HOSTMSSQLPASSWORD$\\' --port $_HOSTMSSQLPORT$ --warning-unique $_SERVICEWARNINGUNIQUE$ --critical-unique $_SERVICECRITICALUNIQUE$ --warning-total $_SERVICEWARNINGTOTAL$ --critical-total $_SERVICECRITICALTOTAL$\\\"",
+            "name": "App-Lync-2013-SQL-User-Count",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lync_2k13.pl --plugin database::mssql::plugin --dyn-mode apps::lync::2013::mssql::mode::videoqoe --hostname $HOSTADDRESS$ --username \\'$_HOSTMSSQLUSERNAME$\\' --password \\'$_HOSTMSSQLPASSWORD$\\' --port $_HOSTMSSQLPORT$ --warning-recv-frame $_SERVICEWARNRECEIVEFRAME$ --critical-recv-frame $_SERVICECRITRECEIVEFRAME$ --warning-local-frame-loss $_SERVICEWARNFRAMELOSS$ --critical-local-frame-loss $_SERVICECRITFRAMELOSS$ --warning-post-fecplr $_SERVICEWARNPOSTFECPLR$ --critical-post-fecplr $_SERVICECRITPOSTFECPLR$ --warning-packet-loss $_SERVICEWARNPCKTLOSS$ --critical-packet-loss $_SERVICECRITPACKETLOSS$ --warning-inbound-frame $_SERVICEWARNINBOUNDFRAME$ --critical-inbound-frame $_SERVICECRITINBOUNDFRAME$ --warning-outbound-frame $_SERVICEWARNOUTBOUNDFRAME$ --critical-outbound-frame $_SERVICECRITOUTBOUNDFRAME$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lync-2013-SQL-VideoQoe",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lync_2k13.pl --plugin database::mssql::plugin --dyn-mode apps::lync::2013::mssql::mode::audioqoe --hostname $HOSTADDRESS$ --username \\'$_HOSTMSSQLUSERNAME$\\' --password \\'$_HOSTMSSQLPASSWORD$\\' --port $_HOSTMSSQLPORT$ --warning-jitter-min $_SERVICEWARNJITTERMIN$ --critical-jitter-min $_SERVICECRITJITTERMIN$ --warning-jitter-max $_SERVICEWARNJITTERMAX$ --critical-jitter-max $_SERVICECRITJITTERMAX$ --warning-jitter-avg $_SERVICEWARNJITTERAVG$ --critical-jitter-avg $_SERVICECRITJITTERAVG$ --warning-loss-min $_SERVICEWARNLOSSMIN$ --critical-loss-min $_SERVICECRITLOSSMIN$ --warning-loss-max $_SERVICEWARNLOSSMAX$ --critical-loss-max $_SERVICECRITLOSSMAX$ --warning-loss-avg $_SERVICEWARNLOSSAVG$ --critical-loss-avg $_SERVICECRITLOSSAVG$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lync-2013-SQL-AudioQoe",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lync_2k13.pl --plugin database::mssql::plugin --dyn-mode apps::lync::2013::mssql::mode::appsharingqoe --hostname $HOSTADDRESS$ --username \\'$_HOSTMSSQLUSERNAME$\\' --password \\'$_HOSTMSSQLPASSWORD$\\' --port $_HOSTMSSQLPORT$ --warning-spoiled-tile-prct-total-avg $_SERVICEWARNSPOILEDPRCT$ --warning-rdp-tile-processing-latency-avg $_SERVICEWARNRDPPROCESSINGLATENCY$ --warning-relative-one-way-average $_SERVICEWARNRELATIVEONEWAY$ --critical-spoiled-tile-prct-total-avg $_SERVICECRITSPOILEDPRCT$ --critical-rdp-tile-processing-latency-avg $_SERVICECRITRDPPROCESSINGLATENCY$ --critical-relative-one-way-average $_SERVICECRITRELATIVEONEWAY$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lync-2013-SQL-AppSharingQoe",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lync_2k13.pl --plugin database::mssql::plugin --dyn-mode apps::lync::2013::mssql::mode::sessionstypes --hostname $HOSTADDRESS$ --username \\'$_HOSTMSSQLUSERNAME$\\' --password \\'$_HOSTMSSQLPASSWORD$\\' --port $_HOSTMSSQLPORT$ --lookback $_SERVICELOOKBACK$ --warning-instant-messaging $_SERVICEWARNIM$ --critical-instant-messaging $_SERVICECRITIM$ --warning-file-transfer $_SERVICEWARNFILETRANSFER$ --critical-file-transfer $_SERVICECRITFILETRANSFER$ --warning-remote-assistance $_SERVICEWARNREMOTEASSIST$ --critical-remote-assistance $_SERVICECRITREMOTEASSIST$ --warning-app-sharing $_SERVICEWARNAPPSHARING$ --critical-app-sharing $_SERVICECRITAPPSHARING$ --warning-audio $_SERVICEWARNAUDIO$ --critical-audio $_SERVICECRITAUDIO$ --warning-video $_SERVICEWARNINGVIDEO$ --critical-video $_SERVICECRITVIDEO$ --warning-app-invite $_SERVICEWARNAPPINVITE$ --critical-app-invite $_SERVICECRITAPPINVITE$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lync-2013-SQL-SessionsTypes",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_lync_2k13.pl --plugin database::mssql::plugin --dyn-mode apps::lync::2013::mssql::mode::poorcalls --hostname $HOSTADDRESS$ --username \\'$_HOSTMSSQLUSERNAME$\\' --password \\'$_HOSTMSSQLPASSWORD$\\' --port $_HOSTMSSQLPORT$ --lookback $_SERVICELOOKBACK$ --warning-total $_SERVICEWARNINGTOTAL$ --critical-total $_SERVICECRITICALTOTAL$ --warning-user $_SERVICEWARNINGUSER$ --critical-user $_SERVICECRITICALUSER$ $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "App-Lync-2013-SQL-PoorCalls",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "App-Lync-2013-Mssql",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "App-Ms-Lync-128.png",
+            "macros": [
+                {
+                    "key": "$_HOSTMSSQLPASSWORD$",
+                    "value": ""
+                },
+                {
+                    "key": "$_HOSTMSSQLPORT$",
+                    "value": ""
+                },
+                {
+                    "key": "$_HOSTMSSQLUSERNAME$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-Mssql",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": []
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "App-Ms-Lync-128.png"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor MS Lync Server:\r\n* AppSharing-Qoe\r\n* Lync-Audio-Qoe\r\n* Lync-Poor-Calls\r\n* Lync-Session-Types\r\n* Lync-User-Count\r\n* Lync-Video-Qoe"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour superviser un servuer MS Lync :\r\n* AppSharing-Qoe\r\n* Lync-Audio-Qoe\r\n* Lync-Poor-Calls\r\n* Lync-Session-Types\r\n* Lync-User-Count\r\n* Lync-Video-Qoe"
+            }
+        ],
+        "discovery_category": "applications",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### Centreon Plugin\r\nInstall this plugin on each needed poller:\r\n\r\n    # yum install ces-plugins-Applications-Lync-2013-Mssql\r\n\r\n## Username\r\nThe username string should not be longer than 32 chararacters. Username\r\nmust be in the following form: [Servername|Domainname]\r\n\r\n### RPM\r\nIn order to use this template, the following RPM are needed:\r\n* freetds-0.82-6.el6.$ARCH\r\n* perl-DBD-Sybase-1.10-1.el6.rf.$ARCH\r\n* unixODBC-2.2.14-14.el6.$ARCH\r\n* unixODBC-devel-2.2.14-14.el6.$ARCH\r\n\r\n#### Configuration of freetds.conf file\r\nThe /etc/freetds.conf file have to be modified in order to encrypt the\r\npassword. To do that :\r\n\r\n    vi /etc/freetds.conf\r\n\r\nModify line tds version = 4.2 to tds version = 8.0\r\n\r\n## Centreon Configuration\r\n### Create a new Lync MSSQL instance\r\nGo to \"Configuration &gt; Hosts\" and click \"Add\". Then, fill the form as\r\nshown by the following table :\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-Lync-2013-MSSQL-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Onglet <em>Relations</em> &gt; Parent Hostgroups</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick \"Save\" button.\r\n\r\n#### Host Macro Configuration\r\nThe following macros must be configured on host:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"19%\" />\r\n<col width=\"48%\" />\r\n<col width=\"19%\" />\r\n<col width=\"13%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Macro</th>\r\n<th align=\"left\">Description</th>\r\n<th align=\"left\">Default value</th>\r\n<th align=\"left\">Example</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>MSSQLUSERNAME</p></td>\r\n<td align=\"left\"><p>the MSSQL user</p></td>\r\n<td align=\"left\"><p>USERNAME</p></td>\r\n<td align=\"left\"><p>root</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>MSSQLPASSWORD</p></td>\r\n<td align=\"left\"><p>the MSSQL password</p></td>\r\n<td align=\"left\"><p>PASSWORD</p></td>\r\n<td align=\"left\"><p>p@ssw0rd</p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>MSSQLPORT</p></td>\r\n<td align=\"left\"><p>Port Of the MSSQL instance (need to check in the SQL Studio if dynamic)</p></td>\r\n<td align=\"left\"><p>1433</p></td>\r\n<td align=\"left\"><p>1433</p></td>\r\n</tr>\r\n</tbody>\r\n</table>",
+        "name": "Lync Server",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Lync-2013-Mssql",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "applications-lync-2013-mssql",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Call",
+            "Communication",
+            "Lync",
+            "Microsoft",
+            "Skype",
+            "Video",
+            "Voice",
+            "Windows"
+        ],
+        "update_date": "1466510340",
+        "version": "2.0.5",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre d'utilisateur sur une serveur Lync FrontEnd.} {EN: Check number of users on a Lync frontend.}",
+            "active_checks_enabled": 2,
+            "alias": "Lync-User-Count",
+            "command_name": "App-Lync-2013-SQL-User-Count",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALTOTAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALUNIQUE$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGTOTAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGUNIQUE$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-User-Count-Mssql",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les metrics Qoe dans la base Lync d\u00e9di\u00e9e.} {EN: Check Lync Video Qoe Metrics.}",
+            "active_checks_enabled": 2,
+            "alias": "Lync-Video-Qoe",
+            "command_name": "App-Lync-2013-SQL-VideoQoe",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNRECEIVEFRAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITRECEIVEFRAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNFRAMELOSS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITFRAMELOSS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNPOSTFECPLR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITPOSTFECPLR$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNPCKTLOSS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITPCKTLOSS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINBOUNDFRAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITINBOUNDFRAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNOUTBOUNDFRAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITOUTBOUNDFRAME$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-Video-Qoe-Mssql",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les metrics Audio Qoe dans la base Lync d\u00e9di\u00e9e.} {EN: Check Lync Audio Qoe Metrics.}",
+            "active_checks_enabled": 2,
+            "alias": "Lync-Audio-Qoe",
+            "command_name": "App-Lync-2013-SQL-AudioQoe",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNJITTERMIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITJITTERMIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNJITTERMAX$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITJITTERMAX$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNJITTERAVG$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITJITTERAVG$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNLOSSMIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITLOSSMIN$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNLOSSMAX$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITLOSSMAX$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNLOSSAVG$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITLOSSAVG$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-Audio-Qoe-Mssql",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les metrics du partage d'application Qoe dans la base Lync d\u00e9di\u00e9e.} {EN: Check Lync App Sharing Qoe Metrics.}",
+            "active_checks_enabled": 2,
+            "alias": "AppSharing-Qoe",
+            "command_name": "App-Lync-2013-SQL-AppSharingQoe",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNSPOILEDPRCT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITSPOILEDPRCT$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNRDPPROCESSINGLATENCY$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITRDPPROCESSINGLATENCY$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNRELATIVEONEWAY$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITRELATIVEONEWAY$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-AppSharing-Qoe-Mssql",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre de sessions de chaque types durant les X derni\u00e8res minutes.} {EN: Check number of sessions of each types in the last X minutes.}",
+            "active_checks_enabled": 2,
+            "alias": "Lync-Session-Types",
+            "command_name": "App-Lync-2013-SQL-SessionsTypes",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNIM$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITIM$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNFILETRANSFER$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITFILETRANSFER$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNREMOTEASSIST$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITREMOTEASSIST$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNAPPSHARING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITAPPSHARING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNAUDIO$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITAUDIO$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGVIDEO$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALVIDEO$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICELOOKBACK$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-Session-Types-Mssql",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le nombre d'appels de basse qualit\u00e9 durant les X derni\u00e8res minutes de mani\u00e8re globale et par utilisateur.} {EN: Check number of poor calls globally and per user in the last X minutes.}",
+            "active_checks_enabled": 2,
+            "alias": "Lync-Poor-Calls",
+            "command_name": "App-Lync-2013-SQL-PoorCalls",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGTOTAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALTOTAL$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGUSER$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALUSER$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICELOOKBACK$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Lync-2013-Poor-Calls-Mssql",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

@@ -1,0 +1,611 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEFILTER$\\' --name --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Traffic-Global",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'^$_SERVICEINTERFACENAME$$$\\' --name --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Traffic-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=storage --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Storage",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --add-status --add-errors --warning-in-discard=\\'$_SERVICEWARNINGINDISCARD$\\' --critical-in-discard=\\'$_SERVICECRITICALINDISCARD$\\' --warning-out-discard=\\'$_SERVICEWARNINGOUTDISCARD$\\' --critical-out-discard=\\'$_SERVICECRITICALOUTDISCARD$\\' --warning-in-error=\\'$_SERVICEWARNINGINERROR$\\' --critical-in-error=\\'$_SERVICECRITICALINERROR$\\' --warning-out-error=\\'$_SERVICEWARNINGOUTERROR$\\' --critical-out-error=\\'$_SERVICECRITICALOUTERROR$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Packet-Errors-Id",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'^$_SERVICEINTERFACENAME$$$\\' --name --add-status --add-errors --warning-in-discard=\\'$_SERVICEWARNINGINDISCARD$\\' --critical-in-discard=\\'$_SERVICECRITICALINDISCARD$\\' --warning-out-discard=\\'$_SERVICEWARNINGOUTDISCARD$\\' --critical-out-discard=\\'$_SERVICECRITICALOUTDISCARD$\\' --warning-in-error=\\'$_SERVICEWARNINGINERROR$\\' --critical-in-error=\\'$_SERVICECRITICALINERROR$\\' --warning-out-error=\\'$_SERVICEWARNINGOUTERROR$\\' --critical-out-error=\\'$_SERVICECRITICALOUTERROR$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Packet-Errors-Name",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=hardware --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --component=\\'$_SERVICECOMPONENT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Hardware",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=memory --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Memory",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=cpu --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Cpu",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=ap-users --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --filter-ip-address=\\'$_SERVICEFILTERIPADDRESS$\\' --filter-essid=\\'$_SERVICEFILTERESSID$\\' --warning-total-ap=\\'$_SERVICEWARNINGTOTALAP$\\' --critical-total-ap=\\'$_SERVICECRITICALTOTALAP$\\' --warning-total-essid=\\'$_SERVICEWARNINGTOTALESSID$\\' --critical-total-essid=\\'$_SERVICECRITICALTOTALESSID$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Ap-Users",
+            "type": 2
+        },
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_aruba.pl --plugin=network::aruba::standard::snmp::plugin --mode=ap-connections --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --filter-bssid=\\'$_SERVICEFILTERBSSID$\\' --filter-ip-address=\\'$_SERVICEFILTERIPADDRESS$\\' --filter-essid=\\'$_SERVICEFILTERESSID$\\' --warning-total=\\'$_SERVICEWARNINGTOTAL$\\' --critical-total=\\'$_SERVICECRITICALTOTAL$\\'  $_SERVICEEXTRAOPTIONS$\\\"",
+            "name": "Net-Aruba-Standard-SNMP-Ap-Connections",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Aruba devices using SNMP protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTSNMPEXTRAOPTIONS$",
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Net-Aruba-Standard-SNMP",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "Net-Aruba-Standard-Storage-SNMP",
+                "Net-Aruba-Standard-Memory-SNMP",
+                "Net-Aruba-Standard-Hardware-Global-SNMP",
+                "Net-Aruba-Standard-Cpu-SNMP"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.0"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Aruba network equipment via SNMP:\r\n* Ap-Connections\r\n* Ap-Users\r\n* Cpu\r\n* Hardware-Fan\r\n* Hardware-Global\r\n* Hardware-Module\r\n* Hardware-Psu\r\n* Packet-Errors (by interface name, ID or all interfaces)\r\n* Memory\r\n* Storage\r\n* Traffic (by interface name, ID or all interfaces)"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un \u00e9quipement r\u00e9seau Aruba via SNMP :\r\n* Ap-Connections\r\n* Ap-Users\r\n* Cpu\r\n* Hardware-Fan\r\n* Hardware-Global\r\n* Hardware-Module\r\n* Hardware-Psu\r\n* Packet-Errors (by interface name, ID or all interfaces)\r\n* Memory\r\n* Storage\r\n* Traffic (by interface name, ID or all interfaces)"
+            }
+        ],
+        "discovery_category": "network",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### Centreon Plugin\r\nInstall this plugin on each needed poller:\r\n\r\n    # yum install ces-plugins-Network-Switchs-Aruba-Standard-Snmp\r\n\r\nBe sure to have with you the following information:\r\n* Read-Only SNMP community\r\n* IP Address of the equipment\r\n\r\n### Configure SNMP on your server\r\nFollow constructor procedure for your equipment.\r\n\r\n### SNMP Permissions\r\nRead-Only access.\r\n\r\n### Troubleshooting\r\nRead [Troubleshooting SNMP](https://documentation.centreon.com/docs/centreon-plugins/en/latest/user/guide.html#snmp).\r\n\r\n## Centreon Configuration\r\n### Create a host using the appropriate template\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Net-Aruba-Standard-SNMP-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Aruba standard",
+        "requirement": [
+            {
+                "name": "ces-plugins-Network-Switchs-Aruba-Standard-Snmp",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "network-switchs-aruba-standard-snmp",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Access Point",
+            "AP",
+            "Aruba",
+            "Hardware",
+            "Network",
+            "SNMP"
+        ],
+        "update_date": "1466511368",
+        "version": "3.0.5",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation des disques du mat\u00e9riel}\r\n\r\n{EN: Check storage device usages.}",
+            "active_checks_enabled": 2,
+            "alias": "Storage",
+            "command_name": "Net-Aruba-Standard-SNMP-Storage",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Storage-SNMP",
+            "normal_check_interval": 15,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'utilisation m\u00e9moire du mat\u00e9riel}\r\n\r\n{EN: Check machine memory usage.}",
+            "active_checks_enabled": 2,
+            "alias": "Memory",
+            "command_name": "Net-Aruba-Standard-SNMP-Memory",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Memory-SNMP",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le l'ensemble du mat\u00e9riel ('ventilateur', 'modules', 'alimentations') de l'\u00e9quipement.}\r\n\r\n{EN: Check hardware status ('fan', 'module', 'power supply').}",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Global",
+            "command_name": "Net-Aruba-Standard-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Hardware-Global-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le du taux d'utilisation du CPU de la machine. Ce contr\u00f4le pourra remonter la moyenne du taux d'utilisation des CPU.}\r\n\r\n{EN: Check the rate of utilization of CPU for the machine. This check can give the average utilization rate of CPU.}",
+            "active_checks_enabled": 2,
+            "alias": "Cpu",
+            "command_name": "Net-Aruba-Standard-SNMP-Cpu",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "95"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Cpu-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le traffic r\u00e9seau d'une interface r\u00e9seau.}\r\n\r\n{EN: Check traffic of an network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Global",
+            "command_name": "Net-Aruba-Standard-SNMP-Traffic-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Traffic-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le traffic r\u00e9seau d'une interface r\u00e9seau.}\r\n\r\n{EN: Check traffic of an network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Name",
+            "command_name": "Net-Aruba-Standard-SNMP-Traffic-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Traffic-Generic-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le traffic r\u00e9seau d'une interface r\u00e9seau.}\r\n\r\n{EN: Check traffic of an network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Traffic-Generic-Id",
+            "command_name": "Net-Aruba-Standard-SNMP-Traffic-Global",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGIN$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALIN$",
+                    "password": false,
+                    "value": "90"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNINGOUT$",
+                    "password": false,
+                    "value": "80"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICALOUT$",
+                    "password": false,
+                    "value": "90"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Traffic-Generic-Id-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le pourcentage de paquets en erreur/\u00e9cart\u00e9 d'une interface r\u00e9seau.}\r\n\r\n{EN: Check packets on errors/discards of a network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Packet-Errors-Global",
+            "command_name": "Net-Aruba-Standard-SNMP-Packet-Errors-Id",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEINTERFACEID$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Packet-Errors-Global-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le pourcentage de paquets en erreur/\u00e9cart\u00e9 d'une interface r\u00e9seau.}\r\n\r\n{EN: Check packets on errors/discards of a network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Packet-Errors-Generic-Name",
+            "command_name": "Net-Aruba-Standard-SNMP-Packet-Errors-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Packet-Errors-Generic-Name-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les alimentations de l'\u00e9quipement.}\r\n\r\n{EN: Check power supply status on hardware.}",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Psu",
+            "command_name": "Net-Aruba-Standard-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": "psu"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Hardware-Psu-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le le pourcentage de paquets en erreur/\u00e9cart\u00e9 d'une interface r\u00e9seau.}\r\n\r\n{EN: Check packets on errors/discards of a network interface.}",
+            "active_checks_enabled": 2,
+            "alias": "Packet-Errors-Generic-Id",
+            "command_name": "Net-Aruba-Standard-SNMP-Packet-Errors-Id",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Packet-Errors-Generic-Id-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les modules de l'\u00e9quipement.}\r\n\r\n{EN: Check module status on hardware.}",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Module",
+            "command_name": "Net-Aruba-Standard-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": "module"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Hardware-Module-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les ventilateurs de l'\u00e9quipement.}\r\n\r\n{EN: Check fan status on hardware.}",
+            "active_checks_enabled": 2,
+            "alias": "Hardware-Fan",
+            "command_name": "Net-Aruba-Standard-SNMP-Hardware",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECOMPONENT$",
+                    "password": false,
+                    "value": "fan"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Hardware-Fan-SNMP",
+            "normal_check_interval": 30,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le les utilisateurs connect\u00e9s.}\r\n\r\n{EN: Check users connected.}",
+            "active_checks_enabled": 2,
+            "alias": "Ap-Users",
+            "command_name": "Net-Aruba-Standard-SNMP-Ap-Users",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose --filter-perfdata='total_[a-zA-Z]'"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Ap-Users-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le la connexion des APs.}\r\n\r\n{EN: Check AP connections.}",
+            "active_checks_enabled": 2,
+            "alias": "Ap-Connections",
+            "command_name": "Net-Aruba-Standard-SNMP-Ap-Connections",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose  --filter-perfdata='^total$'"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "Net-Aruba-Standard-Ap-Connections-SNMP",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}
