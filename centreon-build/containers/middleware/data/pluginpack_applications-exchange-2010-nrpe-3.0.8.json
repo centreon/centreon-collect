@@ -117,7 +117,7 @@
         "name": "MS Exchange 2K10",
         "requirement": [],
         "slug": "applications-exchange-2010-nrpe",
-        "status": "stable",
+        "status": "experimental",
         "status_message": "",
         "tags": [
             "Email",
