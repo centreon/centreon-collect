@@ -84,5 +84,9 @@ module.exports = {
   newsletter: {
     apiKey: '8e54ec13a4494c269d4a1778fcd8b637-us2',
     listId: '1eeddd2b3a'
+  },
+  // APM Monitoring
+  newrelic: {
+    enable: false
   }
 };
