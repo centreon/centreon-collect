@@ -100,7 +100,7 @@ docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CE
 if [ "$CENTOS_VERSION" = 6 ] ; then
   REPO='standard/3/el6/unstable/noarch'
 else
-  REPO='standard/4/el7/unstable/noarch'
+  REPO='standard/3/el7/unstable/noarch'
 fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/$REPO/RPMS"
