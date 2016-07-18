@@ -11,6 +11,12 @@ while [ "$started" -ne 0 ] ; do
   started=`nc -w 1 localhost 389 ; echo $?`
   sleep 1
 done
+started=1
+while [ "$started" -ne 0 ] ; do
+  started=`mysql -u root -pcentreon imp -e 'SELECT * FROM company' > /dev/null ; echo $?`
+  sleep 1
+done
+started=1
 while [ "$started" -ne 0 ] ; do
   started=`nc -w 1 redis 6379 ; echo $?`
   sleep 1
