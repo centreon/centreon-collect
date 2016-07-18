@@ -59,9 +59,9 @@ docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CE
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then
-  REPO='standard/3/unstable/x86_64'
+  REPO='standard/3/el6/unstable/x86_64'
 else
-  REPO='standard/4/unstable/x86_64'
+  REPO='standard/3/el7/unstable/x86_64'
 fi
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/$REPO/RPMS"
