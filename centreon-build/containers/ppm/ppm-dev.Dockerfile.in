@@ -9,6 +9,7 @@ COPY centreon-pp-manager/sql /usr/share/centreon/www/modules/centreon-pp-manager
 RUN /tmp/install.sh
 
 # Static sources.
+COPY centreon-pp-manager/centreon-pluginpack-manager.conf.php /usr/share/centreon/www/modules/centreon-pp-manager/centreon-pluginpack-manager.conf.php
 COPY centreon-pp-manager/static /usr/share/centreon/www/modules/centreon-pp-manager/static
 COPY centreon-pp-manager/locale /usr/share/centreon/www/modules/centreon-pp-manager/locale
 COPY centreon-pp-manager/UPGRADE /usr/share/centreon/www/modules/centreon-pp-manager/UPGRADE
