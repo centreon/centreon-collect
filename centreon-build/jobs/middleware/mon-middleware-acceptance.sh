@@ -9,11 +9,8 @@ MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $MIDDLEWARE_IMAGE
 
-# Checkout centreon-build
-if [ \! -d centreon-build ] ; then
-  git clone ssh://github.com/centreon/centreon-build
-fi
-cp centreon-build/jobs/middleware/public.asc centreon-imp-portal-api
+# Copy test public key.
+cp `dirname $0`/public.asc centreon-imp-portal-api
 
 # Prepare Docker compose file.
 cd centreon-imp-portal-api
