@@ -51,9 +51,9 @@ docker-rpm-builder dir "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='centreon-bam/3/el6/unstable/noarch'
+  REPO='centreon-bam/dev/el6/unstable/noarch'
 elif [ "$DISTRIB" = 'centos7' ] ; then
-  REPO='centreon-bam/3/el7/unstable/noarch'
+  REPO='centreon-bam/dev/el7/unstable/noarch'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1

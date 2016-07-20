@@ -71,12 +71,12 @@ clean_repository() {
   done
 }
 
-clean_repository /srv/repos/standard/3/el6/unstable/noarch/RPMS
-clean_repository /srv/repos/standard/3/el6/unstable/x86_64/RPMS
-clean_repository /srv/repos/standard/3/el7/unstable/noarch/RPMS
-clean_repository /srv/repos/standard/3/el7/unstable/x86_64/RPMS
-clean_repository /srv/repos/centreon-bam/3/el6/unstable/noarch/RPMS
-clean_repository /srv/repos/centreon-bam/3/el7/unstable/noarch/RPMS
+clean_repository /srv/repos/standard/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/repos/standard/dev/el6/unstable/x86_64/RPMS
+clean_repository /srv/repos/standard/dev/el7/unstable/noarch/RPMS
+clean_repository /srv/repos/standard/dev/el7/unstable/x86_64/RPMS
+clean_repository /srv/repos/centreon-bam/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/repos/centreon-bam/dev/el7/unstable/noarch/RPMS
 
 #
 # Clean after ourselves.
