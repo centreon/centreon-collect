@@ -55,7 +55,7 @@ cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
 cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
 
 # Build RPMs.
-docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then

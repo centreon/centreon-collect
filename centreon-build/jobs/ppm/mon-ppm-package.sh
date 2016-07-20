@@ -47,7 +47,7 @@ docker pull "$BUILD_IMG"
 
 # Build RPMs.
 cp centreon-import/packaging/centreon-pp-manager.spectemplate input
-docker-rpm-builder dir "$BUILD_IMG" input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
