@@ -52,7 +52,7 @@ fi
 cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then
