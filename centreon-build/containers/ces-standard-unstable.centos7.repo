@@ -12,19 +12,19 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-# [ces-standard-unstable-deps]
-# name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
-# baseurl=http://srvi-ces-repository.int.centreon.com/repos/standard/dev/el7/unstable/dependencies/$basearch/
-# enabled=1
-# gpgcheck=1
-# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+[ces-standard-unstable-deps]
+name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
+baseurl=http://srvi-ces-repository.int.centreon.com/repos/standard/dev/el7/unstable/dependencies/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-# [ces-standard-unstable-deps-noarch]
-# name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
-# baseurl=http://srvi-ces-repository.int.centreon.com/repos/standard/dev/el7/unstable/dependencies/noarch/
-# enabled=1
-# gpgcheck=1
-# gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+[ces-standard-unstable-deps-noarch]
+name=Centreon Enterprise Server dependencies RPM repository for ces $releasever
+baseurl=http://srvi-ces-repository.int.centreon.com/repos/standard/dev/el7/unstable/dependencies/noarch/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
 [ces-bam-unstable-noarch]
 name=Centreon BAM for Centreon Enterprise Server
