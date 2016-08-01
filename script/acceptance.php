@@ -87,6 +87,7 @@ if ($synchronize) {
         '/mon-lm:centos6',
         '/mon-lm:centos7',
         '/mon-middleware:latest',
+        '/mon-mediawiki:latest',
         '/mon-ppe:centos6',
         '/mon-ppe:centos7',
         '/mon-ppe1:centos6',
@@ -164,6 +165,14 @@ else {
         array(
             '@WEB_IMAGE@' => 'mon-lm-dev:' . $distrib,
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/mediawiki/docker-compose-web.yml.in'),
+        xpath('mon-web-kb-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => 'mon-web-dev:' . $distrib,
+            '@MEDIAWIKI_IMAGE@' => 'ci.int.centreon.com:5000/mon-mediawiki:latest'
         )
     );
     replace_in_file(
