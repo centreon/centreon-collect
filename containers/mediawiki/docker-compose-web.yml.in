@@ -9,6 +9,8 @@ services:
     ports:
     - "80"
     - "3306"
+    links:
+    - mediawiki
   mediawiki:
     image: @MEDIAWIKI_IMAGE@
     ports:
