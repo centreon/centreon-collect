@@ -32,3 +32,5 @@ COPY centreon/www/widgets /usr/share/centreon/www/widgets
 COPY centreon/www/api /usr/share/centreon/www/api
 COPY centreon/www/class /usr/share/centreon/www/class
 COPY centreon/www/lib /usr/share/centreon/www/lib
+COPY centreon/config/wiki.conf.php /usr/share/centreon/config/wiki.conf.php
+COPY centreon/cron/centKnowledgeSynchronizer.php /usr/share/centreon/cron/centKnowledgeSynchronizer.php
