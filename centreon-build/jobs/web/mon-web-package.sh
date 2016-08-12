@@ -67,7 +67,7 @@ now=`date +%s`
 if [ -z "$VERSION_EXTRA" ] ; then
   export RELEASE="$now.$commit"
 else
-  export RELEASE="$VERSION_EXTRA.$now.$commit"
+  export RELEASE="0.0-$VERSION_EXTRA.$now.$commit"
 fi
 
 # Create source tarball.
