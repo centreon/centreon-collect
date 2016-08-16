@@ -64,11 +64,10 @@ export VERSION_EXTRA="$VERSION_EXTRA"
 cd centreon-web
 commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
 now=`date +%s`
-if [ -z "$VERSION_EXTRA" ] ; then
-  export RELEASE="$now.$commit"
-else
-  export RELEASE="99.99.$VERSION_EXTRA.$now.$commit"
-fi
+# We do not care about $VERSION_EXTRA, as $now is strictly incremental
+# and officially released packages do not always care about semantic
+# versioning.
+export RELEASE="$now.$commit"
 
 # Create source tarball.
 rm -rf "../centreon-$VERSION"
