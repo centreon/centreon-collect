@@ -19,7 +19,7 @@ sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/fresh.Dockerfile.in > web/fresh
 sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/standard.Dockerfile.in > web/standard.centos$CENTOS_VERSION.Dockerfile
 
 # Build 'fresh' image.
-docker build --no-cache -t ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION -f web/fresh.centos$CENTOS_VERSION.Dockerfile .
+docker build --no-cache --ulimit 'nofile=40000' -t ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION -f web/fresh.centos$CENTOS_VERSION.Dockerfile .
 docker push ci.int.centreon.com:5000/mon-web-fresh:centos$CENTOS_VERSION
 
 # Build 'standard' image.
