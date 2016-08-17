@@ -8,6 +8,7 @@ COPY web/centengine.sh /etc/init.d/centengine
 COPY web/cbd.sh /etc/init.d/cbd
 
 # Centreon update is made through custom scripts.
+COPY web/wiki.conf.php /usr/share/centreon/config/wiki.conf.php
 COPY web/update-centreon.php /tmp/update-centreon.php
 COPY web/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
