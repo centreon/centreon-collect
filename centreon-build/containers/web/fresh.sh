@@ -12,6 +12,7 @@ cat ../../../../autoinstall.php installUtilsDb.php | php
 cat ../../../../autoinstall.php createDbUser.php | php
 cat ../../../../autoinstall.php insertBaseConf.php | php
 cat ../../../../autoinstall.php configFileSetup.php | php
+cat ../../../../autoinstall.php partitionTables.php | php
 rm -rf /usr/share/centreon/www/install
 mysql -e "GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'centreon'"
 centreon -d -u admin -p centreon -a POLLERGENERATE -v 1
