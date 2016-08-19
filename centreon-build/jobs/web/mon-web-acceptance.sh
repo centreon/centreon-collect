@@ -14,9 +14,11 @@ DISTRIB="$1"
 WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
 WEB_FRESH_IMAGE=ci.int.centreon.com:5000/mon-web-fresh:$DISTRIB
+MEDIAWIKI_IMAGE=ci.int.centreon.com:5000/mon-mediawiki:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $WEB_IMAGE
 docker pull $WEB_FRESH_IMAGE
+docker pull $MEDIAWIKI_IMAGE
 
 # Prepare Docker Compose file.
 cd centreon-web
