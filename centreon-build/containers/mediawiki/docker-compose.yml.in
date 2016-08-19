@@ -12,6 +12,6 @@ services:
     links:
     - mediawiki
   mediawiki:
-    image: @MEDIAWIKI_IMAGE@
+    image: ci.int.centreon.com:5000/mon-mediawiki:latest
     ports:
     - "80"

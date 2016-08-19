@@ -168,11 +168,10 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/mediawiki/docker-compose-web.yml.in'),
+        xpath($centreon_build_dir . '/containers/mediawiki/docker-compose.yml.in'),
         xpath('mon-web-kb-dev.yml'),
         array(
             '@WEB_IMAGE@' => 'mon-web-dev:' . $distrib,
-            '@MEDIAWIKI_IMAGE@' => 'ci.int.centreon.com:5000/mon-mediawiki:latest'
         )
     );
     replace_in_file(
