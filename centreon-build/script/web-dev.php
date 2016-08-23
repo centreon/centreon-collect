@@ -16,7 +16,7 @@ $distrib = $argv[1];
 $content = file_get_contents(xpath($centreon_build_dir . '/containers/web/fresh-dev.Dockerfile.in'));
 $content = str_replace('@DISTRIB@', $distrib, $content);
 $dockerfile_fresh = xpath($centreon_build_dir . '/containers/web/fresh-dev.' . $distrib . '.Dockerfile');
-file_put_contents($dockerfile, $content);
+file_put_contents($dockerfile_fresh, $content);
 
 # Prepare standard Dockerfile.
 $content = file_get_contents(xpath($centreon_build_dir . '/containers/web/dev.Dockerfile.in'));
