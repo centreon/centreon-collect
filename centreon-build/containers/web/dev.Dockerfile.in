@@ -16,6 +16,8 @@ COPY centreon/www/install /usr/share/centreon/www/install
 RUN /tmp/install.sh
 
 # Static sources.
+COPY centreon/tmpl/install/centreon.cron /etc/cron.d/centreon
+COPY centreon/tmpl/install/centstorage.cron /etc/cron.d/centstorage
 COPY centreon/cron /usr/share/centreon/cron
 COPY centreon/www/sounds /usr/share/centreon/www/sounds
 COPY centreon/www/img /usr/share/centreon/www/img
