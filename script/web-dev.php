@@ -12,7 +12,13 @@ if ($argc <= 1) {
 }
 $distrib = $argv[1];
 
-# Prepare Dockerfile.
+# Prepare fresh Dockerfile.
+$content = file_get_contents(xpath($centreon_build_dir . '/containers/web/fresh-dev.Dockerfile.in'));
+$content = str_replace('@DISTRIB@', $distrib, $content);
+$dockerfile_fresh = xpath($centreon_build_dir . '/containers/web/fresh-dev.' . $distrib . '.Dockerfile');
+file_put_contents($dockerfile, $content);
+
+# Prepare standard Dockerfile.
 $content = file_get_contents(xpath($centreon_build_dir . '/containers/web/dev.Dockerfile.in'));
 $content = str_replace('@DISTRIB@', $distrib, $content);
 $dockerfile = xpath($centreon_build_dir . '/containers/web/dev.' . $distrib . '.Dockerfile');
@@ -21,9 +27,14 @@ file_put_contents($dockerfile, $content);
 # Get Engine and Broker packages.
 getPackages($distrib);
 
-# Build web image.
+# Copy local sources.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon'));
 xcopy('.', xpath($centreon_build_dir . '/containers/centreon'));
+
+# Build web fresh image.
+passthru('docker build -t mon-web-fresh-dev:' . $distrib . ' -f ' . $dockerfile_fresh . ' ' . xpath($centreon_build_dir . '/containers'));
+
+# Build web image.
 passthru('docker build -t mon-web-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
 
 ?>
