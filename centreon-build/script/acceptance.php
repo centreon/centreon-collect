@@ -83,6 +83,8 @@ $source_dir = realpath('.');
 //
 if ($synchronize) {
     $images = array(
+        '/mon-dependencies:centos6',
+        '/mon-dependencies:centos7',
         '/mon-phantomjs:latest',
         '/mon-lm:centos6',
         '/mon-lm:centos7',
