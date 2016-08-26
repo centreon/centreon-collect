@@ -5,6 +5,7 @@ set -x
 
 service mysql start
 php /tmp/update-centreon.php -c /etc/centreon/centreon.conf.php
+mysql < /tmp/kb.sql
 service mysql stop
 rm -rf /usr/share/centreon/www/install
 
@@ -12,4 +13,3 @@ rm -rf /usr/share/centreon/www/install
 rm -rf /etc/centreon-engine/*
 rm -rf /etc/centreon-broker/poller*
 rm -rf /etc/centreon-broker/central*
-
