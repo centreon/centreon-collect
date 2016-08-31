@@ -11,8 +11,3 @@ services:
     - "3306"
     extra_hosts:
     - "api.imp.centreon.com:10.24.11.40"
-  influxdb:
-   image: influxdb:latest
-   ports:
-   - "8083"
-   - "8086"
