@@ -5,7 +5,8 @@ module.exports = {
     user: 'root',
     password: 'centreon',
     database: 'imp',
-    debug: false
+    debug: false,
+    connectTimeout: 30000
   },
   cache: {
      // The redis server
