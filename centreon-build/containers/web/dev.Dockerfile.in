@@ -19,6 +19,8 @@ RUN /tmp/install.sh
 COPY centreon/tmpl/install/centreon.cron /etc/cron.d/centreon
 COPY centreon/tmpl/install/centstorage.cron /etc/cron.d/centstorage
 COPY centreon/cron /usr/share/centreon/cron
+RUN chmod a+x /usr/share/centreon/cron/*
+RUN sed -i 's#@CENTREON_ETC@#/etc/centreon#g' /usr/share/centreon/cron/*
 COPY centreon/www/sounds /usr/share/centreon/www/sounds
 COPY centreon/www/img /usr/share/centreon/www/img
 COPY centreon/www/include /usr/share/centreon/www/include
