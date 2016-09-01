@@ -1,0 +1,18 @@
+version: '2'
+services:
+  webdriver:
+    image: ci.int.centreon.com:5000/mon-phantomjs:latest
+    ports:
+    - "4444"
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+    extra_hosts:
+    - "api.imp.centreon.com:10.24.11.40"
+  influxdb:
+   image: influxdb:latest
+   ports:
+   - "8083"
+   - "8086"
