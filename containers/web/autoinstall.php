@@ -3,6 +3,7 @@
 session_start();
 
 $_SESSION['step'] = 6;
+$_SESSION['DB_HOST'] = 'localhost';
 $_SESSION['DB_USER'] = 'centreon';
 $_SESSION['DB_PASS'] = 'centreon';
 $_SESSION['ADDRESS'] = 'localhost';
