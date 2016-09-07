@@ -175,6 +175,13 @@ else {
         )
     );
     replace_in_file(
+        xpath($centreon_build_dir . '/containers/web/docker-compose-influxdb.yml.in'),
+        xpath('mon-web-influxdb.yml'),
+        array(
+            '@WEB_IMAGE@' => 'mon-web-dev:' . $distrib,
+        )
+    );
+    replace_in_file(
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-standalone.yml.in'),
         xpath('mon-middleware-dev.yml'),
         array('@MIDDLEWARE_IMAGE@' => 'mon-middleware-dev:latest')
