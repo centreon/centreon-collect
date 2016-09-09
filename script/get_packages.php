@@ -6,6 +6,8 @@ $expectedFiles = array(
     'centreon-broker-cbmod-3',
     'centreon-broker-core-3',
     'centreon-broker-storage-3',
+    'centreon-broker-influxdb-3',
+    'centreon-broker-graphite-3',
     'centreon-clib-1',
     'centreon-engine-1',
     'centreon-engine-daemon-1',
