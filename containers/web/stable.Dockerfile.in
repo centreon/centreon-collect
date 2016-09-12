@@ -21,7 +21,7 @@ RUN mv phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/phantomjs
 RUN chmod +x /usr/local/bin/phantomjs
 
 # Install Centreon Web Stable.
-RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine mysql-server git
+RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon-broker* mysql-server git
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 COPY web/centengine.sh /etc/init.d/centengine
 COPY web/cbd.sh /etc/init.d/cbd
@@ -30,6 +30,7 @@ COPY web/cbd.sh /etc/init.d/cbd
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install script (web-wizard install).
+COPY web/kb.sql /tmp/kb.sql
 COPY web/fresh.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 RUN /tmp/install.sh
