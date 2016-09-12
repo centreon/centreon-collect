@@ -36,7 +36,7 @@ fi
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../acceptance-logs
-mv ../acceptance-logs-wip ../acceptance-logs
+mv ../acceptance-logs-wip ../acceptance-logs || true
 mkdir ../acceptance-logs-wip
 composer install
 composer update
