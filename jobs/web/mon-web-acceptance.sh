@@ -29,14 +29,15 @@ sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../containers/mediawiki/doc
 # Prepare Behat.yml
 alreadyset=`grep docker-compose-web.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      web_fresh: docker-compose-web-fresh.yml\n      web_kb: docker-compose-web-kb.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs-wip\n      web: docker-compose-web.yml\n      web_fresh: docker-compose-web-fresh.yml\n      web_kb: docker-compose-web-kb.yml#g' behat.yml
 fi
 
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../acceptance-logs
-mkdir ../acceptance-logs
+mv ../acceptance-logs-wip ../acceptance-logs || true
+mkdir ../acceptance-logs-wip
 composer install
 composer update
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
