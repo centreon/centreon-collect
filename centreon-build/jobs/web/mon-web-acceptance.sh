@@ -35,9 +35,10 @@ fi
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
-rm -rf ../acceptance-logs
-mv ../acceptance-logs-wip ../acceptance-logs || true
+rm -rf ../acceptance-logs-wip
 mkdir ../acceptance-logs-wip
 composer install
 composer update
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
+rm -rf ../acceptance-logs
+mv ../acceptance-logs-wip ../acceptance-logs
