@@ -23,12 +23,16 @@ sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../containers/web/docker
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-ppm.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      ppm: docker-compose-ppm.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs-wip\n      ppm: docker-compose-ppm.yml#g' behat.yml
 fi
 
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
+rm -rf ../acceptance-logs-wip
+mkdir ../acceptance-logs-wip
 composer install
 composer update
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
+rm -rf ../acceptance-logs
+mv ../acceptance-logs-wip ../acceptance-logs

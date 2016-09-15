@@ -29,10 +29,14 @@ sed 's#@WEB_IMAGE@#'$PPE1_IMAGE'#g' < `dirname $0`/../../containers/web/docker-c
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
+rm -rf ../acceptance-logs-wip
+mkdir ../acceptance-logs-wip
 composer install
 composer update
 alreadyset=`grep docker-compose-ppe.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      web: docker-compose-web.yml\n      ppe: docker-compose-ppe.yml\n      ppe1: docker-compose-ppe1.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs-wip\n      web: docker-compose-web.yml\n      ppe: docker-compose-ppe.yml\n      ppe1: docker-compose-ppe1.yml#g' behat.yml
 fi
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
+rm -rf ../acceptance-logs
+mv ../acceptance-logs-wip ../acceptance-logs
