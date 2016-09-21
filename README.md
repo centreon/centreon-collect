@@ -8,6 +8,11 @@ server used with these components is Jenkins. Everything that begins
 with *mon-* is made by and for the Monitoring and Metrology Team of
 Centreon R&D.
 
+## How to run acceptance tests
+
+If you're interested in how to run acceptance tests you might find the
+[script directory documentation](script/README.md) useful.
+
 ## Architecture.
 
 For each base component (Engine, Web, Broker, ...), there is a job
