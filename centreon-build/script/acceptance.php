@@ -26,10 +26,10 @@ if (function_exists('pcntl_signal')) {
 }
 
 // Parse the options.
-$opts = getopt("d:ghs");
+$opts = getopt("cd:ghs");
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: acceptance.php [-h] [-g] [-s] [-d distrib] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "  Description:\n";
     echo "    Feature files are optional. By default all of them will be run.\n";
@@ -38,6 +38,7 @@ if (isset($opts['h'])) {
     echo "\n";
     echo "  Arguments:\n";
     echo "    -h  Print this help.\n";
+    echo "    -c  Use images from the continuous integration instead of locally generated images.\n";
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
@@ -54,27 +55,29 @@ if (isset($opts['h'])) {
     echo "        support.centreon.com 10.30.2.62\n";
     return (0);
 }
+if (isset($opts['c'])) {
+    $ci = true;
+} else {
+    $ci = false;
+}
 if (isset($opts['d'])) {
     $distrib = $opts['d'];
     array_shift($argv);
     array_shift($argv);
-}
-else {
+} else {
     $distrib = 'centos6';
 }
 if (isset($opts['g'])) {
-    $only_generate = TRUE;
+    $only_generate = true;
     array_shift($argv);
-}
-else {
-    $only_generate = FALSE;
+} else {
+    $only_generate = false;
 }
 if (isset($opts['s'])) {
-    $synchronize = TRUE;
+    $synchronize = true;
     array_shift($argv);
-}
-else {
-    $synchronize = FALSE;
+} else {
+    $synchronize = false;
 }
 $source_dir = realpath('.');
 
@@ -163,7 +166,7 @@ else {
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-web.yml.in'),
         xpath('mon-lm-dev.yml'),
         array(
-            '@WEB_IMAGE@' => 'mon-lm-dev:' . $distrib,
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
@@ -171,25 +174,25 @@ else {
         xpath($centreon_build_dir . '/containers/mediawiki/docker-compose.yml.in'),
         xpath('mon-web-kb-dev.yml'),
         array(
-            '@WEB_IMAGE@' => 'mon-web-dev:' . $distrib,
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose-influxdb.yml.in'),
         xpath('mon-web-influxdb.yml'),
         array(
-            '@WEB_IMAGE@' => 'mon-web-dev:' . $distrib,
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-standalone.yml.in'),
         xpath('mon-middleware-dev.yml'),
-        array('@MIDDLEWARE_IMAGE@' => 'mon-middleware-dev:latest')
+        array('@MIDDLEWARE_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-middleware:latest' : 'mon-middleware-dev:latest'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-ppe-dev.yml'),
-        array('@WEB_IMAGE@' => 'mon-ppe-dev:' . $distrib)
+        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppe:' : 'mon-ppe-dev:') . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
@@ -200,37 +203,43 @@ else {
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-ppm-dev.yml'),
         array(
-            '@WEB_IMAGE@' => 'mon-ppm-dev:' . $distrib,
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-web-dev.yml'),
-        array('@WEB_IMAGE@' => 'mon-web-dev:' . $distrib)
+        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-web-fresh-dev.yml'),
-        array('@WEB_IMAGE@' => 'mon-web-fresh-dev:' . $distrib)
+        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web-fresh:' : 'mon-web-fresh-dev:') . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('des-bam-dev.yml'),
-        array('@WEB_IMAGE@' => 'des-bam-dev:' . $distrib)
+        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-bam:' : 'des-bam-dev:') . $distrib)
     );
 
     // Execute the dev container script.
     echo "[3/4] Building development container from current sources...\n";
-    passthru('php ' . xpath($centreon_build_dir . '/script/' . $project . '-dev.php') . ' ' . $distrib, $return_var);
-    if ($return_var != 0) {
-        echo 'Could not build development container of ' . $project . "\n";
-        return (1);
+    if ($ci) {
+        echo "Continuous integration mode (-c), step not needed\n";
+    } else {
+        passthru('php ' . xpath($centreon_build_dir . '/script/' . $project . '-dev.php') . ' ' . $distrib, $return_var);
+        if ($return_var != 0) {
+            echo 'Could not build development container of ' . $project . "\n";
+            return (1);
+        }
     }
 
     // Start acceptance tests.
     echo "[4/4] Finally running acceptance tests...\n";
-    if (!$only_generate) {
+    if ($only_generate) {
+        echo "Image generation only mode (-g), step not needed\n";
+    } else {
         $cmd = xpath("./vendor/bin/behat --strict");
         if (empty($argv)) {
             $argv[] = '';
@@ -240,5 +249,3 @@ else {
         }
     }
 }
-
-?>
