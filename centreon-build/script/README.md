@@ -1,8 +1,117 @@
 # Centreon Build : Scripts
 
-## acceptance.php
+## Quick use guide
 
-### Rationale
+* Docker must be installed on your machine
+
+```shell
+$# yum install docker-engine
+$# usermod -a -G docker myuser
+```
+
+* You should have cloned the *centreon-build* directory somewhere
+
+```shell
+$> git clone https://github.com/centreon/centreon-build
+```
+
+* You should have run *acceptance.php -s* at least once
+
+```shell
+$> php /path/to/acceptance.php -s
+```
+
+* *acceptance.php* must be run from the root of your project directory
+
+```shell
+$> cd /path/to/centreon-bam
+```
+
+* You should have installed project dependencies
+
+```shell
+$> composer install
+```
+
+* The defaults of *acceptance.php* are to run all acceptance tests
+  against local sources on CentOS 6
+
+```shell
+$> php /path/to/acceptance.php
+```
+
+## Flags
+
+The flags of *acceptance.php* are defined below.
+
+### -g Generate only
+
+Only generate images, do not run tests. This can be useful for manual
+testing.
+
+### -d Distribution
+
+Set the Linux distribution with which tests should be run. This can be
+either *centos6* (default) or *centos7*.
+
+### -c Continuous integration
+
+Use images from the continuous integration, not locally generated
+images. Can be used when tests work with locally generated images
+but not on the CI platform.
+
+### -s Synchronize
+
+Fetch up-to-date images from the registry server.
+
+## How-to...
+
+### ... run a container with my branch sources
+
+```shell
+$> cd /path/to/centreon-web
+$> php /path/to/acceptance.php -g
+$> docker-compose -f mon-web-dev up -d
+$> docker ps
+
+... working with the container at http://localhost:34242 or something (checkout docker ps output)...
+
+$> docker-compose -f mon-web-dev.yml down
+```
+
+### ... run a CI container
+
+```shell
+$> cd /path/to/centreon-web
+$> php /path/to/acceptance.php -g -c
+$> docker-compose -f mon-web-dev up -d
+$> docker ps
+
+... working with the container at http://localhost:34242 or something (checkout docker ps output)...
+
+$> docker-compose -f mon-web-dev.yml down
+```
+
+### ... debug within a container
+
+First run a container (see above).
+
+```shell
+$> docker ps
+CONTAINER ID        IMAGE                                           ...
+b6a3a6de9be2        ci.int.centreon.com:5000/mon-phantomjs:latest   ...
+ca73d70955ea        ci.int.centreon.com:5000/mon-web:centos6        ...
+
+$> docker exec -ti ca73d70955ea bash
+$> export TERM=xterm
+
+From now on you are within the container. You can run mysql, tailf some
+logs, ...
+
+$> exit
+```
+
+## Rationale
 
 *acceptance.php* is made to easily run acceptance tests of Centreon
 products. Acceptance tests use Docker containers to ensure that tests
@@ -22,8 +131,6 @@ a single test is run through Behat, the following steps execute :
 * then the scenario executes. Usually Mink interacts with the
   application under test by clicking on it, setting fields, ...
 * test result is printed
-
-### acceptance.php
 
 In this test context, *acceptance.php* helps mostly to build a local
 image with the sources being developed. It performs four differents
