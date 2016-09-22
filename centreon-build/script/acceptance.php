@@ -57,6 +57,7 @@ if (isset($opts['h'])) {
 }
 if (isset($opts['c'])) {
     $ci = true;
+    array_shift($argv);
 } else {
     $ci = false;
 }
