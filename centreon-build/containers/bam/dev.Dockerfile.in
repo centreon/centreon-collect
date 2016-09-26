@@ -22,4 +22,5 @@ COPY centreon-bam-server/generate_files /usr/share/centreon/www/modules/centreon
 COPY centreon-bam-server/getGraph /usr/share/centreon/www/modules/centreon-bam-server/getGraph
 COPY centreon-bam-server/centreon-clapi /usr/share/centreon/www/modules/centreon-bam-server/centreon-clapi
 COPY centreon-bam-server/api_modules /usr/share/centreon/www/modules/centreon-bam-server/api_modules
+COPY centreon-bam-server/hooks /usr/share/centreon/www/modules/centreon-bam-server/hooks
 COPY centreon-bam-server/core /usr/share/centreon/www/modules/centreon-bam-server/core
