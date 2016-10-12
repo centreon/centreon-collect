@@ -26,7 +26,7 @@ commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
 now=`date +%s`
 export RELEASE="$now.$commit"
 
-# Generate archive of Centreon PPM.
+# Generate archive of Centreon Automation.
 git archive --prefix="centreon-automation-$VERSION/" "$GIT_BRANCH" | gzip > "../centreon-automation-$VERSION.tar.gz"
 cd ..
 
