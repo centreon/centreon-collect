@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# Install Centreon Broker headers.
+yum install centreon-broker-devel
+
 # Out-of-source build.
 rm -rf /tmp/build
 mkdir /tmp/build
