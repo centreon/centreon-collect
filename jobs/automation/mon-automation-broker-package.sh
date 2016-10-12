@@ -34,10 +34,10 @@ export RELEASE="$now.$commit"
 
 # Create source tarball.
 git archive --prefix="centreon-discovery-engine-$VERSION/" "$GIT_BRANCH" | gzip > "../input/centreon-discovery-engine-$VERSION.tar.gz"
-cd ..
 
 # Retrieve spec file.
-cp packaging/centreon-discovery-engine.spectemplate input/
+cp packaging/centreon-discovery-engine.spectemplate ../input/
+cd ..
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
