@@ -6,8 +6,10 @@ set -x
 # Pull image.
 WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
+REDIS_IMAGE=redis:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $MIDDLEWARE_IMAGE
+docker pull $REDIS_IMAGE
 
 # Copy test public key.
 cp `dirname $0`/public.asc centreon-imp-portal-api
