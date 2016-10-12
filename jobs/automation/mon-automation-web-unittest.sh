@@ -13,7 +13,7 @@ DISTRIB="$1"
 # Launch mon-unittest container.
 UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
 docker pull $UT_IMAGE
-containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-automation`
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-automation-web`
 
 # Copy sources to container.
 docker cp centreon-automation "$containerid:/usr/local/src/centreon-automation"
