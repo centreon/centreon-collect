@@ -5,13 +5,13 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
+DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION
+docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -40,10 +40,10 @@ cd ..
 cp packaging/centreon-discovery-engine.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
 
 # Copy files to server.
-if [ "$CENTOS_VERSION" = 6 ] ; then
+if [ "$DISTRIB" = centos6 ] ; then
   REPO='standard/dev/el6/unstable/x86_64'
 else
   REPO='standard/dev/el7/unstable/x86_64'
