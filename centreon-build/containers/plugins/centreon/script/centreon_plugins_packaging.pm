@@ -4,6 +4,7 @@ package centreon::script::centreon_plugins_packaging;
 use strict;
 use warnings;
 use centreon::script;
+use File::Copy::Recursive qw(dircopy);
 use File::Path;
 use FindBin;
 use Data::Dumper;
@@ -26,8 +27,10 @@ sub new {
     $self->{rpm_plugin_path} = '/usr/lib/centreon/plugins/';
     $self->{git_url_packaging} = 'http://gitbot:gitbot@git.int.centreon.com/centreon-plugins-packaging';
     $self->{git_dir_packaging} = 'centreon-plugins-packaging';
-    $self->{git_url_centreon_plugins} = 'https://github.com/centreon/centreon-plugins.git';
+    $self->{git_url_centreon_plugins} = 'https://gitbot:gitbot@github.com/centreon/centreon-plugins.git';
     $self->{git_dir_centreon_plugins} = 'centreon-plugins';
+	$self->{git_url_centreon_automation} = 'https://centreonbot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-automation.git';
+    $self->{git_dir_centreon_automation} = 'centreon-automation';
     $self->{build_dir} = $FindBin::Bin . '/build';
 	$self->{rpm_save_directory} = $FindBin::Bin . '/' . $self->{git_dir_centreon_plugins} . '/';
 	$self->{unstable_internal_repo} = '/srv/repos/standard/3.4/';
@@ -87,7 +90,7 @@ sub get_repositories {
 	    $self->{logger}->writeLogError("problem to clone packaging repository");
 	    exit(1);
 	}
-    
+
 	$self->{logger}->writeLogInfo("Clone centreon-plugins repository");
 	($lerror, $stdout, $exit_code) = 
 		centreon::common::misc::backtick(command => 'git clone ' . $self->{git_url_centreon_plugins} . ' ' . 
@@ -103,6 +106,7 @@ sub get_repositories {
     
 	$self->{logger}->writeLogInfo("Get last tag from centreon-plugins");
     centreon::common::misc::chdir(logger => $self->{logger}, dir => $self->{build_dir} . '/repos/' . $self->{git_dir_centreon_plugins});
+
     ($lerror, $stdout, $exit_code) = 
         centreon::common::misc::backtick(command => 'git tag',
                                          logger => $self->{logger},
@@ -113,7 +117,7 @@ sub get_repositories {
         $self->{logger}->writeLogError("problem to get tag from centreon-plugins repository");
         exit(1);
     }
-    
+   
     for my $tag (sort {$b <=> $a} grep(/^[0-9]{8}$/, split /\n/, $stdout)) {
         $self->{newest_tag} = $tag;
         last;
@@ -137,6 +141,26 @@ sub get_repositories {
         $self->{logger}->writeLogError("problem to checkout tag from centreon-plugins repository");
         exit(1);
     }
+
+	$self->{logger}->writeLogInfo("Clone centreon-automation  repository");
+	($lerror, $stdout, $exit_code) =
+		centreon::common::misc::backtick(command => 'git clone ' . $self->{git_url_centreon_automation} . ' ' .
+										 $self->{build_dir} . '/repos/' . $self->{git_dir_centreon_automation},
+										 logger => $self->{logger},
+										 timeout => $self->{timeout_git_clone},
+										 wait_exit => 1,
+										);
+	if ($lerror != 0 && $exit_code != 0) {
+		$self->{logger}->writeLogError("problem to clone centreon-automation repository");
+		exit(1);
+	}
+
+	unless (dircopy($self->{build_dir} . '/repos/' . $self->{git_dir_centreon_automation} . "/plugins",
+		$self->{build_dir} . '/repos/' . $self->{git_dir_centreon_plugins})) {
+
+		$self->{logger}->writeLogError("problem to move ".$self->{build_dir} . '/repos/' . $self->{git_dir_centreon_automation} . "/plugins/discovery to " . $self->{build_dir} . '/repos/' . $self->{git_dir_centreon_plugins});
+		exit(1);
+	}
 }
 
 sub pkg_file {
