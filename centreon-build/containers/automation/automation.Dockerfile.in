@@ -4,7 +4,7 @@ MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Install package.
 RUN yum --disablerepo='*' --enablerepo=ces-standard-unstable-noarch clean all
-RUN yum install -y --nogpgcheck centreon-automation centreon-pp-manager centreon-license-manager
+RUN yum install -y --nogpgcheck centreon-automation
 
 # Install module in Centreon.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
