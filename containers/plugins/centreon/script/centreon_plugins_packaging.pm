@@ -601,6 +601,12 @@ sub git_commit_changes {
 sub export_rpm_internal_repo_el {
 	my ($self, %options) = @_;
 
+        opendir (DIR, $self->{rpm_save_directory} . $options{dist}) or die "Cannot open directory: $!";
+        my @files = grep ! m/^\./ && ! /config_file/, readdir DIR; # skip hidden files and config files
+        closedir(DIR);
+
+        return -1 if ($#files < 0);
+
 	$self->{logger}->writeLogInfo("Export ".$options{dist}."  RPM to internal unstable repository");
 	my $command .= 'scp '. $self->{rpm_save_directory} . $options{dist} . '/*.rpm root@' . $self->{unstable_internal_repo_addr} . 
 		':' . $self->{unstable_internal_repo} . $options{dist} . '/unstable/noarch/RPMS/';
@@ -611,7 +617,7 @@ sub export_rpm_internal_repo_el {
 		                                 wait_exit => 1,
 		                                );
 	if ($lerror != 0 || $exit_code > 1) {
-		$self->{logger}->writeLogError("export ".$options{dist}." RPM to internal unstable repo: error");
+		$self->{logger}->writeLogError("Export ".$options{dist}." RPM to internal unstable repo: error");
 		return -1;
 	}
 }
