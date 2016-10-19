@@ -579,13 +579,10 @@ sub git_commit_changes {
 
     centreon::common::misc::chdir(logger => $self->{logger}, dir => $self->{build_dir} . '/repos/' . $self->{git_dir_packaging});
     $self->{logger}->writeLogInfo("commit changes: begin");
-    my $command = '';
-    if (scalar(@{$self->{git_rm_plugins}}) > 0) {
-        $command .= 'git rm ' . join(' ',  @{$self->{git_rm_plugins}}) . ' && ';
-    }
-    $command .= "git add . && git commit -m 'update release' && git push";
-    my ($lerror, $stdout, $exit_code) = 
-            centreon::common::misc::backtick(command => $command,
+    my $command = 'git status';
+
+   my ($lerror, $stdout, $exit_code) =
+           centreon::common::misc::backtick(command => $command,
                                              logger => $self->{logger},
                                              timeout => 60,
                                              wait_exit => 1,
@@ -593,6 +590,25 @@ sub git_commit_changes {
     if ($lerror != 0 || $exit_code > 1) {
         $self->{logger}->writeLogError("commit changes: error");
         return -1;
+    }
+
+    if ($stdout !~ /nothing to commit/) {
+        $command = '';
+
+        if (scalar(@{$self->{git_rm_plugins}}) > 0) {
+            $command .= 'git rm ' . join(' ',  @{$self->{git_rm_plugins}}) . ' && ';
+        }
+        $command .= "git add . && git commit -m 'update release' && git push";
+        my ($lerror, $stdout, $exit_code) = 
+                centreon::common::misc::backtick(command => $command,
+                                                 logger => $self->{logger},
+                                                 timeout => 60,
+                                                 wait_exit => 1,
+                                                 );
+        if ($lerror != 0 || $exit_code > 1) {
+            $self->{logger}->writeLogError("commit changes: error");
+            return -1;
+       }
     }
     
     $self->{logger}->writeLogInfo("commit changes: success");
