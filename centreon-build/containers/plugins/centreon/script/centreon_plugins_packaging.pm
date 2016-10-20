@@ -361,13 +361,13 @@ sub is_plugin_update {
                                              timeout => 30,
                                              wait_exit => 1,
                                              );
-        if ($lerror != 0 || $exit_code > 1) {
+        if ($lerror != 0 && $exit_code > 1 && $exit_code != 256) {
             $self->{logger}->writeLogError("plugin update: problem to execute diff command");
             unlink($options{path} . '/plugin/' . $self->{pkg_data}->{plugin_name} . '.new');
             return -1;
         }
         my @lines = split /\n/, $stdout;
-        if ($exit_code == 1 && (scalar(@lines) > 4 || $stdout !~ /\$global_version/ms)) {
+        if (($exit_code == 1 || $exit_code == 256) && (scalar(@lines) > 4 || $stdout !~ /\$global_version/ms)) {
             $self->{create_package} = 1;
             # If the version has changed
             # we go back release at one
