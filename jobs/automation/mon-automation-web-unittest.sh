@@ -20,8 +20,8 @@ docker cp centreon-automation "$containerid:/usr/local/src/centreon-automation"
 
 # Run unit tests.
 docker start -a "$containerid"
-#docker cp "$containerid:/tmp/ut.xml" ut.xml
-#docker cp "$containerid:/tmp/coverage.xml" coverage.xml
+docker cp "$containerid:/tmp/ut.xml" ut.xml
+docker cp "$containerid:/tmp/coverage.xml" coverage.xml
 docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 
 # Stop container.
