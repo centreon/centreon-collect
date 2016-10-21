@@ -61,7 +61,8 @@ clean_repository() {
         centreon-engine-devel
         centreon-engine-extcommands
         centreon-automation
-        centreon-discovery-engine"
+        centreon-discovery-engine
+        centreon-bam-server"
   for rpm in $rpms ; do
     old=`ls | grep '^'$rpm'-[0-9]\.[0-9]\.[0-9]-[0-9]\+\.[0-9a-f]\+.el[67].[centos.]*\(noarch\|i386\|x86_64\)\.rpm' | head -n -1`
     if [ -n "$old" ] ; then
