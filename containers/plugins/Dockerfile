@@ -7,6 +7,7 @@ RUN yum install -y git \
   perl-App-cpanminus \
   perl-JSON \
   perl-File-Copy-Recursive \
+  rpm-build \
   && rm -rf /var/cache/yum/*
 RUN cpanm App::FatPacker
 RUN mkdir -p /script/centreon
