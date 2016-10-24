@@ -4,13 +4,10 @@ set -e
 set -x
 
 # Check arguments.
-if [ "$#" -lt 3 ] ; then
-  echo "USAGE: $0 <VERSION> <RELEASE> <BRANCH|TAG>"
+if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$BRANCH" ] ; then
+  echo "You need to specify VERSION, RELEASE and BRANCH environment variables."
   exit 1
 fi
-export VERSION="$1"
-export RELEASE="$2"
-export BRANCH="$3"
 
 # Pull mon-build-dependencies containers.
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
