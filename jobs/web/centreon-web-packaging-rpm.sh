@@ -33,9 +33,10 @@ fi
 
 # Create source tarball.
 cd centreon-web
+git checkout --detach "$BRANCH"
 rm -rf "../centreon-$VERSION"
 mkdir "../centreon-$VERSION"
-git archive "$BRANCH" | tar -C "../centreon-$VERSION" -x
+git archive HEAD | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
 # We should use "$GIT_BRANCH" instead of 2.7.x. However nothing seems to work as expected.
 git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
