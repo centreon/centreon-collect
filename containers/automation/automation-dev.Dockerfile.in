@@ -2,6 +2,8 @@
 FROM ci.int.centreon.com:5000/mon-automation:@DISTRIB@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+
 # Database.
 COPY automation/install-dev.sh /tmp/install.sh
 COPY centreon-automation/sql /usr/share/centreon/www/modules/centreon-automation/sql
