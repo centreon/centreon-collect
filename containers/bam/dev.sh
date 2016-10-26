@@ -3,7 +3,9 @@
 set -e
 set -x
 
+
 service mysql start
-sed 's/@DB_CENTSTORAGE@/centreon_storage/g' < /usr/share/centreon/www/modules/centreon-bam-server/sql/uninstall.sql | mysql centreon
-sed 's/@DB_CENTSTORAGE@/centreon_storage/g' < /usr/share/centreon/www/modules/centreon-bam-server/sql/install.sql | mysql centreon
+httpd -k start
+/tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-automation -u
+httpd -k stop
 service mysql stop

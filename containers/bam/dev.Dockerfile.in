@@ -2,6 +2,8 @@
 FROM ci.int.centreon.com:5000/des-bam:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+
 # Database.
 COPY bam/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
