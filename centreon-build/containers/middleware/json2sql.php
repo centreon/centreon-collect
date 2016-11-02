@@ -30,7 +30,7 @@ $cppinsert = $dbh->prepare(
 );
 
 // Get PP list.
-$base_dir = '/etc/centreon/ppm';
+$base_dir = '/usr/share/centreon-packs';
 chdir($base_dir);
 $pp_list = glob('*.json');
 

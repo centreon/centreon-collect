@@ -7,7 +7,7 @@ RUN yum --disablerepo='*' --enablerepo='ces-standard-unstable*' clean all
 RUN yum install -y --nogpgcheck centreon-pp-manager
 
 # Install Plugin Pack JSON files.
-COPY middleware/data/*.json /etc/centreon/ppm/
+COPY middleware/data/*.json /usr/share/centreon-packs/
 
 # Install module in Centreon.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
