@@ -31,7 +31,7 @@ COPY middleware/private.asc /usr/local/src/centreon-imp-portal-api/private.asc
 RUN npm install
 
 # Install Plugin Pack JSON files.
-COPY middleware/data/*.json /etc/centreon/ppm/
+COPY middleware/data/*.json /usr/share/centreon-packs/
 
 # Install script.
 RUN mkdir /usr/local/src/data
