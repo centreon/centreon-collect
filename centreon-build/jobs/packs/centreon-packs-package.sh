@@ -37,7 +37,7 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 rm -f output/noarch/centreon-pack-1.0.0*.rpm
 
 # Copy files to server.
-if [ "$CENTOS_VERSION" = 6 ] ; then
+if [ "$DISTRIB" = 'centos6' ] ; then
   REPO='standard/dev/el6/unstable/noarch'
 else
   REPO='standard/dev/el7/unstable/noarch'
