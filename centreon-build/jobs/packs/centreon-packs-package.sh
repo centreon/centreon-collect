@@ -27,8 +27,14 @@ fi
 # Generate spec file.
 ./centreon-export/packaging/spec.sh centreon-packs.zip > input/centreon-packs.spec
 
+# Copy source zip.
+cp centreon-packs.zip input/
+
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
+
+# Remove 'fake' package.
+rm -f output/noarch/centreon-pack-1.0.0*.rpm
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then
