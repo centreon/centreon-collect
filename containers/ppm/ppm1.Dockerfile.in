@@ -13,7 +13,7 @@ COPY plugin-packs.repo /etc/yum.repos.d/plugin-packs.repo
 RUN yum --disablerepo='*' --enablerepo='ces-standard-stable*' --enablerepo='plugin-packs*' clean all
 RUN yum remove -y centreon*
 RUN yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.4 centreon-2.7.4 centreon-plugins-2.7.4 centreon-plugin-meta-2.7.4 centreon-common-2.7.4 centreon-web-2.7.4 centreon-trap-2.7.4 centreon-perl-libs-2.7.4
-#RUN yum install -y --nogpgcheck centreon-pp-manager-1.4.1
+RUN yum install -y --nogpgcheck centreon-pp-manager-1.4.1
 
 
 # Install module in Centreon.
