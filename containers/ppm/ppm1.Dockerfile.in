@@ -26,3 +26,9 @@ COPY ppm/ppm1-install.sh /tmp/ppm1-install.sh
 RUN chmod +x /tmp/fresh.sh /tmp/install-centreon-module.php /tmp/ppm1-install.sh
 RUN /tmp/fresh.sh
 RUN /tmp/ppm1-install.sh
+
+# Main script.
+COPY web/run.sh /usr/share/centreon/container.sh
+RUN chmod +x /usr/share/centreon/container.sh
+ENTRYPOINT ["/usr/share/centreon/container.sh"]
+
