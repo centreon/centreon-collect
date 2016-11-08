@@ -7,6 +7,9 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY ces-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-standard-stable.repo
 COPY plugin-packs.repo /etc/yum.repos.d/plugin-packs.repo
 
+# Prepare environment for autoinstall.
+
+COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install package.
 
@@ -17,7 +20,9 @@ RUN yum install -y --nogpgcheck centreon-pp-manager-1.4.1
 
 
 # Install module in Centreon.
+COPY web/fresh.sh /tmp/fresh.sh
 COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/ppm1-install.sh /tmp/ppm1-install.sh
-RUN chmod +x /tmp/install-centreon-module.php /tmp/ppm1-install.sh
+RUN chmod +x /tmp/fresh.sh /tmp/install-centreon-module.php /tmp/ppm1-install.sh
+RUN /tmp/fresh.sh
 RUN /tmp/ppm1-install.sh
