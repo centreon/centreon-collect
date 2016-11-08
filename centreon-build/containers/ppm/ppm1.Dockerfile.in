@@ -12,20 +12,22 @@ COPY plugin-packs.repo /etc/yum.repos.d/plugin-packs.repo
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install package.
-
 RUN yum --disablerepo='*' --enablerepo='ces-standard-stable*' --enablerepo='plugin-packs*' clean all
 RUN yum remove -y centreon*
 RUN yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.4 centreon-2.7.4 centreon-plugins-2.7.4 centreon-plugin-meta-2.7.4 centreon-common-2.7.4 centreon-web-2.7.4 centreon-trap-2.7.4 centreon-perl-libs-2.7.4
 RUN yum install -y --nogpgcheck centreon-pp-manager-1.4.1
 
-
-# Install module in Centreon.
+# Install Centreon.
 COPY web/fresh.sh /tmp/fresh.sh
+RUN chmod +x /tmp/fresh.sh
+RUN /tmp/fresh.sh
+
+# Install module in Centreon with old plugin packs.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/ppm1-install.sh /tmp/ppm1-install.sh
-RUN chmod +x /tmp/fresh.sh /tmp/install-centreon-module.php /tmp/ppm1-install.sh
-RUN /tmp/fresh.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/ppm1-install.sh
 RUN /tmp/ppm1-install.sh
+
 
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh
