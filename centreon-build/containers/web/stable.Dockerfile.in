@@ -32,8 +32,10 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 # Install script (web-wizard install).
 COPY web/kb.sql /tmp/kb.sql
 COPY web/fresh.sh /tmp/install.sh
-RUN chmod +x /tmp/install.sh
+COPY web/kb.sh /tmp/kb.sh
+RUN chmod +x /tmp/install.sh /tmp/kb.sh
 RUN /tmp/install.sh
+RUN /tmp/kb.sh
 
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh

@@ -11,9 +11,11 @@ COPY web/cbd.sh /etc/init.d/cbd
 COPY web/kb.sql /tmp/kb.sql
 COPY web/update-centreon.php /tmp/update-centreon.php
 COPY web/dev.sh /tmp/install.sh
-RUN chmod +x /tmp/install.sh
+COPY web/kb.sh /tmp/kb.sh
+RUN chmod +x /tmp/install.sh /tmp/kb.sh
 COPY centreon/www/install /usr/share/centreon/www/install
 RUN /tmp/install.sh
+RUN /tmp/kb.sh
 
 # Static sources.
 COPY centreon/tmpl/install/centreon.cron /etc/cron.d/centreon
