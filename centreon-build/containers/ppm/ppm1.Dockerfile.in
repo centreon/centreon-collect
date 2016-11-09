@@ -14,7 +14,7 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 # Install package.
 RUN yum --disablerepo='*' --enablerepo='ces-standard-stable*' --enablerepo='plugin-packs*' clean all
 RUN yum remove -y centreon*
-RUN yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7
+RUN yum install --disablerepo='*' --enablerepo='ces-standard-stable*' -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7
 RUN yum install -y --nogpgcheck centreon-pp-manager-1.4.1
 
 # Install Centreon.
