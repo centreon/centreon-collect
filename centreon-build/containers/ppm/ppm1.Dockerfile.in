@@ -1,21 +1,17 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-dependencies:centos@CENTOS_VERSION@
+FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Copy stable centreon repository
-
-COPY ces-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-standard-stable.repo
+COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
 COPY plugin-packs.repo /etc/yum.repos.d/plugin-packs.repo
 
 # Prepare environment for autoinstall.
-
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
-# Install package.
-RUN yum --disablerepo='*' --enablerepo='ces-standard-stable*' --enablerepo='plugin-packs*' clean all
-RUN yum remove -y centreon*
-RUN yum install --disablerepo='*' --enablerepo='ces-standard-stable*' -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7
-RUN yum install -y --nogpgcheck centreon-pp-manager-1.4.1
+# Install packages.
+RUN yum clean all
+RUN yum install --disablerepo='ces-standard-unstable*' -y --nogpgcheck centreon-pp-manager-1.4.1 mysql-server
 
 # Install Centreon.
 COPY web/fresh.sh /tmp/fresh.sh
@@ -28,9 +24,7 @@ COPY ppm/ppm1-install.sh /tmp/ppm1-install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/ppm1-install.sh
 RUN /tmp/ppm1-install.sh
 
-
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh
 RUN chmod +x /usr/share/centreon/container.sh
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
-
