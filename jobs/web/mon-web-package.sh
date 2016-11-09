@@ -69,6 +69,22 @@ now=`date +%s`
 # versioning.
 export RELEASE="$now.$commit"
 
+# Generate release notes.
+# Code adapted from centreon-tools/make_package.sh.
+cd centreon-web/doc/en
+make SPHINXOPTS="-D html_theme=scrolls" html
+cp "_build/html/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
+sed -i \
+    -e "/<link/d" \
+    -e "/<script .*>.*<\/script>/d" \
+    -e "s/href=\"..\//href=\"http:\/\/documentation.centreon.com\/docs\/centreon\/en\/latest\//g" \
+    -e "/<\/head>/i \
+    <style type=\"text/css\">\n \
+    #toc, .footer, .relnav, .header { display: none; }\n \
+    <\/style>" ../../www/install/RELEASENOTES.html
+make clean
+cd ../../..
+
 # Create source tarball.
 rm -rf "../centreon-$VERSION"
 mkdir "../centreon-$VERSION"
