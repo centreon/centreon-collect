@@ -69,9 +69,17 @@ now=`date +%s`
 # versioning.
 export RELEASE="$now.$commit"
 
+# Prepare source directory
+rm -rf "../centreon-$VERSION"
+mkdir "../centreon-$VERSION"
+git archive "$GIT_BRANCH" | tar -C "../centreon-$VERSION" -x
+cd ../centreon-plugins
+# We should use "$GIT_BRANCH" instead of 2.7.x. However nothing seems to work as expected.
+git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
+
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
-cd doc/en
+cd "../centreon-$VERSION/doc/en"
 make SPHINXOPTS="-D html_theme=scrolls" html
 cp "_build/html/release_notes/centreon-$major.$minor/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
 sed -i \
@@ -83,16 +91,9 @@ sed -i \
     #toc, .footer, .relnav, .header { display: none; }\n \
     <\/style>" ../../www/install/RELEASENOTES.html
 make clean
-cd ../..
+cd ../../..
 
 # Create source tarball.
-rm -rf "../centreon-$VERSION"
-mkdir "../centreon-$VERSION"
-git archive "$GIT_BRANCH" | tar -C "../centreon-$VERSION" -x
-cd ../centreon-plugins
-# We should use "$GIT_BRANCH" instead of 2.7.x. However nothing seems to work as expected.
-git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
-cd ..
 tar czf "input/centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Retrieve spec file.
