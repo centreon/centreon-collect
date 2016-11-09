@@ -71,7 +71,7 @@ export RELEASE="$now.$commit"
 
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
-cd centreon-web/doc/en
+cd doc/en
 make SPHINXOPTS="-D html_theme=scrolls" html
 cp "_build/html/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
 sed -i \
@@ -83,7 +83,7 @@ sed -i \
     #toc, .footer, .relnav, .header { display: none; }\n \
     <\/style>" ../../www/install/RELEASENOTES.html
 make clean
-cd ../../..
+cd ../..
 
 # Create source tarball.
 rm -rf "../centreon-$VERSION"
