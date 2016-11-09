@@ -10,6 +10,7 @@ COPY plugin-packs.repo /etc/yum.repos.d/plugin-packs.repo
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install packages.
+RUN yum remove -y centreon*
 RUN yum clean all
 RUN yum install --disablerepo='ces-standard-unstable*' -y --nogpgcheck centreon-pp-manager-1.4.1 mysql-server
 
