@@ -73,7 +73,7 @@ export RELEASE="$now.$commit"
 # Code adapted from centreon-tools/make_package.sh.
 cd doc/en
 make SPHINXOPTS="-D html_theme=scrolls" html
-cp "_build/html/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
+cp "_build/html/release_notes/centreon-$major.$minor/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
 sed -i \
     -e "/<link/d" \
     -e "/<script .*>.*<\/script>/d" \
