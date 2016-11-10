@@ -1,0 +1,13 @@
+[ces-pluginpacks-unstable]
+name=Centreon Entreprise Server RPM repository for plugin-packs
+baseurl=http://srvi-ces-repository.int.centreon.com/repos/plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f/dev/el6/unstable/$basearch/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+
+[ces-pluginpacks-unstable-noarch]
+name=Centreon Entreprise Server RPM repository for plugin-packs
+baseurl=http://srvi-ces-repository.int.centreon.com/repos/plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f/dev/el6/unstable/noarch/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
