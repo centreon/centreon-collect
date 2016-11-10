@@ -33,7 +33,7 @@ sub new {
     $self->{git_dir_centreon_automation} = 'centreon-automation';
     $self->{build_dir} = $FindBin::Bin . '/build';
 	$self->{rpm_save_directory} = $FindBin::Bin . '/' . $self->{git_dir_centreon_plugins} . '/';
-	$self->{unstable_internal_repo} = '/srv/repos/plugin-packs/dev/';
+	$self->{unstable_internal_repo} = '/srv/repos/standard/3.4/';
 	$self->{unstable_internal_repo_addr} = 'srvi-ces-repository.int.centreon.com';
     $self->{timeout_git_clone} = 300;
     
