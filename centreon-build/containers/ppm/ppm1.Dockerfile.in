@@ -14,6 +14,7 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 RUN yum remove -y centreon*
 RUN yum clean all
 RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck centreon-pp-manager-1.4.1 mysql-server
+RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck 'ces-pack-*' 'ces-plugins-*'
 
 # Install Centreon.
 COPY web/fresh.sh /tmp/fresh.sh
