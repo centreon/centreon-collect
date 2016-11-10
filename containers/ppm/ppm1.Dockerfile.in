@@ -2,9 +2,10 @@
 FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Copy stable centreon repository
+# Copy stable Centreon repo files.
 COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
-COPY plugin-packs.repo /etc/yum.repos.d/plugin-packs.repo
+COPY ces-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-stable.repo
+COPY ces-pluginpacks-unstable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-unstable.repo
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
@@ -12,7 +13,7 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 # Install packages.
 RUN yum remove -y centreon*
 RUN yum clean all
-RUN yum install --disablerepo='ces-standard-unstable*' -y --nogpgcheck centreon-pp-manager-1.4.1 mysql-server
+RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck centreon-pp-manager-1.4.1 mysql-server
 
 # Install Centreon.
 COPY web/fresh.sh /tmp/fresh.sh
