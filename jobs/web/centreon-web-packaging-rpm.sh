@@ -44,6 +44,8 @@ git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
 # Code adapted from centreon-tools/make_package.sh.
 cd "../centreon-$VERSION/doc/en"
 make SPHINXOPTS="-D html_theme=scrolls" html
+major=`echo "$VERSION" | cut -d . -f 1`
+minor=`echo "$VERSION" | cut -d . -f 2`
 cp "_build/html/release_notes/centreon-$major.$minor/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
 sed -i \
     -e "/<link/d" \
