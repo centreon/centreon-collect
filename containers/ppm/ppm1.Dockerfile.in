@@ -10,13 +10,12 @@ COPY ces-pluginpacks-unstable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-un
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
-# Install packages.
+# Install Centreon Web and PPM 1.x.
 RUN yum remove -y centreon*
 RUN yum clean all
 RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck centreon-pp-manager-1.4.1 mysql-server
-RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck 'ces-pack-*' 'ces-plugins-*'
 
-# Install Centreon.
+# Install Centreon (web install).
 COPY web/fresh.sh /tmp/fresh.sh
 RUN chmod +x /tmp/fresh.sh
 RUN /tmp/fresh.sh
@@ -26,6 +25,7 @@ COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/ppm1-install.sh /tmp/ppm1-install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/ppm1-install.sh
 RUN /tmp/ppm1-install.sh
+RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck 'ces-pack-*' 'ces-plugins-*'
 
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh
