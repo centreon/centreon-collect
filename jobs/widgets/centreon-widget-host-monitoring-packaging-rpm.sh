@@ -28,7 +28,7 @@ rm -rf "../centreon-widget-host-monitoring-$VERSION"
 mkdir "../centreon-widget-host-monitoring-$VERSION"
 git archive HEAD | tar -C "../centreon-widget-host-monitoring-$VERSION" -x
 cd ..
-tar czf "centreon-widget-host-monitoring-$VERSION.tar.gz" "input/centreon-widget-host-monitoring-$VERSION"
+tar czf "input/centreon-widget-host-monitoring-$VERSION.tar.gz" "centreon-widget-host-monitoring-$VERSION"
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-web ] ; then
