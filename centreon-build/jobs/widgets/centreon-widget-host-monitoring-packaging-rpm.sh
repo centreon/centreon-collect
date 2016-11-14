@@ -38,7 +38,7 @@ else
   git pull
   cd ..
 fi
-cp packaging-centreon-web/rpm/centreon-widget-host-monitoring.spectemplate input/
+cp packaging-centreon-web/rpm/widgets/centreon-widget-host-monitoring.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
