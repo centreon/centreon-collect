@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Check arguments.
-if [ -z "$TAG" -o -z "$RELEASE" -o -z "$BRANCH" ] ; then
+if [ -z "$TAG" -o -z "$RELEASE" ] ; then
   echo "You need to specify TAG, RELEASE environment variables."
   exit 1
 fi
