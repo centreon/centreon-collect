@@ -4,8 +4,8 @@ set -e
 set -x
 
 # Check arguments.
-if [ -z "$TAG" -o -z "$RELEASE" ] ; then
-  echo "You need to specify TAG, RELEASE environment variables."
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION, RELEASE environment variables."
   exit 1
 fi
 
@@ -23,12 +23,12 @@ mkdir output-centos7
 
 # Create source tarball.
 cd centreon-license-manager
-git checkout --detach "tags/$TAG"
-rm -rf "../centreon-license-manager-$TAG"
-mkdir "../centreon-license-manager-$TAG"
-git archive HEAD | tar -C "../centreon-license-manager-$TAG" -x
+git checkout --detach "tags/$VERSION"
+rm -rf "../centreon-license-manager-$VERSION"
+mkdir "../centreon-license-manager-$VERSION"
+git archive HEAD | tar -C "../centreon-license-manager-$VERSION" -x
 cd ..
-tar czf "input/centreon-license-manager-$TAG.tar.gz" "centreon-license-manager-$TAG"
+tar czf "input/centreon-license-manager-$VERSION.tar.gz" "centreon-license-manager-$VERSION"
 
 cp centreon-license-manager/packaging/centreon-license-manager.spectemplate input/
 
