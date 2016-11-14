@@ -34,7 +34,7 @@ tar czf "centreon-pp-manager-$VERSION.tar.gz" "centreon-pp-manager-$VERSION"
 curl -F "file=@centreon-pp-manager-$VERSION.tar.gz" -F "version=53" -F 'modulename=centreon-pp-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-pp-manager-$VERSION-php53.tar.gz"
 curl -F "file=@centreon-pp-manager-$VERSION.tar.gz" -F "version=54" -F 'modulename=centreon-pp-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-pp-manager-$VERSION-php54.tar.gz"
 
-cp centreon-pp-manager/packaging/centreon-pp-manager.spectemplate input/
+cp centreon-import/packaging/centreon-pp-manager.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
