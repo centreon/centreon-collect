@@ -28,7 +28,7 @@ rm -rf "../centreon-widget-host-monitoring-$VERSION"
 mkdir "../centreon-widget-host-monitoring-$VERSION"
 git archive HEAD | tar -C "../centreon-widget-host-monitoring-$VERSION" -x
 cd ..
-tar czf "centreon-widget-host-monitoring-$VERSION.tar.gz" "centreon-widget-host-monitoring-$VERSION"
+tar czf "centreon-widget-host-monitoring-$VERSION.tar.gz" "input/centreon-widget-host-monitoring-$VERSION"
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-web ] ; then
@@ -47,7 +47,7 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 # Copy files to server.
 FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/3.4/el6/stable/noarch/RPMS"
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/3.4/el7/stable/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" createrepo /srv/repos/standard/3.4/el6/stable/noarch
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" createrepo /srv/repos/standard/3.4/el7/stable/noarch
+scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/3.4/el6/unstable/noarch/RPMS"
+scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "root@srvi-ces-repository.int.centreon.com:/srv/repos/standard/3.4/el7/unstable/noarch/RPMS"
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" createrepo /srv/repos/standard/3.4/el6/unstable/noarch
+ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" createrepo /srv/repos/standard/3.4/el7/unstable/noarch
