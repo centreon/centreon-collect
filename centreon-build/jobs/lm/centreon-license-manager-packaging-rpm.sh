@@ -28,7 +28,7 @@ rm -rf "../centreon-license-manager-$VERSION"
 mkdir "../centreon-license-manager-$VERSION"
 git archive HEAD | tar -C "../centreon-license-manager-$VERSION" -x
 cd ..
-tar czf "input/centreon-license-manager-$VERSION.tar.gz" "centreon-license-manager-$VERSION"
+tar czf "centreon-license-manager-$VERSION.tar.gz" "centreon-license-manager-$VERSION"
 
 # Encrypt source archive.
 curl -F "file=@centreon-license-manager-$VERSION.tar.gz" -F "version=53" -F 'modulename=centreon-license-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-license-manager-$VERSION-php53.tar.gz"
