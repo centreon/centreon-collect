@@ -30,10 +30,11 @@ git archive HEAD | tar -C "../centreon-license-manager-$VERSION" -x
 cd ..
 tar czf "input/centreon-license-manager-$VERSION.tar.gz" "centreon-license-manager-$VERSION"
 
-cp centreon-license-manager/packaging/centreon-license-manager.spectemplate input/
+# Encrypt source archive.
+curl -F "file=@centreon-license-manager-$VERSION.tar.gz" -F "version=53" -F 'modulename=centreon-license-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-license-manager-$VERSION-php53.tar.gz"
+curl -F "file=@centreon-license-manager-$VERSION.tar.gz" -F "version=54" -F 'modulename=centreon-license-manager' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-license-manager-$VERSION-php54.tar.gz"
 
-# Retrieve additional sources.
-#cp centreon-license-manager/packaging/src/* input
+cp centreon-license-manager/packaging/centreon-license-manager.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
