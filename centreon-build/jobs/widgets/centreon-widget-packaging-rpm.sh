@@ -22,13 +22,8 @@ rm -rf output-centos7
 mkdir output-centos7
 
 # Create source tarball.
-if [ \! -d $NAME ] ; then
-  git clone https://github.com/Centreon-Widgets/$NAME.git $NAME
-else
-  cd $NAME
-  git pull
-  cd ..
-fi
+rm -rf $NAME
+git clone https://github.com/Centreon-Widgets/$NAME.git $NAME
 cd $NAME
 git checkout --detach "tags/$VERSION"
 rm -rf "../$NAME-$VERSION"
