@@ -48,7 +48,7 @@ fi
 cp packaging-centreon-web/rpm/widgets/centreon-widget.spectemplate input/
 
 widget_sub_directory= `echo "$NAME" | sed 's/centreon-widget-//'`
-export WIDGETSUBDIR = $widget_sub_directory
+export WIDGETSUBDIR="$widget_sub_directory"
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
