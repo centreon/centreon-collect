@@ -34,7 +34,16 @@ if [ DISTRIB = "centos6" ] ; then
     behat --tags '~@centos7only'
 fi
 if [ DISTRIB = "centos7" ] ; then
-    behat --tags '~@centos6only'
+    DISTRIB='~@centos6only'
+fi
+
+
+# Filter tags
+if [ DISTRIB = "centos6" ] ; then
+    TAGS='~@centos7only'
+fi
+if [ DISTRIB = "centos7" ] ; then
+    TAGS='~@centos6only'
 fi
 
 # Run acceptance tests.
@@ -44,6 +53,6 @@ rm -rf ../acceptance-logs-wip
 mkdir ../acceptance-logs-wip
 composer install
 composer update
-ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
+ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --tags "$TAGS" --out="../xunit-reports/{/.}" "{}"
 rm -rf ../acceptance-logs
 mv ../acceptance-logs-wip ../acceptance-logs
