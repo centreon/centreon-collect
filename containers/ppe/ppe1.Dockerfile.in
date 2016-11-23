@@ -27,6 +27,7 @@ RUN chmod +x /tmp/install-centreon-module.php /tmp/ppe1-install.sh
 RUN /tmp/ppe1-install.sh
 RUN mkdir -p /srv/plugins-packs-repositories/base-generic
 RUN cp /usr/share/centreon/packs/base-generic/template.xml /srv/plugins-packs-repositories/base-generic/plugins-pack.xml
+RUN chown -R apache.apache /srv/plugins-packs-repositories
 RUN chmod -R 777 /srv/plugins-packs-repositories
 
 # Main script.
