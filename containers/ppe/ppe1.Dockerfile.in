@@ -4,7 +4,6 @@ MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Copy stable Centreon repo files.
 COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
-COPY ces-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-stable.repo
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
@@ -12,7 +11,7 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 # Install Centreon Web and PPE 1.3.x.
 RUN yum remove -y centreon*
 RUN yum clean all
-RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7 centreon-pp-manager-1.4.1 mysql-server
+RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7 mysql-server
 COPY centreon-export /usr/share/centreon/www/modules/centreon-export
 
 # Install Centreon (web install).
@@ -26,7 +25,7 @@ COPY ppe/ppe1-install.sh /tmp/ppe1-install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/ppe1-install.sh
 RUN /tmp/ppe1-install.sh
 RUN mkdir -p /srv/plugins-packs-repositories/base-generic/templates
-RUN cp /usr/share/centreon/packs/base-generic/template.xml /srv/plugins-packs-repositories/base-generic/templates/plugins-pack.xml
+COPY ppe/plugins-pack.xml /srv/plugins-packs-repositories/base-generic/templates/plugins-pack.xml
 RUN chown -R apache.apache /srv/plugins-packs-repositories
 RUN chmod -R 777 /srv/plugins-packs-repositories
 
