@@ -2,6 +2,9 @@
 FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Set middleware server.
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+
 # Copy stable Centreon repo files.
 COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
 COPY ces-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-stable.repo
@@ -19,6 +22,7 @@ RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck yum install -y -
 COPY web/fresh.sh /tmp/fresh.sh
 RUN chmod +x /tmp/fresh.sh
 RUN /tmp/fresh.sh
+
 
 # Install module in Centreon with old plugin packs.
 COPY install-centreon-module.php /tmp/install-centreon-module.php

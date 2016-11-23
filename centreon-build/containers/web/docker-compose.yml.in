@@ -9,7 +9,5 @@ services:
     ports:
     - "80"
     - "3306"
-    extra_hosts:
-    - "api.imp.centreon.com:10.24.11.40"
     dns:
     - "10.50.1.1"

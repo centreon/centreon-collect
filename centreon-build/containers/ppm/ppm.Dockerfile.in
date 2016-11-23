@@ -2,6 +2,9 @@
 FROM ci.int.centreon.com:5000/mon-web:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Set middleware server.
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+
 # Install package.
 RUN yum --disablerepo='*' --enablerepo='ces-standard-unstable*' clean all
 RUN yum install -y --nogpgcheck centreon-pp-manager
