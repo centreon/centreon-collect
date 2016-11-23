@@ -30,20 +30,10 @@ if [ -z "$alreadyset" ] ; then
 fi
 
 # Filter tags
-if [ DISTRIB = "centos6" ] ; then
-    behat --tags '~@centos7only'
-fi
-if [ DISTRIB = "centos7" ] ; then
-    DISTRIB='~@centos6only'
-fi
-
-
-# Filter tags
-if [ DISTRIB = "centos6" ] ; then
-    TAGS='~@centos7only'
-fi
-if [ DISTRIB = "centos7" ] ; then
-    TAGS='~@centos6only'
+if [ "$DISTRIB" = "centos6" ] ; then
+  TAGS='~@centos7only'
+elif [ "$DISTRIB" = "centos7" ] ; then
+  TAGS='~@centos6only'
 fi
 
 # Run acceptance tests.
