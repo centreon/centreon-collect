@@ -4,6 +4,7 @@ MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Copy stable Centreon repo files.
 COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
+COPY ces-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-stable.repo
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
