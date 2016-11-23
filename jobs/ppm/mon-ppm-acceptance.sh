@@ -29,6 +29,14 @@ if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs-wip\n      ppm: docker-compose-ppm.yml\n      ppm1: docker-compose-ppm1.yml#g' behat.yml
 fi
 
+# Filter tags
+if [ DISTRIB = "centos6" ] ; then
+    behat --tags '~@centos7only'
+fi
+if [ DISTRIB = "centos7" ] ; then
+    behat --tags '~@centos6only'
+fi
+
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
