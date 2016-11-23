@@ -19,15 +19,11 @@ COPY web/fresh.sh /tmp/fresh.sh
 RUN chmod +x /tmp/fresh.sh
 RUN /tmp/fresh.sh
 
-# Install module in Centreon with old plugin packs.
+# Install module in Centreon.
 COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppe/ppe1-install.sh /tmp/ppe1-install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/ppe1-install.sh
 RUN /tmp/ppe1-install.sh
-RUN mkdir -p /srv/plugins-packs-repositories/base-generic/templates
-COPY ppe/plugins-pack.xml /srv/plugins-packs-repositories/base-generic/templates/plugins-pack.xml
-RUN chown -R apache.apache /srv/plugins-packs-repositories
-RUN chmod -R 777 /srv/plugins-packs-repositories
 
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh
