@@ -103,7 +103,19 @@ sub get_repositories {
 	    $self->{logger}->writeLogError("problem to clone centreon-plugins repository");
 	    exit(1);
 	}
-    
+
+    $self->{logger}->writeLogInfo("Replace __END__ in plugins");
+	($lerror, $stdout, $exit_code) =
+	    centreon::common::misc::backtick(command => 'find '.$self->{git_dir_centreon_plugins}.'  -name "*.pm" -exec sed -i \' /__END__/d\' \{\} \;',
+		                                 logger => $self->{logger},
+                                         timeout => $self->{timeout_git_clone},
+                                         wait_exit => 1,
+										);
+    if ($lerror != 0 && $exit_code != 0) {
+		$self->{logger}->writeLogError("problem to replace chars");
+		exit(1);
+	}
+
 	$self->{logger}->writeLogInfo("Get last tag from centreon-plugins");
     centreon::common::misc::chdir(logger => $self->{logger}, dir => $self->{build_dir} . '/repos/' . $self->{git_dir_centreon_plugins});
 
