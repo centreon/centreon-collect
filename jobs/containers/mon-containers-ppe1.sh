@@ -3,7 +3,12 @@
 set -e
 set -x
 
-DISTRIB="centos6"
+# Check arguments.
+if [ "$#" -lt 1 ] ; then
+  echo "USAGE: $0 <centos6|centos7>"
+  exit 1
+fi
+DISTRIB="$1"
 
 # Pull Centreon dependencies.
 docker pull ci.int.centreon.com:5000/mon-dependencies:$DISTRIB
