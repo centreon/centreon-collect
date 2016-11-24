@@ -31,8 +31,10 @@ fi
 
 # Filter tags
 if [ "$DISTRIB" = "centos6" ] ; then
+  EXCLUSION="NoneIsExcluded"
   TAGS='~@centos7only'
 elif [ "$DISTRIB" = "centos7" ] ; then
+  EXCLUSION="ModuleUpdate.feature"
   TAGS='~@centos6only'
 fi
 
@@ -43,6 +45,6 @@ rm -rf ../acceptance-logs-wip
 mkdir ../acceptance-logs-wip
 composer install
 composer update
-ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --tags "$TAGS" --out="../xunit-reports/{/.}" "{}"
+ls features/*.feature | grep -v "$EXCLUSION" | parallel /opt/behat/vendor/bin/behat --strict --format=junit --tags "$TAGS" --out="../xunit-reports/{/.}" "{}"
 rm -rf ../acceptance-logs
 mv ../acceptance-logs-wip ../acceptance-logs
