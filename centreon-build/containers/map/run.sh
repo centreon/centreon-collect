@@ -2,6 +2,9 @@
 
 set -x
 
+# Run MySQL.
+service mysql start
+
 # Run Tomcat differently for CentOS 6/7.
 ISCENTOS7=`lsb_release -r | cut -f 2 | grep -e '^7\.'`
 if [ \! -z "$ISCENTOS7" ] ; then
