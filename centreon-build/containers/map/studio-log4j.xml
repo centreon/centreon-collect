@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+ <appender name="Log4jViewer" class="org.apache.log4j.net.SocketAppender">
+  <param name="remoteHost" value="localhost" />
+  <param name="port" value="4445" />
+  <param name="locationInfo" value="true" />
+ </appender>
+ <appender name="console" class="org.apache.log4j.ConsoleAppender">
+  <param name="Target" value="System.out" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <appender name="rollingFile" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/centreon-studio/centreon-studio.log" />
+  <param name="Append" value="true" />
+  <param name="MaxFileSize" value="10MB" />
+  <param name="MaxBackupIndex" value="2" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <appender name="rollingFileBroker" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/centreon-studio/centreon-studio.log.broker" />
+  <param name="Append" value="true" />
+  <param name="MaxFileSize" value="10MB" />
+  <param name="MaxBackupIndex" value="2" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <appender name="rollingFileResources" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/centreon-studio/centreon-studio.log.resources" />
+  <param name="Append" value="true" />
+  <param name="MaxFileSize" value="10MB" />
+  <param name="MaxBackupIndex" value="2" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <appender name="rollingFileWhatsup" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/centreon-studio/centreon-studio.log.whatsup" />
+  <param name="Append" value="true" />
+  <param name="MaxFileSize" value="10MB" />
+  <param name="MaxBackupIndex" value="2" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <appender name="rollingFileDrilldown" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/centreon-studio/centreon-studio.log.drilldown" />
+  <param name="Append" value="true" />
+  <param name="MaxFileSize" value="10MB" />
+  <param name="MaxBackupIndex" value="2" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <appender name="rollingFileGates" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/centreon-studio/centreon-studio.log.gates" />
+  <param name="Append" value="true" />
+  <param name="MaxFileSize" value="10MB" />
+  <param name="MaxBackupIndex" value="2" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[STUDIO][%-18d{dd/MM HH:mm:ss,SSS}][%-6p] %-100m [%c][%t] %x %n" />
+  </layout>
+ </appender>
+ <logger name="org.hibernate">
+  <level value="error" />
+  <appender-ref ref="console" />
+ </logger>
+ <logger name="org.apache">
+  <level value="error" />
+  <appender-ref ref="console" />
+ </logger>
+ <logger name="org.springframework">
+  <level value="error" />
+  <appender-ref ref="console" />
+ </logger>
+ <logger name="com.mchange.v2">
+  <level value="error" />
+  <appender-ref ref="console" />
+ </logger>
+ <logger name="eu.medsea.mimeutil">
+  <level value="error" />
+  <appender-ref ref="console" />
+ </logger>
+ <!-- resources -->
+ <logger name="com.centreon.studio.map.server.repo.map.element.impl.synchro.SynchronizerResources" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFile" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.repo.scheduler.ResourceSynchroImpl" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileResources" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.dal.centreon.resource.impl" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileResources" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.repo.centreon.resource.impl" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileResources" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.repo.impl.AbstractResourceRepo" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileResources" />
+ </logger>
+ <!-- gates -->
+ <logger name="com.centreon.studio.map.server.business.context" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileGates" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.business.service.impl.GateBusinessServiceImpl" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileGates" />
+ </logger>
+ <!-- broker, drilldown & whatsup -->
+ <logger name="com.centreon.studio.map.server.business.broker" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileBroker" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.business.drilldown" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileDrilldown" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.session.whatsup.WhatsUpStudioNotifier" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileWhatsup" />
+ </logger>
+ <logger name="com.centreon.studio.map.server.session.WhatsUpEventHandler" additivity="false">
+  <level value="error" />
+  <appender-ref ref="rollingFileWhatsup" />
+ </logger>
+ <!-- root -->
+ <root>
+  <level value="error" />
+  <appender-ref ref="rollingFile" />
+ </root>
+</log4j:configuration>
