@@ -10,7 +10,7 @@ RUN yum clean all
 RUN yum install -y --nogpgcheck centreon-map4-server mysql-server
 
 # Copy license.
-COPY licence.json.asc /etc/centreon-studio/
+COPY map/licence.json.asc /etc/centreon-studio/
 
 # Install script.
 COPY map/install-server.sh /tmp/install.sh
