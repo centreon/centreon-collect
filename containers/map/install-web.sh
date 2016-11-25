@@ -8,9 +8,9 @@ service mysql start
 httpd -k start
 
 # Give DB access to centreon_map user.
-mysql -e "CREATE USER 'centreon_map'@'*' IDENTIFIED BY 'centreon_map'"
-mysql -e "GRANT SELECT ON centreon_storage.* TO 'centreon_map'@'*' IDENTIFIED BY 'centreon_map'"
-mysql -e "GRANT SELECT ON centreon.* TO 'centreon_map'@'*' IDENTIFIED BY 'centreon_map'"
+mysql -e "CREATE USER 'centreon_map'@'%' IDENTIFIED BY 'centreon_map'"
+mysql -e "GRANT SELECT ON centreon_storage.* TO 'centreon_map'@'%' IDENTIFIED BY 'centreon_map'"
+mysql -e "GRANT SELECT ON centreon.* TO 'centreon_map'@'%' IDENTIFIED BY 'centreon_map'"
 mysql -e "FLUSH PRIVILEGES"
 
 # Create Centreon Broker output (extracted from configure.sh).
@@ -41,7 +41,7 @@ mysql -e "INSERT INTO cfg_centreonbroker_info (config_id, config_key, config_val
 
 # Install Centreon Map web client.
 /tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-map4-web-client
-mysql -e "UPDATE options SET value='http://map:8080' WHERE `key`='map_light_server_address'" centreon
+mysql -e "UPDATE options SET value='http://map:8080' WHERE \`key\`='map_light_server_address'" centreon
 
 # Stop services.
 httpd -k stop
