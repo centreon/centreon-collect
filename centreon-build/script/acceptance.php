@@ -167,6 +167,10 @@ else {
     case 'centreon-bam':
         $project = 'bam';
         break ;
+    case 'centreon-studio-server':
+    case 'centreon-studio-desktop-client':
+        $project = 'map';
+        break ;
     default:
         echo 'Unknown project ' . $project . ": perhaps you are not running acceptance.php from the root of a supported project ?\n";
         return (1);
