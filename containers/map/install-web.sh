@@ -41,6 +41,7 @@ mysql -e "INSERT INTO cfg_centreonbroker_info (config_id, config_key, config_val
 
 # Install Centreon Map web client.
 /tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-map4-web-client
+mysql -e "UPDATE options SET value='http://map:8080' WHERE `key`='map_light_server_address'" centreon
 
 # Stop services.
 httpd -k stop
