@@ -1,0 +1,20 @@
+version: '2'
+services:
+  webdriver:
+    image: ci.int.centreon.com:5000/mon-phantomjs:latest
+    ports:
+    - "4444"
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+    dns:
+    - "10.50.1.1"
+  map:
+    image: @MAP_IMAGE@
+    ports:
+    - "8080"
+    - "8443"
+    dns:
+    - "10.50.1.1"
