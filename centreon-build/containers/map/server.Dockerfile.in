@@ -21,7 +21,7 @@ RUN /tmp/install.sh
 COPY map/centreon-database.properties /etc/centreon-studio/centreon-database.properties
 COPY map/studio-config.properties /etc/centreon-studio/studio-config.properties
 COPY map/studio-database.properties /etc/centreon-studio/studio-database.properties
-COPY map/studio-log4j.xml /etc/centreon-studio/log4j.xml
+COPY map/studio-log4j.xml /etc/centreon-studio/studio-log4j.xml
 
 # Main script.
 COPY map/run.sh /usr/local/bin/container.sh
