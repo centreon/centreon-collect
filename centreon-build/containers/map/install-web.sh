@@ -14,7 +14,7 @@ mysql -e "GRANT SELECT ON centreon.* TO 'centreon_map'@'%' IDENTIFIED BY 'centre
 mysql -e "FLUSH PRIVILEGES"
 
 # Allow admin user to access Centreon API.
-mysql -e "UPDATE contact SET reach_api=1 WHERE contact_alias='admin'"
+mysql -e "UPDATE contact SET reach_api=1 WHERE contact_alias='admin'" centreon
 
 # Create Centreon Broker output (extracted from configure.sh).
 CONFIG_GROUP_ID=`mysql -e "SELECT MAX(config_group_id)+1 as config_group_id FROM cfg_centreonbroker_info" centreon | tail -1`
