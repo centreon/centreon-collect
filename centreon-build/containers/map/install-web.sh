@@ -13,6 +13,9 @@ mysql -e "GRANT SELECT ON centreon_storage.* TO 'centreon_map'@'%' IDENTIFIED BY
 mysql -e "GRANT SELECT ON centreon.* TO 'centreon_map'@'%' IDENTIFIED BY 'centreon_map'"
 mysql -e "FLUSH PRIVILEGES"
 
+# Allow admin user to access Centreon API.
+mysql -e "UPDATE contact SET reach_api=1 WHERE contact_alias='admin'"
+
 # Create Centreon Broker output (extracted from configure.sh).
 CONFIG_GROUP_ID=`mysql -e "SELECT MAX(config_group_id)+1 as config_group_id FROM cfg_centreonbroker_info" centreon | tail -1`
 CONFIG_ID=`mysql -e "SELECT min(config_id) FROM cfg_centreonbroker WHERE config_filename LIKE 'central-broker.xml'" centreon | tail -1`
@@ -38,6 +41,8 @@ mysql -e "INSERT INTO cfg_centreonbroker_info (config_id, config_key, config_val
           ($CONFIG_ID, 'compression_buffer', '', 'output', $CONFIG_GROUP_ID, 0, NULL, NULL), \
           ($CONFIG_ID, 'type', 'ipv4', 'output', $CONFIG_GROUP_ID, 0, NULL, NULL), \
           ($CONFIG_ID, 'blockId', '1_3', 'output', $CONFIG_GROUP_ID, 0, NULL, NULL)" centreon
+centreon -d -u admin -p centreon -a POLLERGENERATE -v 1
+centreon -d -u admin -p centreon -a CFGMOVE -v 1
 
 # Install Centreon Map web client.
 /tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-map4-web-client
