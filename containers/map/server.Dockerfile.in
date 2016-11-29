@@ -1,0 +1,29 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Copy Map .repo files.
+COPY ces-map-unstable.@DISTRIB@.repo /etc/yum.repos.d/
+
+# Install packages.
+RUN yum clean all
+RUN yum install -y --nogpgcheck centreon-map4-server mysql-server
+
+# Copy license.
+COPY map/licence.json.asc /etc/centreon-studio/
+
+# Install script.
+COPY map/install-server.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
+
+# Copy configuration files.
+COPY map/centreon-database.properties /etc/centreon-studio/centreon-database.properties
+COPY map/studio-config.properties /etc/centreon-studio/studio-config.properties
+COPY map/studio-database.properties /etc/centreon-studio/studio-database.properties
+COPY map/studio-log4j.xml /etc/centreon-studio/studio-log4j.xml
+
+# Main script.
+COPY map/run.sh /usr/local/bin/container.sh
+RUN chmod +x /usr/local/bin/container.sh
+ENTRYPOINT ["/usr/local/bin/container.sh"]

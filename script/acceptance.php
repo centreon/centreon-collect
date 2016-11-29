@@ -110,6 +110,10 @@ if ($synchronize) {
         '/mon-web-stable:centos7',
         '/des-bam:centos6',
         '/des-bam:centos7',
+        '/des-bam-server:centos6',
+        '/des-bam-server:centos7',
+        '/des-bam-web:centos6',
+        '/des-bam-web:centos7',
         'redis:latest'
     );
     $count = count($images);
@@ -162,6 +166,10 @@ else {
         break ;
     case 'centreon-bam':
         $project = 'bam';
+        break ;
+    case 'centreon-studio-server':
+    case 'centreon-studio-desktop-client':
+        $project = 'map';
         break ;
     default:
         echo 'Unknown project ' . $project . ": perhaps you are not running acceptance.php from the root of a supported project ?\n";
@@ -242,6 +250,14 @@ else {
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('des-bam-dev.yml'),
         array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-bam:' : 'des-bam-dev:') . $distrib)
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/map/docker-compose.yml.in'),
+        xpath('des-map-dev.yml'),
+        array(
+            '@MAP_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-map-server:' : 'des-map-server:') . $distrib,
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-map-web:' : 'des-map-web:') . $distrib
+        )
     );
 
     // Execute the dev container script.
