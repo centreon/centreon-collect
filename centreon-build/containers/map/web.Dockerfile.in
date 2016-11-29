@@ -1,0 +1,17 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-web:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Copy Map .repo files.
+COPY ces-map-unstable.@DISTRIB@.repo /etc/yum.repos.d/
+
+# Install Centreon Map web client.
+RUN yum clean all
+RUN yum install -y --nogpgcheck centreon-map4-web-client
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+RUN chmod +x /tmp/install-centreon-module.php
+
+# Install script.
+COPY map/install-web.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh

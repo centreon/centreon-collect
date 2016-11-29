@@ -44,6 +44,6 @@ $_SESSION['version'] = '2.7.1';
 $_SESSION['firstname'] = 'admin';
 $_SESSION['lastname'] = 'admin';
 $_SESSION['ADMIN_PASSWORD'] = 'centreon';
-$_SESSION['email'] = 'nonexistent@centreon.com';
+$_SESSION['email'] = 'admin@centreon.com';
 
 ?>
