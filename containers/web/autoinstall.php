@@ -26,6 +26,7 @@ $_SESSION['MONITORINGENGINE_GROUP'] = 'centreon-engine';
 $_SESSION['MONITORINGENGINE_ETC'] = '/etc/centreon-engine/';
 $_SESSION['MONITORING_INIT_SCRIPT'] = '/etc/init.d/centengine';
 $_SESSION['MONITORINGENGINE_PLUGIN'] = '/usr/lib/nagios/plugins/';
+$_SESSION['CENTREONPLUGINS'] = '/usr/lib/centreon/plugins/';
 $_SESSION['MONITORING_VAR_LOG'] = '/var/log/centreon-engine/';
 $_SESSION['MONITORING_VAR_LIB'] = '/var/lib/centreon-engine/';
 $_SESSION['BROKER_MODULE'] = 'centreon-broker';
