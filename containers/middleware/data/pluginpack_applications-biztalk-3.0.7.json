@@ -1,5 +1,5 @@
 {
-    "schema_version": "2.0",
+    "schema_version": "2",
     "commands": [
         {
             "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_biztalk.pl --plugin=database::mssql::plugin --dyn-mode=apps::biztalk::sql::mode::rlocationdisabled --hostname=$HOSTADDRESS$ --port=$_HOSTMSSQLPORT$ --username=\\'$_HOSTMSSQLUSERNAME$\\' --password=\\'$_HOSTMSSQLPASSWORD$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\' $_SERVICEEXTRAOPTIONS$\\\"",
