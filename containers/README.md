@@ -64,14 +64,34 @@ time.
 ### mon-ppe
 
 Has Centreon Plugin Pack Exporter module installed on top of Centreon
-Web. Therefore it reuse the *mon-web* images.
+Web. Therefore it reuses the *mon-web* images.
 
 ### mon-lm
 
 Has Centreon License Manager module installed on top of Centreon Web.
-Therefore it reuse the *mon-web* images.
+Therefore it reuses the *mon-web* images.
 
 ### mon-ppm
 
 Has Centreon Plugin Pack Manager and Centreon License Manager installed
-on top of Centreon Web. It reuse *mon-web* images.
+on top of Centreon Web. It reuses *mon-web* images.
+
+### mon-automation
+
+Has Centreon Automation installed along Centreon Plugin Pack Manager and
+Centreon License Manager. Therefore it reuses *mon-ppm* images.
+
+### des-bam
+
+Has Centreon BAM module on top of Centreon Web. It reuses *mon-web*
+images.
+
+### des-map-server
+
+Has Centreon Map Server. Usually needs also des-map-web to work properly
+and provide all Centreon Map features.
+
+### des-map-web
+
+Has correct configuration to work with des-map-server and has Centreon
+Map Web Client installed on top of *mon-web* images.
