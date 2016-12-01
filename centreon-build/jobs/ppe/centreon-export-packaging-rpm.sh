@@ -22,7 +22,7 @@ rm -rf output-centos7
 mkdir output-centos7
 
 # Create source tarball.
-cd centreon-import
+cd centreon-export
 git checkout --detach "tags/$VERSION"
 rm -rf "../centreon-export-$VERSION"
 mkdir "../centreon-export-$VERSION"
