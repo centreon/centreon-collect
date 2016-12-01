@@ -1,0 +1,13 @@
+[centreon-internal]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://srvi-repo.int.centreon.com/yum/internal/el7/$basearch/
+enabled=1
+gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+
+[centreon-standard-stable-noarch]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://srvi-repo.int.centreon.com/yum/internal/el7/noarch/
+enabled=1
+gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
