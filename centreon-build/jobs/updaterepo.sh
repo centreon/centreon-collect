@@ -65,7 +65,7 @@ clean_repository() {
         centreon-discovery-engine-debuginfo
         centreon-bam-server"
   for rpm in $rpms ; do
-    old=`ls | grep '^'$rpm'-[0-9]\.[0-9]\.[0-9]-[0-9]\+\.[0-9a-f]\+.el[67].[centos.]*\(noarch\|i386\|x86_64\)\.rpm' | head -n -1`
+    old=`ls | grep '^'$rpm'-[0-9]\.[0-9]\.[0-9]-[0-9]\+\.[0-9a-f]\+.el[67].[centos.]*\(noarch\|i386\|x86_64\)\.rpm' | head -n -5`
     if [ -n "$old" ] ; then
       for to_delete in $old ; do
         echo "REMOVING $to_delete"
@@ -75,12 +75,33 @@ clean_repository() {
   done
 }
 
-clean_repository /srv/repos/standard/dev/el6/unstable/noarch/RPMS
-clean_repository /srv/repos/standard/dev/el6/unstable/x86_64/RPMS
-clean_repository /srv/repos/standard/dev/el7/unstable/noarch/RPMS
-clean_repository /srv/repos/standard/dev/el7/unstable/x86_64/RPMS
-clean_repository /srv/repos/centreon-bam/dev/el6/unstable/noarch/RPMS
-clean_repository /srv/repos/centreon-bam/dev/el7/unstable/noarch/RPMS
+# Internal repository.
+clean_repository /srv/yum/internal/el6/noarch/RPMS
+clean_repository /srv/yum/internal/el6/x86_64/RPMS
+clean_repository /srv/yum/internal/el7/noarch/RPMS
+clean_repository /srv/yum/internal/el7/x86_64/RPMS
+
+# Standard unstable repository.
+clean_repository /srv/yum/standard/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/yum/standard/dev/el6/unstable/x86_64/RPMS
+clean_repository /srv/yum/standard/dev/el7/unstable/noarch/RPMS
+clean_repository /srv/yum/standard/dev/el7/unstable/x86_64/RPMS
+
+# BAM unstable repository.
+clean_repository /srv/yum/bam/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/yum/bam/dev/el7/unstable/noarch/RPMS
+
+# Map unstable repository.
+clean_repository /srv/yum/map/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/yum/map/dev/el7/unstable/noarch/RPMS
+
+# MBI unstable repository.
+clean_repository /srv/yum/mbi/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/yum/mbi/dev/el7/unstable/noarch/RPMS
+
+# Plugin packs repository.
+clean_repository /srv/yum/plugin-packs/dev/el6/unstable/noarch/RPMS
+clean_repository /srv/yum/plugin-packs/dev/el7/unstable/noarch/RPMS
 
 #
 # Clean after ourselves.
