@@ -3,7 +3,7 @@ FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Copy stable Centreon repo files.
-COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
+COPY centreon-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
@@ -11,7 +11,7 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 # Install Centreon Web and PPE 1.3.x.
 RUN yum remove -y centreon*
 RUN yum clean all
-RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.5 centreon-2.7.5 centreon-plugins-2.7.5 centreon-plugin-meta-2.7.5 centreon-common-2.7.5 centreon-web-2.7.5 centreon-trap-2.7.5 centreon-perl-libs-2.7.5 mysql-server
+RUN yum install --disablerepo='centreon-internal*' -y --nogpgcheck yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.5 centreon-2.7.5 centreon-plugins-2.7.5 centreon-plugin-meta-2.7.5 centreon-common-2.7.5 centreon-web-2.7.5 centreon-trap-2.7.5 centreon-perl-libs-2.7.5 mysql-server
 COPY centreon-export /usr/share/centreon/www/modules/centreon-export
 
 # Install Centreon (web install).
