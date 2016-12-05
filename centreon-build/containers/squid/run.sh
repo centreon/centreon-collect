@@ -3,5 +3,5 @@
 set -x
 
 httpd -k start
-service squid start
+squid -f /etc/squid/squid.conf
 tailf /var/log/httpd/error_log
