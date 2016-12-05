@@ -6,7 +6,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 
 # Install package.
-RUN yum --disablerepo='*' --enablerepo='ces-standard-unstable*' clean all
+RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all
 RUN yum install -y --nogpgcheck centreon-pp-manager
 
 # Install Plugin Pack JSON files.
