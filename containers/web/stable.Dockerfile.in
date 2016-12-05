@@ -6,7 +6,7 @@ MAINTAINER Alexandre Fouille <afouille@centreon.com>
 RUN echo 'gpgcheck=0' >> /etc/yum.conf
 RUN echo 'http_caching=none' >> /etc/yum.conf
 RUN mkdir /usr/share/monitoring
-COPY ces-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/ces-standard-stable.repo
+COPY centreon-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-standard-stable.repo
 RUN yum install --nogpgcheck -y wget bzip2
 
 # Install Node.js and related elements.
