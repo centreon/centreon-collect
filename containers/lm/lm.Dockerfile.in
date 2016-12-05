@@ -6,7 +6,7 @@ MAINTAINER Alexandre Fouille <afouille@centreon.com>
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
 
 # Install package.
-RUN yum --disablerepo='*' --enablerepo='ces-standard-unstable*' clean all
+RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all
 RUN yum install -y --nogpgcheck centreon-license-manager
 
 # Install module in Centreon.
