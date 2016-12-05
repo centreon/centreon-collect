@@ -5,7 +5,7 @@ enabled=1
 gpgcheck=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
 
-[centreon-standard-stable-noarch]
+[centreon-internal-noarch]
 name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
 baseurl=http://srvi-repo.int.centreon.com/yum/internal/el6/noarch/
 enabled=1
