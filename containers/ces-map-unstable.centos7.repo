@@ -1,6 +1,0 @@
-[ces-map-unstable]
-name=Centreon Map repository
-baseurl=http://10.50.1.103/repo/el7/unstable/
-enabled=1
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES

@@ -6,9 +6,8 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 
 # Copy stable Centreon repo files.
-COPY ces-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-standard-stable.repo
-COPY ces-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-stable.repo
-COPY ces-pluginpacks-unstable.@DISTRIB@.repo /etc/yum.repos.d/ces-pluginpacks-unstable.repo
+COPY centreon-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
+COPY centreon-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
@@ -16,13 +15,12 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 # Install Centreon Web and PPM 1.x.
 RUN yum remove -y centreon*
 RUN yum clean all
-RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7 centreon-pp-manager-1.4.1 mysql-server
+RUN yum install --disablerepo='centreon-internal*' -y --nogpgcheck yum install -y --nogpgcheck centreon-base-config-centreon-engine-2.7.7 centreon-2.7.7 centreon-plugins-2.7.7 centreon-plugin-meta-2.7.7 centreon-common-2.7.7 centreon-web-2.7.7 centreon-trap-2.7.7 centreon-perl-libs-2.7.7 centreon-pp-manager-1.4.1 mysql-server
 
 # Install Centreon (web install).
 COPY web/fresh.sh /tmp/fresh.sh
 RUN chmod +x /tmp/fresh.sh
 RUN /tmp/fresh.sh
-
 
 # Install module in Centreon with old plugin packs.
 COPY install-centreon-module.php /tmp/install-centreon-module.php

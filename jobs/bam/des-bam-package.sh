@@ -51,15 +51,15 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input ou
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='centreon-bam/dev/el6/unstable/noarch'
+  REPO='internal/el6/noarch'
 elif [ "$DISTRIB" = 'centos7' ] ; then
-  REPO='centreon-bam/dev/el7/unstable/noarch'
+  REPO='internal/el7/noarch'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
 FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/srv/repos/$REPO/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "root@srvi-ces-repository.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com" sh $DESTFILE $REPO
+scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
+DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
+scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
