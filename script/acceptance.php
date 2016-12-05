@@ -202,6 +202,20 @@ else {
         )
     );
     replace_in_file(
+        xpath($centreon_build_dir . '/containers/squid/docker-compose.yml.in'),
+        xpath('mon-ppm-squid-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/squid/docker-compose.yml.in'),
+        xpath('mon-lm-squid-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
+        )
+    );
+    replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose-influxdb.yml.in'),
         xpath('mon-web-influxdb.yml'),
         array(
