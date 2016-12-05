@@ -4,4 +4,4 @@ set -x
 
 httpd -k start
 service squid start
-tailf /var/log/squid/access.log
+tailf /var/log/httpd/error_log
