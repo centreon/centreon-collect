@@ -30,29 +30,29 @@ Run Centreon Plugin Pack Exporter unit tests and report test results.
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
-(srvi-ces-repository, branch unstable).
+(srvi-repo, internal repository).
 
 ### mon-broker-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
-(srvi-ces-repository, branch unstable).
+(srvi-repo, internal repository).
 
 ### mon-web-package.sh
 
 Run docker-rpm-builder in monitoring-build-dependencies images.
 Generated RPMs are then pushed to the internal repository
-(srvi-ces-repository, branch unstable).
+(srvi-repo, internal repository).
 
 ### mon-lm-package.sh
 
 Build a tarball of Centreon License Manager and upload it to
-srvi-ces-repository in /tmp.
+srvi-repo in /srv/sources.
 
 ### mon-ppe-package.sh
 
 Build a tarball of Centreon Plugin Pack Exporter and upload it to
-srvi-ces-repository in /tmp.
+srvi-repo in /srv/sources.
 
 ## Bundle jobs
 
