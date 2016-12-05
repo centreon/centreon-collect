@@ -114,9 +114,9 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 
 # Copy files to server.
 if [ "$CENTOS_VERSION" = 6 ] ; then
-  REPO='standard/dev/el6/unstable/noarch'
+  REPO='internal/el6/noarch'
 else
-  REPO='standard/dev/el7/unstable/noarch'
+  REPO='internal/el7/noarch'
 fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
