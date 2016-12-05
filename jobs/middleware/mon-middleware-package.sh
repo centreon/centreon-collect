@@ -10,4 +10,4 @@ cd ..
 
 # Copy files to server.
 FILES="centreon-imp-portal-api.tar.gz"
-scp -o StrictHostKeyChecking=no $FILES "root@srvi-ces-repository.int.centreon.com:/tmp/"
+scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/sources/"
