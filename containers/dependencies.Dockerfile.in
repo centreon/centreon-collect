@@ -3,7 +3,8 @@ FROM centos:@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 RUN echo 'gpgcheck=0' >> /etc/yum.conf
 RUN echo 'http_caching=none' >> /etc/yum.conf
-COPY centreon-internal.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-internal.repo
+COPY repo/centreon-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-standard-stable.repo
+COPY repo/centreon-internal.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install properly packaged dependencies.
 RUN mkdir /usr/share/monitoring

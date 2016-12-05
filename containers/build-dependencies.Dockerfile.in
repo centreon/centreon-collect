@@ -3,6 +3,7 @@ FROM alanfranz/drb-epel-@CENTOS_VERSION@-x86-64
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install development repository.
+COPY repo/centreon-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-standard-stable.repo
 COPY repo/centreon-internal.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install required build dependencies for all Centreon projects.
