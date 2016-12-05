@@ -19,7 +19,7 @@ if [ -n "$REPO" ] ; then
       echo $$ >> "$PID_FILE"
       concurrent=`cat $PID_FILE | head -n 1`
       if [ "$concurrent" = $$ ] ; then
-        createrepo "/srv/repos/$REPO"
+        createrepo "/srv/yum/$REPO"
         rm -f "$PID_FILE"
         sucess=1
       fi
