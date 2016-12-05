@@ -14,7 +14,7 @@ CENTOS_VERSION="$1"
 docker pull ci.int.centreon.com:5000/mon-web:centos$CENTOS_VERSION
 
 # Fetch PPE sources.
-scp -o StrictHostKeyChecking=no "root@srvi-ces-repository.int.centreon.com:/tmp/centreon-export.centos$CENTOS_VERSION.tar.gz" .
+scp -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com:/tmp/centreon-export.centos$CENTOS_VERSION.tar.gz" .
 tar xzf centreon-export.centos$CENTOS_VERSION.tar.gz
 
 # Prepare Dockerfile.
