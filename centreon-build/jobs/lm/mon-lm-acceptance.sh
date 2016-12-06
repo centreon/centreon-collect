@@ -23,7 +23,7 @@ docker pull $SQUID_IMAGE
 # Prepare Docker Compose file.
 cd centreon-license-manager
 sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-web.yml.in > docker-compose-lm.yml
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' < `dirname $0`/../../containers/squid/docker-compose.yml.in > docker-compose-ppm-squid.yml
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/squid/docker-compose-middleware.yml.in > docker-compose-lm-squid.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-lm.yml < behat.yml || true`
