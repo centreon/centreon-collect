@@ -1,0 +1,17 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-web:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install Centreon MBI web interface.
+RUN yum --disablerepo='*' --enablerepo='centreon*' clean all
+RUN yum install -y --nogpgcheck centreon-bi-server
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+RUN chmod +x /tmp/install-centreon-module.php
+
+# Install license file.
+COPY mbi/merethis_lic.zl /usr/share/centreon/www/modules/centreon-bi-server/license/merethis_lic.zl
+
+# Install script.
+COPY mbi/install-web.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
