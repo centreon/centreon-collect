@@ -46,7 +46,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp centreon-bi-server/packaging/centreon-license-manager.spectemplate input
+cp centreon-bi-server/packaging/centreon-bi-server.spectemplate input
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
