@@ -5,7 +5,7 @@ set -x
 
 # Start services.
 service mysql start
-service httpd -k start
+httpd -k start
 
 # Install Centreon MBI server.
 /tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-bi-server
