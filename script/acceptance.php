@@ -209,10 +209,11 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/squid/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/squid/docker-compose-middleware.yml.in'),
         xpath('mon-lm-squid-dev.yml'),
         array(
             '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
