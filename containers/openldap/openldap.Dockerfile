@@ -9,7 +9,7 @@ ENV LDAP_TLS false
 
 COPY openldap/conf /tmp/conf
 
-RUN ldapadd -x -D "cn=admin,dc=centreon,dc=com" -w centreon -f /tmp/conf/ou.ldif
-RUN ldapadd -x -D "cn=admin,dc=centreon,dc=com" -w centreon -f /tmp/conf/user.ldif
-RUN ldapadd -x -D "cn=admin,dc=centreon,dc=com" -w centreon -f /tmp/conf/group.ldif
+CMD ldapadd -x -D "cn=admin,dc=centreon,dc=com" -w centreon -f /tmp/conf/ou.ldif
+CMD ldapadd -x -D "cn=admin,dc=centreon,dc=com" -w centreon -f /tmp/conf/user.ldif
+CMD ldapadd -x -D "cn=admin,dc=centreon,dc=com" -w centreon -f /tmp/conf/group.ldif
 
