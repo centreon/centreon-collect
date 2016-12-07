@@ -35,7 +35,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-sed 's/^Release: .*$/Release: '"$RELEASE"'%{?dist}/g' < RPM-SPECS/centreon-bi-reporting-server.spec > input.centreon-bi-reporting-server.spectemplate
+sed 's/^Release: .*$/Release: '"$RELEASE"'%{?dist}/g' < centreon-bi-reporting-server/RPM-SPECS/centreon-bi-reporting-server.spec > input/centreon-bi-reporting-server.spectemplate
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
