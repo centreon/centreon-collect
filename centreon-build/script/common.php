@@ -2,7 +2,7 @@
 
 // Copy directory recursively
 function xcopy($source, $dest) {
-    if (stristr(PHP_OS, 'windows')) {
+    if (stristr(PHP_OS, 'WINNT')) {
         exec("xcopy '$source' '$dest' /E /I");
     } else {
         exec("cp -r '$source' '$dest'", $output, $return);
