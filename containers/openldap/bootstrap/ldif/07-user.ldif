@@ -1,4 +1,5 @@
 dn: uid=centreon,ou=users,dc=centreon,dc=com
+changetype: add
 objectClass: top
 objectClass: account
 objectClass: posixAccount

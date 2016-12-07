@@ -1,9 +1,11 @@
 dn: ou=users,dc=centreon,dc=com
+changetype: add
 objectclass: organizationalunit
 ou: users
 description: users
 
 dn: ou=groups,dc=centreon,dc=com
+changetype: add
 objectclass: organizationalunit
 ou: groups
 description: groups
