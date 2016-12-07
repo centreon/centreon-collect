@@ -36,7 +36,7 @@ docker pull "$BUILD_IMG"
 
 # Build RPMs.
 sed 's/@/@@/g' < centreon-bi-reporting-server/RPM-SPECS/centreon-bi-reporting-server.spec > input/centreon-bi-reporting-server.spectemplate
-sed -i 's/^Release: .*$/Release: '"$RELEASE"'%{?dist}/g' input/centreon-bi-reporting-server.spectemplate
+sed -i 's/^Release:.*$/Release: '"$RELEASE"'%{?dist}/g' input/centreon-bi-reporting-server.spectemplate
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
