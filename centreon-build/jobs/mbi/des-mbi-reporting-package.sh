@@ -27,7 +27,7 @@ now=`date +%s`
 export RELEASE="$now.$commit"
 
 # Generate archive of Centreon MBI reporting server.
-git archive --prefix="centreon-bi-reporting-server-$VERSION/" "$GIT_BRANCH" | gzip > "../centreon-bi-reporting-server-$VERSION.tar.gz"
+git archive --prefix="centreon-bi-reporting-server-$VERSION/" "$GIT_BRANCH" | gzip > "../input/centreon-bi-reporting-server-$VERSION.tar.gz"
 cd ..
 
 # Pull latest build dependencies.
