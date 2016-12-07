@@ -11,7 +11,7 @@ RUN apt-get -y update && apt-get -y dist-upgrade
 # Install LemonLDAP::NG repo
 RUN apt-get -y install wget
 RUN wget -O - http://lemonldap-ng.org/_media/rpm-gpg-key-ow2 | apt-key add -
-COPY lemonldap-ng.list /etc/apt/sources.list.d/
+COPY lemonldap/lemonldap-ng.list /etc/apt/sources.list.d/
 
 # Install LemonLDAP::NG packages
 RUN apt-get -y update && apt-get -y install apache2 libapache2-mod-perl2 libapache2-mod-fcgid lemonldap-ng lemonldap-ng-fr-doc
