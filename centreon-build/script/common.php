@@ -2,11 +2,15 @@
 
 // Copy directory recursively
 function xcopy($source, $dest) {
-  exec("cp -r '$source' '$dest'", $output, $return);
-  if ($return == 0)
-    return (true);
-  else
-    return (false);
+    if (stristr(PHP_OS, 'windows')) {
+        exec("xcopy '$source' '$dest' /E /I");
+    } else {
+        exec("cp -r '$source' '$dest'", $output, $return);
+    }
+    if ($return == 0)
+        return (true);
+    else
+        return (false);
 }
 
 // Replace slashes with platform-specific directory separator.
