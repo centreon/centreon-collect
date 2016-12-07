@@ -3,7 +3,7 @@
 // Copy directory recursively
 function xcopy($source, $dest) {
     if (stristr(PHP_OS, 'WINNT')) {
-        exec("xcopy '$source' '$dest' /E /I");
+        exec("xcopy '$source' '$dest' /E /I", $output, $return);
     } else {
         exec("cp -r '$source' '$dest'", $output, $return);
     }
