@@ -1,0 +1,12 @@
+dn: uid=centreon,ou=users,dc=centreon,dc=com
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+cn: centreon
+uid: centreon
+uidNumber: 100
+gidNumber: 1000
+homeDirectory: /home/centreon
+loginShell: /bin/bash
+gecos: centreon
+userPassword: centreon

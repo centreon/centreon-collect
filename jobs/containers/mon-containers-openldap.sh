@@ -8,7 +8,7 @@ docker pull osixia/openldap:latest
 
 # Build image.
 cd centreon-build/containers
-docker build -t ci.int.centreon.com:5000/mon-openldap:latest -f openldap/Dockerfile .
+docker build -t ci.int.centreon.com:5000/mon-openldap:latest -f openldap/openldap.Dockerfile .
 
 # Push image
 docker push ci.int.centreon.com:5000/mon-openldap:latest
