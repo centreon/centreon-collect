@@ -1,17 +1,13 @@
 dn: cn=windows,ou=groups,dc=centreon,dc=com
+changetype: add
 objectclass: groupofnames
 cn: windows
-description: Centreon group
+description: Windows group
 member: cn=centreon,ou=users,dc=centreon,dc=com
 
 dn: cn=linux,ou=groups,dc=centreon,dc=com
+changetype: add
 objectclass: groupofnames
 cn: windows
-description: Centreon group
-member: cn=centreon,ou=users,dc=centreon,dc=com
-
-dn: cn=windows,ou=groups,dc=centreon,dc=com
-objectclass: groupofnames
-cn: windows
-description: Centreon group
+description: Linux group
 member: cn=centreon,ou=users,dc=centreon,dc=com
