@@ -113,8 +113,8 @@ if ($synchronize) {
         '/des-bam:centos7',
         '/des-bam-server:centos6',
         '/des-bam-server:centos7',
-        '/des-bam-web:centos6',
-        '/des-bam-web:centos7',
+        '/des-map-web:centos6',
+        '/des-map-web:centos7',
         'redis:latest'
     );
     $count = count($images);
@@ -280,6 +280,13 @@ else {
         array(
             '@MAP_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-map-server:' : 'des-map-server:') . $distrib,
             '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-map-web:' : 'des-map-web:') . $distrib
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/mbi/docker-compose.yml.in'),
+        xpath('des-mbi-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-mbi-web:' : 'des-mbi-web:') . $distrib
         )
     );
 
