@@ -1,0 +1,9 @@
+dn: ou=users,dc=centreon,dc=com
+objectclass: organizationalunit
+ou: users
+description: users
+
+dn: ou=groups,dc=centreon,dc=com
+objectclass: organizationalunit
+ou: groups
+description: groups
