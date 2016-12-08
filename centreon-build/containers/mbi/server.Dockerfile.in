@@ -1,0 +1,21 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install packages.
+RUN yum --disablerepo='*' --enablerepo='centreon*' clean all
+RUN yum install -y centreon-bi-reporting-server mysql-server
+
+# Copy configuration files.
+COPY mbi/cbis-profile.xml /etc/centreon-bi/cbis-profile.xml
+COPY mbi/reports-profile.xml /etc/centreon-bi/reports-profile.xml
+
+# Install script.
+COPY mbi/install-server.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
+
+# Main script.
+COPY mbi/run.sh /usr/local/bin/container.sh
+RUN chmod +x /usr/local/bin/container.sh
+ENTRYPOINT ["/usr/local/bin/container.sh"]
