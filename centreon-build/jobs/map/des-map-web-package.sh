@@ -17,7 +17,7 @@ rm -rf output
 mkdir output
 
 # Get version.
-cd centreon-map-light
+cd centreon-studio-web-client
 VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
@@ -35,7 +35,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp centreon-map-light/packaging/centreon-map4-web-client.spectemplate input
+cp centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate input
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
