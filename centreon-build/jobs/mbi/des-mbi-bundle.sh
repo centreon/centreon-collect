@@ -18,8 +18,11 @@ docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
 cd centreon-build/containers
+sed "s/@DISTRIB@/$DISTRIB/g" < mbi/server.Dockerfile.in > mbi/server.$DISTRIB.Dockerfile
 sed "s/@DISTRIB@/$DISTRIB/g" < mbi/web.Dockerfile.in > mbi/web.$DISTRIB.Dockerfile
 
 # Build image.
+docker build --no-cache -t ci.int.centreon.com:5000/des-mbi-server:$DISTRIB -f mbi/server.$DISTRIB.Dockerfile .
 docker build --no-cache -t ci.int.centreon.com:5000/des-mbi-web:$DISTRIB -f mbi/web.$DISTRIB.Dockerfile .
+docker push ci.int.centreon.com:5000/des-mbi-server:$DISTRIB
 docker push ci.int.centreon.com:5000/des-mbi-web:$DISTRIB
