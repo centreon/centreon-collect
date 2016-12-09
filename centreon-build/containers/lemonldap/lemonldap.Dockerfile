@@ -12,7 +12,7 @@ RUN apt-get -y update && apt-get -y dist-upgrade
 RUN apt-get -y install wget
 RUN wget -O - http://lemonldap-ng.org/_media/rpm-gpg-key-ow2 | apt-key add -
 COPY lemonldap/lemonldap-ng.list /etc/apt/sources.list.d/
-COPY lemonldap/lmConf-2.js /var/lib/lemonldap-ng/conf/lmConf-2.js
+COPY lemonldap/lmConf-2.js /var/lib/lemonldap-ng/conf/lmConf-2.json
 COPY lemonldap/centreon-apache2.conf /etc/apache2/sites-available/centreon-apache2.conf
 
 # Install LemonLDAP::NG packages
