@@ -45,10 +45,10 @@ function getPackages($distrib) {
     global $expectedFiles;
     echo "Searching latest Engine and Broker packages...\n";
     if ($distrib == 'centos6') {
-        $url = 'http://srvi-repo.int.centreon.com/yum/standard/dev/el6/unstable/x86_64/RPMS/';
+        $url = 'http://srvi-repo.int.centreon.com/yum/internal/el6/x86_64/RPMS/';
     }
     else if ($distrib == 'centos7') {
-        $url = 'http://srvi-repo.int.centreon.com/yum/standard/dev/el7/unstable/x86_64/RPMS/';
+        $url = 'http://srvi-repo.int.centreon.com/yum/internal/el7/x86_64/RPMS/';
     }
     else {
         throw new \Exception('Unknown distribution ' . $distrib);
