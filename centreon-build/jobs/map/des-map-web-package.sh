@@ -26,9 +26,22 @@ commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
 now=`date +%s`
 export RELEASE="$now.$commit"
 
-# Generate archive of Centreon Map web client.
-git archive --prefix="centreon-map4-web-client-$VERSION/" "$GIT_BRANCH" | gzip > "../input/centreon-map4-web-client-$VERSION.tar.gz"
+# Generate sources of Centreon Map web client.
+npm install
+./node_modules/bower/bin/bower install
+node ./node_modules/gulp/bin/gulp.js build-module
+node ./node_modules/gulp/bin/gulp.js build-widget
+
+# Generate source tarball used for packaging.
+rm -rf ../centreon-map4-web-client-$VERSION
+mkdir ../centreon-map4-web-client-$VERSION
+cp -a build/module ../centreon-map4-web-client-$VERSION
+cp -a build/widget ../centreon-map4-web-client-$VERSION
+cp -a build/install.sh ../centreon-map4-web-client-$VERSION
+cp -a build/libinstall ../centreon-map4-web-client-$VERSION
+cp -a build/examples ../centreon-map4-web-client-$VERSION
 cd ..
+tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
