@@ -56,6 +56,8 @@
     "googleExportedVars": {},
     "timeout": 72000,
     "localSessionStorage": "Cache::FileCache",
+    "AuthLDAPFilter":"(&(uid=$user)(objectClass=posixAccount))",
+    "mailLDAPFilter":"(&(mail=$mail)(objectClass=posixAccount))",
     "registerUrl": "http://auth.centreon.com/register.pl",
     "oidcStorageOptions": {},
     "grantSessionRules": {},
