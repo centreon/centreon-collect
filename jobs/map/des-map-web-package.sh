@@ -41,7 +41,7 @@ cp -a build/install.sh ../centreon-map4-web-client-$VERSION
 cp -a build/libinstall ../centreon-map4-web-client-$VERSION
 cp -a build/examples ../centreon-map4-web-client-$VERSION
 cd ..
-tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client
+tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
