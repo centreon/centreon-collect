@@ -12,7 +12,7 @@ RUN apt-get -y update && apt-get -y dist-upgrade
 RUN apt-get -y install wget
 RUN wget -O - http://lemonldap-ng.org/_media/rpm-gpg-key-ow2 | apt-key add -
 COPY lemonldap/lemonldap-ng.list /etc/apt/sources.list.d/
-COPY lemonldap/lmConf-2.js /var/lib/lemonldap-ng/conf/lmConf-2.js
+COPY lemonldap/lmConf-2.json /var/lib/lemonldap-ng/conf/lmConf-2.js
 COPY lemonldap/centreon-apache2.conf /etc/apache2/sites-available/centreon-apache2.conf
 
 # Install LemonLDAP::NG packages
@@ -20,6 +20,9 @@ RUN apt-get -y update && apt-get -y install apache2 libapache2-mod-perl2 libapac
 
 # Change SSO Domain
 RUN sed -i "s/example\.com/${SSODOMAIN}/g" /etc/lemonldap-ng/* /var/lib/lemonldap-ng/conf/lmConf-1.js /var/lib/lemonldap-ng/test/index.pl
+
+# Avoid protection on manager.centreon.com
+RUN sed -i "s/protection   = manager/protection   = none/" /etc/lemonldap-ng/lemonldap-ng.ini
 
 # Enable sites
 RUN a2ensite handler-apache2.conf
