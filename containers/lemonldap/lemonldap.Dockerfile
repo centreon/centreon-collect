@@ -21,6 +21,9 @@ RUN apt-get -y update && apt-get -y install apache2 libapache2-mod-perl2 libapac
 # Change SSO Domain
 RUN sed -i "s/example\.com/${SSODOMAIN}/g" /etc/lemonldap-ng/* /var/lib/lemonldap-ng/conf/lmConf-1.js /var/lib/lemonldap-ng/test/index.pl
 
+# Avoid protection on manager.centreon.com
+RUN sed -i "s/protection   = manager/protection   = none/" /etc/lemonldap-ng/lemonldap-ng.ini
+
 # Enable sites
 RUN a2ensite handler-apache2.conf
 RUN a2ensite portal-apache2.conf
