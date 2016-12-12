@@ -41,3 +41,9 @@ VALUES
 (1, 'user_lastname', 'sn'),
 (1, 'user_name', 'cn'),
 (1, 'user_pager', 'mobile');
+
+--
+-- Contenu de la table auth_ressource_host
+--
+INSERT INTO `auth_ressource_host` (`auth_ressource_id`, `host_address`, `host_port`, `use_ssl`, `use_tls`, `host_order`)
+VALUES (1, 'openldap', 389, 0, 0, 1);
