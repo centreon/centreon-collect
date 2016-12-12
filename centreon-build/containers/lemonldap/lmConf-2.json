@@ -70,6 +70,11 @@
     "logoutServices": {},
     "securedCookie": 0,
     "samlStorageOptions": {},
+    "ldapExportedVars":{
+        "uid": "uid",
+        "cn": "cn",
+        "mail": "mail"
+    },
     "portalSkinBackground": "1280px-Cedar_Breaks_National_Monument_partially.jpg",
     "lwpSslOpts": {},
     "persistentStorage": "Apache::Session::File",
