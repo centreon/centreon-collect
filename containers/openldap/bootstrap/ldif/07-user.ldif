@@ -3,6 +3,7 @@ changetype: add
 objectClass: top
 objectClass: account
 objectClass: posixAccount
+objectClass: mailAccount
 cn: centreon
 uid: centreon
 uidNumber: 100
@@ -11,3 +12,4 @@ homeDirectory: /home/centreon
 loginShell: /bin/bash
 gecos: centreon
 userPassword: centreon
+mail: centreon@localhost
