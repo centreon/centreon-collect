@@ -14,11 +14,14 @@ COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install script (web-wizard install).
 COPY web/kb.sql /tmp/kb.sql
+COPY web/openldap.sql /tmp/openldap.sql
 COPY web/fresh.sh /tmp/install.sh
 COPY web/kb.sh /tmp/kb.sh
-RUN chmod +x /tmp/install.sh /tmp/kb.sh
+COPY web/openldap.sh /tmp/openldap.sh
+RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/openldap.sh
 RUN /tmp/install.sh
 RUN /tmp/kb.sh
+RUN /tmp/openldap.sh
 
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh
