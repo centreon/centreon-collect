@@ -70,6 +70,11 @@
     "logoutServices": {},
     "securedCookie": 0,
     "samlStorageOptions": {},
+    "ldapExportedVars":{
+        "uid": "uid",
+        "cn": "cn",
+        "mail": "mail"
+    },
     "portalSkinBackground": "1280px-Cedar_Breaks_National_Monument_partially.jpg",
     "lwpSslOpts": {},
     "persistentStorage": "Apache::Session::File",
@@ -125,27 +130,17 @@
     },
     "applicationList": {
         "1sample": {
-            "test1": {
+            "centreon": {
                 "options": {
                     "logo": "demo.png",
-                    "name": "Application Test 1",
+                    "name": "Centreon Web",
                     "description": "A simple application displaying authenticated user",
-                    "uri": "http://test1.centreon.com/",
+                    "uri": "http://centreon.centreon.com/",
                     "display": "auto"
                 },
                 "type": "application"
             },
             "type": "category",
-            "test2": {
-                "type": "application",
-                "options": {
-                    "display": "auto",
-                    "uri": "http://test2.centreon.com/",
-                    "description": "The same simple application displaying authenticated user",
-                    "name": "Application Test 2",
-                    "logo": "thumbnail.png"
-                }
-            },
             "catname": "Sample applications"
         },
         "2administration": {
