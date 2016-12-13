@@ -1,0 +1,19 @@
+version: '2'
+services:
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+  openldap:
+    image: ci.int.centreon.com:5000/mon-openldap:latest
+    ports:
+    - "389"
+  lemonldap:
+    image: ci.int.centreon.com:5000/mon-lemonldap:latest
+    ports:
+    - "80"
+    links:
+    - web:centreon.centreon.com
+    extra_hosts:
+    - "reload.centreon.com:127.0.0.1"
