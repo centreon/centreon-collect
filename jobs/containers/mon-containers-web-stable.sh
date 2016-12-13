@@ -15,5 +15,5 @@ cd centreon-build/containers
 sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/stable.Dockerfile.in > web/stable.centos$CENTOS_VERSION.Dockerfile
 
 # Build 'stable' image.
-docker build --no-cache -t ci.int.centreon.com:5000/mon-web-stable:centos$CENTOS_VERSION -f web/stable.centos$CENTOS_VERSION.Dockerfile .
+docker build --no-cache --ulimit 'nofile=40000' -t ci.int.centreon.com:5000/mon-web-stable:centos$CENTOS_VERSION -f web/stable.centos$CENTOS_VERSION.Dockerfile .
 docker push ci.int.centreon.com:5000/mon-web-stable:centos$CENTOS_VERSION
