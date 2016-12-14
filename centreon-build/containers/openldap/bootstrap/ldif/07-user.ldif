@@ -1,4 +1,4 @@
-dn: uid=centreon-ldap,ou=users,dc=centreon,dc=com
+dn: cn=centreon-ldap,ou=users,dc=centreon,dc=com
 changetype: add
 objectClass: top
 objectClass: account
@@ -14,7 +14,7 @@ gecos: centreon-ldap
 userPassword: centreon-ldap
 mail: centreon-ldap@localhost
 
-dn: uid=centreon-ldap2,ou=users,dc=centreon,dc=com
+dn: cn=centreon-ldap2,ou=users,dc=centreon,dc=com
 changetype: add
 objectClass: top
 objectClass: account
@@ -30,7 +30,7 @@ gecos: centreon-ldap2
 userPassword: centreon-ldap2
 mail: centreon-ldap2@localhost
 
-dn: uid=centreon-ldap3,ou=users,dc=centreon,dc=com
+dn: cn=centreon-ldap3,ou=users,dc=centreon,dc=com
 changetype: add
 objectClass: top
 objectClass: account
