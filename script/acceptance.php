@@ -155,7 +155,7 @@ else {
         $project = 'ppe';
         break ;
     case 'centreon-import':
-    case 'centreon-ppm':
+    case 'centreon-pp-manager':
         $project = 'ppm';
         break ;
     case 'centreon-automation':
