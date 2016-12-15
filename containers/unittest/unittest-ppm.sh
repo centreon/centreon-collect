@@ -8,7 +8,7 @@ rm -f /tmp/centreon-ppm_coverage.xml
 rm -f /tmp/centreon-ppm_codestyle.xml
 
 # Install dependencies.
-cd /usr/local/src/centreon-import/
+cd /usr/local/src/centreon-pp-manager/
 composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
 composer install
 
