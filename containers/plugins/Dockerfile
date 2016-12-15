@@ -16,7 +16,7 @@ COPY centreon_plugins_packaging.pl /script
 RUN mkdir -p /root/.ssh
 ADD id_rsa /root/.ssh/id_rsa
 RUN chmod 700 /root/.ssh/id_rsa
-RUN echo -e "Host srvi-ces-repository.int.centreon.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
+RUN echo -e "Host srvi-repo.int.centreon.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
 COPY gitconfig /root/.gitconfig
 ENTRYPOINT ["/usr/bin/perl", "/script/centreon_plugins_packaging.pl"]
 
