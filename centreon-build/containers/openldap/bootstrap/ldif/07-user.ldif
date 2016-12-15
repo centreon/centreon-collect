@@ -1,4 +1,4 @@
-dn: uid=centreon-ldap,ou=users,dc=centreon,dc=com
+dn: cn=centreon-ldap,ou=users,dc=centreon,dc=com
 changetype: add
 objectClass: top
 objectClass: account
@@ -13,3 +13,35 @@ loginShell: /bin/bash
 gecos: centreon-ldap
 userPassword: centreon-ldap
 mail: centreon-ldap@localhost
+
+dn: cn=centreon-ldap2,ou=users,dc=centreon,dc=com
+changetype: add
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: mailAccount
+cn: centreon-ldap2
+uid: centreon-ldap2
+uidNumber: 101
+gidNumber: 1000
+homeDirectory: /home/centreon-ldap2
+loginShell: /bin/bash
+gecos: centreon-ldap2
+userPassword: centreon-ldap2
+mail: centreon-ldap2@localhost
+
+dn: cn=centreon-ldap3,ou=users,dc=centreon,dc=com
+changetype: add
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: mailAccount
+cn: centreon-ldap3
+uid: centreon-ldap3
+uidNumber: 102
+gidNumber: 1000
+homeDirectory: /home/centreon-ldap3
+loginShell: /bin/bash
+gecos: centreon-ldap3
+userPassword: centreon-ldap3
+mail: centreon-ldap3@localhost

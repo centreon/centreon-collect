@@ -52,4 +52,4 @@ VALUES (1, 'openldap', 389, 0, 0, 1);
 -- Contenu de la table contact (user)
 --
 INSERT INTO `contact` (`contact_name`, `contact_alias`, `contact_lang`, `contact_activate`, `contact_oreon`, `contact_template_id`, `contact_admin`, `contact_auth_type`, `contact_ldap_dn`, `ar_id`, `contact_register`)
-VALUES ('centreon-ldap', 'centreon-ldap', 'en_US', '1', '1', (SELECT c2.contact_id FROM contact c2 WHERE c2.contact_name = 'contact_template'), '1', 'ldap', 'uid=centreon-ldap,ou=users,dc=centreon,dc=com', 1, 1);
+VALUES ('centreon-ldap', 'centreon-ldap', 'en_US', '1', '1', (SELECT c2.contact_id FROM contact c2 WHERE c2.contact_name = 'contact_template'), '1', 'ldap', 'cn=centreon-ldap,ou=users,dc=centreon,dc=com', 1, 1);
