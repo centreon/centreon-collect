@@ -15,7 +15,7 @@ docker pull ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION
 containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION /usr/local/bin/unittest-ppm`
 
 # Copy sources to container.
-docker cp centreon-import "$containerid:/usr/local/src/centreon-import"
+docker cp centreon-pp-manager "$containerid:/usr/local/src/centreon-pp-manager"
 
 # Run unit tests.
 docker start -a "$containerid"

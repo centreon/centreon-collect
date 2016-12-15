@@ -17,7 +17,7 @@ rm -rf output
 mkdir output
 
 # Get version.
-cd centreon-import
+cd centreon-pp-manager
 VERSION=`grep mod_release www/modules/centreon-pp-manager/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
@@ -46,7 +46,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp centreon-import/packaging/centreon-pp-manager.spectemplate input
+cp centreon-pp-manager/packaging/centreon-pp-manager.spectemplate input
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.

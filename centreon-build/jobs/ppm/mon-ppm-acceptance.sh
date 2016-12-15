@@ -21,7 +21,7 @@ docker pull $PPM1_IMAGE
 docker pull $SQUID_IMAGE
 
 # Prepare Docker compose file.
-cd centreon-import
+cd centreon-pp-manager
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-ppm.yml
 sed -e 's#@WEB_IMAGE@#'$PPM1_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-ppm1.yml
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../containers/squid/docker-compose.yml.in > docker-compose-ppm-squid.yml
