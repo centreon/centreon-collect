@@ -1,5 +1,8 @@
 <?php
 
+// Base centreon version.
+$centreonversion = '3.4';
+
 // Information table.
 $repos = array(
     '' => array(
@@ -24,7 +27,7 @@ $repos = array(
     )
 );
 
-// Browse all repositories.
+// Generate all .repo files.
 foreach ($repos as $repo => $repodata) {
     // Process CentOS 6 and CentOS 7.
     foreach (array('el6', 'el7') as $distrib) {
@@ -49,17 +52,68 @@ foreach ($repos as $repo => $repodata) {
 
                 // Description.
                 $content .= 'name=' . $repodata['name'] . "\n";
-                $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/3.4/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
+                $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
                 $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
                 $content .= "gpgcheck=1\n";
                 $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n\n";
             }
         }
 
-        // Write file.
+        // Write repo file.
         file_put_contents(
             $distrib . '/centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo',
             $content
         );
     }
+}
+
+// Generate all spec files.
+foreach ($repos as $repo => $repodata) {
+    // Generate spec content.
+    $content = '';
+    $content =
+        'Name:      centreon' . (empty($repo) ? '' : '-' . $repo) . '-release' . "\n" .
+        'Version:   ' . $centreonversion . "\n" .
+        'Release:   1%{?dist}' . "\n" .
+        'Summary:   ' . $repodata['name'] . "\n" .
+        'Group:     Applications/Communications' . "\n" .
+        'License:   ' . (empty($repo) ? 'ASL 2.0' : 'Proprietary') . "\n" .
+        'URL:       https://www.centreon.com' . "\n" .
+        'Packager:  Matthieu Kermagoret <mkermagoret@centreon.com>' . "\n" .
+        'Vendor:    Centreon' . "\n" .
+        'Source0:   centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo' . "\n";
+    if (empty($repo)) {
+        $content .=
+            'Source1:   RPM-GPG-KEY-CES' . "\n";
+    }
+    $content .=
+        'BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root' . "\n" .
+        'Requires:  yum' . "\n" .
+        "\n" .
+        '%description' . "\n" .
+        'Official repository of Centreon.' . "\n" .
+        "\n" .
+        '%install' . "\n" .
+        '%{__cp} %SOURCE0 $RPM_BUILD_ROOT%{_sysconfdir}/yum.repos.d/' . "\n" .
+        '%{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg/' . "\n" .
+        "\n" .
+        '%clean' . "\n" .
+        '%{__rm} -rf $RPM_BUILD_ROOT' . "\n" .
+        "\n" .
+        '%files' . "\n" .
+        '%defattr(-,root,root,-)' . "\n" .
+        '%{_sysconfdir}/yum.repos.d/centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo' . "\n";
+    if (empty($repo)) {
+        $content .=
+            '%{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-CES' . "\n";
+    }
+    $content .=
+        "\n" .
+        '%changelog' . "\n";
+
+    // Write spec file.
+    file_put_contents(
+        'centreon' . (empty($repo) ? '' : '-' . $repo) . '.spec',
+        $content
+    );
 }
