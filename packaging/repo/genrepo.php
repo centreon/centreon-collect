@@ -81,6 +81,7 @@ foreach ($repos as $repo => $repodata) {
         'URL:       https://www.centreon.com' . "\n" .
         'Packager:  Matthieu Kermagoret <mkermagoret@centreon.com>' . "\n" .
         'Vendor:    Centreon' . "\n" .
+        'BuildArch: noarch' . "\n" .
         'Source0:   centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo' . "\n";
     if (empty($repo)) {
         $content .=
