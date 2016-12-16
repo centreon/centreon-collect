@@ -13,7 +13,7 @@ php `dirname $0`/../../packaging/repo/genrepo.php
 
 # Build all release RPMs.
 for distrib in el6 el7 ; do
-  for project in '' bam map mbi packs ; do
+  for project in centreon centreon-bam centreon-map centreon-mbi centreon-packs ; do
     # Create temporary directories.
     rm -rf input output
     mkdir input
@@ -36,11 +36,11 @@ for distrib in el6 el7 ; do
     docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$tag input output
 
     # Push RPM.
-    if [ "$project" = '' ] ; then
+    if [ "$project" = centreon ] ; then
       REPO="standard/3.4/$distrib/testing/noarch"
-    elif [ "$project" = 'bam' -o "$project" = 'map' -o "$project" = 'mbi' ] ; then
+    elif [ "$project" = 'centreon-bam' -o "$project" = 'centreon-map' -o "$project" = 'centreon-mbi' ] ; then
       REPO="$project/3.4/$distrib/testing/noarch"
-    elif [ "$project" = 'packs' ] ; then
+    elif [ "$project" = 'centreon-packs' ] ; then
       REPO="plugin-packs/3.4/$distrib/testing/noarch"
     fi
     scp -o StrictHostKeyChecking=no output/noarch/*.rpm "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
