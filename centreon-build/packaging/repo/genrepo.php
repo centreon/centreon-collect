@@ -85,6 +85,9 @@ foreach ($repos as $repo => $repodata) {
     if (empty($repo)) {
         $content .=
             'Source1:   RPM-GPG-KEY-CES' . "\n";
+    } else {
+        $content .=
+            'Requires: centreon-release' . "\n";
     }
     $content .=
         'BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root' . "\n" .
