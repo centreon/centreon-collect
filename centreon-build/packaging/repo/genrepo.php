@@ -97,6 +97,8 @@ foreach ($repos as $repo => $repodata) {
         'Official repository of Centreon.' . "\n" .
         "\n" .
         '%install' . "\n" .
+        '%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/yum.repos.d' . "\n" .
+        '%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg' . "\n" .
         '%{__cp} %SOURCE0 $RPM_BUILD_ROOT%{_sysconfdir}/yum.repos.d/' . "\n" .
         '%{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg/' . "\n" .
         "\n" .
