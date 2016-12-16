@@ -99,9 +99,13 @@ foreach ($repos as $repo => $repodata) {
         "\n" .
         '%install' . "\n" .
         '%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/yum.repos.d' . "\n" .
-        '%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg' . "\n" .
-        '%{__cp} %SOURCE0 $RPM_BUILD_ROOT%{_sysconfdir}/yum.repos.d/' . "\n" .
-        '%{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg/' . "\n" .
+        '%{__cp} %SOURCE0 $RPM_BUILD_ROOT%{_sysconfdir}/yum.repos.d/' . "\n";
+    if (empty($repo)) {
+        $content .=
+            '%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg' . "\n" .
+            '%{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg/' . "\n";
+    }
+    $content .=
         "\n" .
         '%clean' . "\n" .
         '%{__rm} -rf $RPM_BUILD_ROOT' . "\n" .
