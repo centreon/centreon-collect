@@ -37,12 +37,17 @@ for distrib in el6 el7 ; do
 
     # Push RPM.
     if [ "$project" = centreon ] ; then
-      REPO="standard/3.4/$distrib/testing/noarch"
-    elif [ "$project" = 'centreon-bam' -o "$project" = 'centreon-map' -o "$project" = 'centreon-mbi' ] ; then
-      REPO="$project/3.4/$distrib/testing/noarch"
+      REPO='standard'
+    elif [ "$project" = 'centreon-bam' ] ; then
+      REPO='bam'
+    elif [ "$project" = 'centreon-map' ] ; then
+      REPO='map'
+    elif [ "$project" = 'centreon-mbi' ] ; then
+      REPO='mbi'
     elif [ "$project" = 'centreon-packs' ] ; then
-      REPO="plugin-packs/3.4/$distrib/testing/noarch"
+      REPO='plugin-packs'
     fi
+    REPO="$REPO/3.4/$distrib/testing/noarch"
     scp -o StrictHostKeyChecking=no output/noarch/*.rpm "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
     DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
     scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
