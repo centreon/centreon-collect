@@ -29,17 +29,7 @@ export RELEASE="$now.$commit"
 # Generate archive of Centreon Export.
 git archive --prefix="centreon-export-$VERSION/" "$GIT_BRANCH" | gzip > "../centreon-export-$VERSION.tar.gz"
 cd ..
-
-# Encrypt source archive.
-if [ "$DISTRIB" = "centos6" ] ; then
-  phpversion=53
-elif [ "$DISTRIB" = "centos7" ] ; then
-  phpversion=54
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
-curl -F "file=@centreon-export-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-export' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-export-$VERSION-php$phpversion.tar.gz"
+cp centreon-export-$VERSION.tar.gz input/
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
