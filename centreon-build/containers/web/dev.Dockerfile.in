@@ -1,4 +1,4 @@
-FROM ci.int.centreon.com:5000/mon-web-stable:@DISTRIB@
+FROM ci.int.centreon.com:5000/mon-web:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Update to the latest Engine and Broker.
