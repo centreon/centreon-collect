@@ -3,7 +3,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Update to the latest Engine and Broker.
 COPY centreon/@DISTRIB@/*.rpm /tmp/
-RUN yum -y --nogpgcheck '--disablerepo=*' install /tmp/*.rpm
+RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
 COPY web/centengine.sh /etc/init.d/centengine
 COPY web/cbd.sh /etc/init.d/cbd
 
