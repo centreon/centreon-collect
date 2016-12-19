@@ -28,7 +28,9 @@ rm -rf "../centreon-export-$VERSION"
 mkdir "../centreon-export-$VERSION"
 git archive HEAD | tar -C "../centreon-export-$VERSION" -x
 cd ..
-tar czf "input/centreon-export-$VERSION.tar.gz" "centreon-export-$VERSION"
+tar czf "centreon-export-$VERSION.tar.gz" "centreon-export-$VERSION"
+cp centreon-export-$VERSION.tar.gz input/centreon-export-$VERSION-php53.tar.gz
+cp centreon-export-$VERSION.tar.gz input/centreon-export-$VERSION-php54.tar.gz
 
 # Encrypt source archive.
 #curl -F "file=@centreon-export-$VERSION.tar.gz" -F "version=53" -F 'modulename=centreon-export' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-export-$VERSION-php53.tar.gz"
