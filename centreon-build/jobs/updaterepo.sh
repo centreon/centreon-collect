@@ -36,6 +36,7 @@ clean_repository() {
   rpms="centreon
         centreon-base-config-centreon-engine
         centreon-common
+        centreon-lang-fr_FR
         centreon-installed
         centreon-perl-libs
         centreon-plugin-meta
