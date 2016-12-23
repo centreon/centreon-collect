@@ -3,6 +3,7 @@ centreon-devel
 cmake
 gcc
 gcc-c++
+gettext
 make
 gnutls-devel
 qt4-devel
