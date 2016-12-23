@@ -9,14 +9,6 @@ if [ -z "$COMMIT" ] ; then
   exit 1
 fi
 
-# Create input and output directories for docker-rpm-builder.
-rm -rf input
-mkdir input
-rm -rf output-centos6
-mkdir output-centos6
-rm -rf output-centos7
-mkdir output-centos7
-
 # Create source tarball.
 cd centreon-web
 git checkout --detach "$COMMIT"
@@ -64,3 +56,5 @@ find centreon-web/ -name '*.php' | egrep -e "help\.php" > po_src_help
 xgettext --default-domain=messages -k_ --files-from=po_src_help --output=help.pot
 msgmerge centreon-web/lang/fr/LC_MESSAGES/help.po help.pot -o help.po
 
+# Clean workspace
+rm -f baseConf.sql broker_field_translation.tmp	broker_help_translation.tmp	help.pot menu_translation.php menu_translation.tmp messages.pot po_src po_src_help smarty_translate.php translation.db
