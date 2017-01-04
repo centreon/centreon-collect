@@ -1,12 +1,12 @@
 Product-Name = merethis_centreon-bam-server
-Registered-To =
-Order-Form-Number =
+Registered-To = CENTREON
+Order-Form-Number = Delivery_Production_RAndD
 Hardware-Locked = No
-Expires = 31-Dec-2016
-Maintenance = 31-Dec-2016
-Server = TEST_EGA
+Expires = 01-May-2017
+Maintenance = 01-May-2017
+Server = Production_Centreon
 TypeOfUse = Production
-LicenseType = Unlimited
-GenerationDate = 30-04-2016 14:21:34
+LicenseType = Limited
+GenerationDate = 02-11-2016 15:50:43
 Produced-By = Merethis
-Verification-Code = wHvz2ytvPopxalKpS5Pwq/VQhMSLAhRehEMOU1fApnRJ4yORgXolECDhgg==
+Verification-Code = 4QCq/h0nchD1l04AiNpk4RNwCXpzzwIVAK3TnGMD1dYRuFnd/e6TTgifrvj8
