@@ -78,8 +78,8 @@
             "unmanaged",
             "objects"
         ],
-        "update_date": "1466699395",
-        "version": "1.0.0",
+        "update_date": "1466699396",
+        "version": "1.0.1",
         "website": "www.centreon.com"
     },
     "service_templates": [
@@ -150,5 +150,7 @@
                 "wednesday": "00:00-24:00"
             }
         ]
-    }
+    },
+    "fake_object1": "I don't care",
+    "fake_object2": "I don't care"
 }
