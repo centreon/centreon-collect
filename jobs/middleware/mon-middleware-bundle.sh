@@ -7,7 +7,7 @@ set -x
 docker pull ubuntu:16.04
 
 # Fetch middleware sources.
-scp -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com:/tmp/centreon-imp-portal-api.tar.gz" .
+scp -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com:/srv/sources/centreon-imp-portal-api.tar.gz" .
 tar xzf centreon-imp-portal-api.tar.gz
 
 # CentOS middleware image.
