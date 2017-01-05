@@ -13,7 +13,7 @@ php `dirname $0`/../../packaging/repo/genrepo.php
 
 # Build all release RPMs.
 for distrib in el6 el7 ; do
-  for project in centreon centreon-bam centreon-map centreon-mbi centreon-packs ; do
+  for project in centreon centreon-bam centreon-map centreon-mbi centreon-plugin-packs ; do
     # Create temporary directories.
     rm -rf input output
     mkdir input
