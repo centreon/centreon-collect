@@ -11,19 +11,19 @@ $repos = array(
     ),
     'bam' => array(
         'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
-        'path' => 'bam/d4e1d7d3e888f596674453d1f20ff6d3'
+        'path' => 'centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3'
     ),
     'map' => array(
         'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
-        'path' => 'map/bfcfef6922ae08bd2b641324188d8a5f'
+        'path' => 'centreon-map/bfcfef6922ae08bd2b641324188d8a5f'
     ),
     'mbi' => array(
         'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
-        'path' => 'mbi/5e0524c1c4773a938c44139ea9d8b4d7'
+        'path' => 'centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7'
     ),
-    'packs' => array(
+    'plugin-packs' => array(
         'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
-        'path' => 'packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f'
+        'path' => 'plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f'
     )
 );
 
@@ -85,6 +85,8 @@ foreach ($repos as $repo => $repodata) {
         'Source0:   centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo' . "\n";
     if (empty($repo)) {
         $content .=
+            'Provides:  ces-release' . "\n" .
+            'Obsoletes: ces-release' . "\n" .
             'Source1:   RPM-GPG-KEY-CES' . "\n";
     } else {
         $content .=
@@ -124,6 +126,30 @@ foreach ($repos as $repo => $repodata) {
     // Write spec file.
     file_put_contents(
         'centreon' . (empty($repo) ? '' : '-' . $repo) . '.spec',
+        $content
+    );
+}
+
+// Write EMS spec file.
+foreach ($repos as $repo => $repodata) {
+    $content =
+        'Name:      centreon-ems-release' . "\n" .
+        'Version:   ' . $centreonversion . "\n" .
+        'Release:   1%{?dist}' . "\n" .
+        'Summary:   Install all Centreon repositories.' . "\n" .
+        'Group:     Applications/Communications' . "\n" .
+        'License:   Proprietary' . "\n" .
+        'URL:       https://www.centreon.com' . "\n" .
+        'Packager:  Matthieu Kermagoret <mkermagoret@centreon.com>' . "\n" .
+        'Vendor:    Centreon' . "\n" .
+        'BuildArch: noarch' . "\n" .
+        'Requires:  centreon-release' . "\n" .
+        'Requires:  centreon-bam-release' . "\n" .
+        'Requires:  centreon-map-release' . "\n" .
+        'Requires:  centreon-mbi-release' . "\n" .
+        'Requires:  centreon-plugin-packs-release' . "\n";
+    file_put_contents(
+        'centreon-ems.spec',
         $content
     );
 }
