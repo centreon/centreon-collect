@@ -2,6 +2,7 @@
 
 // Base centreon version.
 $centreonversion = '3.4';
+$reporelease = '2';
 
 // Information table.
 $repos = array(
@@ -74,7 +75,7 @@ foreach ($repos as $repo => $repodata) {
     $content =
         'Name:      centreon' . (empty($repo) ? '' : '-' . $repo) . '-release' . "\n" .
         'Version:   ' . $centreonversion . "\n" .
-        'Release:   1%{?dist}' . "\n" .
+        'Release:   ' . $reporelease . '%{?dist}' . "\n" .
         'Summary:   ' . $repodata['name'] . "\n" .
         'Group:     Applications/Communications' . "\n" .
         'License:   ' . (empty($repo) ? 'ASL 2.0' : 'Proprietary') . "\n" .
@@ -135,7 +136,7 @@ foreach ($repos as $repo => $repodata) {
     $content =
         'Name:      centreon-ems-release' . "\n" .
         'Version:   ' . $centreonversion . "\n" .
-        'Release:   1%{?dist}' . "\n" .
+        'Release:   ' . $reporelease . '%{?dist}' . "\n" .
         'Summary:   Install all Centreon repositories.' . "\n" .
         'Group:     Applications/Communications' . "\n" .
         'License:   Proprietary' . "\n" .
