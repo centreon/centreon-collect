@@ -44,7 +44,7 @@ for distrib in el6 el7 ; do
       REPO='map'
     elif [ "$project" = 'centreon-mbi' ] ; then
       REPO='mbi'
-    elif [ "$project" = 'centreon-packs' ] ; then
+    elif [ "$project" = 'centreon-plugin-packs' ] ; then
       REPO='plugin-packs'
     fi
     REPO="$REPO/3.4/$distrib/testing/noarch"
