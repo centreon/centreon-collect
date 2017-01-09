@@ -127,6 +127,7 @@ foreach ($pp_list as $pp_file) {
     case 'hardware-ups-standard-rfc1628-snmp':
     case 'network-cisco-standard-snmp':
     case 'operatingsystems-linux-snmp':
+    case 'fake-unmanaged-objects':
         $catalog_id = $free_id;
         break ;
     case 'applications-protocol-bgp':
