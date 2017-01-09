@@ -57,8 +57,10 @@ if [ -n "$tpl" -a \( $hosts -ge 1 \) ] ; then
     name=`head -n $pos < $dico | tail -n 1`
     if [ $confirm = 1 ] ; then
       centreon -u "$user" -p "$password" -o HOST -a ADD -v "$name;$name;localhost;$tpl;$instance;$groups"
+      centreon -u "$user" -p "$password" -o HOST -a APPLYTPL -v "$name"
     else
       echo centreon -u "$user" -p "$password" -o HOST -a ADD -v "$name;$name;localhost;$tpl;$instance;$groups"
+      echo centreon -u admin -p centreon -o HOST -a APPLYTPL -v "$name"
     fi
     hosts=$(($hosts-1))
     echo "$hosts hosts to create"
