@@ -55,11 +55,10 @@ if [ -n "$tpl" -a \( $hosts -ge 1 \) ] ; then
     lines=`wc -l < $dico`
     pos=`shuf -i 1-$lines -n 1`
     name=`head -n $pos < $dico | tail -n 1`
-    cmd='centreon -u "$user" -p "$password" -o HOST -a ADD -v "$name;$name;localhost;$tpl;$instance;$groups"'
     if [ $confirm = 1 ] ; then
-      $cmd
+      centreon -u "$user" -p "$password" -o HOST -a ADD -v "$name;$name;localhost;$tpl;$instance;$groups"
     else
-      echo $cmd
+      echo centreon -u "$user" -p "$password" -o HOST -a ADD -v "$name;$name;localhost;$tpl;$instance;$groups"
     fi
     hosts=$(($hosts-1))
     echo "$hosts hosts to create"
