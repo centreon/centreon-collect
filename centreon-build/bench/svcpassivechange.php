@@ -37,7 +37,8 @@ foreach ($keys as $key) {
 
     // Send service state change command.
     echo
-        $services[$key]['poller'] . ';PROCESS_SERVICE_CHECK_RESULT;' .
-        $services[$key]['host'] . ';' . $services[$key]['service'] .
-        ';' . $newstate . ';svcpassivechange (benchmark cron)' . "\n";
+        'EXTERNALCMD:' . $services[$key]['poller'] . ':[' . time() .
+        '] PROCESS_SERVICE_CHECK_RESULT;' . $services[$key]['host'] .
+        ';' . $services[$key]['service'] . ';' . $newstate .
+        ';svcpassivechange (benchmark cron)' . "\n";
 }
