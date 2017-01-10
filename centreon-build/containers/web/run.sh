@@ -20,7 +20,7 @@ httpd -k start
 
 # Wait for Centreon Web to be up and running.
 while true ; do
-  timeout -k 20 15 centreon -u admin -p centreon -o contact -a show
+  timeout -k 15 10 curl -H 'Accept: application/json' -X POST -d 'username=admin' -d 'password=centreon' 'http://localhost/centreon/api/index.php?action=authenticate'
   retval=$?
   if [ "$retval" = 0 ] ; then
     break ;
