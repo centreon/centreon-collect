@@ -17,7 +17,7 @@ $query =
     '  FROM services AS s' .
     '  LEFT JOIN hosts AS h' .
     '  ON s.host_id=h.host_id' .
-    '  WHERE s.enabled=1';
+    '  WHERE s.enabled=1 and s.passive_checks=1';
 foreach ($db->query($query) as $row) {
     $services[] = array(
         'poller' => $row['instance_id'],
