@@ -44,7 +44,7 @@ else
   cd ..
 fi
 cd packaging-centreon-engine
-git checkout --detach "$VERSION"
+git checkout --detach "origin/$VERSION"
 cp packaging-centreon-engine/rpm/centreon-engine.spec input/
 
 # Retrieve additional sources.
