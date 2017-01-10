@@ -4,8 +4,8 @@ set -e
 set -x
 
 # Check arguments.
-if [ -z "$COMMIT" -o -z "$REPO" -o -z "$RELEASE" ] ; then
-  echo "You need to specify COMMIT, REPO and RELEASE environment variables."
+if [ -z "$COMMIT" -o -z "$REPO" ] ; then
+  echo "You need to specify COMMIT and REPO environment variables."
   exit 1
 fi
 
