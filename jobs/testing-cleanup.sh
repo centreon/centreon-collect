@@ -4,7 +4,7 @@ set -e
 set -x
 
 # SSH command.
-SSH_REPO='ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com"'
+SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 
 # Check arguments.
 if [ -z "$REPO" ] ; then
