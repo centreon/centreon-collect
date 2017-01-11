@@ -3,7 +3,7 @@ FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Copy stable Centreon repo files.
-COPY centreon-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
+COPY repo/centreon-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
