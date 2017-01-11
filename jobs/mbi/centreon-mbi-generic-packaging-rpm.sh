@@ -1,7 +1,5 @@
 #!/bin/sh
 
-cd /opt/centreon-build && git pull && cd -
-
 set -e
 set -x
 
