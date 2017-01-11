@@ -2,8 +2,6 @@
 
 PROJECT=centreon-bam-server
 
-cd /opt/centreon-build && git pull && cd -
-
 set -e
 set -x
 
