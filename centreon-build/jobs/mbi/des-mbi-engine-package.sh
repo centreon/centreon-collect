@@ -36,6 +36,7 @@ BIRT_ZIP_NAME="birt-runtime-osgi-4_4_2-20150217"
 BIRT_NAME="birt-runtime-osgi-4_4_2"
 
 # Extract BIRT report engine
+rm -rf $BIRT_NAME
 wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
 unzip $BIRT_ZIP_NAME.zip
 cp -R $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
@@ -88,3 +89,18 @@ docker pull "$BUILD_IMG"
 #sed 's/@/@@/g' < centreon-bi-etl/RPM-SPECS/centreon-bi-etl.spec > input/centreon-bi-etl.spectemplate
 #sed -i 's/^Release:.*$/Release: '"$RELEASE"'%{?dist}/g' input/centreon-bi-etl.spectemplate
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
+
+# Copy files to server.
+if [ "$DISTRIB" = 'centos6' ] ; then
+  REPO='internal/el6/noarch'
+elif [ "$DISTRIB" = 'centos7' ] ; then
+  REPO='internal/el7/noarch'
+else
+  echo "Unsupported distribution $DISTRIB."
+  exit 1
+fi
+FILES='output/noarch/*.rpm'
+scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
+DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
+scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
