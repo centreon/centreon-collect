@@ -130,6 +130,9 @@ foreach ($pp_list as $pp_file) {
     case 'fake-unmanaged-objects':
         $catalog_id = $free_id;
         break ;
+    case 'fake-managed-objects':
+        $catalog_id = $free_id;
+       break ;
     case 'fake-child-objects':
         $catalog_id = $free_id;
         break ;
