@@ -16,7 +16,6 @@ export VERSION="$VERSION"
 
 PRODUCT_NAME="centreon-bi-engine" 
 PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION$release"
-ARCHIVE_NAME="$PRODUCT_NAME_FULL.tar.gz"
 SPECS_NAME="$PRODUCT_NAME_FULL.spec"
 
 # Get release
@@ -24,6 +23,8 @@ cd $WORKSPACE/centreon-bi-engine
 commit=`git log -1 "1476e1df2a10a12de05b2a44572acc6ca1d3fbcb" --pretty=format:%h`
 now=`date +%s`
 export RELEASE="$now.$commit"
+
+ARCHIVE_NAME="$PRODUCT_NAME_FULL-$RELEASE.tar.gz"
 
 # Clean workspace
 rm -rf $WORKSPACE/build/
