@@ -2,7 +2,7 @@
 
 // Base centreon version.
 $centreonversion = '3.4';
-$reporelease = '2';
+$reporelease = '4';
 
 // Information table.
 $repos = array(
@@ -38,7 +38,7 @@ foreach ($repos as $repo => $repodata) {
         // Process all flavors.
         foreach (array('stable', 'testing', 'unstable') as $flavor) {
             // Process architectures.
-            $archs = empty($repo) ? array('noarch', '$basearch') : array('noarch');
+            $archs = array('noarch', '$basearch');
             foreach ($archs as $arch) {
                 // Header [centreon-map-stable].
                 $content .= '[centreon';
