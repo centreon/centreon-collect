@@ -67,7 +67,6 @@ rm -rf $WORKSPACE/$PRODUCT_NAME-$VERSION
 cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
 
 # Change spec version, release and source numbers
- sed -i -e "s/^Version:.*/Version: $PRODUCT_VERSION/g" "$SPECS_NAME"
  sed -i -e  "s/^Release:.*/Release: $RELEASE%{?dist}/g" "$SPECS_NAME"
  sed -i -e  "s/^Source0:.*/Source0:%{name}-%{version}-$RELEASE.tar.gz/g" "$SPECS_NAME"
 
