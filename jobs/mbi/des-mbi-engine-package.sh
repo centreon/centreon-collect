@@ -36,8 +36,8 @@ BIRT_ZIP_NAME="birt-runtime-osgi-4_4_2-20150217"
 BIRT_NAME="birt-runtime-osgi-4_4_2"
 
 # Extract BIRT report engine
-#wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
-#unzip $BIRT_ZIP_NAME.zip
+wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
+unzip $BIRT_ZIP_NAME.zip
 cp -R $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
 
 cd $WORKSPACE
