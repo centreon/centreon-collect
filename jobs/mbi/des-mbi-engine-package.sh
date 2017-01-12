@@ -36,22 +36,22 @@ BIRT_ZIP_NAME="birt-runtime-osgi-4_4_2-20150217"
 BIRT_NAME="birt-runtime-osgi-4_4_2"
 
 # Extract BIRT report engine
-wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
-unzip $BIRT_ZIP_NAME.zip
-mv $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
+#wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
+#unzip $BIRT_ZIP_NAME.zip
+cp -R $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
 
 cd $WORKSPACE
 
 # Copy maven built files
-mv $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/deploy/* $WORKSPACE/build/
-mv $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis.engine/target/*.jar $WORKSPACE/build/bin/cbis.jar
-mv $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis.engine/target/cbis_lib/.jar $WORKSPACE/build/bin/
+cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/deploy/* $WORKSPACE/build/
+cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/*.jar $WORKSPACE/build/bin/cbis.jar
+cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/cbis_lib/*.jar $WORKSPACE/build/bin/
 
 # Replace MySQL connector with MariaDB connector
 rm -rf $WORKSPACE/build/bin/cbis_lib/mysql-connector*
 
 # Add MariaDB connector to BIRT installation
-cp $WORKSPACE/build/bin/cbis_lib/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
+cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
 
 
 # Copy all files into a correct name folder
@@ -63,7 +63,7 @@ tar cfvz  $WORKSPACE/$ARCHIVE_NAME $WORKSPACE/$PRODUCT_NAME-$VERSION
 rm -rf $WORKSPACE/$PRODUCT_NAME-$VERSION
 
 # Change spec file name
-cp RPM_SPECS/$PRODUCT_NAME $SPECS_NAME
+cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
 
 # Change spec version, release and source numbers
  sed -i -e "s/^Version:.*/Version: $PRODUCT_VERSION/g" "$SPECS_NAME"
@@ -78,7 +78,7 @@ cp RPM_SPECS/$PRODUCT_NAME $SPECS_NAME
 
  # Move tarball and spec to build into input/ folder
  mv $WORKSPACE/$ARCHIVE_NAME input/
- mv $SPEC_NAME inptut
+ mv $SPECS_NAME inptut
  
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
