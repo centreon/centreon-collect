@@ -2,7 +2,7 @@
 
 // Base centreon version.
 $centreonversion = '3.4';
-$reporelease = '3';
+$reporelease = '4';
 
 // Information table.
 $repos = array(
