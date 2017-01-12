@@ -79,7 +79,7 @@
             "objects"
         ],
         "update_date": "1466699396",
-        "version": "1.0.1",
+        "version": "1.0.0",
         "website": "www.centreon.com"
     },
     "service_templates": [
