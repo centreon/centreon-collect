@@ -11,7 +11,7 @@ fi
 DISTRIB="$1"
 
 # Get version
-VERSION=$(grep -m1 "<version>" $WORKSPACE/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
+VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
 export VERSION="$VERSION"
 
 PRODUCT_NAME="centreon-bi-engine" 
@@ -20,12 +20,12 @@ ARCHIVE_NAME="$PRODUCT_NAME_FULL.tar.gz"
 SPECS_NAME="$PRODUCT_NAME_FULL.spec"
 
 # Get release
-commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
+cd $WORKSPACE/centreon-bi-engine
+commit=`git log -1 "1476e1df2a10a12de05b2a44572acc6ca1d3fbcb" --pretty=format:%h`
 now=`date +%s`
 export RELEASE="$now.$commit"
 
 # Clean workspace
-rm -rf $WORKSPACE/$PRODUCT_NAME*
 rm -rf $WORKSPACE/build/
 
 # Create build folders
@@ -35,7 +35,7 @@ mkdir -p $WORKSPACE/build/bin/external_lib/
 BIRT_NAME="birt-runtime-osgi-4_4_2";
 
 # Extract BIRT report engine
-cd $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/lib/
+wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_NAME.zip
 unzip $BIRT_NAME.zip
 mv $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
 
