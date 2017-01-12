@@ -32,11 +32,12 @@ rm -rf $WORKSPACE/build/
 mkdir -p $WORKSPACE/build/bin/external_lib/
 
 # Build BIRT library
-BIRT_NAME="birt-runtime-osgi-4_4_2";
+BIRT_ZIP_NAME="birt-runtime-osgi-4_4_2-20150217"
+BIRT_NAME="birt-runtime-osgi-4_4_2"
 
 # Extract BIRT report engine
-wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_NAME.zip
-unzip $BIRT_NAME.zip
+wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
+unzip $BIRT_ZIP_NAME.zip
 mv $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
 
 cd $WORKSPACE
@@ -87,4 +88,3 @@ docker pull "$BUILD_IMG"
 #sed 's/@/@@/g' < centreon-bi-etl/RPM-SPECS/centreon-bi-etl.spec > input/centreon-bi-etl.spectemplate
 #sed -i 's/^Release:.*$/Release: '"$RELEASE"'%{?dist}/g' input/centreon-bi-etl.spectemplate
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
-
