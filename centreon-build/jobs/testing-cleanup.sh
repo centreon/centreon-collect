@@ -16,6 +16,7 @@ fi
 for distrib in el6 el7 ; do
   for arch in noarch x86_64 ; do
     $SSH_REPO rm -f "/srv/yum/$REPO/3.4/$distrib/testing/$arch/RPMS/*.rpm"
+    $SSH_REPO rm -f "/srv/sources/$REPO/testing/*"
     $SSH_REPO createrepo "/srv/yum/$REPO/3.4/$distrib/testing/$arch"
   done
 done
