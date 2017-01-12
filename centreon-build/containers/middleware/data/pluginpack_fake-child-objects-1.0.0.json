@@ -140,20 +140,5 @@
             "retry_check_interval": 2,
             "timeperiod": "24x7"
         }
-    ],
-    "timeperiods": {
-        "timeperiod": [
-            {
-                "alias": "24_Hours_A_Day,_7_Days_A_Week",
-                "friday": "00:00-24:00",
-                "monday": "00:00-24:00",
-                "name": "24x7",
-                "saturday": "00:00-24:00",
-                "sunday": "00:00-24:00",
-                "thursday": "00:00-24:00",
-                "tuesday": "00:00-24:00",
-                "wednesday": "00:00-24:00"
-            }
-        ]
-    }
+    ]
 }
