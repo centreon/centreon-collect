@@ -79,7 +79,7 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
 
  # Move tarball and spec to build into input/ folder
  mv $WORKSPACE/$ARCHIVE_NAME input/
- mv $SPECS_NAME inptut
+ mv $SPECS_NAME inptut/
  
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
