@@ -36,6 +36,7 @@ rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../acceptance-logs-wip
 mkdir ../acceptance-logs-wip
+composer self-update
 composer install
 composer update
 ls features/*.feature | parallel /opt/behat/vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
