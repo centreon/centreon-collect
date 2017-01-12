@@ -60,7 +60,7 @@ cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/
 mv $WORKSPACE/build $WORKSPACE/$PRODUCT_NAME-$VERSION/
 
 # Create tarball
-tar cfvz  $WORKSPACE/$ARCHIVE_NAME $WORKSPACE/$PRODUCT_NAME-$VERSION
+tar cfvz  $ARCHIVE_NAME $WORKSPACE/$PRODUCT_NAME-$VERSION
 # Clean archived folder
 rm -rf $WORKSPACE/$PRODUCT_NAME-$VERSION
 
