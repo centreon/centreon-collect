@@ -208,8 +208,5 @@
             "retry_check_interval": "1",
             "timeperiod": ""
         }
-    ],
-    "timeperiods": {
-        "timeperiod": []
-    }
+    ]
 }
