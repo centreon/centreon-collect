@@ -28,7 +28,7 @@ export VERSION="$VERSION"
 
 # Create source tarball.
 git checkout --detach "$COMMIT"
-git archive --prefix=centreon-poller-display-$VERSION HEAD | gzip > ../input/centreon-poller-display-$VERSION.tar.gz
+git archive --prefix=centreon-poller-display-$VERSION/ HEAD | gzip > ../input/centreon-poller-display-$VERSION.tar.gz
 cd ..
 
 # Build RPMs.
