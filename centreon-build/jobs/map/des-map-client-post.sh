@@ -7,16 +7,6 @@ set -x
 # This is run once the Maven build terminated.
 #
 
-# Copy RPMs.
-# scp -o StrictHostKeyChecking=no centreon-studio-server/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat6/target/rpm/centreon-map4-server/RPMS/noarch/*.rpm ubuntu@srvi-repo.int.centreon.com:/srv/yum/internal/el6/noarch/RPMS/
-# scp -o StrictHostKeyChecking=no centreon-studio-server/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map4-server/RPMS/noarch/*.rpm ubuntu@srvi-repo.int.centreon.com:/srv/yum/internal/el7/noarch/RPMS/
-# DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-# scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-# ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE 'internal/el6/noarch'
-# DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-# scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-# ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE 'internal/el7/noarch'
-
 # Find version.
 filename='centreon-studio-desktop-client/com.centreon.studio.client.packaging.deb.amd64/target/*.deb'
 version=$(echo $filename | grep -Po '(?<=-client-)[0-9.]+')
@@ -34,3 +24,15 @@ ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p $pa
 
 # Copy modules.
 scp -o StrictHostKeyChecking=no -r centreon-studio-desktop-client/com.centreon.studio.client.product/target/repository/* "ubuntu@srvi-repo.int.centreon.com":$path
+
+# Move all installers to an install folder
+cd $WORKSPACE
+rm -rf installs
+mkdir installs
+
+cp centreon-studio-desktop-client/com.centreon.studio.client.packaging.deb.amd64/target/*.deb installs/
+cp centreon-studio-desktop-client/com.centreon.studio.client.packaging.nsis.x86_64/target/*.exe installs/
+cp centreon-studio-desktop-client/com.centreon.studio.client.product/target/products/Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz installs/
+
+# Copy installers to remote repository
+scp -o StrictHostKeyChecking=no -r installs/* "ubuntu@srvi-repo.int.centreon.com":"/srv/p2/"
