@@ -134,7 +134,7 @@
             "retry_check_interval": 2,
             "timeperiod": "24x7"
         }
-    ]/*,
+    ],
     "timeperiods": {
         "timeperiod": [
             {
@@ -149,5 +149,5 @@
                 "wednesday": "00:00-24:00"
             }
         ]
-    }*/
+    }
 }
