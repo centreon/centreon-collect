@@ -22,11 +22,11 @@ rm -rf output-centos7
 mkdir output-centos7
 
 # Get version.
+cd centreon-poller-display
 VERSION=`grep mod_release www/modules/centreon-poller-display/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
 # Create source tarball.
-cd centreon-poller-display
 git checkout --detach "$COMMIT"
 git archive --prefix=centreon-poller-display-$VERSION HEAD | gzip > ../input/centreon-poller-display-$VERSION.tar.gz
 cd ..
