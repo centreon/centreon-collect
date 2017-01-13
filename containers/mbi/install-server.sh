@@ -19,8 +19,5 @@ mysql -e "GRANT ALL PRIVILEGES ON centreon_storage.* to '$REPORTING_DB_USER'@'lo
 mysql -e "GRANT SELECT ON centreon.* TO '$MONITORING_DB_USER'@'$MONITORING_DB_IP' IDENTIFIED BY '$MONITORING_DB_PWD'" centreon
 mysql -e "GRANT SELECT ON centreon_storage.* TO '$MONITORING_DB_USER'@'$MONITORING_DB_IP' IDENTIFIED BY '$MONITORING_DB_PWD'" centreon_storage
 
-# Install the reporting schema.
-/usr/share/centreon-bi/bin/centreonBIETL -c
-
 # Stop services.
 service mysql stop
