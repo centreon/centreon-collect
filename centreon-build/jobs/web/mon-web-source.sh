@@ -85,7 +85,7 @@ ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$D
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
 
 # Generate properties files for downstream jobs.
-cat > project.properties << EOF
+cat > source.properties << EOF
 PROJECT=centreon-web
 VERSION=$VERSION
 RELEASE=$RELEASE
