@@ -44,7 +44,7 @@ export VERSION_EXTRA="$VERSION_EXTRA"
 
 # Get release.
 cd centreon-web
-COMMIT=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
+COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
 # We do not care about $VERSION_EXTRA, as $now is strictly incremental
 # and officially released packages do not always care about semantic
