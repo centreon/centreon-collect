@@ -56,8 +56,7 @@ rm -rf "../centreon-$VERSION"
 mkdir "../centreon-$VERSION"
 git archive HEAD | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
-# We should use HEAD instead of 2.7.x. However nothing seems to work as expected.
-git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
+git archive --prefix=plugins/ HEAD | tar -C "../centreon-$VERSION" -x
 
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
