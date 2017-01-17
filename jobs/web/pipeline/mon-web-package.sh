@@ -9,13 +9,13 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
+DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION
+docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -42,10 +42,10 @@ wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$
 cd ..
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
 
 # Copy files to server.
-if [ "$CENTOS_VERSION" = 6 ] ; then
+if [ "$DISTRIB" = "centos6" ] ; then
   REPO='internal/el6/noarch'
 else
   REPO='internal/el7/noarch'
