@@ -18,6 +18,7 @@ CENTOS_VERSION="$1"
 docker pull ci.int.centreon.com:5000/mon-dependencies:centos$CENTOS_VERSION
 
 # Prepare Dockerfiles.
+rm -rf centreon-build
 cp -r /opt/centreon-build .
 cd centreon-build/containers
 sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/fresh.Dockerfile.in > web/fresh.centos$CENTOS_VERSION.Dockerfile
