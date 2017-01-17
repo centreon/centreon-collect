@@ -28,10 +28,10 @@ docker pull $INFLUXDB_IMAGE
 
 # Prepare Docker Compose file.
 cd centreon-web
-sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-web.yml
-sed 's#@WEB_IMAGE@#'$WEB_FRESH_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-web-fresh.yml
-sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../containers/mediawiki/docker-compose.yml.in > docker-compose-web-kb.yml
-sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose-influxdb.yml.in > docker-compose-web-influxdb.yml
+sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/docker-compose.yml.in > docker-compose-web.yml
+sed 's#@WEB_IMAGE@#'$WEB_FRESH_IMAGE'#g' < `dirname $0`/../../../containers/web/docker-compose.yml.in > docker-compose-web-fresh.yml
+sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/mediawiki/docker-compose.yml.in > docker-compose-web-kb.yml
+sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/docker-compose-influxdb.yml.in > docker-compose-web-influxdb.yml
 
 # Prepare Behat.yml
 alreadyset=`grep docker-compose-web.yml < behat.yml || true`
