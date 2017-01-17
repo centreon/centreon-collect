@@ -53,5 +53,5 @@ fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
 DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
+scp -o StrictHostKeyChecking=no `dirname $0`/../../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
