@@ -15,7 +15,7 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-web-$VERSION.tar.gz"
+wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
 tar xzf "centreon-web-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
