@@ -24,7 +24,7 @@ docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-web`
 
 # Copy sources to container.
-docker cp "centreon-web-$VERSION" "$containerid:/usr/local/src/centreon-web"
+docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon-web"
 
 # Run unit tests.
 docker start -a "$containerid"
