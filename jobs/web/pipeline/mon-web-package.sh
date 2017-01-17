@@ -42,7 +42,7 @@ wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$
 cd ..
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
 
 # Copy files to server.
 if [ "$DISTRIB" = "centos6" ] ; then
