@@ -26,8 +26,13 @@ docker pull $WEB_FRESH_IMAGE
 docker pull $MEDIAWIKI_IMAGE
 docker pull $INFLUXDB_IMAGE
 
+# Fetch sources.
+wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
+rm -rf "centreon-$VERSION"
+tar xzf "centreon-$VERSION.tar.gz"
+cd "centreon-$VERSION"
+
 # Prepare Docker Compose file.
-cd centreon-web
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/docker-compose.yml.in > docker-compose-web.yml
 sed 's#@WEB_IMAGE@#'$WEB_FRESH_IMAGE'#g' < `dirname $0`/../../../containers/web/docker-compose.yml.in > docker-compose-web-fresh.yml
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/mediawiki/docker-compose.yml.in > docker-compose-web-kb.yml
