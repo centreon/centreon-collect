@@ -34,10 +34,9 @@ stage('Unit tests') {
       sh 'cd /opt/centreon-build && git pull && cd -'
       sh '/opt/centreon-build/jobs/web/pipeline/mon-web-unittest.sh centos6'
       step([
-        $class: 'CheckStylePublisher',
+        $class: 'hudson.plugins.checkstyle.CheckStylePublisher',
 	pattern: '**/codestyle.xml',
-	unstableTotalAll: '6500',
-	usePreviousBuildAsReference: true
+	unstableTotalAll: '650'
       ])
     }
   },
@@ -46,10 +45,9 @@ stage('Unit tests') {
       sh 'cd /opt/centreon-build && git pull && cd -'
       sh '/opt/centreon-build/jobs/web/pipeline/mon-web-unittest.sh centos7'
       step([
-        $class: 'CheckStylePublisher',
+        $class: 'hudson.plugins.checkstyle.CheckStylePublisher',
 	pattern: '**/codestyle.xml',
-	unstableTotalAll: '6500',
-	usePreviousBuildAsReference: true
+	unstableTotalAll: '650'
       ])
     }
   }
