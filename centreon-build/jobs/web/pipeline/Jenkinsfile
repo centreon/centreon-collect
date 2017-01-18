@@ -33,12 +33,24 @@ stage('Unit tests') {
     node {
       sh 'cd /opt/centreon-build && git pull && cd -'
       sh '/opt/centreon-build/jobs/web/pipeline/mon-web-unittest.sh centos6'
+      step([
+        $class: 'CheckStylePublisher',
+	pattern: '**/codestyle.xml',
+	unstableTotalAll: '6500',
+	usePreviousBuildAsReference: true
+      ])
     }
   },
   'centos7': {
     node {
       sh 'cd /opt/centreon-build && git pull && cd -'
       sh '/opt/centreon-build/jobs/web/pipeline/mon-web-unittest.sh centos7'
+      step([
+        $class: 'CheckStylePublisher',
+	pattern: '**/codestyle.xml',
+	unstableTotalAll: '6500',
+	usePreviousBuildAsReference: true
+      ])
     }
   }
 }
@@ -88,12 +100,14 @@ stage('Acceptance tests') {
     node {
       sh 'cd /opt/centreon-build && git pull && cd -'
       sh '/opt/centreon-build/jobs/web/pipeline/mon-web-acceptance.sh centos6'
+      junit 'xunit-reports/**/*.xml'
     }
   },
   'centos7': {
     node {
       sh 'cd /opt/centreon-build && git pull && cd -'
       sh '/opt/centreon-build/jobs/web/pipeline/mon-web-acceptance.sh centos7'
+      junit 'xunit-reports/**/*.xml'
     }
   }
 }
