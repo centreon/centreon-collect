@@ -46,7 +46,9 @@
                 "App-Monitoring-Centreon-Process-centcore",
                 "App-Monitoring-Centreon-Process-broker-sql",
                 "App-Monitoring-Centreon-Process-broker-rrd"
-            ]
+            ],
+            "discovery_command_name": "disco",
+            "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
         }
     ],
     "images": [
@@ -100,9 +102,7 @@
         ],
         "update_date": "1466510353",
         "version": "3.0.8",
-        "website": "www.centreon.com",
-        "discovery_command_name": "disco",
-        "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
+        "website": "www.centreon.com"
     },
     "service_templates": [
         {
