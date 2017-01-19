@@ -4,6 +4,11 @@
             "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_centreon_central.pl --plugin=apps::centreon::local::plugin --mode=retention-broker --broker-config=\\'$_HOSTRRDCFGFILE$\\' --broker-config=\\'$_HOSTSQLCFGFILE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
             "name": "App-CentreonBroker-Retention-Local",
             "type": 2
+        },
+        {
+            "name": "disco",
+            "line": "\\\"disco\\\"",
+            "type": "4"
         }
     ],
     "host_templates": [
