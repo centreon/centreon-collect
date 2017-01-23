@@ -18,7 +18,7 @@ mkdir output
 
 # Get version.
 cd centreon-bi-reporting-server
-VERSION=`cat RPM-SPECS/centreon-bi-reporting-server.spec | grep Version: | cut -f 2`
+VERSION=`cat packaging/centreon-bi-reporting-server.spectemplate | grep Version: | cut -f 2`
 export VERSION="$VERSION"
 
 # Get release.

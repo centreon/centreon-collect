@@ -18,7 +18,7 @@ mkdir output
 
 # Get version.
 cd centreon-bi-etl
-VERSION=`cat RPM-SPECS/centreon-bi-etl.spec | grep Version: | cut -d ' ' -f 9`
+VERSION=`cat packaging/centreon-bi-etl.spectemplate | grep Version: | cut -d ' ' -f 9`
 export VERSION="$VERSION"
 
 # Get release.
