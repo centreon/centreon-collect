@@ -4,8 +4,8 @@ set -e
 set -x
 
 # Check arguments.
-if [ -z "$COMMIT" -o -z "$REPO" -o -z "$VERSION" -o -z "$RELEASE" -o -z "$PROJECT" ]; then
-    echo "You need to specify COMMIT, REPO, VERSION and RELEASE environment variables."
+if [ -z "$COMMIT" -o -z "$REPO" -o -z "$RELEASE" -o -z "$PROJECT" ]; then
+    echo "You need to specify COMMIT, REPO and RELEASE environment variables."
     exit 1
 fi
 
@@ -25,7 +25,12 @@ mkdir output-centos7
 rm -rf $PROJECT
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/$PROJECT
 
-
+# Fetch version.
+if [ "$PROJECT" = "centreon-bi-server" ]; then
+  export VERSION=`grep mod_release $PROJECT/www/modules/centreon-bi-server/conf.php | cut -d '"' -f 4`
+else
+  export VERSION=`cat $PROJECT/packaging/*.spectemplate | grep Version: | rev | cut -f 1 | cut -d ' ' -f 1 | rev`
+fi
 
 # Create source tarball.
 cd $PROJECT
@@ -41,7 +46,7 @@ if [ "$PROJECT" = "centreon-bi-server" ]; then
     curl -F file=@centreon-bi-server-$VERSION.tar.gz -F 'version=54' -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o centreon-bi-server-$VERSION-php54.tar.gz
     scp -o StrictHostKeyChecking=no $PROJECT-$VERSION*.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/$REPO/"
 fi
-    
+
 if [ "$generateRPM" = "No" ]; then
     echo "[RPM Will not be copied to any external repositories]"
     exit 0
