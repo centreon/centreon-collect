@@ -25,16 +25,17 @@ mkdir output-centos7
 rm -rf $PROJECT
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/$PROJECT
 
-# Fetch version.
-if [ "$PROJECT" = "centreon-bi-server" ]; then
-  export VERSION=`grep mod_release $PROJECT/www/modules/centreon-bi-server/conf.php | cut -d '"' -f 4`
-else
-  export VERSION=`cat $PROJECT/packaging/*.spectemplate | grep Version: | rev | cut -f 1 | cut -d ' ' -f 1 | rev`
-fi
-
 # Create source tarball.
 cd $PROJECT
 git checkout --detach "$COMMIT"
+
+# Fetch version.
+if [ "$PROJECT" = "centreon-bi-server" ]; then
+  export VERSION=`grep mod_release www/modules/centreon-bi-server/conf.php | cut -d '"' -f 4`
+else
+  export VERSION=`cat packaging/*.spectemplate | grep Version: | rev | cut -f 1 | cut -d ' ' -f 1 | rev`
+fi
+
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
