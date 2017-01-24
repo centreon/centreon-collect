@@ -51,9 +51,10 @@ mv $WORKSPACE/build $WORKSPACE/$PRODUCT_NAME-$VERSION/
 tar cfvz  $ARCHIVE_NAME $PRODUCT_NAME-$VERSION
 
 ## Clone centreon-bi-report
+cd ..
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-report.git
 cd centreon-bi-report
-git checkout $reportTag 1>&2
+git checkout $REPORTTAG 1>&2
 
 rm -rf RPM-SPECS
 
@@ -63,7 +64,7 @@ cd ../
 # Clone ETL project
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-etl.git
 cd centreon-bi-etl
-git checkout $etlTag 1>&2
+git checkout $ETLTAG 1>&2
 
 rm -rf RPM-SPECS
 
@@ -72,7 +73,7 @@ cd ../
 # Clone centreon-bi-reporting-server
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server-light.git
 cd centreon-bi-reporting-server-light
-git checkout $lightTag 1>&2
+git checkout $LIGHTVERSION 1>&2
 
 mv * ../
 cd ../
