@@ -56,6 +56,7 @@ mv $WORKSPACE/$PRODUCT_NAME-$VERSION centreon-mbi-reporting-server-light
 
 ## Clone centreon-bi-report
 cd ..
+rm -rf centreon-bi-report
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-report.git
 cd centreon-bi-report
 git checkout $REPORTTAG 1>&2
@@ -64,6 +65,7 @@ cd ../
 
 
 # Clone ETL project
+rm -rf centreon-bi-etl
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-etl.git
 cd centreon-bi-etl
 git checkout $ETLTAG 1>&2
@@ -71,6 +73,7 @@ git checkout $ETLTAG 1>&2
 cd ../
 
 # Clone ETL project
+rm -rf centreon-bi-reporting-server
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server.git
 cd centreon-bi-reporting-server
 git checkout $REPORTINGSERVER 1>&2
@@ -80,6 +83,7 @@ cd ../
 
 
 # Clone centreon-bi-reporting-server
+rm -rf centreon-bi-reporting-server-light
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server-light.git
 cd centreon-bi-reporting-server-light
 git checkout $LIGHTVERSION 1>&2
