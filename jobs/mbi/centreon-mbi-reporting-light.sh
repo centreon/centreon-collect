@@ -44,6 +44,7 @@ cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/
 
 # Copy all files into a correct name folder
 rm -rf $WORKSPACE/$PRODUCT_NAME-$VERSION/
+mkdir $WORKSPACE/$PRODUCT_NAME-$VERSION
 mv $WORKSPACE/build/* $WORKSPACE/$PRODUCT_NAME-$VERSION/
 
 #Prepare the final archive folder
