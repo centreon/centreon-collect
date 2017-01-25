@@ -11,6 +11,11 @@ set -x
 # the property file generated at the end of the script.
 #
 
+# Checkout Centreon Plugins.
+if [ \! -d centreon-plugins ] ; then
+  git clone https://github.com/centreon/centreon-plugins.git
+fi
+
 # Get version.
 VERSION=
 VERSION_NUM=0
@@ -56,7 +61,7 @@ rm -rf "../centreon-$VERSION"
 mkdir "../centreon-$VERSION"
 git archive HEAD | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
-git archive --prefix=plugins/ HEAD | tar -C "../centreon-$VERSION" -x
+git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
 
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
