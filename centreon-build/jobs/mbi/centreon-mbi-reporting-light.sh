@@ -68,6 +68,7 @@ git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.c
 cd centreon-bi-etl
 git checkout $ETLTAG 1>&2
 
+cd ../
 
 # Clone ETL project
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server.git
@@ -76,6 +77,7 @@ git checkout $REPORTINGSERVER 1>&2
 
 
 cd ../
+
 
 # Clone centreon-bi-reporting-server
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server-light.git
