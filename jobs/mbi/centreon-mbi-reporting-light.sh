@@ -91,4 +91,4 @@ mv silent-install.cfg Centreon-MBI-Reporting-Server-Light/
 
 tar czf Centreon-MBI-Reporting-Server-Light-$FINALVERSION.tar.gz Centreon-MBI-Reporting-Server-Light
 
-scp -o StrictHostKeyChecking=no Centreon-MBI-Reporting-Server-Light-$renameVersion.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/$REPO/"
+scp -o StrictHostKeyChecking=no Centreon-MBI-Reporting-Server-Light-$FINALVERSION.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/$REPO/"
