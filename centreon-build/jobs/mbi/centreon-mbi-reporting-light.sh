@@ -55,6 +55,11 @@ rm -rf centreon-bi-report
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-report.git
 cd centreon-bi-report
 git checkout $REPORTTAG 1>&2
+rm -rf .git
+rm -rf .gitignore
+rm -rf .project
+rm -rf RPM-SPECS
+rm -rf packaging
 
 cd ../
 
@@ -64,6 +69,11 @@ rm -rf centreon-bi-etl
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-etl.git
 cd centreon-bi-etl
 git checkout $ETLTAG 1>&2
+rm -rf .git
+rm -rf .gitignore
+rm -rf .project
+rm -rf RPM-SPECS
+rm -rf packaging
 
 cd ../
 
@@ -72,6 +82,11 @@ rm -rf centreon-bi-reporting-server
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server.git
 cd centreon-bi-reporting-server
 git checkout $REPORTINGSERVER 1>&2
+rm -rf .git
+rm -rf .gitignore
+rm -rf .project
+rm -rf RPM-SPECS
+rm -rf packaging
 
 cd ../
 
@@ -83,9 +98,6 @@ git checkout $LIGHTVERSION 1>&2
 
 mv * ../
 cd ../
-
-#mkdir centreon-mbi-reporting-server-light/centreon-bi-report
-#mkdir centreon-mbi-reporting-server-light/centreon-bi-etl
 
 mv centreon-bi-report centreon-mbi-reporting-server-light/
 mv centreon-bi-etl centreon-mbi-reporting-server-light/
