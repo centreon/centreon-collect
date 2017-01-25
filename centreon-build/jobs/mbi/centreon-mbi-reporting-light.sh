@@ -12,7 +12,7 @@ export VERSION="$VERSION"
 PRODUCT_NAME="centreon-bi-engine" 
 PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION-$RELEASE"
 
-ARCHIVE_NAME="$PRODUCT_NAME_FULL-$RELEASE.tar.gz"
+ARCHIVE_NAME="$PRODUCT_NAME_FULL.tar.gz"
 
 # Clean workspace
 rm -rf $WORKSPACE/build/
@@ -47,8 +47,10 @@ cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/
 # Copy all files into a correct name folder
 mv $WORKSPACE/build $WORKSPACE/$PRODUCT_NAME-$VERSION/
 
-# Create tarball
-tar cfvz  $ARCHIVE_NAME $PRODUCT_NAME-$VERSION
+#Prepare the final archive folder
+cd ..
+mkdir Centreon-MBI-Reporting-Server-Light
+mv $WORKSPACE/$PRODUCT_NAME-$VERSION Centreon-MBI-Reporting-Server-Light
 
 ## Clone centreon-bi-report
 cd ..
@@ -82,8 +84,7 @@ rm -Rf centreon-bi-reporting-server-light
 #Clean old tarball
 rm -rf Centreon-MBI-Reporting-Server-Light*
 
-#create tarball
-mkdir Centreon-MBI-Reporting-Server-Light
+
 mv centreon-bi* Centreon-MBI-Reporting-Server-Light/
 mv install.sh Centreon-MBI-Reporting-Server-Light/
 mv README-FIRST Centreon-MBI-Reporting-Server-Light/
