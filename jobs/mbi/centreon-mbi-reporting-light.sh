@@ -86,8 +86,6 @@ git checkout $LIGHTVERSION 1>&2
 
 mv * ../
 cd ../
-rm -Rf centreon-bi-reporting-server-light
-
 
 mv centreon-bi-report* centreon-mbi-reporting-server-light/
 mv centreon-bi-etl* centreon-mbi-reporting-server-light/
