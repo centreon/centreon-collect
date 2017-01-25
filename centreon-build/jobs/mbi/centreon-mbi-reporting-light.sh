@@ -87,7 +87,7 @@ cd ../
 rm -Rf centreon-bi-reporting-server-light
 
 
-mv centreon-bi-reports* centreon-mbi-reporting-server-light/
+mv centreon-bi-report* centreon-mbi-reporting-server-light/
 mv centreon-bi-etl* centreon-mbi-reporting-server-light/
 mv centreon-bi-reporting-server/tools/diagnostic.sh centreon-mbi-reporting-server-light/
 
