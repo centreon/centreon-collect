@@ -10,9 +10,7 @@ VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbi
 export VERSION="$VERSION"
 
 PRODUCT_NAME="centreon-bi-engine" 
-PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION-$RELEASE"
-
-ARCHIVE_NAME="$PRODUCT_NAME_FULL.tar.gz"
+ARCHIVE_NAME="$PRODUCT_NAME.tar.gz"
 
 # Clean workspace
 rm -rf $WORKSPACE/build/
@@ -45,6 +43,7 @@ cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/
 
 
 # Copy all files into a correct name folder
+rm -rf $WORKSPACE/$PRODUCT_NAME-$VERSION/
 mv $WORKSPACE/build/* $WORKSPACE/$PRODUCT_NAME-$VERSION/
 
 #Prepare the final archive folder
