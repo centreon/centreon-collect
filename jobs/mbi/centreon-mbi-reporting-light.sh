@@ -49,7 +49,9 @@ mv $WORKSPACE/build $WORKSPACE/$PRODUCT_NAME-$VERSION/
 
 #Prepare the final archive folder
 cd ..
-mkdir Centreon-MBI-Reporting-Server-Light
+rm -rf centreon-mbi-reporting-server-light*
+rm -rf Centreon-MBI-Reporting-Server-Light*
+mkdir centreon-mbi-reporting-server-light
 mv $WORKSPACE/$PRODUCT_NAME-$VERSION Centreon-MBI-Reporting-Server-Light
 
 ## Clone centreon-bi-report
@@ -81,15 +83,14 @@ mv * ../
 cd ../
 rm -Rf centreon-bi-reporting-server-light
 
-#Clean old tarball
-rm -rf Centreon-MBI-Reporting-Server-Light*
 
 
-mv centreon-bi* Centreon-MBI-Reporting-Server-Light/
-mv install.sh Centreon-MBI-Reporting-Server-Light/
-mv README-FIRST Centreon-MBI-Reporting-Server-Light/
-mv silent-install.cfg Centreon-MBI-Reporting-Server-Light/
 
-tar czf Centreon-MBI-Reporting-Server-Light-$FINALVERSION.tar.gz Centreon-MBI-Reporting-Server-Light
+mv centreon-bi* centreon-mbi-reporting-server-light/
+mv install.sh centreon-mbi-reporting-server-light/
+mv README-FIRST centreon-mbi-reporting-server-light/
+mv silent-install.cfg centreon-mbi-reporting-server-light/
 
-scp -o StrictHostKeyChecking=no Centreon-MBI-Reporting-Server-Light-$FINALVERSION.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/$REPO/"
+tar czf centreon-mbi-reporting-server-light-$FINALVERSION.tar.gz centreon-mbi-reporting-server-light
+
+scp -o StrictHostKeyChecking=no centreon-mbi-reporting-server-light-$FINALVERSION.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/$REPO/"
