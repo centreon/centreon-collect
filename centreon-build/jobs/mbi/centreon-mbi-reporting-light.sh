@@ -52,7 +52,7 @@ cd ..
 rm -rf centreon-mbi-reporting-server-light*
 rm -rf Centreon-MBI-Reporting-Server-Light*
 mkdir centreon-mbi-reporting-server-light
-mv $WORKSPACE/$PRODUCT_NAME-$VERSION Centreon-MBI-Reporting-Server-Light
+mv $WORKSPACE/$PRODUCT_NAME-$VERSION centreon-mbi-reporting-server-light
 
 ## Clone centreon-bi-report
 cd ..
@@ -87,9 +87,6 @@ cd ../
 rm -Rf centreon-bi-reporting-server-light
 
 
-
-
-mv centreon-bi-engine* centreon-mbi-reporting-server-light/
 mv centreon-bi-reports* centreon-mbi-reporting-server-light/
 mv centreon-bi-etl* centreon-mbi-reporting-server-light/
 mv centreon-bi-reporting-server/tools/diagnostic.sh centreon-mbi-reporting-server-light/
