@@ -91,8 +91,8 @@ git checkout $LIGHTVERSION 1>&2
 mv * ../
 cd ../
 
-mv centreon-bi-report* centreon-mbi-reporting-server-light/
-mv centreon-bi-etl* centreon-mbi-reporting-server-light/
+mv centreon-bi-report centreon-mbi-reporting-server-light/
+mv centreon-bi-etl centreon-mbi-reporting-server-light/
 mv centreon-bi-reporting-server/tools/diagnostic.sh centreon-mbi-reporting-server-light/
 
 mv install.sh centreon-mbi-reporting-server-light/
