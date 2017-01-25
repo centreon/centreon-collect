@@ -45,7 +45,7 @@ cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/
 
 
 # Copy all files into a correct name folder
-mv $WORKSPACE/build $WORKSPACE/$PRODUCT_NAME-$VERSION/
+mv $WORKSPACE/build/* $WORKSPACE/$PRODUCT_NAME-$VERSION/
 
 #Prepare the final archive folder
 cd ..
@@ -60,8 +60,6 @@ git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.c
 cd centreon-bi-report
 git checkout $REPORTTAG 1>&2
 
-rm -rf RPM-SPECS
-
 cd ../
 
 
@@ -70,7 +68,12 @@ git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.c
 cd centreon-bi-etl
 git checkout $ETLTAG 1>&2
 
-rm -rf RPM-SPECS
+
+# Clone ETL project
+git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server.git
+cd centreon-bi-reporting-server
+git checkout $REPORTINGSERVER 1>&2
+
 
 cd ../
 
@@ -86,7 +89,11 @@ rm -Rf centreon-bi-reporting-server-light
 
 
 
-mv centreon-bi* centreon-mbi-reporting-server-light/
+mv centreon-bi-engine* centreon-mbi-reporting-server-light/
+mv centreon-bi-reports* centreon-mbi-reporting-server-light/
+mv centreon-bi-etl* centreon-mbi-reporting-server-light/
+mv centreon-bi-reporting-server/tools/diagnostic.sh centreon-mbi-reporting-server-light/
+
 mv install.sh centreon-mbi-reporting-server-light/
 mv README-FIRST centreon-mbi-reporting-server-light/
 mv silent-install.cfg centreon-mbi-reporting-server-light/
