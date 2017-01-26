@@ -1,4 +1,19 @@
 {
+    "timeperiods": [
+        {
+            "name": "fake-tp",
+            "alias": "fake-tp",
+            "sunday": "",
+            "monday": "00:00-24:00",
+            "tuesday": "00:00-24:00",
+            "wednesday": "00:00-24:00",
+            "thursday": "00:00-24:00",
+            "friday": "00:00-24:00",
+            "saturday": "",
+            "exception": [],
+            "timeperiod_include": []
+        }
+    ],
     "commands": [
         {
             "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_printers_generic_snmp.pl --plugin=hardware::printers::standard::rfc3805::plugin --mode=cover-status --hostname=$HOSTADDRESS$ --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --snmp-version=\\'$_HOSTSNMPVERSION$\\' $_HOSTSNMPEXTRAOPTIONS$\\\"",
