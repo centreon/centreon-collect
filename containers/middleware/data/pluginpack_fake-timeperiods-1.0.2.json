@@ -10,8 +10,15 @@
             "thursday": "00:00-24:00",
             "friday": "00:00-24:00",
             "saturday": "",
-            "exception": [],
-            "timeperiod_include": []
+            "exceptions": [
+                {
+                    "days": "1 july - 1 august",
+                    "timerange": "00:00-24:00"
+                }
+            ],
+            "inclusions": [
+                "fake-tp2"
+            ]
         },
         {
             "name": "fake-tp2",
@@ -50,6 +57,7 @@
             "alias": "generic-active-host",
             "check_interval": 5,
             "checks_enabled": 2,
+            "check_timeperiod" : "fake-tp",
             "discovery_validator": "",
             "icon": "",
             "macros": [],
@@ -144,7 +152,7 @@
             "parent_template": "generic-active-service",
             "passive_checks_enabled": 2,
             "retry_check_interval": 0,
-            "timeperiod": ""
+            "check_timeperiod" : "fake-tp2"
         },
         {
             "_comment": "",
@@ -160,7 +168,7 @@
             "parent_template": "",
             "passive_checks_enabled": 0,
             "retry_check_interval": 2,
-            "timeperiod": "fake-tp"
+            "check_timeperiod": "fake-tp"
         }
     ]
 }

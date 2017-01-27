@@ -10,8 +10,8 @@
             "thursday": "00:00-24:00",
             "friday": "00:00-24:00",
             "saturday": "",
-            "exception": [],
-            "timeperiod_include": []
+            "exceptions": [],
+            "inclusions": []
         }
     ],
     "commands": [
