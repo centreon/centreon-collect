@@ -1,19 +1,5 @@
 {
-    "timeperiods": [
-        {
-            "name": "fake-tp",
-            "alias": "fake-tp",
-            "sunday": "",
-            "monday": "00:00-24:00",
-            "tuesday": "00:00-24:00",
-            "wednesday": "00:00-24:00",
-            "thursday": "00:00-24:00",
-            "friday": "00:00-24:00",
-            "saturday": "",
-            "exception": [],
-            "timeperiod_include": []
-        }
-    ],
+    "timeperiods": [],
     "commands": [
         {
             "line": "\\\"$USER1$\\\\/check_icmp -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1\\\"",
