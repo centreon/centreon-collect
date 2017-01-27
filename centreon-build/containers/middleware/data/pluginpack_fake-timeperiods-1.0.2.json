@@ -2,7 +2,7 @@
     "timeperiods": [
         {
             "name": "fake-tp",
-            "alias": "fake-tp",
+            "alias": "new-alias",
             "sunday": "",
             "monday": "00:00-24:00",
             "tuesday": "00:00-24:00",
@@ -10,6 +10,19 @@
             "thursday": "00:00-24:00",
             "friday": "00:00-24:00",
             "saturday": "",
+            "exception": [],
+            "timeperiod_include": []
+        },
+        {
+            "name": "fake-tp2",
+            "alias": "fake-tp2",
+            "sunday": "00:00-12:00",
+            "monday": "00:00-12:00",
+            "tuesday": "00:00-12:00",
+            "wednesday": "00:00-12:00",
+            "thursday": "00:00-12:00",
+            "friday": "00:00-12:00",
+            "saturday": "00:00-12:00",
             "exception": [],
             "timeperiod_include": []
         }
@@ -92,8 +105,8 @@
             "fake",
             "timeperiods"
         ],
-        "update_date": "1466699396",
-        "version": "1.0.1",
+        "update_date": "1466699397",
+        "version": "1.0.2",
         "website": "www.centreon.com"
     },
     "service_templates": [
