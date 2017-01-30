@@ -6,17 +6,17 @@ set -x
 #Creating CBIS tarball
 
 # Get version
-VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
+VERSION=$(grep -m1 "<version>" centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
 export VERSION="$VERSION"
 
 PRODUCT_NAME="centreon-bi-engine" 
 ARCHIVE_NAME="$PRODUCT_NAME.tar.gz"
 
 # Clean workspace
-rm -rf $WORKSPACE/build/
+rm -rf build/
 
 # Create build folders
-mkdir -p $WORKSPACE/build/bin/external_lib/
+mkdir -p build/bin/external_lib/
 
 # Build BIRT library
 BIRT_ZIP_NAME="birt-runtime-osgi-4_4_2-20150217"
@@ -26,40 +26,40 @@ BIRT_NAME="birt-runtime-osgi-4_4_2"
 rm -rf $BIRT_NAME
 wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
 unzip $BIRT_ZIP_NAME.zip
-cp -R $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
-
-cd $WORKSPACE
+cp -R $BIRT_NAME/ReportEngine/ build/
 
 # Copy maven built files
-cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/deploy/* $WORKSPACE/build/
-cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/*.jar $WORKSPACE/build/bin/cbis.jar
-cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/cbis_lib/*.jar $WORKSPACE/build/bin/
+cp -R centreon-bi-engine/com.merethis.bi.cbis/deploy/* build/
+cp -R centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/*.jar build/bin/cbis.jar
+cp -R centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/cbis_lib/*.jar build/bin/
 
 # Replace MySQL connector with MariaDB connector
-rm -rf $WORKSPACE/build/bin/cbis_lib/mysql-connector*
+rm -rf build/bin/cbis_lib/mysql-connector*
 
 # Add MariaDB connector to BIRT installation
-cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
+cp build/bin/mariadb-java-client-*.jar build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
 
 
 # Copy all files into a correct name folder
-rm -rf $WORKSPACE/$PRODUCT_NAME-$VERSION/
-mkdir $WORKSPACE/$PRODUCT_NAME-$VERSION
-mv $WORKSPACE/build/* $WORKSPACE/$PRODUCT_NAME-$VERSION/
+rm -rf $PRODUCT_NAME-$VERSION/
+mkdir $PRODUCT_NAME-$VERSION
+mv build/* $PRODUCT_NAME-$VERSION/
 
 #Prepare the final archive folder
-cd ..
 rm -rf centreon-mbi-reporting-server-light*
-rm -rf Centreon-MBI-Reporting-Server-Light*
 mkdir centreon-mbi-reporting-server-light
-mv $WORKSPACE/$PRODUCT_NAME-$VERSION centreon-mbi-reporting-server-light
+mv $PRODUCT_NAME-$VERSION centreon-mbi-reporting-server-light/centreon-bi-engine
 
 ## Clone centreon-bi-report
-cd ..
 rm -rf centreon-bi-report
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-report.git
 cd centreon-bi-report
 git checkout $REPORTTAG 1>&2
+rm -rf .git
+rm -rf .gitignore
+rm -rf .project
+rm -rf RPM-SPECS
+rm -rf packaging
 
 cd ../
 
@@ -69,6 +69,11 @@ rm -rf centreon-bi-etl
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-etl.git
 cd centreon-bi-etl
 git checkout $ETLTAG 1>&2
+rm -rf .git
+rm -rf .gitignore
+rm -rf .project
+rm -rf RPM-SPECS
+rm -rf packaging
 
 cd ../
 
@@ -77,10 +82,13 @@ rm -rf centreon-bi-reporting-server
 git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/centreon-bi-reporting-server.git
 cd centreon-bi-reporting-server
 git checkout $REPORTINGSERVER 1>&2
-
+rm -rf .git
+rm -rf .gitignore
+rm -rf .project
+rm -rf RPM-SPECS
+rm -rf packaging
 
 cd ../
-
 
 # Clone centreon-bi-reporting-server
 rm -rf centreon-bi-reporting-server-light
