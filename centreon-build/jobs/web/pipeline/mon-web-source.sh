@@ -56,6 +56,9 @@ now=`date +%s`
 # versioning.
 export RELEASE="$now.$COMMIT"
 
+# Get committer.
+COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
+
 # Prepare source directory
 rm -rf "../centreon-$VERSION"
 mkdir "../centreon-$VERSION"
@@ -94,4 +97,5 @@ PROJECT=centreon-web
 VERSION=$VERSION
 RELEASE=$RELEASE
 COMMIT=$COMMIT
+COMMITTER=$COMMITTER
 EOF
