@@ -14,13 +14,13 @@ DISTRIB="$1"
 VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
 export VERSION="$VERSION"
 
-PRODUCT_NAME="centreon-bi-engine" 
+PRODUCT_NAME="centreon-bi-engine"
 PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION$release"
 SPECS_NAME="$PRODUCT_NAME_FULL.spec"
 
 # Get release
 cd $WORKSPACE/centreon-bi-engine
-commit=`git log -1 "1476e1df2a10a12de05b2a44572acc6ca1d3fbcb" --pretty=format:%h`
+commit=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
 export RELEASE="$now.$commit"
 
@@ -80,7 +80,7 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
  # Move tarball and spec to build into input/ folder
  mv $WORKSPACE/$ARCHIVE_NAME input/
  mv $SPECS_NAME input/
- 
+
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
