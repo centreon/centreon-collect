@@ -95,3 +95,13 @@ and provide all Centreon Map features.
 
 Has correct configuration to work with des-map-server and has Centreon
 Map Web Client installed on top of *mon-web* images.
+
+### mon-squid-simple
+
+Squid container to test proxy in Centreon.
+
+### mon-squid-basic-auth
+
+Squid container to test proxy with basic auth in Centreon.
+Proxy user : proxy-user
+Proxy-password : proxy-password
