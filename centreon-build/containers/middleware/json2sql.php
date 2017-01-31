@@ -131,6 +131,7 @@ foreach ($pp_list as $pp_file) {
     case 'fake-managed-objects':
     case 'fake-child-objects':
     case 'fake-wrong-discovery-category':
+    case 'fake-timeperiods':
         $catalog_id = $free_id;
         break ;
     case 'applications-protocol-bgp':
