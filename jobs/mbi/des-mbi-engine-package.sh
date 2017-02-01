@@ -54,7 +54,7 @@ cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.en
 rm -rf $WORKSPACE/build/bin/cbis_lib/mysql-connector*
 
 # Add MariaDB connector to BIRT installation
-cp $WORKSPACE/build/bin/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
+cp $WORKSPACE/build/bin/cbis_lib/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
 
 
 # Copy all files into a correct name folder
