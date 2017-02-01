@@ -7,7 +7,7 @@ set -x
 VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
 export VERSION="$VERSION"
 
-PRODUCT_NAME="centreon-bi-engine" 
+PRODUCT_NAME="centreon-bi-engine"
 PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION-$RELEASE"
 SPECS_NAME="$PRODUCT_NAME_FULL.spec"
 
@@ -58,14 +58,11 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
 sed -i -e  "s/^Release:.*/Release: $RELEASE%{?dist}/g" "$SPECS_NAME"
 sed -i -e  "s/^Source0:.*/Source0:%{name}-%{version}-$RELEASE.tar.gz/g" "$SPECS_NAME"
 
-# Create input and output files for Docker to build
-rm -rf input-centos6
-rm -rf input-centos7
+# Create input and output directories for Docker build
+rm -rf input
 rm -rf output-centos6
 rm -rf output-centos7
-
-mkdir input-centos6
-mkdir input-centos7
+mkdir input
 mkdir output-centos6
 mkdir output-centos7
 
@@ -81,8 +78,8 @@ docker pull "$BUILD_IMG_CENTOS_6"
 docker pull "$BUILD_IMG_CENTOS_7"
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS_6" input-centos6 output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS_7" input-centos7 output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS_6" input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS_7" input output-centos7
 
 # Copy files to server.
 FILES_CENTOS6='output-centos6/noarch/*.rpm'

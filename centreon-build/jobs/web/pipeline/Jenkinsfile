@@ -1,0 +1,122 @@
+/*
+** Build sources from git repository and send them to srvi-repo. Commit
+** properties will be passed along all stages to identify target
+** artifacts.
+*/
+stage('Source') {
+  node {
+    sh 'cd /opt/centreon-build && git pull && cd -'
+    checkout([
+      $class: 'GitSCM',
+      branches: [[name: '*/2.8.x']],
+      extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'centreon-web']],
+      userRemoteConfigs: [[credentialsId: '3ed480ab-41d5-4aae-8bc0-38560256a123', url: 'ssh://github.com/centreon/centreon']]
+    ])
+    checkout([
+      $class: 'GitSCM',
+      branches: [[name: '*/2.7.x']],
+      extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'centreon-plugins']],
+      userRemoteConfigs: [[credentialsId: '3ed480ab-41d5-4aae-8bc0-38560256a123', url: 'ssh://github.com/centreon/centreon-plugins']]
+    ])
+    sh '/opt/centreon-build/jobs/web/pipeline/mon-web-source.sh'
+    def source = readProperties file: 'source.properties'
+    env.VERSION = "${source.VERSION}"
+    env.RELEASE = "${source.RELEASE}"
+  }
+}
+
+/*
+** Run unit tests against sources. Publish xUnit reports.
+*/
+stage('Unit tests') {
+  parallel 'centos6': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-unittest.sh centos6'
+      step([
+        $class: 'hudson.plugins.checkstyle.CheckStylePublisher',
+	pattern: '**/codestyle.xml',
+	unstableTotalAll: '650'
+      ])
+    }
+  },
+  'centos7': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-unittest.sh centos7'
+      step([
+        $class: 'hudson.plugins.checkstyle.CheckStylePublisher',
+	pattern: '**/codestyle.xml',
+	unstableTotalAll: '650'
+      ])
+    }
+  }
+}
+
+/*
+** Bundle sources in binary packages for supported distributions.
+** Packages are then pushed to an internal repository.
+*/
+stage('Package') {
+  parallel 'centos6': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-package.sh centos6'
+    }
+  },
+  'centos7': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-package.sh centos7'
+    }
+  }
+}
+
+/*
+** Create Docker image(s) with the packages built at previous step.
+*/
+stage('Bundle') {
+  parallel 'centos6': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-bundle.sh 6'
+    }
+  },
+  'centos7': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-bundle.sh 7'
+    }
+  }
+}
+
+/*
+** Run acceptance tests on supported platforms.
+*/
+stage('Acceptance tests') {
+  parallel 'centos6': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-acceptance.sh centos6'
+      junit 'xunit-reports/**/*.xml'
+    }
+  },
+  'centos7': {
+    node {
+      sh 'cd /opt/centreon-build && git pull && cd -'
+      sh '/opt/centreon-build/jobs/web/pipeline/mon-web-acceptance.sh centos7'
+      junit 'xunit-reports/**/*.xml'
+    }
+  }
+}
+
+/*
+** All stages were accomplished successfully, time to send packages and
+** sources online.
+*/
+stage('Delivery') {
+  node {
+    sh 'cd /opt/centreon-build && git pull && cd -'
+    sh '/opt/centreon-build/jobs/web/pipeline/mon-web-delivery.sh'
+  }
+}
