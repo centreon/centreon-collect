@@ -47,7 +47,8 @@ cd $WORKSPACE
 # Copy maven built files
 cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/deploy/* $WORKSPACE/build/
 cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/*.jar $WORKSPACE/build/bin/cbis.jar
-cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/cbis_lib/*.jar $WORKSPACE/build/bin/
+mkdir $WORKSPACE/build/bin/cbis_lib/
+cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/cbis_lib/*.jar $WORKSPACE/build/bin/cbis_lib/
 
 # Replace MySQL connector with MariaDB connector
 rm -rf $WORKSPACE/build/bin/cbis_lib/mysql-connector*
