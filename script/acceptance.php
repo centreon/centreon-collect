@@ -92,7 +92,8 @@ if ($synchronize) {
         '/mon-lm:centos7',
         '/mon-middleware:latest',
         '/mon-mediawiki:latest',
-        '/mon-squid:latest',
+        '/mon-squid-simple:latest',
+        '/mon-squid-basic-auth:latest',
         '/mon-ppe:centos6',
         '/mon-ppe:centos7',
         '/mon-ppe1:centos6',
@@ -195,22 +196,46 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/squid/docker-compose.yml.in'),
-        xpath('mon-web-squid-dev.yml'),
+        xpath($centreon_build_dir . '/containers/squid/simple/docker-compose.yml.in'),
+        xpath('mon-web-squid-simple-dev.yml'),
         array(
             '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/squid/docker-compose.yml.in'),
-        xpath('mon-ppm-squid-dev.yml'),
+        xpath($centreon_build_dir . '/containers/squid/simple/docker-compose-middleware.yml.in'),
+        xpath('mon-ppm-squid-simple-dev.yml'),
         array(
             '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/squid/docker-compose-middleware.yml.in'),
-        xpath('mon-lm-squid-dev.yml'),
+        xpath($centreon_build_dir . '/containers/squid/simple/docker-compose-middleware.yml.in'),
+        xpath('mon-lm-squid-simple-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/squid/basic-auth/docker-compose.yml.in'),
+        xpath('mon-web-squid-basic-auth-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/squid/basic-auth/docker-compose-middleware.yml.in'),
+        xpath('mon-ppm-squid-basic-auth-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/squid/basic-auth/docker-compose-middleware.yml.in'),
+        xpath('mon-lm-squid-basic-auth-dev.yml'),
         array(
             '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'

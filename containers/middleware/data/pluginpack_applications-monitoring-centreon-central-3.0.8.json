@@ -4,6 +4,11 @@
             "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_centreon_central.pl --plugin=apps::centreon::local::plugin --mode=retention-broker --broker-config=\\'$_HOSTRRDCFGFILE$\\' --broker-config=\\'$_HOSTSQLCFGFILE$\\' $_SERVICEEXTRAOPTIONS$\\\"",
             "name": "App-CentreonBroker-Retention-Local",
             "type": 2
+        },
+        {
+            "name": "disco",
+            "line": "\\\"disco\\\"",
+            "type": "4"
         }
     ],
     "host_templates": [
@@ -41,7 +46,9 @@
                 "App-Monitoring-Centreon-Process-centcore",
                 "App-Monitoring-Centreon-Process-broker-sql",
                 "App-Monitoring-Centreon-Process-broker-rrd"
-            ]
+            ],
+            "discovery_command_name": "disco",
+            "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
         }
     ],
     "images": [

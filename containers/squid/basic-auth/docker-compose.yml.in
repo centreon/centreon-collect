@@ -14,6 +14,6 @@ services:
     links:
     - squid
   squid:
-    image: ci.int.centreon.com:5000/mon-squid:latest
+    image: ci.int.centreon.com:5000/mon-squid-basic-auth:latest
     ports:
     - "3128"

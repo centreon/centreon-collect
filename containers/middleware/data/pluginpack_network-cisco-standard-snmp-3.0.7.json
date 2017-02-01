@@ -145,7 +145,9 @@
         ],
         "update_date": "1480524918",
         "version": "3.0.7",
-        "website": "www.centreon.com"
+        "website": "www.centreon.com",
+        "discovery_command_name": "disco",
+        "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
     },
     "service_templates": [
         {

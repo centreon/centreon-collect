@@ -11,6 +11,11 @@ set -x
 # the property file generated at the end of the script.
 #
 
+# Checkout Centreon Plugins.
+if [ \! -d centreon-plugins ] ; then
+  git clone https://github.com/centreon/centreon-plugins.git
+fi
+
 # Get version.
 VERSION=
 VERSION_NUM=0
@@ -51,12 +56,15 @@ now=`date +%s`
 # versioning.
 export RELEASE="$now.$COMMIT"
 
+# Get committer.
+COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
+
 # Prepare source directory
 rm -rf "../centreon-$VERSION"
 mkdir "../centreon-$VERSION"
 git archive HEAD | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
-git archive --prefix=plugins/ HEAD | tar -C "../centreon-$VERSION" -x
+git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
 
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
@@ -89,4 +97,5 @@ PROJECT=centreon-web
 VERSION=$VERSION
 RELEASE=$RELEASE
 COMMIT=$COMMIT
+COMMITTER=$COMMITTER
 EOF

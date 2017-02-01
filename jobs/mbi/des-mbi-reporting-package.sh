@@ -18,7 +18,7 @@ mkdir output
 
 # Get version.
 cd centreon-bi-reporting-server
-VERSION=`cat RPM-SPECS/centreon-bi-reporting-server.spec | grep Version: | cut -f 2`
+VERSION=`cat packaging/centreon-bi-reporting-server.spectemplate | grep Version: | cut -f 2`
 export VERSION="$VERSION"
 
 # Get release.
@@ -35,8 +35,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-sed 's/@/@@/g' < centreon-bi-reporting-server/RPM-SPECS/centreon-bi-reporting-server.spec > input/centreon-bi-reporting-server.spectemplate
-sed -i 's/^Release:.*$/Release: '"$RELEASE"'%{?dist}/g' input/centreon-bi-reporting-server.spectemplate
+cp centreon-bi-reporting-server/packaging/centreon-bi-reporting-server.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.

@@ -15,20 +15,20 @@ su - centreon -c centcore &
 # call this cumbersome init system.
 rm -rf /etc/systemd
 
-# Start Centreon Web.
-httpd -k start
-
-# Wait for Centreon Web to be up and running.
+# Wait for the database to be up and running.
 while true ; do
-  timeout -k 15 10 curl -H 'Accept: application/json' -X POST -d 'username=admin' -d 'password=centreon' 'http://localhost/centreon/api/index.php?action=authenticate'
+  timeout 10 mysql -e 'SELECT * FROM nagios_server' centreon
   retval=$?
   if [ "$retval" = 0 ] ; then
     break ;
   else
-    echo 'Centreon Web is not yet available.'
+    echo 'DB server is not yet responding.'
     sleep 1
   fi
 done
+
+# Start Centreon Web.
+httpd -k start
 
 # Print logs.
 tailf /var/log/httpd/error_log
