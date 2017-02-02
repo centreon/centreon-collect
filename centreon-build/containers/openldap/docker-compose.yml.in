@@ -1,0 +1,17 @@
+version: '2'
+services:
+  webdriver:
+    image: ci.int.centreon.com:5000/mon-phantomjs:latest
+    ports:
+    - "4444"
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+    links:
+    - openldap
+  openldap:
+    image: ci.int.centreon.com:5000/mon-openldap:latest
+    ports:
+    - "389"

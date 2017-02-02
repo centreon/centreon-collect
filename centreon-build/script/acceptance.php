@@ -92,6 +92,7 @@ if ($synchronize) {
         '/mon-lm:centos7',
         '/mon-middleware:latest',
         '/mon-mediawiki:latest',
+        '/mon-openldap:latest',
         '/mon-squid-simple:latest',
         '/mon-squid-basic-auth:latest',
         '/mon-ppe:centos6',
@@ -191,6 +192,13 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/mediawiki/docker-compose.yml.in'),
         xpath('mon-web-kb-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/openldap/docker-compose.yml.in'),
+        xpath('mon-web-openldap-dev.yml'),
         array(
             '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
         )
