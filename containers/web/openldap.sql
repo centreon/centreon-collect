@@ -11,6 +11,13 @@ INSERT INTO `auth_ressource` (`ar_name`, `ar_description`, `ar_type`, `ar_enable
 VALUES ('openldap', 'openldap', 'ldap', '1');
 
 --
+-- Contenu de la table options
+--
+DELETE FROM options WHERE options.key = 'ldap_auth_enable';
+INSERT INTO options (options.key, options.value)
+VALUES ('ldap_auth_enable', '1');
+
+--
 -- Contenu de la table auth_ressource_info
 --
 INSERT INTO `auth_ressource_info` (`ar_id`, `ari_name`, `ari_value`)
@@ -47,9 +54,3 @@ VALUES
 --
 INSERT INTO `auth_ressource_host` (`auth_ressource_id`, `host_address`, `host_port`, `use_ssl`, `use_tls`, `host_order`)
 VALUES (1, 'openldap', 389, 0, 0, 1);
-
---
--- Contenu de la table contact (user)
---
-INSERT INTO `contact` (`contact_name`, `contact_alias`, `contact_lang`, `contact_activate`, `contact_oreon`, `contact_template_id`, `contact_admin`, `contact_auth_type`, `contact_ldap_dn`, `ar_id`, `contact_register`)
-VALUES ('centreon-ldap', 'centreon-ldap', 'en_US', '1', '1', (SELECT c2.contact_id FROM contact c2 WHERE c2.contact_name = 'contact_template'), '1', 'ldap', 'cn=centreon-ldap,ou=users,dc=centreon,dc=com', 1, 1);
