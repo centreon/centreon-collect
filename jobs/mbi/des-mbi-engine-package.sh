@@ -32,16 +32,6 @@ rm -rf $WORKSPACE/build/
 # Create build folders
 mkdir -p $WORKSPACE/build/bin/external_lib/
 
-# Build BIRT library
-BIRT_ZIP_NAME="birt-runtime-osgi-4_4_2-20150217"
-BIRT_NAME="birt-runtime-osgi-4_4_2"
-
-# Extract BIRT report engine
-rm -rf $BIRT_NAME
-wget http://srvi-repo.int.centreon.com/sources/mbi/stable/$BIRT_ZIP_NAME.zip
-unzip $BIRT_ZIP_NAME.zip
-cp -R $BIRT_NAME/ReportEngine/ $WORKSPACE/build/
-
 cd $WORKSPACE
 
 # Copy maven built files
@@ -49,13 +39,6 @@ cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/deploy/* $WORKSPACE/bui
 cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/*.jar $WORKSPACE/build/bin/cbis.jar
 mkdir $WORKSPACE/build/bin/cbis_lib/
 cp -R $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/com.merethis.bi.cbis.engine/target/cbis_lib/*.jar $WORKSPACE/build/bin/cbis_lib/
-
-# Replace MySQL connector with MariaDB connector
-rm -rf $WORKSPACE/build/bin/cbis_lib/mysql-connector*
-
-# Add MariaDB connector to BIRT installation
-cp $WORKSPACE/build/bin/cbis_lib/mariadb-java-client-*.jar $WORKSPACE/build/ReportEngine/plugins/org.eclipse.birt.report.data.oda.jdbc_*/drivers/
-
 
 # Copy all files into a correct name folder
 mv $WORKSPACE/build $WORKSPACE/$PRODUCT_NAME-$VERSION/
