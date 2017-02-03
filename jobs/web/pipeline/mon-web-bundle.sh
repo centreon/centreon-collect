@@ -23,6 +23,7 @@ cp -r /opt/centreon-build .
 cd centreon-build/containers
 sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/fresh.Dockerfile.in > web/fresh.centos$CENTOS_VERSION.Dockerfile
 sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/standard.Dockerfile.in > web/standard.centos$CENTOS_VERSION.Dockerfile
+sed "s/@CENTOS_VERSION@/$CENTOS_VERSION/g" < web/widgets.Dockerfile.in > web/widgets.centos$CENTOS_VERSION.Dockerfile
 
 # Build 'fresh' image.
 FRESH_IMG="ci.int.centreon.com:5000/mon-web-fresh-$VERSION-$RELEASE:centos$CENTOS_VERSION"
@@ -33,3 +34,8 @@ docker push "$FRESH_IMG"
 STANDARD_IMG="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:centos$CENTOS_VERSION"
 docker build --no-cache -t "$STANDARD_IMG" -f web/standard.centos$CENTOS_VERSION.Dockerfile .
 docker push "$STANDARD_IMG"
+
+# Build 'widgets' image.
+WIDGETS_IMG="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:centos$CENTOS_VERSION"
+docker build --no-cache -t "$WIDGETS_IMG" -f web/widgets.centos$CENTOS_VERSION.Dockerfile .
+docker push "$WIDGETS_IMG"
