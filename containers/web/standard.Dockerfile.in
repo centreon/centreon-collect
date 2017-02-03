@@ -1,4 +1,4 @@
-FROM @WEB_IMAGE@
+FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY web/standard.sql /tmp/standard.sql
 COPY web/standard.sh /tmp/install.sh

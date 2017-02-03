@@ -1,4 +1,4 @@
-FROM @WEB_IMAGE@
+FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 RUN yum clean all
 RUN yum install -y 'centreon-widget-*'
