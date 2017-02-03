@@ -15,6 +15,7 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
+rm -f "centreon-$VERSION.tar.gz"
 wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
 tar xzf "centreon-$VERSION.tar.gz"
 
