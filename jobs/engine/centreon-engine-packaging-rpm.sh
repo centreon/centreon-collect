@@ -24,7 +24,7 @@ mkdir output-centos7
 # Get version.
 cd centreon-engine
 git checkout --detach "$COMMIT"
-cmakelists=centreon-engine/build/CMakeLists.txt
+cmakelists=build/CMakeLists.txt
 major=`grep 'set(CENTREON_ENGINE_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CENTREON_ENGINE_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 patch=`grep 'set(CENTREON_ENGINE_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
