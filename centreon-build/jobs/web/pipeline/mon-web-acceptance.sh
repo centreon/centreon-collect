@@ -29,8 +29,8 @@ docker pull $OPENLDAP_IMAGE
 docker pull $INFLUXDB_IMAGE
 
 # Fetch sources.
+rm -rf "centreon-$VERSION" "centreon-$VERSION.tar.gz"
 wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
-rm -rf "centreon-$VERSION"
 tar xzf "centreon-$VERSION.tar.gz"
 cd "centreon-$VERSION"
 
