@@ -1,4 +1,4 @@
-FROM ci.int.centreon.com:5000/mon-web-fresh:centos@CENTOS_VERSION@
+FROM @WEB_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY web/standard.sql /tmp/standard.sql
 COPY web/standard.sh /tmp/install.sh
