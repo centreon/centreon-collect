@@ -109,6 +109,8 @@ if ($synchronize) {
         '/mon-web-fresh:centos7',
         '/mon-web:centos6',
         '/mon-web:centos7',
+        '/mon-web-widgets:centos6',
+        '/mon-web-widgets:centos7',
         '/mon-web-stable:centos6',
         '/mon-web-stable:centos7',
         '/des-bam:centos6',
@@ -301,6 +303,11 @@ else {
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-web-fresh-dev.yml'),
         array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web-fresh:' : 'mon-web-fresh-dev:') . $distrib)
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath('mon-web-widgets-dev.yml'),
+        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web-widgets:' : 'mon-web-widgets-dev:') . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
