@@ -21,18 +21,18 @@ mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
-# Create source tarball.
+# Get version.
 cd centreon-broker
 git checkout --detach "$COMMIT"
-git archive --prefix="centreon-broker-$VERSION/" HEAD | gzip > "../input/centreon-broker-$VERSION.tar.gz"
-cd ..
-
-# Get version.
 cmakelists=centreon-broker/build/CMakeLists.txt
 major=`grep 'set(CENTREON_BROKER_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CENTREON_BROKER_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 patch=`grep 'set(CENTREON_BROKER_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 export VERSION="$major.$minor.$patch"
+
+# Create source tarball.
+git archive --prefix="centreon-broker-$VERSION/" HEAD | gzip > "../input/centreon-broker-$VERSION.tar.gz"
+cd ..
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-broker ] ; then

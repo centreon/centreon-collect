@@ -21,18 +21,18 @@ mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
-# Create source tarball.
+# Get version.
 cd centreon-engine
 git checkout --detach "$COMMIT"
-git archive --prefix="centreon-engine-$VERSION/" HEAD | gzip > "../input/centreon-engine-$VERSION.tar.gz"
-cd ..
-
-# Get version.
 cmakelists=centreon-engine/build/CMakeLists.txt
 major=`grep 'set(CENTREON_ENGINE_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CENTREON_ENGINE_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 patch=`grep 'set(CENTREON_ENGINE_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 export VERSION="$major.$minor.$patch"
+
+# Create source tarball.
+git archive --prefix="centreon-engine-$VERSION/" HEAD | gzip > "../input/centreon-engine-$VERSION.tar.gz"
+cd ..
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-engine ] ; then
