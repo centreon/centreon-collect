@@ -18,7 +18,7 @@ DISTRIB="$1"
 BASE_IMG="ci.int.centreon.com:5000/mon-dependencies:$DISTRIB"
 FRESH_IMG="ci.int.centreon.com:5000/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 STANDARD_IMG="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:$DISTRIB"
-WIDGETS_IMG="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:$DISTRIB"
+WIDGETS_IMG="ci.int.centreon.com:5000/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
 
 # Pull base image.
 docker pull "$BASE_IMG"
