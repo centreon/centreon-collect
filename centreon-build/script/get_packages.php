@@ -57,7 +57,7 @@ function getPackages($distrib) {
     }
     chdir($distrib);
     $html = file_get_contents($url);
-    $count = preg_match_all('/<a href="([^"]+)">[^<]*<\/a>/i', $html, $remoteFiles);
+    $count = preg_match_all('/<a href="([^"]+\.rpm)">[^<]*<\/a>/i', $html, $remoteFiles);
     foreach ($expectedFiles as $expectedFile) {
         $latestPackage = '';
         for ($i = 0; $i < $count; ++$i) {
