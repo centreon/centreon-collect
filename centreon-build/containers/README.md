@@ -12,6 +12,8 @@ registry you need to configure Docker to explicit trust it. Add
 **--insecure-registry ci.int.centreon.com:5000** to your Docker daemon
 command line (either */lib/systemd/system/docker.service*,
 */etc/default/docker* or some similar file).
+You can also try to add the following line in the file */etc/docker/daemon.json* (create it if needed):
+**{ "insecure-registries":["ci.int.centreon.com:5000"] }**
 
 ## Building images
 
