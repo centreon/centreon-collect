@@ -4,6 +4,25 @@
 $centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..';
 require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
 
+// Build an image name.
+function build_image_name($base) {
+    // Global variables.
+    global $ci;
+    global $distrib;
+    global $version;
+
+    if ($ci) {
+        $name = 'ci.int.centreon.com:5000/' . $base;
+        if (!empty($version)) {
+            $name .= '-' . $version;
+        }
+        $name .= ':' . $distrib;
+    } else {
+        $name = $base . '-dev:' . $distrib;
+    }
+    return $name;
+}
+
 // Replace all the elements of a file
 function replace_in_file($in, $out, $to_replace) {
   $str = file_get_contents($in);
@@ -26,10 +45,10 @@ if (function_exists('pcntl_signal')) {
 }
 
 // Parse the options.
-$opts = getopt("cd:ghs");
+$opts = getopt("cd:ghsv:");
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c] [-d distrib] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c [-v]] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "  Description:\n";
     echo "    Feature files are optional. By default all of them will be run.\n";
@@ -39,6 +58,7 @@ if (isset($opts['h'])) {
     echo "  Arguments:\n";
     echo "    -h  Print this help.\n";
     echo "    -c  Use images from the continuous integration instead of locally generated images.\n";
+    echo "    -v  Use precise version from CI (use with -c).\n";
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
@@ -58,8 +78,16 @@ if (isset($opts['h'])) {
 if (isset($opts['c'])) {
     $ci = true;
     array_shift($argv);
+    if (isset($opts['v'])) {
+        $version = $opts['v'];
+        array_shift($argv);
+        array_shift($argv);
+    } else {
+        $version = null;
+    }
 } else {
     $ci = false;
+    $version = null;
 }
 if (isset($opts['d'])) {
     $distrib = $opts['d'];
@@ -187,36 +215,30 @@ else {
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-web.yml.in'),
         xpath('mon-lm-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-lm'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/mediawiki/docker-compose.yml.in'),
         xpath('mon-web-kb-dev.yml'),
-        array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
-        )
+        array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/openldap/docker-compose.yml.in'),
         xpath('mon-web-openldap-dev.yml'),
-        array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
-        )
+        array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/squid/simple/docker-compose.yml.in'),
         xpath('mon-web-squid-simple-dev.yml'),
-        array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
-        )
+        array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/squid/simple/docker-compose-middleware.yml.in'),
         xpath('mon-ppm-squid-simple-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-ppm'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
@@ -224,22 +246,20 @@ else {
         xpath($centreon_build_dir . '/containers/squid/simple/docker-compose-middleware.yml.in'),
         xpath('mon-lm-squid-simple-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-lm'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/squid/basic-auth/docker-compose.yml.in'),
         xpath('mon-web-squid-basic-auth-dev.yml'),
-        array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
-        )
+        array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/squid/basic-auth/docker-compose-middleware.yml.in'),
         xpath('mon-ppm-squid-basic-auth-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-ppm'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
@@ -247,16 +267,14 @@ else {
         xpath($centreon_build_dir . '/containers/squid/basic-auth/docker-compose-middleware.yml.in'),
         xpath('mon-lm-squid-basic-auth-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-lm:' : 'mon-lm-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-lm'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose-influxdb.yml.in'),
         xpath('mon-web-influxdb.yml'),
-        array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib,
-        )
+        array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-standalone.yml.in'),
@@ -266,7 +284,7 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-ppe-dev.yml'),
-        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppe:' : 'mon-ppe-dev:') . $distrib)
+        array('@WEB_IMAGE@' => build_image_name('mon-ppe'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
@@ -277,7 +295,7 @@ else {
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-ppm-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-ppm:' : 'mon-ppm-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-ppm'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
@@ -290,44 +308,42 @@ else {
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-automation-dev.yml'),
         array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-automation:' : 'mon-automation-dev:') . $distrib,
+            '@WEB_IMAGE@' => build_image_name('mon-automation'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-web-dev.yml'),
-        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web:' : 'mon-web-dev:') . $distrib)
+        array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-web-fresh-dev.yml'),
-        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web-fresh:' : 'mon-web-fresh-dev:') . $distrib)
+        array('@WEB_IMAGE@' => build_image_name('mon-web-fresh'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-web-widgets-dev.yml'),
-        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-web-widgets:' : 'mon-web-widgets-dev:') . $distrib)
+        array('@WEB_IMAGE@' => build_image_name('mon-web-widgets'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('des-bam-dev.yml'),
-        array('@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-bam:' : 'des-bam-dev:') . $distrib)
+        array('@WEB_IMAGE@' => build_image_name('des-bam'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/map/docker-compose.yml.in'),
         xpath('des-map-dev.yml'),
         array(
-            '@MAP_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-map-server:' : 'des-map-server:') . $distrib,
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-map-web:' : 'des-map-web:') . $distrib
+            '@MAP_IMAGE@' => build_image_name('des-map-server'),
+            '@WEB_IMAGE@' => build_image_name('des-map-web')
         )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/mbi/docker-compose.yml.in'),
         xpath('des-mbi-dev.yml'),
-        array(
-            '@WEB_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/des-mbi-web:' : 'des-mbi-web:') . $distrib
-        )
+        array('@WEB_IMAGE@' => build_image_name('des-mbi-web'))
     );
 
     // Execute the dev container script.
