@@ -8,11 +8,9 @@ testing environments. Usually any image is provided with two tags :
 
 Images are hosted on a private registry hosted at
 *ci.int.centreon.com:5000*. If you wish to use images provided by this
-registry you need to configure Docker to explicit trust it. Add
-**--insecure-registry ci.int.centreon.com:5000** to your Docker daemon
-command line (either */lib/systemd/system/docker.service*,
-*/etc/default/docker* or some similar file).
-You can also try to add the following line in the file */etc/docker/daemon.json* (create it if needed):
+registry you need to configure Docker to explicit trust it.
+Edit the file */etc/docker/daemon.json* (create it if needed) and add the following line:
+
 **{ "insecure-registries":["ci.int.centreon.com:5000"] }**
 
 ## Building images
