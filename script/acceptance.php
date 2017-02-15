@@ -147,6 +147,10 @@ if ($synchronize) {
         '/des-bam-server:centos7',
         '/des-map-web:centos6',
         '/des-map-web:centos7',
+        '/des-mbi-server:centos6',
+        '/des-mbi-server:centos7',
+        '/des-mbi-web:centos6',
+        '/des-mbi-web:centos7',
         'redis:latest'
     );
     $count = count($images);
@@ -343,7 +347,10 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/mbi/docker-compose.yml.in'),
         xpath('des-mbi-dev.yml'),
-        array('@WEB_IMAGE@' => build_image_name('des-mbi-web'))
+        array(
+            '@MBI_IMAGE@' => build_image_name('des-mbi-server'),
+            '@WEB_IMAGE@' => build_image_name('des-mbi-web')
+        )
     );
 
     // Execute the dev container script.
