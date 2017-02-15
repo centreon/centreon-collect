@@ -5,7 +5,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 # Install Centreon Web.
 RUN yum clean all
 RUN yum clean packages
-RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon-broker* mysql-server git
+RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git
 COPY web/centengine.sh /etc/init.d/centengine
 COPY web/cbd.sh /etc/init.d/cbd
 RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
