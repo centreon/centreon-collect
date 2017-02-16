@@ -4,42 +4,24 @@ set -e
 set -x
 
 # Check arguments.
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
+  exit 1;
+fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
-CENTOS_VERSION="$1"
+DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION
+docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
 rm -rf output
 mkdir output
-
-# Get Centreon Broker sources.
-if [ \! -d centreon-broker ] ; then
-  git clone https://github.com/centreon/centreon-broker
-fi
-
-# Get version.
-cmakelists=centreon-broker/build/CMakeLists.txt
-major=`grep 'set(CENTREON_BROKER_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
-minor=`grep 'set(CENTREON_BROKER_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
-patch=`grep 'set(CENTREON_BROKER_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
-export VERSION="$major.$minor.$patch"
-
-# Get release.
-cd centreon-broker
-commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
-now=`date +%s`
-export RELEASE="$now.$commit"
-
-# Create source tarball.
-git archive --prefix="centreon-broker-$VERSION/" "$GIT_BRANCH" | gzip > "../input/centreon-broker-$VERSION.tar.gz"
-cd ..
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-broker ] ; then
@@ -51,11 +33,16 @@ else
 fi
 cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 
+# Retrieve sources.
+cd input
+wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-broker-$VERSION-$RELEASE/centreon-broker-$VERSION.tar.gz"
+cd ..
+
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos$CENTOS_VERSION input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
 
 # Copy files to server.
-if [ "$CENTOS_VERSION" = 6 ] ; then
+if [ "$DISTRIB" = 'centos6' ] ; then
   REPO='internal/el6/x86_64'
 else
   REPO='internal/el7/x86_64'
