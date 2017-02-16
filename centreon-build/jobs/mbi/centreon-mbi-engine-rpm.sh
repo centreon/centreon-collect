@@ -5,7 +5,7 @@ set -x
 
 # Get version
 VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
-#export VERSION="$VERSION"
+export VERSION="$VERSION"
 
 PRODUCT_NAME="centreon-bi-engine"
 PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION-$RELEASE"
