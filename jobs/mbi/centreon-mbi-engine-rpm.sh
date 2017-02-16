@@ -10,8 +10,7 @@ VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbi
 PRODUCT_NAME="centreon-bi-engine"
 PRODUCT_NAME_FULL="$PRODUCT_NAME-$VERSION-$RELEASE"
 SPECS_NAME="$PRODUCT_NAME_FULL.spec"
-
-ARCHIVE_NAME="$PRODUCT_NAME_FULL-$RELEASE.tar.gz"
+ARCHIVE_NAME="$PRODUCT_NAME_FULL.tar.gz"
 
 # Clean workspace
 rm -rf $WORKSPACE/build/
