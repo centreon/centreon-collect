@@ -56,7 +56,7 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
 
 # Change spec version, release and source numbers
 sed -i -e  "s/^Release:.*/Release: $RELEASE%{?dist}/g" "$SPECS_NAME"
-sed -i -e  "s/^Source0:.*/Source0:%{name}-%{version}-$RELEASE.tar.gz/g" "$SPECS_NAME"
+sed -i -e  "s/^Source0:.*/Source0:%{name}-%{version}.tar.gz/g" "$SPECS_NAME"
 
 # Create input and output directories for Docker build
 rm -rf input
