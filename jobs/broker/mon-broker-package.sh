@@ -15,7 +15,7 @@ fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos$DISTRIB
+docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
