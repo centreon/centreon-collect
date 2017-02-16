@@ -22,7 +22,7 @@ export VERSION="$major.$minor.$patch"
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
-export RELEASE="$now.$commit"
+export RELEASE="$now.$COMMIT"
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
