@@ -71,8 +71,10 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG7" input o
   REPO6='internal/el6/noarch'
   REPO7='internal/el7/noarch'
 
-FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
+  FILES_CENTOS6='output6/noarch/*.rpm'
+  FILES_CENTOS7='output7/noarch/*.rpm'
+
+scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/3.4/el6/$REPO/noarch/RPMS"
+scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/3.4/el7/$REPO/noarch/RPMS"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/3.4/el6/$REPO/noarch
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/3.4/el7/$REPO/noarch
