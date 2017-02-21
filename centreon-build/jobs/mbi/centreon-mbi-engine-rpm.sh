@@ -13,7 +13,7 @@ SPECS_NAME="$PRODUCT_NAME_FULL.spec"
 
 # Get release
 cd $WORKSPACE/centreon-bi-engine
-ARCHIVE_NAME="$PRODUCT_NAME_FULL-$RELEASE.tar.gz"
+ARCHIVE_NAME="$PRODUCT_NAME_FULL.tar.gz"
 
 # Clean workspace
 rm -rf $WORKSPACE/build/
