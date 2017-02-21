@@ -64,8 +64,8 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
  docker pull "$BUILD_IMG_CENTOS6"
  docker pull "$BUILD_IMG_CENTOS7"
 
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG6" input output6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG7" input output7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS6" input output6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS7" input output7
 
 # Copy files to server.
   REPO6='internal/el6/noarch'
