@@ -12,6 +12,7 @@ httpd -k start
 
 # Create and populate poller (that will have Poller Display).
 centreon -u admin -p centreon -o INSTANCE -a ADD -v "Poller;poller;22;"
+mysql centreon -e "INSERT INTO mod_poller_display_server_relations (nagios_server_id) SELECT id FROM nagios_server WHERE name='Poller'"
 centreon -u admin -p centreon -o HOST -a ADD -v "Poller;Poller;poller;generic-host;Poller;"
 centreon -u admin -p centreon -o SERVICE -a ADD -v "Poller;Ping;Ping-LAN"
 
