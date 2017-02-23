@@ -35,7 +35,7 @@ wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELE
 cd ..
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
 
 # Copy files to server.
 if [ "$DISTRIB" = "centos6" ] ; then
@@ -46,5 +46,5 @@ fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
 DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
+scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
