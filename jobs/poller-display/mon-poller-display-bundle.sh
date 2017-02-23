@@ -31,12 +31,12 @@ docker pull "$WEB_STANDARD_IMG"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-# sed "s#@BASE_IMAGE@#$WEB_FRESH_IMG#g" < poller-display/poller.Dockerfile.in > poller-display/poller.Dockerfile
+sed "s#@BASE_IMAGE@#$WEB_FRESH_IMG#g" < poller-display/poller.Dockerfile.in > poller-display/poller.Dockerfile
 sed "s#@BASE_IMAGE@#$WEB_STANDARD_IMG#g" < poller-display/central.Dockerfile.in > poller-display/central.Dockerfile
 
 # Build 'poller' image.
-# docker build --no-cache -t "$POLLER_IMG" -f poller-display/poller.Dockerfile .
-# docker push "$POLLER_IMG"
+docker build --no-cache -t "$POLLER_IMG" -f poller-display/poller.Dockerfile .
+docker push "$POLLER_IMG"
 
 # Build 'central' image.
 docker build --no-cache -t "$CENTRAL_IMG" -f poller-display/central.Dockerfile .
