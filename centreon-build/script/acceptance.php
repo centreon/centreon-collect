@@ -123,6 +123,10 @@ if ($synchronize) {
         '/mon-openldap:latest',
         '/mon-squid-simple:latest',
         '/mon-squid-basic-auth:latest',
+        '/mon-poller-display:centos6',
+        '/mon-poller-display:centos7',
+        '/mon-poller-display-central:centos6',
+        '/mon-poller-display-central:centos7',
         '/mon-ppe:centos6',
         '/mon-ppe:centos7',
         '/mon-ppe1:centos6',
@@ -185,6 +189,9 @@ else {
     case 'centreon-imp-portal-api':
     case 'centreon-middleware':
         $project = 'middleware';
+        break ;
+    case 'centreon-poller-display':
+        $project = 'poller-display';
         break ;
     case 'centreon-export':
     case 'centreon-ppe':
