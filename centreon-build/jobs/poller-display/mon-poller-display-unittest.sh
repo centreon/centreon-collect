@@ -32,7 +32,8 @@ docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
-docker cp "$containerid:/tmp/ut.xml" ut_$DISTRIB.xml
+docker cp "$containerid:/tmp/ut.xml" ut.xml
+sed -i "s/^  <testsuite /  <testsuite package=\"unittest.$DISTRIB\" /g" ut.xml
 docker cp "$containerid:/tmp/coverage.xml" coverage.xml
 docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 
