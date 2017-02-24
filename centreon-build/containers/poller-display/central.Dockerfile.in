@@ -13,5 +13,6 @@ RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 RUN /tmp/install.sh
 
 # Install SSH keys.
-RUN mkdir -p /var/spool/centreon/.ssh && chown centreon:centreon /var/spool/centreon/.ssh
+RUN mkdir -p /var/spool/centreon/.ssh
 COPY poller-display/id_rsa poller-display/id_rsa.pub poller-display/known_hosts /var/spool/centreon/.ssh/
+RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
