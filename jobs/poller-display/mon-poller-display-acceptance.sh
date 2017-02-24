@@ -48,3 +48,6 @@ mkdir ../acceptance-logs
 composer install
 composer update
 ls features/*.feature | parallel ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
+for file in `find ../xunit-reports -name '*.xml'` ; do
+  sed -i "s/<testsuite /<testsuite package=\"acceptance.$DISTRIB\" /g" $file
+done
