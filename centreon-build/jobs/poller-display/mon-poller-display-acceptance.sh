@@ -48,3 +48,4 @@ mkdir ../acceptance-logs
 composer install
 composer update
 ls features/*.feature | parallel ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
+mv ../xunit-reports ../xunit-reports-$DISTRIB
