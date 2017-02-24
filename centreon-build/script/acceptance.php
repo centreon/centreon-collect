@@ -293,6 +293,14 @@ else {
         array('@MIDDLEWARE_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-middleware:latest' : 'mon-middleware-dev:latest'))
     );
     replace_in_file(
+        xpath($centreon_build_dir . '/containers/poller-display/docker-compose.yml.in'),
+        xpath('mon-poller-display-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => build_image_name('mon-poller-display-central'),
+            '@POLLER_IMAGE@' => build_image_name('mon-poller-display')
+        )
+    );
+    replace_in_file(
         xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
         xpath('mon-ppe-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-ppe'))
