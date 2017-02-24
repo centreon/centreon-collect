@@ -11,3 +11,7 @@ COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY poller-display/install-central.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 RUN /tmp/install.sh
+
+# Install SSH keys.
+RUN mkdir -p /var/spool/centreon/.ssh && chown centreon:centreon /var/spool/centreon/.ssh
+COPY poller-display/id_rsa poller-display/id_rsa.pub /var/spool/centreon/.ssh/
