@@ -11,7 +11,7 @@ initial_export_time=`stat -c '%Y' /etc/centreon-broker/watchdog.xml`
 
 # Wait for configuration to be exported from the central.
 current_export_time=$initial_export_time
-while [ "$current_export_time" -le "$initial_export_time" ] ; then
+while [ "$current_export_time" -le "$initial_export_time" ] ; do
   sleep 1
   current_export_time=`stat -c '%Y' /etc/centreon-broker/watchdog.xml`
 done
