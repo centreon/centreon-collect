@@ -16,3 +16,8 @@ RUN /tmp/install.sh
 RUN mkdir -p /var/spool/centreon/.ssh
 COPY poller-display/id_rsa poller-display/id_rsa.pub poller-display/known_hosts /var/spool/centreon/.ssh/
 RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
+
+# Main script.
+COPY poller-display/run-central.sh /usr/share/centreon/container-poller-display.sh
+RUN chmod +x /usr/share/centreon/container-poller-display.sh
+ENTRYPOINT ["/usr/share/centreon/container-poller-display.sh"]
