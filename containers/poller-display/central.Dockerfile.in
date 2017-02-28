@@ -1,0 +1,23 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install package.
+RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all
+RUN yum install -y centreon-poller-display-central
+
+# Install module in Centreon.
+COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY poller-display/install-central.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+RUN /tmp/install.sh
+
+# Install SSH keys.
+RUN mkdir -p /var/spool/centreon/.ssh
+COPY poller-display/id_rsa poller-display/id_rsa.pub poller-display/known_hosts /var/spool/centreon/.ssh/
+RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
+
+# Main script.
+COPY poller-display/run-central.sh /usr/share/centreon/container-poller-display.sh
+RUN chmod +x /usr/share/centreon/container-poller-display.sh
+ENTRYPOINT ["/usr/share/centreon/container-poller-display.sh"]

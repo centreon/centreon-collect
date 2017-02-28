@@ -39,7 +39,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-curl -F "file=@centreon-bam-server-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-bam-server' -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/centreon-bam-server-$VERSION-php$phpversion.tar.gz"
+curl -F "file=@centreon-bam-server-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-bam-server' 'http://encode.int.centreon.com/api/' -o "input/centreon-bam-server-$VERSION-php$phpversion.tar.gz"
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"

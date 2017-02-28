@@ -19,6 +19,7 @@ COPY map/centreon-database.properties /etc/centreon-studio/centreon-database.pro
 COPY map/studio-config.properties /etc/centreon-studio/studio-config.properties
 COPY map/studio-database.properties /etc/centreon-studio/studio-database.properties
 COPY map/studio-log4j.xml /etc/centreon-studio/studio-log4j.xml
+RUN mkdir /var/log/centreon-studio && chown tomcat:tomcat /var/log/centreon-studio
 
 # Main script.
 COPY map/run.sh /usr/local/bin/container.sh
