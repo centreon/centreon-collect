@@ -64,6 +64,8 @@ clean_repository() {
         centreon-automation
         centreon-discovery-engine
         centreon-discovery-engine-debuginfo
+        centreon-poller-display
+        centreon-poller-display-central
         centreon-bam-server
         centreon-bi-server
         centreon-bi-reporting-server

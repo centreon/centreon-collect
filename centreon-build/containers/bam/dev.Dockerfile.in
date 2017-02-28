@@ -8,6 +8,7 @@ COPY install-centreon-module.php /tmp/install-centreon-module.php
 COPY bam/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 COPY centreon-bam-server/sql /usr/share/centreon/www/modules/centreon-bam-server/sql
+RUN find /usr/share/centreon/www/modules/centreon-bam-server/sql -type f -exec sed -i -e 's/@DB_CENTSTORAGE@/centreon_storage/g' {} ';'
 RUN /tmp/install.sh
 
 # Sources.

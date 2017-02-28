@@ -8,8 +8,11 @@ services:
     image: @WEB_IMAGE@
     ports:
     - "80"
-    - "3306"
     dns:
     - "10.50.1.1"
-  mbi:
-    image: @MBI_IMAGE@
+  poller:
+    image: @POLLER_IMAGE@
+    ports:
+    - "80"
+    dns:
+    - "10.50.1.1"

@@ -15,6 +15,7 @@ RUN yum install --nogpgcheck -y epel-release-latest-@CENTOS_VERSION@.noarch.rpm
 RUN yum install -y php-pecl-xdebug
 
 # Install unit tests scripts.
+COPY unittest/unittest-phing.sh /usr/local/bin/unittest-phing
 COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
 COPY unittest/unittest-engine.sh /usr/local/bin/unittest-engine
 COPY unittest/unittest-ppe.sh /usr/local/bin/unittest-ppe
