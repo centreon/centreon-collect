@@ -106,9 +106,9 @@ mv centreon-bi-reporting-server/cron centreon-mbi-reporting-server-light/
 mv centreon-bi-reporting-server/config centreon-mbi-reporting-server-light/
 mv centreon-bi-reporting-server/bin centreon-mbi-reporting-server-light/
 
-mv deploy.sh centreon-mbi-reporting-server-light/
+#mv deploy.sh centreon-mbi-reporting-server-light/
 mv README-FIRST centreon-mbi-reporting-server-light/
-mv silent-install.cfg centreon-mbi-reporting-server-light/
+#mv silent-install.cfg centreon-mbi-reporting-server-light/
 
 tar czf centreon-mbi-reporting-server-light-$FINALVERSION.tar.gz centreon-mbi-reporting-server-light
 
