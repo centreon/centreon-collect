@@ -44,9 +44,7 @@ else
   cd ..
 fi
 cd packaging-centreon-broker
-if [ "$major" -lt 3 ] ; then
-  git checkout --detach "origin/$VERSION"
-fi
+git checkout --detach "origin/$VERSION"
 cd ..
 cp packaging-centreon-broker/rpm/centreon-broker.spec input/
 
