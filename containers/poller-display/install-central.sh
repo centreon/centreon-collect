@@ -26,12 +26,13 @@ centreon -u admin -p centreon -o SERVICE -a ADD -v 'Poller-Server;Ping;Ping-LAN'
 
 # centengine.cfg
 centreon -u admin -p centreon -o ENGINECFG -a ADD -v 'Centreon Engine Poller;Poller;Centreon Engine'
-centreon -u admin -p centreon -o ENGINECFG -a SETPARAM -v 'Centreon Engine Poller;broker_module;/usr/lib64/centreon-engine/externalcmd.so|/usr/lib64/nagios/cbmod.so /etc/centreon-broker/central-module.xml'
+centreon -u admin -p centreon -o ENGINECFG -a SETPARAM -v 'Centreon Engine Poller;broker_module;/usr/lib64/centreon-engine/externalcmd.so|/usr/lib64/nagios/cbmod.so /etc/centreon-broker/poller-module.xml'
 
 # Poller's cbmod.
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADD -v 'poller-module;Poller'
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-module;filename;poller-module.xml'
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-module;daemon;0'
+centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-module;cache_directory;/var/lib/centreon-broker/'
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADDOUTPUT -v 'poller-module;output-central;ipv4'
 IOID=`get_output_id poller-module output-central`
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETOUTPUT -v "poller-module;$IOID;host;web"
@@ -45,6 +46,7 @@ centreon -u admin -p centreon -o CENTBROKERCFG -a SETOUTPUT -v "poller-module;$I
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADD -v 'poller-sql;Poller'
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-sql;filename;poller-sql.xml'
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-sql;daemon;1'
+centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-sql;cache_directory;/var/lib/centreon-broker/'
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADDINPUT -v 'poller-sql;input;ipv4'
 IOID=`get_input_id poller-sql input`
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETINPUT -v "poller-sql;$IOID;port;5669"
@@ -72,6 +74,7 @@ centreon -u admin -p centreon -o CENTBROKERCFG -a SETOUTPUT -v "poller-sql;$IOID
 # Poller's local RRD writer.
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADD -v 'poller-rrd;Poller'
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-rrd;daemon;1'
+centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-rrd;cache_directory;/var/lib/centreon-broker/'
 centreon -u admin -p centreon -o CENTBROKERCFG -a SETPARAM -v 'poller-rrd;filename;poller-rrd.xml'
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADDINPUT -v 'poller-rrd;input;ipv4'
 IOID=`get_input_id poller-rrd input`
