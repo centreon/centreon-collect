@@ -46,6 +46,7 @@ clean_repository() {
         centreon-web
         centreon-license-manager
         centreon-pp-manager
+        centreon-export
         centreon-broker
         centreon-broker-cbd
         centreon-broker-cbmod
