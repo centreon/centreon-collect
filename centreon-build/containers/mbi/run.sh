@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+#set -e
 set -x
 
 # Run MySQL.
@@ -8,7 +8,7 @@ service mysql start
 
 # Wait for MySQL to be started.
 while true ; do
-  timeout 10 mysql -e 'SELECT * FROM mod_bi_hosts LIMIT 1' centreon_storage
+  timeout 10 mysql -e 'SELECT NOW()'
   retval=$?
   if [ "$retval" = 0 ] ; then
     break ;
