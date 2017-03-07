@@ -40,7 +40,7 @@ rm -rf $RPM_BUILD_ROOT
 
 # Install cron script.
 %{__install} -d $RPM_BUILD_ROOT%{centreon_www}/../cron/
-%{__cp} cron/centreon-poller-display-sync.php $RPM_BUILD_ROOT%{centreon_www}/../cron/
+%{__cp} cron/centreon-poller-display-sync.sh $RPM_BUILD_ROOT%{centreon_www}/../cron/
 %{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/cron.d/
 %{__cp} config/centreon-poller-display.cron.d $RPM_BUILD_ROOT%{_sysconfdir}/cron.d/%{name}
 
@@ -52,7 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/cron.d/centreon-poller-display
 %attr(-,apache,apache)
 %{centreon_www}/modules/%{name}
-%{centreon_www}/../cron/centreon-poller-display-sync.php
+%{centreon_www}/../cron/centreon-poller-display-sync.sh
 
 %files central
 %defattr(-,apache,apache)
