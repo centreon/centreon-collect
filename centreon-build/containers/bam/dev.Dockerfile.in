@@ -19,7 +19,6 @@ COPY centreon-bam-server/UPGRADE /usr/share/centreon/www/modules/centreon-bam-se
 COPY centreon-bam-server/tools /usr/share/centreon/www/modules/centreon-bam-server/tools
 COPY centreon-bam-server/engine /usr/share/centreon/www/modules/centreon-bam-server/engine
 COPY centreon-bam-server/webServices /usr/share/centreon/www/modules/centreon-bam-server/webServices
-COPY centreon-bam-server/restart_pollers /usr/share/centreon/www/modules/centreon-bam-server/restart_pollers
 COPY centreon-bam-server/widgets /usr/share/centreon/www/modules/centreon-bam-server/widgets
 COPY centreon-bam-server/generate_files /usr/share/centreon/www/modules/centreon-bam-server/generate_files
 COPY centreon-bam-server/getGraph /usr/share/centreon/www/modules/centreon-bam-server/getGraph
