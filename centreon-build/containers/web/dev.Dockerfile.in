@@ -9,7 +9,8 @@ COPY web/cbd.sh /etc/init.d/cbd
 RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 
 # Centreon update is made through custom scripts.
-COPY web/update-centreon.php web/kb.sql web/kb.sh web/standard.sh web/enable_sql_logs.sql web/standard.sql /tmp/
+COPY web/container.cnf /etc/my.cnf.d/
+COPY web/update-centreon.php web/kb.sql web/kb.sh web/standard.sh web/standard.sql /tmp/
 COPY web/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/standard.sh
 COPY centreon/www/install /usr/share/centreon/www/install
