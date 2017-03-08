@@ -20,6 +20,7 @@ file_put_contents($dockerfile, $content);
 # Build poller image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-poller-display'));
 xcopy(xpath('www/modules/centreon-poller-display'), xpath($centreon_build_dir . '/containers/centreon-poller-display'));
+xcopy(xpath('cron'), xpath($centreon_build_dir . '/containers/centreon-poller-display/cron'));
 passthru('docker build -t mon-poller-display-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
 
 # Prepare central Dockerfile.
