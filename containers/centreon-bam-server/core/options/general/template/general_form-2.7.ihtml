@@ -1,0 +1,162 @@
+{$form.javascript}
+<form {$form.attributes}>
+	<table class="formTable table">
+		 	<tr class="ListHeader">
+		 		<td class="FormHeader" colspan="2">
+		 			<h3>| {$form.header.title}</h3>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$kpi_impact}</h4>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.weak_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.weak_impact.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.minor_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.minor_impact.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.major_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.major_impact.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.critical_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.critical_impact.html} %
+	 			</td>
+	 		</tr>
+            <tr class="list_one">
+                <td class="FormRowField">
+                    {$form.blocking_impact.label}
+                </td>
+                <td class="FormRowValue">
+                    {$form.blocking_impact.html} %
+                </td>
+            </tr>
+		 	<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$kpi_levels}</h4>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.kpi_warning_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.kpi_warning_impact.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.kpi_critical_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.kpi_critical_impact.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.kpi_unknown_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.kpi_unknown_impact.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.kpi_boolean_impact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.kpi_boolean_impact.html} %
+	 			</td>
+	 		</tr>
+		 	<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$ba_title}</h4>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.ba_warning_threshold.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.ba_warning_threshold.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.ba_critical_threshold.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.ba_critical_threshold.html} %
+	 			</td>
+	 		</tr>
+	 		<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.id_reporting_period.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.id_reporting_period.html}
+	 			</td>
+	 		</tr>	 		
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.id_notif_period.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.id_notif_period.html}
+	 			</td>
+	 		</tr>
+                        <tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.command_id.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.command_id.html}
+	 			</td>
+	 		</tr>
+
+
+	 		<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.bam_contact.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.bam_contact.html}
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.notif_interval.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.notif_interval.html}{$time_unit}
+	 			</td>
+	 		</tr>	 	 		
+	</table>
+	<div id="validForm">
+		{$form.hidden}
+		<p class="oreonbutton">
+			{$form.submitSaveChange.html}
+		</p>
+	</div>
+</form>
+{$helptext}

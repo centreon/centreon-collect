@@ -1,0 +1,2132 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-03-31 11:46+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:3
+msgid "Ba"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:6
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:90
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:93
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:70
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:95
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:167
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:58
+msgid "Description"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:9
+msgid "Level"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:12
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:162
+msgid "Health"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:15
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:18
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:21
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:42
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:3
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:6
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:9
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:12
+msgid "Filters"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:24
+msgid "Configuration"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:27
+msgid "Escalations / Dependencies"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:30
+msgid "Business Activity Views"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:33
+msgid "Extended Information"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:36
+msgid "Event Handlers"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:39
+msgid "Event Handler Configuration"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:45
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:53
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:112
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:18
+msgid "Business Activities"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:48
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:21
+msgid "Select period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:51
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:174
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:236
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:24
+msgid "Apply"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:54
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:86
+msgid "Business Activity Monitoring"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:57
+msgid "Tree Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:60
+msgid "Trends"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:63
+#: /home/lpinsivy/work/centreon-bam/install/smarty_translate.php:15
+msgid "Impacts Tree"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:66
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:95
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:6
+msgid "Performances"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/smarty_translate.php:69
+msgid "No graph to display for this BA"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/api_modules/centreon-map/functions.php:268
+#, php-format
+msgid "Boolean result: %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:26
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:32
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:28
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:34
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:99
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:46
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:52
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:100
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:57
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:62
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:101
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:153
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:158
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:98
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:103
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:31
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:36
+msgid "Add"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:27
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:33
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:29
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:35
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:47
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:53
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:58
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:63
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:154
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:159
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:99
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:104
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:32
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:37
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+msgid "Delete"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:41
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:14
+msgid "User Settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:65
+msgid "RRD Graph Template"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:68
+msgid "Business Activity Level Opacity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:69
+msgid "Warning Opacity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:70
+msgid "Critical Opacity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:73
+msgid "Business Activity Level Color"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:74
+msgid "Warning Color"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:75
+msgid "Critical Color"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:80
+msgid "Pick a color"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:87
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:147
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:131
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:144
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:147
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:473
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:243
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:171
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:173
+msgid "Modify"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:92
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:96
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:77
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:73
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:209
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:272
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:304
+msgid "Yes"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:93
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:97
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:77
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:74
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:210
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:273
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:305
+msgid "No"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:94
+msgid "Display Caption"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:98
+msgid "Display Graph Guide"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:101
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:99
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:107
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:109
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:116
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:118
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:409
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:411
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:207
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:209
+msgid "Save"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:127
+msgid "Default Graph Style"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:128
+msgid "Graph colors"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:129
+msgid "Other options"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/user_form.php:130
+msgid "Custom Overview"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:15
+msgid "Business activities that will be visible in the overview console"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:16
+msgid "Default RRD graph style"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:17
+msgid "Opacity level for business activity level"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:18
+msgid "Level color"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:19
+msgid "Opacity level of warning area"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:20
+msgid "Color of warning status"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:21
+msgid "Opacity level of critical area"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:22
+msgid "Color of critical status"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:23
+msgid "Whether or not caption is displayed"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/user/help.php:24
+msgid "Whether or not graph guide is displayed"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:18
+msgid "seconds of unavailability"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:43
+msgid "General Settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:46
+msgid "Weak Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:47
+msgid "Minor Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:48
+msgid "Major Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:49
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:128
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:143
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:233
+msgid "Critical Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:50
+msgid "Blocking Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:53
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:119
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:128
+msgid "Warning Business Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:54
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:120
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:129
+msgid "Critical Business Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:55
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:121
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:130
+msgid "Unknown Business Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:56
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:116
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:125
+msgid "Boolean Business Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:60
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:168
+msgid "Monitoring Warning Threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:61
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:169
+msgid "Monitoring Critical Threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:70
+msgid "Reporting Time Period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:73
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:194
+msgid "Notification Time Period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:81
+msgid "Notification Command"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:90
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:187
+msgid "Contact Groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:97
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:197
+msgid "Notification Interval"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:112
+msgid "Regular impact settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:113
+msgid "Advanced default levels"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:114
+msgid "Business Activity Default Settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/general_form.php:115
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:443
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:109
+msgid "seconds"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:15
+msgid "Value of Weak impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:16
+msgid "Value of Minor impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:17
+msgid "Value of Major impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:18
+msgid "Value of Critical impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:19
+msgid "Value of Blocking impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:20
+msgid "Default impact of a KPI in Warning state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:21
+msgid "Default impact of a KPI in Critical state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:22
+msgid "Default impact of a KPI in Unknown state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:23
+msgid "Default warning threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:24
+msgid "Default critical threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:25
+msgid "Default reporting period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:26
+msgid "Default notification period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:27
+msgid "Default linked contact groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/options/general/help.php:28
+msgid "Default notification interval length"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/logs.php:56
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:100
+msgid "Period Selection"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/logs.php:100
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:71
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:98
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:162
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:154
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:113
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:130
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:53
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:144
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:101
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:78
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:150
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:57
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:149
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:201
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:59
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:9
+msgid "Business Activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/logs.php:101
+msgid "Period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/logs.php:102
+msgid "  Display details"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/logs.php:118
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:173
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:5
+msgid "Logs"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/logs.php:126
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:279
+msgid "Please select a Business Activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/graphs/graph.php:243
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:64
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:34
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:74
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:98
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:123
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:128
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:28
+msgid "OK"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/graphs/graph.php:244
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:153
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:191
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:408
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:77
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:203
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:62
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:81
+msgid "Warning"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/graphs/graph.php:245
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:154
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:192
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:409
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:115
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:629
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:75
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:206
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:63
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:83
+msgid "Critical"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/graphs/graph.php:246
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:209
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:82
+msgid "Unknown"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/graphs/graph.php:247
+msgid "Unreachable"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:69
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:152
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+msgid "Regular Service"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:70
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:153
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:110
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:52
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:143
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+msgid "Meta Service"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:72
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:116
+msgid "Boolean"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:76
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:147
+msgid "Key Performance Indicators"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:77
+msgid "KPI type"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:78
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:91
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:93
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:120
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:46
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:153
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:154
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:86
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:63
+msgid "Status"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:79
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:154
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:155
+msgid "Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:80
+msgid "In downtime"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:81
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:152
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:153
+msgid "Output"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:82
+msgid "Start time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:83
+msgid "End time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:73
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:92
+msgid "Enabled"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:73
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:91
+msgid "Disabled"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:88
+msgid "No boolean rule found"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:89
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:92
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:69
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:94
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:166
+msgid "Name"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:92
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:95
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:97
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:124
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:87
+msgid "Actions"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:93
+msgid "Boolean rules"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:94
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:97
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:99
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:131
+msgid "Search"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:100
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:116
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:132
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:100
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:116
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:132
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:101
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:115
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:131
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:140
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:157
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:171
+msgid "Do you confirm the deletion ?"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:115
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:131
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:113
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:129
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:114
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:130
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:156
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:170
+msgid "Please select one or more items"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+msgid "More actions..."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:226
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+msgid "Enable"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:227
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+msgid "Disable"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+msgid "Duplicate"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/help.php:19
+msgid "Name of boolean KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/help.php:20
+msgid ""
+"Expression of the boolean rule. Use the editor to complete the expression "
+"and evaluate it with the button. It is also possible to simulate the service "
+"statuses."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/help.php:21
+msgid "Impact will be applied depending on the result of the expression"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/help.php:22
+msgid "Comments regarding the boolean KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/help.php:23
+msgid "Whether or not the boolean KPI is enabled"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:58
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+msgid "Boolean KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:59
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:68
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:163
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:110
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:49
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:93
+msgid "Information"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:61
+msgid "Boolean name"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:65
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:145
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:53
+msgid "Regular"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:66
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:146
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:54
+msgid "Advanced"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:67
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:147
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:55
+msgid "Configuration Mode"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:69
+msgid "Expression"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:71
+msgid "Select host"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:84
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:212
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:173
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:239
+msgid "True"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:85
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:215
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:173
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:239
+msgid "False"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:86
+msgid "Impact is applied when expression returns:"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:88
+msgid "Comments"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:96
+msgid "Compulsory field"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:101
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:112
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:392
+msgid "Name already in use"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:103
+msgid "Invalid Expression"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:104
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:113
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:406
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:204
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:120
+msgid " Required fields"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:126
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:134
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:224
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:138
+msgid "Business Activity List"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:156
+msgid " < < "
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:157
+msgid "Real time result"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/xml/eval_xml.php:32
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/eval_xml.php:30
+msgid "Status simulation"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/boolean/xml/eval_xml.php:33
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/eval_xml.php:31
+msgid "Simulation mode"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:91
+msgid "No Business Group found"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:94
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:96
+msgid "Displayed"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:96
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:64
+msgid "Business View"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+msgid "Set visible"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+msgid "Set invisible"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:67
+msgid "Business Activity View"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:75
+msgid "Displayed in Overview"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:85
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:173
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:101
+msgid "Linked Business Activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:97
+msgid "Authorized Access Groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:110
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:390
+msgid "Compulsory Name"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:111
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:391
+msgid "Compulsory Description"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:133
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:223
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:137
+msgid "Access Control List"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/help.php:15
+msgid "Name of business view"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/help.php:16
+msgid "Description of this view"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/help.php:17
+msgid "Whether or not this view is displayed in the monitoring dashboard"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/help.php:18
+msgid "List of business activities that belong to this view"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/group/help.php:19
+msgid "ACL groups that can access this view"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:93
+msgid "No Business Activity found."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:177
+msgid "Default reporting time periods used by Centreon BAM and Centreon BI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:205
+msgid "Notification Options"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:211
+msgid "Enable notification"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:222
+msgid "Additional Poller"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:228
+msgid "Activate"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:231
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:111
+msgid "Comment"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:244
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:435
+msgid "Escalations"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:262
+msgid "Notification failure criteria"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:269
+msgid "Execution failure criteria"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:274
+msgid "Inherits from parents"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:277
+msgid "Parent Business Activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:284
+msgid "Child Business Activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:296
+msgid "Linked Business Activity Groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:306
+msgid "Enable Event Handler"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:319
+msgid "Event Handler Command"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:322
+msgid "Args"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:356
+msgid "Icon"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:363
+msgid "Extra reporting time periods used in Centreon BI reports"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:370
+msgid "SLA warning percentage threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:371
+msgid "SLA critical percentage threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:372
+msgid "SLA warning duration threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:373
+msgid "SLA critical duration threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:393
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:394
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:395
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:396
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:196
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:197
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:200
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:116
+msgid "Compulsory Field"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:397
+msgid "Circular definition of dependencies"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:398
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:203
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:118
+msgid "The service and BA are not linked in the same poller"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:400
+msgid "Warning Threshold must be greater than Critical Threshold (0-100)"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:401
+msgid "Critical Threshold must be less than Warning Threshold (0-100)"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:403
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:404
+msgid "Must be between 0 and 100"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:436
+msgid "Dependencies"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:437
+msgid "Reporting time periods"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:438
+msgid "Notification"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:439
+msgid "Service Level Agreement"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:440
+msgid "Settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:441
+msgid "Business Activity Group"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:442
+msgid "Visual settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:446
+msgid "Centreon BI settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:448
+msgid "minutes"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:15
+msgid "Name of business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:16
+msgid "Description of business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:17
+msgid ""
+"When level is below this threshold, the business activity will be in Warning "
+"state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:18
+msgid ""
+"When level is below this threshold, the business activity will be in "
+"Critical state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:19
+msgid "Reporting will be based on this very period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:20
+msgid ""
+"Contact groups that will be notified when business activity goes into "
+"Warning/Critical state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:21
+msgid "Time period during which notification can take place"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:22
+msgid "Notification interval length"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:23
+msgid "States for which notifications will be sent out"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:24
+msgid "Whether or not notification is enabled"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:25
+msgid "Comments regarding the business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:26
+msgid "Whether or not business activity is enabled"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:27
+msgid "Escalations rules that are applied to this business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:28
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:29
+msgid "Refer to the official documentation of your monitoring engine"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:30
+msgid "Whether or not dependency inheritance is applied"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:31
+msgid "Parent business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:32
+msgid "Child business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:33
+msgid "Business view(s) of this business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:34
+msgid "Icon that represents the business activity"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:35
+msgid ""
+"Possibility to display this Business Activity on poller which have Centreon "
+"Poller display module"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:37
+msgid "Those time periods will be used by Centreon BI reports."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:38
+msgid ""
+"Percentage of time during which the BA was in a Warning status on a monthly "
+"basis"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:39
+msgid ""
+"Percentage of time during which the BA was in a Critical status on a monthly "
+"basis"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:40
+msgid ""
+"Amount of time during which the BA was in a Warning status on a monthly basis"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/ba/help.php:41
+msgid ""
+"Amount of time during which the BA was in a Critical status on a monthly "
+"basis"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:109
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:46
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:126
+msgid "Key Performance Indicator"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:111
+msgid "Impact levels"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:155
+msgid "Boolean rule"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:161
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:54
+msgid "KPI Type"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:198
+msgid "KPI already linked to one of the Business Activities"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:199
+msgid "Service is disabled"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:201
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:117
+msgid "Circular definitions of Business Activities"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:202
+msgid "Cannot add itself as KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:18
+msgid "Configuration mode"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:19
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:40
+msgid "Type of KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:20
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:23
+msgid "Impact that will be applied when KPI is in Warning state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:21
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:24
+msgid "Impact that will be applied when KPI is in Critical state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:22
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:25
+msgid "Impact that will be applied when KPI is in Unknown state"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:26
+msgid "KPI will be linked to these business activities"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:31
+msgid "Object type to scan"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:32
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:71
+msgid "Hosts"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:33
+msgid "Host groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:34
+msgid "Service groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:39
+msgid "Upload an existing CSV file"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/help.php:41
+msgid "You can define the KPI to import manually"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:59
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:42
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:140
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:76
+msgid "Host"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:59
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:82
+msgid "Host Groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:59
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:93
+msgid "Service Groups"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:60
+msgid "Object Type"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:122
+msgid "Retrieve KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:84
+#, php-format
+msgid "%s [ Warning : %s%% - Critical : %s%% ]"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:108
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:141
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:75
+msgid "Service"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:123
+msgid "No KPI for this Business Activity, please add a new one."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:151
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:152
+msgid "Type"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:127
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:142
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:223
+msgid "Warning Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:129
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:144
+msgid "Unknown Impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:134
+msgid "Add a KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:138
+msgid "Load .csv file"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:139
+msgid "Add multiple KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/javascript/multiple_kpi_js.php:26
+msgid "Select at least one Business Activity\\n"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/javascript/multiple_kpi_js.php:27
+msgid "Select at least one KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/host_service_xml.php:69
+msgid "-- Select a Service --"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:47
+msgid "-- Select a Host --"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:64
+msgid "-- Select a Meta Service --"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:78
+msgid "-- Select a Business Activity --"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:92
+msgid "-- Select a Boolean rule --"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:148
+msgid "Add KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:149
+msgid "No KPI found"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:45
+msgid "KPI CSV Loader"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:47
+msgid "File Type"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:49
+msgid ".csv File"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:51
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:142
+msgid "Regular KPI"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:57
+msgid "Manual Filling"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:73
+msgid "Load"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:141
+msgid "Format"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:142
+msgid ""
+"BA name ; Host name; Service name ; Warning impact ; Critical impact ; "
+"Unknown impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:143
+msgid ""
+"BA name ; Meta Service name ; Warning impact ; Critical impact ; Unknown "
+"impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:144
+msgid ""
+"BA name ; KPI BA name ; Warning impact ; Critical impact ; Unknown impact"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:87
+msgid "Choose the source to graph"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:106
+msgid "Last 3 Hours"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:107
+msgid "Last 6 Hours"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:108
+msgid "Last 12 Hours"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:109
+msgid "Last 24 Hours"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:110
+msgid "Last 2 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:111
+msgid "Last 4 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:112
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:95
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:53
+msgid "Last 7 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:113
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:96
+msgid "Last 14 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:114
+msgid "Last 28 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:115
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:97
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:55
+msgid "Last 30 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:116
+msgid "Last 31 Days"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:117
+msgid "Last 2 Months"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:118
+msgid "Last 4 Months"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:119
+msgid "Last 6 Months"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:120
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:58
+msgid "Last Year"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:122
+msgid "Graph Period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:128
+msgid " From "
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:129
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:248
+msgid " to "
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:404
+msgid "Template"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:405
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:12
+msgid "Options"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:406
+msgid "Split Components"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:407
+msgid "Display Status"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:40
+msgid "Recheck"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:45
+msgid "Checkpoint"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:47
+msgid "Solution"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:49
+msgid "Plugin"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:50
+msgid "Module"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:51
+msgid "XML Library"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:52
+msgid "PHP Configuration file (cli)"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:64
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:36
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:45
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:77
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:86
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:100
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:109
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:125
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:138
+msgid "NOK"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:76
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:16
+msgid "Troubleshooter"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:77
+msgid ""
+"The troubleshooter is able to check if the Centreon BAM module is working "
+"properly. In case one of the checkpoints appear to be \"NOK\", please follow "
+"the solution and check again. If you encounter problems that are not listed "
+"below, please contact your administrator or your support."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/Centreon/CfgWriter.php:49
+msgid "Could not create file"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/Centreon/CfgWriter.php:147
+msgid "Could not write in file"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:257
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:461
+msgid "Expecting expression"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:290
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:421
+#, php-format
+msgid "Could not find status for %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:297
+msgid "Invalid expression"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:318
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:411
+#, php-format
+msgid "Service not specified for %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:334
+#, php-format
+msgid "Could not find resource %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:46
+msgid "Disconnect from Centreon and reconnect."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:87
+msgid "Re install module."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:110
+msgid "Install the PHP XML Writer library"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:139
+msgid ""
+"Create a symbolic link /etc/php5/cli/php.ini that targets the Zend php.ini "
+"file."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:141
+msgid "Please contact your support for more information"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:111
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:621
+msgid "Null"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:112
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:623
+msgid "Weak"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:113
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:625
+msgid "Minor"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:114
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:627
+msgid "Major"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:116
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:631
+msgid "Blocking"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:281
+#, php-format
+msgid "OK - Line %s successfully imported"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:284
+#, php-format
+msgid "Error - KPI already attached to Business Activity on line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:450
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:492
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:535
+#, php-format
+msgid "Error - Business Activity %s not found on line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:452
+#, php-format
+msgid "Error - Business Activity KPI %s not found on line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:457
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:499
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:544
+#, php-format
+msgid "Error - Could not read line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:494
+#, php-format
+msgid "Error - Meta %s not found on line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:537
+#, php-format
+msgid "Error - Host %s not found on line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:539
+#, php-format
+msgid "Error - Service %s not found on line %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:92
+msgid "Today"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:93
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:51
+msgid "Yesterday"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:94
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:52
+msgid "This Week"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:54
+msgid "This Month"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:56
+msgid "Last Month"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:57
+msgid "This Year"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:33
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:91
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:81
+msgid "Overview"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:62
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:186
+msgid "Level (%)"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:83
+msgid "Warning (%)"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:92
+msgid "Critical (%)"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:196
+msgid "No output"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/javascript/dashboard_js.php:194
+msgid "Schedule downtime"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:88
+msgid "Back"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:89
+msgid "Reporting view"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:90
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:2
+msgid "Views"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:92
+msgid "Previous View"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:93
+msgid "Misc"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:94
+msgid "Business Views : "
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:96
+msgid "Loading..."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:99
+msgid "Start"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:100
+msgid "End"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:103
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:61
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:88
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:59
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:76
+msgid "Duration"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:104
+msgid "Fixed ?"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:106
+msgid "Author"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/dashboard.php:110
+msgid "Schedule"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:149
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:148
+msgid "Indicator"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:155
+msgid "Go back"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:173
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:239
+#, php-format
+msgid "This KPI returns %s"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:59
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:161
+msgid "Reporting Period"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:60
+msgid "Current Level"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:151
+msgid "State Information"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:156
+msgid "Warning Threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:157
+msgid "Critical Threshold"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:163
+msgid "Links"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:164
+msgid "Performance"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:165
+msgid "Graph"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:166
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:4
+msgid "Reporting"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/common/checkLicense.php:22
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/common/header.php:22
+msgid ""
+"Centreon BAM license is not valid. Please contact your administrator for "
+"more information."
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:73
+msgid " Actual "
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:77
+msgid "All"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:78
+msgid "Average"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:80
+msgid "Available"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:84
+msgid "Undetermined"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:87
+msgid "Total"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:89
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:63
+msgid "Total Time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:90
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:63
+msgid "Mean Time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:91
+msgid "Alerts"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:94
+msgid "Reporting period used by engine"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:96
+msgid "Date"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:97
+msgid "Event"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:98
+msgid "Info"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:101
+msgid "Business Activity states"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:102
+msgid "Today's Host log"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:103
+msgid "State Breakdowns For Host Services"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:108
+msgid "UP"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:109
+msgid "DOWN"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:110
+msgid "UNREACHABLE"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:111
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:31
+msgid "UNDETERMINED"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:169
+msgid "Custom selection"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:170
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:59
+msgid "Begin date"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:172
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:59
+msgid "End date"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:234
+msgid "From"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:235
+msgid "to"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:252
+msgid "Export in CSV format"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:254
+msgid "Reporting Interval"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/reporting.php:255
+msgid "&nbsp;|&nbsp;"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:63
+msgid "Time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:63
+msgid "Alert"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:76
+msgid "Day"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:77
+msgid "Available Time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:77
+msgid "% Available"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:77
+msgid "Available Alerts"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:78
+msgid "Warning Time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:78
+msgid "% Warning"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:78
+msgid "Warning Alerts"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:79
+msgid "Critical Time"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:79
+msgid "% Critical"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/exportCSV.php:79
+msgid "Critical Alerts"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:29
+msgid "WARNING"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:30
+msgid "CRITICAL"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:3
+msgid "Monitoring"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:7
+msgid "Management"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:8
+msgid "Business Views"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:10
+msgid "Indicators"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:11
+msgid "Boolean Rules"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:13
+msgid "Default Settings"
+msgstr ""
+
+#: /home/lpinsivy/work/centreon-bam/install/menu.php:15
+msgid "Help"
+msgstr ""

@@ -1,0 +1,33 @@
+{
+  "name": "backbone-relational-jsonapi",
+  "main": "lib/backbone-relational-jsonapi.js",
+  "version": "0.0.7",
+  "homepage": "https://github.com/xbill82/backbone-relational-jsonapi",
+  "authors": [
+    "Luca Marchesini <xbill82@gmail.com>"
+  ],
+  "description": "A parsing layer for Backbone.Relational that enables data fetching in a format compliant with JSONapi 1.0.",
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "keywords": [
+    "backbone",
+    "relational",
+    "jsonapi"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "app/lib/bower_components/",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "backbone-relational": ">=0.9.0",
+    "underscore": ">=1.5.0"
+  }
+}

@@ -1,0 +1,201 @@
+#! /usr/bin/perl -w
+#
+# Centreon
+#
+# Source Copyright 2005-2016 Centreon
+#
+# Unauthorized reproduction, copy and distribution
+# are not allowed.
+#
+# For more informations : contact@centreon.com
+#
+#
+####################################################################
+####################################################################
+
+use strict;
+
+####################################################################
+# Required libs
+####################################################################
+use DBI;
+use POSIX;
+use Getopt::Long;
+use Time::Local;
+
+####################################################################
+# Global Variables
+####################################################################
+
+# Include Centreon DB Configuration Variables
+use vars qw ($centreon_config);
+require "@CENTREON_ETC@/conf.pm";
+
+# DB Connection instance
+my $db;
+
+my %options;
+
+####################################################################
+#FUNCTIONS
+####################################################################
+
+#################################
+# Program execution help function
+#################################
+sub print_help {
+	print "This program is for rebuilding events of business activities\n";
+	print "Usage: ".$0." [-h|--help] [-a|--all] [-b|--ba <ba_id>] [-v|--bv <bv_id>]\n\n";
+	print "Options:\n";
+	print "--help         Prints this help message\n";
+	print "--ba           Id of the BA to rebuild\n";
+	print "--bv           Id of the BV to rebuild\n";
+	print "--all          Rebuild all the BA events\n";
+	exit;
+}
+
+#################################
+# Handle options and print error
+# if options are invalid (exit)
+#################################
+sub handle_options {
+	my $testOption = 0;
+
+	Getopt::Long::Configure('bundling');
+	GetOptions(
+		"h"   => \$options{"help"}, "help"  => \$options{"help"},
+		"a"	  => \$options{"all"},  "all"	=> \$options{"all"},
+		"b=i" => \$options{"ba"},   "ba=i"  => \$options{"ba"},
+		"v=i" => \$options{"bv"},   "bv=i"  => \$options{"bv"}
+	);
+	
+	if ($options{"help"}) {
+		print_help;
+	}
+	if ($options{"all"}) {
+		$testOption++;
+	}
+	if ($options{"ba"}) {
+		$testOption++;
+	}
+	if ($options{"bv"}) {
+		$testOption++;
+	}
+	if ($testOption != 1) {
+		print "Please use only one of the options (-a, -b or -v)\n";
+		exit;
+	}
+}
+
+
+################################################################
+
+################################################################
+# Rebuild all BA
+################################################################
+sub get_rebuild_all_sql() {
+	my $sql;
+
+	$sql = "UPDATE mod_bam SET must_be_rebuild = '1'";
+
+	return $sql;
+}
+
+################################################################
+# Rebuild by BV
+################################################################
+sub get_rebuild_by_bv_sql() {
+	my $sql;
+
+	$sql = "UPDATE mod_bam 
+	SET must_be_rebuild = '1'
+	WHERE ba_id IN (
+		SELECT DISTINCT id_ba 
+		FROM mod_bam_bagroup_ba_relation
+		WHERE id_ba_group = " . $options{"bv"} . "
+	)";
+
+	return $sql;
+}
+
+
+################################################################
+# Rebuild BA
+################################################################
+sub get_rebuild_ba_sql() {
+	my $sql;
+
+	$sql = "UPDATE mod_bam 
+	SET must_be_rebuild = '1' 
+	WHERE ba_id = " . $options{"ba"};
+
+	return $sql;
+}
+
+
+################################################################
+# Send signal to broker
+###############################################################r
+sub send_signal_to_broker() {
+	my $sql;
+	my $value;
+	my $stmt;
+
+	$sql = "SELECT `value` FROM `options` WHERE `key` = 'broker_correlator_script'";
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+
+	($value) = $stmt->fetchrow_array();
+        if (defined($value) && $value =~ m/\/etc\/init\.d\/(\S+)/) {
+            if ((-e "/etc/systemd/system/") && (-e "/etc/systemd/system/" . $1 . ".service")) {
+                system ("sudo systemctl reload " . $1);
+            } else {
+                exec "$value reload";
+            }
+        } elsif (defined($value) && (-e $value)) {
+            exec "$value reload";
+        } else {
+            print "Could not find cbd init script in options";
+        }
+}
+
+
+############################################################################################################
+# Main function
+#############################################################################################################
+
+sub main {
+	my $sql = "";
+	my $stmt;
+
+	handle_options;
+
+	# Initializing MySQL DB connection
+        $db = DBI->connect(
+            "DBI:mysql:database=".$centreon_config->{'centreon_db'}.";host=".$centreon_config->{'db_host'},
+            $centreon_config->{'db_user'},
+            $centreon_config->{'db_passwd'},
+            {'RaiseError' => 1, 'PrintError' => 0, 'AutoCommit' => 1}
+        );
+	
+	if ($options{"all"}) {
+		$sql = get_rebuild_all_sql;
+	} elsif ($options{"bv"}) {
+		$sql = get_rebuild_by_bv_sql;
+	} elsif ($options{"ba"}) {
+		$sql = get_rebuild_ba_sql;
+	}
+
+	if ($sql ne "") {
+		$stmt = $db->prepare($sql);
+		$stmt->execute();
+		send_signal_to_broker;
+	}
+
+	$db->disconnect();
+}
+
+#####################################################
+# MAIN EXECUTION 
+#####################################################
+main();

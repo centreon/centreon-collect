@@ -1,0 +1,47 @@
+{
+    "index": {
+        "welcome": "Bienvenue",
+        "notFound": "Le portail Centreon IMP n'est pas accessible."
+    },
+    "login": {
+        "introMessage": "Pour accéder à votre licence et au catalogue de plugin packs, nous vous invitons à saisir vos identifiants Centreon IMP.",
+        "email": "Email",
+        "password": "Mot de passe",
+        "connect": "Connexion",
+        "subscription": "Souscrire maintenant",
+        "errorMessage": "Vos identifiants sont incorrects.",
+        "subscriptionText": "& obtenez 5 plugin packs de plus",
+        "subscriptionLink": "https://www.centreon.com/imp-souscription"
+    },
+    "subscribe": {
+        "link": "Lier",
+        "subscribe" : "Souscrire",
+        "introMessage": "Liez la souscription à votre plate-forme Centreon",
+        "warningMessage": "Une fois liée, l'action est ",
+        "irreversible": "irréversible",
+        "errorMessage": "Vous devez sélectionner un abonnement.",
+        "get5Plugins": "Essayez 5 plugin packs de plus",
+        "nbPlugins": "6 natif + 5 gratuit",
+        "ppInstall": "Installer",
+        "usingPPMText": "en utilisant notre gestionnaire de plugin packs",
+        "subscribeText": "visitez notre site web",
+        "discoverIMP": "Découvrez Centreon IMP avec",
+        "CentreonPP": "Centreon plugin packs",
+        "warningTitle": "Etes vous sûr?",
+        "warningText": "Une fois la souscription liée, vous ne pouvez plus annuler !",
+        "confirmButton": "Confirmer",
+        "cancelButton": "Annuler"
+    },
+    "download": {
+        "introMessage": "Téléchargez votre licence",
+        "downloadMessage": "Déverrouiller"
+    },
+    "install": {
+        "introMessage": "Installez vos plugin packs",
+        "CentreonPP": "plugin packs sont disponibles",
+        "ppInstall": "Installer"
+    },
+    "error": {
+        "404": "Le portail IMP n'est pas accessible"
+    }
+}

@@ -1,0 +1,389 @@
+<meta charset="utf-8">
+<link href="./modules/centreon-bam-server/core/dashboard/treeview/style.css" rel="stylesheet" type="text/css">
+
+<div id="tree">
+    <div class="macro_legend legend">
+        <p>
+            <span class="circle_icon"></span> {t}Node with children{/t}
+        </p>
+        <p>
+            <img src="./img/icons/move.png" class="ico-14" /> {t}Move{/t}
+        </p>
+        <p>
+            <img src="./img/icons/view.png" class="ico-14" /> {t}Zoom in the view{/t}
+        </p>
+    </div>
+</div>
+
+<script>
+    {literal}
+    jQuery(function() {
+        {/literal}
+        {if isset($data)}
+        {literal}
+            
+        var w = document.getElementById("Tmainpage").scrollWidth - 30;
+        var margin = {top: 0, right: 120, bottom: 20, left: 120},
+        width = w - 20,
+        height = 400;
+
+        // Calculate total nodes, max label length
+        var totalNodes = 0;
+        var maxLabelLength = 0;
+        var positionClicked = 0;
+        var maxLabelLengthByLevel = [];
+
+        // variables for drag/drop
+        var selectedNode = null;
+        var draggingNode = null;
+
+        // panning variables
+        var panSpeed = 200;
+        var panBoundary = 20; // Within 20px from edges will pan when dragging.
+        var i = 0,
+                duration = 750,
+                root;
+
+        var tree = d3.layout.tree()
+                .size([height, width]);
+
+        var diagonal = d3.svg.diagonal()
+                .projection(function(d) { return [d.y, d.x]; });
+
+        var data = {/literal}{$data}{literal};
+
+        // Returns a list of all nodes under the root.
+
+        function flatten(root) {
+            var nodes = [], i = 0;
+
+            function recurse(node, depth) {
+                hasChildren = node.children || node._children ? true : false;
+                
+                if (maxLabelLengthByLevel[depth] === undefined) {
+                    maxLabelLengthByLevel[depth] = {leftLen: 10, rightLen: 0, y: 0};
+                }
+                
+                if(!hasChildren) {
+                    maxLabelLengthByLevel[depth].rightLen = Math.max(node.name.length, maxLabelLengthByLevel[depth].rightLen);
+                } else {
+                    maxLabelLengthByLevel[depth].leftLen = Math.max(node.name.length, maxLabelLengthByLevel[depth].leftLen);
+                }
+
+                node.depth = depth;
+                if (node.children)
+                    node.children.forEach(function(n){
+                        recurse(n,node.depth+1);
+                    });
+                if (!node.id)
+                    node.id = ++i;
+                nodes.push(node);
+            }
+            recurse(root,0);
+            return nodes;
+        }
+
+        // A recursive helper function for performing some setup by walking through all nodes
+
+        function visit(parent, visitFn, childrenFn) {
+            if (!parent) return;
+
+            visitFn(parent);
+
+            var children = childrenFn(parent);
+            if (children) {
+                var count = children.length;
+                for (var i = 0; i < count; i++) {
+                    visit(children[i], visitFn, childrenFn);
+                }
+            }
+        }
+
+        // Call visit function to establish maxLabelLength
+        visit(data, function(d) {
+            totalNodes++;
+            maxLabelLength = Math.max(d.name.length, maxLabelLength);
+
+        }, function(d) {
+            return d.children && d.children.length > 0 ? d.children : null;
+        });
+
+        // Define the zoom function for the zoomable tree
+
+        function zoom() {
+            svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+        }
+
+        // define the zoomListener which calls the zoom function on the "zoom" event constrained within the scaleExtents
+        var zoomListener = d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", zoom);
+
+        svgMain = d3.select("#tree").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("class", "overlay")
+                .call(zoomListener);
+
+        svg = svgMain.append("g")
+                .style("display","inline-block")
+                .style("position","relative")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        function collapse(d) {
+            if (d.children) {
+                d._children = d.children;
+                d._children.forEach(collapse);
+                d.children = null;
+            }
+        }
+
+        // Function to center node when clicked/dropped so node doesn't get lost when collapsing/moving with large amount of children.
+
+        function centerNode(source) {
+            scale = zoomListener.scale();
+            x = -source.y0;
+            y = -source.x0;
+            x = x * scale + width / 2;
+            y = y * scale + height / 2;
+            d3.select('g').transition()
+                    .duration(duration)
+                    .attr("transform", "translate(" + x + "," + y + ")scale(" + scale + ")");
+            zoomListener.scale(scale);
+            zoomListener.translate([x, y]);
+        }
+
+        // Toggle children function
+
+        function toggleChildren(d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else if (d._children) {
+                d.children = d._children;
+                d._children = null;
+            }
+            return d;
+        }
+
+        // Toggle children on click.
+
+        function click(d) {
+            //if (d3.event.defaultPrevented) return; // click suppressed
+            d = toggleChildren(d);
+            update(d);
+            centerNode(d);
+        }
+
+        d3.select(self.frameElement).style("height", "800px");
+
+        function update(source) {
+
+            // Normalize for fixed-depth.
+            //nodes.forEach(function(d) { d.y = d.depth * 180; });
+
+            var levelWidth = [1];
+            var childCount = function(level, n) {
+
+                if (n.children && n.children.length > 0) {
+                    if (levelWidth.length <= level + 1) levelWidth.push(0);
+
+                    levelWidth[level + 1] += n.children.length;
+                    n.children.forEach(function(d) {
+                        childCount(level + 1, d);
+                    });
+                }
+            };
+            childCount(0, root);
+            var newHeight = d3.max(levelWidth) * 25; // 25 pixels per line
+            tree = tree.size([newHeight, width]);
+
+            // Compute the new tree layout.
+            var nodes = tree.nodes(root).reverse(),
+                    links = tree.links(nodes);
+
+            // Set widths between levels based on maxLabelLength.
+            nodes.forEach(function(d) {
+                if (d.depth === 0) {
+                    d.y = 0;
+                    maxLabelLengthByLevel[d.depth].y = 0;
+                } else {
+                    d.y = maxLabelLengthByLevel[d.depth - 1].y + maxLabelLengthByLevel[d.depth - 1].rightLen * 7 + maxLabelLengthByLevel[d.depth].leftLen * 7;
+                    maxLabelLengthByLevel[d.depth].y = d.y;
+                }
+            });
+
+            // Update the nodes…
+            var node = svg.selectAll("g.node")
+                    .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+            // Enter any new nodes at the parent's previous position.
+            var nodeEnter = node.enter().append("g")
+                    .attr("class", "node")
+                    .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+                    .on("click", click);
+
+            /*nodeEnter.append("image")
+                    .attr("xlink:href", function(d) { return d.icon; })
+                    .attr("x", "-5px")
+                    .attr("y", "-17px")
+                    .attr("width", "18px")
+                    .attr("height", "18px");*/
+
+
+            nodeEnter.append("circle")
+                    .attr("r", 1e-6)
+                    .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; })
+                    .style("stroke", function(d) {
+
+                        if(d.status == '0'){
+                            return '#88b917'; // Ok : Green
+                        }else if(d.status == '1'){
+                            return '#ff9a13';  // Warning : orange
+                        }else if(d.status == '2'){
+                            return '#e00b3d'; //Critical : red
+                        }else if(d.status == '3'){
+                            return '#bcbdc0'; //Unknown : Gray
+                        }else if(d.status == '4'){
+                            return '#2ad1d4'; //Pending : Blue
+                        }
+                    });
+
+            nodeEnter.append("svg:a").attr("xlink:href", function(d){return d.url;}).attr("target", "_blank").append("text")
+                    .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
+                    .attr("dy", ".35em")
+                    .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
+                    .text(function(d) { return  d.name ; })
+                    .style("fill-opacity", 1e-6).on("click", function (){ return false;})
+                    .on("click", function(d){
+                        d3.event.stopPropagation();
+                    });
+
+            // Transition nodes to their new position.
+            var nodeUpdate = node.transition()
+                    .duration(duration)
+                    .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+                    .each("end", function(){
+                        var size = svg.node().getBBox();
+                        if((size.width + 120) > width){
+                            svgMain.attr('width', size.width + 120);
+                            jQuery('#tree').scrollLeft((size.width + 120) / 2);
+                        }else{
+                            svgMain.attr('width', width);
+                        }
+                        jQuery('#tree').scrollLeft(positionClicked);
+                    });
+
+            /*nodeUpdate.select("image")
+                    .attr("r", 4.5);*/
+
+            nodeUpdate.select("circle")
+                    .attr("r", 5.5)
+                    .style("stroke", function(d) { return d._children ? "#093bb0" : "transparent"; })
+                    .style("fill", function(d) {
+
+                        if(d.status == '0'){
+                            return '#88b917'; // Ok : Green
+                        }else if(d.status == '1'){
+                            return '#ff9a13';  // Warning : orange
+                        }else if(d.status == '2'){
+                            return '#e00b3d'; //Critical : red
+                        }else if(d.status == '3'){
+                            return '#bcbdc0'; //Unknown : Gray
+                        }else if(d.status == '4'){
+                            return '#2ad1d4'; //Pending : Blue
+                        }
+
+                    });
+
+            nodeUpdate.select("text")
+                    .style("fill-opacity", 1);
+
+            // Transition exiting nodes to the parent's new position.
+            var nodeExit = node.exit().transition()
+                    .duration(duration)
+                    .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+                    .remove()
+                    .each("end", function(){
+                        var size = svg.node().getBBox();
+                        if((size.width + 120) > width){
+                            svgMain.attr('width', size.width + 120);
+                            jQuery('#tree').scrollLeft((size.width + 120) / 2);
+                        }else{
+                            svgMain.attr('width', width);
+                        }
+                        jQuery('#tree').scrollLeft(positionClicked);
+                    });
+
+            nodeExit.select("circle")
+                    .attr("r", 1e-6);
+
+            nodeExit.select("text")
+                    .style("fill-opacity", 1e-6);
+
+            // Update the links…
+            var link = svg.selectAll("path.link")
+                    .data(links, function(d) { return d.target.id; });
+
+            // Enter any new links at the parent's previous position.
+            link.enter().insert("path", "g")
+                    .attr("class", "link")
+                    .attr("d", function(d) {
+                        var o = {x: source.x0, y: source.y0};
+                        return diagonal({source: o, target: o});
+                    });
+
+            // Transition links to their new position.
+            link.transition()
+                    .duration(duration)
+                    .attr("d", diagonal)
+                    .each("end", function(){
+                        var size = svg.node().getBBox();
+                        if((size.width + 120) > width){
+                            svgMain.attr('width', size.width + 120);
+                        }else{
+                            svgMain.attr('width', width);
+                        }
+                        jQuery('#tree').scrollLeft(positionClicked);
+                    });
+
+            // Transition exiting nodes to the parent's new position.
+            link.exit().transition()
+                    .duration(duration)
+                    .attr("d", function(d) {
+                        var o = {x: source.x, y: source.y};
+                        return diagonal({source: o, target: o});
+                    })
+                    .remove()
+                    .each("end", function(){
+                        var size = svg.node().getBBox();
+                        if((size.width + 120) > width){
+                            svgMain.attr('width', size.width + 120);
+                        }else{
+                            svgMain.attr('width', width);
+                        }
+                        jQuery('#tree').scrollLeft(positionClicked);
+                    });
+
+            // Stash the old positions for transition.
+            nodes.forEach(function(d) {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+        }
+
+        root = data;
+        root.x0 = height / 2 + 15 ;
+        root.y0 = 0;
+
+        flatten(root);
+        root.children.forEach(collapse);
+        update(root);
+        centerNode(root);
+        positionClicked = 0;
+
+        {/literal}
+        {/if}
+        {literal}
+    });
+
+{/literal}
+</script>

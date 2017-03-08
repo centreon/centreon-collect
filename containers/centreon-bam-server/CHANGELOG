@@ -1,0 +1,181 @@
+centreon-bam-3.4.0
+==================
+- Add event handler to BA
+- Change colors in reporting in order to apply the Centreon identity
+- Fix problems on downtimes
+- Improve BA view
+- Fix pagination problems in configuration pages
+
+centreon-bam-3.2.1
+==================
+- The BAM Broker Module forget to links BA - KPI events
+
+centreon-bam-3.2.0
+==================
+- Pagination on Ba minitoring listing
+- New widgets
+- Ba can be calculated on poller
+- Extension of centreon-clapi
+
+centreon-bam-3.1.0
+==================
+- Wrong KPI status in Centreon MAP
+- Remove alerts number for ok because an ok event is not an alert 
+- Problem with configuration page of boolean kpi
+- Improve dashboard
+- Improve general configuration page
+
+centreon-bam-2.4.4
+======================
+- fixes a bug where graphs wouldn't display on Centreon 2.5 (>=)
+- fixes a bug where CSV import would import the first line only
+- fixes a bug where BA level calculation could be wrong with Centreon Broker
+- removes SLA fields which were never used
+- enables shell mode on notification commands
+
+centreon-bam-2.3.11
+======================
+Bugfix: Compatibility with IE9
+
+centreon-bam-2.3.10
+======================
+Bugfix: fixes compatibility problem with Centreon Broker
+Enhancement: implements new Centreon ACL system (ACL Group/Contact Group) 
+
+centreon-bam-2.3.9
+======================
+Bugfix : fixes BA duplication problem
+Bugfix : fixes CSV import compatiblity problem with Centreon 2.3.x
+
+centreon-bam-2.3.8
+======================
+Bugfix : fixes reporting CSV export problem
+
+centreon-bam-2.3.7
+======================
+Bugfix : BAM configuration files were not generated for the correct poller (should be main local poller)
+
+centreon-bam-2.3.6
+======================
+Feature : Compatible with Centreon 2.2.x
+
+centreon-bam-2.3.5
+======================
+Enhancement : Displays "Reporting period" on monitoring console
+Enhancement : Displays more readable data on CSV files exported from Reporting dashboard
+Bugfix : Some translated words or BA names with special chars were not displayed properly
+Bugfix : Displays BA logo on Centreon Map
+
+centreon-bam-2.3.4
+======================
+Enhancement : Search field values on configuration pages are now stored in sessions
+Enhancement : More rules on KPI forms
+Bugfix : Compatible with Centreon MAP 3.x
+Bugfix : Fixes a pagination problem after creating a BV/BA/KPI 
+
+centreon-bam-2.3.3
+======================
+Enhancement: First entries of the log tables will be marked as "changed"
+Bugfix : Removes conflicts when generating configuration files from Centreon
+
+centreon-bam-2.3.2
+======================
+Bugfix : [BA configuration] BA duplication problem, KPI impacts were not copied properly
+Bugfix : does not hinder configuration files generation anymore when license is expired
+
+centreon-bam-2.3.1
+======================
+Bugfix :  fix for graph zoom
+
+centreon-bam-2.3.0
+======================
+Feature : New KPI configuration interface, more user friendly
+Feature : New metric BA_Acknowledgement
+Enhancement : Displays BA warning & critical thresholds on KPI list view (configuration part)
+Enhancement : Displays BA icons on BA & KPI on list view (configuration part)
+Bugfix : better charset management in XML
+Bugfix : reporting timezone issue
+
+centreon-bam-2.2.3
+======================
+Fixes a bug that hides some information on the BA detail page
+
+centreon-bam-2.2.2
+======================
+Fixes massive KPI deployment from hostgroup
+
+centreon-bam-2.2.1
+======================
+Bugfix #697 problem with BA name order in log and reporting page (BA drop-down list)
+Bugfix #698 problem with selected Log Period when drilled down 
+
+centreon-bam-2.2.0
+======================
+New homepage monitoring interface
+New reporting system (possibility to set a reporting time period)
+
+centreon-bam-2.1.1
+======================
+Bugfix #592 compatibility with Centreon 2.1 in getBasicGraph.php
+Bugfix #586 page number problem
+Bugfix #585 search field added in kpi listing
+
+centreon-bam-2.1.0
+======================
+Business View duplication
+Business Activity duplication
+KPI CSV Loader
+Massive KPI creation
+More accuracy in BA Level and KPI impacts (floats are used)
+Better visibility of the graph in Logs
+Displays output of KPI in graph of dashboard
+
+centreon-bam-2.0.3
+======================
+Bugfix #310 KPI form was bugged
+Bugfix #242 Meta service selection was bugged
+Installer was bugged due to a blank line
+Forms have now a red star in front of required fields
+Requires conf.pm in plugin check_centreon_bam
+Use of require_once instead of require_class in engine dependencies file
+
+centreon-bam-2.0.2
+======================
+Bugfix #174 (French pack makes the reporting graph buggy because of a different decimal format)
+New installer that copies license from the backup directory
+Bugfix #203 Generation would be impossible if user happens to delete the host_check_alive command
+
+centreon-bam-2.0.1
+======================
+Reporting Cron is executed at 00:15 instead of 00:01 
+Crons' outputs are logged
+Reporting/Logs page : BA are ordered by name
+Editing a KPI is now possible 
+Frames in Color picker have colored borders
+Treeview in 'Performances' page now displays hidden BV (in fact BV are hidden only in the 'Monitoring' page) 
+
+centreon-bam-2.0.0
+======================
+Fixes a few things in logs (displays "now" and last entry before the selected date)
+Adds new Performance views (zoom daily weekly etc...)
+Fixes #S# #BS# bug in engine
+
+centreon-bam-2.0.0-RC4
+======================
+New columns in logs page
+
+centreon-bam-2.0.0-RC3
+======================
+
+
+centreon-bam-2.0.0-RC2
+======================
+New log system with KPI details in a new log table
+Log's Scrollbar looks cleaner now
+New Downtime calculation
+Reporting CSV export is available
+RRD Graphs now support multi select
+
+centreon-bam-2.0.0-RC1
+======================
+First version of Centreon BAM 2.0
