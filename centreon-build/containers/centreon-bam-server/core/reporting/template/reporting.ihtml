@@ -1,0 +1,164 @@
+{$form.javascript}
+{$styleB}
+<div class="cachediv">
+   <FORM id="datareport">
+      <INPUT type="hidden" name="hostID" value="{$hostID}"><br />
+      <INPUT type="hidden" name="color_OK" value="{$color.OK}">
+      <INPUT type="hidden" name="color_WARNING" value="{$color.WARNING}">
+      <INPUT type="hidden" name="color_CRITICAL" value="{$color.CRITICAL}" >
+      <INPUT type="hidden" name="color_UNKNOWN" value="{$color.UNKNOWN}" >
+      <INPUT type="hidden" name="color_UNDETERMINED" value="{$color.UNDETERMINED}" >
+   </FORM>
+</div>
+<table style='width:100%;' class="ListTable">
+   <tr class='ListHeader'>
+      <td class="ListColHeaderLeft" style='white-space: nowrap;'>
+         <form {$formService.attributes} style="margin:0px;padding:0px;">
+         &nbsp;<b>{$formItem.item.label} </b>{$formItem.item.html}
+         {$formItem.hidden}
+         </form>
+      </td>
+      <td>
+         <form {$formPeriod.attributes} style="padding-bottom : 0px;">
+         <input type="radio" name="period_choice" {if $period_choice == "on" } checked="checked" {/if}/>
+         &nbsp;{$periodTitle}&nbsp;{$formPeriod.period.html}{$formPeriod.hidden}{$periodORlabel}
+         <input type="radio" name="period_choice" value="custom" {if $period_choice == "custom" } checked="checked" {/if} />
+         {$formPeriod.StartDate.label} {$formPeriod.StartDate.html}&nbsp;
+         {$formPeriod.EndDate.label} {$formPeriod.EndDate.html}&nbsp;
+         {$formPeriod.button.html}{$formPeriod.hidden}
+         </form>
+      </td>
+      <td>
+         {if $name}
+         <a href="{$link_csv_url}"><img class="ico-16" src="./img/icons/csv.png" alt={$link_csv_name}/>&nbsp;{$link_csv_name}</a>
+         {/if}
+      </td>
+   </tr>
+   {if $name}
+      <tr class='list_lvl_3'>
+      <td rowspan="1">
+         <div id="centreon_bam_reporting" style="text-align:center;"></div>
+      </td>
+      <td style='vertical-align:top;padding:5px 5px 0px 5px;' colspan="2">
+         <table class="ListTable" id="reportingStateTable">
+            <tr class='ListHeader'>
+               <td colspan=5>&nbsp;&nbsp;{$resumeTitle} <span style="color:#40a52b;">({$report_period})</span></td>
+            </tr>
+            <!-- headers -->
+            <tr class='list_lvl_1'>
+               <td class="ListColHeaderCenter" style="padding:6px 0;">{$stateLabel}</td>
+               <td class="ListColHeaderCenter" style="padding:6px 0;">{$durationLabel}</td>
+               <td class="ListColHeaderCenter" style="padding:6px 0;">{$totalTimeLabel}</td>
+               <td class="ListColHeaderCenter" style="padding:6px 0;">{$meanTimeLabel}</td>
+               <td class="ListColHeaderCenter" style="padding:6px 0;">{$alertsLabel}</td>
+            </tr>
+            <!-- Values -->
+            <tr class="list_one">
+               <td style="color:#88B917;"><span {$style_ok}></span><b>{$OKTitle}</b></td>
+               <td class='ListColRight'>{$summary.OK_TF}</td>
+               <td class='ListColRight'>{$summary.OK_TP}%</td>
+               <td class='ListColRight'>{$summary.OK_MP}%</td>
+               <td class='ListColRight'>-</td>
+            </tr>
+            <tr class="list_two">
+               <td style="color:#FF9A13;"><span {$style_warning}></span><b>{$WarningTitle}</b></td>
+               <td class='ListColRight'>{$summary.WARNING_TF}</td>
+               <td class='ListColRight'>{$summary.WARNING_TP}%</td>
+               <td class='ListColRight'>{$summary.WARNING_MP}%</td>
+               <td class='ListColRight'>{$summary.WARNING_A}</td>
+            </tr>
+            <tr class="list_one">
+               <td style="color:#E00B3D;"><span  {$style_critical}></span><b>{$CriticalTitle}</b></td>
+               <td class='ListColRight'>{$summary.CRITICAL_TF}</td>
+               <td class='ListColRight'>{$summary.CRITICAL_TP}%</td>
+               <td class='ListColRight'>{$summary.CRITICAL_MP}%</td>
+               <td class='ListColRight'>{$summary.CRITICAL_A}</td>
+            </tr>
+            <tr class="list_two">
+               <td style="color:#D1D2D4;"><span {$style_pending}></span><b>{$PendingTitle}</b></td>
+               <td class='ListColRight'>{$summary.UNDETERMINED_TF}</td>
+               <td class='ListColRight'>{$summary.UNDETERMINED_TP}%</td>
+               <td class='ListColRight'></td>
+               <td class='ListColRight'>{$summary.UNDETERMINED_A}</td>
+            </tr>
+            <!-- Total -->
+            <tr class='list_lvl_2'>
+               <td class="ListColHeaderCenter">{$totalLabel}</td>
+               <td class='ListColRight'>{$totalTime}</td>
+               <td class='ListColRight'></td>
+               <td class='ListColRight'></td>
+               <td class='ListColRight'>{$totalAlert}</td>
+            </tr>
+         </table>
+         {else}
+           <span class="info_msg">{$please_select}</span>
+           {/if}
+      </td>
+   </tr>
+    <tr>
+       <td colspan="4" style=' padding:5px;'>
+          <div id="my-timeline" style="height: 250px; border: 1px solid #aaa"></div>
+       </td>
+    </tr>
+</table>
+<script src="./modules/centreon-bam-server/core/reporting/javascript/d3.min.js" language="javascript"></script>
+<script src="./modules/centreon-bam-server/core/reporting/javascript/c3.min.js" language="javascript"></script>
+<script>
+    {literal}
+    jQuery("#StartDate").datepicker({
+        onSelect : function(data){  
+            jQuery( "select[name='period'] > option[value='']" ).prop('selected', true);
+            jQuery( "input:[value='custom'][name='period_choice'][type='radio']").prop('checked', true);
+        }
+    });
+
+    jQuery("#EndDate").datepicker({
+        maxDate: '-1',
+        onSelect : function(data){  
+            jQuery( "select[name='period'] > option[value='']" ).prop('selected', true);
+            jQuery( "input:[value='custom'][name='period_choice'][type='radio']").prop('checked', true);
+        }
+    });
+    
+    jQuery(function () {
+       c3.generate({
+           bindto: d3.select('#centreon_bam_reporting'),
+           data: {
+               // iris data from R
+               columns: [
+                   ['Available', {/literal}{$value_ok|number_format:2:".":""}{literal}],
+                   ['Warning', {/literal}{$value_warning|number_format:2:".":""}{literal}],
+                   ['Critical', {/literal}{$value_critical|number_format:2:".":""}{literal}],
+                   ['Undetermined', {/literal}{$value_undetermined|number_format:2:".":""}{literal}],
+               ],
+               type : 'pie',
+               colors : {
+                   'Available' : '#88B917',
+                   'Warning' : '#FF9A13',
+                   'Critical' : '#E00B3D',
+                   'Undetermined' : '#D1D2D4'
+   
+               }
+           },
+           pie: {
+               label: {
+                   format: function(value, ratio, id) {
+                       return d3.format(",.2f")(value)+'%'
+                   }
+               }
+           },
+           tooltip: {
+               format: {
+                   value: function(value) {
+                       return d3.format(",.2f")(value)+'%'
+                   }
+               }
+           },
+           size: {
+               height: 180,
+               width: 350
+           }
+       });
+   });
+   {/literal}
+</script>

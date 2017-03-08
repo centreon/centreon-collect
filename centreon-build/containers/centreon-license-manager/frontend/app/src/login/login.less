@@ -1,0 +1,104 @@
+.licence-manager-wrapper {
+    border: 1px solid #00a499;
+    overflow: hidden;
+    height: 500px;
+}
+#license-manager {
+    float: left;
+    width: 70%;
+    background-color: #00a499;
+    height: 500px;
+
+    .intro-msg {
+        margin: 6rem 0 0 0;
+        padding: 2rem 8rem;
+        font-size: 0.8rem;
+        text-align: left;
+        white-space: normal;
+        color: #e7e7e8;
+    }
+
+    #login-form {
+        margin: 0rem auto;
+        display: block;
+        width: 34em;
+        border-left: 3px solid #007f77;
+        padding: 0 .6rem;
+        position: relative;
+        overflow: hidden;
+        > * {
+            display: block;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        label {
+            color: #fff;
+            text-align: right;
+            padding: 0.4rem;
+            float: left;
+            width: 26%;
+
+            span {
+                text-align: right;
+            }
+        }
+        input {
+            width: 57%;
+            float: left;
+            margin-bottom: .3rem;
+        }
+
+        > input.submit-btn {
+            margin-top: 0.6rem;
+            background: url("./img/submit-arrow.png") no-repeat center center;
+            border: 0;
+            height: 18px;
+            width: 18px;
+            position: absolute;
+            top: 1.8rem;
+            right: 2.1rem;
+        }
+
+        .mandatory {
+            color: #FFA600;
+            font-size: 0.7rem;
+        }
+    }
+}
+.imp-logo {
+    float: left;
+    width: 30%;
+    display: block;
+    text-align: center;
+    margin: 10rem auto;
+}
+
+.error-msg {
+    display: block;
+    text-align: center;
+    margin: 1rem auto;
+    opacity: 1;
+    transition: opacity 0.2s ease-out;
+    &.hidden {
+        opacity: 0;
+    }
+    .msg {
+        display: inline-block;
+        width: auto;
+        margin: 0;
+    }
+}
+
+.subscribe {
+    text-align: right;
+    position: relative;
+    margin: 0 auto;
+    width: 15rem;
+}
+
+.link-subscribe {
+    color: #FFFFFF;
+    font-weight: bold;
+
+}

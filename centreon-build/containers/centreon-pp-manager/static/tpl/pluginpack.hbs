@@ -1,0 +1,90 @@
+<div class="pluginpack-entry
+        {{#if can_be_installed}}
+          pp-can-be-installed
+              {{#if installed}} pp-installed
+                {{#if complete}} pp-complete {{/if}}
+                {{#unless uptodate}} pp-toUpdate {{/unless}}
+              {{/if}}
+              {{else}} pp-deny
+        {{/if}}"
+     data-id="{{id}}"
+     data-name="{{name}}"
+     data-status="{{status}}"
+     data-label-status="{{label_status}}"
+     data-status-badge="{{status_badge}}"
+     data-slug="{{slug}}"
+     {{#if installed}}
+     data-current-version="{{current_version}}"
+     {{/if}}
+     data-version="{{version}}"
+     data-description="{{description}}"
+     data-icon="{{icon_file}}"
+     data-can_be_installed="{{can_be_installed}}"
+     data-installed="{{installed}}"
+     data-uptodate="{{uptodate}}"
+     data-complete="{{complete}}"
+>
+  <div class="pp-center">
+    <div class="pp-icon" style="background-image: url(data:image/png;base64,{{icon_file}})"></div>
+  </div>
+
+  {{#if can_be_installed}}
+  <div class="actionbar">
+
+    {{#if installed}}
+        {{#if complete}}
+            <div class="icon-wrapper reinstall-pluginpack">
+              <span class="actionbar-icon"><img src="./img/icons/reinstall-complete.png" class="ico-14" /></span>
+            </div>
+        {{else}}
+            <div class="icon-wrapper reinstall-pluginpack">
+                <span class="actionbar-icon"><img src="./img/icons/reinstall-incomplete.png" class="ico-14" /></span>
+            </div>
+        {{/if}}
+    {{else}}
+    <div class="icon-wrapper install-pluginpack">
+      <span class="actionbar-icon"><img src="./img/icons/add.png" class="ico-14" /></span>
+    </div>
+    {{/if}}
+
+    {{#if installed}}
+
+    {{#unless uptodate}}
+    <div class="icon-wrapper update-pluginpack">
+      <span class="actionbar-icon"><img src="./img/icons/up_arrow.png" class="ico-14" /></span>
+    </div>
+    {{/unless}}
+
+    <div class="icon-wrapper remove-pluginpack">
+      <span class="actionbar-icon"><img src="./img/icons/cross.png" class="ico-14" /></span>
+    </div>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  <div class="badge status-badge {{status_badge}}">{{label_status}}</div>
+  <div class="pp-bottom">
+    <p class="name" title="{{name}}">
+      {{name}}
+    </p>
+  </div>
+
+  {{#if installed}}
+  <div class="pp-icon-installed">
+    {{#if uptodate}}
+      {{#unless complete}}
+          <img src="./img/icons/reinstall.png" />
+      {{else}}
+      <img src="./img/icons/checked.png" />
+      {{/unless}}
+    {{else}}
+    <img src="./img/icons/upgrade_2.png" />
+    {{/if}}
+  </div>
+  <a href="./main.php?p=65099&min=1&slug={{slug}}" target="_blank" title="{{slug}}" class="bt-pp bt-pp-doc"><img src="./img/icons/doc.png" class="ico-18" /></a>
+  {{/if}}
+  {{#unless can_be_installed}}
+  <button class="bt-pp pp-details-info">i</button>
+  {{/unless}}
+
+</div>

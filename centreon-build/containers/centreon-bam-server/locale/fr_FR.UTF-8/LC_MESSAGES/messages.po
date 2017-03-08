@@ -1,0 +1,2456 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Centreon BAM\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-08-18 12:35+0200\n"
+"PO-Revision-Date: 2016-08-18 12:38+0200\n"
+"Last-Translator: Laurent Pinsivy <lpinsivy@centreon.com>\n"
+"Language-Team: Centreon <contact@centreon.com>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.8\n"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:82
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:57
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:149
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:150
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:101
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:57
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:149
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:150
+#: www/modules/centreon-bam-server/core/dashboard/businessView/businessView.php:40
+#: www/modules/centreon-bam-server/core/dashboard/javascript/dashboard_js.php:40
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:60
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:201
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:113
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:130
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:53
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:144
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:154
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:98
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:162
+#: www/modules/centreon-bam-server/core/logs/logs.php:100
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:71
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:179
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:326
+#: install/menu.php:9
+msgid "Business Activity"
+msgstr "Activité Métier"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:99
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:67
+#: smarty_translate.php:54
+msgid "Business Activity Monitoring"
+msgstr "Activité métier"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:100
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:68
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:124
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:95
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:97
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:92
+msgid "Actions"
+msgstr "Actions"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:101
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:69
+msgid "Back"
+msgstr "Retour"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:102
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:70
+msgid "Reporting view"
+msgstr "Rapports"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:103
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:71
+#: install/menu.php:2
+msgid "Views"
+msgstr "Vues"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:104
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:81
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/overview.php:33
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:72
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:81
+#: www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:33
+msgid "Overview"
+msgstr "Vue d'ensemble"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:105
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:73
+msgid "Previous View"
+msgstr "Vue précédente"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:106
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:74
+msgid "Misc"
+msgstr "Divers"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:107
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:75
+msgid "Business Views : "
+msgstr "Vues métier"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:108
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:76
+#: smarty_translate.php:66 install/menu.php:6
+msgid "Performances"
+msgstr "Suivi de la performance"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:109
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:77
+msgid "Loading..."
+msgstr "Chargement en cours..."
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:112
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:80
+msgid "Start"
+msgstr "Début"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:113
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:81
+msgid "End"
+msgstr "Fin"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:116
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:61
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:84
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:61
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:60
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:77
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:88
+msgid "Duration"
+msgstr "Durée"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:117
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:85
+msgid "Fixed ?"
+msgstr "Fixé ?"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:119
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:87
+msgid "Author"
+msgstr "Auteur"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:122
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:90
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:443
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:115
+msgid "seconds"
+msgstr "secondes"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:123
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:91
+msgid "Schedule"
+msgstr "Planifier"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/dashboard.php:124
+#: www/modules/centreon-bam-server/core/dashboard/dashboard.php:92
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:231
+msgid "Comment"
+msgstr "Commentaire"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:58
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:58
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:70
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:93
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:95
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:167
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:90
+#: smarty_translate.php:6
+msgid "Description"
+msgstr "Description"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:59
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:161
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:59
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:161
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:338
+msgid "Reporting Period"
+msgstr "Période de rapport"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:60
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:60
+msgid "Current Level"
+msgstr "Niveau actuel"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:62
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:203
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/overview.php:77
+#: www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:396
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:62
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:203
+#: www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:77
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:81
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:191
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:153
+#: www/modules/centreon-bam-server/core/logs/graphs/graph.php:244
+msgid "Warning"
+msgstr "Dégradé"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:63
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:206
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/overview.php:75
+#: www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:397
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:63
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:206
+#: www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:75
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:83
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:192
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:154
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:115
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:629
+#: www/modules/centreon-bam-server/core/logs/graphs/graph.php:245
+msgid "Critical"
+msgstr "Non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/chart_overview_xml.php:64
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/chart_overview_xml.php:64
+#: www/modules/centreon-bam-server/core/dashboard/businessView/businessView.php:27
+#: www/modules/centreon-bam-server/core/dashboard/javascript/dashboard_js.php:27
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:96
+msgid "Business View"
+msgstr "Vue Métier"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:152
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:69
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:177
+msgid "Regular Service"
+msgstr "Service basique"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:110
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:52
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:143
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:153
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:70
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:178
+msgid "Meta Service"
+msgstr "Méta-service"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:37
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:47
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:58
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:180
+msgid "Boolean KPI"
+msgstr "KPI booléen"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:147
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:147
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:76
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:324
+msgid "Key Performance Indicators"
+msgstr "Indicateurs clés de performance"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:148
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:149
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:148
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:149
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:325
+msgid "Indicator"
+msgstr "Indicateur"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:151
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:151
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:328
+msgid "State Information"
+msgstr "Informations sur l'état"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:152
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:151
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:152
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:151
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:125
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:329
+msgid "Type"
+msgstr "Type"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:153
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:152
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:153
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:152
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:81
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:330
+msgid "Output"
+msgstr "Résultat"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:154
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:153
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:154
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:153
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:46
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:64
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:86
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:120
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:93
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:91
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:78
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:331
+msgid "Status"
+msgstr "Statut"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:155
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:154
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:155
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:154
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:79
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:332
+msgid "Impact"
+msgstr "Impact"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:156
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:156
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:333
+msgid "Warning Threshold"
+msgstr "Seuil dégradé"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:157
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:157
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:334
+msgid "Critical Threshold"
+msgstr "Seuil non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:162
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:162
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:339
+#: smarty_translate.php:12
+msgid "Health"
+msgstr "État"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:163
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:163
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:340
+msgid "Links"
+msgstr "Liens"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:164
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:164
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:341
+msgid "Performance"
+msgstr "Performance"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:165
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:165
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:342
+msgid "Graph"
+msgstr "Graphique"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:166
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:166
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:343
+#: install/menu.php:4
+msgid "Reporting"
+msgstr "Rapport"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:173
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:173
+#: www/modules/centreon-bam-server/core/logs/logs.php:118
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:350
+#: install/menu.php:5
+msgid "Logs"
+msgstr "Historique"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:239
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:173
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:239
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:173
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:422
+#, php-format
+msgid "This KPI returns %s"
+msgstr "Ce KPI retourne %s"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:239
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:173
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:212
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:239
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:173
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:212
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:84
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:422
+msgid "True"
+msgstr "Vrai"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/kpi_details_xml.php:239
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:173
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:215
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/kpi_details_xml.php:239
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:173
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:215
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:85
+#: www/modules/centreon-bam-server/webServices/rest/centreon_bam_kpi.class.php:422
+msgid "False"
+msgstr "Faux"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/xml/broker/ba_details_xml.php:155
+#: www/modules/centreon-bam-server/core/dashboard/xml/broker/ba_details_xml.php:155
+msgid "Go back"
+msgstr "Retour"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:186
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/overview.php:62
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:186
+#: www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:62
+msgid "Level (%)"
+msgstr "Niveau (%)"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:196
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:196
+msgid "No output"
+msgstr "Pas de retour"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:209
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:209
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:82
+#: www/modules/centreon-bam-server/core/logs/graphs/graph.php:246
+msgid "Unknown"
+msgstr "Unknown"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:223
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:223
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:127
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:142
+msgid "Warning Impact"
+msgstr "Impact dégradé"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/drilldown.php:233
+#: www/modules/centreon-bam-server/core/dashboard/graphs/drilldown.php:233
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:128
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:143
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:49
+msgid "Critical Impact"
+msgstr "Impact Critique"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/overview.php:83
+#: www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:83
+msgid "Warning (%)"
+msgstr "Dégradé (%)"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/graphs/overview.php:92
+#: www/modules/centreon-bam-server/core/dashboard/graphs/overview.php:92
+msgid "Critical (%)"
+msgstr "Non fonctionnel (%)"
+
+#: www/modules/centreon-bam-server/core/oldDashboard/javascript/dashboard_js.php:194
+#: www/modules/centreon-bam-server/core/dashboard/javascript/dashboard_js.php:237
+msgid "Schedule downtime"
+msgstr "Planifier un temps d'arrêt"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:392
+msgid "Template"
+msgstr "Modèle"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:393
+#: install/menu.php:12
+msgid "Options"
+msgstr "Options"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:394
+msgid "Split Components"
+msgstr "Séparer les courbes"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/xml/rrdgraph_xml.php:395
+msgid "Display Status"
+msgstr "Afficher les statuts"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:87
+msgid "Choose the source to graph"
+msgstr "Choisir la source pour générer le graphique"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:106
+msgid "Last 3 Hours"
+msgstr "Les 3 dernières Heures"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:107
+msgid "Last 6 Hours"
+msgstr "Les 6 dernières Heures"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:108
+msgid "Last 12 Hours"
+msgstr "Les 12 dernières Heures"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:109
+msgid "Last 24 Hours"
+msgstr "Les 24 dernières Heures"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:110
+msgid "Last 2 Days"
+msgstr "Les 2 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:111
+msgid "Last 4 Days"
+msgstr "Les 4 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:112
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:95
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:53
+msgid "Last 7 Days"
+msgstr "Les 7 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:113
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:96
+msgid "Last 14 Days"
+msgstr "Les 14 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:114
+msgid "Last 28 Days"
+msgstr "Les 28 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:115
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:97
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:55
+msgid "Last 30 Days"
+msgstr "Les 30 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:116
+msgid "Last 31 Days"
+msgstr "Les 31 derniers jours"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:117
+msgid "Last 2 Months"
+msgstr "Les 2 derniers mois"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:118
+msgid "Last 4 Months"
+msgstr "Les 4 derniers mois"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:119
+msgid "Last 6 Months"
+msgstr "Les 6 derniers mois"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:120
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:58
+msgid "Last Year"
+msgstr "L'année dernière"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:122
+msgid "Graph Period"
+msgstr "Période du graphique"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:128
+msgid " From "
+msgstr "Du"
+
+#: www/modules/centreon-bam-server/core/rrdgraph/rrdgraph.php:129
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:248
+msgid " to "
+msgstr "à"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:40
+msgid "Recheck"
+msgstr "Recontrôler"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:45
+msgid "Checkpoint"
+msgstr "Point de contrôle"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:47
+msgid "Solution"
+msgstr "Solution"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:49
+msgid "Plugin"
+msgstr "Sonde"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:50
+msgid "Module"
+msgstr "Module"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:51
+msgid "XML Library"
+msgstr "Librairie XML"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:52
+msgid "PHP Configuration file (cli)"
+msgstr "Fichier de configuration PHP (cli)"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:64
+#: www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:28
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:34
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:74
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:98
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:123
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:128
+#: www/modules/centreon-bam-server/core/logs/graphs/graph.php:243
+msgid "OK"
+msgstr "OK"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:64
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:36
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:45
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:77
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:86
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:100
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:109
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:125
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:138
+msgid "NOK"
+msgstr "NOK"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:76
+#: install/menu.php:16
+msgid "Troubleshooter"
+msgstr "Troubleshooter"
+
+#: www/modules/centreon-bam-server/core/help/troubleshooter/troubleshooter.php:77
+msgid ""
+"The troubleshooter is able to check if the Centreon BAM module is working "
+"properly. In case one of the checkpoints appear to be \"NOK\", please follow "
+"the solution and check again. If you encounter problems that are not listed "
+"below, please contact your administrator or your support."
+msgstr ""
+"Ce troubleshooter permet de vérifier si le module Centreon BAM fonctionne "
+"correctement. Dans le cas où un des points de contrôle est en \"NOK\", "
+"veuillez suivre les solutions proposées et effectuer à nouveau une "
+"vérification. Si vous rencontrez des problèmes qui ne sont pas décrits ci-"
+"dessous, veuillez contacter votre administrateur ou votre support."
+
+#: www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:29
+msgid "WARNING"
+msgstr "WARNING"
+
+#: www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:30
+msgid "CRITICAL"
+msgstr "CRITICAL"
+
+#: www/modules/centreon-bam-server/core/reporting/xml/timeline_xml.php:31
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:111
+msgid "UNDETERMINED"
+msgstr "UNDETERMINED"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:60
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:170
+msgid "Begin date"
+msgstr "Date de début"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:60
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:172
+msgid "End date"
+msgstr "Date de fin"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:64
+msgid "Time"
+msgstr "Temps"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:64
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:89
+msgid "Total Time"
+msgstr "Temps total"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:64
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:90
+msgid "Mean Time"
+msgstr "Temps connu"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:64
+msgid "Alert"
+msgstr "Alerte"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:77
+msgid "Day"
+msgstr "Jour"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:78
+msgid "Available Time"
+msgstr "Temps disponible"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:78
+msgid "% Available"
+msgstr "% Disponibilité"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:78
+msgid "Available Alerts"
+msgstr "Alertes sur la disponibilité"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:79
+msgid "Warning Time"
+msgstr "Temps dégradé"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:79
+msgid "% Warning"
+msgstr "% Dégradé"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:79
+msgid "Warning Alerts"
+msgstr "Alertes dégradé"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:80
+msgid "Critical Time"
+msgstr "Temps non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:80
+msgid "% Critical"
+msgstr "% Non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/reporting/exportCSV.php:80
+msgid "Critical Alerts"
+msgstr "Alertes non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:73
+msgid " Actual "
+msgstr "Réel"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:75
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:108
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:141
+msgid "Service"
+msgstr "Service"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:76
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:42
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:140
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:59
+msgid "Host"
+msgstr "Hôte"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:77
+msgid "All"
+msgstr "Tout"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:78
+msgid "Average"
+msgstr "Moyenne"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:80
+msgid "Available"
+msgstr "Disponible"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:84
+msgid "Undetermined"
+msgstr "Indéterminé"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:87
+msgid "Total"
+msgstr "Total"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:91
+msgid "Alerts"
+msgstr "Alertes"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:93
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:110
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:49
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:68
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:163
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:59
+msgid "Information"
+msgstr "Informations"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:94
+msgid "Reporting period used by engine"
+msgstr "Période de rapport utilisé par le moteur"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:96
+msgid "Date"
+msgstr "Date"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:97
+msgid "Event"
+msgstr "Évènement"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:98
+msgid "Info"
+msgstr "Info"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:100
+#: www/modules/centreon-bam-server/core/logs/logs.php:56
+msgid "Period Selection"
+msgstr "Sélection de la période"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:101
+msgid "Business Activity states"
+msgstr "Statuts de l'activité métier"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:102
+msgid "Today's Host log"
+msgstr "Historique des hôtes pour aujourd'hui"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:103
+msgid "State Breakdowns For Host Services"
+msgstr "Statuts des pannes des services d'hôtes"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:108
+msgid "UP"
+msgstr "UP"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:109
+msgid "DOWN"
+msgstr "DOWN"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:110
+msgid "UNREACHABLE"
+msgstr "UNREACHABLE"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:169
+msgid "Custom selection"
+msgstr "Sélection personnalisée"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:171
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:173
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:243
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:147
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:473
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:144
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:131
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:87
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:147
+msgid "Modify"
+msgstr "Modifier"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:174
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:236
+#: smarty_translate.php:51
+msgid "Apply"
+msgstr "Appliquer"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:234
+msgid "From"
+msgstr "Du"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:235
+msgid "to"
+msgstr "au"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:252
+msgid "Export in CSV format"
+msgstr "Exporter en format CSV"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:254
+msgid "Reporting Interval"
+msgstr "Période prédéfinie"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:255
+msgid "&nbsp;|&nbsp;"
+msgstr "&nbsp;|&nbsp;"
+
+#: www/modules/centreon-bam-server/core/reporting/reporting.php:279
+#: www/modules/centreon-bam-server/core/logs/logs.php:126
+msgid "Please select a Business Activity"
+msgstr "Veuillez sélectionner une activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:84
+#, php-format
+msgid "%s [ Warning : %s%% - Critical : %s%% ]"
+msgstr "%s [ Dégradé : %s%% - Non fonctionnelle : %s%% ]"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:116
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:72
+msgid "Boolean"
+msgstr "Booléen"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:123
+msgid "No KPI for this Business Activity, please add a new one."
+msgstr ""
+"Pas de KPI pour cette activité métier, veuillez lui en ajouter un nouveau"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:126
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:109
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:46
+msgid "Key Performance Indicator"
+msgstr "Key Performance Indicator"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:129
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:144
+msgid "Unknown Impact"
+msgstr "Impact inconnu"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:131
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:97
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:99
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:94
+msgid "Search"
+msgstr "Recherche"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:134
+msgid "Add a KPI"
+msgstr "Ajouter un KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:138
+msgid "Load .csv file"
+msgstr "Charger fichier .csv"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:139
+msgid "Add multiple KPI"
+msgstr "Ajouter plusieurs KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:140
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:157
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:171
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:100
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:116
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:132
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:101
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:115
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:131
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:100
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:116
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:132
+msgid "Do you confirm the deletion ?"
+msgstr "Confirmez-vous la suppression ?"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:156
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:170
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:113
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:129
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:114
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:130
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:115
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:131
+msgid "Please select one or more items"
+msgstr "Sélectionner un ou plusieurs items"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+msgid "More actions..."
+msgstr "Plus d'actions..."
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:99
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:104
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:32
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:37
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:58
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:63
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:154
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:159
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:47
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:53
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:29
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:35
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:27
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:33
+msgid "Delete"
+msgstr "Supprimer"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:226
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+msgid "Enable"
+msgstr "Activer"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:164
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_list.php:178
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:227
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+msgid "Disable"
+msgstr "Désactiver"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:18
+msgid "Configuration mode"
+msgstr "Mode de configuration"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:19
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:40
+msgid "Type of KPI"
+msgstr "Sélectionner le type de KPI pour ensuite sélectionner le KPI désiré"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:20
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:23
+msgid "Impact that will be applied when KPI is in Warning state"
+msgstr "Impact qui va être appliqué si le KPI passe en statut Warning"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:21
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:24
+msgid "Impact that will be applied when KPI is in Critical state"
+msgstr "Impact qui va être appliqué si le KPI passe en statut Critical"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:22
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:25
+msgid "Impact that will be applied when KPI is in Unknown state"
+msgstr "Impact qui va être appliqué si le KPI passe en statut Unknown"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:26
+msgid "KPI will be linked to these business activities"
+msgstr "Les KPI vont être liés à ces activités métier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:31
+msgid "Object type to scan"
+msgstr "Type d'objets à scanner"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:32
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:71
+msgid "Hosts"
+msgstr "Hôtes"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:33
+msgid "Host groups"
+msgstr "Groupes d'hôtes"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:34
+msgid "Service groups"
+msgstr "Groupes de services"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:39
+msgid "Upload an existing CSV file"
+msgstr "Importer un fichier CSV existant"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/help.php:41
+msgid "You can define the KPI to import manually"
+msgstr "Il est possible de définir les KPI manuellement"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:45
+msgid "KPI CSV Loader"
+msgstr "KPI CSV Loader"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:47
+msgid "File Type"
+msgstr "Type de fichier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:49
+msgid ".csv File"
+msgstr "Fichier .csv"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:51
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:142
+msgid "Regular KPI"
+msgstr "KPI basique"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:54
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:161
+msgid "KPI Type"
+msgstr "Type de KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:57
+msgid "Manual Filling"
+msgstr "Remplissage manuel"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:73
+msgid "Load"
+msgstr "Charger"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:141
+msgid "Format"
+msgstr "Format"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:142
+msgid ""
+"BA name ; Host name; Service name ; Warning impact ; Critical impact ; "
+"Unknown impact"
+msgstr ""
+"BA nom ; Hôte nom ; Service nom ; Pourcentage d'impact Warning ; Pourcentage "
+"d'impact Critical ; Pourcentage d'impact Unknown"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:143
+msgid ""
+"BA name ; Meta Service name ; Warning impact ; Critical impact ; Unknown "
+"impact"
+msgstr ""
+"BA nom ; Meta Service nom ; Pourcentage d'impact Warning ; Pourcentage "
+"d'impact Critical ; Pourcentage d'impact Unknown"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/loadCSV.php:144
+msgid ""
+"BA name ; KPI BA name ; Warning impact ; Critical impact ; Unknown impact"
+msgstr ""
+"BA nom ; KPI BA nom ; Pourcentage d'impact Warning ; Pourcentage d'impact "
+"Critical ; Pourcentage d'impact Unknown"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:98
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:103
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:31
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:36
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:57
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:62
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:100
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:101
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:153
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:158
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:46
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:52
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:99
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:28
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:34
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:26
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:32
+msgid "Add"
+msgstr "Ajouter"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:111
+msgid "Impact levels"
+msgstr "Niveaux d'impact"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:112
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:53
+#: smarty_translate.php:45
+msgid "Business Activities"
+msgstr "Activités Métiers"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:116
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:125
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:56
+msgid "Boolean Business Impact"
+msgstr "Impact métier pour le résultat de la règle Booléenne"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:119
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:128
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:53
+msgid "Warning Business Impact"
+msgstr "Impact métier pour le statut Warning"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:120
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:129
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:54
+msgid "Critical Business Impact"
+msgstr "Impact métier pour le statut Critical"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:121
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:130
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:55
+msgid "Unknown Business Impact"
+msgstr "Impact métier pour le statut Unknown"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:145
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:53
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:65
+msgid "Regular"
+msgstr "Basique"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:146
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:54
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:66
+msgid "Advanced"
+msgstr "Avancé"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:147
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:55
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:67
+msgid "Configuration Mode"
+msgstr "Mode de configuration"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:155
+msgid "Boolean rule"
+msgstr "Règle booléenne"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:173
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:101
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:85
+msgid "Linked Business Activity"
+msgstr "Activité(s) métier concernée(s)"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:196
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:197
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:200
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:116
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:393
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:394
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:395
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:396
+msgid "Compulsory Field"
+msgstr "Champs obligatoire"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:198
+msgid "KPI already linked to one of the Business Activities"
+msgstr "KPI déjà présent dans une des applications métier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:199
+msgid "Service is disabled"
+msgstr "Le service est désactivé"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:201
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:117
+msgid "Circular definitions of Business Activities"
+msgstr "Définitions circulaires des activités métier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:202
+msgid "Cannot add itself as KPI"
+msgstr "Ne peut s'ajouter soi-même en KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:203
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:118
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:398
+msgid "The service and BA are not linked in the same poller"
+msgstr "Le service et la vue métier ne sont pas liés au même collecteur"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:204
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:120
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:113
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:406
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:104
+msgid " Required fields"
+msgstr " Champs requis"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:207
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:209
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:116
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:118
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:409
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:411
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:107
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:109
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:99
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:101
+msgid "Save"
+msgstr "Enregistrer"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:223
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:137
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:133
+msgid "Access Control List"
+msgstr "Liste de contrôle d'accès"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_form.php:224
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:138
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:134
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:126
+msgid "Business Activity List"
+msgstr "Liste des activités métier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:47
+msgid "-- Select a Host --"
+msgstr "-- Choisissez un Hôte --"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:64
+msgid "-- Select a Meta Service --"
+msgstr "-- Choisissez un Méta-service --"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:78
+msgid "-- Select a Business Activity --"
+msgstr "-- Choisissez une Activité Métier"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/kpi_xml.php:92
+msgid "-- Select a Boolean rule --"
+msgstr "-- Choisissez une Règles booléenne"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:148
+msgid "Add KPI"
+msgstr "Ajouter un KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/dynamicKPI_xml.php:149
+msgid "No KPI found"
+msgstr "Pas de KPI trouvé"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/host_service_xml.php:69
+msgid "-- Select a Service --"
+msgstr "-- Choisissez un Service --"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/eval_xml.php:30
+#: www/modules/centreon-bam-server/core/configuration/boolean/xml/eval_xml.php:32
+msgid "Status simulation"
+msgstr "Simulation de statut"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/xml/eval_xml.php:31
+#: www/modules/centreon-bam-server/core/configuration/boolean/xml/eval_xml.php:33
+msgid "Simulation mode"
+msgstr "Mode de simulation"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:59
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:82
+msgid "Host Groups"
+msgstr "Groupes d'hôtes"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:59
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:93
+msgid "Service Groups"
+msgstr "Groupes de services"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:60
+msgid "Object Type"
+msgstr "Type d'objet"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/configuration_kpi_multiple_form.php:122
+msgid "Retrieve KPI"
+msgstr "Récupérer KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/javascript/multiple_kpi_js.php:26
+msgid "Select at least one Business Activity\\n"
+msgstr "Veuillez choisir au moins une activité métier\\n"
+
+#: www/modules/centreon-bam-server/core/configuration/kpi/javascript/multiple_kpi_js.php:27
+msgid "Select at least one KPI"
+msgstr "Veuillez choisir au moins un KPI"
+
+#: www/modules/centreon-bam-server/core/configuration/group/help.php:15
+msgid "Name of business view"
+msgstr "Nom de la vue métier"
+
+#: www/modules/centreon-bam-server/core/configuration/group/help.php:16
+msgid "Description of this view"
+msgstr "Description de cette vue"
+
+#: www/modules/centreon-bam-server/core/configuration/group/help.php:17
+msgid "Whether or not this view is displayed in the monitoring dashboard"
+msgstr ""
+"Indique si cette vue sera affichée dans la Vue d'ensemble, vue par défaut."
+
+#: www/modules/centreon-bam-server/core/configuration/group/help.php:18
+msgid "List of business activities that belong to this view"
+msgstr "Liste des activités métier appartenant à cette vue"
+
+#: www/modules/centreon-bam-server/core/configuration/group/help.php:19
+msgid "ACL groups that can access this view"
+msgstr "Groupes d'ACL qui peuvent accéder à la vue"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:67
+msgid "Business Activity View"
+msgstr "Vue d'activités métier"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:69
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:92
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:94
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:166
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:89
+msgid "Name"
+msgstr "Nom"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:73
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:77
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:209
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:272
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:304
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:92
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:96
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:141
+msgid "Yes"
+msgstr "Oui"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:74
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:77
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:210
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:273
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:305
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:93
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:97
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:141
+msgid "No"
+msgstr "Non"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:75
+msgid "Displayed in Overview"
+msgstr "Afficher dans la Vue d'ensemble"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:97
+msgid "Authorized Access Groups"
+msgstr "Groupes d'accès autorisés"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:110
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:390
+msgid "Compulsory Name"
+msgstr "Nom obligatoire"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:111
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:391
+msgid "Compulsory Description"
+msgstr "Description obligatoire"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_form.php:112
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:392
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:101
+msgid "Name already in use"
+msgstr "Nom déjà utilisé"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:91
+msgid "No Business Group found"
+msgstr "Pas de groupes métier trouvés"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:94
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:96
+msgid "Displayed"
+msgstr "Affiché"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+msgid "Set visible"
+msgstr "Rendre visible"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+msgid "Set invisible"
+msgstr "Rendre invisible"
+
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:123
+#: www/modules/centreon-bam-server/core/configuration/group/configuration_ba_group_list.php:139
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:124
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:140
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:125
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:141
+msgid "Duplicate"
+msgstr "Dupliquer"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:15
+msgid "Name of business activity"
+msgstr "Nom de l'activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:16
+msgid "Description of business activity"
+msgstr "Description de l'activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:17
+msgid ""
+"When level is below this threshold, the business activity will be in Warning "
+"state"
+msgstr ""
+"Lorsque le niveau est en dessous de ce seuil, l'activité métier se "
+"retrouvera en statut dégradé"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:18
+msgid ""
+"When level is below this threshold, the business activity will be in "
+"Critical state"
+msgstr ""
+"Lorsque le niveau est en dessous de ce seuil, l'activité métier se "
+"retrouvera en statut non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:19
+msgid "Reporting will be based on this very period"
+msgstr "Le reporting sera basé sur cette période"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:20
+msgid ""
+"Contact groups that will be notified when business activity goes into "
+"Warning/Critical state"
+msgstr ""
+"Les groupes de contacts sont notifiés lorsque cette activité métier passe en "
+"statut dégradé/non-fonctionnel"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:21
+msgid "Time period during which notification can take place"
+msgstr "Période de temps durant laquelle la notification a lieu"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:22
+msgid "Notification interval length"
+msgstr "Intervalle de notification"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:23
+msgid "States for which notifications will be sent out"
+msgstr "Les états pour lesquels les notifications seront envoyées"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:24
+msgid "Whether or not notification is enabled"
+msgstr "Indique si la notification est activée"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:25
+msgid "Comments regarding the business activity"
+msgstr "Commentaires concernant cette activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:26
+msgid "Whether or not business activity is enabled"
+msgstr "Indique si cette activité métier est activée"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:27
+msgid "Escalations rules that are applied to this business activity"
+msgstr "Règles d'escalade appliquées à cette activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:28
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:29
+msgid "Refer to the official documentation of your monitoring engine"
+msgstr "Consulter la documentation officielle de votre moteur de supervision"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:30
+msgid "Whether or not dependency inheritance is applied"
+msgstr "Indique si l'héritage de dépendance est appliqué"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:31
+msgid "Parent business activity"
+msgstr "Activité métier mère"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:32
+msgid "Child business activity"
+msgstr "Activité métier enfant"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:33
+msgid "Business view(s) of this business activity"
+msgstr "Les vues métiers attachées à cette activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:34
+msgid "Icon that represents the business activity"
+msgstr "L'icône représentant l'activité métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:35
+msgid ""
+"Possibility to display this Business Activity on poller which have Centreon "
+"Poller display module"
+msgstr ""
+"Offre la possibilité d'afficher cette activité métier sur le collecteur "
+"distant si ce dernier dispose du module Centreon Poller Display"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:37
+msgid "Those time periods will be used by Centreon BI reports."
+msgstr ""
+"Ces périodes temporelles seront utilisées dans les rapports Centreon BI"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:38
+msgid ""
+"Percentage of time during which the BA was in a Warning status on a monthly "
+"basis"
+msgstr ""
+"Le pourcentage de temps pendant laquelle le BA était dans un statut non "
+"fonctionnel sur une base mensuelle"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:39
+msgid ""
+"Percentage of time during which the BA was in a Critical status on a monthly "
+"basis"
+msgstr ""
+"Le pourcentage de temps pendant laquelle le BA était dans un statut non "
+"fonctionnel sur une base mensuelle"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:40
+msgid ""
+"Amount of time during which the BA was in a Warning status on a monthly basis"
+msgstr ""
+"Le nombre de temps pendant laquelle le BA était dans un statut dégradé sur "
+"une base mensuelle"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/help.php:41
+msgid ""
+"Amount of time during which the BA was in a Critical status on a monthly "
+"basis"
+msgstr ""
+"Le nombre de temps pendant laquelle le BA était dans un statut dégradé sur "
+"une base mensuelle"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_list.php:93
+msgid "No Business Activity found."
+msgstr "Pas d'activité métier trouvée"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:168
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:60
+msgid "Monitoring Warning Threshold"
+msgstr "Seuil dégradé"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:169
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:61
+msgid "Monitoring Critical Threshold"
+msgstr "Seuil non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:177
+msgid "Default reporting time periods used by Centreon BAM and Centreon BI"
+msgstr ""
+"Période de temps de reporting par défaut utilisée par Centreon BAM et "
+"Centreon BI"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:187
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:90
+msgid "Contact Groups"
+msgstr "Groupes de contact"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:194
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:73
+msgid "Notification Time Period"
+msgstr "Période de notification"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:197
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:97
+msgid "Notification Interval"
+msgstr "Intervalle entre deux notifications"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:205
+msgid "Notification Options"
+msgstr "Options de notification"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:211
+msgid "Enable notification"
+msgstr "Activer la notification"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:222
+msgid "Additional Poller"
+msgstr "Collecteur additionnel"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:228
+msgid "Activate"
+msgstr "Activer"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:244
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:435
+msgid "Escalations"
+msgstr "Escalades"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:262
+msgid "Notification failure criteria"
+msgstr "Critère d'échec de notification"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:269
+msgid "Execution failure criteria"
+msgstr "Critère d'échec d'exécution"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:274
+msgid "Inherits from parents"
+msgstr "Héritage de parents"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:277
+msgid "Parent Business Activity"
+msgstr "Activités métier parentes"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:284
+msgid "Child Business Activity"
+msgstr "Activités métier enfants"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:296
+msgid "Linked Business Activity Groups"
+msgstr "Groupes d'activités métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:306
+msgid "Enable Event Handler"
+msgstr "Activer le gestionnaire d'évènements"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:319
+msgid "Event Handler Command"
+msgstr "Commande exécutée par le gestionnaire d'évènements"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:322
+msgid "Args"
+msgstr "Arguments"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:356
+msgid "Icon"
+msgstr "Icone"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:363
+msgid "Extra reporting time periods used in Centreon BI reports"
+msgstr ""
+"Périodes de temps additionnelles utilisées pour les rapports Centreon BI"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:370
+msgid "SLA warning percentage threshold"
+msgstr "SLA seuil en pourcent pour le statut dégradé"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:371
+msgid "SLA critical percentage threshold"
+msgstr "SLA seuil en pourcent pour le statut non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:372
+msgid "SLA warning duration threshold"
+msgstr "SLA seuil en durée pour le statut dégradé"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:373
+msgid "SLA critical duration threshold"
+msgstr "SLA seuil en durée pour le statut non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:397
+msgid "Circular definition of dependencies"
+msgstr "Définition circulaire des dépendances"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:400
+msgid "Warning Threshold must be greater than Critical Threshold (0-100)"
+msgstr ""
+"Le seuil dégradé doit être supérieur au seuil de non fonctionnel (0-100)"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:401
+msgid "Critical Threshold must be less than Warning Threshold (0-100)"
+msgstr ""
+"Le seuil de non fonctionnel doit être inférieur au seuil dégradé (0-100)"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:403
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:404
+msgid "Must be between 0 and 100"
+msgstr "Doit être compris entre 0 et 100"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:436
+msgid "Dependencies"
+msgstr "Dépendances"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:437
+msgid "Reporting time periods"
+msgstr "Périodes de temps de reporting"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:438
+msgid "Notification"
+msgstr "Notification"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:439
+msgid "Service Level Agreement"
+msgstr "Service Level Agreement"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:440
+msgid "Settings"
+msgstr "Paramètres"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:441
+msgid "Business Activity Group"
+msgstr "Groupe d'activités métier"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:442
+msgid "Visual settings"
+msgstr "Paramètres visuels"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:446
+msgid "Centreon BI settings"
+msgstr "Paramètres Centreon BI"
+
+#: www/modules/centreon-bam-server/core/configuration/ba/configuration_ba_form.php:448
+msgid "minutes"
+msgstr "minutes"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/help.php:19
+msgid "Name of boolean KPI"
+msgstr "Nom du KPI booléen"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/help.php:20
+msgid ""
+"Expression of the boolean rule. Use the editor to complete the expression "
+"and evaluate it with the button. It is also possible to simulate the service "
+"statuses."
+msgstr ""
+"Expression de la règle booléenne. Utilisez l'éditeur pour compléter "
+"l'expression et évaluer avec le bouton. Il est également possible de simuler "
+"les états de services."
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/help.php:21
+msgid "Impact will be applied depending on the result of the expression"
+msgstr "L'impact va être appliqué selon le résultat de l'expression"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/help.php:22
+msgid "Comments regarding the boolean KPI"
+msgstr "Commentaires concernant le KPI booléen"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/help.php:23
+msgid "Whether or not the boolean KPI is enabled"
+msgstr "Statut du KPI booléen"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:61
+msgid "Boolean name"
+msgstr "Nom de la règle booléenne"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:69
+msgid "Expression"
+msgstr "Expression booléenne"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:71
+msgid "Select host"
+msgstr "Sélectionner un hôte"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:86
+msgid "Impact is applied when expression returns:"
+msgstr "L'impact est appliqué lorsque l'expression retourne :"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:88
+msgid "Comments"
+msgstr "Commentaires"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:91
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:73
+msgid "Disabled"
+msgstr "Désactivé"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:92
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:73
+msgid "Enabled"
+msgstr "Activé"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:96
+msgid "Compulsory field"
+msgstr "Champ obligatoire"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:103
+msgid "Invalid Expression"
+msgstr "Expression invalide"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:156
+msgid " < < "
+msgstr "< <"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_form.php:157
+msgid "Real time result"
+msgstr "Résultat temps réel"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:88
+msgid "No boolean rule found"
+msgstr "Pas de règle booléenne trouvée"
+
+#: www/modules/centreon-bam-server/core/configuration/boolean/configuration_boolean_list.php:93
+msgid "Boolean rules"
+msgstr "Règles booléennes"
+
+#: www/modules/centreon-bam-server/core/common/header.php:22
+#: www/modules/centreon-bam-server/core/common/checkLicense.php:22
+msgid ""
+"Centreon BAM license is not valid. Please contact your administrator for "
+"more information."
+msgstr ""
+"La licence du module Centreon BAM est invalide. Veuillez contacter votre "
+"administrateur pour plus d'informations."
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:92
+msgid "Today"
+msgstr "Aujourd'hui"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:93
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:51
+msgid "Yesterday"
+msgstr "Hier"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Log.php:94
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:52
+msgid "This Week"
+msgstr "Cette semaine"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:46
+msgid "Disconnect from Centreon and reconnect."
+msgstr "Déconnecter de Centreon puis se reconnecter."
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:87
+msgid "Re install module."
+msgstr "Réinstaller le module."
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:110
+msgid "Install the PHP XML Writer library"
+msgstr "Installer la librairie PHP XML Writer"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:139
+msgid ""
+"Create a symbolic link /etc/php5/cli/php.ini that targets the Zend php.ini "
+"file."
+msgstr ""
+"Créer un lien symbolique /etc/php5/cli/php.ini pointant vers le fichier php."
+"ini de Zend"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Troubleshooter.php:141
+msgid "Please contact your support for more information"
+msgstr "Veuillez contacter le support pour plus d'informations"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:111
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:621
+msgid "Null"
+msgstr "Nul"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:112
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:623
+msgid "Weak"
+msgstr "Faible"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:113
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:625
+msgid "Minor"
+msgstr "Mineur"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:114
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:627
+msgid "Major"
+msgstr "Majeur"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:116
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:631
+msgid "Blocking"
+msgstr "Bloquant"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:281
+#, php-format
+msgid "OK - Line %s successfully imported"
+msgstr "OK - Ligne %s importée avec succès"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:284
+#, php-format
+msgid "Error - KPI already attached to Business Activity on line %s"
+msgstr ""
+"Erreur - Le KPI est déjà existant au sein de l'application métier, ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:450
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:492
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:535
+#, php-format
+msgid "Error - Business Activity %s not found on line %s"
+msgstr "Erreur - L'application métier %s est introuvable à la ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:452
+#, php-format
+msgid "Error - Business Activity KPI %s not found on line %s"
+msgstr "Erreur - Le KPI %s est introuvable à la ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:457
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:499
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:544
+#, php-format
+msgid "Error - Could not read line %s"
+msgstr "Erreur - Échec de lecture à la ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:494
+#, php-format
+msgid "Error - Meta %s not found on line %s"
+msgstr "Erreur - Le méta-service %s est introuvable à la ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:537
+#, php-format
+msgid "Error - Host %s not found on line %s"
+msgstr "Erreur - L'hôte %s est introuvable à la ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Kpi.php:539
+#, php-format
+msgid "Error - Service %s not found on line %s"
+msgstr "Erreur - Le service %s est introuvable à la ligne %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:54
+msgid "This Month"
+msgstr "Ce mois"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:56
+msgid "Last Month"
+msgstr "Le mois dernier"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Reporting.php:57
+msgid "This Year"
+msgstr "Cette année"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:257
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:461
+msgid "Expecting expression"
+msgstr "Expression attendue"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:290
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:421
+#, php-format
+msgid "Could not find status for %s"
+msgstr "Impossible de déterminer le statut pour %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:297
+msgid "Invalid expression"
+msgstr "Expression invalide"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:318
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:411
+#, php-format
+msgid "Service not specified for %s"
+msgstr "Service non défini pour %s"
+
+#: www/modules/centreon-bam-server/core/class/CentreonBam/Boolean.php:334
+#, php-format
+msgid "Could not find resource %s"
+msgstr "Ressource %s indisponible"
+
+#: www/modules/centreon-bam-server/core/class/Centreon/CfgWriter.php:49
+msgid "Could not create file"
+msgstr "Échec de création de de fichier"
+
+#: www/modules/centreon-bam-server/core/class/Centreon/CfgWriter.php:147
+msgid "Could not write in file"
+msgstr "Échec d'écriture dans le fichier"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:15
+msgid "Value of Weak impact"
+msgstr "Valeur d'un impact Faible"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:16
+msgid "Value of Minor impact"
+msgstr "Valeur d'un impact Mineur"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:17
+msgid "Value of Major impact"
+msgstr "Valeur d'un impact Majeur"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:18
+msgid "Value of Critical impact"
+msgstr "Valeur d'un impact Critique"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:19
+msgid "Value of Blocking impact"
+msgstr "Valeur d'un impact Bloquant"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:20
+msgid "Default impact of a KPI in Warning state"
+msgstr "Impact par défaut d'un KPI en statut Warning"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:21
+msgid "Default impact of a KPI in Critical state"
+msgstr "Impact par défaut d'un KPI en statut Critique"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:22
+msgid "Default impact of a KPI in Unknown state"
+msgstr "Impact par défaut d'un KPI en statut Unknown"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:23
+msgid "Default warning threshold"
+msgstr "Seuil dégradé par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:24
+msgid "Default critical threshold"
+msgstr "Seuil non fonctionnel par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:25
+msgid "Default reporting period"
+msgstr "Période de temps de reporting par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:26
+msgid "Default notification period"
+msgstr "Période de temps de notification par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:27
+msgid "Default linked contact groups"
+msgstr "Les groupes de contacts notifiés par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/help.php:28
+msgid "Default notification interval length"
+msgstr "Intervalle de notification par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:18
+msgid "seconds of unavailability"
+msgstr "secondes d'indisponibilité"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:43
+#: install/menu.php:13
+msgid "Default Settings"
+msgstr "Paramètres par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:46
+msgid "Weak Impact"
+msgstr "Impact Faible"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:47
+msgid "Minor Impact"
+msgstr "Impact Mineur"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:48
+msgid "Major Impact"
+msgstr "Impact Majeur"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:50
+msgid "Blocking Impact"
+msgstr "Impact Bloquant"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:70
+msgid "Reporting Time Period"
+msgstr "Période du rapport"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:81
+msgid "Notification Command"
+msgstr "Commande de notification"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:112
+msgid "Default impact settings"
+msgstr "Paramètres d’impact par défaut"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:113
+msgid "Default Business Activity and Boolean rule impacts settings"
+msgstr "Impacts par défaut des activités métier et règles booléennes"
+
+#: www/modules/centreon-bam-server/core/options/general/general_form.php:114
+msgid "Business Activity Default Settings"
+msgstr "Paramètres des activités métier par défaut"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:15
+msgid "Business activities that will be visible in the overview console"
+msgstr ""
+"Les activités métier qui seront visible dans la console Vue d'ensemble "
+"personnalisée"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:16
+msgid "Default RRD graph style"
+msgstr "Modèle de graphique de performance par défaut"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:17
+msgid "Opacity level for business activity level"
+msgstr "Niveau d'opacité pour le niveau des activités métier"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:18
+msgid "Level color"
+msgstr "Niveau de couleur"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:19
+msgid "Opacity level of warning area"
+msgstr "Niveau d'opacité pour la zone dégradée"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:20
+msgid "Color of warning status"
+msgstr "Couleur du statut dégradé"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:21
+msgid "Opacity level of critical area"
+msgstr "Niveau d'opacité pour la zone non fonctionnelle"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:22
+msgid "Color of critical status"
+msgstr "Couleur du statut non fonctionnel"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:23
+msgid "Whether or not caption is displayed"
+msgstr "Affiche ou non la légende"
+
+#: www/modules/centreon-bam-server/core/options/user/help.php:24
+msgid "Whether or not graph guide is displayed"
+msgstr "Affiche ou non le curseur sur les graphiques de performance"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:41
+#: install/menu.php:14
+msgid "User Settings"
+msgstr "Paramètres utilisateur"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:65
+msgid "RRD Graph Template"
+msgstr "Modèle de graphique RRD"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:68
+msgid "Business Activity Level Opacity"
+msgstr "Niveaux d'opacité"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:69
+msgid "Warning Opacity"
+msgstr "Opacité de la couleur pour le statut dégradé"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:70
+msgid "Critical Opacity"
+msgstr "Opacité de la couleur pour l'état Critical"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:73
+msgid "Business Activity Level Color"
+msgstr "Niveaux de couleurs"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:74
+msgid "Warning Color"
+msgstr "Couleur pour le statut dégradé"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:75
+msgid "Critical Color"
+msgstr "Couleur pour l'état Critical"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:80
+msgid "Pick a color"
+msgstr "Choisissez une couleur"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:94
+msgid "Display Caption"
+msgstr "Afficher la légende"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:98
+msgid "Display Graph Guide"
+msgstr "Afficher le curseur sur les graphiques"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:127
+msgid "Default Graph Style"
+msgstr "Style de graphique par défaut"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:128
+msgid "Graph colors"
+msgstr "Couleur des graphiques"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:129
+msgid "Other options"
+msgstr "Autres options"
+
+#: www/modules/centreon-bam-server/core/options/user/user_form.php:130
+msgid "Custom Overview"
+msgstr "Vue d'ensemble personnalisée"
+
+#: www/modules/centreon-bam-server/core/logs/logs.php:101
+msgid "Period"
+msgstr "Période"
+
+#: www/modules/centreon-bam-server/core/logs/logs.php:102
+msgid "  Display details"
+msgstr "  Afficher détails"
+
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:77
+msgid "KPI type"
+msgstr "Type de KPI"
+
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:80
+msgid "In downtime"
+msgstr "En temps d'arrêt"
+
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:82
+msgid "Start time"
+msgstr "Date de début"
+
+#: www/modules/centreon-bam-server/core/logs/xml/load_kpi_xml.php:83
+msgid "End time"
+msgstr "Date de fin"
+
+#: www/modules/centreon-bam-server/core/logs/graphs/graph.php:247
+msgid "Unreachable"
+msgstr "Unreachable"
+
+#: www/modules/centreon-bam-server/api_modules/centreon-map/functions.php:265
+#, php-format
+msgid "Boolean result: %s"
+msgstr "Résultat du booléen : %s"
+
+#: smarty_translate.php:3
+msgid "Ba"
+msgstr "Ba"
+
+#: smarty_translate.php:9
+msgid "Level"
+msgstr "Niveau"
+
+#: smarty_translate.php:15 smarty_translate.php:18 smarty_translate.php:21
+#: smarty_translate.php:42
+msgid "Filters"
+msgstr "Filtres"
+
+#: smarty_translate.php:24
+msgid "Configuration"
+msgstr "Configuration"
+
+#: smarty_translate.php:27
+msgid "Escalations / Dependencies"
+msgstr "Escalades / Dépendances"
+
+#: smarty_translate.php:30
+msgid "Business Activity Views"
+msgstr "Vues d'activités métier"
+
+#: smarty_translate.php:33
+msgid "Extended Information"
+msgstr "Informations détaillées"
+
+#: smarty_translate.php:36
+msgid "Event Handlers"
+msgstr "Gestionnaire d'évènements"
+
+#: smarty_translate.php:39
+msgid "Event Handler Configuration"
+msgstr "Configuration du gestionnaire d'évènements"
+
+#: smarty_translate.php:48
+msgid "Select period"
+msgstr "Sélectionner une période"
+
+#: smarty_translate.php:57
+msgid "Tree Impact"
+msgstr "Arbre d'impacts"
+
+#: smarty_translate.php:60
+msgid "Trends"
+msgstr "Tendance"
+
+#: smarty_translate.php:63
+msgid "Impacts Tree"
+msgstr "Arbre d'impacts"
+
+#: smarty_translate.php:69
+msgid "No graph to display for this BA"
+msgstr "Pas de graphique disponible pour cette BA"
+
+#: install/menu.php:3
+msgid "Monitoring"
+msgstr "Supervision"
+
+#: install/menu.php:7
+msgid "Management"
+msgstr "Gestion des objets"
+
+#: install/menu.php:8
+msgid "Business Views"
+msgstr "Vues métier"
+
+#: install/menu.php:10
+msgid "Indicators"
+msgstr "Indicateurs"
+
+#: install/menu.php:11
+msgid "Boolean Rules"
+msgstr "Règles booléennes"
+
+#: install/menu.php:15
+msgid "Help"
+msgstr "Aide"
+
+#~ msgid "General Settings"
+#~ msgstr "Paramètres généraux"
+
+#~ msgid "Advanced default levels"
+#~ msgstr "Niveaux avancés par défaut"
+
+#~ msgid "Log"
+#~ msgstr "Historique"
+
+#~ msgid "Navigation"
+#~ msgstr "Navigation"
+
+#~ msgid "Graph Style : "
+#~ msgstr "Style de Graphe :"
+
+#~ msgid "Export to JPEG"
+#~ msgstr "Exporter en JPEG"
+
+#~ msgid "Print"
+#~ msgstr "Imprimer"
+
+#~ msgid "UNKNOWN"
+#~ msgstr "UNKNOWN"
+
+#~ msgid "OK Time"
+#~ msgstr "Temps OK"
+
+#~ msgid "OK Alerts"
+#~ msgstr "Alertes OK"
+
+#~ msgid "State"
+#~ msgstr "Etat"
+
+#~ msgid "or"
+#~ msgstr "ou"
+
+#~ msgid "Remove"
+#~ msgstr "Retirer"
+
+#~ msgid "Flash Graph Style"
+#~ msgstr "Type de graphique flash"
+
+#~ msgid "Default flash graph style for this business activity"
+#~ msgstr "Le style de graphique flash par défaut de cette activité métier"
+
+#~ msgid ""
+#~ "Default flash graph style if no graph style is defined on the business "
+#~ "activity"
+#~ msgstr ""
+#~ "Style de graphique flash par défaut, lorsqu'il n'y a pas de style défini "
+#~ "sur l'activité métier"
+
+#~ msgid "(Host Down)"
+#~ msgstr "(Host Down)"
+
+#~ msgid "Schedule immediate check"
+#~ msgstr "Plannifier un controle immédiat"
+
+#~ msgid "Schedule immediate check (Forced)"
+#~ msgstr "Plannifier un controle immédiat (Forcé)"
+
+#~ msgid "Acknowledge"
+#~ msgstr "Acquitter"
+
+#~ msgid "Remove acknowledgement"
+#~ msgstr "Dés-acquitter"
+
+#~ msgid "Disable notification"
+#~ msgstr "Désactiver la notification"
+
+#~ msgid "Remove downtime"
+#~ msgstr "Retirer temps d'arrêt"
+
+#~ msgid "Last Check"
+#~ msgstr "Dernier Contrôle"
+
+#~ msgid "KPI name"
+#~ msgstr "Nom de KPI"
+
+#~ msgid "Cron"
+#~ msgstr "Cron"
+
+#~ msgid "Add boolean KPI"
+#~ msgstr "Ajouter un KPI booléen"
+
+#~ msgid "Impact that will be applied when the boolean rule is matched"
+#~ msgstr "Impact qui va être appliqué si la règle booléenne correspond"
+
+#~ msgid ""
+#~ "SLA can be based on percentage of availability, or duration of "
+#~ "unavailability"
+#~ msgstr ""
+#~ "Le SLA peut être basé sur le pourcentage de disponibilité, ou sur la "
+#~ "durée de l'indisponibilité"
+
+#~ msgid "Warning threshold"
+#~ msgstr "Seuil de Warning"
+
+#~ msgid "Critical threshold"
+#~ msgstr "Seuil de Critical"
+
+#~ msgid ""
+#~ "Time period during which the business activity will be actively checked"
+#~ msgstr ""
+#~ "Période de temps durant laquelle l'activité métier sera contrôlée "
+#~ "activement"
+
+#~ msgid "Percentage"
+#~ msgstr "Pourcentage"
+
+#~ msgid "SLA Type"
+#~ msgstr "Type de SLA"
+
+#~ msgid "SLA Warning Threshold"
+#~ msgstr "Seuil Warning de SLA"
+
+#~ msgid "SLA Critical Threshold"
+#~ msgstr "Seuil Critical de SLA"
+
+#~ msgid "Check Time Period"
+#~ msgstr "Période de Contrôle"
+
+#~ msgid "Check"
+#~ msgstr "Contrôle"
+
+#~ msgid "Default SLA type"
+#~ msgstr "Type de SLA par défaut"
+
+#~ msgid "Default SLA warning threshold"
+#~ msgstr "Seuil Warning de SLA par défaut"
+
+#~ msgid "Default SLA critical threshold"
+#~ msgstr "Seuil Critical de SLA par défaut"
+
+#~ msgid "Default check period"
+#~ msgstr "Période de temps de contrôle par défaut"
+
+#~ msgid "Now"
+#~ msgstr "Maintenant"
+
+#~ msgid "In Downtime"
+#~ msgstr "En temps d'arrêt"
+
+#~ msgid "Check Time"
+#~ msgstr "Temps de contrôle"
+
+#~ msgid "Check Period"
+#~ msgstr "Période de controle"
+
+#~ msgid "Current Check Timeperiod"
+#~ msgstr "Période de controle actuel"
+
+#~ msgid "Downtime scheduled by %s"
+#~ msgstr "Temps d'arrêt planifié par %s"
+
+#~ msgid "Display Legend"
+#~ msgstr "Afficher la légende"
+
+#~ msgid "Key Performance Indicators of %s"
+#~ msgstr "Indicateurs de Performance Clés de %s"
+
+#~ msgid "Predefined : "
+#~ msgstr "Prédéfini :"
+
+#~ msgid "No Business Group, please add a new one."
+#~ msgstr "Pas de Groupe de Métier, veuillez en ajouter une."
+
+#~ msgid "No Business Activity, please add a new one."
+#~ msgstr "Pas d'Activité Métier, veuillez ajouter une nouvelle."
+
+#~ msgid "Refresh entire page"
+#~ msgstr "Rafraîchir la page"
+
+#~ msgid "View"
+#~ msgstr "Vue"
+
+#~ msgid ""
+#~ "The troubleshooter is able to check if the Centreon BAM module is working "
+#~ "properly. "
+#~ msgstr ""
+#~ "Ce troubleshooter vérifie si le module Centreon BAM fonctionne "
+#~ "correctement."

@@ -1,0 +1,40 @@
+table {
+  width: 100%;
+}
+.listing {
+  width: 100%;
+
+  th,td {
+    text-align: left;
+
+    &:nth-child(1) {
+      width: 16px;
+    }
+
+    &:nth-child(2) {
+      width: @db-margin * 10;
+    }
+
+    &:nth-child(3) {
+      min-width: @db-margin * 19;
+    }
+
+    &:nth-child(4) {
+      min-width: @db-margin * 12;
+    }
+
+  }
+
+  th {
+    padding: @margin / 2 0;
+  }
+
+  td {
+    &:nth-child(1) {
+      img {
+        margin-bottom: 3px;
+      }
+
+    }
+  }
+}

@@ -1,0 +1,306 @@
+{$form.javascript}{$javascript}
+<form {$form.attributes}>
+<div>
+<ul id="mainnav">
+	<li class="a" id='c1'><a href="#" onclick="javascript:montre('1');">{t}Configuration{/t}</a></li>
+	<li class="b" id='c2'><a href="#" onclick="javascript:montre('2');">{t}Escalations{/t}</a></li>
+	<li class="b" id='c3'><a href="#" onclick="javascript:montre('3');">{t}Business Activity Views{/t}</a></li>
+	<li class="b" id='c4'><a href="#" onclick="javascript:montre('4');">{t}Extended Information{/t}</a></li>
+	<li class="b" id='c5'><a href="#" onclick="javascript:montre('5');">{t}Event Handlers{/t}</a></li>
+</ul>
+</div>
+<div id='tab1' class="tab">
+	<table class="formTable table">
+	 	<tr class="ListHeader">
+	 		<td class="FormHeader" colspan="2">
+	 			<h3>| {$form.header.title}</h3>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_lvl_1">
+	 		<td class="ListColLvl1_name" colspan="2">
+	 			<h4>{$form.header.information}</h4>
+	 		</td>
+	 	</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.ba_name.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.ba_name.html}
+			</td>
+		</tr>
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.ba_desc.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.ba_desc.html}
+			</td>
+		</tr>		
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.ba_warning.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.ba_warning.html}%
+			</td>
+		</tr>
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.ba_critical.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.ba_critical.html}%
+			</td>
+		</tr>
+		<tr class="list_lvl_1">
+			<td class="ListColLvl1_name" colspan="2">
+				<h4>{$timeperiod_title}</h4>
+			</td>
+		</tr>		
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.id_reporting_period.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.id_reporting_period.html}
+			</td>
+		</tr>
+		<tr class="list_lvl_1">
+			<td class="ListColLvl1_name" colspan="2">
+				<h4>{$notif_title}</h4>
+			</td>
+		</tr>		
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.bam_contact.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.bam_contact.html}
+			</td>
+		</tr>
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.id_notif_period.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.id_notif_period.html}
+			</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.notif_interval.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.notif_interval.html}{$time_unit}
+			</td>
+		</tr>		
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.notifOpts.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.notifOpts.html}
+			</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.notifications_enabled.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.notifications_enabled.html}
+			</td>
+		</tr>
+		<tr class="list_lvl_1">
+			<td class="ListColLvl1_name" colspan="2">
+				<h4>{$settings_title}</h4>
+			</td>
+		</tr>
+        <tr class="list_one">
+			<td class="FormRowField">
+				{$form.inherit_kpi_downtimes.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.inherit_kpi_downtimes.html}
+			</td>
+		</tr>
+        <tr class="list_one">
+			<td class="FormRowField">
+				{$form.additional_poller.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.additional_poller.html}
+			</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.bam_activate.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.bam_activate.html}
+			</td>
+		</tr>
+	</table>
+</div>
+<div id='tab2' class="tab">
+	<table class="formTable table">
+	 	<tr class="ListHeader">
+	 		<td class="FormHeader" colspan="2">
+	 			<h3>| {$form.header.title}</h3>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_lvl_1">
+	 		<td class="ListColLvl1_name" colspan="2">
+	 			<h4>{$escal_title}</h4>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_one">
+	 		<td class="FormRowField">
+	 			{$form.bam_esc.label}
+	 		</td>
+	 		<td class="FormRowValue">
+	 			{$form.bam_esc.html}
+	 		</td>	 		
+	 	</tr>
+	</table>
+</div>
+<div id='tab3' class="tab">
+	<table class="formTable table">
+	 	<tr class="ListHeader">
+	 		<td class="FormHeader" colspan="2">
+	 			<h3>| {$form.header.title}</h3>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_lvl_1">
+	 		<td class="ListColLvl1_name" colspan="2">
+	 			<h4>{$ba_list_title}</h4>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_one">
+	 		<td class="FormRowField">
+	 			{$form.ba_group_list.label}
+	 		</td>
+	 		<td class="FormRowValue">
+	 			{$form.ba_group_list.html}
+	 		</td>	 		
+	 	</tr>
+	 </table>
+</div>
+<div id='tab4' class="tab">
+	<table class="formTable table">
+	 	<tr class="ListHeader">
+	 		<td class="FormHeader" colspan="2">
+	 			<h3>| {$form.header.title}</h3>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_lvl_1">
+	 		<td class="ListColLvl1_name" colspan="2">
+	 			<h4>{$graphic_label}</h4>
+	 		</td>
+	 	</tr>
+	 	<tr class="list_one">
+	 		<td class="FormRowField">
+	 			{$form.icon.label}
+	 		</td>
+	 		<td class="FormRowValue">
+	 			{$form.icon.html}
+	 		</td>	 		
+	 	</tr>
+		<tr class="list_lvl_1">
+			<td class="FormHeader" colspan="2">
+				<h4>{$centreon_bi_settings}</h4>
+			</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+	 			{$form.reporting_timeperiods.label}
+	 		</td>
+	 		<td class="FormRowValue">
+	 			{$form.reporting_timeperiods.html}
+	 		</td>	
+		</tr>
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.sla_month_percent_warn.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.sla_month_percent_warn.html} <span>{$sla_unit_percent}</span>
+			</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.sla_month_percent_crit.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.sla_month_percent_crit.html} <span>{$sla_unit_percent}</span>
+			</td>
+		</tr>
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.sla_month_duration_warn.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.sla_month_duration_warn.html} <span>{$sla_unit_minutes}</span>
+			</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">
+				{$form.sla_month_duration_crit.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.sla_month_duration_crit.html} <span>{$sla_unit_minutes}</span>
+			</td>
+		</tr>
+		<tr class="list_two">
+			<td class="FormRowField">
+				{$form.bam_comment.label}
+			</td>
+			<td class="FormRowValue">
+				{$form.bam_comment.html}
+			</td>
+		</tr>
+	</table>
+</div>
+<div id='tab5' class="tab">
+	<table class="formTable table">
+	 	<tr class="ListHeader">
+	 		<td class="FormHeader" colspan="2">
+	 			<h3>| {$form.header.title}</h3>
+	 		</td>
+	 	</tr>
+		<tr class="list_lvl_1">
+	 		<td class="ListColLvl1_name" colspan="2">
+	 			<h4>{t}Event Handler Configuration{/t}</h4>
+	 		</td>
+	 	</tr>
+		<!--- Event Handlers --> 
+		<tr class="list_two">
+			<td class="FormRowField">{$form.event_handler_enabled.label}</td>
+			<td class="FormRowValue">{$form.event_handler_enabled.html}</td>
+		</tr>
+		<tr class="list_one">
+			<td class="FormRowField">{$form.event_handler_command.label}</td>
+			<td class="FormRowValue">{$form.event_handler_command.html}</td>
+		</tr>
+		<tr class="list_two">
+            <td class="FormRowField">{$form.event_handler_args.label}</td>
+            <td class="FormRowValue">{$form.event_handler_args.html}
+                {if $o == "a" || $o == "c"}
+                &nbsp;<img src="./img/icones/16x16/arrow_left_blue.gif" style='cursor:pointer;' alt="*"  style='cursor:pointer' onclick="set_arg('example2','event_handler_args');"></a><input type="text" name="example2" disabled>
+                {/if}
+            </td>
+        </tr>
+	</table>
+</div>
+<div id="validForm">
+	{$form.hidden}
+	<p class="oreonbutton">
+		{if $o == "a"}
+			{$form.submitSaveAdd.html}
+		{else if $o == "c"}
+			{$form.submitSaveChange.html}
+		{/if}
+	</p>
+</div>
+</form>
+{$helptext}
