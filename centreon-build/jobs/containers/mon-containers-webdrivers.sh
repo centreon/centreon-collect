@@ -10,7 +10,7 @@ browser=$1
 docker pull ubuntu:rolling
 
 # Build image.
-cd centreon-build/containers
+cd `dirname $0`/../../containers
 docker build -t ci.int.centreon.com:5000/mon-$browser:latest -f webdrivers/$browser.Dockerfile .
 
 # Push image.
