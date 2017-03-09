@@ -1,0 +1,43 @@
+#tree {
+    position: relative;
+    overflow: auto;
+    cursor: move;
+}
+.legend {
+    background-color: #e7e7e8;
+    position: absolute;
+    bottom: 0;
+    margin-left: 0;
+    text-align: left;
+}
+.legend .circle_icon {
+    height: 8px;
+    width: 8px;
+    display: inline-block;
+    margin-right: 3px;
+    border-radius: 17px;
+    padding: 0;
+    border: 2px solid #093bb0;
+}
+.legend img {
+    margin-right: 3px;
+}
+.node {
+    cursor: pointer;
+}
+
+.node circle {
+    fill: #fff;
+    /*stroke: steelblue;*/
+    stroke-width: 2px;
+}
+
+.node text {
+    font: 11px sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #a7a9ac;
+    stroke-width: 0.5px;
+}

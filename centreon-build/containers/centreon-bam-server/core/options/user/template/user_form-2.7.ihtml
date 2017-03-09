@@ -1,0 +1,118 @@
+{$colorJS}
+{$form.javascript}
+<form {$form.attributes}>
+	<table class="formTable table">
+		 	<tr class="ListHeader">
+		 		<td class="FormHeader" colspan="2">
+		 			<h3>| {$form.header.title}</h3>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$default_overview_title}</h4>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_one">
+		 		<td class="FormRowField">
+		 			{$form.overview.label}
+		 		</td>
+		 		<td class="FormRowValue">
+		 			{$form.overview.html}
+		 		</td>
+		 	</tr>
+		 	<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$default_graph_title}</h4>
+		 		</td>
+		 	</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.rrd_graph_style.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.rrd_graph_style.html}
+	 			</td>
+	 		</tr>
+		 	<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$graph_colors_title}</h4>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.value_alpha.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.value_alpha.html}%
+	 			</td>
+	 		</tr>
+		 	<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.value_color.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.value_color.html}&nbsp;&nbsp;{$form.value_color_color.html}&nbsp;&nbsp;{$form.value_color_modify.html}
+	 			</td>
+	 		</tr>
+	 		<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.warning_alpha.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.warning_alpha.html}%
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.warning_color.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.warning_color.html}&nbsp;&nbsp;{$form.warning_color_color.html}&nbsp;&nbsp;{$form.warning_color_modify.html}
+	 			</td>
+	 		</tr>
+	 		<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.critical_alpha.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.critical_alpha.html}%
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.critical_color.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.critical_color.html}&nbsp;&nbsp;{$form.critical_color_color.html}&nbsp;&nbsp;{$form.critical_color_modify.html}
+	 			</td>
+	 		</tr>
+	 		<tr class="list_lvl_1">
+		 		<td class="ListColLvl1_name" colspan="2">
+		 			<h4>{$graph_misc}</h4>
+		 		</td>
+		 	</tr>
+		 	<tr class="list_one">
+	 			<td class="FormRowField">
+	 				{$form.display_legend.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.display_legend.html}
+	 			</td>
+	 		</tr>
+	 		<tr class="list_two">
+	 			<td class="FormRowField">
+	 				{$form.display_guide.label}
+	 			</td>
+	 			<td class="FormRowValue">
+	 				{$form.display_guide.html}
+	 			</td>
+	 		</tr>
+	</table>
+	<div id="validForm">
+		{$form.hidden}
+		<p class="oreonbutton">
+			{$form.submitSaveChange.html}
+		</p>
+	</div>
+</form>
+{$helptext}

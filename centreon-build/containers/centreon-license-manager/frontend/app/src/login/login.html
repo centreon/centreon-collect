@@ -1,0 +1,19 @@
+
+<p class="intro-msg">
+    <%= introMessage %>
+</p>
+<div class="error-msg hidden">
+    <span class="msg"><%= errorMessage %></span>
+</div>
+<form id="login-form" action="./index.php" method="post" name="login">
+    <label for="email"><%= email %> <span class="mandatory">*</span></label>
+    <input class="inputclassic" id="email" name="email" type="email" value="">
+
+    <label for="password"><%= password %> <span class="mandatory">*</span></label>
+    <input class="inputclassicPass" id="password" name="password" type="password" value="">
+    <input class="submit-btn" name="submitLogin" value="" type="submit">
+</form>
+<div class="subscribe">
+    <a href='<%= subscriptionLink %>' target="_blank" class="link-subscribe"><%= subscription %></a>
+    <span class="note"><%= subscriptionText %></span>
+</div>
