@@ -1,0 +1,161 @@
+body {
+  font-size: @font-body;
+  //font-family: 'Open Sans', sans-serif;
+}
+h1, h2, h3, p {
+  margin: @margin 0;}
+h1 {font-size: @font-h1;}
+h2 {font-size: @font-h2;}
+h3 {
+  font-size: @font-h3;
+
+}
+h4 {
+  font-size: @font-h4;
+  margin: @margin 0;
+}
+h5 {
+  font-size: @font-h5;
+  margin: @margin 0;
+}
+p {
+  font-size: @font-body;
+  margin: @margin 0;
+}
+
+img {
+  border: 0;
+  vertical-align: middle;
+}
+
+ul {
+  list-style: none;
+}
+
+input {
+  margin: @margin/2 0;
+}
+
+input, select {
+  padding: @margin - 0.2;
+  border: 1px solid @white;
+}
+
+.note {
+  font-size: @font-body - 0.1;
+  margin: @margin/2 0;
+
+  &.note-warning {
+    color : @orange;
+  }
+  img {
+    height: 12px;
+    width: 12px;
+    vertical-align: text-top;
+  }
+}
+
+.highlight-error {
+  border: 1px solid @error;
+  transition: border 0.2s ease;
+}
+
+.error {
+  color : @error;
+}
+
+.error-msg {
+  color: lighten(@error,35%);
+  position: absolute;
+  bottom: -@margin * 3;
+}
+
+.show {
+  display: block;
+}
+
+.hide {
+  display: none;
+}
+
+.float {
+  position: absolute;
+  top : 0;
+  left: 0;
+}
+
+.bt-group {
+  text-align: center;
+  margin: (@db-margin * 4) 0;
+
+  button:first-child {
+    margin-right: @db-margin;
+  }
+}
+
+/* ----- Buttons ------*/
+
+.bt-circle {
+  position: relative;
+  background-color : @white;
+  width: 20px;
+  height: 20px;
+  padding : 4px;
+  border: 0;
+  .border-radius-circle;
+
+  .arrow {
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid @light-blue;
+    float: right;
+  }
+
+  &:after {
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    content: '';
+    width: 6px;
+    background: @light-blue;
+    height: 4px;
+  }
+
+}
+
+/*--------- Listing ----------*/
+
+.listing-container {
+  position: relative;
+  width: 100%;
+
+}
+
+/*---------- Form validation -----*/ 
+
+.action-container {
+  padding: @margin 0;
+  text-align: center;
+}
+
+.check-icon {
+  position: absolute;
+  right: @db-margin * 6.7;
+  top: @db-margin + .8;
+
+  img {
+    height: @margin + .3;
+    width: @margin + .3;
+  }
+
+}
+
+/*---------- Messages -----*/
+
+.error-container {
+  .msg {
+    margin: 0 auto;
+  }
+}

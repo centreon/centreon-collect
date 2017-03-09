@@ -1,0 +1,481 @@
+@import url(https://fonts.googleapis.com/css?family=Open+Sans);
+#main {
+  border: 1px solid #009fdf;
+  margin: 0.6em;
+  height: 40em;
+  overflow: hidden;
+  /* ----- Buttons ------*/
+  /*--------- Listing ----------*/
+  /*---------- Form validation -----*/
+  /*---------- Messages -----*/
+  /* Global Colors */
+  /* margin */
+  /* font size */
+}
+#main article,
+#main aside,
+#main details,
+#main figcaption,
+#main figure,
+#main footer,
+#main header,
+#main hgroup,
+#main main,
+#main nav,
+#main section,
+#main summary {
+  display: block;
+}
+#main audio,
+#main canvas,
+#main video {
+  display: inline-block;
+}
+#main audio:not([controls]) {
+  display: none;
+  height: 0;
+}
+#main [hidden],
+#main template {
+  display: none;
+}
+#main html {
+  font-family: sans-serif;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+#main body {
+  margin: 0;
+}
+#main a {
+  background: transparent;
+  text-decoration: none;
+}
+#main a:focus {
+  outline: thin dotted;
+}
+#main a:active,
+#main a:hover {
+  outline: 0;
+}
+#main img {
+  border: 0;
+}
+#main ul {
+  padding: 0;
+  margin: 0;
+}
+#main body {
+  font-size: 1em;
+}
+#main h1,
+#main h2,
+#main h3,
+#main p {
+  margin: 0.6em 0;
+}
+#main h1 {
+  font-size: 3em;
+}
+#main h2 {
+  font-size: 2.5em;
+}
+#main h3 {
+  font-size: 2em;
+}
+#main h4 {
+  font-size: 1.5em;
+  margin: 0.6em 0;
+}
+#main h5 {
+  font-size: 1.1em;
+  margin: 0.6em 0;
+}
+#main p {
+  font-size: 1em;
+  margin: 0.6em 0;
+}
+#main img {
+  border: 0;
+  vertical-align: middle;
+}
+#main ul {
+  list-style: none;
+}
+#main input {
+  margin: 0.3em 0;
+}
+#main input,
+#main select {
+  padding: 0.4em;
+  border: 1px solid #ffffff;
+}
+#main .note {
+  font-size: 0.9em;
+  margin: 0.3em 0;
+}
+#main .note.note-warning {
+  color: #ffbf6a;
+}
+#main .note img {
+  height: 12px;
+  width: 12px;
+  vertical-align: text-top;
+}
+#main .highlight-error {
+  border: 1px solid #e00b3d;
+  transition: border 0.2s ease;
+}
+#main .error {
+  color: #e00b3d;
+}
+#main .error-msg {
+  color: #faa3b8;
+  position: absolute;
+  bottom: -1.8em;
+}
+#main .show {
+  display: block;
+}
+#main .hide {
+  display: none;
+}
+#main .float {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+#main .bt-group {
+  text-align: center;
+  margin: 4.8em 0;
+}
+#main .bt-group button:first-child {
+  margin-right: 1.2em;
+}
+#main .bt-circle {
+  position: relative;
+  background-color: #ffffff;
+  width: 20px;
+  height: 20px;
+  padding: 4px;
+  border: 0;
+  border-radius: 6em;
+}
+#main .bt-circle .arrow {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid #009fdf;
+  float: right;
+}
+#main .bt-circle:after {
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  content: '';
+  width: 6px;
+  background: #009fdf;
+  height: 4px;
+}
+#main .listing-container {
+  position: relative;
+  width: 100%;
+}
+#main .action-container {
+  padding: 0.6em 0;
+  text-align: center;
+}
+#main .check-icon {
+  position: absolute;
+  right: 8.04em;
+  top: 2em;
+}
+#main .check-icon img {
+  height: 0.9em;
+  width: 0.9em;
+}
+#main .error-container .msg {
+  margin: 0 auto;
+}
+#main .border-radius-circle {
+  border-radius: 6em;
+}
+#main .waiting {
+  position: relative;
+  height: 100%;
+  text-align: center;
+}
+#main .waiting.floating-wait {
+  position: absolute;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+#main .loading-container {
+  position: absolute;
+  width: 100%;
+  top: 40%;
+}
+@keyframes green1 {
+  from {
+    fill: #83c249;
+  }
+  to {
+    fill: #ccf289;
+  }
+}
+@keyframes green2 {
+  from {
+    fill: #34b24f;
+  }
+  to {
+    fill: #93e888;
+  }
+}
+@keyframes green3 {
+  from {
+    fill: #00ac9f;
+  }
+  to {
+    fill: #4fd6ca;
+  }
+}
+@keyframes blue1 {
+  from {
+    fill: #00aeec;
+  }
+  to {
+    fill: #7bd0fa;
+  }
+}
+@keyframes blue2 {
+  from {
+    fill: #0078bb;
+  }
+  to {
+    fill: #60a6d7;
+  }
+}
+@keyframes blue3 {
+  from {
+    fill: #29378e;
+  }
+  to {
+    fill: #5375bd;
+  }
+}
+#main .color {
+  animation-duration: .3s;
+  animation-direction: alternate;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+#main .color-1 {
+  fill: #83c249;
+  animation-name: green1;
+  animation-delay: 0s;
+}
+#main .color-2 {
+  fill: #34b24f;
+  animation-name: green2;
+  animation-delay: .5s;
+}
+#main .color-3 {
+  fill: #00ac9f;
+  animation-name: green3;
+  animation-delay: 1s;
+}
+#main .color-4 {
+  fill: #00aeec;
+  animation-name: blue1;
+  animation-delay: 1.5s;
+}
+#main .color-5 {
+  fill: #0078bb;
+  animation-name: blue2;
+  animation-delay: 2s;
+}
+#main .color-6 {
+  fill: #29378e;
+  animation-name: blue3;
+  animation-delay: 2.5s;
+}
+#main table {
+  width: 100%;
+}
+#main .listing {
+  width: 100%;
+}
+#main .listing th,
+#main .listing td {
+  text-align: left;
+}
+#main .listing th:nth-child(1),
+#main .listing td:nth-child(1) {
+  width: 16px;
+}
+#main .listing th:nth-child(2),
+#main .listing td:nth-child(2) {
+  width: 12em;
+}
+#main .listing th:nth-child(3),
+#main .listing td:nth-child(3) {
+  min-width: 22.8em;
+}
+#main .listing th:nth-child(4),
+#main .listing td:nth-child(4) {
+  min-width: 14.4em;
+}
+#main .listing th {
+  padding: 0.3em 0;
+}
+#main .listing td:nth-child(1) img {
+  margin-bottom: 3px;
+}
+#main .side-container {
+  float: left;
+  background-color: #009fdf;
+  position: relative;
+  width: 26em;
+  height: 100%;
+}
+#main .side-container .intro-title {
+  color: #005a7f;
+  font-weight: normal;
+  margin: 60% 14%;
+}
+#main .side-container .title {
+  padding: 1.2em;
+}
+#main .side-container .title h4 {
+  color: #005a7f;
+  font-weight: normal;
+}
+#main .side-container .title p {
+  color: #ffffff;
+  display: inline-block;
+  border: 3px solid #ffffff;
+  box-sizing: content-box;
+  position: absolute;
+  right: -1.8em;
+  top: 0.6em;
+  border-radius: 6em;
+}
+#main .side-container .title p.step {
+  background-color: #0072ce;
+  padding: 0.9em 1.3em;
+}
+#main .side-container .title p.step strong {
+  font-size: 1.6em;
+  line-height: 1em;
+}
+#main .side-container .title p.step-default {
+  background-color: #e7e7e8;
+  padding: 0.6em;
+}
+#main .side-container .title p.step-default img {
+  max-width: 100%;
+  width: 2.4em;
+  height: 2.4em;
+}
+#main .side-container ul#steps {
+  padding: 0.6em 1.2em;
+}
+#main .side-container ul#steps li {
+  padding-left: 0.6em;
+  position: relative;
+}
+#main .side-container ul#steps li.current-step {
+  border-left: 3px solid #0072ce;
+  margin-bottom: 1.2em;
+}
+#main .side-container ul#steps li.current-step h5 {
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+#main .side-container ul#steps li.current-step p {
+  display: block;
+}
+#main .side-container ul#steps li.previous-step h5 {
+  color: #0072ce;
+  font-size: 0.9em;
+}
+#main .side-container ul#steps li.previous-step p.stepHelp {
+  display: none;
+}
+#main .side-container ul#steps li.next-step h5 {
+  color: #d1d2d4;
+  font-weight: normal;
+  font-size: 1em;
+}
+#main .side-container ul#steps li.next-step p.stepHelp {
+  display: none;
+}
+#main .side-container ul#steps h5 {
+  color: #ffffff;
+}
+#main .side-container ul#steps .stepHelp {
+  color: #4b4b4d;
+  position: relative;
+}
+#main h3,
+#main h4 {
+  text-transform: uppercase;
+}
+#main .view-container {
+  float: left;
+  height: 100%;
+  width: calc(100% - 26em);
+}
+#main .view-container .title {
+  background-color: #f4f4f4;
+  border-bottom: 1px solid #d8d8d9;
+  overflow: hidden;
+  padding: 1.2em 2.4em;
+}
+#main .view-container .title h4 {
+  color: #0072ce;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+#main .view-container .content {
+  padding: 1.2em 2.4em;
+  position: relative;
+  /*------- Homepage ----------*/
+  /*------- Discovery : Step 2 ----------*/
+}
+#main .view-container .content.homepage-content {
+  padding-top: 9.6em;
+  padding-bottom: 9.6em;
+}
+#main .view-container .content.homepage-content p {
+  margin: 0.6em 1.2em;
+  text-align: center;
+}
+#main .view-container .content.discovery-content {
+  height: 78%;
+}
+#main .view-container .content.discovery-content .listing-container {
+  overflow: hidden;
+  height: 85%;
+  border-bottom: 1px solid #e7e7e8;
+}
+#main .range-view {
+  position: relative;
+}
+#main .range-view label {
+  float: left;
+  color: #ffffff;
+  font-size: 1em;
+}
+#main .range-view input {
+  width: 55%;
+  padding-right: 2.4em;
+}
+#main .range-view button {
+  vertical-align: middle;
+  margin-left: 0.6em;
+}
+#main .range-view .note {
+  margin-bottom: 2.4em;
+}

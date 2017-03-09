@@ -1,0 +1,2 @@
+ALTER TABLE @DB_CENTSTORAGE@.`mod_bam_kpi_logs` ADD COLUMN in_downtime enum('0', '1') NOT NULL default '0';
+ALTER TABLE @DB_CENTSTORAGE@.`mod_bam_kpi_logs` ADD COLUMN impact int(11) NOT NULL default '0';

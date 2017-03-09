@@ -1,0 +1,29 @@
+a.baminfobulle {
+    position:relative;
+    text-decoration:none;
+    z-index:24;
+}
+
+a.baminfobulle:hover {
+    z-index:25;
+}
+
+a.baminfobulle span.popup_volante {
+    display:none;
+    position:absolute;
+    z-index:500;
+}
+
+a.baminfobulle:hover span.popup_volante {
+    background-color:#808080;
+    border:1px gray;
+    display:block;
+    font-weight:normal;
+    left:2em;
+    padding:1px;
+    position:absolute;
+    text-align:justify;
+    top:2em;
+}
+
+

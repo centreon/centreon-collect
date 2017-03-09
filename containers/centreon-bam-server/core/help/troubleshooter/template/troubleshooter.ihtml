@@ -1,0 +1,39 @@
+<table class="ListTable">
+	<tr class="list_lvl_1">
+		<td><img src="./modules/centreon-bam-server/core/common/images/help.gif">&nbsp;{$title}</td>
+	</tr>
+	<tr>
+		<td>{$msg}</td>
+	</tr>
+</table>
+<br/>
+<table class="ListTable">
+	<tr class="ListHeader">
+		<td class="ListColLeft">{$checkpoint}</td>
+		<td class="ListColCenter">{$status}</td>
+		<td class="ListColLeft">{$solution}</td>
+	</tr>		
+	<tr class="list_two">
+		<td class="ListColLeft">{$plugin}</td>
+		<td class="ListColCenter"><font color="{$color[$plugin_status]}"><b>{$plugin_status}</b></font></td>
+		<td class="ListColLeft">{$plugin_solution}</td>
+	</tr>
+	<tr class="list_one">
+		<td class="ListColLeft">{$module_loaded}</td>
+		<td class="ListColCenter"><font color="{$color[$module_loaded_status]}"><b>{$module_loaded_status}</b></font></td>
+		<td class="ListColLeft">{$module_loaded_solution}</td>
+	</tr>
+	<tr class="list_two">
+		<td class="ListColLeft">{$xml_lib}</td>
+		<td class="ListColCenter"><font color="{$color[$xml_lib_status]}"><b>{$xml_lib_status}</b></font></td>
+		<td class="ListColLeft">{$xml_lib_solution}</td>
+	</tr>
+</table>
+<form {$form.attributes}>
+<div id="validForm">
+	{$form.hidden}
+	<p class="oreonbutton">		
+		{$form.recheck.html}		
+	</p>
+</div>
+</form>
