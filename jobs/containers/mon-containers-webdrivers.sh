@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Target WebDriver.
-$browser=$1
+browser=$1
 
 # Pull base image.
 docker pull ubuntu:rolling
