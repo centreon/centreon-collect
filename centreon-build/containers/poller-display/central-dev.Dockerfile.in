@@ -9,5 +9,5 @@ RUN /tmp/install.sh
 
 # Sources.
 COPY centreon-poller-display-central/centreon-poller-display-central.conf.php /usr/share/centreon/www/modules/centreon-poller-display-central/centreon-poller-display-central.conf.php
-COPY centreon-poller-display-central/generate_files /usr/share/centreon/www/modules/centreon-poller-display-central/generate_files
+COPY centreon-poller-display-central/generate_files /usr/share/centreon/www/modules/centreon-poller-display-central/generate_fiels
 COPY centreon-poller-display-central/core /usr/share/centreon/www/modules/centreon-poller-display-central/core
