@@ -11,8 +11,8 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='ci.int.centreon.com:5000'
-PPM_CENTOS6="$REGISTRY/mon-pppm-$VERSION-$RELEASE:centos6"
-PPM_CENTOS7="$REGISTRY/mon-pppm-$VERSION-$RELEASE:centos7"
+PPM_CENTOS6="$REGISTRY/mon-ppm-$VERSION-$RELEASE:centos6"
+PPM_CENTOS7="$REGISTRY/mon-ppm-$VERSION-$RELEASE:centos7"
 
 docker pull "$PPM_CENTOS6"
 docker tag "$PPM_CENTOS6" "$REGISTRY/mon-ppm:centos6"
