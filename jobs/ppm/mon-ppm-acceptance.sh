@@ -18,7 +18,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
+WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 PPM_IMAGE="ci.int.centreon.com:5000/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
 PPM1_IMAGE=ci.int.centreon.com:5000/mon-ppm1:$DISTRIB
 SQUID_SIMPLE_IMAGE=ci.int.centreon.com:5000/mon-squid-simple:latest

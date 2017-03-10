@@ -1,7 +1,7 @@
 version: '2'
 services:
   webdriver:
-    image: selenium/standalone-chrome:latest
+    image: ci.int.centreon.com:5000/mon-phantomjs:latest
     ports:
     - "4444"
   web:
