@@ -63,4 +63,4 @@ rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
 composer update
-ls features/*.feature | grep -v "$EXCLUSION" | parallel /opt/behat/vendor/bin/behat --format=junit --tags "$TAGS" --out="../xunit-reports/{/.}" "{}" || true
+ls features/*.feature | grep -v "$EXCLUSION" | parallel ./vendor/bin/behat --format=junit --tags "$TAGS" --out="../xunit-reports/{/.}" "{}" || true
