@@ -18,7 +18,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
+WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 POLLER_IMAGE="ci.int.centreon.com:5000/mon-poller-display-$VERSION-$RELEASE:$DISTRIB"
 CENTRAL_IMAGE="ci.int.centreon.com:5000/mon-poller-display-central-$VERSION-$RELEASE:$DISTRIB"
 docker pull $WEBDRIVER_IMAGE
