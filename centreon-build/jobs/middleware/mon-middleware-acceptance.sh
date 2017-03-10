@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Pull image.
-WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
+WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
 REDIS_IMAGE=redis:latest
 docker pull $WEBDRIVER_IMAGE

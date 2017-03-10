@@ -11,7 +11,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
+WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
 WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
 PPE_IMAGE=ci.int.centreon.com:5000/mon-ppe:$DISTRIB
 PPE1_IMAGE=ci.int.centreon.com:5000/mon-ppe1:$DISTRIB
