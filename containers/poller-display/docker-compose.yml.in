@@ -4,6 +4,8 @@ services:
     image: selenium/standalone-chrome:latest
     ports:
     - "4444"
+    environment:
+    - DBUS_SESSION_BUS_ADDRESS=/dev/null
   web:
     image: @WEB_IMAGE@
     ports:
