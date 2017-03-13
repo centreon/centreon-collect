@@ -11,7 +11,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEBDRIVER_IMAGE=ci.int.centreon.com:5000/mon-phantomjs:latest
+WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 BAM_IMAGE=ci.int.centreon.com:5000/des-bam:$DISTRIB
 docker pull $WEBDRIVER_IMAGE
 docker pull $BAM_IMAGE
