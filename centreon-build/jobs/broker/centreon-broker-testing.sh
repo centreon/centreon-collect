@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-broker
+
 # Check arguments.
 if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
   echo "You need to specify COMMIT and RELEASE environment variables."
@@ -31,7 +34,7 @@ patch=`grep 'set(CENTREON_BROKER_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d
 export VERSION="$major.$minor.$patch"
 
 # Create source tarball.
-git archive --prefix="centreon-broker-$VERSION/" HEAD | gzip > "../input/centreon-broker-$VERSION.tar.gz"
+git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Retrieve spec file.
@@ -49,13 +52,19 @@ cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
 
+# Copy sources to server.
+SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
+DESTDIR="/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
+$SSH_REPO mkdir "$DESTDIR"
+scp -o StrictHostKeyChecking=no "../input/$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:$DESTDIR/"
+
 # Copy files to server.
 FILES_CENTOS6='output-centos6/x86_64/*.rpm'
 FILES_CENTOS7='output-centos7/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el6/testing/x86_64/RPMS"
 scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el7/testing/x86_64/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.4/el6/testing/x86_64
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.4/el7/testing/x86_64
+$SSH_REPO createrepo /srv/yum/standard/3.4/el6/testing/x86_64
+$SSH_REPO createrepo /srv/yum/standard/3.4/el7/testing/x86_64
 
 # Generate doc.
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
