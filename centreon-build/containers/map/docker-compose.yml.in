@@ -6,6 +6,8 @@ services:
     - "4444"
     environment:
     - DBUS_SESSION_BUS_ADDRESS=/dev/null
+    volumes:
+    - /dev/shm:/dev/shm
   web:
     image: @WEB_IMAGE@
     ports:
