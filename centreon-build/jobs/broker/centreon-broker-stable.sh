@@ -17,7 +17,7 @@ SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO mv "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
 
 # Put sources online.
-# XXX
+$SSH_REPO aws s3 cp --acl public-read "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/centreon-broker/$PROJECT-$VERSION.tar.gz"
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
