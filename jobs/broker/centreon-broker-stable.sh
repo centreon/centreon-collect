@@ -24,4 +24,4 @@ $SSH_REPO aws s3 cp --acl public-read "/srv/sources/standard/stable/$PROJECT-$VE
 
 # Generate online documentation.
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -p'"
+$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"
