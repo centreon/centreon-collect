@@ -25,6 +25,10 @@ cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < ppm/ppm.Dockerfile.in > ppm/ppm.$DISTRIB.Dockerfile
 
 # Build image.
-PPM_IMAGE="ci.int.centreon.com:5000/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
+REGISTRY="ci.int.centreon.com:5000"
+PPM_IMAGE="$REGISTRY/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
+PPM_WIP_IMAGE="$REGISTRY/mon-ppm-wip:$DISTRIB"
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.$DISTRIB.Dockerfile .
 docker push "$PPM_IMAGE"
+docker tag "$PPM_IMAGE" "$PPM_WIP_IMAGE"
+docker push "$PPM_WIP_IMAGE"
