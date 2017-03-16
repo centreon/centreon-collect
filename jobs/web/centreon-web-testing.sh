@@ -68,7 +68,7 @@ cd ..
 cp packaging-centreon-web/rpm/centreon.spectemplate input/
 
 # Retrieve additional sources.
-cp packaging-centreon-web/src/* input
+cp packaging-centreon-web/src/stable/* input
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
