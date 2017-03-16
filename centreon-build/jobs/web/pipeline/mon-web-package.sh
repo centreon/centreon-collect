@@ -34,7 +34,7 @@ fi
 cp packaging-centreon-web/rpm/centreon.spectemplate input/
 
 # Retrieve additional sources.
-cp packaging-centreon-web/src/* input
+cp packaging-centreon-web/src/stable/* input
 
 # Retrieve sources.
 cd input
