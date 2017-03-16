@@ -27,6 +27,10 @@ centreon -u admin -p centreon -o SERVICE -a ADD -v 'Poller-Server;Ping;Ping-LAN'
 # centengine.cfg
 centreon -u admin -p centreon -o ENGINECFG -a ADD -v 'Centreon Engine Poller;Poller;Centreon Engine'
 centreon -u admin -p centreon -o ENGINECFG -a SETPARAM -v 'Centreon Engine Poller;broker_module;/usr/lib64/centreon-engine/externalcmd.so|/usr/lib64/nagios/cbmod.so /etc/centreon-broker/poller-module.xml'
+IOID=`centreon -u admin -p centreon -o RESOURCECFG -a SHOW | grep USER1 | cut -d ';' -f 1`
+centreon -u admin -p centreon -o RESOURCECFG -a SETPARAM -v "$IOID;instance;Central|Poller"
+IOID=`centreon -u admin -p centreon -o RESOURCECFG -a SHOW | grep CENTREONPLUGINS | cut -d ';' -f 1`
+centreon -u admin -p centreon -o RESOURCECFG -a SETPARAM -v "$IOID;instance;Central|Poller"
 
 # Poller's cbmod.
 centreon -u admin -p centreon -o CENTBROKERCFG -a ADD -v 'poller-module;Poller'
