@@ -63,8 +63,6 @@ else
   cd ..
 fi
 cd packaging-centreon-web
-git checkout --detach "origin/$VERSION"
-cd ..
 cp packaging-centreon-web/rpm/centreon.spectemplate input/
 
 # Retrieve additional sources.
