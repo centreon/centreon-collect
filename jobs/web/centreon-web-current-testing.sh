@@ -62,7 +62,6 @@ else
   git pull
   cd ..
 fi
-cd packaging-centreon-web
 cp packaging-centreon-web/rpm/centreon.spectemplate input/
 
 # Retrieve additional sources.
