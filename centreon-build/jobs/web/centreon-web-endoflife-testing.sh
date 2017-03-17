@@ -59,9 +59,6 @@ else
   git pull
   cd ..
 fi
-cd packaging-centreon-web
-git checkout --detach "origin/$VERSION"
-cd ..
 cp packaging-centreon-web/rpm/centreon-endoflife.spec input/
 
 # Retrieve additional sources.
