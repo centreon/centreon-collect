@@ -34,8 +34,8 @@ git archive --prefix="$PROJECT-$VERSION" HEAD | gzip > "../$PROJECT-$VERSION.tar
 cd ..
 
 # Encrypt source tarballs.
-curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=53' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "$PROJECT-$VERSION-php53.tar.gz"
-curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=54' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "$PROJECT-$VERSION-php54.tar.gz"
+curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=53' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php53.tar.gz"
+curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=54' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php54.tar.gz"
 
 # Copy spec file.
 cp centreon-bam/packaging/*.spectemplate input/
@@ -45,10 +45,8 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
 
 # Copy files to server.
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE"
-scp -o StrictHostKeyChecking=no "input/centreon-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
-scp -o StrictHostKeyChecking=no "input/centreon-web-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
-scp -o StrictHostKeyChecking=no "$PROJECT-$VERSION-php5{3,4}.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE"
+ssh "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE"
+scp "input/$PROJECT-$VERSION-php5{3,4}.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE/"
 FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/bam/3.4/el6/testing/noarch/RPMS"
