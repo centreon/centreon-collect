@@ -20,6 +20,12 @@ case "$PROJECT" in
     ARCH='noarch'
     RPMS='centreon-bam-server'
   ;;
+  centreon-poller-display)
+    DIR='/standard/3.4'
+    ARCH='noarch'
+    RPMS="centreon-poller-display
+          centreon-poller-display-central"
+  ;;
   centreon-web)
     DIR='/standard/3.4'
     ARCH='noarch'
