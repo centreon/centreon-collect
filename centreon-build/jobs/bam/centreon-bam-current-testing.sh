@@ -46,7 +46,8 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 
 # Copy files to server.
 ssh "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE"
-scp "input/$PROJECT-$VERSION-php5{3,4}.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE/"
+scp "input/$PROJECT-$VERSION-php53.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE/"
+scp "input/$PROJECT-$VERSION-php54.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE/"
 FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/bam/3.4/el6/testing/noarch/RPMS"
