@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 set -e
 set -x
 
@@ -25,13 +24,13 @@ mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
-# Create source tarball.
+# Get version.
 cd centreon-bam
 git checkout --detach "$COMMIT"
-git archive --prefix="$PROJECT-$VERSION" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
-
-# Get version.
 export VERSION=`grep mod_release www/modules/centreon-bam-server/conf.php | cut -d '"' -f 4`
+
+# Create source tarball.
+git archive --prefix="$PROJECT-$VERSION" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Encrypt source tarballs.
