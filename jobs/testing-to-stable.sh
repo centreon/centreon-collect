@@ -15,6 +15,11 @@ fi
 
 # Get RPM list.
 case "$PROJECT" in
+  centreon-bam-server)
+    DIR='/bam/3.4'
+    ARCH='noarch'
+    RPMS='centreon-bam-server'
+  ;;
   centreon-web)
     DIR='/standard/3.4'
     ARCH='noarch'
