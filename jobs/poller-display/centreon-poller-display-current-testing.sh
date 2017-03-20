@@ -24,13 +24,13 @@ mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
-# Create source tarball.
+# Get version.
 cd "$PROJECT"
 git checkout --detach "$COMMIT"
-git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
-
-# Get version.
 export VERSION=`grep mod_release www/modules/centreon-poller-display/conf.php | cut -d '"' -f 4`
+
+# Create source tarball.
+git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Build RPMs.
