@@ -3,25 +3,38 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-license-manager
+
 # Check arguments.
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <6|7>"
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-CENTOS_VERSION="$1"
+if [ "$#" -lt 1 ] ; then
+  echo "USAGE: $0 <centos6|centos7"
+  exit 1
+fi
+DISTRIB="$1"
 
-# Launch monitoring-unitttest container.
-docker pull ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION
-containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos$CENTOS_VERSION /usr/local/bin/unittest-lm`
+# Fetch sources.
+rm -f "$PROJECT-$VERSION.tar.gz"
+wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+
+# Launch mon-unittest container.
+UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
+docker pull $UT_IMAGE
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
 
 # Copy sources to container.
-docker cp centreon-license-manager "$containerid:/usr/local/src/centreon-license-manager"
+docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
-docker cp "$containerid:/tmp/centreon-license-manager_ut.xml" centreon-license-manager_ut.xml
-docker cp "$containerid:/tmp/centreon-license-manager_coverage.xml" centreon-license-manager_coverage.xml
-docker cp "$containerid:/tmp/centreon-license-manager_codestyle.xml" centreon-license-manager_codestyle.xml
+docker cp "$containerid:/tmp/ut.xml" ut.xml
+docker cp "$containerid:/tmp/coverage.xml" coverage.xml
+docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 
 # Stop container.
 docker stop "$containerid"
