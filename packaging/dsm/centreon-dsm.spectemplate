@@ -69,18 +69,17 @@ rm -rf $RPM_BUILD_ROOT
 
 # Install daemon starting script
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/init.d
-%{__install} -m 0755 libinstall/init.d.dsmd %buildroot%{_sysconfdir}/init.d/dsmd
-
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/sysconfig
+%{__install} -m 0755 libinstall/redhat/init.d.dsmd %buildroot%{_sysconfdir}/init.d/dsmd
+%{__install} -m 0644 libinstall/redhat/dsmd.sysconfig %buildroot%{_sysconfdir}/sysconfig/dsmd
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-
 
 ######################################################
 # Package centreon-dsm
 ######################################################
 %files
-
 
 ######################################################
 # Package centreon-dsm-server
@@ -99,12 +98,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %defattr(0755,root,root,-)
 %{_sysconfdir}/init.d/dsmd
+%{_sysconfdir}/sysconfig/dsmd
 
 %post server
 /sbin/chkconfig --add dsmd
 /sbin/chkconfig --level 345 dsmd on
 service dsmd start > /dev/null 2>&1 || echo
-
 
 ######################################################
 # Package centreon-dsm-client
