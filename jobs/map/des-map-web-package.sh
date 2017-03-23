@@ -35,7 +35,7 @@ docker pull "$BUILD_IMG"
 
 # Build RPMs.
 cp "$PACKAGE-$VERSION.tar.gz" input
-cp "$PACKAGE-$VERSION/packaging/$PACKAGE.spectemplate" input
+wget -O "input/$PACKAGE.spectemplate" "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PACKAGE.spectemplate"
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.

@@ -44,7 +44,7 @@ cd ..
 tar czf centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
 
 # Send it to srvi-repo.
-FILES="centreon-map4-web-client-$VERSION.tar.gz"
+FILES="centreon-map4-web-client-$VERSION.tar.gz centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate"
 DEST="/srv/sources/internal/$PROJECT-$VERSION-$RELEASE"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$DEST"
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
