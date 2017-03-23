@@ -35,6 +35,7 @@ cd ..
 
 # Build RPMs.
 cp `dirname $0`/../../packaging/dsm/$PROJECT.spectemplate input/
+cp `dirname $0`/../../packaging/dsm/src/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
 
