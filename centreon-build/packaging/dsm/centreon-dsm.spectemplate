@@ -1,7 +1,7 @@
 %define debug_package %{nil}
 Name:           centreon-dsm
-Version:        2.2.0
-Release:        3%{?dist}
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
 Summary:        Centreon-dsm add-on for Centreon
 Group:          System Environment/Base
 License:        GPLv2
@@ -45,10 +45,10 @@ Centreon-dsm client package
 find . -type f | xargs sed -i -f %{SOURCE1}
 find .          \
         -type f \
-        -exec %{__grep} -qE '(@DB_CENTSTORAGE@)' {} ';'   \
-        -exec %{__sed} -i -e 's|@DB_CENTSTORAGE@|'"centreon_storage"'|g'\
-	-exec %{__grep} -qE '(@CENTREON_BINDIR@)' {} ';'   \
-	-exec %{__sed} -i -e 's|@CENTREON_BINDIR@|'"/usr/share/centreon/bin/"'|g'\
+        -exec %{__grep} -qE '(@@DB_CENTSTORAGE@@)' {} ';'   \
+        -exec %{__sed} -i -e 's|@@DB_CENTSTORAGE@@|'"centreon_storage"'|g'\
+	-exec %{__grep} -qE '(@@CENTREON_BINDIR@@)' {} ';'   \
+	-exec %{__sed} -i -e 's|@@CENTREON_BINDIR@@|'"/usr/share/centreon/bin/"'|g'\
         {} ';'
 
 %build
