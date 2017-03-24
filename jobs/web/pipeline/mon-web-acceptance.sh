@@ -57,4 +57,4 @@ rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
 composer update
-ls features/*.feature | parallel -j 1 ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
+ls features/*.feature | parallel ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
