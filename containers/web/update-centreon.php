@@ -9,9 +9,10 @@ function help()
 function getVersion() {
     global $pearDB;
 
-    $query_result = $pearDB->query("SELECT `value` FROM `informations` WHERE `key` = 'version'");
-    if (PEAR::isError($query_result)) {
-        echo $query_result->getDebugInfo() . "\n";
+    try {
+        $query_result = $pearDB->query("SELECT `value` FROM `informations` WHERE `key` = 'version'");
+    } catch (\Exception $e) {
+        echo $e->getMessage() . "\n";
     }
     $row = $query_result->fetchRow();
     return ($row['value']);
