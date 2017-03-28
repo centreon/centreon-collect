@@ -31,10 +31,10 @@ else
   git pull
   cd ..
 fi
-cp packaging-centreon-web/rpm/centreon.spectemplate input/
+cp packaging-centreon-web/rpm/centreon-dev.spectemplate input/
 
 # Retrieve additional sources.
-cp packaging-centreon-web/src/current/* input
+cp packaging-centreon-web/src/dev/* input
 
 # Retrieve sources.
 cd input
