@@ -20,7 +20,7 @@ case "$PROJECT" in
     ARCH='noarch'
     RPMS='centreon-bam-server'
   ;;
-  centreon-broker
+  centreon-broker)
     DIR='standard/3.4'
     ARCH='x86_64'
     RPMS="centreon-broker
