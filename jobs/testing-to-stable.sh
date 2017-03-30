@@ -20,6 +20,32 @@ case "$PROJECT" in
     ARCH='noarch'
     RPMS='centreon-bam-server'
   ;;
+  centreon-broker)
+    DIR='standard/3.4'
+    ARCH='x86_64'
+    RPMS="centreon-broker
+          centreon-broker-cbd
+          centreon-broker-cbmod
+          centreon-broker-core
+          centreon-broker-debuginfo
+          centreon-broker-devel
+          centreon-broker-graphite
+          centreon-broker-influxdb
+          centreon-broker-storage"
+  ;;
+  centreon-broker-endoflife)
+    DIR='/standard/3.3'
+    ARCH='x86_64'
+    RPMS="centreon-broker
+          centreon-broker-cbd
+          centreon-broker-cbmod
+          centreon-broker-core
+          centreon-broker-debuginfo
+          centreon-broker-graphite
+          centreon-broker-influxdb
+          centreon-broker-storage"
+    EL7=no
+  ;;
   centreon-poller-display)
     DIR='/standard/3.4'
     ARCH='noarch'
@@ -46,7 +72,9 @@ esac
 # Move all RPMs to stable.
 for rpm in $RPMS ; do
   $SSH_REPO mv "$BASE_DIR/$DIR/el6/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el6.$ARCH.rpm" "$BASE_DIR/$DIR/el6/stable/$ARCH/RPMS"
-  $SSH_REPO mv "$BASE_DIR/$DIR/el7/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el7.centos.$ARCH.rpm" "$BASE_DIR/$DIR/el7/stable/$ARCH/RPMS"
+  if [ "$EL7" '!=' 'no' ] ; then
+    $SSH_REPO mv "$BASE_DIR/$DIR/el7/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el7.centos.$ARCH.rpm" "$BASE_DIR/$DIR/el7/stable/$ARCH/RPMS"
+  fi
 done
 
 # Create repo.
