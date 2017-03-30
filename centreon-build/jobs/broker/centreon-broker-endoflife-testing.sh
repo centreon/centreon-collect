@@ -49,6 +49,8 @@ cp packaging-centreon-broker/rpm/centreon-broker.spec input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output
 
 # Copy files to server.
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/standard/testing/centreon-broker-$VERSION"
+scp -o StrictHostKeyChecking=no "input/centreon-broker-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/centreon-broker-$VERSION/"
 FILES='output/x86_64/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.3/el6/testing/x86_64/RPMS"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.3/el6/testing/x86_64

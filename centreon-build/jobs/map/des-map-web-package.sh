@@ -3,12 +3,25 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-map-web
+PACKAGE=centreon-map4-web-client
+
 # Check arguments.
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
+  exit 1
+fi
 if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
 DISTRIB="$1"
+
+# Fetch sources.
+rm -f "$PACKAGE-$VERSION.tar.gz"
+wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PACKAGE-$VERSION.tar.gz"
+tar xzf "$PACKAGE-$VERSION.tar.gz"
 
 # Create input and output directories.
 rm -rf input
@@ -16,39 +29,13 @@ mkdir input
 rm -rf output
 mkdir output
 
-# Get version.
-cd centreon-studio-web-client
-VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`
-export VERSION="$VERSION"
-
-# Get release.
-commit=`git log -1 "$GIT_COMMIT" --pretty=format:%h`
-now=`date +%s`
-export RELEASE="$now.$commit"
-
-# Generate sources of Centreon Map web client.
-npm install
-./node_modules/bower/bin/bower install
-node ./node_modules/gulp/bin/gulp.js build-module
-node ./node_modules/gulp/bin/gulp.js build-widget
-
-# Generate source tarball used for packaging.
-rm -rf ../centreon-map4-web-client-$VERSION
-mkdir ../centreon-map4-web-client-$VERSION
-cp -a build/module ../centreon-map4-web-client-$VERSION
-cp -a build/widget ../centreon-map4-web-client-$VERSION
-cp -a build/install.sh ../centreon-map4-web-client-$VERSION
-cp -a build/libinstall ../centreon-map4-web-client-$VERSION
-cp -a build/examples ../centreon-map4-web-client-$VERSION
-cd ..
-tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
-
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate input
+cp "$PACKAGE-$VERSION.tar.gz" input
+wget -O "input/$PACKAGE.spectemplate" "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PACKAGE.spectemplate"
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
