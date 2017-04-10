@@ -74,6 +74,7 @@ clean_repository() {
         centreon-bi-report
         centreon-bi-etl
         centreon-bi-engine
+        centreon-map4-server
         centreon-map4-web-client"
   for rpm in $rpms ; do
     old=`ls | grep '^'$rpm'-[0-9]\.[0-9]\.[0-9]-[0-9]\+\.[0-9a-f]\+.el[67].[centos.]*\(noarch\|i386\|x86_64\)\.rpm' | head -n -5`
