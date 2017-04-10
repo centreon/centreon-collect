@@ -17,7 +17,7 @@ RUN yum install --nogpgcheck -y nodejs
 RUN npm install -g gulp
 
 # Install Composer.
-RUN yum install -y php php-cli
+RUN yum install -y php php-cli php-dom php-mbstring
 RUN curl -sS https://getcomposer.org/installer | php
 RUN mv composer.phar /usr/local/bin/composer
 RUN chmod +x /usr/local/bin/composer
