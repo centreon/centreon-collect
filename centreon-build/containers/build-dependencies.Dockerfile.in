@@ -16,5 +16,11 @@ RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
 RUN yum install --nogpgcheck -y nodejs
 RUN npm install -g gulp
 
+# Install Composer.
+RUN yum install -y php php-cli
+RUN curl -sS https://getcomposer.org/installer | php
+RUN mv composer.phar /usr/local/bin/composer
+RUN chmod +x /usr/local/bin/composer
+
 # Workaround, yum does not seem to exit correctly.
 RUN rm -f /var/run/yum.pid
