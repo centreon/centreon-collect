@@ -13,6 +13,7 @@ COPY web/container.cnf /etc/my.cnf.d/
 COPY web/update-centreon.php web/kb.sql web/kb.sh web/standard.sh web/standard.sql /tmp/
 COPY web/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/standard.sh
+COPY centreon/www/class /usr/share/centreon/www/class
 COPY centreon/www/install /usr/share/centreon/www/install
 COPY centreon/tmpl/install/sudoersCentreonEngine /etc/sudoers.d/centreon
 RUN sed -i 's/@CENTREON_GROUP@/centreon/g' /etc/sudoers.d/centreon
@@ -35,3 +36,4 @@ COPY centreon/www/lib /usr/share/centreon/www/lib
 COPY centreon/www/include /usr/share/centreon/www/include
 COPY centreon/www/api /usr/share/centreon/www/api
 COPY centreon/www/class /usr/share/centreon/www/class
+
