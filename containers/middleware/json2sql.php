@@ -128,6 +128,7 @@ foreach ($pp_list as $pp_file) {
     case 'network-cisco-standard-snmp':
     case 'operatingsystems-linux-snmp':
     case 'fake-unmanaged-objects':
+    case 'fake-unmanaged-objects2':
     case 'fake-managed-objects':
     case 'fake-child-objects':
     case 'fake-wrong-discovery-category':
