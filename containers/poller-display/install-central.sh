@@ -16,7 +16,7 @@ service mysql start
 httpd -k start
 
 # Install Centreon Web module.
-/tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-poller-display-central
+/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-poller-display-central
 
 # Create and populate poller (that will have Poller Display).
 centreon -u admin -p centreon -o INSTANCE -a ADD -v 'Poller;poller;22;'
