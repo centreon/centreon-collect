@@ -46,6 +46,16 @@ case "$PROJECT" in
           centreon-broker-storage"
     EL7=no
   ;;
+  centreon-engine)
+    DIR='/standard/3.4'
+    ARCH='x86_64'
+    RPMS="centreon-engine
+          centreon-engine-bench
+          centreon-engine-daemon
+          centreon-engine-debuginfo
+          centreon-engine-devel
+          centreon-engine-extcommands"
+  ;;
   centreon-poller-display)
     DIR='/standard/3.4'
     ARCH='noarch'
