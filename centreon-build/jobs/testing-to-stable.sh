@@ -20,6 +20,12 @@ case "$PROJECT" in
     ARCH='noarch'
     RPMS='centreon-bam-server'
   ;;
+  centreon-bam-server-endoflife)
+    DIR='bam/2'
+    ARCH='noarch'
+    RPMS='centreon-bam-server'
+    EL7=no
+  ;;
   centreon-broker)
     DIR='standard/3.4'
     ARCH='x86_64'
