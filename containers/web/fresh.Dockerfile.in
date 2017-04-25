@@ -3,8 +3,7 @@ FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Centreon Web.
-RUN yum clean all
-RUN yum clean packages
+RUN yum clean all && yum clean packages
 RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git
 COPY web/centengine.sh /etc/init.d/centengine
 COPY web/cbd.sh /etc/init.d/cbd
@@ -12,17 +11,15 @@ RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 
 # Prepare environment for autoinstall.
 COPY web/autoinstall.php /usr/share/centreon/autoinstall.php
+RUN mkdir /usr/share/centreon/www/install/tmp
+COPY web/configuration/* /usr/share/centreon/www/install/tmp/
+RUN chown -R apache.apache /usr/share/centreon/www/install/tmp
 
 # Install script (web-wizard install).
-COPY web/kb.sql /tmp/kb.sql
-COPY web/openldap.sql /tmp/openldap.sql
 COPY web/fresh.sh /tmp/install.sh
-COPY web/kb.sh /tmp/kb.sh
-COPY web/openldap.sh /tmp/openldap.sh
+COPY web/kb.sql web/openldap.sql web/kb.sh web/openldap.sh /tmp/
 RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/openldap.sh
-RUN /tmp/install.sh
-RUN /tmp/kb.sh
-RUN /tmp/openldap.sh
+RUN /tmp/install.sh && /tmp/kb.sh && /tmp/openldap.sh
 
 # Main script.
 COPY web/run.sh /usr/share/centreon/container.sh

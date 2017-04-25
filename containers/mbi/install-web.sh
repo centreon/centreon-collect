@@ -8,7 +8,7 @@ service mysql start
 httpd -k start
 
 # Install Centreon MBI server.
-/tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-bi-server
+/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-bi-server
 
 # Configure Centreon MBI.
 # cbis.host is MySQL host wildcard (%) to fake centreonMysqlRights.pl.

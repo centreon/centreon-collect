@@ -1,69 +1,59 @@
 #!/usr/bin/php
 <?php
 
-
 function help()
 {
-  echo "install-centreon-module.php -c centreon_configuration -m module_name [-h]\n\n";
+    echo "install-centreon-module.php -b <bootstrap_file> -m <module_name> [-h]\n\n";
 }
 
-$options = getopt("c:m:hu");
+$options = getopt("b:m:hu");
 
 if (isset($options['h']) && false === $options['h']) {
-  help();
-  exit(0);
+    help();
+    exit(0);
 }
 
-if (false === isset($options['c']) || false === isset($options['m'])) {
-  echo "Missing arguments.\n";
+if (false === isset($options['b']) || false === isset($options['m'])) {
+    echo "Missing arguments.\n";
+    exit(1);
+}
+
+if (false === file_exists($options['b'])) {
+    echo "The configuration doesn't exist.\n";
+    exit(1);
+}
+
+require_once $options['b'];
+
+if (!defined('_CENTREON_PATH_')) {
+    echo "Centreon configuration not loaded.\n";
+    exit(1);
+}
+
+if (false == is_dir(_CENTREON_PATH_ . '/www/modules/' . $options['m'])) {
+  echo "The module directory is not installed on filesystem.\n";
   exit(1);
 }
 
-if (false === file_exists($options['c'])) {
-  echo "The configuration doesn't exist.\n";
-  exit(1);
+$utilsFactory = new \CentreonLegacy\Core\Utils\Factory($dependencyInjector);
+$utils = $utilsFactory->newUtils();
+
+$factory = new \CentreonLegacy\Core\Module\Factory($dependencyInjector, $utils);
+$information = $factory->newInformation();
+
+$installedInformation = $information->getInstalledInformation($options['m']);
+if (!isset($options['u']) && $installedInformation) {
+    echo "The module is already installed in database.\n";
+    exit(1);
+} elseif (isset($options['u']) && false === $options['u'] && !$installedInformation) {
+    echo "The module is not installed in database.\n";
+    exit(1);
 }
 
-require_once $options['c'];
-
-if (false === isset($centreon_path)) {
-  echo "Bad configuration file.\n";
-  exit(1);
+if (isset($options['u']) && false === $options['u']) {
+    $upgrader = $factory->newUpgrader($options['m'], $installedInformation['id']);
+    $upgrader->upgrade();
+} else {
+    $installer = $factory->newInstaller($options['m']);
+    $installer->install();
 }
-
-if (false == is_dir($centreon_path . '/www/modules/' . $options['m'])) {
-  echo "The module directory is not installed.\n";
-  exit(1);
-}
-
-require_once $centreon_path . '/www/class/centreonDB.class.php';
-
-$oreon = true;
-$pearDB = new CentreonDB();
-
-require_once $centreon_path . '/www/include/options/oreon/modules/DB-Func.php';
-require_once $centreon_path . '/www/modules/' . $options['m'] . '/conf.php';
-
-if (testModuleExistence(null, $options['m'])) {
-    if (isset($options['u']) && false === $options['u']) {
-        if ($module_conf[$options['m']]["sql_files"] && file_exists($centreon_path . '/www/modules/' . $options['m'] . '/sql/uninstall.sql')) {
-            execute_sql_file('uninstall.sql', $centreon_path . '/www/modules/' . $options['m'] . '/sql/');
-        }
-        if ($module_conf[$options['m']]["php_files"] && file_exists($centreon_path . '/www/modules/' . $options['m'] . '/php/uninstall.php')) {
-            include_once $centreon_path . '/www/modules/' . $options['m'] . '/php/uninstall.php';
-        }
-    } else {
-        echo "The module is already installed.\n";
-        exit(1);
-    }
-}
-
-if ($module_conf[$options['m']]["sql_files"] && file_exists($centreon_path . '/www/modules/' . $options['m'] . '/sql/install.sql')) {
-  execute_sql_file('install.sql', $centreon_path . '/www/modules/' . $options['m'] . '/sql/');
-}
-
-if ($module_conf[$options['m']]["php_files"] && file_exists($centreon_path . '/www/modules/' . $options['m'] . '/php/install.php')) {
-  include_once $centreon_path . '/www/modules/' . $options['m'] . '/php/install.php';
-}
-
-insertModuleInDB($options['m'], $module_conf[$options['m']]);
