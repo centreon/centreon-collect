@@ -95,6 +95,8 @@ done
 
 # Create repo.
 $SSH_REPO createrepo "$BASE_DIR/$DIR/el6/stable/$ARCH"
-$SSH_REPO createrepo "$BASE_DIR/$DIR/el7/stable/$ARCH"
 $SSH_REPO createrepo "$BASE_DIR/$DIR/el6/testing/$ARCH"
-$SSH_REPO createrepo "$BASE_DIR/$DIR/el7/testing/$ARCH"
+if [ "$EL7" '!=' 'no' ] ; then
+  $SSH_REPO createrepo "$BASE_DIR/$DIR/el7/stable/$ARCH"
+  $SSH_REPO createrepo "$BASE_DIR/$DIR/el7/testing/$ARCH"
+fi
