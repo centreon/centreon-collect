@@ -1,65 +1,59 @@
 #!/usr/bin/php
 <?php
 
-class DummyCentreonUser
-{
-    public $user_id;
-    public function __construct()
-    {
-        $this->user_id = 1;
-    }
-}
-
-class DummyCentreon
-{
-    public $user;
-    public function __construct()
-    {
-        $this->user = new DummyCentreonUser();
-    }
-}
-
 function help()
 {
-  echo "install-centreon-widget.php -c centreon_configuration -w widget_name [-h]\n\n";
+  echo "install-centreon-widget.php -b <bootstrap_file> -w <widget_name> [-h]\n\n";
 }
 
-$options = getopt("c:w:hu");
+$options = getopt("b:w:hu");
 
 if (isset($options['h']) && false === $options['h']) {
-  help();
-  exit(0);
+    help();
+    exit(0);
 }
 
-if (false === isset($options['c']) || false === isset($options['w'])) {
-  echo "Missing arguments.\n";
+if (false === isset($options['b']) || false === isset($options['w'])) {
+    echo "Missing arguments.\n";
+    exit(1);
+}
+
+if (false === file_exists($options['b'])) {
+    echo "The configuration doesn't exist.\n";
+    exit(1);
+}
+
+require_once $options['b'];
+
+if (!defined('_CENTREON_PATH_')) {
+    echo "Centreon configuration not loaded.\n";
+    exit(1);
+}
+
+if (false == is_dir(_CENTREON_PATH_ . '/www/widgets/' . $options['w'])) {
+  echo "The widget directory is not installed on filesystem.\n";
   exit(1);
 }
 
-if (false === file_exists($options['c'])) {
-  echo "The configuration doesn't exist.\n";
-  exit(1);
+$utilsFactory = new \CentreonLegacy\Core\Utils\Factory($dependencyInjector);
+$utils = $utilsFactory->newUtils();
+
+$factory = new \CentreonLegacy\Core\Widget\Factory($dependencyInjector, $utils);
+$information = $factory->newInformation();
+$isInstalled = $information->isInstalled($options['w']);
+
+if (!isset($options['u']) && $isInstalled) {
+    echo "The widget is already installed in database.\n";
+    exit(1);
+} elseif (isset($options['u']) && false === $options['u'] && !$isInstalled) {
+    echo "The widget is not installed in database.\n";
+    exit(1);
 }
 
-require_once $options['c'];
-
-if (false === isset($centreon_path)) {
-  echo "Bad configuration file.\n";
-  exit(1);
+if (isset($options['u']) && false === $options['u']) {
+    $upgrader = $factory->newUpgrader($options['w']);
+    $upgrader->upgrade();
+} else {
+    $installer = $factory->newInstaller($options['w']);
+    $installer->install();
 }
-
-if (false == is_dir($centreon_path . '/www/widgets/' . $options['w'])) {
-  echo "The widget directory is not installed.\n";
-  exit(1);
-}
-
-require_once $centreon_path . '/www/class/centreonDB.class.php';
-
-$oreon = true;
-$pearDB = new CentreonDB();
-
-require_once $centreon_path . '/www/include/options/oreon/modules/DB-Func.php';
-require_once $centreon_path . '/www/class/centreonWidget.class.php';
-
-$widgetObj = new CentreonWidget(new DummyCentreon, $pearDB);
-$widgetObj->install($centreon_path . '/www/widgets', $options['w']);
