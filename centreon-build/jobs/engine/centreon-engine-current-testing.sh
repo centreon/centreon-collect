@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-engine
+
 # Check arguments.
 if [ -z "$COMMIT" ] ; then
   echo "You need to specify COMMIT environment variable."
@@ -47,6 +50,7 @@ cd packaging-centreon-engine
 git checkout --detach "origin/$VERSION"
 cd ..
 cp packaging-centreon-engine/rpm/centreon-engine.spec input/
+RELEASE=`cat packaging-centreon-engine/rpm/centreon-engine.spec | grep Release | cut -d ' ' -f 9 | cut -d '%' -f 1`
 
 # Retrieve additional sources.
 cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
@@ -54,6 +58,12 @@ cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centre
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
+
+# Copy sources to server.
+SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
+DESTDIR="/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
+$SSH_REPO mkdir "$DESTDIR"
+scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:$DESTDIR/"
 
 # Copy files to server.
 FILES_CENTOS6='output-centos6/x86_64/*.rpm'
