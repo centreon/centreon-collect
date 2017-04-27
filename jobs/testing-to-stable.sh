@@ -62,6 +62,26 @@ case "$PROJECT" in
           centreon-engine-devel
           centreon-engine-extcommands"
   ;;
+  centreon-bi-engine)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-engine"
+  ;;
+  centreon-bi-report)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-report"
+  ;;
+  centreon-bi-reporting-server)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-reporting-server"
+  ;;
+  centreon-bi-server)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-server"
+  ;;
   centreon-poller-display)
     DIR='/standard/3.4'
     ARCH='noarch'
