@@ -35,4 +35,4 @@ cp centreon-studio-desktop-client/com.centreon.studio.client.packaging.nsis.x86_
 cp centreon-studio-desktop-client/com.centreon.studio.client.product/target/products/Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz installs/
 
 # Copy installers to remote repository
-scp -o StrictHostKeyChecking=no -r installs/* "ubuntu@srvi-repo.int.centreon.com":"/srv/p2/"
+scp -o StrictHostKeyChecking=no -r installs/* "ubuntu@srvi-repo.int.centreon.com/srv/p2/unstable/"
