@@ -22,6 +22,8 @@ rm -rf output-centos7
 mkdir output-centos7
 
 # Create source tarball.
+rm -rf $PROJECT
+git clone https://centreon-bot:518bc6ce608956da1eadbe71ff7de731474b773b@github.com/centreon/$PROJECT
 cd $PROJECT
 git checkout --detach "$COMMIT"
 
