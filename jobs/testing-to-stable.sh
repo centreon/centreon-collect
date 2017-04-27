@@ -67,6 +67,11 @@ case "$PROJECT" in
     ARCH='noarch'
     RPMS="centreon-bi-engine"
   ;;
+  centreon-bi-etl)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-etl"
+  ;;
   centreon-bi-report)
     DIR='/mbi/3.4'
     ARCH='noarch'
