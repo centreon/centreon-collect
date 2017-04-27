@@ -18,7 +18,7 @@ if [ -z "$major" -o -z "$minor" ] ; then
 fi
 
 # Recreate p2 directory.
-path="/srv/p2/$major/$minor/"
+path="/srv/p2/unstable/$major/$minor/"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" rm -rf $path
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p $path
 
