@@ -25,11 +25,16 @@ if [ "$PROJECT" = "centreon-bi-server" ] ; then
 fi
 
 # Generate online documentation.
-if [ "$DOCUMENTATION" '!=' "No" ] ; then
+if [ "$DOCUMENTATION" '!=' 'false' ] ; then
   echo "DOCUMENTATION WILL NOT BE GENERATED ON documentation.centreon.com"
   SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bi-2 -V latest -p'"
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bi-2 -V latest -p'"
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bi-2 -V 3.1.x -p'"
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bi-2 -V 3.1.x -p'"
+fi
+
+# Synchronize repositories.
+if [ "$SYNC" '!=' 'false' ] ; then
+  $SSH_REPO /srv/scripts/sync-mbi.sh --confirm
 fi
