@@ -9,6 +9,9 @@ if [ -z "$PROJECT" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
+# Move RPMs to the stable repository.
+`dirname $0`/../testing-to-stable.sh
+
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 if [ "$PROJECT" = "centreon-bi-server" ] ; then
   # Move sources to the stable directory.
@@ -20,9 +23,6 @@ if [ "$PROJECT" = "centreon-bi-server" ] ; then
     $SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz" "s3://centreon-download/enterprises/centreon-bi-2/centreon-bi-3.1/centreon-bi-server-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
   done
 fi
-
-# Move RPMs to the stable repository.
-`dirname $0`/../testing-to-stable.sh
 
 # Generate online documentation.
 SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
