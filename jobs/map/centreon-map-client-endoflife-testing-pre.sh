@@ -8,8 +8,8 @@ set -x
 #
 
 # Check arguments.
-if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
-  echo "You need to specify COMMIT and RELEASE environment variables."
+if [ -z "$COMMIT" ] ; then
+  echo "You need to specify COMMIT environment variable."
   exit 1
 fi
 
