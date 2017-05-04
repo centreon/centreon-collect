@@ -12,7 +12,7 @@ fi
 # Launch container.
 ISO_IMAGE=ci.int.centreon.com:5000/mon-build-iso:latest
 docker pull $ISO_IMAGE
-containerid=`docker create $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
+containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
 
 # Copy construction scripts to container.
 docker cp `dirname $0`/../../packaging/iso "$containerid:/tmp/iso"
