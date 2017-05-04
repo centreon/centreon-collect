@@ -68,7 +68,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/default/selenium
 %{_sysconfdir}/default/xvfb
 %{_initrddir}/selenium
-%{_initrddir}/init.d/xvfb
+%{_initrddir}/xvfb
 /opt/selenium/selenium-server-standalone.jar
 %defattr(-,selenium,selenium,-)
 /opt/selenium/
