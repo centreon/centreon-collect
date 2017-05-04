@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Project.
-PROJECT=centreon-selenium-server
+NAME=centreon-selenium-server
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -36,15 +36,15 @@ cd ..
 tar czf "input/$NAME-$VERSION.tar.gz" "$NAME-$VERSION"
 
 # Build RPMs.
-cp `dirname $0`/../../packaging/selenium/$PROJECT.spectemplate input/
+cp `dirname $0`/../../packaging/selenium/$NAME.spectemplate input/
 cp `dirname $0`/../../packaging/selenium/src/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
 
 # Copy files to server.
 REPO="ubuntu@srvi-repo.int.centreon.com"
-ssh "$REPO" mkdir -p "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
-scp "input/$PROJECT-$VERSION.tar.gz" "$REPO:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
+ssh "$REPO" mkdir -p "/srv/sources/standard/testing/$NAME-$VERSION-$RELEASE"
+scp "input/$NAME-$VERSION.tar.gz" "$REPO:/srv/sources/standard/testing/$NAME-$VERSION-$RELEASE/"
 FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
 scp $FILES_CENTOS6 "$REPO:/srv/yum/standard/3.4/el6/testing/noarch/RPMS"
