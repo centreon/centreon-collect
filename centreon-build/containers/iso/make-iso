@@ -266,11 +266,6 @@ PACKAGES=$(chroot ${prefix} rpm -qa | tr '\n' ' ')
         self.__make_path(pkgdir)
         for url in repo_urls.split():
             url = url.strip()
-            if "standard" in url:
-                flist = files + ["dependencies/noarch/RPMS/*",
-                                 "dependencies/%s/RPMS/*" % self.arch]
-            else:
-                flist = files
 
             for f in flist:
                 dname = os.path.dirname(f)
