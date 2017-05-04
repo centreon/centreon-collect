@@ -37,7 +37,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__cp} server/centos/init-selenium $RPM_BUILD_ROOT%{_initrddir}/selenium
 %{__cp} server/centos/init-xvfb $RPM_BUILD_ROOT%{_initrddir}/xvfb
 %{__cp} server/centos/logrotate-selenium $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/selenium
-%{__cp} selenium-server-standalone-2.53.0.jar $RPM_BUILD_ROOT/opt/selenium/selenium-server-standalone.jar
+%{__cp} server/selenium-server-standalone-2.53.0.jar $RPM_BUILD_ROOT/opt/selenium/selenium-server-standalone.jar
 
 %post
 if [ $1 -eq 0 ]; then
