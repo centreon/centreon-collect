@@ -27,13 +27,13 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} -d -m 0755 $RPM_BUILD_ROOT%{_localstatedir}/log/selenium/
 %{__install} -d -m 0755 $RPM_BUILD_ROOT/opt/selenium/
 
-%{__cp} -r /server/selenium-profile $RPM_BUILD_ROOT/home/selenium/firefox-profile
-%{__cp} /server/centos/default-selenium $RPM_BUILD_ROOT%{_sysconfdir}/default/selenium
-%{__cp} /server/centos/default-xvfb $RPM_BUILD_ROOT%{_sysconfdir}/default/xvfb
-%{__cp} /server/centos/init-selenium $RPM_BUILD_ROOT%{_initrddir}/selenium
-%{__cp} /server/centos/init-xvfb $RPM_BUILD_ROOT%{_initrddir}/xvfb
-%{__cp} /server/centos/logrotate-selenium $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/selenium
-%{__cp} selenium-server-standalone-2.49.0.jar $RPM_BUILD_ROOT/opt/selenium/selenium-server-standalone.jar
+%{__cp} -r server/selenium-profile $RPM_BUILD_ROOT/home/selenium/firefox-profile
+%{__cp} server/centos/default-selenium $RPM_BUILD_ROOT%{_sysconfdir}/default/selenium
+%{__cp} server/centos/default-xvfb $RPM_BUILD_ROOT%{_sysconfdir}/default/xvfb
+%{__cp} server/centos/init-selenium $RPM_BUILD_ROOT%{_initrddir}/selenium
+%{__cp} server/centos/init-xvfb $RPM_BUILD_ROOT%{_initrddir}/xvfb
+%{__cp} server/centos/logrotate-selenium $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/selenium
+%{__cp} selenium-server-standalone-2.53.0.jar $RPM_BUILD_ROOT/opt/selenium/selenium-server-standalone.jar
 
 %post
 if [ $1 -eq 0 ]; then
