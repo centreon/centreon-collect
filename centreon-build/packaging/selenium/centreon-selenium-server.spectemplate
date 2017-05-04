@@ -20,8 +20,6 @@ Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with
 %{_sbindir}/useradd -d /home/selenium -s /bin/bash -g selenium selenium 
 
 %build
-%configure
-make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
