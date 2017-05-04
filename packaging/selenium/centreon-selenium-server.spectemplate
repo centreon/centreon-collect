@@ -32,6 +32,7 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} -d -m 0755 $RPM_BUILD_ROOT%{_localstatedir}/log/selenium/
 %{__install} -d -m 0755 $RPM_BUILD_ROOT/opt/selenium/
 
+%{__cp} -r centreon-web-application-analytics/server/selenium-profile $RPM_BUILD_ROOT/home/selenium/firefox-profile
 %{__cp} centreon-web-application-analytics/server/centos/default-selenium $RPM_BUILD_ROOT%{_sysconfdir}/default/selenium
 %{__cp} centreon-web-application-analytics/server/centos/default-xvfb $RPM_BUILD_ROOT%{_sysconfdir}/default/xvfb
 %{__cp} centreon-web-application-analytics/server/centos/init-selenium $RPM_BUILD_ROOT%{_initrddir}/selenium
