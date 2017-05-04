@@ -7,7 +7,7 @@ set -x
 docker pull ubuntu:latest
 
 # Build image.
-cd centreon-build/containers
+cd `dirname $0`/../../containers
 docker build -t ci.int.centreon.com:5000/mon-build-iso:latest -f build-iso.Dockerfile .
 
 # Push image.
