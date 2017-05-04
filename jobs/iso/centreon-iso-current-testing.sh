@@ -15,7 +15,7 @@ docker pull $ISO_IMAGE
 containerid=`docker create $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
 
 # Copy construction scripts to container.
-docker cp `dirname $0`/../../packaging/iso "$containerid:/iso"
+docker cp `dirname $0`/../../packaging/iso "$containerid:/tmp/iso"
 docker start -a "$containerid"
 docker cp "$containerid:/build/centreon-standard-$VERSION-x86_64.iso" "ces.iso"
 
