@@ -267,7 +267,7 @@ PACKAGES=$(chroot ${prefix} rpm -qa | tr '\n' ' ')
         for url in repo_urls.split():
             url = url.strip()
 
-            for f in flist:
+            for f in files:
                 dname = os.path.dirname(f)
                 self._runcmd(
                     "lftp -e 'ls %s|wc -l; quit' %s" % (dname, url),
