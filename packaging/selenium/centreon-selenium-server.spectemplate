@@ -55,9 +55,7 @@ fi
 %preun
 if [ $1 -eq 0 ]; then
     /sbin/service selenium stop &>/dev/null || echo
-    /sbin/service xvfb stop &>/dev/null || echo
     /sbin/chkconfig --del selenium
-    /sbin/chkconfig --del xvfb
 fi
 
 %clean
@@ -70,9 +68,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_initrddir}/selenium
 %{_initrddir}/xvfb
 %{_sysconfdir}/logrotate.d/selenium
-/opt/selenium/selenium-server-standalone.jar
 %defattr(-,selenium,selenium,-)
-/opt/selenium/
+/opt/selenium/selenium-server-standalone.jar
 %{_localstatedir}/run/selenium/
 %{_localstatedir}/log/selenium
 /home/selenium/firefox-profile/selenium-profile/.parentlock
