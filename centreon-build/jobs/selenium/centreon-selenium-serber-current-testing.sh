@@ -44,12 +44,12 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 REPO="ubuntu@srvi-repo.int.centreon.com"
 ssh "$REPO" mkdir -p "/srv/sources/standard/testing/$NAME-$VERSION-$RELEASE"
 scp "input/$NAME-$VERSION.tar.gz" "$REPO:/srv/sources/standard/testing/$NAME-$VERSION-$RELEASE/"
-FILES_CENTOS6='output-centos6/noarch/*.rpm'
-FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp $FILES_CENTOS6 "$REPO:/srv/yum/standard/3.4/el6/testing/noarch/RPMS"
-scp $FILES_CENTOS7 "$REPO:/srv/yum/standard/3.4/el7/testing/noarch/RPMS"
-ssh "$REPO" createrepo /srv/yum/standard/3.4/el6/testing/noarch
-ssh "$REPO" createrepo /srv/yum/standard/3.4/el7/testing/noarch
+FILES_CENTOS6='output-centos6/x86_64/*.rpm'
+FILES_CENTOS7='output-centos7/x86_64/*.rpm'
+scp $FILES_CENTOS6 "$REPO:/srv/yum/standard/3.4/el6/testing/x86_64/RPMS"
+scp $FILES_CENTOS7 "$REPO:/srv/yum/standard/3.4/el7/testing/x86_64/RPMS"
+ssh "$REPO" createrepo /srv/yum/standard/3.4/el6/testing/x86_64
+ssh "$REPO" createrepo /srv/yum/standard/3.4/el7/testing/x86_64
 
 # Generate testing documentation.
 DOC="root@doc-dev.int.centreon.com"
