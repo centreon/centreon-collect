@@ -37,7 +37,6 @@ tar czf "input/$NAME-$VERSION.tar.gz" "$NAME-$VERSION"
 
 # Build RPMs.
 cp `dirname $0`/../../packaging/selenium/$NAME.spectemplate input/
-cp `dirname $0`/../../packaging/selenium/src/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
 
