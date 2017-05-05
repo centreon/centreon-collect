@@ -16,8 +16,9 @@ Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with
 
 %prep
 %setup -q
-%{_sbindir}/groupadd selenium
-%{_sbindir}/useradd -d /home/selenium -s /bin/bash -g selenium selenium 
+
+getent group selenium > /dev/null 2>&1 || groupadd selenium
+id selenium > /dev/null 2>&1 || useradd -d /home/selenium -s /bin/bash -g selenium selenium
 
 %build
 
@@ -62,11 +63,12 @@ fi
 rm -rf $RPM_BUILD_ROOT
 
 %files
+%defattr(0755,root,root,-)
+%{_initrddir}/selenium
+%{_initrddir}/xvfb
 %defattr(-,root,root,-)
 %{_sysconfdir}/default/selenium
 %{_sysconfdir}/default/xvfb
-%{_initrddir}/selenium
-%{_initrddir}/xvfb
 %{_sysconfdir}/logrotate.d/selenium
 %defattr(-,selenium,selenium,-)
 /opt/selenium/selenium-server-standalone.jar
