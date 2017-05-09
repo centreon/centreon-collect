@@ -24,8 +24,11 @@ if [ "$PROJECT" = "centreon-bi-server" ] ; then
   # Put sources online.
   SRCHASH=`$SSH_REPO "cat /srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php{53,54}.tar.gz | md5sum | cut -d ' ' -f 1"`
   for phpversion in 53 54 ; do
-    $SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz" "s3://centreon-download/enterprises/centreon-bi-2/centreon-bi-3.1/centreon-bi-server-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
+    $SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz" "s3://centreon-download/enterprises/centreon-mbi/centreon-mbi-3.1/centreon-mbi-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
   done
+
+  # Download link.
+  echo 'https://download.centreon.com/?action=product&product=centreon-mbi&version='$VERSION'&secKey='$SRCHASH
 fi
 
 # Synchronize repositories.
