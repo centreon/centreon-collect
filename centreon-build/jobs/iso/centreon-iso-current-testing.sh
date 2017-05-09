@@ -17,7 +17,7 @@ containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh $
 # Copy construction scripts to container.
 docker cp `dirname $0`/../../packaging/iso "$containerid:/tmp/iso"
 docker start -a "$containerid"
-docker cp "$containerid:/build/centreon-standard-$VERSION-x86_64.iso" "ces.iso"
+docker cp "$containerid:/tmp/build/centreon-standard-$VERSION-x86_64.iso" "ces.iso"
 
 # Stop container.
 docker stop "$containerid"
