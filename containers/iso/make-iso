@@ -194,52 +194,6 @@ PACKAGES=$(chroot ${prefix} rpm -qa | tr '\n' ' ')
         sysutils.print_warning("Boostraping CentOS image using rinse")
         sysutils.runcmd(cmd, verbose=True)
 
-    def include_repo_packages(self, pkgdir):
-        """Inclusion des paquets donnant accès aux dépôts CES
-
-        Les paquets requis sont copiés dans l'ISO.
-
-        :param pkgdir: répertoire de destination
-        """
-        packages = self.config.get("general", "repo_packages")
-        packages = packages.split(" ")
-        ces_version = self.config.get("general", "release")
-        print 'Version %s' % (ces_version)
-        #if ces_version.startswith('3.'):
-        #    ces_version = '3.0'
-        #if ces_version == '3.4':
-        #    ces_version = '3.4'
-        for pkg in packages:
-            pkgpath = 'ces-%s/%s' % (ces_version, pkg)
-            print 'pkgpath %s' % (pkgpath)
-            try:
-                config = ConfigParser.ConfigParser()
-                config.readfp(open("packages/ces-repositories/%s/pkg.config" % pkgpath))
-            except IOError:
-                raise BuildError("Failed to open package config file (%s:%s)" % (pkg, ces_version))
-            if self.args.category is not None:
-                pkgfile = "%s/%s-%s-%s-%s.noarch.rpm" % (self.args.bdir,
-                                                         config.get("package", "name"),
-                                                         self.args.category,
-                                                         config.get("package", "version"),
-                                                         config.get("package", "release"))
-                flavor = self.args.category
-            else:
-                pkgfile = "%s/%s-%s-%s.noarch.rpm" % (self.args.bdir,
-                                                      config.get("package", "name"),
-                                                      config.get("package", "version"),
-                                                      config.get("package", "release"))
-                flavor = ces_version
-            print 'Release package %s' % (pkgfile)
-            if not os.path.exists(pkgfile):
-                print 'Build CES Release package'
-                self._runcmd(
-                    "./packages/ces-repositories/build --flavor %s ces-%s:%s" % (flavor, pkg, ces_version),
-                    "Building repo packages"
-                )
-	    print 'cp %s %s" % (pkgfile, pkgdir), "Copying %s" % pkgfile'
-            self._runcmd("cp %s %s" % (pkgfile, pkgdir), "Copying %s" % pkgfile)
-
     def make_iso(self):
         """Construction de l'ISO
 
@@ -282,7 +236,6 @@ PACKAGES=$(chroot ${prefix} rpm -qa | tr '\n' ' ')
                     cwd=pkgdir
                 )
 
-        self.include_repo_packages(pkgdir)
         self._runcmd("createrepo -g repodata/*comps.xml .",
                       title="Updating XML files",
                       cwd=self.iso_dir)
