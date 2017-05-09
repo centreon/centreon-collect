@@ -12,7 +12,11 @@ fi
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
 
+# Move RPMs to the old repository.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
+$SSH_REPO cp "/srv/mbi/3.4/el6/stable/noarch/RPMS/$PROJECT-$VERSION-$RELEASE.el6.noarch.rpm" '/srv/mbi/el6/noarch/RPMS/'
+$SSH_REPO createrepo '/srv/mbi/el6/noarch'
+
 if [ "$PROJECT" = "centreon-bi-server" ] ; then
   # Move sources to the stable directory.
   $SSH_REPO mv "/srv/sources/mbi/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/mbi/stable/"
