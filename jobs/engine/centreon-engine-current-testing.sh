@@ -37,19 +37,8 @@ export VERSION="$major.$minor.$patch"
 git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
 cd ..
 
-# Retrieve spec file.
-if [ \! -d packaging-centreon-engine ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon-engine.git
-else
-  cd packaging-centreon-engine
-  git checkout master
-  git pull
-  cd ..
-fi
-cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
-
-# Retrieve additional sources.
-cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
+# Retrieve spectemplate and additional source files.
+cp `dirname $0`/../../packaging/engine/* input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
