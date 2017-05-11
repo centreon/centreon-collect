@@ -107,7 +107,22 @@ case "$PROJECT" in
           centreon-poller-centreon-engine
           centreon-trap
           centreon-web"
-    ;;
+  ;;
+  centreon-web-endoflife)
+    DIR='/standard/3.3'
+    ARCH='noarch'
+    RPMS="centreon
+          centreon-base-config-centreon-engine
+          centreon-common
+          centreon-installed
+          centreon-perl-libs
+          centreon-plugin-meta
+          centreon-plugins
+          centreon-poller-centreon-engine
+          centreon-trap
+          centreon-web"
+    EL7=no
+  ;;
 esac
 
 # Move all RPMs to stable.
