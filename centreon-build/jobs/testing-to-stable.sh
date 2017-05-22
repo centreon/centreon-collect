@@ -28,7 +28,7 @@ case "$PROJECT" in
   ;;
   centreon-as400-plugin)
     DIR='/plugin-packs/3.4'
-    ARCH='noarch'
+    ARCH='x86_64'
     RPMS='ces-plugins-Operatingsystems-As400'
   ;;
   centreon-as400-plugin-endoflife)
