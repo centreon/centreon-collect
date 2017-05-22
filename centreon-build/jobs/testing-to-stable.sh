@@ -15,6 +15,28 @@ fi
 
 # Get RPM list.
 case "$PROJECT" in
+  centreon-as400-connector)
+    DIR='/plugin-packs/3.4'
+    ARCH='noarch'
+    RPMS='centreon-connector-as400-server'
+  ;;
+  centreon-as400-connector-endoflife)
+    DIR='/plugin-packs/3.0'
+    ARCH='noarch'
+    RPMS='centreon-connector-as400-server'
+    EL7=no
+  ;;
+  centreon-as400-plugin)
+    DIR='/plugin-packs/3.4'
+    ARCH='noarch'
+    RPMS='ces-plugins-Operatingsystems-As400'
+  ;;
+  centreon-as400-plugin-endoflife)
+    DIR='/plugin-packs/3.0'
+    ARCH='x86_64'
+    RPMS='ces-plugins-Operatingsystems-As400'
+    EL7=no
+  ;;
   centreon-bam-server)
     DIR='/bam/3.4'
     ARCH='noarch'
