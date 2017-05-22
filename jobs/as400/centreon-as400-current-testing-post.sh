@@ -8,7 +8,7 @@ set -x
 #
 
 # Get version.
-VERSION=`sed -n 's/.*<version>\([0-9.]*\)<\/version>/\1/p' centreon-AS400/Connector/connector.as400/pom.xml | head -1`
+export VERSION=`sed -n 's/.*<version>\([0-9.]*\)<\/version>/\1/p' centreon-AS400/Connector/connector.as400/pom.xml | head -1`
 SRCDIR="centreon-AS400"
 SERVERDIR="centreon-connector-as400-server-$VERSION"
 PLUGINDIR="ces-plugins-Operatingsystems-As400"
