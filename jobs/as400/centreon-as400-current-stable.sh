@@ -15,7 +15,7 @@ for project in centreon-as400-connector centreon-as400-connector-endoflife centr
   `dirname $0`/../testing-to-stable.sh
 done
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO /srv/scripts/sync-plugin-packs.sh
+$SSH_REPO /srv/scripts/sync-plugin-packs.sh --confirm
 
 # Generate online documentation.
 SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
