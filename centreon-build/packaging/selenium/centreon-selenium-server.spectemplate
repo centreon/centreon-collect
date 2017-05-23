@@ -1,0 +1,78 @@
+%define debug_package %{nil}
+Name:           centreon-selenium-server
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        selenium-server-by-centreon  
+Group:          System Environment/Base
+License:        GPLv2
+URL:            https://github.com/centreon/%{name}-%{version}-%{release}.git
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      x86_64
+Requires:       firefox, java-1.7.0-openjdk xorg-x11-server-Xvfb 
+
+%description
+Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with centreon-plugins
+
+%prep
+%setup -q
+
+getent group selenium > /dev/null 2>&1 || groupadd selenium
+id selenium > /dev/null 2>&1 || useradd -d /home/selenium -s /bin/bash -g selenium selenium
+
+%build
+
+%install
+rm -rf $RPM_BUILD_ROOT
+%{__install} -d -m 0755 $RPM_BUILD_ROOT%{_initrddir}
+%{__install} -d -m 0755 $RPM_BUILD_ROOT%{_sysconfdir}/default
+%{__install} -d -m 0755 $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d
+%{__install} -d -m 0755 $RPM_BUILD_ROOT%{_localstatedir}/run/selenium/
+%{__install} -d -m 0755 $RPM_BUILD_ROOT%{_localstatedir}/log/selenium/
+%{__install} -d -m 0755 $RPM_BUILD_ROOT/opt/selenium/
+%{__install} -d -m 0755 $RPM_BUILD_ROOT/home/selenium/firefox-profile
+
+%{__cp} -r server/selenium-profile/* $RPM_BUILD_ROOT/home/selenium/firefox-profile
+%{__cp} server/centos/default-selenium $RPM_BUILD_ROOT%{_sysconfdir}/default/selenium
+%{__cp} server/centos/default-xvfb $RPM_BUILD_ROOT%{_sysconfdir}/default/xvfb
+%{__cp} server/centos/init-selenium $RPM_BUILD_ROOT%{_initrddir}/selenium
+%{__cp} server/centos/init-xvfb $RPM_BUILD_ROOT%{_initrddir}/xvfb
+%{__cp} server/centos/logrotate-selenium $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/selenium
+%{__cp} server/selenium-server-standalone-2.53.0.jar $RPM_BUILD_ROOT/opt/selenium/selenium-server-standalone.jar
+
+%post
+if [ $1 -eq 0 ]; then
+    /sbin/chkconfig --add xvfb
+    /sbin/chkconfig --level 345 xvfb on
+    /sbin/chkconfig --add selenium
+    /sbin/chkconfig --level 345 selenium on
+    service xvfb start > /dev/null 2>&1 || echo
+    service selenium start > /dev/null 2>&1 || echo
+fi
+if [ $1 -eq 1 ]; then
+    service selenium restart > /dev/null 2>&1 || echo
+fi
+
+%preun
+if [ $1 -eq 0 ]; then
+    /sbin/service selenium stop &>/dev/null || echo
+    /sbin/chkconfig --del selenium
+fi
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(0755,root,root,-)
+%{_initrddir}/selenium
+%{_initrddir}/xvfb
+%defattr(-,root,root,-)
+%{_sysconfdir}/default/selenium
+%{_sysconfdir}/default/xvfb
+%{_sysconfdir}/logrotate.d/selenium
+%defattr(-,selenium,selenium,-)
+/opt/selenium/selenium-server-standalone.jar
+%{_localstatedir}/run/selenium
+%{_localstatedir}/log/selenium
+/home/selenium/firefox-profile
+%doc

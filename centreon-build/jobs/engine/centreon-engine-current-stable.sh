@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Project.
-export PROJECT=centreon-broker
+export PROJECT=centreon-engine
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -27,5 +27,4 @@ $SSH_REPO /srv/scripts/sync-standard.sh --confirm
 
 # Generate online documentation.
 SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V 3.0 -p'"
+$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos $PROJECT -V 1.7 -p'"

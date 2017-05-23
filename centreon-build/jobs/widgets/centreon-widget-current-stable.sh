@@ -3,14 +3,14 @@
 set -e
 set -x
 
-# Project.
-export PROJECT=centreon-broker
-
 # Check arguments.
-if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
-  echo "You need to specify VERSION and RELEASE environment variables."
+if [ -z "$WIDGET" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify WIDGET, VERSION and RELEASE environment variables."
   exit 1
 fi
+
+# Project.
+export PROJECT="centreon-widget-$WIDGET"
 
 # Move sources to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
@@ -24,8 +24,3 @@ curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&p
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
 $SSH_REPO /srv/scripts/sync-standard.sh --confirm
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V 3.0 -p'"

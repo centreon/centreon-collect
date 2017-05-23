@@ -155,6 +155,8 @@ if ($synchronize) {
         '/des-mbi-server:centos7',
         '/des-mbi-web:centos6',
         '/des-mbi-web:centos7',
+        'influxdb:latest',
+        'selenium/standalone-chrome:latest',
         'redis:latest'
     );
     $count = count($images);
