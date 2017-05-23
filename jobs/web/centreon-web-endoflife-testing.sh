@@ -50,6 +50,8 @@ sed -i \
 make clean
 cd ../../..
 tar czf "input/centreon-$VERSION.tar.gz" "centreon-$VERSION"
+mv "centreon-$VERSION" "centreon-web-$VERSION"
+tar czf "input/centreon-web-$VERSION.tar.gz" "centreon-web-$VERSION"
 
 # Retrieve spec file.
 if [ \! -d packaging-centreon-web ] ; then
@@ -68,8 +70,9 @@ cp packaging-centreon-web/src/endoflife/* input
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output
 
 # Copy files to server.
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/standard/testing/centreon-web-$VERSION-$RELEASE"
-scp -o StrictHostKeyChecking=no "input/centreon-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/centreon-web-$VERSION-$RELEASE/"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/standard/testing/centreon-web-$VERSION"
+scp -o StrictHostKeyChecking=no "input/centreon-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/centreon-web-$VERSION/"
+scp -o StrictHostKeyChecking=no "input/centreon-web-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/centreon-web-$VERSION/"
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.3/el6/testing/noarch/RPMS"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.3/el6/testing/noarch

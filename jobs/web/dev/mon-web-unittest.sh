@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-web
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -22,16 +25,16 @@ tar xzf "centreon-$VERSION.tar.gz"
 # Launch mon-unittest container.
 UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
 docker pull $UT_IMAGE
-containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-web`
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
 
 # Copy sources to container.
-docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon-web"
+docker cp "centreon-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
-#docker cp "$containerid:/tmp/centreon-web_ut.xml" ut.xml
-#docker cp "$containerid:/tmp/centreon-web_coverage.xml" coverage.xml
-docker cp "$containerid:/tmp/centreon-web_codestyle.xml" codestyle.xml
+docker cp "$containerid:/tmp/ut.xml" ut.xml
+docker cp "$containerid:/tmp/coverage.xml" coverage.xml
+docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 
 # Stop container.
 docker stop "$containerid"

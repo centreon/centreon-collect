@@ -15,10 +15,38 @@ fi
 
 # Get RPM list.
 case "$PROJECT" in
+  centreon-as400-connector)
+    DIR='/plugin-packs/3.4'
+    ARCH='noarch'
+    RPMS='centreon-connector-as400-server'
+  ;;
+  centreon-as400-connector-endoflife)
+    DIR='/plugin-packs/3.0'
+    ARCH='noarch'
+    RPMS='centreon-connector-as400-server'
+    EL7=no
+  ;;
+  centreon-as400-plugin)
+    DIR='/plugin-packs/3.4'
+    ARCH='x86_64'
+    RPMS='ces-plugins-Operatingsystems-As400'
+  ;;
+  centreon-as400-plugin-endoflife)
+    DIR='/plugin-packs/3.0'
+    ARCH='x86_64'
+    RPMS='ces-plugins-Operatingsystems-As400'
+    EL7=no
+  ;;
   centreon-bam-server)
     DIR='/bam/3.4'
     ARCH='noarch'
     RPMS='centreon-bam-server'
+  ;;
+  centreon-bam-server-endoflife)
+    DIR='bam/2'
+    ARCH='noarch'
+    RPMS='centreon-bam-server'
+    EL7=no
   ;;
   centreon-broker)
     DIR='standard/3.4'
@@ -46,6 +74,41 @@ case "$PROJECT" in
           centreon-broker-storage"
     EL7=no
   ;;
+  centreon-engine)
+    DIR='/standard/3.4'
+    ARCH='x86_64'
+    RPMS="centreon-engine
+          centreon-engine-bench
+          centreon-engine-daemon
+          centreon-engine-debuginfo
+          centreon-engine-devel
+          centreon-engine-extcommands"
+  ;;
+  centreon-bi-engine)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-engine"
+  ;;
+  centreon-bi-etl)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-etl"
+  ;;
+  centreon-bi-report)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-report"
+  ;;
+  centreon-bi-reporting-server)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-reporting-server"
+  ;;
+  centreon-bi-server)
+    DIR='/mbi/3.4'
+    ARCH='noarch'
+    RPMS="centreon-bi-server"
+  ;;
   centreon-poller-display)
     DIR='/standard/3.4'
     ARCH='noarch'
@@ -66,7 +129,22 @@ case "$PROJECT" in
           centreon-poller-centreon-engine
           centreon-trap
           centreon-web"
-    ;;
+  ;;
+  centreon-web-endoflife)
+    DIR='/standard/3.3'
+    ARCH='noarch'
+    RPMS="centreon
+          centreon-base-config-centreon-engine
+          centreon-common
+          centreon-installed
+          centreon-perl-libs
+          centreon-plugin-meta
+          centreon-plugins
+          centreon-poller-centreon-engine
+          centreon-trap
+          centreon-web"
+    EL7=no
+  ;;
 esac
 
 # Move all RPMs to stable.
@@ -79,6 +157,8 @@ done
 
 # Create repo.
 $SSH_REPO createrepo "$BASE_DIR/$DIR/el6/stable/$ARCH"
-$SSH_REPO createrepo "$BASE_DIR/$DIR/el7/stable/$ARCH"
 $SSH_REPO createrepo "$BASE_DIR/$DIR/el6/testing/$ARCH"
-$SSH_REPO createrepo "$BASE_DIR/$DIR/el7/testing/$ARCH"
+if [ "$EL7" '!=' 'no' ] ; then
+  $SSH_REPO createrepo "$BASE_DIR/$DIR/el7/stable/$ARCH"
+  $SSH_REPO createrepo "$BASE_DIR/$DIR/el7/testing/$ARCH"
+fi

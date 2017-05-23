@@ -12,7 +12,6 @@ php installStorageDb.php
 php createDbUser.php
 php insertBaseConf.php
 php partitionTables.php
-curl -d "modules[]=centreon-license-manager&modules[]=centreon-pp-manager" http://localhost/centreon/install/steps/process/process_step8.php
 rm -rf /usr/share/centreon/www/install
 mysql -e "GRANT ALL ON *.* to root@'%' IDENTIFIED BY 'centreon'"
 centreon -d -u admin -p centreon -a POLLERGENERATE -v 1

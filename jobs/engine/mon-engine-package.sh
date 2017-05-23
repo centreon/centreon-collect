@@ -23,18 +23,8 @@ mkdir input
 rm -rf output
 mkdir output
 
-# Retrieve spec file.
-if [ \! -d packaging-centreon-engine ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon-engine.git
-else
-  cd packaging-centreon-engine
-  git pull
-  cd ..
-fi
-cp packaging-centreon-engine/rpm/centreon-engine.spectemplate input/
-
-# Retrieve additional sources.
-cp packaging-centreon-engine/src/centreonengine_integrate_centreon_engine2centreon.sh input/
+# Retrieve spectemplate and additional source files.
+cp `dirname $0`/../../packaging/engine/* input/
 
 # Retrieve sources.
 cd input
