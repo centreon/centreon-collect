@@ -27,6 +27,7 @@ rm -rf "$PROJECT"
 git clone "https://github.com/Centreon-Widgets/$PROJECT"
 cd "$PROJECT"
 git checkout --detach "$COMMIT"
+SUMMARY=`sed -n 's|\s*<description>\(.*\)</description>|\1|p' $WIDGET/configs.xml 2>/dev/null`
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
