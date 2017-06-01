@@ -2,6 +2,9 @@
 FROM centos:@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 RUN echo 'http_caching=none' >> /etc/yum.conf
+
+# Install repository.
+RUN yum install -y bzip2 curl git nc wget php-process
 RUN wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.noarch.rpm || wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.centos.noarch.rpm
 RUN yum install -y centreon-release-*.rpm
 
@@ -9,7 +12,6 @@ RUN yum install -y centreon-release-*.rpm
 RUN mkdir /usr/share/monitoring
 COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
 RUN yum install -y `cat /usr/share/monitoring/dependencies.txt`
-RUN yum install -y bzip2 curl git nc wget php-process
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Install Node.js and related elements.
