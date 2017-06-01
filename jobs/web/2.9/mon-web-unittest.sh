@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Project.
 PROJECT=centreon-web
 
@@ -18,8 +20,8 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -f "centreon-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
+rm -f "centreon-$VERSION.tar.gz" "centreon-$VERSION"
+get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
 tar xzf "centreon-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
