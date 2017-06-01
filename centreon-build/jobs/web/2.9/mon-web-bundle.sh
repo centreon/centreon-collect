@@ -13,6 +13,11 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
+if [ "$DISTRIB" = "centos6" ] ; then
+  CENTOS_VERSION=6
+else
+  CENTOS_VERSION=7
+fi
 
 # Target images.
 REGISTRY="ci.int.centreon.com:5000"
@@ -31,7 +36,7 @@ docker pull "$BASE_IMG"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed "s#@BASE_IMAGE@#$BASE_IMG#g" < web/fresh.Dockerfile.in > web/fresh.Dockerfile
+sed "s#@BASE_IMAGE@#$BASE_IMG#g;s#@CENTOS_VERSION@#$CENTOS_VERSION#g" < web/fresh.Dockerfile.in > web/fresh.Dockerfile
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/standard.Dockerfile.in > web/standard.Dockerfile
 sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/widgets.Dockerfile.in > web/widgets.Dockerfile
 
