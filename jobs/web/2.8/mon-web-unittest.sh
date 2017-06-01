@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -16,7 +18,7 @@ DISTRIB="$1"
 
 # Fetch sources.
 rm -f "centreon-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
+get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
 tar xzf "centreon-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
