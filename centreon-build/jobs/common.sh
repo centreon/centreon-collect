@@ -28,6 +28,10 @@ put_internal_rpms () {
   ssh "$REPO_CREDS" mkdir -p "$DIR"
   scp "$@" "$REPO_CREDS:$DIR"
   DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  scp `dirname $0`/updaterepo.sh "$REPO_CREDS:$DESTFILE"
+  UPDATEREPODIR=`dirname $0`
+  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+    UPDATEREPODIR="$UPDATEREPODIR/.."
+  done
+  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
 }
