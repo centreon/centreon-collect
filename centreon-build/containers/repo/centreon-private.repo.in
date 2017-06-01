@@ -1,0 +1,6 @@
+[centreon-private]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://srvi-repo.int.centreon.com/yum/internal/el@CENTOS_VERSION@/private/@SUBDIR@/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
