@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -f "centreon-$VERSION.tar.gz" "centreon-$VERSION"
+rm -rf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
 tar xzf "centreon-$VERSION.tar.gz"
 
