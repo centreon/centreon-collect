@@ -46,6 +46,9 @@ for file in centreon-web/www/install/sql/centreon/*.sql ; do
 done
 export VERSION="$VERSION"
 export VERSION_EXTRA="$VERSION_EXTRA"
+major=`echo $VERSION | cut -d . -f 1`
+minor=`echo $VERSION | cut -d . -f 2`
+patch=`echo $VERSION | cut -d . -f 3`
 
 # Get release.
 cd centreon-web
