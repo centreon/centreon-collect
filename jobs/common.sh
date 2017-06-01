@@ -19,6 +19,7 @@ put_internal_source () {
 }
 
 # Internal RPMs.
+
 put_internal_rpms () {
   DIR="/srv/yum/internal/$1/$2/$3"
   REPO="internal/$1/$2"
@@ -34,4 +35,15 @@ put_internal_rpms () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
+}
+
+# Private RPMs.
+
+put_private_rpms () {
+  DIR="/srv/yum/internal/$1/private/$2"
+  shift
+  shift
+  ssh "$REPO_CREDS" mkdir -p "$DIR"
+  scp "$@" "$REPO_CREDS:$DIR"
+  ssh "$REPO_CREDS" createrepo "$DIR"
 }
