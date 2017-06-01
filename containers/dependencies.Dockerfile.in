@@ -1,20 +1,20 @@
 # Base.
 FROM centos:@CENTOS_VERSION@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
-RUN echo 'gpgcheck=0' >> /etc/yum.conf
 RUN echo 'http_caching=none' >> /etc/yum.conf
-COPY repo/centreon-standard-stable.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-standard-stable.repo
+RUN wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.noarch.rpm || wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.centos.noarch.rpm
+RUN yum install -y centreon-release-*.rpm
 
 # Install properly packaged dependencies.
 RUN mkdir /usr/share/monitoring
 COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
-RUN yum install --nogpgcheck -y `cat /usr/share/monitoring/dependencies.txt`
-RUN yum install --nogpgcheck -y bzip2 curl git nc wget php-process
+RUN yum install -y `cat /usr/share/monitoring/dependencies.txt`
+RUN yum install -y bzip2 curl git nc wget php-process
 RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Install Node.js and related elements.
 RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
-RUN yum install --nogpgcheck -y nodejs
+RUN yum install -y nodejs
 RUN npm install -g gulp
 
 # Install PhantomJS.
