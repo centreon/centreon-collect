@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 #
 # This script will generate Centreon Web sources from the local clone
 # of Centreon Web repository (centreon-web directory) and Centreon Plugins
@@ -89,10 +91,7 @@ cd ../../..
 tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Send it to srvi-repo.
-FILES="centreon-$VERSION.tar.gz"
-DEST="/srv/sources/internal/centreon-web-$VERSION-$RELEASE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$DEST"
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
+put_internal_source "web/centreon-web-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
