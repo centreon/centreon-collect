@@ -2,6 +2,9 @@
 FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Install repository.
+COPY repo/centreon-private.repo /etc/yum.repos.d/centreon-private.repo
+
 # Install Centreon Web.
 RUN yum clean all && yum clean packages
 RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git
