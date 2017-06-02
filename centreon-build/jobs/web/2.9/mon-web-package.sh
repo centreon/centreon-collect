@@ -52,4 +52,4 @@ if [ "$DISTRIB" = "centos6" ] ; then
 else
   DISTRIB='el7'
 fi
-put_internal_rpms "$DISTRIB" "noarch" "web/centreon-web-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "$DISTRIB" "noarch" "web" "centreon-web-$VERSION-$RELEASE" output/noarch/*.rpm
