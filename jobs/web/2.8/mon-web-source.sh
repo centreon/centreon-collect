@@ -91,7 +91,7 @@ cd ../../..
 tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Send it to srvi-repo.
-put_internal_source "web/centreon-web-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz"
+put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF

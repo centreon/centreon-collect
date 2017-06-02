@@ -20,8 +20,10 @@ get_internal_source () {
 
 put_internal_source () {
   DIR="/srv/sources/internal/$1"
-  ssh "$REPO_CREDS" mkdir -p "$DIR"
-  scp "$2" "$REPO_CREDS:$DIR"
+  NEWDIR="$2"
+  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  scp "$3" "$REPO_CREDS:$DIR/$NEWDIR"
+  clean_directory "$DIR"
 }
 
 # Internal RPMs.
