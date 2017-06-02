@@ -2,5 +2,5 @@ FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 RUN yum clean all && yum install -y 'centreon-widget-*'
 COPY install-centreon-widget.php /tmp/install-centreon-widget.php
-COPY web/widgets.sh /tmp/install.sh
+COPY web/2.8/widgets.sh /tmp/install.sh
 RUN sh /tmp/install.sh
