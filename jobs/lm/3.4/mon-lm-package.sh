@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Project.
 PROJECT=centreon-license-manager
 
@@ -18,8 +20,8 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -f "$PROJECT-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Create input and output directories.
@@ -49,15 +51,11 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input ou
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='internal/el6/noarch'
+  DISTRIB='el6'
 elif [ "$DISTRIB" = 'centos7' ] ; then
-  REPO='internal/el7/noarch'
+  DISTRIB='el7'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
+put_private_rpms "$DISTRIB" "lm" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
