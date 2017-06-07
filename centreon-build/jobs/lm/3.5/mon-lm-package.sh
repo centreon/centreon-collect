@@ -58,4 +58,4 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_private_rpms "$DISTRIB" "lm" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "$DISTRIB" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
