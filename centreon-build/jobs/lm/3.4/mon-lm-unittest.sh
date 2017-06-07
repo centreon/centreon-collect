@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Project.
 PROJECT=centreon-license-manager
 
@@ -18,8 +20,8 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -f "$PROJECT-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
