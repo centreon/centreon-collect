@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 #
 # This script will generate sources from the local clone of the project
 # repository. These sources will then be pushed to the internal
@@ -31,10 +33,7 @@ git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.ta
 cd ..
 
 # Send it to srvi-repo.
-FILES="$PROJECT-$VERSION.tar.gz"
-DEST="/srv/sources/internal/$PROJECT-$VERSION-$RELEASE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$DEST"
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
+put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
