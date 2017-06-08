@@ -10,5 +10,6 @@ COPY centreon-imp-portal-api/database/create.sql /usr/local/src/centreon-imp-por
 RUN /tmp/install.sh
 
 # Static sources.
+COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js
 COPY centreon-imp-portal-api/lib /usr/local/src/centreon-imp-portal-api/lib
 COPY centreon-imp-portal-api/localserver /usr/local/src/centreon-imp-portal-api/localserver
