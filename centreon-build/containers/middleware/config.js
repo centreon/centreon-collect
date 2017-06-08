@@ -81,6 +81,13 @@ module.exports = {
     username: 'dp.dev',
     password: 'centreon'
   },
+  // Information for saleforce
+  salesforce: {
+    test: false,
+    username: '',
+    password: '',
+    security: ''
+  },
   // Information for mailchimp
   newsletter: {
     apiKey: '8e54ec13a4494c269d4a1778fcd8b637-us2',
