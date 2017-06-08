@@ -3,11 +3,11 @@ FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install repository.
-COPY repo/centreon-internal.centos@CENTOS_VERSION@.repo /etc/yum.repos.d/centreon-internal.repo
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install Centreon Web.
 RUN yum clean all && yum clean packages
-RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git
+RUN yum install -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git
 COPY web/centengine.sh /etc/init.d/centengine
 COPY web/cbd.sh /etc/init.d/cbd
 RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
