@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-broker
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -35,7 +40,7 @@ cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 
 # Retrieve sources.
 cd input
-wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-broker-$VERSION-$RELEASE/centreon-broker-$VERSION.tar.gz"
+get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Build RPMs.
@@ -43,12 +48,9 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='internal/el6/x86_64'
+  DISTRIB='el6'
 else
-  REPO='internal/el7/x86_64'
+  DISTRIB='el7'
 fi
-FILES='output/x86_64/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
+put_internal_rpms "3.4" "$DISTRIB" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm

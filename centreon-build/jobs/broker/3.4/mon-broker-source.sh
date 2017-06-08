@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 #
 # This script will generate Centreon Broker sources from the local clone
 # of Centreon Broker repository (centreon-broker directory). These
@@ -11,8 +13,11 @@ set -x
 # end of the script.
 #
 
+# Project.
+PROJECT=centreon-broker
+
 # Get version.
-cd centreon-broker
+cd $PROJECT
 cmakelists=build/CMakeLists.txt
 major=`grep 'set(CENTREON_BROKER_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CENTREON_BROKER_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
@@ -28,14 +33,11 @@ export RELEASE="$now.$COMMIT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Create source tarball.
-git archive --prefix="centreon-broker-$VERSION/" HEAD | gzip > "../centreon-broker-$VERSION.tar.gz"
+git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Send it to srvi-repo.
-FILES="centreon-broker-$VERSION.tar.gz"
-DEST="/srv/sources/internal/centreon-broker-$VERSION-$RELEASE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$DEST"
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
+put_internal_source "broker" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
