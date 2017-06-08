@@ -24,7 +24,7 @@ mkdir output-centos7
 # Create source tarball.
 export PROJECT="centreon-widget-$WIDGET"
 rm -rf "$PROJECT"
-git clone "https://github.com/Centreon-Widgets/$PROJECT"
+git clone "https://github.com/centreon/$PROJECT"
 cd "$PROJECT"
 git checkout --detach "$COMMIT"
 export SUMMARY="`sed -n 's|\s*<description>\(.*\)</description>|\1|p' $WIDGET/configs.xml 2>/dev/null`"
