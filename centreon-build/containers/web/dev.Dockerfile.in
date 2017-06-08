@@ -13,6 +13,11 @@ COPY web/container.cnf /etc/my.cnf.d/
 COPY web/update-centreon.php web/kb.sql web/kb.sh web/standard.sh web/standard.sql /tmp/
 COPY web/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/standard.sh
+COPY centreon/composer.json /usr/share/centreon/composer.json
+RUN composer install -d /usr/share/centreon
+COPY centreon/bootstrap.php /usr/share/centreon/bootstrap.php
+COPY centreon/bin /usr/share/centreon/bin
+RUN chmod +x /usr/share/centreon/bin/*
 COPY centreon/www/class /usr/share/centreon/www/class
 COPY centreon/www/install /usr/share/centreon/www/install
 COPY centreon/tmpl/install/sudoersCentreonEngine /etc/sudoers.d/centreon
@@ -23,8 +28,7 @@ RUN /tmp/install.sh && /tmp/kb.sh && /tmp/standard.sh
 COPY centreon/tmpl/install/centreon.cron /etc/cron.d/centreon
 COPY centreon/tmpl/install/centstorage.cron /etc/cron.d/centstorage
 COPY centreon/cron /usr/share/centreon/cron
-RUN chmod a+x /usr/share/centreon/cron/*
-RUN sed -i 's#@CENTREON_ETC@#/etc/centreon#g' /usr/share/centreon/cron/*
+RUN chmod a+x /usr/share/centreon/cron/* && sed -i 's#@CENTREON_ETC@#/etc/centreon#g' /usr/share/centreon/cron/*
 COPY centreon/www/sounds /usr/share/centreon/www/sounds
 COPY centreon/www/img /usr/share/centreon/www/img
 COPY centreon/www/widgets /usr/share/centreon/www/widgets
