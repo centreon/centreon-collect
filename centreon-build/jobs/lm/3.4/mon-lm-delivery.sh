@@ -15,9 +15,9 @@ LM_CENTOS6="$REGISTRY/mon-lm-$VERSION-$RELEASE:centos6"
 LM_CENTOS7="$REGISTRY/mon-lm-$VERSION-$RELEASE:centos7"
 
 docker pull "$LM_CENTOS6"
-docker tag "$LM_CENTOS6" "$REGISTRY/mon-lm:centos6"
-docker push "$REGISTRY/mon-lm:centos6"
+docker tag "$LM_CENTOS6" "$REGISTRY/mon-lm-3.4:centos6"
+docker push "$REGISTRY/mon-lm-3.4:centos6"
 
 docker pull "$LM_CENTOS7"
-docker tag "$LM_CENTOS7" "$REGISTRY/mon-lm:centos7"
-docker push "$REGISTRY/mon-lm:centos7"
+docker tag "$LM_CENTOS7" "$REGISTRY/mon-lm-3.4:centos7"
+docker push "$REGISTRY/mon-lm-3.4:centos7"
