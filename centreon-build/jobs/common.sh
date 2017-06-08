@@ -31,7 +31,7 @@ put_internal_source () {
 put_internal_rpms () {
   DIR="/srv/yum/internal/$1/$2/$3/$4"
   NEWDIR="$5"
-  REPO="internal/$1/$2"
+  REPO="internal/$1/$2/$3"
   shift
   shift
   shift
