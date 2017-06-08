@@ -39,6 +39,7 @@ cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$BASE_IMG#g;s#@CENTOS_VERSION@#$CENTOS_VERSION#g" < web/fresh.Dockerfile.in > web/fresh.Dockerfile
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/standard.Dockerfile.in > web/standard.Dockerfile
 sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/widgets.Dockerfile.in > web/widgets.Dockerfile
+sed "s#@VERSION@#3.5#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build 'fresh' image.
 docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .
