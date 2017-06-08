@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-engine
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -18,9 +23,9 @@ DISTRIB="$1"
 rm -f ut.xml
 
 # Fetch sources.
-rm -f "centreon-engine-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/centreon-engine-$VERSION-$RELEASE/centreon-engine-$VERSION.tar.gz"
-tar xzf "centreon-engine-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "engine/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
 UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
@@ -28,7 +33,7 @@ docker pull $UNITTEST_IMAGE
 containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-engine`
 
 # Copy sources to container.
-docker cp "centreon-engine-$VERSION" "$containerid:/usr/local/src/centreon-engine"
+docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
