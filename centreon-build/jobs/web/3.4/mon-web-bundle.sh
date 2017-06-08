@@ -33,9 +33,9 @@ docker pull "$BASE_IMG"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed "s#@BASE_IMAGE@#$BASE_IMG#g" < web/2.8/fresh.Dockerfile.in > web/fresh.Dockerfile
-sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/2.8/standard.Dockerfile.in > web/standard.Dockerfile
-sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/2.8/widgets.Dockerfile.in > web/widgets.Dockerfile
+sed "s#@BASE_IMAGE@#$BASE_IMG#g" < web/3.4/fresh.Dockerfile.in > web/fresh.Dockerfile
+sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/3.4/standard.Dockerfile.in > web/standard.Dockerfile
+sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/3.4/widgets.Dockerfile.in > web/widgets.Dockerfile
 sed "s#@VERSION@#3.4#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build 'fresh' image.
