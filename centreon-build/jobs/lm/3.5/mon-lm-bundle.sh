@@ -22,7 +22,7 @@ docker pull $WEB_IMAGE
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" < lm/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
+sed "s/@DISTRIB@/$DISTRIB/g" < lm/3.5/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
