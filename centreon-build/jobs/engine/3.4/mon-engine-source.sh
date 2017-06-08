@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-engine
+
 #
 # This script will generate Centreon Engine sources from the local clone
 # of Centreon Engine repository (centreon-engine directory). These
@@ -12,7 +17,7 @@ set -x
 #
 
 # Get version.
-cd centreon-engine
+cd $PROJECT
 cmakelists=build/CMakeLists.txt
 major=`grep 'set(CENTREON_ENGINE_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CENTREON_ENGINE_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
@@ -28,14 +33,11 @@ export RELEASE="$now.$COMMIT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Create source tarball.
-git archive --prefix="centreon-engine-$VERSION/" HEAD | gzip > "../centreon-engine-$VERSION.tar.gz"
+git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Send it to srvi-repo.
-FILES="centreon-engine-$VERSION.tar.gz"
-DEST="/srv/sources/internal/centreon-engine-$VERSION-$RELEASE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$DEST"
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
+put_internal_source "engine" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
