@@ -14,7 +14,7 @@ RUN /tmp/install.sh
 
 # Install SSH keys.
 RUN mkdir -p /var/spool/centreon/.ssh
-COPY poller-display/3.5/id_rsa poller-display/id_rsa.pub poller-display/known_hosts /var/spool/centreon/.ssh/
+COPY poller-display/3.5/id_rsa poller-display/3.5/id_rsa.pub poller-display/3.5/known_hosts /var/spool/centreon/.ssh/
 RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
 
 # Main script.
