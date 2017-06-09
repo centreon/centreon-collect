@@ -10,20 +10,20 @@ RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all
 RUN yum install -y centreon-poller-display
 
 # Install module in Centreon.
-COPY install-centreon-module.php /tmp/install-centreon-module.php
-COPY poller-display/install-poller.sh /tmp/install.sh
+COPY web/3.4/install-centreon-module.php /tmp/install-centreon-module.php
+COPY poller-display/3.4/install-poller.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 RUN /tmp/install.sh
 
 # Install SSH.
 RUN yum install -y openssh-server
-COPY poller-display/ssh_host_dsa_key poller-display/ssh_host_ecdsa_key poller-display/ssh_host_rsa_key /etc/ssh/
+COPY poller-display/3.4/ssh_host_dsa_key poller-display/3.4/ssh_host_ecdsa_key poller-display/3.4/ssh_host_rsa_key /etc/ssh/
 RUN chmod 600 /etc/ssh/ssh_host_*_key
 RUN mkdir -p /var/spool/centreon/.ssh
-COPY poller-display/authorized_keys /var/spool/centreon/.ssh
+COPY poller-display/3.4/authorized_keys /var/spool/centreon/.ssh
 RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
 
 # Main script.
-COPY poller-display/run-poller.sh /usr/share/centreon/container-poller-display.sh
+COPY poller-display/3.4/run-poller.sh /usr/share/centreon/container-poller-display.sh
 RUN chmod +x /usr/share/centreon/container-poller-display.sh
 ENTRYPOINT ["/usr/share/centreon/container-poller-display.sh"]
