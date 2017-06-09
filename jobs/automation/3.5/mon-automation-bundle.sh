@@ -4,6 +4,10 @@ set -e
 set -x
 
 # Check arguments.
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
+  exit 1
+fi
 if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <centos6|centos7>"
   exit 1
@@ -15,9 +19,16 @@ WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
-cd centreon-build/containers
-sed "s/@DISTRIB@/$DISTRIB/g" < automation/automation.Dockerfile.in > automation/automation.$DISTRIB.Dockerfile
+rm -rf centreon-build-containers
+cp -r /opt/centreon-build/containers centreon-build-containers
+cd centreon-build-containers
+sed "s/@DISTRIB@/$DISTRIB/g" < automation/3.5/automation.Dockerfile.in > automation/automation.Dockerfile
 
 # Build image.
-docker build --no-cache -t ci.int.centreon.com:5000/mon-automation:$DISTRIB -f automation/automation.$DISTRIB.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-automation:$DISTRIB
+REGISTRY="ci.int.centreon.com:5000"
+AUTOMATION_IMAGE="$REGISTRY/mon-automation-$VERSION-$RELEASE:$DISTRIB"
+AUTOMATION_WIP_IMAGE="$REGISTRY/mon-automation-wip:$DISTRIB"
+docker build --no-cache -t "$AUTOMATION_IMAGE" -f automation/automation.Dockerfile .
+docker push "$AUTOMATION_IMAGE"
+docker tag "$AUTOMATION_IMAGE" "$AUTOMATION_WIP_IMAGE"
+docker push "$AUTOMATION_WIP_IMAGE"
