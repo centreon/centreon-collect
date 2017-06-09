@@ -39,9 +39,9 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-web.yml.in > docker-compose-lm.yml
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/squid/simple/docker-compose-middleware.yml.in > docker-compose-lm-squid-simple.yml
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/squid/basic-auth/docker-compose-middleware.yml.in > docker-compose-lm-squid-basic-auth.yml
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/middleware/docker-compose-web.yml.in > docker-compose-lm.yml
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose-middleware.yml.in > docker-compose-lm-squid-simple.yml
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose-middleware.yml.in > docker-compose-lm-squid-basic-auth.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-lm.yml < behat.yml || true`
