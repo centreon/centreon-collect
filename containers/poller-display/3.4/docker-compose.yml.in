@@ -1,0 +1,22 @@
+version: '2'
+services:
+  webdriver:
+    image: selenium/standalone-chrome:latest
+    ports:
+    - "4444"
+    environment:
+    - DBUS_SESSION_BUS_ADDRESS=/dev/null
+    volumes:
+    - /dev/shm:/dev/shm
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    dns:
+    - "10.50.1.1"
+  poller:
+    image: @POLLER_IMAGE@
+    ports:
+    - "80"
+    dns:
+    - "10.50.1.1"
