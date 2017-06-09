@@ -17,7 +17,7 @@ RUN /tmp/install.sh
 
 # Install SSH.
 RUN yum install -y openssh-server
-COPY poller-display/3.4/ssh_host_dsa_key poller-display/ssh_host_ecdsa_key poller-display/ssh_host_rsa_key /etc/ssh/
+COPY poller-display/3.4/ssh_host_dsa_key poller-display/3.4/ssh_host_ecdsa_key poller-display/3.4/ssh_host_rsa_key /etc/ssh/
 RUN chmod 600 /etc/ssh/ssh_host_*_key
 RUN mkdir -p /var/spool/centreon/.ssh
 COPY poller-display/3.4/authorized_keys /var/spool/centreon/.ssh
