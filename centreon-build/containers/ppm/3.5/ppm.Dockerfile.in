@@ -13,7 +13,7 @@ RUN yum install -y centreon-pp-manager
 COPY middleware/data/*.json /usr/share/centreon-packs/
 
 # Install module in Centreon.
-COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/3.5/install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/3.5/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 RUN /tmp/install.sh
