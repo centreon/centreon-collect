@@ -15,7 +15,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
+WEB_IMAGE=ci.int.centreon.com:5000/mon-ppm:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
