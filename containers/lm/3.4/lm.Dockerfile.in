@@ -10,7 +10,7 @@ RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all
 RUN yum install -y centreon-license-manager
 
 # Install module in Centreon.
-COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/3.4/install-centreon-module.php /tmp/install-centreon-module.php
 COPY lm/3.4/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 RUN /tmp/install.sh
