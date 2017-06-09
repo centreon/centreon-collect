@@ -1,6 +1,6 @@
 FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
-COPY web/container.cnf /etc/my.cnf.d/
-COPY web/standard.sql /tmp/
-COPY web/standard.sh /tmp/install.sh
+COPY web/3.5/container.cnf /etc/my.cnf.d/
+COPY web/3.5/standard.sql /tmp/
+COPY web/3.5/standard.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh && /tmp/install.sh
