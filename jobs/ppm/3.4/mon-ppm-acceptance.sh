@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Project.
 PROJECT=centreon-pp-manager
 
@@ -31,7 +33,7 @@ docker pull $SQUID_BASIC_AUTH_IMAGE
 
 # Get sources.
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
