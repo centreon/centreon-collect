@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Project.
 PROJECT=centreon-poller-display
 
@@ -27,12 +29,12 @@ docker pull $CENTRAL_IMAGE
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+get_internal_source "poller-display/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
-sed -e 's#@WEB_IMAGE@#'$CENTRAL_IMAGE'#g' -e 's#@POLLER_IMAGE@#'$POLLER_IMAGE'#g' < `dirname $0`/../../containers/poller-display/docker-compose.yml.in > mon-poller-display-dev.yml
+sed -e 's#@WEB_IMAGE@#'$CENTRAL_IMAGE'#g' -e 's#@POLLER_IMAGE@#'$POLLER_IMAGE'#g' < `dirname $0`/../../../containers/poller-display/3.4/docker-compose.yml.in > mon-poller-display-dev.yml
 
 # Prepare Behat.yml
 alreadyset=`grep log_directory: < behat.yml || true`
