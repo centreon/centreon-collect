@@ -19,8 +19,8 @@ DISTRIB="$1"
 
 # Target images.
 REGISTRY="ci.int.centreon.com:5000"
-WEB_FRESH_IMG="$REGISTRY/mon-web-fresh:$DISTRIB"
-WEB_STANDARD_IMG="$REGISTRY/mon-web:$DISTRIB"
+WEB_FRESH_IMG="$REGISTRY/mon-web-fresh-3.4:$DISTRIB"
+WEB_STANDARD_IMG="$REGISTRY/mon-web-3.4:$DISTRIB"
 CENTRAL_IMG="$REGISTRY/mon-poller-display-central-$VERSION-$RELEASE:$DISTRIB"
 POLLER_IMG="$REGISTRY/mon-poller-display-$VERSION-$RELEASE:$DISTRIB"
 
