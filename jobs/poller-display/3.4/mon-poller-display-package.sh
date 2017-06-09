@@ -46,3 +46,4 @@ else
   DISTRIB='el7'
 fi
 put_internal_rpms "3.4" "$DISTRIB" "noarch" "poller-display" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "noarch" "poller-display" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
