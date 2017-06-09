@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Project.
 PROJECT=centreon-poller-display
 
@@ -12,14 +14,14 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -f "$PROJECT-$VERSION.tar.gz"
-wget "http://srvi-repo.int.centreon.com/sources/internal/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "poller-display/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
