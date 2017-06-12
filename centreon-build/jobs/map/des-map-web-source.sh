@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 #
 # This script will generate sources from the local clone of the project
 # repository. These sources will then be pushed to the internal
@@ -44,10 +46,8 @@ cd ..
 tar czf centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
 
 # Send it to srvi-repo.
-FILES="centreon-map4-web-client-$VERSION.tar.gz centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate"
-DEST="/srv/sources/internal/$PROJECT-$VERSION-$RELEASE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$DEST"
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:$DEST"
+put_internal_source "map-web" "centreon-map4-web-client-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSION.tar.gz"
+put_internal_source "map-web" "centreon-map4-web-client-$VERSION-$RELEASE" "centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
