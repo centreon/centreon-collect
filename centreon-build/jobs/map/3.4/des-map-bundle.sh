@@ -23,8 +23,8 @@ fi
 REGISTRY="ci.int.centreon.com:5000"
 DEP_IMAGE="$REGISTRY/mon-dependencies:$DISTRIB"
 BASE_IMAGE="$REGISTRY/mon-web:$DISTRIB"
-SERVER_IMAGE="$REGISTRY/des-map-server:$DISTRIB"
-WEB_IMAGE="$REGISTRY/des-map-web:$DISTRIB"
+SERVER_IMAGE="$REGISTRY/des-map-server-$VERSION-$RELEASE:$DISTRIB"
+WEB_IMAGE="$REGISTRY/des-map-web-$VERSION-$RELEASE:$DISTRIB"
 docker pull $DEP_IMAGE
 docker pull $BASE_IMAGE
 
