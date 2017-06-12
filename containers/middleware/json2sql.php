@@ -9,10 +9,10 @@ $ppinsert = $dbh->prepare(
 );
 $ppvinsert = $dbh->prepare(
     'INSERT INTO pluginpack_version (pluginpack_id, version, '
-    . 'release_date, status, nb_ht, nb_st, nb_c, download_count, '
+    . 'release_date, status, nb_ht, nb_st, nb_c, install_count, '
     . 'released, category, requirement, changelog, information) '
     . 'VALUES (:pluginpack_id, :version, :release_date, :status, '
-    . ':nb_ht, :nb_st, :nb_c, :download_count, :released, :category, '
+    . ':nb_ht, :nb_st, :nb_c, :install_count, :released, :category, '
     . ':requirement, :changelog, :information)'
 );
 $ppdinsert = $dbh->prepare(
@@ -69,8 +69,8 @@ foreach ($pp_list as $pp_file) {
     $ppvinsert->bindParam(':nb_st', $st_count);
     $cmd_count = count($ppcontent['commands']);
     $ppvinsert->bindParam(':nb_c', $cmd_count);
-    $download_count = 0;
-    $ppvinsert->bindParam(':download_count', $download_count);
+    $install_count = 0;
+    $ppvinsert->bindParam(':install_count', $install_count);
     $released = true;
     $ppvinsert->bindParam(':released', $released);
     if (!empty($ppcontent['information']['discovery_category'])) {
