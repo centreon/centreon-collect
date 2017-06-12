@@ -6,8 +6,11 @@ COPY centreon-imp-portal-api/package.json /usr/local/src/centreon-imp-portal-api
 RUN npm install
 
 # Database.
-COPY centreon-imp-portal-api/database/create.sql /usr/local/src/centreon-imp-portal-api/database/create.sql
-RUN /tmp/install.sh
+COPY centreon-imp-portal-api/database /usr/local/src/centreon-imp-portal-api/database
+COPY middleware/data/contact.sql /usr/local/src/contact.sql
+COPY middleware/json2sql.php /usr/local/src/json2sql.php
+COPY middleware/install.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh && /tmp/install.sh
 
 # Static sources.
 COPY middleware/config.js /usr/local/src/centreon-imp-portal-api/config.js

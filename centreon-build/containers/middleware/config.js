@@ -83,10 +83,10 @@ module.exports = {
   },
   // Information for saleforce
   salesforce: {
-    test: false,
-    username: '',
-    password: '',
-    security: ''
+    test: true,
+    username: 'mbersoult@centreon.com.sandbox',
+    password: 'testtest123!',
+    security: 'y2nATFxgPGN2TAKYbPWW8qTu'
   },
   // Information for mailchimp
   newsletter: {
