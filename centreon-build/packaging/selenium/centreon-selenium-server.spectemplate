@@ -10,7 +10,8 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       firefox, java-1.7.0-openjdk xorg-x11-server-Xvfb 
-Requires(pre):  shadow-utils
+Requires(pre):  /usr/sbin/useradd, /usr/bin/getent
+Requires(postun): /usr/sbin/userdel
 
 %description
 Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with centreon-plugins
@@ -18,9 +19,10 @@ Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with
 %prep
 %setup -q
 
-getent group selenium >/dev/null || groupadd -r selenium
-getent passwd USERNAME >/dev/null || \
-    useradd -r -g selenium -d /home/selenium -s /bin/bash \
+%pre
+/usr/bin/getent group selenium >/dev/null || /usr/sbin/groupadd -r selenium
+/usr/bin/getent passwd USERNAME >/dev/null || \
+    /usr/sbin/useradd -r -g selenium -d /home/selenium -s /bin/bash \
     -c "Selenium user" selenium
 exit 0
 
@@ -61,6 +63,7 @@ fi
 if [ $1 -eq 0 ]; then
     /sbin/service selenium stop &>/dev/null || echo
     /sbin/chkconfig --del selenium
+    /usr/sbin/userdel selenium
 fi
 
 %clean
