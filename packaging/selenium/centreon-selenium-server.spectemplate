@@ -61,7 +61,7 @@ fi
 
 %preun
 if [ $1 -eq 0 ]; then
-    /sbin/service selenium stop &>/dev/null || echo
+    /sbin/service selenium stop > /dev/null 2>&1 || echo
     /sbin/chkconfig --del selenium
     /usr/sbin/userdel selenium
 fi
