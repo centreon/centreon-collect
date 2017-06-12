@@ -10,6 +10,7 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       firefox, java-1.7.0-openjdk xorg-x11-server-Xvfb 
+Requires(pre):  shadow-utils
 
 %description
 Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with centreon-plugins
@@ -17,8 +18,11 @@ Selenium -www.seleniumhq.org- Selenium automates browsers. Packaged to work with
 %prep
 %setup -q
 
-getent group selenium > /dev/null 2>&1 || groupadd selenium
-id selenium > /dev/null 2>&1 || useradd -d /home/selenium -s /bin/bash -g selenium selenium
+getent group selenium >/dev/null || groupadd -r selenium
+getent passwd USERNAME >/dev/null || \
+    useradd -r -g selenium -d /home/selenium -s /bin/bash \
+    -c "Selenium user" selenium
+exit 0
 
 %build
 
