@@ -285,7 +285,7 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose-influxdb.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose-influxdb.yml.in'),
         xpath('mon-web-influxdb.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
@@ -295,7 +295,7 @@ else {
         array('@MIDDLEWARE_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-middleware:latest' : 'mon-middleware-dev:latest'))
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/poller-display/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/poller-display/3.5/docker-compose.yml.in'),
         xpath('mon-poller-display-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-poller-display-central'),
@@ -303,17 +303,17 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-ppe-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-ppe'))
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-ppe1-dev.yml'),
         array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-ppe1:' . $distrib)
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-ppm-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-ppm'),
@@ -321,12 +321,12 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-ppm1-dev.yml'),
         array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-ppm1:' . $distrib)
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-automation-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-automation'),
@@ -334,22 +334,22 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-web-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-web-fresh-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-web-fresh'))
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-web-widgets-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-web-widgets'))
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('des-bam-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('des-bam'))
     );
