@@ -33,7 +33,7 @@ rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
 sed "s#@DISTRIB@#$DISTRIB#g" < map/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
-sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
+sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/3.4/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
 sed "s#@VERSION@#3.4#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
