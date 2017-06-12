@@ -3,7 +3,7 @@ FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install repository.
-COPY repo/centreon-internal.@DISTRIB@.repo /etc/yum.repos.d/centreon-internal.repo
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install packages.
 RUN yum install -y centreon-map4-server mysql-server
