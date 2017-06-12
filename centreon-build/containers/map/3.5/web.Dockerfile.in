@@ -5,10 +5,10 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 # Install Centreon Map web client.
 RUN yum clean all
 RUN yum install -y centreon-map4-web-client
-COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/3.5/install-centreon-module.php /tmp/install-centreon-module.php
 RUN chmod +x /tmp/install-centreon-module.php
 
 # Install script.
-COPY map/install-web.sh /tmp/install.sh
+COPY map/3.5/install-web.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 RUN /tmp/install.sh
