@@ -11,13 +11,8 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='ci.int.centreon.com:5000'
-AUTOMATION_CENTOS6="$REGISTRY/mon-automation-$VERSION-$RELEASE:centos6"
-AUTOMATION_CENTOS7="$REGISTRY/mon-automation-$VERSION-$RELEASE:centos7"
-
-docker pull "$AUTOMATION_CENTOS6"
-docker tag "$AUTOMATION_CENTOS6" "$REGISTRY/mon-automation:centos6"
-docker push "$REGISTRY/mon-automation:centos6"
-
-docker pull "$AUTOMATION_CENTOS7"
-docker tag "$AUTOMATION_CENTOS7" "$REGISTRY/mon-automation:centos7"
-docker push "$REGISTRY/mon-automation:centos7"
+for distrib in centos6 centos7 ; do
+  docker pull "$REGISTRY/mon-automation-$VERSION-$RELEASE:$distrib"
+  docker tag "$REGISTRY/mon-automation-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-automation-3.5:$distrib"
+  docker push "$REGISTRY/mon-automation-3.5:$distrib"
+done
