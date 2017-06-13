@@ -3,7 +3,16 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-bam-server
+
 # Check arguments.
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
+  exit 1
+fi
 if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <centos6|centos7>"
   exit 1
@@ -11,14 +20,20 @@ fi
 DISTRIB="$1"
 
 # Pull images.
+REGISTRY="ci.int.centreon.com:5000"
 WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
-BAM_IMAGE=ci.int.centreon.com:5000/des-bam:$DISTRIB
+BAM_IMAGE="$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB"
 docker pull $WEBDRIVER_IMAGE
 docker pull $BAM_IMAGE
 
+# Get sources.
+rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
+get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+cd "$PROJECT-$VERSION"
+
 # Prepare Docker Compose file.
-cd centreon-bam
-sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../containers/web/docker-compose.yml.in > docker-compose-bam.yml
+sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-bam.yml
 
 # Prepare Behat.yml
 alreadyset=`grep docker-compose-bam.yml < behat.yml || true`
@@ -29,10 +44,8 @@ fi
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
-rm -rf ../acceptance-logs-wip
-mkdir ../acceptance-logs-wip
+rm -rf ../acceptance-logs
+mkdir ../acceptance-logs
 composer install
 composer update
 ls features/*.feature | parallel ./vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
-rm -rf ../acceptance-logs
-mv ../acceptance-logs-wip ../acceptance-logs
