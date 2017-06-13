@@ -15,7 +15,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web:$DISTRIB
+WEB_IMAGE=ci.int.centreon.com:5000/mon-web-3.5:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
@@ -27,7 +27,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < ppm/3.5/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
 PPM_IMAGE="$REGISTRY/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
-PPM_WIP_IMAGE="$REGISTRY/mon-ppm-wip:$DISTRIB"
+PPM_WIP_IMAGE="$REGISTRY/mon-ppm-3.5-wip:$DISTRIB"
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .
 docker push "$PPM_IMAGE"
 docker tag "$PPM_IMAGE" "$PPM_WIP_IMAGE"

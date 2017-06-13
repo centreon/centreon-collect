@@ -27,5 +27,8 @@ sed "s/@DISTRIB@/$DISTRIB/g" < ppm/3.4/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
 PPM_IMAGE="$REGISTRY/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
+PPM_WIP_IMAGE="$REGISTRY/mon-ppm-3.4-wip:$DISTRIB"
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .
 docker push "$PPM_IMAGE"
+docker tag "$PPM_IMAGE" "$PPM_WIP_IMAGE"
+docker push "$PPM_WIP_IMAGE"
