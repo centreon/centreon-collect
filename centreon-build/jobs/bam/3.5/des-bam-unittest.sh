@@ -21,8 +21,8 @@ DISTRIB="$1"
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-tar xzf "$PROJECT-$VERSION.tar.gz"
+get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
+tar xzf "$PROJECT-$VERSION-full.tar.gz"
 
 # Launch mon-unittest container.
 UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
@@ -30,12 +30,12 @@ docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
 
 # Copy sources to container.
-docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
+docker cp "$PROJECT-$VERSION-full" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
-#docker cp "$containerid:/tmp/ut.xml" ut.xml
-#docker cp "$containerid:/tmp/coverage.xml" coverage.xml
+docker cp "$containerid:/tmp/ut.xml" ut.xml
+docker cp "$containerid:/tmp/coverage.xml" coverage.xml
 docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 
 # Stop container.
