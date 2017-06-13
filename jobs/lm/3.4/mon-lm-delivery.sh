@@ -11,13 +11,8 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='ci.int.centreon.com:5000'
-LM_CENTOS6="$REGISTRY/mon-lm-$VERSION-$RELEASE:centos6"
-LM_CENTOS7="$REGISTRY/mon-lm-$VERSION-$RELEASE:centos7"
-
-docker pull "$LM_CENTOS6"
-docker tag "$LM_CENTOS6" "$REGISTRY/mon-lm-3.4:centos6"
-docker push "$REGISTRY/mon-lm-3.4:centos6"
-
-docker pull "$LM_CENTOS7"
-docker tag "$LM_CENTOS7" "$REGISTRY/mon-lm-3.4:centos7"
-docker push "$REGISTRY/mon-lm-3.4:centos7"
+for distrib in centos6 centos7 ; do
+  docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib"
+  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-lm-3.4:$distrib"
+  docker push "$REGISTRY/mon-lm-3.4:$distrib"
+done
