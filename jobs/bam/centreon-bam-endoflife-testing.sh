@@ -44,8 +44,8 @@ ssh "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/bam/testing/$PROJ
 scp "$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE/"
 scp "input/$PROJECT-$VERSION-php53.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE/"
 FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/bam/2/el6/testing/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/bam/2/el6/testing
+scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/bam/2/el6/testing/noarch/RPMS/"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/bam/2/el6/testing/noarch
 
 # Generate testing documentation.
 SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
