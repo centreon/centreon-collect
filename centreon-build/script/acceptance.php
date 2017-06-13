@@ -10,6 +10,7 @@ function build_image_name($base) {
     global $ci;
     global $distrib;
     global $version;
+    global $centreonVersion;
 
     if ($ci) {
         $name = 'ci.int.centreon.com:5000/' . $base;
@@ -17,6 +18,8 @@ function build_image_name($base) {
             $name .= '-' . $version;
         }
         $name .= ':' . $distrib;
+    } elseif (!empty($centreonVersion)) {
+        $name = $base . '-' . $centreonVersion . '-dev:' . $distrib;
     } else {
         $name = $base . '-dev:' . $distrib;
     }
@@ -45,10 +48,10 @@ if (function_exists('pcntl_signal')) {
 }
 
 // Parse the options.
-$opts = getopt("cd:ghsv:");
+$opts = getopt("cd:ghsv:i:");
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c [-v]] [-d distrib] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c [-v]] [-d distrib] [-i version] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "  Description:\n";
     echo "    Feature files are optional. By default all of them will be run.\n";
@@ -62,6 +65,7 @@ if (isset($opts['h'])) {
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
+    echo "    -i  Centreon image version (3.4 or 3.5).\n";
     echo "\n";
     echo "  Prerequisites:\n";
     echo "    - *Docker* (connected to Docker Machine on Windows or MacOS)\n";
@@ -108,6 +112,13 @@ if (isset($opts['s'])) {
 } else {
     $synchronize = false;
 }
+if (isset($opts['i'])) {
+    $centreonVersion = $opts['i'];
+    array_shift($argv);
+    array_shift($argv);
+} else {
+    $centreonVersion = '3.5';
+}
 $source_dir = realpath('.');
 
 //
@@ -115,59 +126,113 @@ $source_dir = realpath('.');
 //
 if ($synchronize) {
     $images = array(
-        '/mon-phantomjs:latest',
-        '/mon-lm:centos6',
-        '/mon-lm:centos7',
-        '/mon-middleware:latest',
-        '/mon-mediawiki:latest',
-        '/mon-openldap:latest',
-        '/mon-squid-simple:latest',
-        '/mon-squid-basic-auth:latest',
-        '/mon-poller-display:centos6',
-        '/mon-poller-display:centos7',
-        '/mon-poller-display-central:centos6',
-        '/mon-poller-display-central:centos7',
-        '/mon-ppe:centos6',
-        '/mon-ppe:centos7',
-        '/mon-ppe1:centos6',
-        '/mon-ppe1:centos7',
-        '/mon-ppm:centos6',
-        '/mon-ppm:centos7',
-        '/mon-ppm1:centos6',
-        '/mon-ppm1:centos7',
-        '/mon-automation:centos6',
-        '/mon-automation:centos7',
-        '/mon-web-fresh:centos6',
-        '/mon-web-fresh:centos7',
-        '/mon-web:centos6',
-        '/mon-web:centos7',
-        '/mon-web-widgets:centos6',
-        '/mon-web-widgets:centos7',
-        '/mon-web-stable:centos6',
-        '/mon-web-stable:centos7',
-        '/des-bam:centos6',
-        '/des-bam:centos7',
-        '/des-map-server:centos6',
-        '/des-map-server:centos7',
-        '/des-map-web:centos6',
-        '/des-map-web:centos7',
-        '/des-mbi-server:centos6',
-        '/des-mbi-server:centos7',
-        '/des-mbi-web:centos6',
-        '/des-mbi-web:centos7',
-        'influxdb:latest',
-        'selenium/standalone-chrome:latest',
-        'redis:latest'
+        '/mon-phantomjs' => array(),
+        '/mon-middleware' => array(),
+        '/mon-mediawiki' => array(),
+        '/mon-openldap' => array(),
+        '/mon-squid-simple' => array(),
+        '/mon-squid-basic-auth' => array(),
+        'influxdb' => array(),
+        'selenium/standalone-chrome' => array(),
+        'redis' => array(),
+        '/mon-lm' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-poller-display-central' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-poller-display' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-ppe' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-ppe1' => array(
+            'distribution' => array('centos6', 'centos7')
+        ),
+        '/mon-ppm' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-ppm1' => array(
+            'distribution' => array('centos6', 'centos7')
+        ),
+        '/mon-automation' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-web-fresh' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-web' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-web-widgets' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/mon-web-stable' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/des-bam' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/des-map-server' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/des-map-web' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/des-mbi-server' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        ),
+        '/des-mbi-web' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4', '3.5')
+        )
     );
-    $count = count($images);
-    $i = 0;
-    foreach ($images as $image) {
-        ++$i;
-        echo '[' . $i . '/' . $count . '] Pulling ' . $image . "\n";
+
+    $finalImages = array();
+    foreach ($images as $image => $parameters) {
         if ($image[0] == '/') {
             $image = 'ci.int.centreon.com:5000' . $image;
         }
-        passthru('docker pull ' . $image);
+        $tmpImages = array();
+        if (isset($parameters['version'])) {
+            foreach ($parameters['version'] as $version) {
+                $tmpImages[] = $image . '-' . $version;
+            }
+        } else {
+            $tmpImages[] = $image;
+        }
+        foreach ($tmpImages as $tmpImage) {
+            if (isset($parameters['distribution'])) {
+                foreach ($parameters['distribution'] as $distribution) {
+                    $finalImages[] = $tmpImage . ':' . $distribution;
+                }
+            } else {
+                $finalImages[] = $tmpImage . ':latest';
+            }
+        }
+    }
+
+    $count = count($finalImages);
+    $i = 0;
+    foreach ($finalImages as $finalImage) {
+        $i++;
+        echo '[' . $i . '/' . $count . '] Pulling ' . $finalImage . "\n";
+        passthru('docker pull ' . $finalImage);
     }
 }
 
@@ -375,7 +440,10 @@ else {
     if ($ci) {
         echo "Continuous integration mode (-c), step not needed\n";
     } else {
-        passthru('php ' . xpath($centreon_build_dir . '/script/' . $project . '-dev.php') . ' ' . $distrib, $return_var);
+        passthru(
+            'php ' . xpath($centreon_build_dir . '/script/' . $project . '-dev.php') . ' ' .
+            $distrib . ' ' . $centreonVersion, $return_var
+        );
         if ($return_var != 0) {
             echo 'Could not build development container of ' . $project . "\n";
             return (1);
