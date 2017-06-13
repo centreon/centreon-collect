@@ -28,12 +28,16 @@ export RELEASE="$now.$COMMIT"
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
-# Create source tarball.
+# Create source tarballs (f*cking .gitattributes).
 git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+echo '/* -export-ignore' > .git/info/attributes
+git archive --prefix="$PROJECT-$VERSION-full/" HEAD | gzip > "../$PROJECT-$VERSION-full.tar.gz"
+rm -f .git/info/attributes
 cd ..
 
 # Send it to srvi-repo.
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
