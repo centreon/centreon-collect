@@ -27,7 +27,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < lm/3.4/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfi
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
-LM_WIP_IMAGE="$REGISTRY/mon-lm-3.5-wip:$DISTRIB"
+LM_WIP_IMAGE="$REGISTRY/mon-lm-3.4-wip:$DISTRIB"
 docker build --no-cache -t "$LM_IMAGE" -f lm/lm.$DISTRIB.Dockerfile .
 docker push "$LM_IMAGE"
 docker tag "$LM_IMAGE" "$LM_WIP_IMAGE"
