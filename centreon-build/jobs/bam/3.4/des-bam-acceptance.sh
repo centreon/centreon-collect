@@ -27,10 +27,10 @@ docker pull $WEBDRIVER_IMAGE
 docker pull $BAM_IMAGE
 
 # Get sources.
-rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION"
+rm -rf "$PROJECT-$VERSION-full" "$PROJECT-$VERSION-full.tar.gz"
+get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
+tar xzf "$PROJECT-$VERSION-full.tar.gz"
+cd "$PROJECT-$VERSION-full"
 
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-bam.yml
