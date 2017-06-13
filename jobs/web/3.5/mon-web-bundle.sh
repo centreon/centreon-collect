@@ -23,11 +23,11 @@ fi
 REGISTRY="ci.int.centreon.com:5000"
 BASE_IMG="$REGISTRY/mon-dependencies:$DISTRIB"
 FRESH_IMG="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
-FRESH_WIP_IMG="$REGISTRY/mon-web-fresh-wip:$DISTRIB"
+FRESH_WIP_IMG="$REGISTRY/mon-web-fresh-3.5-wip:$DISTRIB"
 STANDARD_IMG="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
-STANDARD_WIP_IMG="$REGISTRY/mon-web-wip:$DISTRIB"
+STANDARD_WIP_IMG="$REGISTRY/mon-web-3.5-wip:$DISTRIB"
 WIDGETS_IMG="$REGISTRY/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
-WIDGETS_WIP_IMG="$REGISTRY/mon-web-widgets-wip:$DISTRIB"
+WIDGETS_WIP_IMG="$REGISTRY/mon-web-widgets-3.5-wip:$DISTRIB"
 
 # Pull base image.
 docker pull "$BASE_IMG"

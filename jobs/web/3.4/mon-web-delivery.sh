@@ -11,33 +11,10 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='ci.int.centreon.com:5000'
-FRESH_CENTOS6="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:centos6"
-FRESH_CENTOS7="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:centos7"
-STANDARD_CENTOS6="$REGISTRY/mon-web-$VERSION-$RELEASE:centos6"
-STANDARD_CENTOS7="$REGISTRY/mon-web-$VERSION-$RELEASE:centos7"
-WIDGETS_CENTOS6="$REGISTRY/mon-web-widgets-$VERSION-$RELEASE:centos6"
-WIDGETS_CENTOS7="$REGISTRY/mon-web-widgets-$VERSION-$RELEASE:centos7"
-
-docker pull "$FRESH_CENTOS6"
-docker tag "$FRESH_CENTOS6" "$REGISTRY/mon-web-fresh-3.4:centos6"
-docker push "$REGISTRY/mon-web-fresh-3.4:centos6"
-
-docker pull "$FRESH_CENTOS7"
-docker tag "$FRESH_CENTOS7" "$REGISTRY/mon-web-fresh-3.4:centos7"
-docker push "$REGISTRY/mon-web-fresh-3.4:centos7"
-
-docker pull "$STANDARD_CENTOS6"
-docker tag "$STANDARD_CENTOS6" "$REGISTRY/mon-web-3.4:centos6"
-docker push "$REGISTRY/mon-web-3.4:centos6"
-
-docker pull "$STANDARD_CENTOS7"
-docker tag "$STANDARD_CENTOS7" "$REGISTRY/mon-web-3.4:centos7"
-docker push "$REGISTRY/mon-web-3.4:centos7"
-
-docker pull "$WIDGETS_CENTOS6"
-docker tag "$WIDGETS_CENTOS6" "$REGISTRY/mon-web-widgets-3.4:centos6"
-docker push "$REGISTRY/mon-web-widgets-3.4:centos6"
-
-docker pull "$WIDGETS_CENTOS7"
-docker tag "$WIDGETS_CENTOS7" "$REGISTRY/mon-web-widgets-3.4:centos7"
-docker push "$REGISTRY/mon-web-widgets-3.4:centos7"
+for image in mon-web-fresh mon-web mon-web-widgets ; do
+  for distrib in centos6 centos7 ; do
+    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-3.4:$distrib"
+    docker push "$REGISTRY/$image-3.4:$distrib"
+  done
+done

@@ -15,7 +15,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-ppm:$DISTRIB
+WEB_IMAGE=ci.int.centreon.com:5000/mon-ppm-3.5:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
@@ -27,7 +27,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < automation/3.5/automation.Dockerfile.in > automat
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
 AUTOMATION_IMAGE="$REGISTRY/mon-automation-$VERSION-$RELEASE:$DISTRIB"
-AUTOMATION_WIP_IMAGE="$REGISTRY/mon-automation-wip:$DISTRIB"
+AUTOMATION_WIP_IMAGE="$REGISTRY/mon-automation-3.5-wip:$DISTRIB"
 docker build --no-cache -t "$AUTOMATION_IMAGE" -f automation/automation.Dockerfile .
 docker push "$AUTOMATION_IMAGE"
 docker tag "$AUTOMATION_IMAGE" "$AUTOMATION_WIP_IMAGE"
