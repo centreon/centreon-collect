@@ -21,4 +21,4 @@ file_put_contents($dockerfile, $content);
 # Build middleware image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-pp-manager'));
 xcopy(xpath('www/modules/centreon-pp-manager'), xpath($centreon_build_dir . '/containers/centreon-pp-manager'));
-passthru('docker build -t mon-ppm-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
+passthru('docker build -t mon-ppm-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));

@@ -21,4 +21,4 @@ file_put_contents($dockerfile, $content);
 # Build middleware image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-automation'));
 xcopy(xpath('www/modules/centreon-automation'), xpath($centreon_build_dir . '/containers/centreon-automation'));
-passthru('docker build -t mon-automation-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
+passthru('docker build -t mon-automation-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));

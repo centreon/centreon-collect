@@ -22,7 +22,7 @@ file_put_contents($dockerfile, $content);
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-poller-display'));
 xcopy(xpath('www/modules/centreon-poller-display'), xpath($centreon_build_dir . '/containers/centreon-poller-display'));
 xcopy(xpath('cron'), xpath($centreon_build_dir . '/containers/centreon-poller-display/cron'));
-passthru('docker build -t mon-poller-display-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
+passthru('docker build -t mon-poller-display-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
 
 # Prepare central Dockerfile.
 $content = file_get_contents(xpath($centreon_build_dir . '/containers/poller-display/' . $version . '/central-dev.Dockerfile.in'));
@@ -33,4 +33,4 @@ file_put_contents($dockerfile, $content);
 # Build central image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-poller-display-central'));
 xcopy(xpath('www/modules/centreon-poller-display-central'), xpath($centreon_build_dir . '/containers/centreon-poller-display-central'));
-passthru('docker build -t mon-poller-display-central-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
+passthru('docker build -t mon-poller-display-central-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
