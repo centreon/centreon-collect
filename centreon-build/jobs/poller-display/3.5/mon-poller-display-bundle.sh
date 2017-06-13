@@ -19,12 +19,12 @@ DISTRIB="$1"
 
 # Target images.
 REGISTRY="ci.int.centreon.com:5000"
-WEB_FRESH_IMG="$REGISTRY/mon-web-fresh:$DISTRIB"
-WEB_STANDARD_IMG="$REGISTRY/mon-web:$DISTRIB"
+WEB_FRESH_IMG="$REGISTRY/mon-web-fresh-3.5:$DISTRIB"
+WEB_STANDARD_IMG="$REGISTRY/mon-web-3.5:$DISTRIB"
 CENTRAL_IMG="$REGISTRY/mon-poller-display-central-$VERSION-$RELEASE:$DISTRIB"
-CENTRAL_WIP_IMG="$REGISTRY/mon-poller-display-central-wip:$DISTRIB"
+CENTRAL_WIP_IMG="$REGISTRY/mon-poller-display-central-3.5-wip:$DISTRIB"
 POLLER_IMG="$REGISTRY/mon-poller-display-$VERSION-$RELEASE:$DISTRIB"
-POLLER_WIP_IMG="$REGISTRY/mon-poller-display-wip:$DISTRIB"
+POLLER_WIP_IMG="$REGISTRY/mon-poller-display-3.5-wip:$DISTRIB"
 
 # Pull base images.
 docker pull "$WEB_FRESH_IMG"
