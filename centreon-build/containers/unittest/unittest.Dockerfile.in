@@ -18,10 +18,6 @@ RUN yum install -y php-pecl-xdebug
 COPY unittest/unittest-phing.sh /usr/local/bin/unittest-phing
 COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
 COPY unittest/unittest-engine.sh /usr/local/bin/unittest-engine
-COPY unittest/unittest-ppe.sh /usr/local/bin/unittest-ppe
-COPY unittest/unittest-lm.sh /usr/local/bin/unittest-lm
 COPY unittest/unittest-middleware.sh /usr/local/bin/unittest-middleware
-COPY unittest/unittest-ppm.sh /usr/local/bin/unittest-ppm
-COPY unittest/unittest-web.sh /usr/local/bin/unittest-web
 COPY unittest/unittest-automation-broker.sh /usr/local/bin/unittest-automation-broker
 RUN chmod +x /usr/local/bin/*
