@@ -26,22 +26,14 @@ rm -rf output
 mkdir output
 
 # Fetch sources
-rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION-full.tar.gz" "$PROJECT-$VERSION-full"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
-tar xzf "$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
-
-# Encrypt source archive.
-if [ "$DISTRIB" = "centos6" ] ; then
-  phpversion=53
-elif [ "$DISTRIB" = "centos7" ] ; then
-  phpversion=54
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
-curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=$phpversion" -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php$phpversion.tar.gz"
+cd input
+for phpversion in 53 54 ; do
+  get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz"
+done
+cd ..
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
