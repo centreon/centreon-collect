@@ -35,9 +35,16 @@ git archive --prefix="$PROJECT-$VERSION-full/" HEAD | gzip > "../$PROJECT-$VERSI
 rm -f .git/info/attributes
 cd ..
 
+# Encrypt source archive.
+for phpversion in 53 54 ; do
+  curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=$phpversion" -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "$PROJECT-$VERSION-php$phpversion.tar.gz"
+done
+
 # Send it to srvi-repo.
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
+put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php53.tar.gz"
+put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php54.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
