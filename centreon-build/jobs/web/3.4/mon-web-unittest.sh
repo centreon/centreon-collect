@@ -24,7 +24,7 @@ tar xzf "centreon-$VERSION.tar.gz"
 # Launch mon-unittest container.
 UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
 docker pull $UT_IMAGE
-containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-web`
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing centreon-web`
 
 # Copy sources to container.
 docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon-web"
