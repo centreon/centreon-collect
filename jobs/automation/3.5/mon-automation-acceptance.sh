@@ -33,7 +33,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Prepare Docker compose file.
-sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-automation.yml
+sed -e 's#@WEB_IMAGE@#'$AUTOMATION_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-automation.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-automation.yml < behat.yml || true`
