@@ -28,13 +28,12 @@ mkdir input
 rm -rf output
 mkdir output
 
-# Retrieve spec file.
-cp $PROJECT/packaging/$PROJECT.spectemplate input/
-
 # Retrieve sources.
 cd input
 get_internal_source "automation-broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 cd ..
+tar xzf "input/$PROJECT-$VERSION.tar.gz"
+cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
