@@ -31,9 +31,9 @@ docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon-web"
 
 # Run unit tests.
 docker start -a "$containerid"
-#docker cp "$containerid:/tmp/centreon-web_ut.xml" ut.xml
-#docker cp "$containerid:/tmp/centreon-web_coverage.xml" coverage.xml
-docker cp "$containerid:/tmp/centreon-web_codestyle.xml" codestyle.xml
+#docker cp "$containerid:/tmp/ut.xml" ut.xml
+#docker cp "$containerid:/tmp/coverage.xml" coverage.xml
+docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 
 # Stop container.
 docker stop "$containerid"
