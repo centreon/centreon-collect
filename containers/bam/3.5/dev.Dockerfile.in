@@ -2,10 +2,10 @@
 FROM ci.int.centreon.com:5000/des-bam:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/3.5/install-centreon-module.php /tmp/install-centreon-module.php
 
 # Database.
-COPY bam/dev.sh /tmp/install.sh
+COPY bam/3.5/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh
 COPY centreon-bam-server/sql /usr/share/centreon/www/modules/centreon-bam-server/sql
 RUN find /usr/share/centreon/www/modules/centreon-bam-server/sql -type f -exec sed -i -e 's/@DB_CENTSTORAGE@/centreon_storage/g' {} ';'
