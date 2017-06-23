@@ -54,7 +54,7 @@ objectClass: posixAccount
 objectClass: mailAccount
 cn: centréon-ldap4
 uid: centréon-ldap4
-uidNumber: 102
+uidNumber: 103
 gidNumber: 1000
 homeDirectory: /home/centreon-ldap4
 loginShell: /bin/bash
