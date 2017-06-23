@@ -58,6 +58,6 @@ uidNumber: 103
 gidNumber: 1000
 homeDirectory: /home/centreon-ldap4
 loginShell: /bin/bash
-gecos: centréon-ldap4
+gecos: centreon-ldap4
 userPassword: centreon-ldap4
 mail: centreon-ldap4@localhost
