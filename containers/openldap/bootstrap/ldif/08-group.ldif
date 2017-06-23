@@ -6,6 +6,7 @@ description: Windows group
 member: cn=centreon-ldap,ou=users,dc=centreon,dc=com
 member: cn=centreon-ldap2,ou=users,dc=centreon,dc=com
 member: cn=centreon-ldap3,ou=users,dc=centreon,dc=com
+member: cn=centréon-ldap4,ou=users,dc=centreon,dc=com
 
 dn: cn=linux,ou=groups,dc=centreon,dc=com
 changetype: add
