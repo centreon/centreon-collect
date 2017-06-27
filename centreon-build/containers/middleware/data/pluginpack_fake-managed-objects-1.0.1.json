@@ -30,7 +30,8 @@
             "parent_template": [],
             "passive_checks_enabled": 0,
             "services": [
-                "Base-Ping-LAN"
+                "Base-Ping-LAN",
+                "Base-Ping-LAN-New"
             ]
         },
         {
@@ -113,6 +114,42 @@
             ],
             "max_check_attempts": 0,
             "name": "Base-Ping-LAN",
+            "normal_check_interval": 0,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 0,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "",
+            "active_checks_enabled": 2,
+            "alias": "New Ping",
+            "command_name": "base_centreon_ping",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "400,50%"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEPACKETNUMBER$",
+                    "password": false,
+                    "value": "5"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "200,20%"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "Base-Ping-LAN-New",
             "normal_check_interval": 0,
             "parent_template": "generic-active-service",
             "passive_checks_enabled": 2,
