@@ -63,6 +63,7 @@
             "passive_checks_enabled": 2,
             "services": [
                 "HW-Printer-PaperTray-Usage-standard-SNMP",
+                "New-Printer-PaperTray-Service-Template",
                 "HW-Printer-Markersupply-Usage-standard-SNMP",
                 "HW-Printer-Impressions-Usage-standard-SNMP",
                 "HW-Printer-Hardware-standard-SNMP",
@@ -137,6 +138,36 @@
         "website": "www.centreon.com"
     },
     "service_templates": [
+        {
+            "_comment": "{FR: Contr",
+            "active_checks_enabled": 1,
+            "alias": "PaperTray-test",
+            "command_name": "HW-Printer-Papertray-Usage-standard",
+            "discovery_list_mode": "",
+            "icon": "IMAGE_1",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "Paper tray threshold",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "30:"
+                },
+                {
+                    "description": "Paper tray threshold",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "20:"
+                }
+            ],
+            "max_check_attempts": 2,
+            "name": "New-Printer-PaperTray-Service-Template",
+            "normal_check_interval": 20,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
         {
             "_comment": "{FR: Contr",
             "active_checks_enabled": 1,
