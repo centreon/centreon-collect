@@ -18,6 +18,11 @@ RUN mkdir /usr/share/centreon/www/install/tmp
 COPY web/3.5/configuration/* /usr/share/centreon/www/install/tmp/
 RUN chown -R apache.apache /usr/share/centreon/www/install/tmp
 
+# Add media in Centreon
+RUN mkdir /usr/share/centreon/www/img/media/logos
+COPY web/3.5/img/centreon.png /usr/share/centreon/www/img/media/logos
+RUN chown -R apache.apache /usr/share/centreon/www/img/media
+
 # Install script (web-wizard install).
 COPY web/3.5/fresh.sh /tmp/install.sh
 COPY web/3.5/kb.sql web/3.5/openldap.sql web/3.5/kb.sh web/3.5/openldap.sh /tmp/
