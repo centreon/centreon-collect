@@ -9,9 +9,9 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
-
+PROJECT=centreon-bi-engine
 # Get version
-VERSION=$(grep -m1 "<version>" $WORKSPACE/centreon-bi-engine/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
+VERSION=$(grep -m1 "<version>" $WORKSPACE/$PROJECT/com.merethis.bi.cbis/pom.xml | awk -F[\>\<] {'print $3'})
 export VERSION="$VERSION"
 
 PRODUCT_NAME="centreon-bi-engine"
@@ -75,20 +75,10 @@ docker pull "$BUILD_IMG"
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
-if [ "$DISTRIB" = 'centos6' ] ; then
-    REPO_34='internal/3.4/el6/noarch'
-    REPO_35='internal/3.5/el6/noarch'
-elif [ "$DISTRIB" = 'centos7' ] ; then
-    REPO_34='internal/3.5/el7/noarch'
-    REPO_35='internal/3.5/el7/noarch'
+if [ "$DISTRIB" = "centos6" ] ; then
+  DISTRIB='el6'
 else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
+  DISTRIB='el7'
 fi
-FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO_34/RPMS"
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO_35/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO_34
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO_35
+put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
