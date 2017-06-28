@@ -3,7 +3,7 @@
 set -e
 set -x
 
-. `dirname $0`/../../common.sh
+. `dirname $0`/../common.sh
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
