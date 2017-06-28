@@ -26,8 +26,8 @@ RUN chown -R apache.apache /usr/share/centreon/www/img/media
 # Install script (web-wizard install).
 COPY web/3.5/fresh.sh /tmp/install.sh
 COPY web/3.5/kb.sql web/3.5/openldap.sql web/3.5/media.sql web/3.5/kb.sh web/3.5/openldap.sh web/3.5/media.sh /tmp/
-RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/openldap.sh
-RUN /tmp/install.sh && /tmp/kb.sh && /tmp/openldap.sh
+RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/openldap.sh /tmp/media.sh
+RUN /tmp/install.sh && /tmp/kb.sh && /tmp/openldap.sh && /tmp/media.sh
 
 # Main script.
 COPY web/3.5/run.sh /usr/share/centreon/container.sh
