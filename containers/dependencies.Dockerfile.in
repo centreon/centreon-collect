@@ -1,31 +1,18 @@
 # Base.
 FROM centos:@CENTOS_VERSION@
-MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
-RUN echo 'http_caching=none' >> /etc/yum.conf
-
-# Install repository.
-RUN yum install -y bzip2 curl git nc wget php-process
-RUN wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.noarch.rpm || wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.centos.noarch.rpm
-RUN yum install -y centreon-release-*.rpm
-
-# Install properly packaged dependencies.
-RUN mkdir /usr/share/monitoring
-COPY dependencies.centos@CENTOS_VERSION@.txt /usr/share/monitoring/dependencies.txt
-RUN yum install -y `cat /usr/share/monitoring/dependencies.txt`
-RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
-
-# Install Node.js and related elements.
-RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
-RUN yum install -y nodejs
-RUN npm install -g gulp
-
-# Install PhantomJS.
-RUN wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2
-RUN tar xjf phantomjs-2.1.1-linux-x86_64.tar.bz2
-RUN mv phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/phantomjs
-RUN chmod +x /usr/local/bin/phantomjs
-
-# Install composer.
-RUN curl -sS https://getcomposer.org/installer | php
-RUN mv composer.phar /usr/local/bin/composer
-RUN chmod +x /usr/local/bin/composer
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+COPY dependencies.centos@CENTOS_VERSION@.txt /tmp/dependencies.txt
+RUN echo 'http_caching=none' >> /etc/yum.conf && \
+    yum install -y bzip2 curl git nc wget php-process && \
+    wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.noarch.rpm || \
+        wget http://yum.centreon.com/standard/3.4/el@CENTOS_VERSION@/stable/noarch/RPMS/centreon-release-3.4-4.el@CENTOS_VERSION@.centos.noarch.rpm && \
+    curl --silent --location https://rpm.nodesource.com/setup_4.x | bash - && \
+    yum install -y centreon-release-*.rpm && \
+    yum install -y `cat /tmp/dependencies.txt` \
+        nodejs && \
+    echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini && \
+    npm install -g gulp && \
+    curl -sS https://getcomposer.org/installer | php && \
+    mv composer.phar /usr/local/bin/composer && \
+    chmod +x /usr/local/bin/composer && \
+    yum clean all
