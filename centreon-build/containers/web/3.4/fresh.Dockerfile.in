@@ -3,7 +3,7 @@ FROM @BASE_IMAGE@
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Install repository.
-COPY repo/centreon-internal.repo.in /etc/yum.repos.d/centreon-internal.repo
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 COPY web/3.4 /tmp/fresh
 
 RUN yum clean all && \
