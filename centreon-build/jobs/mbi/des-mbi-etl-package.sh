@@ -3,13 +3,15 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
 DISTRIB="$1"
-
+PROJECT=centreon-bi-etl
 # Create input and output directories.
 rm -rf input
 mkdir input
@@ -18,7 +20,7 @@ mkdir output
 
 # Get version.
 cd centreon-bi-etl
-VERSION=`cat packaging/centreon-bi-etl.spectemplate | grep Version: | cut -d ' ' -f 9`
+VERSION=`cat packaging/$PROJECT.spectemplate | grep Version: | cut -d ' ' -f 9`
 export VERSION="$VERSION"
 
 # Get release.
@@ -27,7 +29,7 @@ now=`date +%s`
 export RELEASE="$now.$commit"
 
 # Generate archive of Centreon MBI ETL.
-git archive --prefix="centreon-bi-etl-$VERSION/" "$GIT_BRANCH" | gzip > "../input/centreon-bi-etl-$VERSION.tar.gz"
+git archive --prefix="$PROJECT-$VERSION/" "$GIT_BRANCH" | gzip > "../input/$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Pull latest build dependencies.
@@ -39,16 +41,10 @@ cp centreon-bi-etl/packaging/centreon-bi-etl.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
-if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='internal/el6/noarch'
-elif [ "$DISTRIB" = 'centos7' ] ; then
-  REPO='internal/el7/noarch'
+if [ "$DISTRIB" = "centos6" ] ; then
+  DISTRIB='el6'
 else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
+  DISTRIB='el7'
 fi
-FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
+put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi-etl" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi-etl" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
