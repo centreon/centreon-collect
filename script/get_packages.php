@@ -1,5 +1,11 @@
 <?php
 
+$expectedDirectories = array(
+    'automation-broker',
+    'broker',
+    'engine'
+);
+
 $expectedFiles = array(
     'centreon-broker-3',
     'centreon-broker-cbd-3',
@@ -21,7 +27,7 @@ $expectedFiles = array(
  *  @param $url       The url of the new file.
  *  @param $distrib   Distribution name.
  */
-function getIfNotExists($filename, $newFile, $url, $distrib) {
+function getIfNotExists($filename, $newFile, $url) {
     $existingFiles = glob("$filename*.rpm");
     foreach ($existingFiles as $existingFile) {
         if ($existingFile != $newFile) {
@@ -38,37 +44,50 @@ function getIfNotExists($filename, $newFile, $url, $distrib) {
 /**
  *  Get Engine and Broker packages.
  *
- *  @param $distrib  Distribution name. Can be one of 'centos6' or 'centos7'.
+ * @param $distrib  Distribution name. Can be one of 'centos6' or 'centos7'.
+ * @param $version  Centreon version (3.4 or 3.5)
+ * @throws Exception
  */
-function getPackages($distrib) {
-    global $expectedFiles;
+function getPackages($distrib, $version) {
+    global $expectedDirectories, $expectedFiles;
     echo "Searching latest Engine and Broker packages...\n";
     if ($distrib == 'centos6') {
-        $url = 'http://srvi-repo.int.centreon.com/yum/internal/el6/x86_64/RPMS/';
-    }
-    else if ($distrib == 'centos7') {
-        $url = 'http://srvi-repo.int.centreon.com/yum/internal/el7/x86_64/RPMS/';
-    }
-    else {
+        $url = 'http://srvi-repo.int.centreon.com/yum/internal/' . $version . '/el6/x86_64/';
+    } else if ($distrib == 'centos7') {
+        $url = 'http://srvi-repo.int.centreon.com/yum/internal/' . $version . '/el7/x86_64/';
+    } else {
         throw new \Exception('Unknown distribution ' . $distrib);
     }
     if (!is_dir($distrib)) {
         mkdir($distrib);
     }
+
     chdir($distrib);
-    $html = file_get_contents($url);
-    $count = preg_match_all('/<a href="([^"]+\.rpm)">[^<]*<\/a>/i', $html, $remoteFiles);
-    foreach ($expectedFiles as $expectedFile) {
-        $latestPackage = '';
-        for ($i = 0; $i < $count; ++$i) {
-            $filename = $remoteFiles[1][$i];
-            if ((substr($filename, 0, strlen($expectedFile)) === $expectedFile)
-                && (strcmp($latestPackage, $filename) < 0)) {
-                $latestPackage = $filename;
+
+    foreach ($expectedDirectories as $expectedDirectory) {
+        $html = file_get_contents($url . '/' . $expectedDirectory);
+        if (preg_match_all('/<a href="(.*'. $expectedDirectory . '.+)">[^<]*<\/a>/', $html, $matches)) {
+            rsort($matches[1]);
+            $tmpUrl = $url . '/' . $expectedDirectory . '/' . $matches[1][0];
+            $html = file_get_contents($tmpUrl);
+            $count = preg_match_all('/<a href="([^"]+\.rpm)">[^<]*<\/a>/i', $html, $remoteFiles);
+            foreach ($expectedFiles as $expectedFile) {
+                $latestPackage = '';
+                for ($i = 0; $i < $count; ++$i) {
+                    $filename = $remoteFiles[1][$i];
+                    if ((substr($filename, 0, strlen($expectedFile)) === $expectedFile)
+                        && (strcmp($latestPackage, $filename) < 0)
+                    ) {
+                        $latestPackage = $filename;
+                    }
+                }
+                if (!empty($latestPackage)) {
+                    getIfNotExists($expectedFile, $latestPackage, $tmpUrl . '/' . $latestPackage);
+                }
             }
         }
-        getIfNotExists($expectedFile, $latestPackage, $url . $latestPackage, $distrib);
     }
+
     chdir('..');
 }
 
