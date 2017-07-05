@@ -25,6 +25,7 @@ RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon ce
     echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini && \
     cp /tmp/stable/centengine.sh /etc/init.d/centengine && \
     cp /tmp/stable/cbd.sh /etc/init.d/cbd && \
+    cp /tmp/stable/autoinstall.php /usr/share/centreon/autoinstall.php && \
     chmod +x /etc/init.d/centengine /etc/init.d/cbd /tmp/stable/fresh.sh && \
     /tmp/stable/fresh.sh && \
     cp /tmp/stable/run.sh /usr/share/centreon/container.sh && \
