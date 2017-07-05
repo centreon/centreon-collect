@@ -30,7 +30,7 @@
             "parent_template": "",
             "passive_checks_enabled": 0,
             "services": [
-                "Base-Ping-LAN-custom"
+                "Base-Ping-LAN"
             ]
         },
         {
