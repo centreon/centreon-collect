@@ -25,4 +25,9 @@ getPackages($distrib, $version);
 # Build web image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon'));
 xcopy('.', xpath($centreon_build_dir . '/containers/centreon'));
-passthru('docker build -t mon-web-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
+passthru(
+    'docker build -t mon-web-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'),
+    $return
+);
+
+exit($return);

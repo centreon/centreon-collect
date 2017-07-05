@@ -5,6 +5,12 @@ set -x
 
 service mysql start
 php /tmp/update-centreon.php -c /etc/centreon/centreon.conf.php
+mysql centreon < /tmp/dev/sql/standard.sql
+mysql centreon < /tmp/dev/sql/kb.sql
+mysql centreon < /tmp/dev/sql/openldap.sql
+mysql centreon < /tmp/dev/sql/media.sql
+centreon -d -u admin -p centreon -a POLLERGENERATE -v 1
+centreon -d -u admin -p centreon -a CFGMOVE -v 1
 service mysql stop
 rm -rf /usr/share/centreon/www/install
 

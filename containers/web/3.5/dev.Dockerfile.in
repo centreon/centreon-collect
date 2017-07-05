@@ -10,9 +10,8 @@ RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 
 # Centreon update is made through custom scripts.
 COPY web/3.5/container.cnf /etc/my.cnf.d/
-COPY web/3.5/update-centreon.php /tmp/
-COPY web/3.5/dev.sh /tmp/install.sh
-RUN chmod +x /tmp/install.sh
+COPY web/3.5 /tmp/dev
+RUN chmod +x /tmp/dev/dev.sh
 COPY centreon/composer.json /usr/share/centreon/composer.json
 RUN composer install -d /usr/share/centreon
 COPY centreon/bootstrap.php /usr/share/centreon/bootstrap.php
@@ -22,7 +21,7 @@ COPY centreon/www/class /usr/share/centreon/www/class
 COPY centreon/www/install /usr/share/centreon/www/install
 COPY centreon/tmpl/install/sudoersCentreonEngine /etc/sudoers.d/centreon
 RUN sed -i 's/@CENTREON_GROUP@/centreon/g' /etc/sudoers.d/centreon
-RUN /tmp/install.sh
+RUN /tmp/dev/dev.sh
 
 # Static sources.
 COPY centreon/tmpl/install/centreon.cron /etc/cron.d/centreon
