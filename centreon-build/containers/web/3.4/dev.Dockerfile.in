@@ -9,8 +9,8 @@ COPY web/3.4/cbd.sh /etc/init.d/cbd
 RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 
 # Centreon update is made through custom scripts.
-COPY web/3.5/container.cnf /etc/my.cnf.d/
-COPY web/3.5 /tmp/dev
+COPY web/3.4/container.cnf /etc/my.cnf.d/
+COPY web/3.4 /tmp/dev
 RUN chmod +x /tmp/dev/dev.sh
 COPY centreon/bin /usr/share/centreon/bin
 RUN chmod +x /usr/share/centreon/bin/*
