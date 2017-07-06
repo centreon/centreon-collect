@@ -6,15 +6,6 @@ set -x
 # Start database server.
 service mysql start
 
-# Start Centreon services.
-/etc/init.d/cbd start
-/etc/init.d/centengine start
-su - centreon -c centcore &
-
-# Fix to allow Centreon Web to use our special init.d script and not
-# call this cumbersome init system.
-rm -rf /etc/systemd
-
 # Wait for the database to be up and running.
 while true ; do
   timeout 10 mysql -e 'SELECT * FROM nagios_server' centreon
@@ -26,6 +17,15 @@ while true ; do
     sleep 1
   fi
 done
+
+# Generate configuration
+centreon -d -u admin -p centreon -a POLLERGENERATE -v 1
+centreon -d -u admin -p centreon -a CFGMOVE -v 1
+
+# Start Centreon services.
+/etc/init.d/cbd start
+/etc/init.d/centengine start
+su - centreon -c centcore &
 
 # Start Centreon Web.
 httpd -k start
