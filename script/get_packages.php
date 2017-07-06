@@ -65,7 +65,7 @@ function getPackages($distrib, $version) {
     chdir($distrib);
 
     foreach ($expectedDirectories as $expectedDirectory) {
-        $html = file_get_contents($url . '/' . $expectedDirectory);
+        $html = @file_get_contents($url . '/' . $expectedDirectory);
         if (preg_match_all('/<a href="(.*'. $expectedDirectory . '.+)">[^<]*<\/a>/', $html, $matches)) {
             rsort($matches[1]);
             $tmpUrl = $url . '/' . $expectedDirectory . '/' . $matches[1][0];
