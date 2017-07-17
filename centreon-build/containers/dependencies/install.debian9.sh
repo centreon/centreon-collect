@@ -14,6 +14,7 @@ apt-get install curl gnupg netcat-openbsd
 curl -sL https://deb.nodesource.com/setup_8.x | bash -
 
 # Install dependencies.
+apt-get update
 xargs apt-get install < /tmp/dependencies.txt
 
 # Configuration.
