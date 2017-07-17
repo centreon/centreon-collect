@@ -11,7 +11,7 @@ apt-get update
 apt-get install curl netcat-openbsd
 
 # Install Node.js repository.
-curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 
 # Install dependencies.
 xargs apt-get install < /tmp/dependencies.txt
