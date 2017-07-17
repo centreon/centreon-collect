@@ -1,0 +1,7 @@
+build-essential
+cmake
+libgnutls28-dev
+libqt4-dev
+librrd-dev
+lsb-base
+make
