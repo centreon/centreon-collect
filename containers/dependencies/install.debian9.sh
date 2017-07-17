@@ -15,3 +15,7 @@ curl -sL https://deb.nodesource.com/setup_8.x | bash -
 
 # Install dependencies.
 xargs apt-get install < /tmp/dependencies.txt
+
+# Configuration.
+echo 'date.timezone = Europe/Paris' > /etc/php/7.0/apache2/conf.d/50-centreon.ini
+echo 'date.timezone = Europe/Paris' > /etc/php/7.0/cli/conf.d/50-centreon.ini

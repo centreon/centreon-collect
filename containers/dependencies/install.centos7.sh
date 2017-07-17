@@ -19,3 +19,6 @@ curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
 
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt
+
+# Configuration.
+echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
