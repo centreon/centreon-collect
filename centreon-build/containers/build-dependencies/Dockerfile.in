@@ -1,0 +1,8 @@
+FROM @BASE_IMAGE@
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+
+# Run distribution-dependent installation.
+COPY build-dependencies/build-dependencies.@DISTRIB@.txt /tmp/build-dependencies.txt
+COPY repo/centreon-internal.repo.in /tmp/centreon-internal.repo.in
+COPY build-dependencies/install.@DISTRIB@.txt /tmp/install.sh
+RUN /tmp/install.sh
