@@ -1,7 +1,11 @@
+aptitude
 build-essential
 cmake
+devscripts
 libgnutls28-dev
 libqt4-dev
 librrd-dev
+lintian
 lsb-base
 make
+pbuilder
