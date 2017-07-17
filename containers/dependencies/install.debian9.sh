@@ -8,7 +8,7 @@ echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes
 
 # Install base tools.
 apt-get update
-apt-get install curl netcat-openbsd
+apt-get install curl gnupg netcat-openbsd
 
 # Install Node.js repository.
 curl -sL https://deb.nodesource.com/setup_8.x | bash -
