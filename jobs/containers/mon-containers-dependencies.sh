@@ -27,7 +27,7 @@ DISTRIB="$1"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" "s/@BASE_IMAGE@/$BASE_IMAGE/g" < dependencies/Dockerfile.in > dependencies/Dockerfile
+sed -e "s/@DISTRIB@/$DISTRIB/g" -e "s/@BASE_IMAGE@/$BASE_IMAGE/g" < dependencies/Dockerfile.in > dependencies/Dockerfile
 
 # Build image.
 DEP_IMG="ci.int.centreon.com:5000/mon-dependencies:$DISTRIB"
