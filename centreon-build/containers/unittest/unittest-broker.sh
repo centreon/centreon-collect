@@ -9,7 +9,7 @@ mkdir /tmp/build
 cd /tmp/build
 
 # Configure project.
-cmake -DWITH_TESTING=1 /usr/local/src/centreon-broker/build
+CXXFLAGS="-std=c++03" cmake -DWITH_TESTING=1 /usr/local/src/centreon-broker/build
 
 # Build project.
 make -j 4
