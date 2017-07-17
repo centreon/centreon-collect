@@ -16,7 +16,6 @@ yum install --nogpgcheck centreon-release.rpm
 
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
-yum install nodejs
 
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt
