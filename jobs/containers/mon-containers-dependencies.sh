@@ -22,6 +22,7 @@ case "$1" in
     ;;
 esac
 DISTRIB="$1"
+docker pull "$BASE_IMAGE"
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
