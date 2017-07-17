@@ -9,6 +9,7 @@ libgcrypt
 libssh2
 mysql
 mysql-server
+nodejs
 redhat-lsb
 nagios-plugins
 net-snmp
