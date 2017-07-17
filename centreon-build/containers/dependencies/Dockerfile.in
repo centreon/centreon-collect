@@ -5,6 +5,3 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 COPY dependencies/dependencies.@DISTRIB@.txt /tmp/dependencies.txt
 COPY dependencies/install.@DISTRIB@.sh /tmp/install.sh
 RUN /tmp/install.sh
-
-# Run common tasks.
-RUN echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
