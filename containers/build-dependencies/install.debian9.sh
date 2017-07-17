@@ -15,7 +15,7 @@ curl -sL https://deb.nodesource.com/setup_8.x | bash -
 
 # Install required build dependencies for all Centreon projects.
 apt-get update
-xargs apt-get install -d < /tmp/build-dependencies.txt
+xargs apt-get install < /tmp/build-dependencies.txt
 
 # Install Node.js.
 apt-get install nodejs
