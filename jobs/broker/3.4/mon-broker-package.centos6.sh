@@ -5,9 +5,7 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cd input
-get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-cd ..
+mv "$PROJECT-$VERSION.tar.gz" input/
 cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 
 # Build RPMs.

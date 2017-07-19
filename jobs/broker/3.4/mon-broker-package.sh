@@ -22,7 +22,10 @@ DISTRIB="$1"
 # Pull mon-build-dependencies container.
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
 
-# Retrieve spec file.
+# Retrieve sources.
+get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+
+# Retrieve packaging files.
 if [ \! -d packaging-centreon-broker ] ; then
   git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon-broker.git
 else
