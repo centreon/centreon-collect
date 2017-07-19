@@ -24,7 +24,7 @@ mkdir output-centos7
 cd centreon-studio-web-client
 git checkout --detach "$COMMIT"
 
-VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`                                                                                                                                                                    
+export VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`                                                                                                                                                                    
 
 # Generate sources of Centreon Map web client.
 npm install
