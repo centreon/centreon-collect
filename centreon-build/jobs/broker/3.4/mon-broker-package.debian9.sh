@@ -1,11 +1,11 @@
 # Prepare build directory.
 rm -rf debuildir
 mkdir debuildir
-cp "$PROJECT-$VERSION.tar.gz" "debuildir/$PROJECT_$VERSION.orig.tar.gz"
+cp "${PROJECT}-${VERSION}.tar.gz" "debuildir/${PROJECT}_${VERSION}.orig.tar.gz"
 cd debuildir
-tar xzf "$PROJECT_$VERSION.orig.tar.gz"
-cp -r "../packaging-$PROJECT/debian" "$PROJECT-$VERSION/"
-sed -e "s/@VERSION@/$VERSION/g" -e "s/@RELEASE@/$RELEASE/g" < "$PROJECT-$VERSION/debian/changelog.in" > "$PROJECT-$VERSION/debian/changelog"
+tar xzf "${PROJECT}_${VERSION}.orig.tar.gz"
+cp -r "../packaging-${PROJECT}/debian" "${PROJECT}-${VERSION}/"
+sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}/g" < "${PROJECT}-${VERSION}/debian/changelog.in" > "${PROJECT}-${VERSION}/debian/changelog"
 cd ..
 
 # Launch debuild.
@@ -14,7 +14,7 @@ docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start "$containerid"
 
 # Send package to repository.
-docker cp "$containerid:/usr/local/src/debuildir/$PROJECT_$VERSION-$RELEASE_amd64.deb" .
+docker cp "$containerid:/usr/local/src/debuildir/${PROJECT}_${VERSION}-${RELEASE}_amd64.deb" .
 # XXX
 
 # Stop container.
