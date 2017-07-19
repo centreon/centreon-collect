@@ -1,0 +1,133 @@
+##
+## Copyright 2011-2017 Centreon
+##
+
+%if 0%{?suse_version}
+%define group "Development/Languages/C and C++"
+%elseif 0%{?centos_version}
+%define group "Development/Libraries"
+%else
+%define group "Development/Libraries"
+%endif
+
+Name:           centreon-clib
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        Centreon core library.
+
+Group:		%{group}
+License:        ASL 2.0
+URL:            https://github.com/centreon/centreon-clib
+Packager:       Matthieu Kermagoret <mkermagoret@centreon.com>
+Vendor:         Centreon Entreprise Server (CES) Repository, http://yum.centreon.com/standard/
+
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root
+
+BuildRequires:  cmake >= 2.8
+%define cmake /usr/bin/cmake
+
+BuildRequires:	gcc
+BuildRequires:	gcc-c++
+BuildRequires:	make
+Conflicts:      centreon-engine < 1.3.3
+
+%description
+Centreon Clib is a common library for all Centreon
+products written in C/C++.
+
+%package devel
+Summary:	Provide include files for Centreon Clib.
+Group:		%{group}
+Requires:	centreon-clib = %{version}-%{release}
+Requires:       pkgconfig
+
+%description devel
+Centreon Clib devel provide include files to build
+Centreon products written in C/C++.
+
+%prep
+%setup
+
+%build
+cd build
+CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
+	-DWITH_PKGCONFIG_DIR=%{_libdir}/pkgconfig \
+	-DWITH_PREFIX=%{_prefix} \
+	-DWITH_PREFIX_LIB=%{_libdir} \
+	-DWITH_PREFIX_INC=%{_includedir}/centreon-clib \
+	-DWITH_SHARED_LIB=1 \
+	-DWITH_STATIC_LIB=0 \
+	-DWITH_TESTING=0 .
+%{__make} %{?jobs:-j%jobs} %{?_smp_mflags} VERBOSE="1"
+
+%install
+%{__rm} -rf $RPM_BUILD_ROOT
+cd build
+%{__make} install DESTDIR="$RPM_BUILD_ROOT"
+
+%clean
+%{__rm} -rf $RPM_BUILD_ROOT
+
+%pre
+
+%files
+%defattr(-,root,root,-)
+%{_libdir}/libcentreon_clib.so
+%doc LICENSE
+
+%files devel
+%defattr(-,root,root,-)
+%{_libdir}/pkgconfig/centreon-clib.pc
+%{_includedir}/centreon-clib
+%doc LICENSE
+
+%changelog
+* Tue Sep 29 2015 Matthieu Kermagoret <mkermagoret@centreon.com> 1.4.2-3
+- Do not install files that are not ours.
+
+* Mon Sep 28 2015 Matthieu Kermagoret <mkermagoret@centreon.com> 1.4.2-2
+- Update Centreon Clib license to Apache Software License 2 (ASL 2.0).
+
+* Thu Oct 16 2014 Alexandre Fouille <afouille@merethis.com> 1.4.2-1
+- Fix a random memory corruption when a stringifier is realloc'd.
+
+* Wed Sep 10 2014 Alexandre Fouille <afouille@merethis.com> 1.4.1-1
+- Fix a segfault when a stringifier is copied.
+
+* Tue May 27 2014 Matthieu Kermagoret <mkermagoret@merethis.com> 1.4.0-1
+- Introduce maximum log file size.
+
+* Thu May 22 2014 Matthieu Kermagoret <mkermagoret@merethis.com> 1.3.0-2
+- devel package must require the exact same version of the base package.
+
+* Thu Apr 10 2014 Matthieu Kermagoret <mkermagoret@merethis.com> 1.3.0-1
+- Handle interruptions of syscalls in process.
+
+* Thu Oct 17 2013 Dorian Guillois <dguillois@merethis.com> 1.2.1-2
+- Change centreon-clib spec to use the new cmake package.
+
+* Tue Oct 15 2013 Matthieu Kermagoret <mkermagoret@merethis.com> 1.2.1-1
+- Fix concurrent accesses to the task manager task list.
+
+* Tue Oct 01 2013 Matthieu Kermagoret <mkermagoret@merethis.com> 1.2.0-3
+- Clib conflicts with Centreon Engine < 1.3.3 (packaging bug)
+
+* Thu Aug 29 2013 Matthieu Kermagoret <mkermagoret@merethis.com> 1.2.0-2
+- Reworked spec file.
+
+* Fri Aug 16 2013 Dorian Guillois <dguillois@merethis.com> 1.2.0-1
+- Add feature on shared_ptr.
+- Add hash function.
+
+* Fri May  3 2013 Dorian Guillois <dguillois@merethis.com> 1.1.0-1
+- Fix command line parser.
+- Fix thread sleep.
+- Improve performances.
+- Update documentation.
+
+* Tue Mar 05 2013 Maximilien Bersoult <mbersoult@merethis.com> 1.0.0-13
+- Use macro for cmake dependancies in CES 2.2 and CES 3.0, prepare for OpenSuSE
+
+* Mon Aug 20 2012 Dorian Guillois <dguillois@merethis.com> 1.0.0-1
+- Initial build.
