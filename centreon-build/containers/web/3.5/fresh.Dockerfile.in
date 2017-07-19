@@ -1,30 +1,25 @@
 # Base information.
 FROM @BASE_IMAGE@
-MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Install repository.
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+COPY web/3.5 /tmp/fresh
 
-# Install Centreon Web.
-RUN yum clean all && yum clean packages
-RUN yum install -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git
-COPY web/3.5/centengine.sh /etc/init.d/centengine
-COPY web/3.5/cbd.sh /etc/init.d/cbd
-RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
+RUN yum clean all && \
+    yum install -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git && \
+    cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
+    cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
+    chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
+    cp /tmp/fresh/autoinstall.php /usr/share/centreon/autoinstall.php && \
+    mkdir /usr/share/centreon/www/install/tmp && \
+    cp /tmp/fresh/configuration/* /usr/share/centreon/www/install/tmp/ && \
+    chown -R apache.apache /usr/share/centreon/www/install/tmp && \
+    chmod +x /tmp/fresh/fresh.sh && \
+    /tmp/fresh/fresh.sh && \
+    cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
+    chmod +x /usr/share/centreon/container.sh && \
+    yum clean all && \
+    rm -rf /tmp/fresh
 
-# Prepare environment for autoinstall.
-COPY web/3.5/autoinstall.php /usr/share/centreon/autoinstall.php
-RUN mkdir /usr/share/centreon/www/install/tmp
-COPY web/3.5/configuration/* /usr/share/centreon/www/install/tmp/
-RUN chown -R apache.apache /usr/share/centreon/www/install/tmp
-
-# Install script (web-wizard install).
-COPY web/3.5/fresh.sh /tmp/install.sh
-COPY web/3.5/kb.sql web/3.5/openldap.sql web/3.5/kb.sh web/3.5/openldap.sh /tmp/
-RUN chmod +x /tmp/install.sh /tmp/kb.sh /tmp/openldap.sh
-RUN /tmp/install.sh && /tmp/kb.sh && /tmp/openldap.sh
-
-# Main script.
-COPY web/3.5/run.sh /usr/share/centreon/container.sh
-RUN chmod +x /usr/share/centreon/container.sh
 ENTRYPOINT ["/usr/share/centreon/container.sh"]

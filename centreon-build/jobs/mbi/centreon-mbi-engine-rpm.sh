@@ -50,7 +50,7 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
 
  rm -rf output6
  rm -rf output7
- 
+
  mkdir output6
  mkdir output7
 

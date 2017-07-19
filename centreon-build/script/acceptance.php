@@ -10,7 +10,6 @@ function build_image_name($base) {
     global $ci;
     global $distrib;
     global $version;
-    global $centreonVersion;
 
     if ($ci) {
         $name = 'ci.int.centreon.com:5000/' . $base;
@@ -18,8 +17,8 @@ function build_image_name($base) {
             $name .= '-' . $version;
         }
         $name .= ':' . $distrib;
-    } elseif (!empty($centreonVersion)) {
-        $name = $base . '-' . $centreonVersion . '-dev:' . $distrib;
+    } elseif (!empty($version)) {
+        $name = $base . '-' . $version . '-dev:' . $distrib;
     } else {
         $name = $base . '-dev:' . $distrib;
     }
@@ -51,7 +50,7 @@ if (function_exists('pcntl_signal')) {
 $opts = getopt("cd:ghsv:i:");
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c [-v]] [-d distrib] [-i version] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c] [-v version] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "  Description:\n";
     echo "    Feature files are optional. By default all of them will be run.\n";
@@ -61,11 +60,10 @@ if (isset($opts['h'])) {
     echo "  Arguments:\n";
     echo "    -h  Print this help.\n";
     echo "    -c  Use images from the continuous integration instead of locally generated images.\n";
-    echo "    -v  Use precise version from CI (use with -c).\n";
+    echo "    -v  Use precise version (can be use with -c for CI).\n";
     echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
-    echo "    -i  Centreon image version (3.4 or 3.5).\n";
     echo "\n";
     echo "  Prerequisites:\n";
     echo "    - *Docker* (connected to Docker Machine on Windows or MacOS)\n";
@@ -79,20 +77,23 @@ if (isset($opts['h'])) {
     echo "        support.centreon.com 10.30.2.62\n";
     return (0);
 }
+
+
+if (isset($opts['v'])) {
+    $version = $opts['v'];
+    array_shift($argv);
+    array_shift($argv);
+} else {
+    $version = '3.5';
+}
+
 if (isset($opts['c'])) {
     $ci = true;
     array_shift($argv);
-    if (isset($opts['v'])) {
-        $version = $opts['v'];
-        array_shift($argv);
-        array_shift($argv);
-    } else {
-        $version = null;
-    }
 } else {
     $ci = false;
-    $version = null;
 }
+
 if (isset($opts['d'])) {
     $distrib = $opts['d'];
     array_shift($argv);
@@ -111,13 +112,6 @@ if (isset($opts['s'])) {
     array_shift($argv);
 } else {
     $synchronize = false;
-}
-if (isset($opts['i'])) {
-    $centreonVersion = $opts['i'];
-    array_shift($argv);
-    array_shift($argv);
-} else {
-    $centreonVersion = '3.5';
 }
 $source_dir = realpath('.');
 
@@ -442,7 +436,7 @@ else {
     } else {
         passthru(
             'php ' . xpath($centreon_build_dir . '/script/' . $project . '-dev.php') . ' ' .
-            $distrib . ' ' . $centreonVersion, $return_var
+            $distrib . ' ' . $version, $return_var
         );
         if ($return_var != 0) {
             echo 'Could not build development container of ' . $project . "\n";
