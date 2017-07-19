@@ -5,7 +5,7 @@ cp "$PROJECT-$VERSION.tar.gz" "debuildir/$PROJECT_$VERSION.orig.tar.gz"
 cd debuildir
 tar xzf "$PROJECT_$VERSION.orig.tar.gz"
 cp -r "../packaging-$PROJECT/debian" "$PROJECT-$VERSION/"
-sed -e "s/@VERSION@/$VERSION/g" -e "s/@RELEASE@/$RELEASE/g" < debian/changelog.in > debian/changelog
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@RELEASE@/$RELEASE/g" < "$PROJECT-$VERSION/debian/changelog.in" > "$PROJECT-$VERSION/debian/changelog"
 cd ..
 
 # Launch debuild.
