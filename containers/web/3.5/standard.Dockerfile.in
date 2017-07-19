@@ -1,6 +1,9 @@
 FROM @BASE_IMAGE@
-MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
-COPY web/3.5/container.cnf /etc/my.cnf.d/
-COPY web/3.5/standard.sql /tmp/
-COPY web/3.5/standard.sh /tmp/install.sh
-RUN chmod +x /tmp/install.sh && /tmp/install.sh
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+COPY web/3.5 /tmp/standard
+RUN cp /tmp/standard/container.cnf /etc/my.cnf.d/ && \
+    cp /tmp/standard/img/centreon.png /usr/share/centreon/www/img/media/logos && \
+    chown -R apache.apache /usr/share/centreon/www/img/media &&\
+    chmod +x /tmp/standard/standard.sh && \
+    /tmp/standard/standard.sh && \
+    rm -rf /tmp/standard
