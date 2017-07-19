@@ -145,6 +145,16 @@ case "$PROJECT" in
           centreon-web"
     EL7=no
   ;;
+  centreon-map-web-client)
+      DIR='/map/3.4'
+      ARCH='noarch'
+      RPMS="centreon-map4-web-client"
+  ;;
+  centreon-map-server)
+      DIR='/map/3.4'
+      ARCH='noarch'
+      RPMS="centreon-map4-server"
+  ;;
 esac
 
 # Move all RPMs to stable.
