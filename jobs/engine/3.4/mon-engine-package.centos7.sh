@@ -6,7 +6,7 @@ mkdir output
 
 # Retrieve source tarball, spectemplate and additional source files.
 mv "$PROJECT-$VERSION.tar.gz" input/
-cp `dirname $0`/../../../packaging/engine/* input/
+cp -r `dirname $0`/../../../packaging/engine/* input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output
