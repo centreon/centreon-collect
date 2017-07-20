@@ -56,6 +56,6 @@ put_internal_debs () {
   shift
   for deb in $@ ; do
     scp "$deb" "$REPO_CREDS:/tmp/"
-    ssh "$REPO_CREDS" bash -c "cd $DIR && reprepro includedeb $DISTRIB /tmp/`basename $deb`"
+    ssh "$REPO_CREDS" "cd $DIR && reprepro includedeb $DISTRIB /tmp/`basename $deb`"
   done
 }
