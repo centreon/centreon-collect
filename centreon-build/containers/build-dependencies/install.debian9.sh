@@ -26,7 +26,7 @@ apt-get install nodejs
 npm install -g gulp
 
 # Install Composer.
-apt-get install php php-cli
+apt-get install php php-cli php-mbstring php-xml
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
