@@ -87,11 +87,14 @@ sed -i \
 make clean
 cd ../../..
 
-# Create source tarball.
+# Create source tarballs.
 tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
+mv "centreon-$VERSION" "centreon-web-$VERSION"
+tar czf "centreon-web-$VERSION.tar.gz" "centreon-web-$VERSION"
 
 # Send it to srvi-repo.
 put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz"
+put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-web-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
