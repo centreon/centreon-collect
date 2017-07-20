@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	cd build && CXXFLAGS="-std=c++03" cmake -DWITH_PREFIX=/usr -DWITH_PREFIX_CONF=/etc/centreon-engine -DWITH_VAR_DIR=/var/lib/centreon-engine .
+
+override_dh_auto_build:
+	make -C build
+
+override_dh_auto_install:
+	make -C build install DESTDIR=../debian/centreon-engine
