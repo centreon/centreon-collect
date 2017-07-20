@@ -14,3 +14,9 @@ chmod +x /usr/local/bin/phpunit
 curl -o epel-release.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 yum install --nogpgcheck -y epel-release.rpm
 yum install php-pecl-xdebug
+
+# Install Composer.
+yum install -y php php-cli php-dom php-mbstring
+curl -sS https://getcomposer.org/installer | php
+mv composer.phar /usr/local/bin/composer
+chmod +x /usr/local/bin/composer
