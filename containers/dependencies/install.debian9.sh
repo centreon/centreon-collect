@@ -10,6 +10,10 @@ echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes
 apt-get update
 apt-get install curl gnupg netcat-openbsd
 
+# Install internal repository.
+curl http://yum-1.centreon.com/standard/3.4/el7/stable/RPM-GPG-KEY-CES | apt-key add -
+echo 'deb http://srvi-repo.int.centreon.com/apt/internal/3.5 stretch main' > /etc/apt/sources.list.d/centreon-internal.list
+
 # Install Node.js repository.
 curl -sL https://deb.nodesource.com/setup_8.x | bash -
 
