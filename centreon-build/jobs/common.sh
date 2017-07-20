@@ -26,7 +26,7 @@ put_internal_source () {
   clean_directory "$DIR"
 }
 
-# Internal RPMs.
+# Internal packages.
 
 put_internal_rpms () {
   DIR="/srv/yum/internal/$1/$2/$3/$4"
@@ -47,4 +47,15 @@ put_internal_rpms () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
+}
+
+put_internal_debs () {
+  DIR="/srv/apt/internal/$1"
+  DISTRIB="$2"
+  shift
+  shift
+  for deb in $@ ; do
+    scp "$deb" "$REPO_CREDS:/tmp/"
+    ssh "$REPO_CREDS" bash -c "cd $DIR && reprepro includedeb $DISTRIB /tmp/`basename $deb`"
+  done
 }
