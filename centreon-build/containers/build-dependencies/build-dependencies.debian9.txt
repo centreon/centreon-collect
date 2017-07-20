@@ -1,5 +1,5 @@
-aptitude
 build-essential
+centreon-clib
 cmake
 devscripts
 libgnutls28-dev
