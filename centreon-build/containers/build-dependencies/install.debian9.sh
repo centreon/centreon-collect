@@ -28,5 +28,7 @@ npm install -g gulp
 # Install Composer.
 apt-get install php php-cli php-curl php-mbstring php-xml
 curl -sS https://getcomposer.org/installer | php
-mv composer.phar /usr/local/bin/composer
-chmod +x /usr/local/bin/composer
+# For mon-build-dependencies, composer need to be in /usr/bin so that
+# composer is still available during debuild.
+mv composer.phar /usr/bin/composer
+chmod +x /usr/bin/composer
