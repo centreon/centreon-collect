@@ -65,7 +65,7 @@ export RELEASE="$now.$COMMIT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Prepare source directory
-rm -rf "../centreon-$VERSION"
+rm -rf "../centreon-$VERSION" "../centreon-web-$VERSION"
 mkdir "../centreon-$VERSION"
 git archive HEAD | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
