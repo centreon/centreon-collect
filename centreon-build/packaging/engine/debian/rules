@@ -6,10 +6,24 @@ export DH_VERBOSE=1
 	dh $@
 
 override_dh_auto_configure:
-	cd build && CXXFLAGS="-std=c++03" cmake -DWITH_PREFIX=/usr -DWITH_PREFIX_CONF=/etc/centreon-engine -DWITH_VAR_DIR=/var/lib/centreon-engine .
+	cd build && CXXFLAGS="-std=c++03" cmake \
+	  -DWITH_PREFIX=/usr \
+	  -DWITH_PREFIX_CONF=/etc/centreon-engine \
+	  -DWITH_VAR_DIR=/var/lib/centreon-engine \
+	  -DWITH_STARTUP_SCRIPT=systemd \
+	  -DWITH_STARTUP_DIR=/lib/systemd/system \
+	  -DWITH_BENCH=1 \
+	  -DWITH_CREATE_FILES=0 \
+	  -DWITH_LOGROTATE_SCRIPT=1 \
+	  -DWITH_LOGROTATE_DIR=/etc/logrotate.d \
+	  -DWITH_PKGCONFIG_SCRIPT=0 \
+	  -DWITH_TESTING=0 \
+	  .
 
 override_dh_auto_build:
 	make -C build
 
 override_dh_auto_install:
 	make -C build install DESTDIR=../debian/centreon-engine
+	mkdir -p debian/centreon-engine/var/lib/centreon-engine
+	mkdir -p debian/centreon-engine/var/log/centreon-engine
