@@ -5,16 +5,21 @@ set -x
 
 export PROJECT='centreon-map-client'
 
-# Check arguments.
+ Check arguments.
 if [ -z "$VERSION" ] ; then
   echo "You need to specify VERSION environment variable."
   exit 1
 fi
 
-IFS='.' read -ra VERSION_TABLE <<< "$VERSION"
-export MAJOR=${VERSION_TABLE[0]}
-export MINOR=${VERSION_TABLE[1]}
-export BUGFIX=${VERSION_TABLE[2]}
+#IFS='.' read -ra VERSION_TABLE <<< "$VERSION"
+
+#export MAJOR=${VERSION_TABLE[0]}
+#export MINOR=${VERSION_TABLE[1]}
+#export BUGFIX=${VERSION_TABLE[2]}
+
+export MAJOR=4
+export MINOR=2
+export BUGFIX=0
 
 # Move artifacts to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
