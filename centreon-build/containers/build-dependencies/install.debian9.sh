@@ -11,7 +11,7 @@ apt-get update
 apt-get install curl gnupg
 
 # Install development repository.
-curl http://yum-1.centreon.com/standard/3.4/el7/stable/RPM-GPG-KEY-CES | apt-key add -
+curl http://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -
 echo 'deb http://srvi-repo.int.centreon.com/apt/internal/3.5 stretch main' > /etc/apt/sources.list.d/centreon-internal.list
 
 # Install Node.js repository.
@@ -26,7 +26,9 @@ apt-get install nodejs
 npm install -g gulp
 
 # Install Composer.
-apt-get install php php-cli
+apt-get install php php-cli php-curl php-mbstring php-xml
 curl -sS https://getcomposer.org/installer | php
-mv composer.phar /usr/local/bin/composer
-chmod +x /usr/local/bin/composer
+# For mon-build-dependencies, composer need to be in /usr/bin so that
+# composer is still available during debuild.
+mv composer.phar /usr/bin/composer
+chmod +x /usr/bin/composer

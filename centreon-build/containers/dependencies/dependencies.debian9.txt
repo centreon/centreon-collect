@@ -1,3 +1,6 @@
+centreon-clib
 nodejs
 php
 php-cli
+php-mbstring
+php-xml
