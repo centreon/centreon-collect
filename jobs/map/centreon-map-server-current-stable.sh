@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Project.
-export PROJECT=centreon-map-web-client
+export PROJECT=centreon-map-server
 
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 
