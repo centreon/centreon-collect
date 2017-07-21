@@ -11,7 +11,7 @@ if [ -z "$VERSION" ] ; then
   exit 1
 fi
 
-IFS='.' read -ra VERSION_TABLE <<< $VERSION
+IFS='.' read -ra VERSION_TABLE <<< "$VERSION"
 export MAJOR=${VERSION_TABLE[0]}
 export MINOR=${VERSION_TABLE[1]}
 export BUGFIX=${VERSION_TABLE[2]}
