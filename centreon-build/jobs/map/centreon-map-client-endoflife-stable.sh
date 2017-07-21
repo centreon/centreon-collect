@@ -5,7 +5,7 @@ set -x
 
 export PROJECT='centreon-map-client'
 
- Check arguments.
+# Check arguments.
 if [ -z "$VERSION" ] ; then
   echo "You need to specify VERSION environment variable."
   exit 1
