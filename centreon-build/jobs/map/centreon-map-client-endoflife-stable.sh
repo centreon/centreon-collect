@@ -11,21 +11,21 @@ if [ -z "$VERSION" ] ; then
   exit 1
 fi
 
-IFS='.' read -a VERSION_TABLE <<< "${VERSION}"
+#IFS='.' read -a VERSION_TABLE <<< "${VERSION}"
 
 #VERSION_TABLE=$( ${VERSION//./ }))
 
 
-export MAJOR=${VERSION_TABLE[0]}
-export MINOR=${VERSION_TABLE[1]}
-export BUGFIX=${VERSION_TABLE[2]}
+#export MAJOR=${VERSION_TABLE[0]}
+#export MINOR=${VERSION_TABLE[1]}
+#export BUGFIX=${VERSION_TABLE[2]}
 
-echo $MAJOR
-echo $MINOR
-echo $BUGFIX
-#export MAJOR=4
-#export MINOR=2
-#export BUGFIX=0
+#echo $MAJOR
+#echo $MINOR
+#echo $BUGFIX
+export MAJOR=4
+export MINOR=2
+export BUGFIX=0
 
 # Move artifacts to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
