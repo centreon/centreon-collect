@@ -15,7 +15,7 @@ RUN curl -sS https://getcomposer.org/installer | php && \
     chmod +x /usr/local/bin/composer
 
 # Install Node.js and related elements.
-RUN curl --silent --location https://rpm.nodesource.com/setup_4.x | bash - && \
+RUN curl --silent --location https://rpm.nodesource.com/setup_6.x | bash - && \
     yum install --nogpgcheck -y nodejs && \
     npm install -g gulp
 

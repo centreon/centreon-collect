@@ -12,7 +12,7 @@ sed -e 's/@VERSION@/3.4/g' -e 's/@DISTRIB@/el6/g' < /tmp/centreon-internal.repo.
 xargs yum install --downloadonly < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -
 yum install --nogpgcheck -y nodejs
 npm install -g gulp
 
