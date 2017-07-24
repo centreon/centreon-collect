@@ -15,7 +15,7 @@ curl -o centreon-release.rpm "http://yum.centreon.com/standard/3.4/el6/stable/no
 yum install --nogpgcheck centreon-release.rpm
 
 # Install Node.js repository.
-curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -
 
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt
