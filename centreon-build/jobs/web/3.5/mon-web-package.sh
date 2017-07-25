@@ -23,8 +23,11 @@ DISTRIB="$1"
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
 
 # Retrieve sources.
-get_internal_source "web/$PROJECT-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
-get_internal_source "web/$PROJECT-$VERSION-$RELEASE/centreon-web-$VERSION.tar.gz"
+get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION" "centreon-$VERSION" "centreon-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+mv "$PROJECT-$VERSION" "centreon-$VERSION"
+tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Retrieve packaging files.
 if [ \! -d packaging-centreon-web ] ; then
