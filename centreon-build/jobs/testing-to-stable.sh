@@ -166,7 +166,7 @@ esac
 for rpm in $RPMS ; do
   $SSH_REPO mv "$BASE_DIR/$DIR/el6/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el6.$ARCH.rpm" "$BASE_DIR/$DIR/el6/stable/$ARCH/RPMS"
   if [ "$EL7" '!=' 'no' ] ; then
-    $SSH_REPO mv "$BASE_DIR/$DIR/el7/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el7.centos.$ARCH.rpm" "$BASE_DIR/$DIR/el7/stable/$ARCH/RPMS"
+    $SSH_REPO mv "$BASE_DIR/$DIR/el7/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el7.*$ARCH.rpm" "$BASE_DIR/$DIR/el7/stable/$ARCH/RPMS"
   fi
 done
 
