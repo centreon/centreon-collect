@@ -155,6 +155,11 @@ case "$PROJECT" in
       ARCH='noarch'
       RPMS="centreon-map4-server"
   ;;
+  centreon-widget-*)
+    DIR='/standard/3.4'
+    ARCH='noarch'
+    RPMS="$PROJECT"
+  ;;
 esac
 
 # Move all RPMs to stable.
