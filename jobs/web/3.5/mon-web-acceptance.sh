@@ -5,6 +5,9 @@ set -x
 
 . `dirname $0`/../../common.sh
 
+# Project.
+PROJECT=centreon-web
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -33,10 +36,10 @@ docker pull $OPENLDAP_IMAGE
 docker pull $INFLUXDB_IMAGE
 
 # Fetch sources.
-rm -rf "centreon-$VERSION" "centreon-$VERSION.tar.gz"
-get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
-tar xzf "centreon-$VERSION.tar.gz"
-cd "centreon-$VERSION"
+rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
+get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-web.yml
