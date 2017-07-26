@@ -13,6 +13,9 @@ set -x
 # the property file generated at the end of the script.
 #
 
+# Project.
+PROJECT=centreon-web
+
 # Checkout Centreon Plugins.
 if [ \! -d centreon-plugins ] ; then
   git clone https://github.com/centreon/centreon-plugins.git
@@ -65,15 +68,15 @@ export RELEASE="$now.$COMMIT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Prepare source directory
-rm -rf "../centreon-$VERSION" "../centreon-web-$VERSION"
-mkdir "../centreon-$VERSION"
-git archive HEAD | tar -C "../centreon-$VERSION" -x
+rm -rf "../$PROJECT-$VERSION"
+mkdir "../$PROJECT-$VERSION"
+git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
 cd ../centreon-plugins
-git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../centreon-$VERSION" -x
+git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../$PROJECT-$VERSION" -x
 
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
-cd "../centreon-$VERSION/doc/en"
+cd "../$PROJECT-$VERSION/doc/en"
 make SPHINXOPTS="-D html_theme=scrolls" html
 cp "_build/html/release_notes/centreon-$major.$minor/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
 sed -i \
@@ -88,17 +91,14 @@ make clean
 cd ../../..
 
 # Create source tarballs.
-tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
-mv "centreon-$VERSION" "centreon-web-$VERSION"
-tar czf "centreon-web-$VERSION.tar.gz" "centreon-web-$VERSION"
+tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Send it to srvi-repo.
-put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz"
-put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-web-$VERSION.tar.gz"
+put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
-PROJECT=centreon-web
+PROJECT=$PROJECT
 VERSION=$VERSION
 RELEASE=$RELEASE
 COMMIT=$COMMIT
