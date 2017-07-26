@@ -20,9 +20,9 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -rf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
-get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz"
-tar xzf "centreon-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
 UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
@@ -30,7 +30,7 @@ docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
 
 # Copy sources to container.
-docker cp "centreon-$VERSION" "$containerid:/usr/local/src/$PROJECT"
+docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
