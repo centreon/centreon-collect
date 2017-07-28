@@ -12,12 +12,10 @@ TOMCAT6_PATH="centreon-studio-server/com.centreon.studio.server.parent/com.centr
 TOMCAT7_PATH="centreon-studio-server/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map4-server/RPMS/noarch/"
 
 for filename in "$TOMCAT6_PATH"/*.rpm; do
-    FILE_WITH_EXTENSION="${file##*/}"
-    TOMCAT6_FILE="${FILE_WITH_EXTENSION%.*}"
+    TOMCAT6_FILE=${filename##*/}
 done
 for filename in "$TOMCAT7_PATH"/*.rpm; do
-    FILE_WITH_EXTENSION="${file##*/}"
-    TOMCAT7_FILE="${FILE_WITH_EXTENSION%.*}"
+    TOMCAT7_FILE=${filename##*/}
 done
 
 scp -o StrictHostKeyChecking=no $TOMCAT6_PATH/$TOMCAT6_FILE ubuntu@srvi-repo.int.centreon.com:/srv/yum/map/3.4/el6/testing/noarch/RPMS/
