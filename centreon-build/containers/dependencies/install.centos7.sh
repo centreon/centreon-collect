@@ -22,3 +22,6 @@ xargs yum install < /tmp/dependencies.txt
 
 # Configuration.
 echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
+
+# Clean packages
+yum clean all
