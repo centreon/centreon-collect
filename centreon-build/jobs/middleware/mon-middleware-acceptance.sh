@@ -30,7 +30,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
-sed -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/middleware/docker-compose-standalone.yml.in > docker-compose-middleware.yml
+sed -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > docker-compose-middleware.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
