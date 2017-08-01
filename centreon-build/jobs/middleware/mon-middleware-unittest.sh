@@ -10,7 +10,7 @@ PROJECT=centreon-middleware
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+get_internal_source "middleware/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
