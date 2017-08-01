@@ -19,7 +19,7 @@ docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-middleware`
 
 # Copy sources to container.
-docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
+docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/centreon-imp-portal-api"
 
 # Run unit tests.
 docker start -a "$containerid"
