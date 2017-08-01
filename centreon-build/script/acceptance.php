@@ -449,12 +449,22 @@ else {
     if ($only_generate) {
         echo "Image generation only mode (-g), step not needed\n";
     } else {
-        $cmd = xpath("./vendor/bin/behat --strict");
+        $cmd = xpath("./vendor/bin/behat --strict --no-colors --no-interaction");
         if (empty($argv)) {
             $argv[] = '';
         }
+        passthru(
+            'docker-compose -f ' . $centreon_build_dir . '/containers/webdrivers/docker-compose.yml.in ' .
+            '-p webdriver up -d',
+            $return_var
+        );
         foreach ($argv as $feature) {
             passthru($cmd . ' ' . $feature, $return_var);
         }
+        passthru(
+            'docker-compose -f ' . $centreon_build_dir . '/containers/webdrivers/docker-compose.yml.in ' .
+            '-p webdriver down -v',
+            $return_var
+        );
     }
 }

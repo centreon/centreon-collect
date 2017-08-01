@@ -46,6 +46,9 @@ sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/mediawiki/
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/openldap/docker-compose.yml.in > docker-compose-web-openldap.yml
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose-influxdb.yml.in > docker-compose-web-influxdb.yml
 
+# Copy compose file of webdriver
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+
 # Prepare Behat.yml
 alreadyset=`grep docker-compose-web.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
@@ -58,4 +61,6 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-ls features/*.feature | parallel ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
+docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
+ls features/*.feature | parallel -j 2 ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
+docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
