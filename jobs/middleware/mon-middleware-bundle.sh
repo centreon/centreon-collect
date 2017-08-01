@@ -20,7 +20,7 @@ docker pull ubuntu:16.04
 # Fetch middleware sources.
 get_internal_source "middleware/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf $PROJECT-$VERSION.tar.gz
-mv $PROJECT-$VERSION $PROJECT
+mv $PROJECT-$VERSION /opt/centreon-build/containers/$PROJECT
 
 # CentOS middleware image.
 rm -rf centreon-build-containers
