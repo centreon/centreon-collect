@@ -3,16 +3,29 @@
 set -e
 set -x
 
+# Check arguments.
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
+  exit 1
+fi
+
 # Pull base image.
 docker pull ubuntu:16.04
 
 # Fetch middleware sources.
-scp -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com:/srv/sources/centreon-imp-portal-api.tar.gz" .
-tar xzf centreon-imp-portal-api.tar.gz
+get_internal_source "middleware/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf $PROJECT-$VERSION.tar.gz
 
 # CentOS middleware image.
-cd centreon-build/containers
-rm -rf centreon-imp-portal-api
-cp -r ../../centreon-imp-portal-api .
-docker build --no-cache -t ci.int.centreon.com:5000/mon-middleware:latest -f middleware/latest.Dockerfile .
-docker push ci.int.centreon.com:5000/mon-middleware:latest
+rm -rf centreon-build-containers
+cp -r /opt/centreon-build/containers centreon-build-containers
+cd centreon-build-containers
+
+# Build image.
+REGISTRY="ci.int.centreon.com:5000"
+MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware-$VERSION-$RELEASE:latest"
+MIDDLEWARE_WIP_IMAGE="$REGISTRY/mon-middleware-wip:latest"
+docker build --no-cache -t "$MIDDLEWARE_IMAGE" -f middleware/latest.Dockerfile .
+docker push "$MIDDLEWARE_IMAGE"
+docker tag "$MIDDLEWARE_IMAGE" "$MIDDLEWARE_WIP_IMAGE"
+docker push "$MIDDLEWARE_WIP_IMAGE"
