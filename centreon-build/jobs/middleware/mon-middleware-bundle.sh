@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
+# Project.
+PROJECT=centreon-license-manager
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
