@@ -13,7 +13,7 @@ set -x
 #
 
 # Project.
-PROJECT=centreon-middleware
+PROJECT=centreon-imp-portal-api
 
 # Get version.
 cd "$PROJECT"

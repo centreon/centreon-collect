@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../common.sh
 
 # Project.
-PROJECT=centreon-middleware
+PROJECT=centreon-imp-portal-api
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
