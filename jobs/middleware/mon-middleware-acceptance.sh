@@ -3,20 +3,34 @@
 set -e
 set -x
 
-# Pull image.
+. `dirname $0`/../common.sh
+
+# Project.
+PROJECT=centreon-license-manager
+
+# Check arguments.
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
+  exit 1
+fi
+
+# Pull images.
+REGISTRY="ci.int.centreon.com:5000"
 WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
-MIDDLEWARE_IMAGE=ci.int.centreon.com:5000/mon-middleware:latest
+MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware-$VERSION-$RELEASE:latest"
 REDIS_IMAGE=redis:latest
 docker pull $WEBDRIVER_IMAGE
 docker pull $MIDDLEWARE_IMAGE
 docker pull $REDIS_IMAGE
 
-# Copy test public key.
-cp `dirname $0`/public.asc centreon-imp-portal-api
+# Get sources.
+rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
+get_internal_source "middleware/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+cd "$PROJECT-$VERSION"
 
-# Prepare Docker compose file.
-cd centreon-imp-portal-api
-sed 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > docker-compose-middleware.yml
+# Prepare Docker Compose file.
+sed -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/middleware/docker-compose-standalone.yml.in > docker-compose-middleware.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
@@ -27,10 +41,7 @@ fi
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
-rm -rf ../acceptance-logs-wip
-mkdir ../acceptance-logs-wip
-composer install
-composer update
-ls features/*.feature | parallel -j 1 ./vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}"
 rm -rf ../acceptance-logs
-mv ../acceptance-logs-wip ../acceptance-logs
+mkdir ../acceptance-logs
+composer install
+ls features/*.feature | parallel ./vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}" || true
