@@ -3,12 +3,23 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
+# Project.
+PROJECT=centreon-middleware
+
+# Fetch sources.
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+
 # Launch mon-unittest container.
-docker pull ci.int.centreon.com:5000/mon-unittest:centos7
-containerid=`docker create ci.int.centreon.com:5000/mon-unittest:centos7 /usr/local/bin/unittest-middleware`
+UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:centos7
+docker pull $UT_IMAGE
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-middleware`
 
 # Copy sources to container.
-docker cp centreon-imp-portal-api "$containerid:/usr/local/src/centreon-imp-portal-api"
+docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
 docker start -a "$containerid"
