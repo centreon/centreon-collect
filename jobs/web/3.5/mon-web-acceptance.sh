@@ -65,5 +65,5 @@ rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
 docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
-ls features/*.feature | parallel ./vendor/bin/behat --format=junit --out="../xunit-reports/{/.}" "{}" || true
+ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
