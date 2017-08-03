@@ -64,4 +64,6 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-ls features/*.feature | grep -v "$EXCLUSION" | parallel ./vendor/bin/behat --format=junit --tags "$TAGS" --out="../xunit-reports/{/.}" "{}" || true
+docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
+ls features/*.feature | grep -v "$EXCLUSION" | parallel ./vendor/bin/behat --tags "$TAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
