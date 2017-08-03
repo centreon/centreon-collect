@@ -35,6 +35,9 @@ cd "$PROJECT-$VERSION-full"
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-bam.yml
 
+# Copy compose file of webdriver
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+
 # Prepare Behat.yml
 alreadyset=`grep docker-compose-bam.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then

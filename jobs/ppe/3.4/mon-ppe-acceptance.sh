@@ -41,6 +41,9 @@ sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/do
 sed 's#@WEB_IMAGE@#'$PPE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppe.yml
 sed 's#@WEB_IMAGE@#'$PPE1_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppe1.yml
 
+# Copy compose file of webdriver
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports

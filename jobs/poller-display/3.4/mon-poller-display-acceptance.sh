@@ -42,6 +42,9 @@ if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs#g' behat.yml
 fi
 
+# Copy compose file of webdriver
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports
