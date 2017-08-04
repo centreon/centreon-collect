@@ -30,7 +30,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 # Launch mon-unittest container.
 UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
 docker pull $UNITTEST_IMAGE
-containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-engine`
+containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-engine $DISTRIB`
 
 # Copy sources to container.
 docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
