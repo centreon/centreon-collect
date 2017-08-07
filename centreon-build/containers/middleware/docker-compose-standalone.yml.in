@@ -8,13 +8,5 @@ services:
     extra_hosts:
     - "crm.int.centreon.com:10.24.11.73"
     - "support.centreon.com:10.30.2.62"
-    external_links:
-    - webdriver
-    networks:
-    - default
-    - webdriver_default
   redis:
     image: redis:latest
-networks:
-  webdriver_default:
-    external: true
