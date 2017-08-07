@@ -33,7 +33,7 @@ cd "$PROJECT-$VERSION"
 sed -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > docker-compose-middleware.yml
 
 # Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+cp `dirname $0`/../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
 
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
