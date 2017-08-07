@@ -55,7 +55,7 @@
         "changelog": "* New export with comment on services template",
         "dependencies":  [
           {
-            "name": "fake-unmanaged-objects",
+            "name": "fake-managed-objects",
             "version": "1.0.0"
           }
         ],
@@ -140,5 +140,6 @@
             "retry_check_interval": 2,
             "timeperiod": "24x7"
         }
-    ]
+    ],
+    "fake_object1": "I don't care"
 }
