@@ -55,7 +55,7 @@
         "changelog": "* New export with comment on services template",
         "dependencies":  [
           {
-            "name": "fake-managed-objects",
+            "name": "fake-unmanaged-objects",
             "version": "1.0.0"
           }
         ],
