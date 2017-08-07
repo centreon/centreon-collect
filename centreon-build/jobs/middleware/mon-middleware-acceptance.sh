@@ -44,4 +44,4 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-ls features/*.feature | parallel ./vendor/bin/behat --strict --format=junit --out="../xunit-reports/{/.}" "{}" || true
+ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
