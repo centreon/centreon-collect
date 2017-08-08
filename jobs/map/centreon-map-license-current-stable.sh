@@ -10,7 +10,7 @@ $SSH_REPO rm -rf /srv/p2/license/
 $SSH_REPO mkdir /srv/p2/license/
 
 # Copy installer
-INSTALLER_NAME="centreon-studio-decktop-client/com.centreon.studio.license.packaging.nsis.x86_64/target/*.exe"
+INSTALLER_NAME="centreon-studio-desktop-client/com.centreon.studio.license.packaging.nsis.x86_64/target/*.exe"
 scp -o StrictHostKeyChecking=no $INSTALLER_NAME "ubuntu@srvi-repo.int.centreon.com:/srv/p2/license/"
 
 # Copy plugins for automatic update
