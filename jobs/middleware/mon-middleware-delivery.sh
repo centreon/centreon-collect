@@ -16,8 +16,7 @@ docker tag "$REGISTRY/mon-middleware-$VERSION-$RELEASE:latest" "$REGISTRY/mon-mi
 docker push "$REGISTRY/mon-middleware:latest"
 
 # Generate Docker Compose file.
-sed -e "s#@MIDDLEWARE_IMAGE@#$MIDDLEWARE_IMAGE#g" -e 's/3000/3000:3000/g' -e 's/3306/33060:3306/g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > /opt/middleware/docker-compose.yml
+sed -e "s#@MIDDLEWARE_IMAGE@#$MIDDLEWARE_IMAGE#g" -e 's/3000/3000:3000/g' -e 's/3306/3306:3306/g' < `dirname $0`/../../containers/middleware/docker-compose-standalone.yml.in > docker-compose.yml
 
 # Update container.
-cd /opt/middleware
 docker-compose up -d
