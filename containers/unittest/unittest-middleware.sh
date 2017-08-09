@@ -10,5 +10,5 @@ npm install
 ./node_modules/gulp/bin/gulp.js test:xunit
 
 # Copy reports.
-mv xunit.xml /tmp/centreon-middleware_ut.xml
+mv build/reports/report.xml /tmp/centreon-middleware_ut.xml
 mv build/reports/clover.xml /tmp/centreon-middleware_coverage.xml
