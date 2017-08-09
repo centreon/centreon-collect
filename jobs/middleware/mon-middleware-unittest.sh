@@ -24,7 +24,7 @@ docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/centreon-imp-portal-a
 # Run unit tests.
 docker start -a "$containerid"
 docker cp "$containerid:/tmp/centreon-middleware_ut.xml" centreon-middleware_ut.xml
-docker cp "$containerid:/tmp/centreon-middleware_coverage.xml" centreon-middleware_coverage.xml
+#docker cp "$containerid:/tmp/centreon-middleware_coverage.xml" centreon-middleware_coverage.xml
 
 # Stop container.
 docker stop "$containerid"
