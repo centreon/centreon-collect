@@ -1,0 +1,12 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-awie-3.4:@DISTRIB@
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+
+# Database.
+COPY awie/3.4/install-dev.sh /tmp/install.sh
+COPY api-web-import-export/sql /usr/share/centreon/www/modules/api-web-import-export/sql
+RUN /tmp/install.sh
+
+# Sources.
+COPY api-web-import-export/api-web-import-export.conf.php /usr/share/centreon/www/modules/api-web-import-export/api-web-import-export.conf.php
+COPY api-web-import-export/core /usr/share/centreon/www/modules/api-web-import-export/core
