@@ -19,6 +19,9 @@ $content = str_replace('@DISTRIB@', $distrib, $content);
 $dockerfile = xpath($centreon_build_dir . '/containers/bam/bam-' . $version . '-dev.' . $distrib . '.Dockerfile');
 file_put_contents($dockerfile, $content);
 
+# Get Engine and Broker packages.
+getPackages($distrib, $version);
+
 # Build BAM image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-bam-server'));
 xcopy(xpath('www/modules/centreon-bam-server'), xpath($centreon_build_dir . '/containers/centreon-bam-server'));
