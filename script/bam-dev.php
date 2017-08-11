@@ -24,5 +24,5 @@ getPackages($distrib, $version);
 
 # Build BAM image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-bam-server'));
-xcopy(xpath('www/modules/centreon-bam-server'), xpath($centreon_build_dir . '/containers/centreon-bam-server'));
+xcopy('.', xpath($centreon_build_dir . '/containers/centreon-bam-server'));
 passthru('docker build -t des-bam-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
