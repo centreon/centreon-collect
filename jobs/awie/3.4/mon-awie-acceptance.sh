@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=centreon-export
+PROJECT=api-web-import-export
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -24,11 +24,9 @@ REGISTRY="ci.int.centreon.com:5000"
 WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 WEB_IMAGE="$REGISTRY/mon-web-3.4:$DISTRIB"
 AWIE_IMAGE="$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
-AWIE1_IMAGE="$REGISTRY/mon-awie1:$DISTRIB"
 docker pull $WEBDRIVER_IMAGE
 docker pull $WEB_IMAGE
 docker pull $AWIE_IMAGE
-docker pull $AWIE1_IMAGE
 
 # Get sources.
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
@@ -39,7 +37,6 @@ cd "$PROJECT-$VERSION"
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-web.yml
 sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-awie.yml
-sed 's#@WEB_IMAGE@#'$AWIE1_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-awie1.yml
 
 # Copy compose file of webdriver
 cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
@@ -52,7 +49,7 @@ mkdir ../acceptance-logs
 composer install
 alreadyset=`grep docker-compose-awie.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      awie: docker-compose-awie.yml\n      awie1: docker-compose-awie1.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      awie: docker-compose-awie.yml#g' behat.yml
 fi
 docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true

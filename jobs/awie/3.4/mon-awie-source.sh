@@ -13,7 +13,7 @@ set -x
 #
 
 # Project.
-PROJECT=centreon-export
+PROJECT=api-web-import-export
 
 # Get version.
 cd "$PROJECT"
