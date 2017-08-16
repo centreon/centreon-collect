@@ -17,7 +17,7 @@ PROJECT=api-web-import-export
 
 # Get version.
 cd "$PROJECT"
-VERSION=`grep mod_release www/modules/$PROJECT/conf.php | cut -d '"' -f 4`
+VERSION=`grep mod_release www/modules/centreon-awie/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
 # Get release.
