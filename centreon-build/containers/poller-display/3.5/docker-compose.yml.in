@@ -6,7 +6,7 @@ services:
     - "80"
     - "3306"
     links:
-    - influxdb
+    - poller
     dns:
     - "10.50.1.1"
     external_links:
