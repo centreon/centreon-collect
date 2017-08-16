@@ -4,9 +4,9 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Database.
 COPY awie/3.4/install-dev.sh /tmp/install.sh
-COPY api-web-import-export/sql /usr/share/centreon/www/modules/api-web-import-export/sql
+COPY centreon-awie/sql /usr/share/centreon/www/modules/centreon-awie/sql
 RUN /tmp/install.sh
 
 # Sources.
-COPY api-web-import-export/api-web-import-export.conf.php /usr/share/centreon/www/modules/api-web-import-export/api-web-import-export.conf.php
-COPY api-web-import-export/core /usr/share/centreon/www/modules/api-web-import-export/core
+COPY centreon-awie/centreon-awie.conf.php /usr/share/centreon/www/modules/centreon-awie/centreon-awie.conf.php
+COPY centreon-awie/core /usr/share/centreon/www/modules/centreon-awie/core
