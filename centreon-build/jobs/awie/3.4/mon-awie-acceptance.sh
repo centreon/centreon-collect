@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=api-web-import-export
+PROJECT=centreon-awie
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then

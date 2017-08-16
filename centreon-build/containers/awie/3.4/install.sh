@@ -5,6 +5,6 @@ set -x
 
 service mysql start
 httpd -k start
-/tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m api-web-import-export
+/tmp/install-centreon-module.php -c /etc/centreon/centreon.conf.php -m centreon-awie
 httpd -k stop
 service mysql stop
