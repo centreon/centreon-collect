@@ -30,6 +30,17 @@ mkdir input
 rm -rf output
 mkdir output
 
+# Encrypt source archive.
+if [ "$DISTRIB" = "centos6" ] ; then
+  phpversion=53
+elif [ "$DISTRIB" = "centos7" ] ; then
+  phpversion=54
+else
+  echo "Unsupported distribution $DISTRIB."
+  exit 1
+fi
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=$phpversion" -F "modulename=$PROJECT" -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php$phpversion.tar.gz"
+
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
