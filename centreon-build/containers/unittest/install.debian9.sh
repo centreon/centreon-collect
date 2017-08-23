@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# Update repository information.
+apt-get update
+
 # Install build dependencies.
 xargs apt-get install < /tmp/build-dependencies.txt
 
