@@ -15,12 +15,12 @@ RUN yum install -y php php-mysql
 RUN yum install -y php-xml php-intl php-gd texlive epel-release php-xcache
 
 # Install mediawiki
-#RUN curl -O https://releases.wikimedia.org/mediawiki/1.14/mediawiki-1.14.1.tar.gz
-#RUN tar xvzf mediawiki-*.tar.gz
-#RUN mv mediawiki-1.14.1/* /var/www/html
-COPY mediawiki/mediawiki.tar.gz /var/www/html
-RUN tar xvzf /var/www/html/mediawiki.tar.gz -C /var/www/html/
-RUN rm /var/www/html/mediawiki.tar.gz
+COPY mediawiki/mediawiki.tar.gz mediawiki/LocalSettings.php /tmp/
+RUN cd /tmp && \
+    tar xvzf mediawiki.tar.gz && \
+    mv mediawiki-1.21.11/* /var/www/html && \
+    mv LocalSettings.php /var/www/html && \
+    rm -f mediawiki.tar.gz
 
 # Main script
 COPY mediawiki/run.sh /usr/share/mediawiki.sh
