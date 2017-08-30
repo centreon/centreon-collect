@@ -32,6 +32,7 @@ COPY centreon/www/sounds /usr/share/centreon/www/sounds
 COPY centreon/www/img /usr/share/centreon/www/img
 COPY centreon/www/widgets /usr/share/centreon/www/widgets
 COPY centreon/www/modules /usr/share/centreon/www/modules
+COPY centreon/lib /usr/share/centreon/lib
 COPY centreon/www/index.php /usr/share/centreon/www/index.php
 COPY centreon/www/main.php /usr/share/centreon/www/main.php
 COPY centreon/www/Themes /usr/share/centreon/www/Themes
