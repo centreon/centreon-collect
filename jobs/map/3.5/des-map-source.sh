@@ -59,7 +59,7 @@ cp -r "$PROJECT/server" "$PROJECT-server-$VERSION"
 tar czf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
 
 # Send it to srvi-repo.
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSION.tar.gz"
+put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSIONWEB.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/web/packaging/centreon-map4-web-client.spectemplate"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-server-$VERSION.tar.gz"
