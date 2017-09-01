@@ -21,7 +21,11 @@ tar xzf "$PROJECT-desktop-$VERSION.tar.gz"
 
 # Build with Maven.
 cd "$PROJECT-desktop-$VERSION"
+vncserver :42 &
+VNCPID=`echo $!`
+export DISPLAY=':42'
 mvn -f com.centreon.studio.client.parent/pom.xml clean install
+kill -KILL $VNCPID || true
 
 # Find version.
 major=`echo $VERSION | cut -d . -f 1`
