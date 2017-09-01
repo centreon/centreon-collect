@@ -37,7 +37,10 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
+OLDVERSION="$VERSION"
+export VERSION="$VERSIONWEB"
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
+export VERSION="$OLDVERSION"
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
