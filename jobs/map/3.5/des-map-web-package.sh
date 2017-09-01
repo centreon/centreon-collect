@@ -6,12 +6,12 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=centreon-map-web
+PROJECT=centreon-map
 PACKAGE=centreon-map4-web-client
 
 # Check arguments.
-if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
-  echo "You need to specify VERSION and RELEASE environment variables."
+if [ -z "$VERSION" -o -z "$VERSIONWEB" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION, VERSIONWEB and RELEASE environment variables."
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
@@ -28,8 +28,8 @@ mkdir output
 
 # Fetch sources.
 cd input
-get_internal_source "map-web/$PACKAGE-$VERSION-$RELEASE/$PACKAGE-$VERSION.tar.gz"
-get_internal_source "map-web/$PACKAGE-$VERSION-$RELEASE/$PACKAGE.spectemplate"
+get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PACKAGE-$VERSIONWEB.tar.gz"
+get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PACKAGE.spectemplate"
 cd ..
 
 # Pull latest build dependencies.
@@ -48,4 +48,4 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "3.5" "$DISTRIB" "noarch" "map-web" "$PACKAGE-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "noarch" "map" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
