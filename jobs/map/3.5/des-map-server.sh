@@ -16,7 +16,7 @@ fi
 
 # Fetch sources.
 rm -rf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
-get_internal_source "map/$PROJECT-server-$VERSION-$RELEASE/$PROJECT-server-$VERSION.tar.gz"
+get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PROJECT-server-$VERSION.tar.gz"
 tar xzf "$PROJECT-server-$VERSION.tar.gz"
 
 # Tweak pom files.
