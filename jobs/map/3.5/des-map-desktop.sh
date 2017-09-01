@@ -39,7 +39,7 @@ fi
 path="/srv/p2/unstable/$major/$minor/"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" rm -rf $path
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p $path
-scp -o StrictHostKeyChecking=no -r centreon-studio-desktop-client/com.centreon.studio.client.product/target/repository/* "ubuntu@srvi-repo.int.centreon.com":$path
+scp -o StrictHostKeyChecking=no -r com.centreon.studio.client.product/target/repository/* "ubuntu@srvi-repo.int.centreon.com":$path
 
 # Move all installers to an install folder.
 rm -rf ../installs
