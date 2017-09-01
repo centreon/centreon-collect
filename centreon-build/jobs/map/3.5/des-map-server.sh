@@ -20,7 +20,7 @@ get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PROJECT-server-$VERSION.tar
 tar xzf "$PROJECT-server-$VERSION.tar.gz"
 
 # Tweak pom files.
-cd "$PROJECT-server-$VERSION/server"
+cd "$PROJECT-server-$VERSION"
 sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat6/pom.xml
 sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/pom.xml
 
