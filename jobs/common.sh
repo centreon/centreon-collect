@@ -9,7 +9,8 @@ REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 # Cleanup routine.
 
 clean_directory () {
-  rm -rf `ls -rc "$1" | head -n -10`
+  CMD='ls -rc '"$1"' | head -n -10 | xargs rm -rf'
+  ssh "$REPO_CREDS" "$CMD"
 }
 
 # Internal sources.
