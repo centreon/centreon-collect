@@ -6,8 +6,8 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 
 # Copy stable Centreon repo files.
-COPY repo/centreon-standard-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
-COPY repo/centreon-pluginpacks-stable.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
+COPY repo/centreon-standard-2.7.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
+COPY repo/centreon-pluginpacks-2.7.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
 
 # Prepare environment for autoinstall.
 COPY web/3.4/autoinstall.php /usr/share/centreon/autoinstall.php
