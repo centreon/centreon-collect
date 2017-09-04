@@ -32,8 +32,6 @@ sub new {
     $self->{git_dir_centreon_automation} = 'centreon-automation';
     $self->{build_dir} = $FindBin::Bin . '/build';
     $self->{rpm_save_directory} = $FindBin::Bin . '/' . $self->{git_dir_centreon_plugins} . '/';
-    $self->{unstable_internal_repo} = '/srv/repos/standard/3.4/';
-    $self->{unstable_internal_repo_addr} = 'srvi-repo.int.centreon.com';
     $self->{timeout_git_clone} = 300;
 
     $self->{git_rm_plugins} = [];
@@ -642,97 +640,6 @@ sub git_commit_changes {
     $self->{logger}->writeLogInfo("commit changes: success");
 }
 
-sub export_rpm_internal_repo_el {
-        my ($self, %options) = @_;
-
-        opendir (DIR, $self->{rpm_save_directory} . $options{dist}) or die "Cannot open directory: $!";
-        my @files = grep ! m/^\./ && ! /config_file/, readdir DIR; # skip hidden files and config files
-        closedir(DIR);
-
-        return -1 if ($#files < 0);
-
-        $self->{logger}->writeLogInfo("Export ".$options{dist}."  RPM to internal unstable repository");
-        my $command .= 'scp '. $self->{rpm_save_directory} . $options{dist} . '/*.rpm root@' . $self->{unstable_internal_repo_addr} .
-                ':' . $self->{unstable_internal_repo} . $options{dist} . '/unstable/noarch/RPMS/';
-        my ($lerror, $stdout, $exit_code) =
-                centreon::common::misc::backtick(command => $command,
-                                                 logger => $self->{logger},
-                                                 timeout => 60,
-                                                 wait_exit => 1,
-                                                );
-        if ($lerror != 0 || $exit_code > 1) {
-                $self->{logger}->writeLogError("Export ".$options{dist}." RPM to internal unstable repo: error");
-                return -1;
-        }
-}
-
-sub export_rpm_internal_repo {
-    my ($self, %options) = @_;
-
-    $self->export_rpm_internal_repo_el(%options, dist => 'el6');
-    $self->export_rpm_internal_repo_el(%options, dist => 'el7');
-}
-
-sub remove_old_rpm_el {
-        my ($self, %options) = @_;
-
-        # Get list of centreon-plugin on unstable repo
-        my $command = 'ssh ' . $self->{unstable_internal_repo_addr} .
-                ' \'ls ' . $self->{unstable_internal_repo} . $options{dist} . '/unstable/noarch/RPMS/ | egrep -e  "centreon-plugin-[A-Za-z0-9\-]+"\'';
-    my ($lerror, $stdout, $exit_code) =
-                centreon::common::misc::backtick(command => $command,
-                                                 logger => $self->{logger},
-                                                 timeout => 60,
-                                                 wait_exit => 1,
-                                                );
-
-        if ($lerror != 0 || $exit_code > 1) {
-                $self->{logger}->writeLogError("get list of ".$options{dist}." internal unstable repo rpm to delete: error");
-                return -1;
-        }
-
-        if (defined($stdout) &&  $stdout !~ '/^$/') {
-                # Parse list of centreon-plugin to detect files must be deleted
-                my (%plugins, @plugins_to_delete);
-                foreach my $plugin (split('\n', $stdout)) {
-                        if ($plugin =~ /(centreon-plugin-[A-Za-z0-9\-]+)\-\d{8}\-\d+\.$options{dist}\.noarch\.rpm/) {
-                                if (defined($plugins{$1})) {
-                                        push (@plugins_to_delete, $plugins{$1});
-                                        $plugins{$1} = $plugin;
-                                } else {
-                                        $plugins{$1} = $plugin;
-                                }
-                        }
-                }
-
-                # Delete old files
-                if (@plugins_to_delete && $#plugins_to_delete > 0) {
-                        print "nb element: $#plugins_to_delete\n";
-                        my $fileToDelete = join(' ', @plugins_to_delete);
-
-                        $self->{logger}->writeLogError("delete files: ".$fileToDelete);
-                        $command = 'ssh ' . $self->{unstable_internal_repo_addr} .
-                                ' \'cd ' . $self->{unstable_internal_repo} . $options{dist} . '/unstable/noarch/RPMS/ && rm -f ' . $fileToDelete .'\'';
-                        my ($lerror, $stdout, $exit_code) =
-                                centreon::common::misc::backtick(command => $command,
-                                                                 logger => $self->{logger},
-                                                                 timeout => 60,
-                                                                 wait_exit => 1,
-                                                                 );
-                        if ($lerror != 0 || $exit_code > 1) {
-                                $self->{logger}->writeLogError("clean ".$options{dist}." internal unstable repo: erro");
-                                return -1;
-                        }
-                }
-        }
-}
-
-sub remove_old_rpm {
-    my ($self, %options) = @_;
-
-    $self->remove_old_rpm_el(%options, dist => 'el6');
-    $self->remove_old_rpm_el(%options, dist => 'el7');
-}
 
 sub run {
     my ($self) = @_;
@@ -740,14 +647,10 @@ sub run {
     $self->SUPER::run();
 
     $self->{logger}->writeLogInfo("Script begins");
+
     $self->get_repositories();
-
     $self->build_packages();
-
     $self->git_commit_changes();
-
-    $self->export_rpm_internal_repo();
-    $self->remove_old_rpm();
 
     $self->{logger}->writeLogInfo("End of script");
     exit(0);
