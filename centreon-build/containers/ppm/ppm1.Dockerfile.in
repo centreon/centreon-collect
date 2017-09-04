@@ -13,7 +13,7 @@ COPY repo/centreon-pluginpacks-2.7.@DISTRIB@.repo /etc/yum.repos.d/centreon-plug
 COPY web/3.4/autoinstall.php /usr/share/centreon/autoinstall.php
 
 # Install Centreon Web and PPM 1.x.
-RUN yum remove -y 'centreon*'
+RUN yum remove -y 'centreon*' mysql-server
 RUN yum clean all
 RUN yum install --disablerepo='centreon-internal*' -y --nogpgcheck centreon-base-config-centreon-engine-2.7.11 centreon-2.7.11 centreon-plugins-2.7.11 centreon-plugin-meta-2.7.11 centreon-common-2.7.11 centreon-web-2.7.11 centreon-trap-2.7.11 centreon-perl-libs-2.7.11 centreon-pp-manager-1.4.1 mysql-server
 
