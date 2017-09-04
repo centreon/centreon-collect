@@ -11,3 +11,17 @@ baseurl=http://yum.centreon.com/standard/3.3/el6/stable/noarch/
 enabled=1
 gpgcheck=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+
+[centreon-standard-2-7-deps]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://yum.centreon.com/standard/3.3/el6/stable/dependencies/$basearch/
+enabled=1
+gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
+
+[centreon-standard-2-7-noarch-deps]
+name=Centreon Entreprise Linux reposistory contains software to use with Centreon.
+baseurl=http://yum.centreon.com/standard/3.3/el6/stable/dependenciesn/oarch/
+enabled=1
+gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES
