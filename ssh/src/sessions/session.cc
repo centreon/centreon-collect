@@ -591,9 +591,16 @@ void session::_startup() {
   libssh2_session_set_blocking(_session, 0);
 
   // Exchange banners, keys, setup crypto, compression, ...
+#if LIBSSH2_VERSION_NUM >= 0x010208
+  // libssh2_session_startup deprecated in version 1.2.8 and later
+  int retval(libssh2_session_handshake(
+                _session,
+                _socket.get_native_handle()));
+#else
   int retval(libssh2_session_startup(
                _session,
                _socket.get_native_handle()));
+#endif
   if (retval) {
     if (retval != LIBSSH2_ERROR_EAGAIN) { // Fatal failure.
       char* msg;

@@ -263,8 +263,10 @@ void policy::on_result(checks::result const& r) {
              end = _checks.end();
            it != end;
            ++it)
-        if (it->second.second == sess)
+        if (it->second.second == sess) {
           found = true;
+          break;
+        }
       if (!found) {
         std::map<sessions::credentials, sessions::session*>::iterator
           it, end;

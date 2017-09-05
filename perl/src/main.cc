@@ -68,7 +68,7 @@ int main(int argc, char** argv, char** env) {
   int retval(EXIT_FAILURE);
 
   // Log object.
-  logging::file log_file(stderr);
+  logging::file* log_file = NULL;
 
   try {
     // Initializations.
@@ -99,21 +99,29 @@ int main(int argc, char** argv, char** env) {
     }
     else {
       // Set logging object.
+      if (opts.get_argument("log-file").get_is_set()) {
+        std::string filename(
+            opts.get_argument("log-file").get_value());
+        log_file = new logging::file(filename);
+      }
+      else
+        log_file = new logging::file(stderr);
+
       if (opts.get_argument("debug").get_is_set()) {
-        log_file.show_pid(true);
-        log_file.show_thread_id(true);
+        log_file->show_pid(true);
+        log_file->show_thread_id(true);
         logging::engine::instance().add(
-          &log_file,
+          log_file,
           logging::type_debug
           | logging::type_info
           | logging::type_error,
           logging::high);
       }
       else {
-        log_file.show_pid(false);
-        log_file.show_thread_id(false);
+        log_file->show_pid(false);
+        log_file->show_thread_id(false);
         logging::engine::instance().add(
-          &log_file,
+          log_file,
           logging::type_info | logging::type_error,
           logging::low);
       }
@@ -148,6 +156,8 @@ int main(int argc, char** argv, char** env) {
   multiplexer::unload();
   pipe_handle::unload();
   clib::unload();
+  if (log_file)
+    delete log_file;
 
   return (retval);
 }
