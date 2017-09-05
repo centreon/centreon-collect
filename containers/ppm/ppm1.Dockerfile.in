@@ -32,7 +32,8 @@ RUN yum install -y --nogpgcheck 'ces-plugins-*'
 # Install new repositories.
 RUN rm -f /etc/yum.repos.d/centreon-standard-stable.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
 RUN curl -o centreon-release.rpm "http://yum.centreon.com/standard/3.4/el6/stable/noarch/RPMS/centreon-release-3.4-4.el6.noarch.rpm"
-RUN yum clean all && yum install --nogpgcheck centreon-release.rpm
+RUN curl -o centreon-plugin-packs-release.rpm "http://yum.centreon.com/plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f/3.4/el6/stable/noarch/RPMS/centreon-plugin-packs-release-3.4-4.el6.noarch.rpm"
+RUN yum clean all && yum install --nogpgcheck centreon-*release.rpm
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Main script.
