@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
   int retval(EXIT_FAILURE);
 
   // Log object.
-  logging::file log_file(stderr);
+  logging::file* log_file = NULL;
 
   try {
     // Initializations.
@@ -104,21 +104,29 @@ int main(int argc, char* argv[]) {
     }
     else {
       // Set logging object.
+      if (opts.get_argument("log-file").get_is_set()) {
+        std::string filename(
+            opts.get_argument("log-file").get_value());
+        log_file = new logging::file(filename);
+      }
+      else
+        log_file = new logging::file(stderr);
+
       if (opts.get_argument("debug").get_is_set()) {
-        log_file.show_pid(true);
-        log_file.show_thread_id(true);
+        log_file->show_pid(true);
+        log_file->show_thread_id(true);
         logging::engine::instance().add(
-          &log_file,
+          log_file,
           logging::type_debug
           | logging::type_info
           | logging::type_error,
           logging::high);
       }
       else {
-        log_file.show_pid(false);
-        log_file.show_thread_id(false);
+        log_file->show_pid(false);
+        log_file->show_thread_id(false);
         logging::engine::instance().add(
-          &log_file,
+          log_file,
           logging::type_info | logging::type_error,
           logging::low);
       }
@@ -128,6 +136,11 @@ int main(int argc, char* argv[]) {
       // Initialize libssh2.
       log_debug(logging::medium) << "initializing libssh2";
 #  ifdef LIBSSH2_WITH_LIBGCRYPT
+      // FIXME DBR: needed or not needed ??
+      // Version check should be the very first call because it
+      // makes sure that important subsystems are initialized.
+      if (!gcry_check_version(GCRYPT_VERSION))
+        throw (basic_error() << "libgcrypt version mismatch: ");
       gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 #  endif // LIBSSH2_WITH_LIBGCRYPT
       if (libssh2_init(0))
@@ -164,6 +177,8 @@ int main(int argc, char* argv[]) {
   // Deinitializations.
   multiplexer::unload();
   logging::engine::unload();
+  if (log_file)
+    delete log_file;
 
   return (retval);
 }

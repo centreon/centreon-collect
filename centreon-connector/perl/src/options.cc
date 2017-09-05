@@ -30,6 +30,8 @@ static char const* const help_description
   = "Print help and exit.";
 static char const* const version_description
   = "Print software version and exit.";
+static char const* const log_file_description
+  = "Specifies the log file (default: stderr).";
 
 /**************************************
 *                                     *
@@ -152,6 +154,15 @@ void options::_init() {
     arg.set_name('v');
     arg.set_long_name("version");
     arg.set_description(version_description);
+  }
+
+  // Log file.
+  {
+    misc::argument& arg(_arguments['l']);
+    arg.set_name('l');
+    arg.set_long_name("log-file");
+    arg.set_description(log_file_description);
+    arg.set_has_value(true);
   }
 
   return ;
