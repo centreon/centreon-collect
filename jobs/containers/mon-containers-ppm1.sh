@@ -11,6 +11,7 @@ docker pull ci.int.centreon.com:5000/mon-dependencies:$DISTRIB
 # Prepare Dockerfile.
 cd centreon-build/containers
 sed "s/@DISTRIB@/$DISTRIB/g" < ppm/ppm1.Dockerfile.in > ppm/ppm1.$DISTRIB.Dockerfile
+sed -e "s/@VERSION@/3.4/g" -e "s/@DISTRIB@/el6/g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # CentOS PPM image.
 rm -rf centreon-pp-manager
