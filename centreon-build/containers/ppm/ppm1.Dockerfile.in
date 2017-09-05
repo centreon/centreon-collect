@@ -8,6 +8,7 @@ ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 # Copy stable Centreon repo files.
 COPY repo/centreon-standard-2.7.@DISTRIB@.repo /etc/yum.repos.d/centreon-standard-stable.repo
 COPY repo/centreon-pluginpacks-2.7.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Prepare environment for autoinstall.
 COPY web/3.4/autoinstall.php /usr/share/centreon/autoinstall.php
@@ -27,7 +28,7 @@ COPY web/3.4/install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/ppm1-install.sh /tmp/ppm1-install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/ppm1-install.sh
 RUN /tmp/ppm1-install.sh
-RUN yum install --disablerepo='ces-*-unstable*' -y --nogpgcheck 'ces-plugins-*'
+RUN yum install --disablerepo='centreon-internal*' -y --nogpgcheck 'ces-plugins-*'
 
 # Main script.
 COPY web/3.4/run.sh /usr/share/centreon/container.sh
