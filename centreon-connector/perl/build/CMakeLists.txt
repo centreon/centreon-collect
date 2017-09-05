@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2015 Centreon
+## Copyright 2011-2015,2017 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ include_directories("${PROJECT_SOURCE_DIR}/inc")
 # Project version.
 set(CONNECTOR_PERL_MAJOR 1)
 set(CONNECTOR_PERL_MINOR 1)
-set(CONNECTOR_PERL_PATCH 2)
+set(CONNECTOR_PERL_PATCH 3)
 set(CONNECTOR_PERL_VERSION "${CONNECTOR_PERL_MAJOR}.${CONNECTOR_PERL_MINOR}.${CONNECTOR_PERL_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_PERL_VERSION=\"${CONNECTOR_PERL_VERSION}\")
 
