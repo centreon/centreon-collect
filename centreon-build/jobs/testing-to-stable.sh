@@ -74,6 +74,12 @@ case "$PROJECT" in
           centreon-broker-storage"
     EL7=no
   ;;
+  centreon-connector)
+    DIR='/standard/3.4'
+    ARCH='x86_64'
+    RPMS="centreon-connector-perl
+          centreon-connector-ssh"
+  ;;
   centreon-engine)
     DIR='/standard/3.4'
     ARCH='x86_64'
