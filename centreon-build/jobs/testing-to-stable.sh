@@ -77,7 +77,9 @@ case "$PROJECT" in
   centreon-connector)
     DIR='/standard/3.4'
     ARCH='x86_64'
-    RPMS="centreon-connector-perl
+    RPMS="centreon-connector
+          centreon-connector-debuginfo
+          centreon-connector-perl
           centreon-connector-ssh"
   ;;
   centreon-engine)
