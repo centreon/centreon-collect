@@ -1,15 +1,17 @@
-version: '2'
+version: '3'
 services:
   webdriver:
     container_name: webdriver
-    image: selenium/standalone-chrome:latest
+    image: selenium/hub:latest
     ports:
     - "4444:4444"
+  chrome:
+    image: selenium/node-chrome:latest
+    depends_on:
+    - webdriver
     environment:
-    - NODE_MAX_INSTANCES=10
-    - NODE_MAX_SESSION=5
-    - SCREEN_WIDTH=1600
-    - SCREEN_HEIGHT=2000
     - DBUS_SESSION_BUS_ADDRESS=/dev/null
+    - HUB_PORT_4444_TCP_ADDR=webdriver
+    - HUB_PORT_4444_TCP_PORT=4444
     volumes:
     - /dev/shm:/dev/shm
