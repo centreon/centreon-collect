@@ -20,16 +20,12 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-GRID_IMAGE=selenium/hub:latest
-WEBDRIVER_IMAGE=selenium/node-chrome:latest
 WEB_IMAGE="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:$DISTRIB"
 WEB_FRESH_IMAGE="ci.int.centreon.com:5000/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 WEB_WIDGETS_IMAGE="ci.int.centreon.com:5000/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
 MEDIAWIKI_IMAGE=ci.int.centreon.com:5000/mon-mediawiki:latest
 OPENLDAP_IMAGE=ci.int.centreon.com:5000/mon-openldap:latest
 INFLUXDB_IMAGE=influxdb:latest
-docker pull $GRID_IMAGE
-docker pull $WEBDRIVER_IMAGE
 docker pull $WEB_IMAGE
 docker pull $WEB_FRESH_IMAGE
 docker pull $WEB_WIDGETS_IMAGE
