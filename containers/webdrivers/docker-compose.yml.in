@@ -3,6 +3,8 @@ services:
   webdriver:
     container_name: webdriver
     image: selenium/hub:latest
+    environment:
+    - GRID_TIMEOUT=180
     ports:
     - "4444:4444"
   chrome:
