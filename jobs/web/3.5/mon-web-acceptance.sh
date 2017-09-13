@@ -66,6 +66,6 @@ mkdir ../acceptance-logs
 composer install
 export COMPOSE_HTTP_TIMEOUT=120
 docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
-docker-compose -f docker-compose-webdriver.yml -p webdriver scale 'chrome=2'
+docker-compose -f docker-compose-webdriver.yml -p webdriver scale 'chrome=4'
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
