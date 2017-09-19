@@ -21,7 +21,7 @@ RUN curl --silent --location https://rpm.nodesource.com/setup_6.x | bash - && \
 
 # Install Centreon Web Stable.
 COPY web/3.4 /tmp/stable
-RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git && \
+RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon centreon-broker* MariaDB-server git && \
     echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini && \
     cp /tmp/stable/centengine.sh /etc/init.d/centengine && \
     cp /tmp/stable/cbd.sh /etc/init.d/cbd && \

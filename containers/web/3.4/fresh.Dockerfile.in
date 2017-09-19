@@ -7,7 +7,7 @@ COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 COPY web/3.4 /tmp/fresh
 
 RUN yum clean all && \
-    yum install -y centreon-base-config-centreon-engine centreon centreon-broker* mysql-server git && \
+    yum install -y centreon-base-config-centreon-engine centreon centreon-broker* MariaDB-server git && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
     chmod +x /etc/init.d/centengine /etc/init.d/cbd && \

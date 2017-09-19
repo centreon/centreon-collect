@@ -7,8 +7,8 @@ httpd
 initscripts
 libgcrypt
 libssh2
-mysql
-mysql-server
+MariaDB-client
+MariaDB-server
 nodejs
 redhat-lsb
 nagios-plugins
