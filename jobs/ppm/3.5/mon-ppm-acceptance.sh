@@ -66,6 +66,6 @@ rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
 export COMPOSE_HTTP_TIMEOUT=180
-docker-compose -f docker-compose-webdriver.yml -p webdriver --scale 'chrome=4' up -d
+docker-compose -f docker-compose-webdriver.yml -p webdriver up -d --scale 'chrome=4'
 ls features/*.feature | grep -v "$EXCLUSION" | parallel ./vendor/bin/behat --tags "$TAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
