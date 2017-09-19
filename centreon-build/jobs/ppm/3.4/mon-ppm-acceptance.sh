@@ -20,12 +20,10 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 PPM_IMAGE="ci.int.centreon.com:5000/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
 PPM1_IMAGE=ci.int.centreon.com:5000/mon-ppm1:$DISTRIB
 SQUID_SIMPLE_IMAGE=ci.int.centreon.com:5000/mon-squid-simple:latest
 SQUID_BASIC_AUTH_IMAGE=ci.int.centreon.com:5000/mon-squid-basic-auth:latest
-docker pull $WEBDRIVER_IMAGE
 docker pull $PPM_IMAGE
 docker pull $PPM1_IMAGE
 docker pull $SQUID_SIMPLE_IMAGE
@@ -67,6 +65,7 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
+export COMPOSE_HTTP_TIMEOUT=180
+docker-compose -f docker-compose-webdriver.yml -p webdriver --scale 'chrome=4' up -d
 ls features/*.feature | grep -v "$EXCLUSION" | parallel ./vendor/bin/behat --tags "$TAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
