@@ -21,11 +21,9 @@ DISTRIB="$1"
 
 # Pull images.
 REGISTRY="ci.int.centreon.com:5000"
-WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 WEB_IMAGE="$REGISTRY/mon-web-3.5:$DISTRIB"
 PPE_IMAGE="$REGISTRY/mon-ppe-$VERSION-$RELEASE:$DISTRIB"
 PPE1_IMAGE="$REGISTRY/mon-ppe1:$DISTRIB"
-docker pull $WEBDRIVER_IMAGE
 docker pull $WEB_IMAGE
 docker pull $PPE_IMAGE
 docker pull $PPE1_IMAGE
@@ -54,6 +52,7 @@ alreadyset=`grep docker-compose-ppe.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      ppe: docker-compose-ppe.yml\n      ppe1: docker-compose-ppe1.yml#g' behat.yml
 fi
-docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
+export COMPOSE_HTTP_TIMEOUT=180
+docker-compose -f docker-compose-webdriver.yml -p webdriver up -d --scale 'chrome=4'
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
