@@ -21,9 +21,7 @@ DISTRIB="$1"
 
 # Pull images.
 REGISTRY="ci.int.centreon.com:5000"
-WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 AUTOMATION_IMAGE="$REGISTRY/mon-automation-$VERSION-$RELEASE:$DISTRIB"
-docker pull $WEBDRIVER_IMAGE
 docker pull $AUTOMATION_IMAGE
 
 # Get sources.
@@ -50,6 +48,7 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
+export COMPOSE_HTTP_TIMEOUT=180
+docker-compose -f docker-compose-webdriver.yml -p webdriver up -d --scale 'chrome=4'
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
