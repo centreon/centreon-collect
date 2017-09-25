@@ -21,7 +21,7 @@ rm -rf output-centos7
 mkdir output-centos7
 
 # Get version.
-cd centreon-studio-web-client
+cd centreon-map/web
 git checkout --detach "$COMMIT"
 
 export VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`                                                                                                                                                                    
