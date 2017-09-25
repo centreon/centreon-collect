@@ -14,6 +14,7 @@ COPY web/3.5 /tmp/dev
 RUN chmod +x /tmp/dev/dev.sh
 COPY centreon/composer.json /usr/share/centreon/composer.json
 RUN composer install -d /usr/share/centreon
+COPY centreon/src /usr/share/centreon/src
 COPY centreon/bootstrap.php /usr/share/centreon/bootstrap.php
 COPY centreon/bin /usr/share/centreon/bin
 RUN chmod +x /usr/share/centreon/bin/*
