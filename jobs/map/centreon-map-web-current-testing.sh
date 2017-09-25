@@ -22,11 +22,13 @@ mkdir output-centos7
 
 # Get version.
 cd centreon-map/web
+
 git checkout --detach "$COMMIT"
 
 export VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`                                                                                                                                                                    
 
 # Generate sources of Centreon Map web client.
+
 npm install
 ./node_modules/bower/bin/bower install
 node ./node_modules/gulp/bin/gulp.js build-module
@@ -40,15 +42,15 @@ cp -a build/widget ../centreon-map4-web-client-$VERSION
 cp -a build/install.sh ../centreon-map4-web-client-$VERSION
 cp -a build/libinstall ../centreon-map4-web-client-$VERSION
 cp -a build/examples ../centreon-map4-web-client-$VERSION
-cd ..
-tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
+cd ../../
+tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map/web/centreon-map4-web-client-$VERSION
 
 # Pull mon-build-dependencies containers.
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
 
 # Build RPMs.
-cp centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate input
+cp centreon-map/web/packaging/centreon-map4-web-client.spectemplate input
 
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
