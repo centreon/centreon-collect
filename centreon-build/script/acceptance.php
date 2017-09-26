@@ -400,7 +400,7 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-web-fresh-dev.yml'),
-        array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-web-fresh:' . $distrib)
+        array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-web-fresh-' . $version . ':' . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
