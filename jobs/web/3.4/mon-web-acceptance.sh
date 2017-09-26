@@ -11,10 +11,14 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos6|centos7> [tags]"
   exit 1
 fi
 DISTRIB="$1"
+TESTTAGS="$2"
+if [ -z "$TESTTAGS" ] ; then
+  TESTTAGS='@tag,~@tag'
+fi
 
 # Pull images.
 WEB_IMAGE="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:$DISTRIB"
@@ -64,5 +68,5 @@ composer install
 export COMPOSE_HTTP_TIMEOUT=180
 docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
 docker-compose -f docker-compose-webdriver.yml -p webdriver scale 'chrome=4'
-ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+ls features/*.feature | parallel ./vendor/bin/behat --tags "$TESTTAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
