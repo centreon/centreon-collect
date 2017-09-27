@@ -67,14 +67,14 @@ put_internal_debs () {
 # Acceptance tests.
 
 launch_webdriver() {
+  set +e
   nodes=0
   while [ -z "$nodes" -o "$nodes" -lt 4 ] ; do
     docker-compose -f "$1" -p webdriver up -d --scale 'chrome=4'
     sleep 10
-    set +e
     nodes=`curl 'http://localhost:4444/grid/api/hub' | python -m json.tool | grep free | cut -d ':' -f 2 | tr -d ' ,'`
-    set -e
   done
+  set -e
 }
 
 stop_webdriver() {
