@@ -78,5 +78,7 @@ launch_webdriver() {
 }
 
 stop_webdriver() {
+  set +e
   docker-compose -f "$1" -p webdriver down
+  set -e
 }
