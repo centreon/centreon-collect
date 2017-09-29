@@ -12,7 +12,7 @@ docker start -a "$containerid"
 
 # Publish RPMs.
 rm -rf noarch
-docker cp "$containerid:/build/rpmbuild/RPMS/noarch" .
+docker cp "$containerid:/script/build/rpmbuild/RPMS/noarch" .
 scp noarch/*.el6.*.rpm ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el6/testing/noarch/RPMS/
 ssh ubuntu@srvi-repo.int.centreon.com createrepo /srv/yum/standard/3.4/el6/testing/noarch
 scp noarch/*.el7.*.rpm ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el7/testing/noarch/RPMS/
