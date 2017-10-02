@@ -29,8 +29,13 @@ export RELEASE="$now.$COMMIT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Create source tarball.
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+rm -rf "../$PROJECT-$VERSION"
+mkdir "../$PROJECT-$VERSION"
+git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+cd "../$PROJECT-$VERSION"
+npm install
 cd ..
+tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Send it to srvi-repo.
 put_internal_source "hub" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
