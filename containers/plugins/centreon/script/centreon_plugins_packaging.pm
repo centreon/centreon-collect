@@ -21,6 +21,7 @@ sub new {
     $self->add_options(
         "filter-package:s" => \$self->{filter_package},
         "force-create"     => \$self->{force_create},
+        "no-rm-builddir"   => \$self->{no_rm_builddir},
     );
 
     $self->{rpm_plugin_path} = '/usr/lib/centreon/plugins/';
@@ -661,10 +662,12 @@ sub DESTROY {
     my $err;
 
     $self->SUPER::DESTROY();
-    centreon::common::misc::chdir(logger => $self->{logger}, dir => $FindBin::Bin);
-    File::Path::remove_tree($self->{build_dir}, { error => \$err });
-    centreon::common::misc::path_errors(logger => $self->{logger}, err => $err, prefix => "delete build directory");
-    $self->{logger}->writeLogInfo("Build directory removed");
+    if (!defined($self->{no_rm_builddir})) {
+        centreon::common::misc::chdir(logger => $self->{logger}, dir => $FindBin::Bin);
+        File::Path::remove_tree($self->{build_dir}, { error => \$err });
+        centreon::common::misc::path_errors(logger => $self->{logger}, err => $err, prefix => "delete build directory");
+        $self->{logger}->writeLogInfo("Build directory removed");
+    }
 }
 
 1;
