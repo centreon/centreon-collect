@@ -52,7 +52,6 @@ alreadyset=`grep docker-compose-ppe.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      ppe: docker-compose-ppe.yml\n      ppe1: docker-compose-ppe1.yml#g' behat.yml
 fi
-export COMPOSE_HTTP_TIMEOUT=180
-docker-compose -f docker-compose-webdriver.yml -p webdriver up -d --scale 'chrome=4'
+launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
+stop_webdriver docker-compose-webdriver.yml
