@@ -9,10 +9,11 @@ set -x
 PROJECT=centreon-hub-ui
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION" "$PROJECT"
 get_internal_source "hub/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
+mv "$PROJECT-$VERSION" "$PROJECT"
 
 # Run unit tests.
-cd "$PROJECT-$VERSION"
+cd "$PROJECT"
 npm run client:test:unit
