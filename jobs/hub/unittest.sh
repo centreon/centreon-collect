@@ -8,7 +8,7 @@ cd /usr/local/src/centreon-hub-ui
 npm install
 
 # Run unit tests.
-npm run client:test:unit
+npm run client:test:build
 
 # Build release.
 npm run client:build
