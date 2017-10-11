@@ -34,7 +34,7 @@ containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-broker`
 
 # Send necessary files to container.
 docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
-docker cp `dirname $0`/unittest.sh /usr/local/bin/unittest-broker
+docker cp `dirname $0`/unittest.sh "$containerid:/usr/local/bin/unittest-broker"
 
 # Build project and run unit tests.
 docker start -a "$containerid"
