@@ -16,17 +16,17 @@ module.exports = {
     // For more options see http://ldapjs.org/client.html
     connect: {
       // The ldap url in format ldap://ip:port
-      url: 'ldap://localhost:389',
+      url: 'ldap://openldap:389',
       // Milliseconds after last activity before client emits idle event
       idleTimeout: 360000
     },
     config: {
       // The user / pass for connect to ldap server
-      binddn: 'cn=Manager,dn=centreon,dn=com',
+      binddn: 'cn=admin,dn=centreon,dn=com',
       password: 'centreon',
       // The filter for find users, the macro %username% will be replace by the
       // login
-      authFilter: '(uid=%username%)',
+      authFilter: '&(uid=%username%)(memberOf=cn=Centreon Hub Users,dn=centreon,dn=com)',
       // The base dn for find users
       authBase: 'dn=centreon,dn=com'
     }
