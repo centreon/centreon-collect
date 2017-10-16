@@ -17,7 +17,7 @@ while [ "$started" -ne 0 ] ; do
 done
 started=1
 while [ "$started" -ne 0 ] ; do
-  started=`nc -w openldap 389 ; echo $?`
+  started=`nc -w 1 openldap 389 ; echo $?`
   sleep 1
 done
 set -e
