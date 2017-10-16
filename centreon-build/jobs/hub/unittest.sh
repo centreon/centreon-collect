@@ -12,5 +12,5 @@ npm run client:test:build
 npm run client:lint
 
 # Build release.
-sed -i 's#http://localhost:32773/api#http://middleware:3000/api#g' config.js
+sed -i 's#http://localhost:3000/api#http://middleware:3000/api#g' config.js
 npm run client:build
