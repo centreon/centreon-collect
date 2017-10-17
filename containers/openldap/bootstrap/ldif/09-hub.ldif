@@ -19,4 +19,4 @@ changetype: add
 objectclass: groupofuniquenames
 cn: auth-middleware
 description: Centreon Hub/Middleware user group
-member: cn=hub-manager,ou=users,dc=centreon,dc=com
+uniquemember: cn=hub-manager,ou=users,dc=centreon,dc=com
