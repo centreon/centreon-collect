@@ -19,6 +19,7 @@ RUN yum clean all && \
     /tmp/fresh/fresh.sh && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
+    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     yum clean all && \
     rm -rf /tmp/fresh
 
