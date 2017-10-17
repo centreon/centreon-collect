@@ -24,6 +24,4 @@ COPY poller-display/3.5/authorized_keys /var/spool/centreon/.ssh
 RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
 
 # Main script.
-COPY poller-display/3.5/run-poller.sh /usr/share/centreon/container-poller-display.sh
-RUN chmod +x /usr/share/centreon/container-poller-display.sh
-ENTRYPOINT ["/usr/share/centreon/container-poller-display.sh"]
+COPY poller-display/3.5/run-poller.sh /usr/share/centreon/container.d/15-poller-display.sh
