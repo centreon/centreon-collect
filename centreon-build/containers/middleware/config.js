@@ -28,7 +28,7 @@ module.exports = {
       // login
       authFilter: '(&(uid=%username%)(memberOf=cn=auth-middleware,ou=groups,dc=centreon,dc=com))',
       // The base dn for find users
-      authBase: 'ou=users,dn=centreon,dn=com'
+      authBase: 'ou=users,dc=centreon,dc=com'
     }
   },
   // The api full base url example : http://localhost:3000/api
