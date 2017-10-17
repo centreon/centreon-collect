@@ -22,13 +22,13 @@ module.exports = {
     },
     config: {
       // The user / pass for connect to ldap server
-      binddn: 'cn=admin,dn=centreon,dn=com',
+      binddn: 'cn=admin,dc=centreon,dc=com',
       password: 'centreon',
       // The filter for find users, the macro %username% will be replace by the
       // login
-      authFilter: '&(uid=%username%)(memberOf=cn=Centreon Hub Users,dn=centreon,dn=com)',
+      authFilter: '(&(uid=%username%)(memberOf=cn=auth-middleware,ou=groups,dc=centreon,dc=com))',
       // The base dn for find users
-      authBase: 'dn=centreon,dn=com'
+      authBase: 'ou=users,dn=centreon,dn=com'
     }
   },
   // The api full base url example : http://localhost:3000/api
