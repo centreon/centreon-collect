@@ -14,9 +14,9 @@ gecos: hub-manager
 userPassword: hub-manager
 mail: hub-manager@localhost
 
-dn: cn=Centreon Hub Users,ou=groups,dc=centreon,dc=com
+dn: cn=auth-middleware,ou=groups,dc=centreon,dc=com
 changetype: add
-objectclass: groupofnames
-cn: Centreon Hub Users
-description: Centreon Hub user group
+objectclass: groupofuniquenames
+cn: auth-middleware
+description: Centreon Hub/Middleware user group
 member: cn=hub-manager,ou=users,dc=centreon,dc=com
