@@ -16,13 +16,6 @@ RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
     apt-get install -y nodejs
 
-# Install OpenLDAP.
-#RUN apt-get install -y screen slapd ldap-utils
-#RUN echo 'olcRootPW: {SSHA}2pMsLy5/tCfxzQpBah2YWflQdzTKH0Py' >> '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
-#RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
-#RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif'
-#COPY middleware/ldap.ldif /tmp/ldap.ldif
-
 # Install middleware.
 COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
 COPY middleware/config.js middleware/private.asc /usr/local/src/centreon-imp-portal-api/
