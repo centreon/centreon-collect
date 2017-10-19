@@ -23,10 +23,14 @@ DISTRIB="$1"
 REGISTRY="ci.int.centreon.com:5000"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
 MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware:latest"
+REDIS_IMAGE="redis:latest"
+OPENLDAP_IMAGE="$REGISTRY/mon-openldap:latest"
 SQUID_SIMPLE_IMAGE="$REGISTRY/mon-squid-simple:latest"
 SQUID_BASIC_AUTH_IMAGE="$REGISTRY/mon-squid-basic-auth:latest"
 docker pull $LM_IMAGE
 docker pull $MIDDLEWARE_IMAGE
+docker pull $REDIS_IMAGE
+docker pull $OPENLDAP_IMAGE
 docker pull $SQUID_SIMPLE_IMAGE
 docker pull $SQUID_BASIC_AUTH_IMAGE
 
