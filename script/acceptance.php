@@ -122,6 +122,7 @@ if ($synchronize) {
     $images = array(
         '/mon-phantomjs' => array(),
         '/mon-middleware' => array(),
+        '/hub' => array(),
         '/mon-mediawiki' => array(),
         '/mon-openldap' => array(),
         '/mon-squid-simple' => array(),
@@ -276,6 +277,9 @@ else {
     case 'centreon-studio-desktop-client':
         $project = 'map';
         break ;
+    case 'centreon-hub-ui':
+        $project = 'hub';
+        break ;
     default:
         echo 'Unknown project ' . $project . ": perhaps you are not running acceptance.php from the root of a supported project ?\n";
         return (1);
@@ -288,6 +292,14 @@ else {
         xpath('mon-lm-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-lm'),
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+        )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/middleware/docker-compose-web.yml.in'),
+        xpath('hub-dev.yml'),
+        array(
+            '@WEB_IMAGE@' => 'hub-dev:latest',
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
     );
