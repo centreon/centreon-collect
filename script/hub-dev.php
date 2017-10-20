@@ -5,7 +5,6 @@ $centreon_build_dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..';
 require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SEPARATOR . 'common.php');
 
 // Build release sources.
-passthru('npm client:build');
 passthru('yarn client:build');
 
 // Build hub image.
