@@ -6,6 +6,7 @@ require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SE
 
 // Build release sources.
 passthru('npm client:build');
+passthru('yarn client:build');
 
 // Build hub image.
 xrmdir($centreon_build_dir . '/containers/centreon-hub-ui');
