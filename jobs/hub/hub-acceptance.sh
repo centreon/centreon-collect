@@ -34,6 +34,9 @@ cd "$PROJECT-$VERSION"
 # Prepare Docker Compose file.
 sed -e 's#@WEB_IMAGE@#'$HUB_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-web.yml.in > docker-compose-hub.yml
 
+# Copy compose file of webdriver
+cp `dirname $0`/../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
@@ -46,4 +49,6 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
+launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+stop_webdriver docker-compose-webdriver.yml
