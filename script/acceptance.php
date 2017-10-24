@@ -473,10 +473,5 @@ else {
         foreach ($argv as $feature) {
             passthru($cmd . ' ' . $feature, $return_var);
         }
-        passthru(
-            'docker-compose -f ' . $centreon_build_dir . '/containers/webdrivers/docker-compose.yml.in ' .
-            '-p webdriver down -v',
-            $return_var
-        );
     }
 }
