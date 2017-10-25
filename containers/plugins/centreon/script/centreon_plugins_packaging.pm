@@ -324,7 +324,7 @@ sub check_last_plugin {
         return 0;
     }
 
-    if (defined($self->{last_plugin_data}->{custom_spec_data}) ||
+    if (defined($self->{last_plugin_data}->{custom_spec_data}) &&
         $self->{last_plugin_data}->{custom_spec_data} ne $self->{pkg_data}->{custom_spec_data}) {
         $self->{logger}->writeLogInfo("new custom_spec_data = " . $self->{pkg_data}->{custom_spec_data} . " [old = $self->{last_plugin_data}->{custom_spec_data}]");
         return 0;
