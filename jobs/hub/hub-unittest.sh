@@ -25,7 +25,7 @@ docker cp `dirname $0`/unittest.sh "$containerid:/tmp/unittest.sh"
 # Run unit tests and build release.
 rm -rf "coverage" "$PROJECT-release-$VERSION.tar.gz" "$PROJECT-release-$VERSION"
 docker start -a "$containerid"
-# docker cp "$containerid:/usr/local/src/$PROJECT/coverage" "coverage"
+docker cp "$containerid:/usr/local/src/$PROJECT/coverage" "coverage"
 docker cp "$containerid:/usr/local/src/$PROJECT/build" "$PROJECT-$VERSION-release"
 
 # Send release tarball.
