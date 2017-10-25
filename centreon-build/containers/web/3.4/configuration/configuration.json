@@ -1,5 +1,5 @@
 {
-  "centreon_dir": "\/usr\/share\/centreon",
+  "centreon_dir": "\/usr\/share\/centreon\/",
   "centreon_etc": "\/etc\/centreon",
   "centreon_dir_www": "\/usr\/share\/centreon\/www",
   "centreon_dir_rrd": "\/var\/lib\/centreon",
