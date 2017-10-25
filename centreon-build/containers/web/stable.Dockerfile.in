@@ -33,6 +33,7 @@ RUN yum install --nogpgcheck -y centreon-base-config-centreon-engine centreon ce
     /tmp/stable/fresh.sh && \
     cp /tmp/stable/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
+    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     yum clean all
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
