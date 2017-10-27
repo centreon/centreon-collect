@@ -273,8 +273,7 @@ else {
     case 'centreon-bam':
         $project = 'bam';
         break ;
-    case 'centreon-studio-server':
-    case 'centreon-studio-desktop-client':
+    case 'centreon-map':
         $project = 'map';
         break ;
     case 'centreon-hub-ui':
