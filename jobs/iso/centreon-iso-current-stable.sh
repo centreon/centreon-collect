@@ -5,6 +5,7 @@ set -x
 
 # Project.
 export PROJECT=centreon-iso
+SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
