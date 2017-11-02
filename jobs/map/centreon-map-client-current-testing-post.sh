@@ -24,14 +24,14 @@ ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" rm -rf $path
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p $path
 
 # Copy modules.
-scp -o StrictHostKeyChecking=no -r desktop/centreon-studio-desktop-client/com.centreon.studio.client.product/target/repository/* "ubuntu@srvi-repo.int.centreon.com":$path
+scp -o StrictHostKeyChecking=no -r desktop/com.centreon.studio.client.product/target/repository/* "ubuntu@srvi-repo.int.centreon.com":$path
 
 # Move all installers to an install folder.
 rm -rf installs
 mkdir installs
-cp desktop/centreon-studio-desktop-client/com.centreon.studio.client.packaging.deb.amd64/target/*.deb installs/
-cp desktop/centreon-studio-desktop-client/com.centreon.studio.client.packaging.nsis.x86_64/target/*.exe installs/
-cp desktop/centreon-studio-desktop-client/com.centreon.studio.client.product/target/products/Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz installs/
+cp desktop/com.centreon.studio.client.packaging.deb.amd64/target/*.deb installs/
+cp desktop/com.centreon.studio.client.packaging.nsis.x86_64/target/*.exe installs/
+cp desktop/com.centreon.studio.client.product/target/products/Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz installs/
 
 # Copy installers to remote repository.
 path="/srv/sources/map/testing/centreon-map-client-$VERSION"
