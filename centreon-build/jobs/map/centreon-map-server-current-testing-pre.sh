@@ -14,7 +14,7 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
 fi
 
 # Checkout commit.
-cd centreon-map/server
+cd server
 git checkout --detach "$COMMIT"
 
 # Tweak pom files to add release version.
