@@ -8,7 +8,7 @@ set -x
 #
 
 # Find version.
-filename='desktop/centreon-studio-desktop-client/com.centreon.studio.client.packaging.deb.amd64/target/*.deb'
+filename='desktop/com.centreon.studio.client.packaging.deb.amd64/target/*.deb'
 VERSION=$(echo $filename | grep -Po '(?<=-client-)[0-9.]+')
 major=`echo $VERSION | cut -d . -f 1`
 minor=`echo $VERSION | cut -d . -f 2`
