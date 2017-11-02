@@ -14,5 +14,5 @@ if [ -z "$COMMIT" ] ; then
 fi
 
 # Checkout commit.
-cd centreon-map/desktop
+cd desktop
 git checkout --detach "$COMMIT"
