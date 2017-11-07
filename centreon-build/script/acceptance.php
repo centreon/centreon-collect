@@ -299,7 +299,7 @@ else {
         xpath('hub-dev.yml'),
         array(
             '@WEB_IMAGE@' => 'hub-dev:latest',
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware-dataset:latest'
         )
     );
     replace_in_file(
