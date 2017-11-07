@@ -17,7 +17,7 @@ fi
 # Pull images.
 REGISTRY="ci.int.centreon.com:5000"
 HUB_IMAGE="$REGISTRY/hub-$VERSION-$RELEASE:latest"
-MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware:latest"
+MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware-dataset:latest"
 REDIS_IMAGE=redis:latest
 OPENLDAP_IMAGE="$REGISTRY/mon-openldap:latest"
 docker pull $HUB_IMAGE
