@@ -10,7 +10,7 @@ INSERT INTO `company` (`id`, `name`, `crm_id`, `crmsf_id`, `token`, `enabled`) V
 (13,'1986','809d246a-3f9e-3675-019b-576b8b4ae9bd',NULL,'198970bd0de000cc0a1f36f613d930018cb97890c50',1),
 (14,'CentreonMerethis','da8a76c5-7a8d-470d-05b6-576b8b46c43f',NULL,'CEN284a54572e43b83535531d91e3347bb084f948f1',1),
 (15,'Pilaf Prod','6ce32020-1175-6e24-69ce-576b9e107ec9',NULL,'PIL86cc944289a3bddf17da0f87f307c7d7628e6fae',1),
-(16,'Centreon²','94e9dc78-bfb7-4168-a1f8-576ba2da360d',NULL,'CEN06416174650aa2c08f9c118da74599f3bcf5cbf8',1),
+(16,'Centreon','94e9dc78-bfb7-4168-a1f8-576ba2da360d',NULL,'CEN06416174650aa2c08f9c118da74599f3bcf5cbf8',1),
 (17,'AG','dbb7e46e-e791-7551-0832-576baf6a828d',NULL,'AGd3611059ae042272d60b6cda3178d75ae1ec0bf7',1),
 (18,'lord','947fd96e-6614-857c-fe84-576bb28f32ed',NULL,'LOR16245e2a34b6669ab9897827723f7c6febf5cd5c',1),
 (19,'bigyyyyyy','5d77aed4-8720-edef-6abc-576bfa8e41d0',NULL,'BIGeb62c115598b2f9414de9e2cae2dfc8f48819233',1),
