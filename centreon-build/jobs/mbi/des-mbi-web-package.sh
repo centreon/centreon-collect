@@ -54,9 +54,9 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input ou
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='internal/el6/noarch'
+  DISTRIB='el6'
 elif [ "$DISTRIB" = 'centos7' ] ; then
-  REPO='internal/el7/noarch'
+  DISTRIB='el7'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
