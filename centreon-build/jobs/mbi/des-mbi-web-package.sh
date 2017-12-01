@@ -58,8 +58,6 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-FILES='output/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
-DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
+
+put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
