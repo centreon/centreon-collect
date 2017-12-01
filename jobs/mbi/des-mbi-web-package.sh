@@ -59,5 +59,5 @@ else
   exit 1
 fi
 
-put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
