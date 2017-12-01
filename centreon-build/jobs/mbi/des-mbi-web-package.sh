@@ -3,12 +3,15 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
 DISTRIB="$1"
+PROJECT=centreon-bi-server
 
 # Create input and output directories.
 rm -rf input
