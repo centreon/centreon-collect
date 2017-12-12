@@ -36,7 +36,7 @@ docker pull "$BUILD_IMG"
 
 # Build RPMs.
 cp "$PROJECT-$VERSION.tar.gz" input/
-cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
+cp "/opt/centreon-build/packaging/$PROJECT/$PROJECT.spectemplate" input/
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
