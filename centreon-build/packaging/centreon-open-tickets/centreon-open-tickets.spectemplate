@@ -10,7 +10,8 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  centreon-devel
-Requires:       centreon
+Requires:       centreon-open-tickets-module
+Requires:       centreon-open-tickets-widget
 
 %description
 This add-on is built to manage passive alerts into slots of alerts. Alerts are not defined
@@ -20,8 +21,7 @@ events.
 %package module
 Summary:        Centreon Open Tickets module
 Group:          Networking/Other
-Requires(post): /sbin/chkconfig
-Requires:	centreon
+Requires:	centreon-web
 
 %description module
 The configuration module for Centreon Open Tickets.
@@ -30,6 +30,7 @@ The module allows to open tickets on ITSM providers.
 %package widget
 Summary:	Centreon Open Tickets widget
 Group:		Networking/Other
+Requires:	centreon-web
 
 %description widget
 Centreon Open Tickets widget for open tickets on ITSM providers.
