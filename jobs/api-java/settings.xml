@@ -1,0 +1,9 @@
+<settings>
+  <servers>
+    <server>
+      <id>deployment</id>
+      <username>deployment</username>
+      <password>deployment</password>
+    </server>
+  </servers>
+</settings>
