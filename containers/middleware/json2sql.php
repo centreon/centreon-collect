@@ -122,7 +122,7 @@ foreach ($catalogs as $catalog) {
         // INSERT INTO catalog_pluginpack.
         if (preg_match('/^catalog\-(\d)$/', $catalog, $matches)) {
             $cppinsert->bindParam(':catalog_level', $matches[1]);
-            $cppinsert->bindParam(':pluginpack_id', $ppid);
+            $cppinsert->bindParam(':pluginpack_id', $ppId);
             $cppinsert->execute();
         }
     }
