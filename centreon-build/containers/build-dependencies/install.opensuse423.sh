@@ -3,6 +3,10 @@
 set -e
 set -x
 
+# Install development repositories.
+zypper --non-interactive ar http://srvi-repo.int.centreon.com/yum/internal/3.4/os423/x86_64 centreon-internal
+zypper --non-interactive ar http://srvi-repo.int.centreon.com/yum/internal/3.4/os423/noarch centreon-internal-noarch
+
 # Install required build dependencies for all Centreon projects.
 zypper --non-interactive install rpm-build
 xargs zypper --non-interactive install --download-only < /tmp/build-dependencies.txt
