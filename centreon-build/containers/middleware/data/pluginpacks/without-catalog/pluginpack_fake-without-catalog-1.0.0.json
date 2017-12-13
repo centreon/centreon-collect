@@ -1,0 +1,38 @@
+{
+    "timeperiods": [],
+    "commands": [],
+    "host_templates": [],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [],
+        "description": [
+            {
+                "lang": "en",
+                "value": "This plugin pack is used for test."
+            },
+            {
+                "lang": "fr",
+                "value": "This plugin pack is used for test."
+            }
+        ],
+        "discovery_category": "operating-system",
+        "email": "imp@centreon.com",
+        "icon": null,
+        "monitoring_procedure": "# useless pp without catalog",
+        "name": "Without catalog",
+        "requirement": [],
+        "slug": "without-catalog",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "without",
+            "catalog"
+        ],
+        "update_date": "1466699395",
+        "version": "1.0.0",
+        "website": "www.centreon.com"
+    },
+    "service_templates": []
+}
