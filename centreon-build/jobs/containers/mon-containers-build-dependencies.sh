@@ -16,6 +16,9 @@ case "$1" in
   debian9)
     BASE_IMAGE="debian:9"
     ;;
+  opensuse423)
+    BASE_IMAGE="opensuse:42.3"
+    ;;
   *)
     echo "USAGE: $0 <distrib>"
     exit 1
