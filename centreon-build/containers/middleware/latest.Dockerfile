@@ -23,7 +23,7 @@ WORKDIR /usr/local/src/centreon-imp-portal-api
 RUN npm install
 
 # Install Plugin Pack JSON files.
-COPY middleware/data/*.json /usr/share/centreon-packs/
+COPY middleware/data/pluginpacks /usr/share/centreon-packs
 
 # Install script.
 
