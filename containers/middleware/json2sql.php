@@ -26,131 +26,104 @@ $pptinsert = $dbh->prepare(
 );
 $cppinsert = $dbh->prepare(
     'INSERT IGNORE INTO catalog_pluginpack (catalog_id, pluginpack_id) '
-    . 'VALUES (:catalog_id, :pluginpack_id)'
+    . 'VALUES ((SELECT id FROM catalog WHERE catalog_level = :catalog_level), :pluginpack_id)'
 );
 
 // Get PP list.
 $base_dir = '/usr/share/centreon-packs';
 chdir($base_dir);
-$pp_list = glob('*.json');
 
-// Insert all Plugin Packs in DB.
-foreach ($pp_list as $pp_file) {
-    // Load Plugin Pack.
-    $ppjson = file_get_contents($pp_file);
-    $ppcontent = json_decode($ppjson, TRUE);
-    $ppversion = $ppcontent['information']['version'];
-
-    // INSERT INTO pluginpack.
-    $ppinsert->bindParam(':name', $ppcontent['information']['name']);
-    $ppinsert->bindParam(':slug', $ppcontent['information']['slug']);
-    $community = 0;
-    $ppinsert->bindParam(':community', $community);
-    $certified = 0;
-    $ppinsert->bindParam(':certified', $certified);
-    $ppinsert->bindParam(':icon', $ppcontent['information']['icon']);
-    $ppinsert->execute();
-    $res = $dbh->query(
-        "SELECT id FROM pluginpack WHERE slug='"
-        . $ppcontent['information']['slug'] . "'");
-    $row = $res->fetch();
-    $ppid = $row['id'];
-    unset($res);
-
-    // INSERT INTO pluginpack_version.
-    $ppvinsert->bindParam(':pluginpack_id', $ppid);
-    $ppvinsert->bindParam(':version', $ppversion);
-    $release_date = date('Y-m-d H:i:s', $ppcontent['information']['update_date']);
-    $ppvinsert->bindParam(':release_date', $release_date);
-    $ppvinsert->bindParam(':status', $ppcontent['information']['status']);
-    $ht_count = count($ppcontent['host_templates']);
-    $ppvinsert->bindParam(':nb_ht', $ht_count);
-    $st_count = count($ppcontent['service_templates']);
-    $ppvinsert->bindParam(':nb_st', $st_count);
-    $cmd_count = count($ppcontent['commands']);
-    $ppvinsert->bindParam(':nb_c', $cmd_count);
-    $install_count = 0;
-    $ppvinsert->bindParam(':install_count', $install_count);
-    $released = true;
-    $ppvinsert->bindParam(':released', $released);
-    if (!empty($ppcontent['information']['discovery_category'])) {
-        $ppvinsert->bindParam(':category', $ppcontent['information']['discovery_category']);
+$catalogs = scandir('./');
+foreach ($catalogs as $catalog) {
+    if (!is_dir($catalog)) {
+        continue;
     }
-    else {
-        $category = 'unknown';
-        $ppvinsert->bindParam(':category', $category);
-    }
-    if (!empty($ppcontent['information']['requirement'])) {
-        $dummy = '[' . json_encode($ppcontent['information']['requirement'][0]);
-        foreach (array_slice($ppcontent['information']['requirement'], 1) as $requirement) {
-            $dummy .= ', ' . json_encode($requirement);
+
+    $ppList = glob($catalog . '/*.json');
+    foreach ($ppList as $ppFile) {
+        // Load Plugin Pack.
+        $ppJson = file_get_contents($ppFile);
+        $ppContent = json_decode($ppJson, TRUE);
+        $ppVersion = $ppContent['information']['version'];
+
+        // INSERT INTO pluginpack.
+        $ppinsert->bindParam(':name', $ppContent['information']['name']);
+        $ppinsert->bindParam(':slug', $ppContent['information']['slug']);
+        $community = 0;
+        $ppinsert->bindParam(':community', $community);
+        $certified = 0;
+        $ppinsert->bindParam(':certified', $certified);
+        $ppinsert->bindParam(':icon', $ppContent['information']['icon']);
+        $ppinsert->execute();
+        $res = $dbh->query(
+            "SELECT id FROM pluginpack WHERE slug='"
+            . $ppContent['information']['slug'] . "'"
+        );
+        $row = $res->fetch();
+        $ppId = $row['id'];
+        unset($res);
+
+        // INSERT INTO pluginpack_version.
+        $ppvinsert->bindParam(':pluginpack_id', $ppId);
+        $ppvinsert->bindParam(':version', $ppVersion);
+        $releaseDate = date('Y-m-d H:i:s', $ppContent['information']['update_date']);
+        $ppvinsert->bindParam(':release_date', $releaseDate);
+        $ppvinsert->bindParam(':status', $ppContent['information']['status']);
+        $htCount = count($ppContent['host_templates']);
+        $ppvinsert->bindParam(':nb_ht', $htCount);
+        $stCount = count($ppContent['service_templates']);
+        $ppvinsert->bindParam(':nb_st', $stCount);
+        $cmdCount = count($ppContent['commands']);
+        $ppvinsert->bindParam(':nb_c', $cmdCount);
+        $installCount = 0;
+        $ppvinsert->bindParam(':install_count', $installCount);
+        $released = true;
+        $ppvinsert->bindParam(':released', $released);
+        if (!empty($ppContent['information']['discovery_category'])) {
+            $ppvinsert->bindParam(':category', $ppContent['information']['discovery_category']);
         }
-        $dummy .= ']';
-        $ppvinsert->bindParam(':requirement', $dummy);
-    }
-    else {
-        $dummy = null;
-        $ppvinsert->bindParam(':requirement', $dummy, \PDO::PARAM_NULL);
-    }
-    $ppvinsert->bindParam(':changelog', $ppcontent['information']['changelog']);
-    $ppvinsert->bindParam(':information', $ppjson);
-    $ppvinsert->execute();
+        else {
+            $category = 'unknown';
+            $ppvinsert->bindParam(':category', $category);
+        }
+        if (!empty($ppContent['information']['requirement'])) {
+            $dummy = '[' . json_encode($ppContent['information']['requirement'][0]);
+            foreach (array_slice($ppContent['information']['requirement'], 1) as $requirement) {
+                $dummy .= ', ' . json_encode($requirement);
+            }
+            $dummy .= ']';
+            $ppvinsert->bindParam(':requirement', $dummy);
+        }
+        else {
+            $dummy = null;
+            $ppvinsert->bindParam(':requirement', $dummy, \PDO::PARAM_NULL);
+        }
+        $ppvinsert->bindParam(':changelog', $ppContent['information']['changelog']);
+        $ppvinsert->bindParam(':information', $ppJson);
+        $ppvinsert->execute();
 
-    // INSERT INTO pluginpack_description.
-    foreach ($ppcontent['information']['description'] as $description) {
-        $ppdinsert->bindParam(':pluginpack_id', $ppid);
-        $ppdinsert->bindParam(':version', $ppversion);
-        $ppdinsert->bindParam(':locale', $description['lang']);
-        $ppdinsert->bindParam(':description', $description['value']);
-        $ppdinsert->execute();
-    }
+        // INSERT INTO pluginpack_description.
+        foreach ($ppContent['information']['description'] as $description) {
+            $ppdinsert->bindParam(':pluginpack_id', $ppId);
+            $ppdinsert->bindParam(':version', $ppVersion);
+            $ppdinsert->bindParam(':locale', $description['lang']);
+            $ppdinsert->bindParam(':description', $description['value']);
+            $ppdinsert->execute();
+        }
 
-    // INSERT INTO pluginpack_tag.
-    foreach ($ppcontent['information']['tags'] as $tag) {
-        $pptinsert->bindParam(':pluginpack_id', $ppid);
-        $pptinsert->bindParam(':version', $ppversion);
-        $pptinsert->bindParam(':tag', $tag);
-        $pptinsert->execute();
-    }
+        // INSERT INTO pluginpack_tag.
+        foreach ($ppContent['information']['tags'] as $tag) {
+            $pptinsert->bindParam(':pluginpack_id', $ppId);
+            $pptinsert->bindParam(':version', $ppVersion);
+            $pptinsert->bindParam(':tag', $tag);
+            $pptinsert->execute();
+        }
 
-    // INSERT INTO catalog_pluginpack.
-    $free_id = 1;
-    $registred_id = 2;
-    $subscription_id = 3;
-    switch ($ppcontent['information']['slug']) {
-    case 'applications-databases-mysql':
-    case 'applications-monitoring-centreon-central':
-    case 'applications-monitoring-centreon-database':
-    case 'applications-monitoring-centreon-poller':
-    case 'base-generic':
-    case 'hardware-printers-standard-rfc3805-snmp':
-    case 'hardware-ups-standard-rfc1628-snmp':
-    case 'network-cisco-standard-snmp':
-    case 'operatingsystems-linux-snmp':
-    case 'fake-unmanaged-objects':
-    case 'fake-unmanaged-objects2':
-    case 'fake-managed-objects':
-    case 'fake-child-objects':
-    case 'fake-wrong-discovery-category':
-    case 'fake-timeperiods':
-        $catalog_id = $free_id;
-        break ;
-    case 'applications-protocol-bgp':
-    case 'applications-protocol-dns':
-    case 'applications-protocol-http':
-    case 'applications-protocol-imap':
-    case 'applications-protocol-ldap':
-    case 'applications-protocol-ntp':
-    case 'applications-protocol-smtp':
-    case 'applications-protocol-x509':
-        $catalog_id = $registred_id;
-        break ;
-    default:
-        $catalog_id = $subscription_id;
+        // INSERT INTO catalog_pluginpack.
+        if (preg_match('/^catalog\-(\d)$/', $catalog, $matches)) {
+            $cppinsert->bindParam(':catalog_level', $matches[1]);
+            $cppinsert->bindParam(':pluginpack_id', $ppid);
+            $cppinsert->execute();
+        }
     }
-    $cppinsert->bindParam(':catalog_id', $catalog_id);
-    $cppinsert->bindParam(':pluginpack_id', $ppid);
-    $cppinsert->execute();
 }
-
-?>

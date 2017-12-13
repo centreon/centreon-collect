@@ -8,7 +8,6 @@ RUN npm install
 # Database.
 COPY centreon-imp-portal-api/database /usr/local/src/centreon-imp-portal-api/database
 COPY middleware/data/contact.sql /usr/local/src/contact.sql
-COPY middleware/json2sql.php /usr/local/src/json2sql.php
 COPY middleware/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install.sh && /tmp/install.sh
 
