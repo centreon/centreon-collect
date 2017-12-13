@@ -7,4 +7,5 @@ libgnutls-devel
 libgcrypt-devel
 libqt4-devel
 lsb
+rpm-build
 rrdtool-devel
