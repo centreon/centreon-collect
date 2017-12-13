@@ -4,8 +4,8 @@ set -e
 set -x
 
 # Install development repositories.
-zypper --non-interactive ar http://srvi-repo.int.centreon.com/yum/internal/3.4/os423/x86_64 centreon-internal
-zypper --non-interactive ar http://srvi-repo.int.centreon.com/yum/internal/3.4/os423/noarch centreon-internal-noarch
+sed -i -e 's/@DISTRIB@/os423/g' -e 's/@VERSION@/3.4/g' -e 's/gpgcheck=1/gpgcheck=0/g' /tmp/centreon-internal.repo.in
+zypper --non-interactive ar /tmp/centreon-internal.repo.in
 
 # Install required build dependencies for all Centreon projects.
 zypper --non-interactive install rpm-build
