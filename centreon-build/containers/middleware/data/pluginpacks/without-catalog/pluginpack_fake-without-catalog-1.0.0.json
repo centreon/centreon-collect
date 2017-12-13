@@ -21,12 +21,13 @@
         "email": "imp@centreon.com",
         "icon": null,
         "monitoring_procedure": "# useless pp without catalog",
-        "name": "Without catalog",
+        "name": "Fake without catalog",
         "requirement": [],
-        "slug": "without-catalog",
+        "slug": "fake-without-catalog",
         "status": "stable",
         "status_message": "",
         "tags": [
+            "fake",
             "without",
             "catalog"
         ],
