@@ -1,0 +1,11 @@
+cmake
+gcc
+gcc-c++
+gettext
+git
+make
+gnutls-devel
+libgcrypt-devel
+qt4-devel
+rrdtool-devel
+redhat-lsb
