@@ -10,6 +10,6 @@ xargs zypper --non-interactive install --download-only < /tmp/build-dependencies
 # Install fake yum-builddep binary to install build dependencies.
 cat > /usr/local/bin/yum-builddep <<EOF
 #!/bin/sh
-zypper --non-interactive install \`rpmspec -q --buildrequires \$3\ | cut -d '<' -f 1 | cut -d '>' -f 1 | cut -d ' ' -f 1 | sort -u`
+zypper --non-interactive install \`rpmspec -q --buildrequires \$3 | cut -d '<' -f 1 | cut -d '>' -f 1 | cut -d ' ' -f 1 | sort -u\`
 EOF
 chmod +x /usr/local/bin/yum-builddep
