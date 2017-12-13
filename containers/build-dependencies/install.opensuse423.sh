@@ -4,6 +4,7 @@ set -e
 set -x
 
 # Install required build dependencies for all Centreon projects.
+zypper --non-interactive install rpm-build
 xargs zypper --non-interactive install --download-only < /tmp/build-dependencies.txt
 
 # Install fake yum-builddep binary to install build dependencies.
