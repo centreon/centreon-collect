@@ -11,6 +11,16 @@ zypper --non-interactive ar /tmp/centreon-internal.repo.in
 zypper --non-interactive install rpm-build
 xargs zypper --non-interactive install --download-only < /tmp/build-dependencies.txt
 
+# Install Node.js and related elements.
+zypper --non-interactive install nodejs6 npm6
+npm install -g gulp
+
+# Install Composer.
+zypper --non-interactive install php5 php5-dom php5-mbstring
+curl -sS https://getcomposer.org/installer | php
+mv composer.phar /usr/local/bin/composer
+chmod +x /usr/local/bin/composer
+
 # Install fake yum-builddep binary to install build dependencies.
 cat > /usr/local/bin/yum-builddep <<EOF
 #!/bin/sh
