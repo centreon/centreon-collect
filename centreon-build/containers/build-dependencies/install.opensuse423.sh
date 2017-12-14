@@ -16,7 +16,7 @@ zypper --non-interactive install nodejs6 npm6
 npm install -g gulp
 
 # Install Composer.
-zypper --non-interactive install curl php5 php5-dom php5-mbstring
+zypper --non-interactive install curl php5 php5-dom php5-json php5-mbstring php5-openssl php5-phar
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
