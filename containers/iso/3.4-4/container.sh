@@ -12,15 +12,13 @@ yum -y install --nogpgcheck /tmp/centreon-release-3.4-4.el7.centos.noarch.rpm
 # Create tree
 mkdir repodata Packages
 
-cd Packages/
-yum update -y --nogpgcheck --downloadonly
-cd ..
-
 # ---------------
 # Update Packages
 # ---------------
 
 # Retrieve the necessary packages
+
+yum install -y yum-utils
 
 yum -y install --nogpgcheck --downloadonly --downloaddir=Packages/ centreon-base-config-centreon-engine centreon
 yum -y install --nogpgcheck --downloadonly --downloaddir=Packages/ centreon-widget-*
