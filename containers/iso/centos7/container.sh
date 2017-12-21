@@ -23,7 +23,7 @@ umount mount
 # Download CentOS 7 iso, Anaconda and Dependencies.
 wget http://srvi-repo.int.centreon.com/iso/CentOS-7-x86_64-Minimal-1708.iso
 wget -P centreon-iso/Packages http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
-yum -y --disablerepo=updates install --nogpgcheck centreon-release-3.4-4.el7.centos.noarch.rpm
+yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-3.4-4.el7.centos.noarch.rpm
 
 # -----------------------------------------
 # Download packages for basic configuration
