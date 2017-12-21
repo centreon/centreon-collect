@@ -10,7 +10,7 @@ if [ "$1" = "centos6" ] ; then
 
   # Build image.
   cd `dirname $0`/../../containers
-  docker build -t ci.int.centreon.com:5000/mon-build-iso:centos6 -f iso/centos7/build-iso.Dockerfile .
+  docker build -t ci.int.centreon.com:5000/mon-build-iso:centos6 -f iso/centos6/build-iso.Dockerfile .
 
   # Push image.
   docker push ci.int.centreon.com:5000/mon-build-iso:centos6
