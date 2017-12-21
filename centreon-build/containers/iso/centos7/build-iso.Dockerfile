@@ -7,3 +7,4 @@ RUN yum install -y --disablerepo=updates lftp wget openssh-clients unzip gzip yu
 
 # Scripts.
 COPY iso/centos7/container.sh /usr/local/bin/container.sh
+COPY iso/centos7/addon /tmp/addon
