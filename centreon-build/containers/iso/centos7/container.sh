@@ -10,7 +10,7 @@ set -x
 # Download CentOS 7 iso, Anaconda and Dependencies.
 wget http://srvi-repo.int.centreon.com/iso/CentOS-7-x86_64-Minimal-1708.iso
 wget http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
-yum -y --disablerepo=updates install --nogpgcheck /tmp/centreon-release-3.4-4.el7.centos.noarch.rpm
+yum -y --disablerepo=updates install --nogpgcheck centreon-release-3.4-4.el7.centos.noarch.rpm
 
 # Create mount point and tree.
 rm -rf mount centreon-iso
