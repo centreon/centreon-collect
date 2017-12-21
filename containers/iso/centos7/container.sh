@@ -3,27 +3,27 @@
 set -e
 set -x
 
+# -----------
+# Extract ISO
+# -----------
+
+# Create mount point and tree.
+rm -rf mount centreon-iso
+mkdir -p mount
+
+# Mount the downloaded ISO file and copy the files
+mount -t iso9660 -o loop CentOS-7-x86_64-Minimal-1708.iso mount/
+cp -Rp mount centreon-iso
+umount mount
+
 # ----------------------------------
 # Download minimal Centos 7 and .rpm
 # ----------------------------------
 
 # Download CentOS 7 iso, Anaconda and Dependencies.
 wget http://srvi-repo.int.centreon.com/iso/CentOS-7-x86_64-Minimal-1708.iso
-wget http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
+wget -P centreon-iso/Packages http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
 yum -y --disablerepo=updates install --nogpgcheck centreon-release-3.4-4.el7.centos.noarch.rpm
-
-# Create mount point and tree.
-rm -rf mount centreon-iso
-mkdir -p mount
-
-# -----------
-# Extract ISO
-# -----------
-
-# Mount the downloaded ISO file and copy the files
-mount -t iso9660 -o loop CentOS-7-x86_64-Minimal-1708.iso mount/
-cp -Rp mount centreon-iso
-umount mount
 
 # -----------------------------------------
 # Download packages for basic configuration
