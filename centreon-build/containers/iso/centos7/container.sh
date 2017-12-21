@@ -44,7 +44,7 @@ cp centreon-iso/repodata/*-c7-minimal-x86_64-comps.xml centreon-iso/c7-minimal-x
 
 # Create the repository
 yum -y --disablerepo=updates install createrepo
-createrepo -g centreon-iso/c7-minimal-x86_64-comps.xml centreon-iso/
+createrepo -g c7-minimal-x86_64-comps.xml centreon-iso/
 
 # ----------------------------
 # Generate Custom Centreon ISO
