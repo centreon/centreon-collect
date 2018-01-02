@@ -38,6 +38,7 @@ from pyanaconda.ui.tui.simpleline import TextWidget, ColumnWidget
 # export only the CentreonSpoke and CentreonEditSpoke classes
 __all__ = ["CentreonSpoke"]
 
+
 class CentreonSpoke(FirstbootSpokeMixIn, NormalTUISpoke):
     """
     Class for the Centreon TUI spoke that is a subclass of NormalTUISpoke. It
@@ -84,7 +85,7 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalTUISpoke):
 
         NormalTUISpoke.__init__(self, app, data, storage, payload, instclass)
         self._selected = 0
-        self._choices = ['central', 'poller', 'database']
+        self._choices = ['central', 'centralwithoutdb', 'poller', 'database']
 
     def mandatory(self):
         return True
@@ -118,14 +119,14 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalTUISpoke):
         """
 
         NormalTUISpoke.refresh(self, args)
-        
+
         self._window += [TextWidget(_("Available type"))]
-        
+
         for idx, choice in enumerate(self._choices):
             number = TextWidget("%2d)" % (idx + 1))
             c = ColumnWidget([(3, [number]), (None, [TextWidget(choice)])], 1)
             self._window += [c]
-        
+
         return True
 
     def apply(self):
@@ -138,9 +139,11 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalTUISpoke):
         if self._selected == 1:
             self.data.addons.com_centreon_server_role.installation_type = "central"
         if self._selected == 2:
-            self.data.addons.com_centreon_server_role.installation_type = "poller"
+            self.data.addons.com_centreon_server_role.installation_type = "centralwithoutdb"
         if self._selected == 3:
-            self.data.addons.com_centreon_server_role.installation_type = "database"        
+            self.data.addons.com_centreon_server_role.installation_type = "poller"
+        if self._selected == 4:
+            self.data.addons.com_centreon_server_role.installation_type = "database"
 
     def execute(self):
         """
@@ -204,7 +207,7 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalTUISpoke):
             keyid = int(key)
         except ValueError:
             pass
-        
+
         self._selected = keyid
 
         # no other actions scheduled, apply changes
@@ -214,7 +217,7 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalTUISpoke):
         self.close()
         return True
 
-    #def prompt(self, args=None):
+    # def prompt(self, args=None):
     #    """
     #    The prompt method that is called by the main loop to get the prompt
     #    for this screen.
