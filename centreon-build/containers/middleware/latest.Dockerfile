@@ -5,10 +5,15 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 # Install dependencies.
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \
-    apt-get install -y debconf-utils && \
+    apt-get install -y debconf-utils wget lsb-release && \
+    wget -q http://dev.mysql.com/get/mysql-apt-config_0.3.6-1debian8_all.deb && \
+    echo 'mysql-apt-config mysql-apt-config/select-server select mysql-5.6' | debconf-set-selections && \
+    echo 'mysql-apt-config mysql-apt-config/select-product select Ok' | debconf-set-selections && \
     echo 'mysql-server mysql-server/root_password password centreon' | debconf-set-selections && \
     echo 'mysql-server mysql-server/root_password_again password centreon' | debconf-set-selections && \
-    apt-get install -y build-essential curl mysql-client mysql-server netcat php-cli php-curl php-mysql unicode-data
+    dpkg -i mysql-apt-config_0.3.6-1debian8_all.deb && \
+    apt-get update && \
+    apt-get install -y build-essential curl mysql-client=5.6.38-1debian8 mysql-community-server=5.6.38-1debian8 mysql-server=5.6.38-1debian8 netcat php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
 
