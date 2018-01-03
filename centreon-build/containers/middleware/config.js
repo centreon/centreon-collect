@@ -84,13 +84,13 @@ module.exports = {
   // Information for saleforce
   salesforce: {
     test: true,
-    username: 'mbersoult@centreon.com.sandbox',
-    password: 'centreon1234!',
-    security: '1k14aTONZu5Qlqb5oEYG0zm7',
+    username: 'apiuser@centreon.com.sandbox',
+    password: '1234centreon!',
+    security: 'ZOA83NPLzPMeSUz5XUU5kqOA2',
     ids: {
-      IMP_1_MONTH: '01u9E000000mh49QAA',
-      IMP_12_MONTH: '01u9E000000mh4AQAQ',
-      IMP_6_MONTH: '01u9E000000mh4BQAQ'
+      IMP_1_MONTH: '01u0Y000001JstcQAC',
+      IMP_12_MONTH: '01u0Y000001JstdQAC',
+      IMP_6_MONTH: '01u0Y000001JsteQAC'
     }
   },
   // Information for mailchimp
