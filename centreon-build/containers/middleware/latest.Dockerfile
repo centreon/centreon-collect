@@ -10,7 +10,7 @@ RUN apt-get update && \
     echo 'mysql-apt-config mysql-apt-config/select-server select mysql-5.6' | debconf-set-selections && \
     echo 'mysql-apt-config mysql-apt-config/select-product select Ok' | debconf-set-selections && \
     echo 'mysql-community-server mysql-community-server/root-pass password centreon' | debconf-set-selections && \
-    echo 'mysql-community-server mysql-community-server/re-root-pass centreon' | debconf-set-selections && \
+    echo 'mysql-community-server mysql-community-server/re-root-pass password centreon' | debconf-set-selections && \
     dpkg -i mysql-apt-config_0.3.6-1debian8_all.deb && \
     apt-get update && \
     apt-get install --allow-unauthenticated -y build-essential curl mysql-client=5.6.38-1debian8 mysql-community-server=5.6.38-1debian8 mysql-server=5.6.38-1debian8 netcat php-cli php-curl php-mysql unicode-data
