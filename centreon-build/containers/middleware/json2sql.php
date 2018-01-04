@@ -77,7 +77,7 @@ foreach ($catalogs as $catalog) {
         $ppvinsert->bindParam(':nb_c', $cmdCount);
         $installCount = 0;
         $ppvinsert->bindParam(':install_count', $installCount);
-        if (preg_match('/^catalog\-(\d)$/', $catalog) {
+        if (preg_match('/^catalog\-(\d)$/', $catalog)) {
             $released = true;
         } else {
             $released = false;
