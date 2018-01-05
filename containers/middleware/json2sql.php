@@ -77,7 +77,11 @@ foreach ($catalogs as $catalog) {
         $ppvinsert->bindParam(':nb_c', $cmdCount);
         $installCount = 0;
         $ppvinsert->bindParam(':install_count', $installCount);
-        $released = true;
+        if (preg_match('/^catalog\-(\d)$/', $catalog)) {
+            $released = 1;
+        } else {
+            $released = 0;
+        }
         $ppvinsert->bindParam(':released', $released);
         if (!empty($ppContent['information']['discovery_category'])) {
             $ppvinsert->bindParam(':category', $ppContent['information']['discovery_category']);
