@@ -16,19 +16,19 @@ module.exports = {
     // For more options see http://ldapjs.org/client.html
     connect: {
       // The ldap url in format ldap://ip:port
-      url: 'ldap://localhost:389',
+      url: 'ldap://openldap:389',
       // Milliseconds after last activity before client emits idle event
       idleTimeout: 360000
     },
     config: {
       // The user / pass for connect to ldap server
-      binddn: 'cn=Manager,dn=centreon,dn=com',
+      binddn: 'cn=admin,dc=centreon,dc=com',
       password: 'centreon',
       // The filter for find users, the macro %username% will be replace by the
       // login
-      authFilter: '(uid=%username%)',
+      authFilter: '(&(uid=%username%)(memberOf=cn=auth-middleware,ou=groups,dc=centreon,dc=com))',
       // The base dn for find users
-      authBase: 'dn=centreon,dn=com'
+      authBase: 'ou=users,dc=centreon,dc=com'
     }
   },
   // The api full base url example : http://localhost:3000/api
@@ -84,13 +84,13 @@ module.exports = {
   // Information for saleforce
   salesforce: {
     test: true,
-    username: 'mbersoult@centreon.com.sandbox',
-    password: 'centreon1234!',
-    security: '1k14aTONZu5Qlqb5oEYG0zm7',
+    username: 'apiuser@centreon.com.sandbox',
+    password: '1234centreon!',
+    security: 'ZOA83NPLzPMeSUz5XUU5kqOA2',
     ids: {
-      IMP_1_MONTH: '01u9E000000mh49QAA',
-      IMP_12_MONTH: '01u9E000000mh4AQAQ',
-      IMP_6_MONTH: '01u9E000000mh4BQAQ'
+      IMP_1_MONTH: '01u0Y000001JstcQAC',
+      IMP_12_MONTH: '01u0Y000001JstdQAC',
+      IMP_6_MONTH: '01u0Y000001JsteQAC'
     }
   },
   // Information for mailchimp

@@ -6,6 +6,9 @@ set -x
 # Machine credentials.
 REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 
+# Variables.
+export COMPOSE_HTTP_TIMEOUT=180
+
 # Cleanup routine.
 
 clean_directory () {
@@ -59,4 +62,23 @@ put_internal_debs () {
     scp "$deb" "$REPO_CREDS:/tmp/"
     ssh "$REPO_CREDS" "cd $DIR && reprepro includedeb $DISTRIB /tmp/`basename $deb` && rm -f /tmp/`basename $deb`"
   done
+}
+
+# Acceptance tests.
+
+launch_webdriver() {
+  set +e
+  nodes=0
+  while [ -z "$nodes" -o "$nodes" -lt 4 ] ; do
+    docker-compose -f "$1" -p webdriver up -d --scale 'chrome=4'
+    sleep 10
+    nodes=`curl 'http://localhost:4444/grid/api/hub' | python -m json.tool | grep free | cut -d ':' -f 2 | tr -d ' ,'`
+  done
+  set -e
+}
+
+stop_webdriver() {
+  set +e
+  docker-compose -f "$1" -p webdriver down
+  set -e
 }

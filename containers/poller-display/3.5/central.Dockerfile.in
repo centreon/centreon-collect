@@ -18,6 +18,4 @@ COPY poller-display/3.5/id_rsa poller-display/3.5/id_rsa.pub poller-display/3.5/
 RUN chown -R centreon:centreon /var/spool/centreon/.ssh && chmod 600 /var/spool/centreon/.ssh/*
 
 # Main script.
-COPY poller-display/3.5/run-central.sh /usr/share/centreon/container-poller-display.sh
-RUN chmod +x /usr/share/centreon/container-poller-display.sh
-ENTRYPOINT ["/usr/share/centreon/container-poller-display.sh"]
+COPY poller-display/3.5/run-central.sh /usr/share/centreon/65-poller-display-central.sh

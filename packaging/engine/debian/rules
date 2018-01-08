@@ -14,10 +14,12 @@ override_dh_auto_configure:
 	  -DWITH_STARTUP_DIR=/lib/systemd/system \
 	  -DWITH_BENCH=1 \
 	  -DWITH_CREATE_FILES=0 \
+	  -DWITH_GROUP=centreon-engine \
 	  -DWITH_LOGROTATE_SCRIPT=1 \
 	  -DWITH_LOGROTATE_DIR=/etc/logrotate.d \
 	  -DWITH_PKGCONFIG_SCRIPT=0 \
 	  -DWITH_TESTING=0 \
+	  -DWITH_USER=centreon-engine \
 	  .
 
 override_dh_auto_build:

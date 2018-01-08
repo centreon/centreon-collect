@@ -30,7 +30,7 @@ $wgScriptPath = "";
 $wgScriptExtension = ".php";
 
 ## The protocol and server name to use in fully-qualified URLs
-$wgServer = "http://10.30.2.25:32858";
+$wgServer = "http://mediawiki";
 
 ## The relative URL path to the skins directory
 $wgStylePath = "$wgScriptPath/skins";

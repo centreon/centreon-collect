@@ -5,23 +5,21 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 # Install dependencies.
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \
-    apt-get install -y debconf-utils && \
-    echo 'mysql-server mysql-server/root_password password centreon' | debconf-set-selections && \
-    echo 'mysql-server mysql-server/root_password_again password centreon' | debconf-set-selections && \
-    apt-get install -y build-essential curl mysql-client mysql-server netcat php-cli php-curl php-mysql unicode-data
+    apt-get install -y debconf-utils wget lsb-release && \
+    wget -q http://dev.mysql.com/get/mysql-apt-config_0.3.6-1debian8_all.deb && \
+    echo 'mysql-apt-config mysql-apt-config/select-server select mysql-5.6' | debconf-set-selections && \
+    echo 'mysql-apt-config mysql-apt-config/select-product select Ok' | debconf-set-selections && \
+    echo 'mysql-community-server mysql-community-server/root-pass password centreon' | debconf-set-selections && \
+    echo 'mysql-community-server mysql-community-server/re-root-pass password centreon' | debconf-set-selections && \
+    dpkg -i mysql-apt-config_0.3.6-1debian8_all.deb && \
+    apt-get update && \
+    apt-get install --allow-unauthenticated -y build-essential curl mysql-client=5.6.38-1debian8 mysql-community-server=5.6.38-1debian8 mysql-server=5.6.38-1debian8 netcat php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
 
 # Install Node.js and NPM.
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
     apt-get install -y nodejs
-
-# Install OpenLDAP.
-#RUN apt-get install -y screen slapd ldap-utils
-#RUN echo 'olcRootPW: {SSHA}2pMsLy5/tCfxzQpBah2YWflQdzTKH0Py' >> '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
-#RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={2}bdb.ldif'
-#RUN sed -i 's/dc=acme/dc=centreon/g' '/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif'
-#COPY middleware/ldap.ldif /tmp/ldap.ldif
 
 # Install middleware.
 COPY centreon-imp-portal-api /usr/local/src/centreon-imp-portal-api
@@ -30,7 +28,7 @@ WORKDIR /usr/local/src/centreon-imp-portal-api
 RUN npm install
 
 # Install Plugin Pack JSON files.
-COPY middleware/data/*.json /usr/share/centreon-packs/
+COPY middleware/data/pluginpacks /usr/share/centreon-packs
 
 # Install script.
 

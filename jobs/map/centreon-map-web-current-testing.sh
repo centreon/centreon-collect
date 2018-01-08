@@ -12,19 +12,15 @@ fi
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
-rm -rf output
-mkdir output
-
 rm -rf output-centos6
 mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
 # Get version.
-cd centreon-studio-web-client
+cd web
 git checkout --detach "$COMMIT"
-
-export VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`                                                                                                                                                                    
+export VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`
 
 # Generate sources of Centreon Map web client.
 npm install
@@ -48,7 +44,7 @@ docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
 
 # Build RPMs.
-cp centreon-studio-web-client/packaging/centreon-map4-web-client.spectemplate input
+cp web/packaging/centreon-map4-web-client.spectemplate input
 
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
