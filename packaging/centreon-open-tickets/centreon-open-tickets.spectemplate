@@ -12,7 +12,6 @@ BuildArch:      noarch
 BuildRequires:  centreon-devel
 Requires:       centreon-open-tickets-module
 Requires:       centreon-open-tickets-widget
-AutoReqProv: no
 
 %description
 This add-on is built to manage passive alerts into slots of alerts. Alerts are not defined
@@ -23,6 +22,7 @@ events.
 Summary:        Centreon Open Tickets module
 Group:          Networking/Other
 Requires:	centreon-web
+AutoReqProv: no
 
 %description module
 The configuration module for Centreon Open Tickets.
