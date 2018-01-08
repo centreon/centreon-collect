@@ -16,6 +16,9 @@ case "$1" in
   debian9)
     BASE_IMAGE="debian:9"
     ;;
+  raspbian9)
+    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies:debian9"
+    ;;
   *)
     echo "USAGE: $0 <distrib>"
     exit 1
