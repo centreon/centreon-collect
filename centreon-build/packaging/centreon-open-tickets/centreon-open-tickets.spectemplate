@@ -12,6 +12,7 @@ BuildArch:      noarch
 BuildRequires:  centreon-devel
 Requires:       centreon-open-tickets-module
 Requires:       centreon-open-tickets-widget
+AutoReqProv: no
 
 %description
 This add-on is built to manage passive alerts into slots of alerts. Alerts are not defined
@@ -40,6 +41,13 @@ Centreon Open Tickets widget for open tickets on ITSM providers.
 ######################################################
 %prep
 %setup -q
+
+# Change CENTREON_ETC Macro
+find .          \
+        -type f \
+        -exec %{__grep} -qE '(@CENTREON_ETC@)' {} ';'   \
+        -exec %{__sed} -i -e 's|@CENTREON_ETC@|'"/etc/centreon/"'|g'\
+        {} ';'
 
 %install
 # Install centreon-open-tickets web files
