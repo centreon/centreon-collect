@@ -19,6 +19,9 @@ case "$1" in
   opensuse423)
     BASE_IMAGE="opensuse:42.3"
     ;;
+  raspbian9)
+    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies:debian9"
+    ;;
   *)
     echo "USAGE: $0 <distrib>"
     exit 1
