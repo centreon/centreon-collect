@@ -45,8 +45,8 @@ Centreon Open Tickets widget for open tickets on ITSM providers.
 # Change CENTREON_ETC Macro
 find .          \
         -type f \
-        -exec %{__grep} -qE '(@CENTREON_ETC@)' {} ';'   \
-        -exec %{__sed} -i -e 's|@CENTREON_ETC@|'"/etc/centreon/"'|g'\
+        -exec %{__grep} -qE '(@@CENTREON_ETC@@)' {} ';'   \
+        -exec %{__sed} -i -e 's|@@CENTREON_ETC@@|'"/etc/centreon/"'|g'\
         {} ';'
 
 %install
