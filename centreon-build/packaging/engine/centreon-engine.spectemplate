@@ -44,7 +44,11 @@ Summary:    Centreon Engine Daemon is the daemon to schedule checks.
 Group:      %{group}
 Requires:   centreon-clib >= 1.4.0
 Requires:   centreon-clib < 1.5.0
+%if 0%{?suse_version}
+Requires:   lsb
+%else
 Requires:   redhat-lsb
+%endif
 
 %description daemon
 Centreon Engine is a monitoring engine that schedule checks on your

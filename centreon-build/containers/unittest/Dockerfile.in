@@ -9,7 +9,6 @@ RUN /tmp/install.sh
 
 # Install unit tests scripts.
 COPY unittest/unittest-phing.sh /usr/local/bin/unittest-phing
-COPY unittest/unittest-broker.sh /usr/local/bin/unittest-broker
 COPY unittest/unittest-engine.sh /usr/local/bin/unittest-engine
 COPY unittest/unittest-middleware.sh /usr/local/bin/unittest-middleware
 COPY unittest/unittest-automation-broker.sh /usr/local/bin/unittest-automation-broker

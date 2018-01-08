@@ -23,10 +23,14 @@ DISTRIB="$1"
 REGISTRY="ci.int.centreon.com:5000"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
 MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware:latest"
+REDIS_IMAGE="redis:latest"
+OPENLDAP_IMAGE="$REGISTRY/mon-openldap:latest"
 SQUID_SIMPLE_IMAGE="$REGISTRY/mon-squid-simple:latest"
 SQUID_BASIC_AUTH_IMAGE="$REGISTRY/mon-squid-basic-auth:latest"
 docker pull $LM_IMAGE
 docker pull $MIDDLEWARE_IMAGE
+docker pull $REDIS_IMAGE
+docker pull $OPENLDAP_IMAGE
 docker pull $SQUID_SIMPLE_IMAGE
 docker pull $SQUID_BASIC_AUTH_IMAGE
 
@@ -56,7 +60,6 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-export COMPOSE_HTTP_TIMEOUT=180
-docker-compose -f docker-compose-webdriver.yml -p webdriver up -d --scale 'chrome=4'
-ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
+launch_webdriver docker-compose-webdriver.yml
+ls features/*.feature | parallel -j 1 ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+stop_webdriver docker-compose-webdriver.yml

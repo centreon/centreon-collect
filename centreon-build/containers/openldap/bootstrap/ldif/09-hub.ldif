@@ -1,0 +1,22 @@
+dn: cn=hub-manager,ou=users,dc=centreon,dc=com
+changetype: add
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: mailAccount
+cn: hub-manager
+uid: hub-manager
+uidNumber: 200
+gidNumber: 1000
+homeDirectory: /home/hub-manager
+loginShell: /bin/bash
+gecos: hub-manager
+userPassword: hub-manager
+mail: hub-manager@localhost
+
+dn: cn=auth-middleware,ou=groups,dc=centreon,dc=com
+changetype: add
+objectclass: groupofuniquenames
+cn: auth-middleware
+description: Centreon Hub/Middleware user group
+uniquemember: cn=hub-manager,ou=users,dc=centreon,dc=com

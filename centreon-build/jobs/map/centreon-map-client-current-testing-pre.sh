@@ -14,5 +14,5 @@ if [ -z "$COMMIT" ] ; then
 fi
 
 # Checkout commit.
-cd centreon-studio-desktop-client
+cd desktop
 git checkout --detach "$COMMIT"

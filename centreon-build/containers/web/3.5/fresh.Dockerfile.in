@@ -7,7 +7,7 @@ COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 COPY web/3.5 /tmp/fresh
 
 RUN yum clean all && \
-    yum install -y centreon-base-config-centreon-engine centreon centreon-broker* MariaDB-server git && \
+    yum install -y centreon-base-config-centreon-engine centreon centreon-broker* MariaDB-server git libfaketime && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
     chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
@@ -19,6 +19,7 @@ RUN yum clean all && \
     /tmp/fresh/fresh.sh && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
+    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     yum clean all && \
     rm -rf /tmp/fresh
 

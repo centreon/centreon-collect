@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 # Get initial configuration export time.
 initial_export_time=`stat -c '%Y' /etc/centreon-broker/watchdog.xml`
 
@@ -16,5 +13,5 @@ while [ "$current_export_time" -le "$initial_export_time" ] ; do
   current_export_time=`stat -c '%Y' /etc/centreon-broker/watchdog.xml`
 done
 
-# Otherwise it is a classical Centreon Web container.
-/usr/share/centreon/container.sh
+# Run database synchronization.
+/usr/share/centreon/cron/centreon-poller-display-sync.sh

@@ -11,7 +11,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos6|centos7|opensuse423>"
   exit 1
 fi
 DISTRIB="$1"
@@ -47,7 +47,9 @@ cd ..
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
 
 # Copy files to server.
-if [ "$DISTRIB" = "centos6" ] ; then
+if [ "$DISTRIB" = "opensuse423" ] ; then
+  DISTRIB='os423'
+elif [ "$DISTRIB" = "centos6" ] ; then
   DISTRIB='el6'
 else
   DISTRIB='el7'

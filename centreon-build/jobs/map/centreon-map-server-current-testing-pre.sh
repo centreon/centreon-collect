@@ -14,9 +14,9 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
 fi
 
 # Checkout commit.
-cd centreon-studio-server
+cd server
 git checkout --detach "$COMMIT"
 
-# Tweak pom files to add release version.
+# Tweak pom files to add release version in the name of the gererated rpm.
 sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat6/pom.xml
 sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/pom.xml
