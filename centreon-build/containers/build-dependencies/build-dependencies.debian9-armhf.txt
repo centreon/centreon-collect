@@ -1,1 +1,2 @@
+centreon-clib:armhf
 crossbuild-essential-armhf
