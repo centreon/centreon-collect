@@ -1,6 +1,8 @@
 centreon-clib:armhf
 crossbuild-essential-armhf
 libgnutls28-dev:armhf
+libidn11-dev:armhf
 libqt4-dev:armhf
 librrd-dev:armhf
 libz-dev:armhf
+nettle-dev:armhf
