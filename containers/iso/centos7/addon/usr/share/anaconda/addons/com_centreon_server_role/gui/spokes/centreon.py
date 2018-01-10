@@ -105,8 +105,10 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalSpoke):
 
         """
 
+        # Radio buttons
         NormalSpoke.initialize(self)
         self._rb_type_central = self.builder.get_object("type_central")
+        self._rb_type_centralwithoutdb = self.builder.get_object("type_centralwithoutdb")
         self._rb_type_poller = self.builder.get_object("type_poller")
         self._rb_type_database = self.builder.get_object("type_database")
 
@@ -122,6 +124,8 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalSpoke):
 
         if self._rb_type_central.get_active():
             self._rb_type_central.set_active(True)
+        if self._rb_type_centralwithoutdb.get_active():
+            self._rb_type_centralwithoutdb.set_active(True)
         if self._rb_type_poller.get_active():
             self._rb_type_poller.set_active(True)
         if self._rb_type_database.get_active():
@@ -136,6 +140,8 @@ class CentreonSpoke(FirstbootSpokeMixIn, NormalSpoke):
 
         if self._rb_type_central.get_active():
             self.data.addons.com_centreon_server_role.installation_type = 'central'
+        if self._rb_type_centralwithoutdb.get_active():
+            self.data.addons.com_centreon_server_role.installation_type = 'centralwithoutdb'
         if self._rb_type_poller.get_active():
             self.data.addons.com_centreon_server_role.installation_type = 'poller'
         if self._rb_type_database.get_active():

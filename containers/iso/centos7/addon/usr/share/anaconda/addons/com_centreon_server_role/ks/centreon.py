@@ -35,6 +35,7 @@ __all__ = ["CentreonData"]
 
 CENTREON_FILE_PATH = "/root/centreon_addon_output.txt"
 
+
 class CentreonData(AddonData):
     """
     Class parsing and storing data for the Centreon addon.
@@ -51,9 +52,11 @@ class CentreonData(AddonData):
         """
 
         # We remove centos banner
-        execWithRedirect("rm", ["-f", "/usr/share/anaconda/pixmaps/rnotes/en/centos-artwork.png", 
-            "/usr/share/anaconda/pixmaps/rnotes/en/centos-cloud.png", "/usr/share/anaconda/pixmaps/rnotes/en/centos-core.png",
-            "/usr/share/anaconda/pixmaps/rnotes/en/centos-promotion.png", "/usr/share/anaconda/pixmaps/rnotes/en/centos-virtualization.png"])
+        execWithRedirect("rm", ["-f", "/usr/share/anaconda/pixmaps/rnotes/en/centos-artwork.png",
+                                "/usr/share/anaconda/pixmaps/rnotes/en/centos-cloud.png",
+                                "/usr/share/anaconda/pixmaps/rnotes/en/centos-core.png",
+                                "/usr/share/anaconda/pixmaps/rnotes/en/centos-promotion.png",
+                                "/usr/share/anaconda/pixmaps/rnotes/en/centos-virtualization.png"])
 
         AddonData.__init__(self, name)
         self.installation_type = ""
@@ -151,25 +154,33 @@ class CentreonData(AddonData):
                        class
         """
 
-        widget_list = ['centreon-widget-graph-monitoring', 'centreon-widget-hostgroup-monitoring', 
-            'centreon-widget-host-monitoring', 'centreon-widget-servicegroup-monitoring',
-            'centreon-widget-service-monitoring', 'centreon-widget-engine-status',
-            'centreon-widget-grid-map', 'centreon-widget-live-top10-cpu-usage', 
-            'centreon-widget-live-top10-memory-usage', 'centreon-widget-tactical-overview'
-        ]
+        widget_list = ['centreon-widget-graph-monitoring', 'centreon-widget-hostgroup-monitoring',
+                       'centreon-widget-host-monitoring', 'centreon-widget-servicegroup-monitoring',
+                       'centreon-widget-service-monitoring', 'centreon-widget-engine-status',
+                       'centreon-widget-grid-map', 'centreon-widget-live-top10-cpu-usage',
+                       'centreon-widget-live-top10-memory-usage', 'centreon-widget-tactical-overview'
+                       ]
         if self.installation_type == 'central':
-            ksdata.packages.packageList.extend(['centreon-release', 'centreon-base-config-centreon-engine', 'centreon', 'MariaDB-server'])
+            ksdata.packages.packageList.extend(
+                ['centreon-release', 'centreon-base-config-centreon-engine', 'centreon', 'MariaDB-server'])
+            ksdata.packages.packageList.extend(widget_list)
+        if self.installation_type == 'centralwithoutdb':
+            ksdata.packages.packageList.extend(['centreon-release', 'centreon-base-config-centreon-engine', 'centreon'])
             ksdata.packages.packageList.extend(widget_list)
         if self.installation_type == 'poller':
             ksdata.packages.packageList.extend(['centreon-release', 'centreon-poller-centreon-engine'])
         if self.installation_type == 'database':
             ksdata.packages.packageList.extend(['centreon-release', 'MariaDB-server'])
         if self.installation_type == 'centreonmap':
-            ksdata.packages.packageList.extend(['centreon-release', 'centreon-map-release', 'centreon-map4-server', 'MariaDB-server'])
+            ksdata.packages.packageList.extend(
+                ['centreon-release', 'centreon-map-release', 'centreon-map4-server', 'MariaDB-server'])
         if self.installation_type == 'centreonmbi':
-            ksdata.packages.packageList.extend(['centreon-release', 'centreon-mbi-release', 'centreon-bi-reporting-server', 'MariaDB-server'])
+            ksdata.packages.packageList.extend(
+                ['centreon-release', 'centreon-mbi-release', 'centreon-bi-reporting-server', 'MariaDB-server'])
         if self.installation_type == 'pollerdisplay':
-            ksdata.packages.packageList.extend(['centreon-release', 'centreon-base-config-centreon-engine', 'centreon-poller-display', 'MariaDB-server'])
+            ksdata.packages.packageList.extend(
+                ['centreon-release', 'centreon-base-config-centreon-engine', 'centreon-poller-display',
+                 'MariaDB-server'])
             ksdata.packages.packageList.extend(widget_list)
 
     def execute(self, storage, ksdata, instclass, users, payload):
@@ -185,18 +196,20 @@ class CentreonData(AddonData):
 
         # Disable selinux
         execWithRedirect("sed", ["-i", "s/=enforcing/=disabled/", getSysroot() + "/etc/selinux/config"])
-        
+
         # Disable firewall
         execWithRedirect("systemctl", ["disable", "firewalld"], root=getSysroot())
-        
+
         # MariaDB-Server
         if self.installation_type == 'central' or self.installation_type == 'database' or self.installation_type == 'centreonmbi' or self.installation_type == 'pollerdisplay':
             limit_mariadb_path = os.path.normpath(getSysroot() + '/etc/systemd/system/mariadb.service.d/limits.conf')
             with open(limit_mariadb_path, "w") as fobj:
                 fobj.write("[Service]\nLimitNOFILE=32000\n")
-        
-        if self.installation_type == 'central' or self.installation_type == 'pollerdisplay':
+
+        if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'pollerdisplay':
             execWithRedirect("systemctl", ["enable", "httpd"], root=getSysroot())
             execWithRedirect("systemctl", ["enable", "snmptrapd"], root=getSysroot())
             execWithRedirect("systemctl", ["enable", "centreontrapd"], root=getSysroot())
-            execWithRedirect("sed", ["-i", "s/;date.timezone.*/date.timezone=" + ksdata.timezone.timezone.replace('/', '\/') + '/', getSysroot() + "/etc/php.ini"])
+            execWithRedirect("sed", ["-i", "s/;date.timezone.*/date.timezone=" + ksdata.timezone.timezone.replace('/',
+                                                                                                                  '\/') + '/',
+                                     getSysroot() + "/etc/php.ini"])
