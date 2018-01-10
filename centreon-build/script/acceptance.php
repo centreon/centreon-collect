@@ -430,8 +430,8 @@ else {
         ),
         xpath('des-map-dev.yml'),
         array(
-            '@MAP_IMAGE@' => build_image_name('des-map-server'),
-            '@WEB_IMAGE@' => build_image_name('des-map-web'),
+            '@MAP_IMAGE@' => 'ci.int.centreon.com:5000/des-map-server-' . $version . ':' . $distrib,
+            '@WEB_IMAGE@' => 'ci.int.centreon.com:5000/des-map-web-' . $version . ':' . $distrib,
             '@SOURCE_DIR@' => xpath(realpath('web/build'))
         )
     );
