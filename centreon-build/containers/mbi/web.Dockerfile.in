@@ -5,7 +5,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 # Install Centreon MBI web interface.
 RUN yum --disablerepo='*' --enablerepo='centreon*' clean all
 RUN yum install -y --nogpgcheck centreon-bi-server
-COPY install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/3.5/install-centreon-module.php /tmp/install-centreon-module.php
 RUN chmod +x /tmp/install-centreon-module.php
 
 # Install license file.
