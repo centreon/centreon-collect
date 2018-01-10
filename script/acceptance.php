@@ -424,11 +424,15 @@ else {
         array('@WEB_IMAGE@' => build_image_name('des-bam'))
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/map/docker-compose.yml.in'),
+        xpath(
+            $centreon_build_dir . '/containers/map/' .
+            ($ci ? 'docker-compose.yml.in' : 'docker-compose-dev.yml.in')
+        ),
         xpath('des-map-dev.yml'),
         array(
             '@MAP_IMAGE@' => build_image_name('des-map-server'),
-            '@WEB_IMAGE@' => build_image_name('des-map-web')
+            '@WEB_IMAGE@' => build_image_name('des-map-web'),
+            '@SOURCE_DIR@' => xpath(realpath('web/build'))
         )
     );
     replace_in_file(
