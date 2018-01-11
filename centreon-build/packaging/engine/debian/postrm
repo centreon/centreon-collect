@@ -1,4 +1,5 @@
 #!/bin/sh
 
-userdel centreon-engine
-groupdel centreon-engine
+deluser centreon centreon-engine
+deluser centreon-engine
+delgroup centreon-engine
