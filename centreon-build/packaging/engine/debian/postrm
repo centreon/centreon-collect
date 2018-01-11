@@ -1,0 +1,4 @@
+#!/bin/sh
+
+userdel centreon-engine
+groupdel centreon-engine
