@@ -1,5 +1,5 @@
 #!/bin/sh
 
-deluser centreon centreon-engine
-deluser centreon-engine
-delgroup centreon-engine
+deluser centreon centreon-engine || true
+deluser centreon-engine || true
+delgroup centreon-engine || true
