@@ -120,7 +120,6 @@ $source_dir = realpath('.');
 //
 if ($synchronize) {
     $images = array(
-        '/mon-phantomjs' => array(),
         '/mon-middleware' => array(),
         '/hub' => array(),
         '/mon-mediawiki' => array(),
