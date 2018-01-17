@@ -20,8 +20,8 @@ export VERSION="$VERSION"
 
 # AMAZON DEPLOYMENT
 
-yarn install
-yarn build:preprod
+npm install
+npm run build:preprod
 
 cd ..
 tar czf "centreon-hub-ui-$VERSION.tar.gz" "centreon-hub-ui"
