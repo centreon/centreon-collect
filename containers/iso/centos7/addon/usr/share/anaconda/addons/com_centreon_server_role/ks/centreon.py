@@ -206,9 +206,11 @@ class CentreonData(AddonData):
             with open(limit_mariadb_path, "w") as fobj:
                 fobj.write("[Service]\nLimitNOFILE=32000\n")
 
-        if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'pollerdisplay':
+        if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'poller' or self.installation_type == 'pollerdisplay' or self.installation_type == 'database':
             execWithRedirect("systemctl", ["enable", "httpd"], root=getSysroot())
             execWithRedirect("systemctl", ["enable", "snmptrapd"], root=getSysroot())
+            execWithRedirect("systemctl", ["enable", "snmpd"], root=getSysroot())
+            execWithRedirect("timedatectl", ["set-ntp", "true"], root=getSysroot())
             execWithRedirect("systemctl", ["enable", "centreontrapd"], root=getSysroot())
             execWithRedirect("sed", ["-i", "s/;date.timezone.*/date.timezone=" + ksdata.timezone.timezone.replace('/',
                                                                                                                   '\/') + '/',
