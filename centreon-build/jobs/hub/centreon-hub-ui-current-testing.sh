@@ -20,8 +20,8 @@ export VERSION="$VERSION"
 
 # AMAZON DEPLOYMENT
 
-npm install
-npm run build:preprod
+yarn install
+yarn build:preprod
 
 cd ..
 tar czf "centreon-hub-ui-$VERSION.tar.gz" "centreon-hub-ui"
@@ -31,4 +31,4 @@ ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/s
 scp -o StrictHostKeyChecking=no "$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/hub/testing/$PROJECT-$VERSION/"
 
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO "cd /tmp && tar zxf /srv/sources/hub/testing/$PROJECT-$VERSION/$PROJECT-$VERSION.tar.gz && aws s3 cp '/tmp/$PROJECT' 's3://centreon-hub-ui/' --recursive"
+$SSH_REPO "cd /tmp && tar zxf /srv/sources/hub/testing/$PROJECT-$VERSION/$PROJECT-$VERSION.tar.gz && aws s3 cp '/tmp/$PROJECT' 's3://centreon-hub-ui/preprod' --recursive"
