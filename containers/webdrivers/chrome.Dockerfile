@@ -14,7 +14,7 @@ RUN apt-get update && apt-get -y install default-jre google-chrome-stable xvfb
 RUN wget https://goo.gl/dR7Lg2 -O selenium-server-standalone.jar
 
 # Install Chrome WebDriver.
-RUN wget https://chromedriver.storage.googleapis.com/2.27/chromedriver_linux64.zip
+RUN wget https://chromedriver.storage.googleapis.com/2.35/chromedriver_linux64.zip
 RUN unzip chromedriver_linux64.zip && mv chromedriver /usr/local/bin/
 
 # Entrypoint.
