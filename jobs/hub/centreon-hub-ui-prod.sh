@@ -21,14 +21,14 @@ export VERSION="$VERSION"
 # AMAZON DEPLOYMENT
 
 yarn install
-yarn build:preprod
+yarn build:prod
 
 cd ..
 tar czf "centreon-hub-ui-$VERSION.tar.gz" "centreon-hub-ui"
 
 # Copy files to server.
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/hub/testing/$PROJECT-$VERSION"
-scp -o StrictHostKeyChecking=no "$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/hub/testing/$PROJECT-$VERSION/"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/hub/stable/$PROJECT-$VERSION"
+scp -o StrictHostKeyChecking=no "$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/hub/stable/$PROJECT-$VERSION/"
 
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO "cd /tmp && tar zxf /srv/sources/hub/testing/$PROJECT-$VERSION/$PROJECT-$VERSION.tar.gz && aws s3 sync '/tmp/$PROJECT/build' 's3://centreon-hub-ui'"
+$SSH_REPO "cd /tmp && tar zxf /srv/sources/hub/stable/$PROJECT-$VERSION/$PROJECT-$VERSION.tar.gz && aws s3 sync '/tmp/$PROJECT/build' 's3://centreon-hub-ui'"
