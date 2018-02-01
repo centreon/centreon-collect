@@ -11,3 +11,4 @@ qt4-devel
 rrdtool-devel
 redhat-lsb
 git
+lua-devel
