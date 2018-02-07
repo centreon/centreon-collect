@@ -7,9 +7,8 @@ gettext
 make
 gnutls-devel
 libgcrypt-devel
-lua-devel
-lua-static
 qt4-devel
 rrdtool-devel
 redhat-lsb
 git
+lua-devel
