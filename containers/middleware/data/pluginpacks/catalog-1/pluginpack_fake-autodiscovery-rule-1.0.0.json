@@ -117,43 +117,45 @@
     "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
   }],
   "images": [],
-  "autodiscovery":[
-    {
-      "name":"Network-Interfaces",
-      "command_for_macro":"Traffic-Discovery",
-      "command_for_discovery":"Traffic-Discovery-Arguments",
-      "service_template":"Traffic-Generic-Id",
-      "service_display_name":"Traffic-$name$",
-      "disable_elements":"0",
-      "enabled":"1",
-      "_comment":"",
-      "custom_dispay_scan":"my ($value, $unit) = change_bytes(value => $total$);\r\n$description = \\\"<span style=\\'color: red; font-weight: bold\\'>@SERVICENAME@</span> [size = <b>$value $unit</b>]\\\";",
-      "custom_variables":"my $total_gb = $total$ / 1000 / 1000 / 1000;\r\nif ($total_gb < 100) {\r\n    $warning$ = 80;\r\n    $critical$ = 90;\r\n} elsif ($total_gb < 500) {\r\n    $warning$ = 90;\r\n    $critical$ = 95;\r\n} else {\r\n    $warning$ = 95;\r\n    $critical$ = 98;\r\n}",
-      "host_templates":["HT1"],
-      "exceptions":[
-        {
-          "type":"exclusion",
-          "object":"$name$",
-          "pattern":"lo",
-          "order":0
-        }
-      ],
-      "macros":[
-        {
-          "name":"INTERFACEID",
-          "value":"$interfaceid$",
-          "is_empty":"0"
-        }
-      ],
-      "changes":[
-        {
-          "object":"@SERVICENAME@",
-          "pattern":"Traffic-(.+)(\\d+)",
-          "replace":"Traffic-$1-$2",
-          "modifier":"",
-          "order":0
-        }
-      ]
+  "autodiscovery": {
+    "rules": [
+      {
+        "name":"Network-Interfaces",
+        "command_for_macro":"Traffic-Discovery",
+        "command_for_discovery":"Traffic-Discovery-Arguments",
+        "service_template":"Traffic-Generic-Id",
+        "service_display_name":"Traffic-$name$",
+        "disable_elements":"0",
+        "enabled":"1",
+        "_comment":"",
+        "custom_dispay_scan":"my ($value, $unit) = change_bytes(value => $total$);\r\n$description = \\\"<span style=\\'color: red; font-weight: bold\\'>@SERVICENAME@</span> [size = <b>$value $unit</b>]\\\";",
+        "custom_variables":"my $total_gb = $total$ / 1000 / 1000 / 1000;\r\nif ($total_gb < 100) {\r\n    $warning$ = 80;\r\n    $critical$ = 90;\r\n} elsif ($total_gb < 500) {\r\n    $warning$ = 90;\r\n    $critical$ = 95;\r\n} else {\r\n    $warning$ = 95;\r\n    $critical$ = 98;\r\n}",
+        "host_templates":["HT1"],
+        "exceptions":[
+          {
+            "type":"exclusion",
+            "object":"$name$",
+            "pattern":"lo",
+            "order":0
+          }
+        ],
+        "macros":[
+          {
+            "name":"INTERFACEID",
+            "value":"$interfaceid$",
+            "is_empty":"0"
+          }
+        ],
+        "changes":[
+          {
+            "object":"@SERVICENAME@",
+            "pattern":"Traffic-(.+)(\\d+)",
+            "replace":"Traffic-$1-$2",
+            "modifier":"",
+            "order":0
+          }
+        ]
+      }
+    ]
   }
- ]
 }
