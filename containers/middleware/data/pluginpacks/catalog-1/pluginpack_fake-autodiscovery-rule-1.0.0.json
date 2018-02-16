@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "information": {
+    "slug": "fake-autodiscovery-rule",
+    "name": "Fake Autodiscovery Rule",
+    "icon": null,
+    "version": "1.0.0",
+    "update_date": "1518791788",
+    "status": "stable",
+    "status_message": "",
+    "tags": ["autodiscovery"],
+    "discovery_category": "",
+    "author": "kev",
+    "email": "",
+    "website": "",
+    "changelog": "test",
+    "monitoring_procedure": "this is the famous monitoring procedure",
+    "description": [{
+      "lang": "en",
+      "value": "doc en"
+    }, {
+      "lang": "fr",
+      "value": "doc fr"
+    }],
+    "dependencies": [],
+    "requirement": []
+  },
+  "timeperiods": [],
+  "commands": [
+    {
+      "name":"Traffic-Discovery",
+      "line":"\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --mode=list-interfaces --hostname=$HOSTADDRESS$ --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' --snmp-version=\\'$_HOSTSNMPVERSION$\\' --disco-show\\\"",
+      "type":"4"
+    },
+    {
+      "name":"Traffic-Discovery-Arguments",
+      "line":"\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --mode=list-interfaces --hostname=127.0.0.1 --disco-format\\\"",
+      "type":"4"
+    },
+    {
+      "name":"Traffic-Id",
+      "line":"\\\"$CENTREONPLUGINS$\\\\/centreon_linux_snmp.pl --plugin=os::linux::snmp::plugin --mode=interfaces --hostname=$HOSTADDRESS$ --snmp-version=\\'$_HOSTSNMPVERSION$\\' --snmp-community=\\'$_HOSTSNMPCOMMUNITY$\\' $_HOSTSNMPEXTRAOPTIONS$ --interface=\\'$_SERVICEINTERFACEID$\\' --add-status --add-traffic --warning-in-traffic=\\'$_SERVICEWARNINGIN$\\' --critical-in-traffic=\\'$_SERVICECRITICALIN$\\' --warning-out-traffic=\\'$_SERVICEWARNINGOUT$\\' --critical-out-traffic=\\'$_SERVICECRITICALOUT$\\' $_SERVICEEXTRAOPTIONS$\\\"",
+      "type":"2"
+    }
+  ],
+  "service_templates": [
+    {
+      "name":"Traffic-Generic-Id",
+      "alias":"Traffic-Generic-Id",
+      "parent_template":"generic-active-service",
+      "_comment":"{FR: Contrôle de la bande passante}\r\n\r\n{EN: Check the bandwidth}",
+      "is_volatile":2,
+      "max_check_attempts":3,
+      "normal_check_interval":5,
+      "retry_check_interval":1,
+      "active_checks_enabled":2,
+      "passive_checks_enabled":2,
+      "macros":[
+         {
+            "key":"$_SERVICECRITICALIN$",
+            "value":"90",
+            "password":false,
+            "description":""
+         },
+         {
+            "key":"$_SERVICECRITICALOUT$",
+            "value":"90",
+            "password":false,
+            "description":""
+         },
+         {
+            "key":"$_SERVICEEXTRAOPTIONS$",
+            "value":"",
+            "password":false,
+            "description":""
+         },
+         {
+            "key":"$_SERVICEINTERFACEID$",
+            "value":"",
+            "password":false,
+            "description":""
+         },
+         {
+            "key":"$_SERVICEWARNINGIN$",
+            "value":"80",
+            "password":false,
+            "description":""
+         },
+         {
+            "key":"$_SERVICEWARNINGOUT$",
+            "value":"80",
+            "password":false,
+            "description":""
+         }
+      ],
+      "command_name":"Traffic-Id",
+      "discovery_list_mode":"",
+      "icon":"",
+      "check_timeperiod":"",
+      "notification_timeperiod":""
+   }
+  ],
+  "host_templates": [{
+    "name": "HT1",
+    "parent_template": "",
+    "alias": "HT1",
+    "command_name": null,
+    "max_check_attempts": 0,
+    "check_interval": 0,
+    "active_checks_enabled": 2,
+    "passive_checks_enabled": 2,
+    "checks_enabled": 2,
+    "macros": [],
+    "services": ["Traffic-Generic-Id"],
+    "icon": "",
+    "discovery_command_name": "disco",
+    "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
+  }],
+  "images": [],
+  "autodiscovery":[
+    {
+      "name":"Network-Interfaces",
+      "command_for_macro":"Traffic-Discovery",
+      "command_for_discovery":"Traffic-Discovery-Arguments",
+      "service_template":"Traffic-Generic-Id",
+      "service_display_name":"Traffic-$name$",
+      "disable_elements":"0",
+      "enabled":"1",
+      "_comment":"",
+      "custom_dispay_scan":"my ($value, $unit) = change_bytes(value => $total$);\r\n$description = \\\"<span style=\\'color: red; font-weight: bold\\'>@SERVICENAME@</span> [size = <b>$value $unit</b>]\\\";",
+      "custom_variables":"my $total_gb = $total$ / 1000 / 1000 / 1000;\r\nif ($total_gb < 100) {\r\n    $warning$ = 80;\r\n    $critical$ = 90;\r\n} elsif ($total_gb < 500) {\r\n    $warning$ = 90;\r\n    $critical$ = 95;\r\n} else {\r\n    $warning$ = 95;\r\n    $critical$ = 98;\r\n}",
+      "host_templates":["HT1"],
+      "exceptions":[
+        {
+          "type":"exclusion",
+          "object":"$name$",
+          "pattern":"lo",
+          "order":0
+        }
+      ],
+      "macros":[
+        {
+          "name":"INTERFACEID",
+          "value":"$interfaceid$",
+          "is_empty":"0"
+        }
+      ],
+      "changes":[
+        {
+          "object":"@SERVICENAME@",
+          "pattern":"Traffic-(.+)(\\d+)",
+          "replace":"Traffic-$1-$2",
+          "modifier":"",
+          "order":0
+        }
+      ]
+  }
+ ]
+}
