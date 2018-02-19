@@ -113,8 +113,8 @@
     "macros": [],
     "services": ["Traffic-Generic-Id"],
     "icon": "",
-    "discovery_command_name": "disco",
-    "discovery_arguments": "TCP=11,12;;OID:.1.3=trap"
+    "discovery_command_name": "",
+    "discovery_arguments": ""
   }],
   "images": [],
   "autodiscovery": {
