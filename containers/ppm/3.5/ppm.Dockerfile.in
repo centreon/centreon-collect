@@ -6,8 +6,9 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 
 # Install package.
-RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all
-RUN yum install -y centreon-pp-manager
+RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
+    yum install -y centreon-pp-manager && \
+    yum clean all
 
 # Install Plugin Pack JSON files.
 COPY middleware/data/pluginpacks/**/*.json /usr/share/centreon-packs/
@@ -15,5 +16,5 @@ COPY middleware/data/pluginpacks/**/*.json /usr/share/centreon-packs/
 # Install module in Centreon.
 COPY web/3.5/install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/3.5/install.sh /tmp/install.sh
-RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
-RUN /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh
