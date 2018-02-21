@@ -1,0 +1,12 @@
+# Base information.
+FROM @IMAGE@
+MAINTAINER Kevin Duret <kduret@centreon.com>
+
+# Set middleware server.
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+
+# Install package.
+RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
+    yum install -y centreon-auto-discovery-server && \
+    yum clean all
+

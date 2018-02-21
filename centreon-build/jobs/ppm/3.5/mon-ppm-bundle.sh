@@ -24,7 +24,7 @@ cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < ppm/3.5/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 
-# Build image.
+# Build images.
 REGISTRY="ci.int.centreon.com:5000"
 PPM_IMAGE="$REGISTRY/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
 PPM_WIP_IMAGE="$REGISTRY/mon-ppm-3.5-wip:$DISTRIB"
@@ -32,3 +32,11 @@ docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .
 docker push "$PPM_IMAGE"
 docker tag "$PPM_IMAGE" "$PPM_WIP_IMAGE"
 docker push "$PPM_WIP_IMAGE"
+
+sed "s/@IMAGE@/$PPM_IMAGE/g" < ppm/3.4/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
+PPM_AUTODISCO_IMAGE="$REGISTRY/mon-ppm-autodisco-$VERSION-$RELEASE:$DISTRIB"
+PPM_AUTODISCO_WIP_IMAGE="$REGISTRY/mon-ppm-autodisco-3.5-wip:$DISTRIB"
+docker build --no-cache -t "$PPM_AUTODISCO_IMAGE" -f ppm/ppm-autodisco.Dockerfile .
+docker push "$PPM_AUTODISCO_IMAGE"
+docker tag "$PPM_AUTODISCO_IMAGE" "$PPM_AUTODISCO_WIP_IMAGE"
+docker push "$PPM_AUTODISCO_WIP_IMAGE"
