@@ -5,8 +5,15 @@ MAINTAINER Kevin Duret <kduret@centreon.com>
 # Set middleware server.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 
+# copy autodiscovery repository
+COPY repo/centreon-pluginpacks.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
+
 # Install package.
 RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
     yum install -y centreon-auto-discovery-server && \
     yum clean all
 
+# Install module in Centreon.
+COPY ppm/3.5/install-autodisco.sh /tmp/install-autodisco.sh
+RUN chmod +x /tmp/install-autodisco.sh && \
+    /tmp/install-autodisco.sh
