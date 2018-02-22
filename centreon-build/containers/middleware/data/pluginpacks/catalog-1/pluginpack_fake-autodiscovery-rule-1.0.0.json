@@ -22,7 +22,12 @@
       "lang": "fr",
       "value": "doc fr"
     }],
-    "dependencies": [],
+    "dependencies": [
+      {
+          "name": "base-generic",
+          "version": "3.0.0"
+      }
+    ],
     "requirement": []
   },
   "timeperiods": [],
