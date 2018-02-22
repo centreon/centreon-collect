@@ -22,10 +22,12 @@ DISTRIB="$1"
 # Pull images.
 PPM_IMAGE="ci.int.centreon.com:5000/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
 PPM1_IMAGE=ci.int.centreon.com:5000/mon-ppm1:$DISTRIB
+PPM_AUTODISCO_IMAGE=ci.int.centreon.com:5000/mon-ppm-autodisco:$DISTRIB
 SQUID_SIMPLE_IMAGE=ci.int.centreon.com:5000/mon-squid-simple:latest
 SQUID_BASIC_AUTH_IMAGE=ci.int.centreon.com:5000/mon-squid-basic-auth:latest
 docker pull $PPM_IMAGE
 docker pull $PPM1_IMAGE
+docker pull $PPM_AUTODISCO_IMAGE
 docker pull $SQUID_SIMPLE_IMAGE
 docker pull $SQUID_BASIC_AUTH_IMAGE
 
@@ -38,6 +40,7 @@ cd "$PROJECT-$VERSION"
 # Prepare Docker compose file.
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppm.yml
 sed -e 's#@WEB_IMAGE@#'$PPM1_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppm1.yml
+sed -e 's#@WEB_IMAGE@#'$PPM_AUTODISCO_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppm-autodisco.yml
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose.yml.in > docker-compose-ppm-squid-simple.yml
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose.yml.in > docker-compose-ppm-squid-basic-auth.yml
 
@@ -47,7 +50,7 @@ cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-comp
 # Prepare behat.yml.
 alreadyset=`grep docker-compose-ppm.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      ppm: docker-compose-ppm.yml\n      ppm1: docker-compose-ppm1.yml\n      ppm_squid_simple: docker-compose-ppm-squid-simple.yml\n      ppm_squid_basic_auth: docker-compose-ppm-squid-basic-auth.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      ppm: docker-compose-ppm.yml\n      ppm1: docker-compose-ppm1.yml\n      ppm_autodisco: docker-compose-ppm-autodisco.yml\n      ppm_squid_simple: docker-compose-ppm-squid-simple.yml\n      ppm_squid_basic_auth: docker-compose-ppm-squid-basic-auth.yml#g' behat.yml
 fi
 
 # Filter tags
