@@ -28,7 +28,7 @@ mkdir output
 # Retrieve sources.
 cd input
 get_internal_source "autodisco/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-tar xzf -C ../ "$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz" -C ../
 cd ..
 
 # Pull latest build dependencies.
