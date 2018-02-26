@@ -19,6 +19,6 @@ $dockerfile = xpath($centreon_build_dir . '/containers/awie/awie-' . $version . 
 file_put_contents($dockerfile, $content);
 
 # Build middleware image.
-xrmdir(xpath($centreon_build_dir . '/containers/centreon-license-manager'));
-xcopy(xpath('www/modules/centreon-license-manager'), xpath($centreon_build_dir . '/containers/centreon-license-manager'));
+xrmdir(xpath($centreon_build_dir . '/containers/centreon-awie'));
+xcopy(xpath('www/modules/centreon-awie'), xpath($centreon_build_dir . '/containers/centreon-awie'));
 passthru('docker build -t mon-awie-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' ' . xpath($centreon_build_dir . '/containers'));
