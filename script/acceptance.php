@@ -152,6 +152,10 @@ if ($synchronize) {
             'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
+        '/mon-awie' => array(
+            'distribution' => array('centos6', 'centos7'),
+            'version' => array('3.4')
+        ),
         '/mon-ppm-autodisco' => array(
             'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
@@ -275,6 +279,9 @@ else {
         break ;
     case 'centreon-bam':
         $project = 'bam';
+        break ;
+    case 'centreon-awie':
+        $project = 'awie';
         break ;
     case 'centreon-map':
         $project = 'map';
@@ -400,6 +407,11 @@ else {
             '@WEB_IMAGE@' => build_image_name('mon-ppm-autodisco'),
             '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
         )
+    );
+    replace_in_file(
+        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
+        xpath('mon-awie-dev.yml'),
+        array('@WEB_IMAGE@' => build_image_name('mon-awie'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
