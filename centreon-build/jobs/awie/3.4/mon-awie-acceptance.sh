@@ -22,10 +22,8 @@ DISTRIB="$1"
 # Pull images.
 REGISTRY="ci.int.centreon.com:5000"
 WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
-WEB_IMAGE="$REGISTRY/mon-web-3.4:$DISTRIB"
 AWIE_IMAGE="$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
 docker pull $WEBDRIVER_IMAGE
-docker pull $WEB_IMAGE
 docker pull $AWIE_IMAGE
 
 # Get sources.
