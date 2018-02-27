@@ -35,7 +35,6 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
-sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-web.yml
 sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-awie.yml
 
 # Copy compose file of webdriver
@@ -49,8 +48,8 @@ mkdir ../acceptance-logs
 composer install
 alreadyset=`grep docker-compose-awie.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      awie: docker-compose-awie.yml#g' behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      awie: docker-compose-awie.yml#g' behat.yml
 fi
-docker-compose -f docker-compose-webdriver.yml -p webdriver up -d
+launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-docker-compose -f docker-compose-webdriver.yml -p webdriver down -v
+stop_webdriver docker-compose-webdriver.yml
