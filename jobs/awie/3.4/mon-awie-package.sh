@@ -19,35 +19,24 @@ if [ "$#" -lt 1 ] ; then
 fi
 DISTRIB="$1"
 
-# Fetch sources.
-rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-tar xzf "$PROJECT-$VERSION.tar.gz"
-
 # Create input and output directories.
 rm -rf input
 mkdir input
 rm -rf output
 mkdir output
 
-# Encrypt source archive.
-if [ "$DISTRIB" = "centos6" ] ; then
-  phpversion=53
-elif [ "$DISTRIB" = "centos7" ] ; then
-  phpversion=54
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
-curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=$phpversion" -F "modulename=$PROJECT" -F 'needlicense=0' 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php$phpversion.tar.gz"
+# Retrieve sources.
+cd input
+get_internal_source "awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz" -C ../
+cd ..
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp "$PROJECT-$VERSION.tar.gz" input/
-cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
+cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
