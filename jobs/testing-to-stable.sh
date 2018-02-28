@@ -43,7 +43,7 @@ case "$PROJECT" in
     RPMS='centreon-bam-server'
   ;;
   centreon-bam-server-endoflife)
-    DIR='bam/2'
+    DIR='/bam/3.4'
     ARCH='noarch'
     RPMS='centreon-bam-server'
     EL7=no
