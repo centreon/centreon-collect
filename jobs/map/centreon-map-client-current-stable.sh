@@ -22,11 +22,10 @@ $SSH_REPO mkdir "/srv/sources/map/stable/$PROJECT-$VERSION/"
 $SSH_REPO mv "/srv/sources/map/testing/$PROJECT-$VERSION/*" "/srv/sources/map/stable/$PROJECT-$VERSION/"
 
 # Upload installers to centreon download website
-# BCO: /!\ This works only for version 4.2.X
 # The url is specific for this version. We have to change it for new minor versions
 
 BASE_INTERNAL_URL="/srv/sources/map/stable/$PROJECT-$VERSION/"
-BASE_EXTERNAL_URL="s3://centreon-download/enterprises/centreon-map/centreon-map-4.2/centreon-map-4.2/9ae03a4457fa0ce578379a4e0c8b51f2/"
+BASE_EXTERNAL_URL="s3://centreon-download/enterprises/centreon-map/centreon-map-$MAJOR.$MINOR/centreon-map-$MAJOR.$MINOR/9ae03a4457fa0ce578379a4e0c8b51f2/"
 
 # Copy MacOS .tar.gz version
 PRODUCT_NAME='Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz'
