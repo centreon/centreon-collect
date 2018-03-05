@@ -14,11 +14,23 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # CentOS 6.
-SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-$VERSION.$RELEASE.el6.x86_64.iso | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.el6.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.el6.x86_64.iso"
-curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.el6.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"
+for distrib in el6 el7 ; do
+  SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso | cut -d ' ' -f 1"`
+  $SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso"
 
-# CentOS 7.
-SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-$VERSION.$RELEASE.el7.x86_64.iso | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.el7.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.el7.x86_64.iso"
-curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.el7.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"
+  # Sync ISO in database (dryrun=1 does not show ISO on website)
+  OUTPUT=`curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.$distrib.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"`
+  SUCCESS=`echo $OUTPUT | jq -r status`
+  if [ \( "$SUCCESS" -ne "success" \) ] ; then
+    echo "ISO synchronization failed."
+    exit 1
+  fi
+
+  # Check if download link is available
+  DOWNLOADID=`echo $OUTPUT | jq -r id`
+  STATUSCODE=`curl -s -w "%{http_code}" "https://download.centreon.com/?action=download&id=$DOWNLOADID" -o /dev/null`
+  if [ \( "$STATUSCODE" -ne "200" \) ] ; then
+    echo "ISO cannot be downloaded."
+    exit 1
+  fi
+done
