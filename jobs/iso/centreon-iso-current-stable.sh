@@ -15,10 +15,10 @@ fi
 
 # CentOS 6.
 SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-$VERSION.$RELEASE.el6.x86_64.iso | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.el6.x86_64.iso" "s3://centreon-iso/stable/$VERSION/centreon-$VERSION.$RELEASE.el6.x86_64.iso"
+$SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.el6.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.el6.x86_64.iso"
 curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.el6.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"
 
 # CentOS 7.
 SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-$VERSION.$RELEASE.el7.x86_64.iso | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.el7.x86_64.iso" "s3://centreon-iso/stable/$VERSION/centreon-$VERSION.$RELEASE.el7.x86_64.iso"
+$SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.el7.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.el7.x86_64.iso"
 curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.el7.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"
