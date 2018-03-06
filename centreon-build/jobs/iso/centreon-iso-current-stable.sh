@@ -13,7 +13,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-# CentOS 6.
+# Release ISO for el6 and el7
 for distrib in el6 el7 ; do
   SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso | cut -d ' ' -f 1"`
   $SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso"
@@ -26,8 +26,12 @@ for distrib in el6 el7 ; do
     exit 1
   fi
 
-  # Check if download link is available
   DOWNLOADID=`echo $OUTPUT | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["id"]'`
+
+  # enable download link on website
+  curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&action=enable&release_id=$DOWNLOADID"
+
+  # Check if download link is available
   STATUSCODE=`curl -s -w "%{http_code}" "https://download.centreon.com/?action=download&id=$DOWNLOADID" -o /dev/null`
   if [ \( "$STATUSCODE" -ne "200" \) ] ; then
     echo "ISO cannot be downloaded."
