@@ -1,3 +1,10 @@
+dn: cn=debian,ou=groups,dc=centreon,dc=com
+changetype: add
+objectclass: groupofnames
+cn: debian
+description: Debian group
+member: cn=centreon-ldap5,ou=users,dc=centreon,dc=com
+
 dn: cn=windows,ou=groups,dc=centreon,dc=com
 changetype: add
 objectclass: groupofnames
@@ -7,6 +14,7 @@ member: cn=centreon-ldap,ou=users,dc=centreon,dc=com
 member: cn=centreon-ldap2,ou=users,dc=centreon,dc=com
 member: cn=centreon-ldap3,ou=users,dc=centreon,dc=com
 member: cn=centréon-ldap4,ou=users,dc=centreon,dc=com
+member: cn=debian,ou=groups,dc=centreon,dc=com
 
 dn: cn=linux,ou=groups,dc=centreon,dc=com
 changetype: add

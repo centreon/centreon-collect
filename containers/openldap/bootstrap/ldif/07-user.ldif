@@ -61,3 +61,19 @@ loginShell: /bin/bash
 gecos: centreon-ldap4
 userPassword: centreon-ldap4
 mail: centreon-ldap4@localhost
+
+dn: cn=centreon-ldap5,ou=users,dc=centreon,dc=com
+changetype: add
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: mailAccount
+cn: centreon-ldap5
+uid: centreon-ldap5
+uidNumber: 103
+gidNumber: 1000
+homeDirectory: /home/centreon-ldap5
+loginShell: /bin/bash
+gecos: centreon-ldap5
+userPassword: centreon-ldap5
+mail: centreon-ldap5@localhost
