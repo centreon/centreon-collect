@@ -605,6 +605,7 @@ sub build_rpm_el {
     $self->{logger}->writeLogError("build rpm $options{dist}: begin");
 
     my $code = $self->replace_macros(
+        %options,
         input_file => $self->{base_dir} . '/packaging/el/plugin.spec',
         output_file => $self->{build_dir} . '/rpmbuild/SPECS/pp.spec'
     );
@@ -638,14 +639,17 @@ sub build_deb_arch {
     $self->{logger}->writeLogError("build deb $options{dist}: begin");
 
     $self->replace_macros(
+        %options,
         input_file => $self->{base_dir} . '/packaging/debian/control',
         output_file => $self->{base_dir} . '/packaging/debian/control'
     );
     $self->replace_macros(
+        %options,
         input_file => $self->{base_dir} . '/packaging/debian/changelog',
         output_file => $self->{base_dir} . '/packaging/debian/changelog'
     );
     $self->replace_macros(
+        %options,
         input_file => $self->{base_dir} . '/packaging/debian/rules',
         output_file => $self->{base_dir} . '/packaging/debian/rules'
     );
