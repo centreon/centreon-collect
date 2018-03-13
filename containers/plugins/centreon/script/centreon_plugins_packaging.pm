@@ -84,6 +84,8 @@ sub replace_macros {
         $custom_pkg_data = $self->{pkg_data}->{custom_pkg_data};
     }
 
+    print "debug\n";
+    print Dumper($options);
     my $content = centreon::common::misc::read_file(file => $options{input_file});
     my $project_name = lc $self->{pkg_data}->{pkg_name};
     $content =~ s/\@NAME\@/$self->{pkg_data}->{pkg_name}/g;
