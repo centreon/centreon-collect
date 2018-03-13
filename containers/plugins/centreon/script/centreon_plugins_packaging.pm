@@ -638,22 +638,6 @@ sub build_deb_arch {
 
     $self->{logger}->writeLogError("build deb $options{dist}: begin");
 
-    $self->replace_macros(
-        path => $options{path},
-        input_file => $self->{base_dir} . '/packaging/debian/control',
-        output_file => $self->{base_dir} . '/packaging/debian/control'
-    );
-    $self->replace_macros(
-        path => $options{path},
-        input_file => $self->{base_dir} . '/packaging/debian/changelog',
-        output_file => $self->{base_dir} . '/packaging/debian/changelog'
-    );
-    $self->replace_macros(
-        path => $options{path},
-        input_file => $self->{base_dir} . '/packaging/debian/rules',
-        output_file => $self->{base_dir} . '/packaging/debian/rules'
-    );
-
     # Prepare build directory
     my ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
         command => 'cd ' . $self->{base_dir} . ' && ' .
@@ -688,6 +672,22 @@ sub build_deb_arch {
         );
         return -1;
     }
+
+    $self->replace_macros(
+        path => $options{path},
+        input_file => $project_name  . '-' . $self->{version} . '/debian/control',
+        output_file => $project_name  . '-' . $self->{version} . '/debian/control'
+    );
+    $self->replace_macros(
+        path => $options{path},
+        input_file => $project_name  . '-' . $self->{version} . '/debian/changelog',
+        output_file => $project_name  . '-' . $self->{version} . '/debian/changelog'
+    );
+    $self->replace_macros(
+        path => $options{path},
+        input_file => $project_name  . '-' . $self->{version} . '/debian/rules',
+        output_file => $project_name  . '-' . $self->{version} . '/debian/rules'
+    );
 
     # Build package
     ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
