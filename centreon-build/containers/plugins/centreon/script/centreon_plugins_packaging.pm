@@ -718,14 +718,14 @@ sub build_deb_arch {
 sub build_rpm {
     my ($self, %options) = @_;
 
-    $self->build_rpm_el(%options, path => $options{path}, dist => 'el6');
-    $self->build_rpm_el(%options, path => $options{path}, dist => 'el7');
+    $self->build_rpm_el(path => $options{path}, dist => 'el6');
+    $self->build_rpm_el(path => $options{path}, dist => 'el7');
 }
 
 sub build_deb {
     my ($self, %options) = @_;
 
-    $self->build_deb_arch(%options, path => $options{path}, dist => 'armhf');
+    $self->build_deb_arch(path => $options{path}, dist => 'armhf');
 }
 
 sub do_package {
