@@ -22,7 +22,7 @@ Requires: @REQUIRES@
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/lib/centreon/plugins/
-%{__install} -m 775 @PATH@/plugin/@PLUGIN_NAME@.current %{buildroot}@PLUGIN_PATH@/@PLUGIN_NAME@
+%{__install} -m 775 @PATH@/plugin/@PLUGIN_NAME@.rpm.current %{buildroot}@PLUGIN_PATH@/@PLUGIN_NAME@
 
 %clean
 rm -rf \%{buildroot}
