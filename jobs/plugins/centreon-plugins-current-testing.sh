@@ -6,7 +6,8 @@ set -x
 . `dirname $0`/../common.sh
 
 # Build images.
-cd centreon-build/containers
+cp -r /opt/centreon-build/containers centreon-build-containers
+cd centreon-build-containers
 
 docker pull ci.int.centreon.com:5000/mon-build-dependencies:debian9-armhf
 docker build -t ci.int.centreon.com:5000/centreon-plugins:debian9-armhf -f plugins/debian.Dockerfile .
