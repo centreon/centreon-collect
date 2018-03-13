@@ -1,0 +1,5 @@
+@PROJECT_NAME@ (@VERSION@-@RELEASE@) UNRELEASED; urgency=medium
+
+  * Release.
+
+ -- Kevin Duret <kduret@centreon.com>  Thu, 08 Mar 2018 10:40:36 +0200
