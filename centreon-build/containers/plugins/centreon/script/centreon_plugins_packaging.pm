@@ -675,18 +675,18 @@ sub build_deb_arch {
 
     $self->replace_macros(
         path => $options{path},
-        input_file => $project_name  . '-' . $self->{version} . '/debian/control',
-        output_file => $project_name  . '-' . $self->{version} . '/debian/control'
+        input_file => $self->{base_dir} . '/debuildir/' . $project_name  . '-' . $self->{version} . '/debian/control',
+        output_file => $self->{base_dir} . '/debuildir/' . $project_name  . '-' . $self->{version} . '/debian/control'
     );
     $self->replace_macros(
         path => $options{path},
-        input_file => $project_name  . '-' . $self->{version} . '/debian/changelog',
-        output_file => $project_name  . '-' . $self->{version} . '/debian/changelog'
+        input_file => $self->{base_dir} . '/debuildir/' . $project_name  . '-' . $self->{version} . '/debian/changelog',
+        output_file => $self->{base_dir} . '/debuildir/' . $project_name  . '-' . $self->{version} . '/debian/changelog'
     );
     $self->replace_macros(
         path => $options{path},
-        input_file => $project_name  . '-' . $self->{version} . '/debian/rules',
-        output_file => $project_name  . '-' . $self->{version} . '/debian/rules'
+        input_file => $self->{base_dir} . '/debuildir/' . $project_name  . '-' . $self->{version} . '/debian/rules',
+        output_file => $self->{base_dir} . '/debuildir/' . $project_name  . '-' . $self->{version} . '/debian/rules'
     );
 
     # Build package
