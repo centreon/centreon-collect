@@ -8,5 +8,5 @@ export DH_VERBOSE=1
 override_dh_auto_clean:
 
 override_dh_auto_install:
-	mkdir -p @PLUGIN_PATH@
-	install -m 775 *.pl @PLUGIN_PATH@
+	mkdir -p debian/@PROJECT_NAME@@PLUGIN_PATH@
+	install -m 775 *.pl debian/@PROJECT_NAME@@PLUGIN_PATH@
