@@ -47,7 +47,10 @@ docker start -a "$containerid"
 rm -rf armhf
 docker cp "$containerid:/script/centreon-plugins/armhf" .
 
-put_internal_debs "3.5" "stretch" armhf/*.deb
+for file in $(ls armhf); do
+    [[ $file =~ ^.*\.deb$ ]] && put_internal_debs "3.5" "stretch" armhf/*.deb
+done
+
 
 # Cleanup.
 docker rm "$containerid"
