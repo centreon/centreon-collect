@@ -29,10 +29,12 @@ rm -rf el7
 docker cp "$containerid:/script/centreon-plugins/el6" .
 docker cp "$containerid:/script/centreon-plugins/el7" .
 
-scp el6/*.el6.*.rpm ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el6/testing/noarch/RPMS/
-ssh ubuntu@srvi-repo.int.centreon.com createrepo /srv/yum/standard/3.4/el6/testing/noarch
-scp el7/*.el7.*.rpm ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el7/testing/noarch/RPMS/
-ssh ubuntu@srvi-repo.int.centreon.com createrepo /srv/yum/standard/3.4/el7/testing/noarch
+for distrib in el6 el7 ; do
+    FILES_LIST="$(ls $distrib/*.$distrib.*.rpm 2>/dev/null)"
+    for file in $FILES_LIST; do
+        scp $distrib/$file ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/$distrib/testing/noarch/RPMS/
+    done
+done
 
 # Cleanup.
 docker rm "$containerid"
