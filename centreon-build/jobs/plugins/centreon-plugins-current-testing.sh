@@ -30,7 +30,6 @@ docker cp "$containerid:/script/centreon-plugins/el6" .
 docker cp "$containerid:/script/centreon-plugins/el7" .
 
 for distrib in el6 el7 ; do
-    FILES_LIST="$(ls $distrib/*.$distrib.*.rpm 2>/dev/null)"
     for file in $(ls $distrib); do
         [[ $file =~ ^.*$distrib\..*\.rpm$ ]] && scp $distrib/$file ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/$distrib/testing/noarch/RPMS/
     done
