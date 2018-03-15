@@ -831,7 +831,7 @@ sub git_commit_changes {
         if (scalar(@{$self->{git_rm_plugins}}) > 0) {
             $command .= 'git rm ' . join(' ',  @{$self->{git_rm_plugins}}) . ' && ';
         }
-        $command .= "git add . && git commit -m 'update release' && git push";
+        $command .= "git add . && git commit -m 'update " . $self->{package_type} . " release' && git push";
         ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
             command => 'ls /script/centreon-plugins/armhf/',
             logger => $self->{logger},
