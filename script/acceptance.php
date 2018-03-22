@@ -127,7 +127,8 @@ if ($synchronize) {
         '/mon-squid-simple' => array(),
         '/mon-squid-basic-auth' => array(),
         'influxdb' => array(),
-        'selenium/standalone-chrome' => array(),
+        'selenium/hub' => array(),
+        'selenium/node-chrome' => array(),
         'redis' => array(),
         '/mon-lm' => array(
             'distribution' => array('centos6', 'centos7'),
