@@ -4,4 +4,5 @@ if [ "$1" = "configure" ] ; then
   adduser --system --group --no-create-home centreon-engine
   usermod -a -G centreon-engine centreon
   chown -R centreon-engine:centreon-engine /etc/centreon-engine /var/lib/centreon-engine /var/log/centreon-engine
+  chmod -R g+w /etc/centreon-engine /var/lib/centreon-engine /var/log/centreon-engine
 fi
