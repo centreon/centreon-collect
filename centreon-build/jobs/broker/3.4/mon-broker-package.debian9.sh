@@ -14,8 +14,9 @@ docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start -a "$containerid"
 
 # Send package to repository.
-docker cp "$containerid:/usr/local/src/debuildir/${PROJECT}_${VERSION}-${RELEASE}_amd64.deb" .
-put_internal_debs "3.5" "stretch" *.deb
+rm -rf debuildir
+docker cp "$containerid:/usr/local/src/debuildir" .
+put_internal_debs "3.5" "stretch" debuildir/*.deb
 
 # Stop container.
 docker stop "$containerid"
