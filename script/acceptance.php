@@ -61,7 +61,7 @@ if (isset($opts['h'])) {
     echo "    -h  Print this help.\n";
     echo "    -c  Use images from the continuous integration instead of locally generated images.\n";
     echo "    -v  Use precise version (can be use with -c for CI).\n";
-    echo "    -d  Distribution used to run tests. Can be one of centos6 (default) or centos7.\n";
+    echo "    -d  Distribution used to run tests. Can be one of centos6 or centos7 (default) or debian9.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
     echo "\n";
@@ -99,7 +99,7 @@ if (isset($opts['d'])) {
     array_shift($argv);
     array_shift($argv);
 } else {
-    $distrib = 'centos6';
+    $distrib = 'centos7';
 }
 if (isset($opts['g'])) {
     $only_generate = true;
