@@ -12,5 +12,3 @@ rrdtool-devel
 redhat-lsb
 git
 lua-devel
-perl-CPAN
-perl-devel
