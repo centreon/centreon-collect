@@ -27,5 +27,9 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	make -C build install DESTDIR=../debian/centreon-engine
-	mkdir -p debian/centreon-engine/var/lib/centreon-engine
+	mkdir -p debian/centreon-engine/var/lib/centreon-engine/rw
 	mkdir -p debian/centreon-engine/var/log/centreon-engine
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod -R g+w debian/centreon-engine/etc/centreon-engine debian/centreon-engine/var/lib/centreon-engine debian/centreon-engine/var/log/centreon-engine
