@@ -22,5 +22,8 @@ curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
+# Install cpanminus (cpanm)
+curl -L http://cpanmin.us | perl - --sudo App::cpanminus
+
 # Workaround, yum does not seem to exit correctly.
 rm -f /var/run/yum.pid
