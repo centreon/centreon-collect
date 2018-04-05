@@ -461,14 +461,16 @@ pid_t process::_create_process_with_setpgid(
   if (posix_spawnp(&pid, args[0], NULL, &attr, args, env)) {
     char const* msg(strerror(errno));
     posix_spawnattr_destroy(&attr);
-    throw (basic_error() << "could not create process: " << msg);
+    throw (basic_error() << "could not create process '"
+           << args[0] << "': " << msg);
   }
   posix_spawnattr_destroy(&attr);
 #else
   pid = fork();
   if (pid == static_cast<pid_t>(-1)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "could not create process: " << msg);
+    throw (basic_error() << "could not create process '"
+           << args[0] << "': " << msg);
   }
 
   // Child execution.
@@ -490,13 +492,15 @@ pid_t process::_create_process_without_setpgid(
 #ifdef HAVE_SPAWN_H
   if (posix_spawnp(&pid, args[0], NULL, NULL, args, env)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "could not create process: " << msg);
+    throw (basic_error() << "could not create process '"
+           << args[0] << "': " << msg);
   }
 #else
   pid = vfork();
   if (pid == static_cast<pid_t>(-1)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "could not create process: " << msg);
+    throw (basic_error() << "could not create process '"
+           << args[0] << "': " << msg);
   }
 
   // Child execution.
