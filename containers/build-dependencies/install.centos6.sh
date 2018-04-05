@@ -24,7 +24,7 @@ chmod +x /usr/local/bin/composer
 
 # Install PAR::Packer to build perl binaries
 yum install -y perl-core perl-devel
-curl --silent --location http://xrl.us/cpanm | perl - PAR::Packer
+curl --silent --location http://xrl.us/cpanm | perl - PAR::Packer PAR::Filter::Crypto
 
 # Workaround, yum does not seem to exit correctly.
 rm -f /var/run/yum.pid
