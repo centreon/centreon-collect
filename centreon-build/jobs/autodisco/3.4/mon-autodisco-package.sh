@@ -37,7 +37,7 @@ docker pull "$BUILD_IMG"
 
 # Build RPMs.
 cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output --verbose
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
