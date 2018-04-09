@@ -34,7 +34,7 @@ docker pull "$BASE_IMG"
 
 # Prepare Dockerfiles.
 rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$BASE_IMG#g;s#@CENTOS_VERSION@#$CENTOS_VERSION#g" < web/3.5/fresh.Dockerfile.in > web/fresh.Dockerfile
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/3.5/standard.Dockerfile.in > web/standard.Dockerfile
