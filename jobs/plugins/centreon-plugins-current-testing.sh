@@ -30,8 +30,9 @@ docker cp "$containerid:/script/centreon-plugins/el6" .
 docker cp "$containerid:/script/centreon-plugins/el7" .
 
 for distrib in el6 el7 ; do
-    for file in $(ls $distrib); do
-        [[ $file =~ ^.*$distrib\..*\.rpm$ ]] && scp $distrib/$file ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/$distrib/testing/noarch/RPMS/
+    FILES_LIST="$(ls $distrib/*.$distrib.*.rpm 2>/dev/null)"
+    for file in $FILES_LIST; do
+        scp $distrib/$file ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/$distrib/testing/noarch/RPMS/
     done
 done
 
@@ -48,7 +49,7 @@ rm -rf armhf
 docker cp "$containerid:/script/centreon-plugins/armhf" .
 
 for file in $(ls armhf); do
-    [[ $file =~ ^.*\.deb$ ]] && put_internal_debs "3.5" "stretch" armhf/*.deb
+    put_internal_debs "3.5" "stretch" armhf/*.deb
 done
 
 
