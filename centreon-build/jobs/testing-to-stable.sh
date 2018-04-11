@@ -37,6 +37,11 @@ case "$PROJECT" in
     RPMS='ces-plugins-Operatingsystems-As400'
     EL7=no
   ;;
+  centreon-awie)
+    DIR='/standard/3.4'
+    ARCH='noarch'
+    RPMS='centreon-awie'
+  ;;
   centreon-bam-server)
     DIR='/bam/3.4'
     ARCH='noarch'
