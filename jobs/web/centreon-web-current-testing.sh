@@ -29,7 +29,7 @@ fi
 # Create source tarball.
 cd centreon-web
 git checkout --detach "$COMMIT"
-rm -rf "../centreon-$VERSION"
+rm -rf "../centreon-$VERSION" "../centreon-web-$VERSION"
 mkdir "../centreon-$VERSION"
 git archive HEAD | tar -C "../centreon-$VERSION" -x
 cd ../centreon-plugins
