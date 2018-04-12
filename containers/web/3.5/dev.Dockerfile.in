@@ -11,7 +11,8 @@ RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 # Centreon update is made through custom scripts.
 COPY web/3.5/container.cnf /etc/my.cnf.d/
 COPY web/3.5 /tmp/dev
-RUN chmod +x /tmp/dev/dev.sh
+RUN chmod +x /tmp/dev/dev.sh && \
+    chmod 0644 /etc/my.cnf.d/container.cnf
 COPY centreon/composer.json /usr/share/centreon/composer.json
 RUN composer install -d /usr/share/centreon
 COPY centreon/src /usr/share/centreon/src
