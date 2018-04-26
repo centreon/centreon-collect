@@ -8,6 +8,7 @@ RUN yum install -y git \
   perl-JSON \
   perl-File-Copy-Recursive \
   rpm-build \
+  expect \
   && rm -rf /var/cache/yum/*
 RUN cpanm App::FatPacker
 RUN mkdir -p /root/.ssh
