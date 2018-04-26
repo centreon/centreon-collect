@@ -35,14 +35,14 @@ docker pull "$NODEJS_IMAGE"
 containerid=`docker create $NODEJS_IMAGE /tmp/unittest.sh`
 
 # Copy files to container.
-docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
+docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon"
 docker cp `dirname $0`/unittest.sh "$containerid:/tmp/unittest.sh"
 
 # Run unit tests and build release.
-rm -rf "coverage" "$PROJECT-release-$VERSION.tar.gz" "$PROJECT-release-$VERSION"
+rm -rf "coverage" "centreon-release-$VERSION"
 docker start -a "$containerid"
-docker cp "$containerid:/usr/local/src/$PROJECT/coverage" "coverage"
-docker cp "$containerid:/usr/local/src/$PROJECT/build" "$PROJECT-$VERSION-release"
+docker cp "$containerid:/usr/local/src/centreon/coverage" "coverage"
+docker cp "$containerid:/usr/local/src/centreon/build" "centreon-release-$VERSION"
 
 # Stop container.
 docker stop "$containerid"
