@@ -12,3 +12,4 @@ rrdtool-devel
 redhat-lsb
 git
 lua-devel
+expect

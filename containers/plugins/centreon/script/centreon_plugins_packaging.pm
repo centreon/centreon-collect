@@ -610,6 +610,7 @@ sub build_rpm_el {
         output_file => $self->{build_dir} . '/rpmbuild/SPECS/pp.spec'
     );
 
+    # Build rpm
     my ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
         command => 'rpmbuild --define "dist .' . $options{dist} . '" --define "_topdir ' .
             $self->{build_dir} . '/rpmbuild/" -ba  "' . $self->{build_dir} . '/rpmbuild/SPECS/pp.spec"',
@@ -624,6 +625,20 @@ sub build_rpm_el {
 
     my $rpm_name = $self->{pkg_data}->{pkg_name} . '-' . $self->{version} . '-' . $self->{release} .
         '.' . $options{dist} . '.noarch.rpm';
+
+    # Sign rpm
+    my ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
+        command => 'expect ' . $self->{base_dir} . '/packaging/el/rpm-sign.exp ' .
+            $self->{build_dir} . '/rpmbuild/RPMS/noarch/' . $rpm_name,
+        logger => $self->{logger},
+        timeout => 60,
+        wait_exit => 1,
+    );
+    if ($lerror != 0 || $exit_code > 1) {
+        $self->{logger}->writeLogError("build rpm $options{dist}: rpmsign error");
+        return -1;
+    }
+
     File::Copy::Recursive::fcopy(
         $self->{build_dir} . '/rpmbuild/RPMS/noarch/' . $rpm_name,
         $self->{save_directory} . $options{dist}
