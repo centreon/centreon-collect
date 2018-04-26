@@ -627,7 +627,7 @@ sub build_rpm_el {
         '.' . $options{dist} . '.noarch.rpm';
 
     # Sign rpm
-    my ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
+    ($lerror, $stdout, $exit_code) = centreon::common::misc::backtick(
         command => 'expect ' . $self->{base_dir} . '/packaging/el/rpm-sign.exp ' .
             $self->{build_dir} . '/rpmbuild/RPMS/noarch/' . $rpm_name,
         logger => $self->{logger},
