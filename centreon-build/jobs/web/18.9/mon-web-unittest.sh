@@ -24,6 +24,35 @@ rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
+
+####################
+##### FRONTEND #####
+####################
+
+# Prepare NodeJS container.
+NODEJS_IMAGE="node:6"
+docker pull "$NODEJS_IMAGE"
+containerid=`docker create $NODEJS_IMAGE /tmp/unittest.sh`
+
+# Copy files to container.
+docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
+docker cp `dirname $0`/unittest.sh "$containerid:/tmp/unittest.sh"
+
+# Run unit tests and build release.
+rm -rf "coverage" "$PROJECT-release-$VERSION.tar.gz" "$PROJECT-release-$VERSION"
+docker start -a "$containerid"
+docker cp "$containerid:/usr/local/src/$PROJECT/coverage" "coverage"
+docker cp "$containerid:/usr/local/src/$PROJECT/build" "$PROJECT-$VERSION-release"
+
+# Stop container.
+docker stop "$containerid"
+docker rm "$containerid"
+
+
+###################
+##### BACKEND #####
+###################
+
 # Launch mon-unittest container.
 UT_IMAGE=ci.int.centreon.com:5000/mon-unittest-18.9:$DISTRIB
 docker pull $UT_IMAGE
