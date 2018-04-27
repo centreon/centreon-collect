@@ -29,7 +29,7 @@ tar xzf "centreon-$VERSION.tar.gz"
 # Prepare NodeJS container.
 NODEJS_IMAGE="node:6"
 docker pull "$NODEJS_IMAGE"
-containerid=`docker create $NODEJS_IMAGE /tmp/unittest.sh`
+containerid=`docker create $NODEJS_IMAGE sh /tmp/unittest.sh`
 
 # Copy files to container.
 docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon"
