@@ -21,4 +21,6 @@ RUN mkdir -p /script/centreon
 COPY plugins/packaging /script/packaging
 COPY plugins/centreon_plugins_packaging.pl /script
 COPY plugins/centreon /script/centreon
+COPY ces.key /tmp/ces.key
+RUN gpg --import /tmp/ces.key
 ENTRYPOINT ["/usr/bin/perl", "/script/centreon_plugins_packaging.pl", "--no-rm-builddir", "--package-type=rpm"]
