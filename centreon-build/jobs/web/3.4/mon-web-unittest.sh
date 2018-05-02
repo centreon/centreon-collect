@@ -42,7 +42,7 @@ docker cp `dirname $0`/unittest.sh "$containerid:/tmp/unittest.sh"
 rm -rf "coverage" "centreon-release-$VERSION"
 docker start -a "$containerid"
 docker cp "$containerid:/usr/local/src/centreon/coverage" "coverage"
-docker cp "$containerid:/usr/local/src/centreon/build" "centreon-release-$VERSION"
+docker cp "$containerid:/usr/local/src/centreon/jest-test-results.xml" "jest-test-results.xml"
 
 # Stop container.
 docker stop "$containerid"
