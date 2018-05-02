@@ -35,7 +35,7 @@ docker pull "$NODEJS_IMAGE"
 containerid=`docker create $NODEJS_IMAGE sh /tmp/unittest.sh`
 
 # Copy files to container.
-docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon"
+docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon-web"
 docker cp `dirname $0`/unittest.sh "$containerid:/tmp/unittest.sh"
 
 # Run unit tests and build release.
