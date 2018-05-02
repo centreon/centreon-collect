@@ -31,7 +31,7 @@ if [ \! -d packaging-centreon-web ] ; then
 fi
 
 cd packaging-centreon-web
-git checkout "$BRANCH" || true
+git checkout "$BRANCH_NAME" || true
 git pull
 cd ..
 cp packaging-centreon-web/rpm/centreon.spectemplate input/
