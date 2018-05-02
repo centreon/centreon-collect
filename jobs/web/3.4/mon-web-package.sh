@@ -28,12 +28,13 @@ mkdir output
 # Retrieve spec file.
 if [ \! -d packaging-centreon-web ] ; then
   git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
-else
-  cd packaging-centreon-web
-  git pull
-  cd ..
 fi
-cp packaging-centreon-web/rpm/centreon-3.4.spectemplate input/
+
+cd packaging-centreon-web
+git checkout "$BRANCH" || true
+git pull
+cd ..
+cp packaging-centreon-web/rpm/centreon.spectemplate input/
 
 # Retrieve additional sources.
 cp packaging-centreon-web/src/3.4/* input
