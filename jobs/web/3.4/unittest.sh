@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Install dependencies.
-cd /usr/local/src/centreon-web
+cd /usr/local/src/centreon
 npm install
 
 # Run unit tests.
