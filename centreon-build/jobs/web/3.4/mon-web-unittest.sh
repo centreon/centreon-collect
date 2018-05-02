@@ -59,7 +59,7 @@ docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing centreon`
 
 # Copy sources to container.
-docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/centreon"
+docker cp "centreon-$VERSION" "$containerid:/usr/local/src/centreon"
 
 # Run unit tests.
 docker start -a "$containerid"
