@@ -73,6 +73,9 @@ launch_webdriver() {
     docker-compose -f "$1" -p webdriver up -d --scale 'chrome=4'
     sleep 10
     nodes=`curl 'http://localhost:4444/grid/api/hub' | python -m json.tool | grep free | cut -d ':' -f 2 | tr -d ' ,'`
+    if [ -z "${nodes}" ]; then
+      nodes=0
+    fi
   done
   set -e
 }
