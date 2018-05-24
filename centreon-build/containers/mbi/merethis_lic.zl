@@ -1,12 +1,12 @@
 Product-Name = merethis_centreon-bi-server-2
-Registered-To = CENTREON
-Order-Form-Number = Plateforme interne
+Registered-To = 
+Order-Form-Number = 
 Hardware-Locked = No
-Expires = 01-May-2017
-Maintenance = 01-May-2017
-Server = 10.50.1.103
+Expires = 08-May-2019
+Maintenance = 08-May-2019
+Server = centreon-demo
 TypeOfUse = Production
-LicenseType = Limited
-GenerationDate = 02-11-2016 10:43:29
+LicenseType = Unlimited
+GenerationDate = 09-04-2018 13:42:59
 Produced-By = Merethis
-Verification-Code = 0QCmRp+bgcRggPBTDvmNKpTHMdOBSwIUODF8iGnchwdt0JMWarB8PGtZ4SQ=
+Verification-Code = wDUygxmoS6w0W6p0lnM3y8iOq63DAhR71oyAvk0cjGFfWl2jaO6gj8BNmw==
