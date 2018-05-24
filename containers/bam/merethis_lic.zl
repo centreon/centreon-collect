@@ -1,12 +1,12 @@
 Product-Name = merethis_centreon-bam-server
-Registered-To = CENTREON
-Order-Form-Number = Usage interne
+Registered-To = 
+Order-Form-Number = 
 Hardware-Locked = No
-Expires = 09-May-2018
-Maintenance = 09-May-2018
-Server = centreon
-TypeOfUse = Qualification
-LicenseType = Demonstration
-GenerationDate = 10-04-2017 17:57:52
+Expires = 08-May-2019
+Maintenance = 08-May-2019
+Server = centreon-demo
+TypeOfUse = Production
+LicenseType = Unlimited
+GenerationDate = 09-04-2018 13:42:59
 Produced-By = Merethis
-Verification-Code = wHu5sLp6mSSAPOGoZ6GtMyhETOquAhRxX73fOrL9mbB4F0HBtqc2Xv92pA==
+Verification-Code = 0F+oEEjxymZgOzJID5LeRp0HRxUxAhUAgc0Jy5r0h6vmAYDna2NX0pJCu2c=
