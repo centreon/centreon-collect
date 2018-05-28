@@ -5,4 +5,5 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 RUN curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm"
 RUN yum install centos-release-scl-rh.rpm
+RUN yum remove 'php*'
 ENV PATH=$PATH:/opt/rh/rh-php71/root/usr/bin
