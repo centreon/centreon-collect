@@ -2,6 +2,6 @@ FROM @BASE_IMAGE@
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Run distribution-dependent installation.
-COPY dependencies/dependencies.@DISTRIB@.txt /tmp/dependencies.txt
-COPY dependencies/install.@DISTRIB@.sh /tmp/install.sh
+COPY dependencies/@VERSION@/dependencies.@DISTRIB@.txt /tmp/dependencies.txt
+COPY dependencies/@VERSION@/install.@DISTRIB@.sh /tmp/install.sh
 RUN /tmp/install.sh
