@@ -29,7 +29,7 @@ docker pull "$BASE_IMAGE"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed -e "@VERSION@/$VERSION/g" -e "s/@DISTRIB@/$DISTRIB/g" -e "s/@BASE_IMAGE@/$BASE_IMAGE/g" < dependencies/Dockerfile.in > dependencies/Dockerfile
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@DISTRIB@/$DISTRIB/g" -e "s/@BASE_IMAGE@/$BASE_IMAGE/g" < dependencies/Dockerfile.in > dependencies/Dockerfile
 
 # Build image.
 DEP_IMG="ci.int.centreon.com:5000/mon-dependencies-$VERSION:$DISTRIB"
