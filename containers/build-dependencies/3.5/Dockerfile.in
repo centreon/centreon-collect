@@ -3,5 +3,6 @@
 FROM ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
-RUN yum install centos-release-scl
+RUN curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm"
+RUN yum install centos-release-scl-rh.rpm
 ENV PATH=$PATH:/opt/rh/rh-php71/root/usr/bin
