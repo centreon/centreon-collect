@@ -17,6 +17,11 @@ yum install --nogpgcheck centreon-release.rpm
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_8.x | bash -
 
+# Install Software Collections repository.
+centos-release-scl
+curl -o centos-release-scl.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm"
+yum install --nogpgcheck centos-release-scl.rpm
+
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt
 
