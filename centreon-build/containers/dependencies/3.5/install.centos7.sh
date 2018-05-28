@@ -18,14 +18,13 @@ yum install --nogpgcheck centreon-release.rpm
 curl --silent --location https://rpm.nodesource.com/setup_8.x | bash -
 
 # Install Software Collections repository.
-curl -o centos-release-scl.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm"
-yum install --nogpgcheck centos-release-scl.rpm
+yum install centos-release-scl
 
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt
 
 # Configuration.
-echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
+echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php71/php.d/centreon.ini
 
 # Clean packages
 yum clean all
