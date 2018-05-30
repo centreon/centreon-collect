@@ -1,9 +1,9 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-dependencies:@DISTRIB@
+FROM ci.int.centreon.com:5000/mon-dependencies-@VERSION@:@DISTRIB@
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Install all build dependencies of Centreon components.
-COPY build-dependencies/build-dependencies.@DISTRIB@.txt /tmp/build-dependencies.txt
+COPY build-dependencies/@VERSION@/build-dependencies.@DISTRIB@.txt /tmp/build-dependencies.txt
 COPY unittest/install.@DISTRIB@.sh /tmp/install.sh
 RUN /tmp/install.sh
 
