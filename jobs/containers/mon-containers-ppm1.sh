@@ -6,7 +6,7 @@ set -x
 DISTRIB="centos6"
 
 # Pull Centreon dependencies.
-docker pull ci.int.centreon.com:5000/mon-dependencies:$DISTRIB
+docker pull ci.int.centreon.com:5000/mon-dependencies-3.4:$DISTRIB
 
 # Prepare Dockerfile.
 cd centreon-build/containers
