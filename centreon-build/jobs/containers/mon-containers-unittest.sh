@@ -17,7 +17,7 @@ DISTRIB="$2"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" < unittest/Dockerfile.in > unittest/Dockerfile
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@DISTRIB@/$DISTRIB/g" < unittest/Dockerfile.in > unittest/Dockerfile
 
 # Build image.
 UNITTEST_IMG="ci.int.centreon.com:5000/mon-unittest:$DISTRIB"
