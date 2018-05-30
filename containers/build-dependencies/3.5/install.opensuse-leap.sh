@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Install development repositories.
-sed -i -e 's/@DISTRIB@/os423/g' -e 's/@VERSION@/3.4/g' -e 's/gpgcheck=1/gpgcheck=0/g' /tmp/centreon-internal.repo.in
+sed -i -e 's/@DISTRIB@/leap/g' -e 's/@VERSION@/3.5/g' -e 's/gpgcheck=1/gpgcheck=0/g' /tmp/centreon-internal.repo.in
 zypper --non-interactive ar /tmp/centreon-internal.repo.in
 
 # Install required build dependencies for all Centreon projects.
@@ -12,11 +12,11 @@ zypper --non-interactive install rpm-build
 xargs zypper --non-interactive install --download-only < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-zypper --non-interactive install nodejs6 npm6
+zypper --non-interactive install nodejs8 npm8
 npm install -g gulp
 
 # Install Composer.
-zypper --non-interactive install curl php5 php5-dom php5-json php5-mbstring php5-openssl php5-phar
+zypper --non-interactive install curl php7 php7-dom php7-json php7-mbstring php7-openssl php7-phar
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
