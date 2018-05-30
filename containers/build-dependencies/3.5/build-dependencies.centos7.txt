@@ -1,0 +1,15 @@
+centreon-clib-devel
+centreon-devel
+cmake
+gcc
+gcc-c++
+gettext
+make
+gnutls-devel
+libgcrypt-devel
+qt4-devel
+rrdtool-devel
+redhat-lsb
+git
+lua-devel
+expect
