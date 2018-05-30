@@ -6,11 +6,12 @@ set -x
 . `dirname $0`/../common.sh
 
 # Check arguments.
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <distrib>"
+if [ "$#" -lt 2 ] ; then
+  echo "USAGE: $0 <version> <distrib>"
   exit 1
 fi
-DISTRIB="$1"
+VERSION="$1"
+DISTRIB="$2"
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
