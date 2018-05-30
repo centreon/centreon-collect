@@ -20,8 +20,8 @@ case "$2" in
   debian9-armhf)
     BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies:debian9"
     ;;
-  opensuse423)
-    BASE_IMAGE="opensuse:42.3"
+  opensuse-leap)
+    BASE_IMAGE="opensuse:leap"
     ;;
   *)
     echo "USAGE: $0 <distrib>"
@@ -34,7 +34,11 @@ DISTRIB="$2"
 rm -rf centreon-build-containers
 cp -r /opt/centreon-build/containers centreon-build-containers
 cd centreon-build-containers
-sed -e "s#@DISTRIB@#$DISTRIB#g" -e "s#@BASE_IMAGE@#$BASE_IMAGE#g" < "build-dependencies/$VERSION/Dockerfile.in" > build-dependencies/Dockerfile
+cp build-dependencies/Dockerfile.in build-dependencies/Dockerfile
+if [ -e "build-dependencies/$VERSION/Dockerfile.post.$DISTRIB.in" ] ; then
+  cat "build-dependencies/$VERSION/Dockerfile.post.$DISTRIB.in" >> build-dependencies/Dockerfile
+fi
+sed -i -e "s#@VERSION@#$VERSION#g" -e "s#@DISTRIB@#$DISTRIB#g" -e "s#@BASE_IMAGE@#$BASE_IMAGE#g" build-dependencies/Dockerfile
 
 # Build image.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-$VERSION:$DISTRIB"
