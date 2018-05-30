@@ -21,7 +21,7 @@ case "$2" in
     BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies:debian9"
     ;;
   opensuse-leap)
-    BASE_IMAGE="opensuse:leap"
+    BASE_IMAGE="opensuse/leap:latest"
     ;;
   *)
     echo "USAGE: $0 <distrib>"
