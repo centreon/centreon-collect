@@ -30,13 +30,11 @@ mv "$PROJECT-$VERSION" "centreon-$VERSION"
 tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Retrieve packaging files.
-if [ \! -d packaging-centreon-web ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
-else
-  cd packaging-centreon-web
-  git pull
-  cd ..
-fi
+rm -rf packaging-centreon-web
+git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
+cd packaging-centreon-web
+git checkout "$BRANCH_NAME" || true
+cd ..
 
 # Run distribution-dependent script.
 . `dirname $0`/mon-web-package.$DISTRIB.sh
