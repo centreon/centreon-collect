@@ -21,7 +21,7 @@ fi
 
 # Target images.
 REGISTRY="ci.int.centreon.com:5000"
-BASE_IMG="$REGISTRY/mon-dependencies:$DISTRIB"
+BASE_IMG="$REGISTRY/mon-dependencies-3.4:$DISTRIB"
 FRESH_IMG="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 FRESH_WIP_IMG="$REGISTRY/mon-web-fresh-3.4-wip:$DISTRIB"
 STANDARD_IMG="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
