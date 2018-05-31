@@ -12,7 +12,6 @@ RUN yum clean all && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
     chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
     cp /tmp/fresh/autoinstall.php /usr/share/centreon/autoinstall.php && \
-    mkdir /usr/share/centreon/www/install/tmp && \
     cp /tmp/fresh/configuration/* /usr/share/centreon/www/install/tmp/ && \
     chown -R apache.apache /usr/share/centreon/www/install/tmp && \
     chmod +x /tmp/fresh/fresh.sh && \
