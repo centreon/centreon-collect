@@ -10,7 +10,7 @@ sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}/g" < "centreon-${VE
 cd ..
 
 # Launch debuild.
-containerid=`docker create ci.int.centreon.com:5000/mon-build-dependencies:debian9-armhf sh -c "cd /usr/local/src/debuildir/centreon-${VERSION} && export CC=arm-linux-gnueabihf-gcc && export CXX=arm-linux-gnueabihf-g++ && dpkg-buildpackage -us -uc -d -aarmhf"`
+containerid=`docker create ci.int.centreon.com:5000/mon-build-dependencies-3.5:debian9-armhf sh -c "cd /usr/local/src/debuildir/centreon-${VERSION} && export CC=arm-linux-gnueabihf-gcc && export CXX=arm-linux-gnueabihf-g++ && dpkg-buildpackage -us -uc -d -aarmhf"`
 docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start -a "$containerid"
 

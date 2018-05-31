@@ -11,13 +11,13 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7|opensuse423>"
+  echo "USAGE: $0 <centos6|centos7>"
   exit 1
 fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -44,12 +44,10 @@ get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz
 cd ..
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB input output
 
 # Copy files to server.
-if [ "$DISTRIB" = "opensuse423" ] ; then
-  DISTRIB='os423'
-elif [ "$DISTRIB" = "centos6" ] ; then
+if [ "$DISTRIB" = "centos6" ] ; then
   DISTRIB='el6'
 else
   DISTRIB='el7'
