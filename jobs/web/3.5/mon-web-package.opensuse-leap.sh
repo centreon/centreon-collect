@@ -10,7 +10,7 @@ cp -r packaging-centreon-web/rpm/centreon-dev.spectemplate input/
 cp -r packaging-centreon-web/src/dev/* input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:opensuse423 input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.5:opensuse-leap input output
 
 # Publish RPMs.
-put_internal_rpms "3.5" "os423" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "3.5" "leap" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
