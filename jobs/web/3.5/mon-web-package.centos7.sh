@@ -6,7 +6,7 @@ mkdir output
 
 # Retrieve sources.
 mv "centreon-$VERSION.tar.gz" input/
-cp -r packaging-centreon-web/rpm/centreon-dev.spectemplate input/
+cp -r packaging-centreon-web/rpm/centreon-3.5.spectemplate input/
 cp -r packaging-centreon-web/src/dev/* input/
 
 # Build RPMs.
