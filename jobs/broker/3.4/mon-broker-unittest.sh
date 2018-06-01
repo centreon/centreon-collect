@@ -28,7 +28,11 @@ get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
-UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest:$DISTRIB
+if [ "$DISTRIB" = "centos6" ]
+  UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest-3.4:$DISTRIB
+else
+  UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest-3.5:$DISTRIB
+fi
 docker pull $UNITTEST_IMAGE
 containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-broker`
 
