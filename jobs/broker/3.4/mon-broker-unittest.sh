@@ -28,7 +28,7 @@ get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
-if [ "$DISTRIB" = "centos6" ]
+if [ "$DISTRIB" = "centos6" ] ; then
   UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest-3.4:$DISTRIB
 else
   UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest-3.5:$DISTRIB
