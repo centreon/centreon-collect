@@ -40,9 +40,7 @@ cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
-if [ "$DISTRIB" = 'centos6' ] ; then
-  DISTRIB='el6'
-elif [ "$DISTRIB" = 'centos7' ] ; then
+if [ "$DISTRIB" = 'centos7' ] ; then
   DISTRIB='el7'
 else
   echo "Unsupported distribution $DISTRIB."
