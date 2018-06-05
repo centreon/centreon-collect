@@ -15,12 +15,12 @@ fi
 DISTRIB="$1"
 
 # Pull base image.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-3.4:$DISTRIB
+WEB_IMAGE=ci.int.centreon.com:5000/mon-web-3.5:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
 rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < autodisco/3.5/Dockerfile.in > autodisco/Dockerfile
 
