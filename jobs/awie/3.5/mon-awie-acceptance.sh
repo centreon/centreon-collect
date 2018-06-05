@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7|...>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -31,7 +31,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
-sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-awie.yml
+sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-awie.yml
 
 # Copy compose file of webdriver
 cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
