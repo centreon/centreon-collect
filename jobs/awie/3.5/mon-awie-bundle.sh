@@ -20,7 +20,7 @@ docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < awie/3.5/awie.Dockerfile.in > awie/Dockerfile
 
