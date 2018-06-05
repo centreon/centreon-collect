@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos6|centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -28,15 +28,15 @@ docker pull $BAM_IMAGE
 rm -rf "$PROJECT-$VERSION-full" "$PROJECT-$VERSION-full.tar.gz"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
-cd "$PROJECT-$VERSION-full"
 
 # Prepare Docker Compose file.
-sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-bam.yml
+sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > "$PROJECT-$VERSION-full/docker-compose-bam.yml"
 
 # Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION-full/docker-compose-webdriver.yml"
 
 # Prepare Behat.yml
+cd "$PROJECT-$VERSION-full"
 alreadyset=`grep docker-compose-bam.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      bam: docker-compose-bam.yml#g' behat.yml
