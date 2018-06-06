@@ -27,6 +27,7 @@ mkdir output
 
 # Fetch sources
 rm -rf "$PROJECT-$VERSION-full.tar.gz" "$PROJECT-$VERSION-full"
+get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
 
@@ -35,7 +36,8 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.5:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp "$PROJECT-$VERSION-full/packaging/$PROJECT.spectemplate" input
+cp "$PROJECT-$VERSION.tar.gz" input/
+cp "$PROJECT-$VERSION-full/packaging/$PROJECT.spectemplate" input/
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
