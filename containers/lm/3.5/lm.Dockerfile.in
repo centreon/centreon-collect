@@ -4,6 +4,7 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Set middleware server
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
+RUN echo 'env[CENTREON_IMP_SERVER] = HELLOWORLD:http://middleware:3000/api' >> /etc/opt/rh/rh-php71/php-fpm.d/www.conf
 
 # Install package.
 RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
