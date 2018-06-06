@@ -29,11 +29,6 @@ mkdir output
 rm -rf "$PROJECT-$VERSION-full.tar.gz" "$PROJECT-$VERSION-full"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
-cd input
-for phpversion in 54 ; do
-  get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz"
-done
-cd ..
 
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.5:$DISTRIB"
