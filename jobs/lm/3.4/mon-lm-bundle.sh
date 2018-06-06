@@ -9,7 +9,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos6|centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -20,7 +20,7 @@ docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < lm/3.4/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
 

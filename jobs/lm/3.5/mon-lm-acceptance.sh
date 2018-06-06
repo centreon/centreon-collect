@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -38,21 +38,21 @@ docker pull $SQUID_BASIC_AUTH_IMAGE
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
 get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/middleware/docker-compose-web.yml.in > docker-compose-lm.yml
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose-middleware.yml.in > docker-compose-lm-squid-simple.yml
-sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose-middleware.yml.in > docker-compose-lm-squid-basic-auth.yml
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/middleware/docker-compose-web.yml.in > "$PROJECT-$VERSION/docker-compose-lm.yml"
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose-middleware.yml.in > "$PROJECT-$VERSION/docker-compose-lm-squid-simple.yml"
+sed -e 's#@WEB_IMAGE@#'$LM_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose-middleware.yml.in > "$PROJECT-$VERSION/docker-compose-lm-squid-basic-auth.yml"
+
+# Copy compose file of webdriver
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"
 
 # Prepare behat.yml.
+cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-lm.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      lm: docker-compose-lm.yml\n      lm_squid_simple: docker-compose-lm-squid-simple.yml\n      lm_squid_basic_auth: docker-compose-lm-squid-basic-auth.yml#g' behat.yml
 fi
-
-# Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
 
 # Run acceptance tests.
 rm -rf ../xunit-reports
