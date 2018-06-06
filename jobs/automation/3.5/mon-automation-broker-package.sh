@@ -14,13 +14,13 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1;
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.5:$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -36,12 +36,8 @@ tar xzf "input/$PROJECT-$VERSION.tar.gz"
 cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.5:$DISTRIB input output
 
 # Copy files to server.
-if [ "$DISTRIB" = centos6 ] ; then
-  DISTRIB='el6'
-else
-  DISTRIB='el7'
-fi
+DISTRIB='el7'
 put_internal_rpms "3.5" "$DISTRIB" "x86_64" "automation-broker" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm

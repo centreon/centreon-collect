@@ -11,7 +11,7 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='ci.int.centreon.com:5000'
-for distrib in centos6 centos7 ; do
+for distrib in centos7 ; do
   docker pull "$REGISTRY/mon-automation-$VERSION-$RELEASE:$distrib"
   docker tag "$REGISTRY/mon-automation-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-automation-3.5:$distrib"
   docker push "$REGISTRY/mon-automation-3.5:$distrib"

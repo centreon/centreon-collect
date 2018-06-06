@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -28,19 +28,19 @@ docker pull $AUTOMATION_IMAGE
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
 get_internal_source "automation-web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION"
 
 # Prepare Docker compose file.
-sed -e 's#@WEB_IMAGE@#'$AUTOMATION_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-automation.yml
+sed -e 's#@WEB_IMAGE@#'$AUTOMATION_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-automation.yml"
+
+# Copy compose file of webdriver
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"
 
 # Prepare behat.yml.
+cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-automation.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      automation: docker-compose-automation.yml#g' behat.yml
 fi
-
-# Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
 
 # Run acceptance tests.
 rm -rf ../xunit-reports
