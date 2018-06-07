@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos6|centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -31,7 +31,7 @@ rm -rf output
 mkdir output
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
+BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
