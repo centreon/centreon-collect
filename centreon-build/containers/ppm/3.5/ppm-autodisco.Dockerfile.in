@@ -1,11 +1,8 @@
 # Base information.
-FROM @IMAGE@
+FROM @BASE_IMAGE@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
-# Set middleware server.
-ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
-
-# copy autodiscovery repository
+# Copy autodiscovery repository.
 COPY repo/centreon-pluginpacks.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
 
 # Install package.
