@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos6|centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -35,7 +35,6 @@ docker pull $SQUID_BASIC_AUTH_IMAGE
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
 get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION"
 
 # Prepare Docker compose file.
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppm.yml
@@ -48,6 +47,7 @@ sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/b
 cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
 
 # Prepare behat.yml.
+cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-ppm.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      ppm: docker-compose-ppm.yml\n      ppm1: docker-compose-ppm1.yml\n      ppm_autodisco: docker-compose-ppm-autodisco.yml\n      ppm_squid_simple: docker-compose-ppm-squid-simple.yml\n      ppm_squid_basic_auth: docker-compose-ppm-squid-basic-auth.yml#g' behat.yml

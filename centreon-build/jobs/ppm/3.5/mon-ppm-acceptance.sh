@@ -14,19 +14,17 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
 
 # Pull images.
 PPM_IMAGE="ci.int.centreon.com:5000/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
-PPM1_IMAGE=ci.int.centreon.com:5000/mon-ppm1:$DISTRIB
 PPM_AUTODISCO_IMAGE=ci.int.centreon.com:5000/mon-ppm-autodisco-$VERSION-$RELEASE:$DISTRIB
 SQUID_SIMPLE_IMAGE=ci.int.centreon.com:5000/mon-squid-simple:latest
 SQUID_BASIC_AUTH_IMAGE=ci.int.centreon.com:5000/mon-squid-basic-auth:latest
 docker pull $PPM_IMAGE
-docker pull $PPM1_IMAGE
 docker pull $PPM_AUTODISCO_IMAGE
 docker pull $SQUID_SIMPLE_IMAGE
 docker pull $SQUID_BASIC_AUTH_IMAGE
@@ -35,31 +33,21 @@ docker pull $SQUID_BASIC_AUTH_IMAGE
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
 get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION"
 
 # Prepare Docker compose file.
-sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-ppm.yml
-sed -e 's#@WEB_IMAGE@#'$PPM1_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > docker-compose-ppm1.yml
-sed -e 's#@WEB_IMAGE@#'$PPM_AUTODISCO_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > docker-compose-ppm-autodisco.yml
-sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose.yml.in > docker-compose-ppm-squid-simple.yml
-sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose.yml.in > docker-compose-ppm-squid-basic-auth.yml
+sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm.yml"
+sed -e 's#@WEB_IMAGE@#'$PPM_AUTODISCO_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm-autodisco.yml"
+sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm-squid-simple.yml"
+sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm-squid-basic-auth.yml"
 
 # Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"
 
 # Prepare behat.yml.
+cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-ppm.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      ppm: docker-compose-ppm.yml\n      ppm1: docker-compose-ppm1.yml\n      ppm_autodisco: docker-compose-ppm-autodisco.yml\n      ppm_squid_simple: docker-compose-ppm-squid-simple.yml\n      ppm_squid_basic_auth: docker-compose-ppm-squid-basic-auth.yml#g' behat.yml
-fi
-
-# Filter tags
-if [ "$DISTRIB" = "centos6" ] ; then
-  EXCLUSION="NoneIsExcluded"
-  TAGS='~@centos7only'
-elif [ "$DISTRIB" = "centos7" ] ; then
-  EXCLUSION="ModuleUpdate.feature"
-  TAGS='~@centos6only'
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      ppm: docker-compose-ppm.yml\n      ppm_autodisco: docker-compose-ppm-autodisco.yml\n      ppm_squid_simple: docker-compose-ppm-squid-simple.yml\n      ppm_squid_basic_auth: docker-compose-ppm-squid-basic-auth.yml#g' behat.yml
 fi
 
 # Run acceptance tests.
@@ -69,5 +57,5 @@ rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
 launch_webdriver docker-compose-webdriver.yml
-ls features/*.feature | grep -v "$EXCLUSION" | parallel ./vendor/bin/behat --tags "$TAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
 stop_webdriver docker-compose-webdriver.yml
