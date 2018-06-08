@@ -1,9 +1,10 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-lm-3.5:@DISTRIB@
+FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Set middleware server.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
 
 # Install package.
 RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \

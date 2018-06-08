@@ -1,5 +1,5 @@
 # Base information.
-FROM @IMAGE@
+FROM @BASE_IMAGE@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Set middleware server.
