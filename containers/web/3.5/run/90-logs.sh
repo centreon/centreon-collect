@@ -1,2 +1,2 @@
 # Print logs.
-tailf /var/log/httpd/error_log
+tail -f /var/log/httpd/error_log /var/opt/rh/rh-php71/log/php-fpm/error.log
