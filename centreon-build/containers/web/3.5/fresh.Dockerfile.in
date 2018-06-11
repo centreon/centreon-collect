@@ -20,6 +20,8 @@ RUN yum clean all && \
     chmod +x /usr/share/centreon/container.sh && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     yum clean all && \
-    rm -rf /tmp/fresh
+    rm -rf /tmp/fresh && \
+    touch /var/opt/rh/rh-php71/log/php-fpm/www-error.log && \
+    chown apache:apache /var/opt/rh/rh-php71/log/php-fpm/www-error.log
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
