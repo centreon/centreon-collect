@@ -1,7 +1,6 @@
 <?php
 
 $expectedDirectories = array(
-    'automation-broker',
     'broker',
     'engine'
 );

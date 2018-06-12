@@ -63,9 +63,6 @@ clean_repository() {
         centreon-engine-debuginfo
         centreon-engine-devel
         centreon-engine-extcommands
-        centreon-automation
-        centreon-discovery-engine
-        centreon-discovery-engine-debuginfo
         centreon-poller-display
         centreon-poller-display-central
         centreon-bam-server

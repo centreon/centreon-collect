@@ -76,11 +76,6 @@ Therefore it reuses the *mon-web* images.
 Has Centreon Plugin Pack Manager and Centreon License Manager installed
 on top of Centreon Web. It reuses *mon-web* images.
 
-### mon-automation
-
-Has Centreon Automation installed along Centreon Plugin Pack Manager and
-Centreon License Manager. Therefore it reuses *mon-ppm* images.
-
 ### des-bam
 
 Has Centreon BAM module on top of Centreon Web. It reuses *mon-web*
