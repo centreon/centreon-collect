@@ -61,7 +61,7 @@ if (isset($opts['h'])) {
     echo "    -h  Print this help.\n";
     echo "    -c  Use images from the continuous integration instead of locally generated images.\n";
     echo "    -v  Use precise version (can be use with -c for CI).\n";
-    echo "    -d  Distribution used to run tests. Can be one of centos6 or centos7 (default) or debian9.\n";
+    echo "    -d  Distribution used to run tests. Default is centos7.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
     echo "\n";
@@ -131,73 +131,57 @@ if ($synchronize) {
         'selenium/node-chrome' => array(),
         'redis' => array(),
         '/mon-lm' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-poller-display-central' => array(
-            'distribution' => array('centos6', 'centos7'),
-            'version' => array('3.4', '3.5')
+            'version' => array('3.4')
         ),
         '/mon-poller-display' => array(
-            'distribution' => array('centos6', 'centos7'),
-            'version' => array('3.4', '3.5')
+            'version' => array('3.4')
         ),
         '/mon-ppe' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-ppe1' => array(
             'distribution' => array('centos6', 'centos7')
         ),
         '/mon-ppm' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-awie' => array(
-            'distribution' => array('centos6', 'centos7'),
-            'version' => array('3.4')
+            'version' => array('3.4', '3.5')
         ),
         '/mon-ppm-autodisco' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-ppm1' => array(
             'distribution' => array('centos6', 'centos7')
         ),
         '/mon-web-fresh' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-web' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-web-widgets' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/mon-web-stable' => array(
-            'distribution' => array('centos6', 'centos7'),
-            'version' => array('3.4', '3.5')
+            'version' => array('3.4')
         ),
         '/des-bam' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/des-map-server' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/des-map-web' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/des-mbi-server' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         ),
         '/des-mbi-web' => array(
-            'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
         )
     );
@@ -207,22 +191,23 @@ if ($synchronize) {
         if ($image[0] == '/') {
             $image = 'ci.int.centreon.com:5000' . $image;
         }
-        $tmpImages = array();
         if (isset($parameters['version'])) {
             foreach ($parameters['version'] as $version) {
-                $tmpImages[] = $image . '-' . $version;
+                if ($version == '3.4') {
+                    $distributions = array('centos6', 'centos7');
+                } else {
+                    $distributions = array('centos7');
+                }
+                foreach ($distributions as $distribution) {
+                    $finalImages[] = $image . '-' . $version . ':' . $distribution;
+                }
+            }
+        } else if (isset($parameters['distribution'])) {
+            foreach ($parameters['distribution'] as $distribution) {
+                $finalImages[] = $image . ':' . $distribution;
             }
         } else {
-            $tmpImages[] = $image;
-        }
-        foreach ($tmpImages as $tmpImage) {
-            if (isset($parameters['distribution'])) {
-                foreach ($parameters['distribution'] as $distribution) {
-                    $finalImages[] = $tmpImage . ':' . $distribution;
-                }
-            } else {
-                $finalImages[] = $tmpImage . ':latest';
-            }
+            $finalImages[] = $image . ':latest';
         }
     }
 
