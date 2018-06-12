@@ -164,10 +164,6 @@ if ($synchronize) {
         '/mon-ppm1' => array(
             'distribution' => array('centos6', 'centos7')
         ),
-        '/mon-automation' => array(
-            'distribution' => array('centos6', 'centos7'),
-            'version' => array('3.4', '3.5')
-        ),
         '/mon-web-fresh' => array(
             'distribution' => array('centos6', 'centos7'),
             'version' => array('3.4', '3.5')
@@ -270,9 +266,6 @@ else {
     case 'centreon-import':
     case 'centreon-pp-manager':
         $project = 'ppm';
-        break ;
-    case 'centreon-automation':
-        $project = 'automation';
         break ;
     case 'centreon':
     case 'centreon-web':
@@ -418,14 +411,6 @@ else {
         xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
         xpath('mon-ppm1-dev.yml'),
         array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-ppm1:' . $distrib)
-    );
-    replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
-        xpath('mon-automation-dev.yml'),
-        array(
-            '@WEB_IMAGE@' => build_image_name('mon-automation'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
-        )
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/3.5/docker-compose.yml.in'),
