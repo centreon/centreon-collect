@@ -9,24 +9,19 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7|...>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
-if [ "$DISTRIB" = "centos6" ] ; then
-  CENTOS_VERSION=6
-else
-  CENTOS_VERSION=7
-fi
 
 # Pull base image.
 REGISTRY="ci.int.centreon.com:5000"
-DEP_IMAGE="$REGISTRY/mon-dependencies-3.4:$DISTRIB"
-BASE_IMAGE="$REGISTRY/mon-web-3.4:$DISTRIB"
+DEP_IMAGE="$REGISTRY/mon-dependencies-3.5:$DISTRIB"
+BASE_IMAGE="$REGISTRY/mon-web-3.5:$DISTRIB"
 SERVER_IMAGE="$REGISTRY/des-map-server-$VERSION-$RELEASE:$DISTRIB"
-SERVER_WIP_IMAGE="$REGISTRY/des-map-server-3.4-wip:$DISTRIB"
+SERVER_WIP_IMAGE="$REGISTRY/des-map-server-3.5-wip:$DISTRIB"
 WEB_IMAGE="$REGISTRY/des-map-web-$VERSION-$RELEASE:$DISTRIB"
-WEB_WIP_IMAGE="$REGISTRY/des-map-web-3.4-wip:$DISTRIB"
+WEB_WIP_IMAGE="$REGISTRY/des-map-web-3.5-wip:$DISTRIB"
 docker pull $DEP_IMAGE
 docker pull $BASE_IMAGE
 
@@ -35,8 +30,8 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$DEP_IMAGE#g" < map/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
-sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/3.4/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
-sed "s#@VERSION@#3.4#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/3.5/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
+sed "s#@VERSION@#3.5#g;s#@DISTRIB@#el7#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Server image.
 docker build --no-cache -t "$SERVER_IMAGE" -f map/server.$DISTRIB.Dockerfile .
