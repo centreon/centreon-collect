@@ -28,7 +28,8 @@ sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studi
 mvn -f com.centreon.studio.server.parent/pom.xml clean install
 
 # This is run once the Maven build terminated.
-FILES_TOMCAT6='com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat6/target/rpm/centreon-map4-server/RPMS/noarch/*.rpm'
-FILES_TOMCAT7='com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map4-server/RPMS/noarch/*.rpm'
+cd ..
+FILES_TOMCAT6="$PROJECT-server-$VERSION/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat6/target/rpm/centreon-map4-server/RPMS/noarch/"'*.rpm'
+FILES_TOMCAT7="$PROJECT-server-$VERSION/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map4-server/RPMS/noarch/"'*.rpm'
 put_internal_rpms "3.4" "el6" "noarch" "map" "" $FILES_TOMCAT6
 put_internal_rpms "3.4" "el7" "noarch" "map" "" $FILES_TOMCAT7
