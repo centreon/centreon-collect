@@ -1,4 +1,4 @@
-FROM ci.int.centreon.com:5000/mon-web-3.5:@DISTRIB@
+FROM ci.int.centreon.com:5000/mon-web-fresh-3.5:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Composer.
