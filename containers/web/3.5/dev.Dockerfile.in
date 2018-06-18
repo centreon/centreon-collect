@@ -1,6 +1,11 @@
 FROM ci.int.centreon.com:5000/mon-web-3.5:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Install Composer.
+RUN curl -sS https://getcomposer.org/installer | php
+RUN mv composer.phar /usr/local/bin/composer
+RUN chmod +x /usr/local/bin/composer
+
 # Update to the latest Engine and Broker.
 COPY centreon/@DISTRIB@/*.rpm /tmp/
 RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
