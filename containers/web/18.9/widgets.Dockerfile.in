@@ -1,7 +1,7 @@
 FROM @BASE_IMAGE@
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
-COPY web/3.5/install-centreon-widget.php web/3.5/widgets.sh /tmp/
+COPY web/18.9/install-centreon-widget.php web/18.9/widgets.sh /tmp/
 RUN yum clean all && yum install -y 'centreon-widget-*' && \
     yum clean all && \
     sh /tmp/widgets.sh
