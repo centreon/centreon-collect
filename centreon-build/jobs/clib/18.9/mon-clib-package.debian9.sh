@@ -9,14 +9,13 @@ sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}/g" < "${PROJECT}-${
 cd ..
 
 # Launch debuild.
-containerid=`docker create ci.int.centreon.com:5000/mon-build-dependencies-3.5:debian9-armhf sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && export CC=arm-linux-gnueabihf-gcc && export CXX=arm-linux-gnueabihf-g++ && dpkg-buildpackage -us -uc -d -aarmhf"`
+containerid=`docker create ci.int.centreon.com:5000/mon-build-dependencies-18.9:debian9 sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && debuild -us -uc -i"`
 docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start -a "$containerid"
 
 # Send package to repository.
-rm -rf debuildir
-docker cp "$containerid:/usr/local/src/debuildir" .
-put_internal_debs "3.5" "stretch" debuildir/*.deb
+docker cp "$containerid:/usr/local/src/debuildir/${PROJECT}_${VERSION}-${RELEASE}_amd64.deb" .
+put_internal_debs "18.9" "stretch" *.deb
 
 # Stop container.
 docker stop "$containerid"
