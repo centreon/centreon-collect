@@ -1,7 +1,7 @@
 <?php
 
 // Base centreon version.
-$centreonversion = '3.5';
+$centreonversion = '18.9';
 $reporelease = '1';
 
 // Information table.
