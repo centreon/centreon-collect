@@ -9,7 +9,7 @@ mv "$PROJECT-$VERSION.tar.gz" input/
 cp packaging-centreon-broker/rpm/centreon-broker.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7 input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-18.9:opensuse-leap input output
 
 # Publish RPMs.
-put_internal_rpms "3.4" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+put_internal_rpms "18.9" "leap" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
