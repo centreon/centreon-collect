@@ -18,7 +18,7 @@ case "$2" in
     BASE_IMAGE="debian:9"
     ;;
   debian9-armhf)
-    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies:debian9"
+    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.9:debian9"
     ;;
   opensuse-leap)
     BASE_IMAGE="opensuse/leap:latest"
