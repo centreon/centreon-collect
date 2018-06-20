@@ -1,10 +1,10 @@
 stage('Source') {
   node {
-    sh 'cd /opt/centreon-build && git pull && cd -'
+    sh 'setup_centreon_build.sh'
     dir('centreon-clib') {
       checkout scm
     }
-    sh '/opt/centreon-build/jobs/clib/3.4/mon-clib-source.sh'
+    sh './centreon-build/jobs/clib/18.9/mon-clib-source.sh'
     source = readProperties file: 'source.properties'
     env.VERSION = "${source.VERSION}"
     env.RELEASE = "${source.RELEASE}"
@@ -13,28 +13,22 @@ stage('Source') {
 
 try {
   stage('Package') {
-    parallel 'centos6': {
+    parallel 'centos7': {
       node {
-        sh 'cd /opt/centreon-build && git pull && cd -'
-        sh '/opt/centreon-build/jobs/clib/3.4/mon-clib-package.sh centos6'
-      }
-    },
-    'centos7': {
-      node {
-        sh 'cd /opt/centreon-build && git pull && cd -'
-        sh '/opt/centreon-build/jobs/clib/3.4/mon-clib-package.sh centos7'
+        sh 'setup_centreon_build.sh'
+        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh centos7'
       }
     },
     'debian9': {
       node {
-        sh 'cd /opt/centreon-build && git pull && cd -'
-        sh '/opt/centreon-build/jobs/clib/3.4/mon-clib-package.sh debian9'
+        sh 'setup_centreon_build.sh'
+        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian9'
       }
     },
     'debian9-armhf': {
       node {
-        sh 'cd /opt/centreon-build && git pull && cd -'
-        sh '/opt/centreon-build/jobs/clib/3.4/mon-clib-package.sh debian9-armhf'
+        sh 'setup_centreon_build.sh'
+        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian9-armhf'
       }
     }
     if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
