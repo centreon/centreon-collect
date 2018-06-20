@@ -4,12 +4,12 @@ set -e
 set -x
 
 # Pull build images.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
 
 # Generate .repo and .spec.
 rm -rf el6 el7
-php `dirname $0`/../../packaging/repo/genrepo.php
+php `dirname $0`/../../packaging/repo/genrepo-3.4.php
 
 # Build all release RPMs.
 for distrib in el6 el7 ; do
@@ -33,7 +33,7 @@ for distrib in el6 el7 ; do
       echo "Unsupported distribution $distrib"
       exit 1
     fi
-    docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:$tag input output
+    docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:$tag input output
 
     # Push RPM.
     if [ "$project" = centreon ] ; then
