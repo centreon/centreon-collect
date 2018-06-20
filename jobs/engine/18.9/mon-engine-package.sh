@@ -14,13 +14,13 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7|...>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-18.9:$DISTRIB
 
 # Retrieve sources.
 get_internal_source "engine/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
