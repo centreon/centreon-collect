@@ -15,19 +15,19 @@ fi
 DISTRIB="$1"
 
 # Pull Centreon Web image.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-ppm-3.5:$DISTRIB
+WEB_IMAGE=ci.int.centreon.com:5000/mon-ppm-18.9:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" < ppe/3.5/ppe.Dockerfile.in > ppe/Dockerfile
+sed "s/@DISTRIB@/$DISTRIB/g" < ppe/18.9/ppe.Dockerfile.in > ppe/Dockerfile
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
 PPE_IMAGE="$REGISTRY/mon-ppe-$VERSION-$RELEASE:$DISTRIB"
-PPE_WIP_IMAGE="$REGISTRY/mon-ppe-3.5-wip:$DISTRIB"
+PPE_WIP_IMAGE="$REGISTRY/mon-ppe-18.9-wip:$DISTRIB"
 docker build --no-cache -t "$PPE_IMAGE" -f ppe/Dockerfile .
 docker push "$PPE_IMAGE"
 docker tag "$PPE_IMAGE" "$PPE_WIP_IMAGE"
