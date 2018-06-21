@@ -30,7 +30,7 @@ get_internal_source "awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Prepare Docker Compose file.
-sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-awie.yml"
+sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/18.9/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-awie.yml"
 
 # Copy compose file of webdriver
 cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"

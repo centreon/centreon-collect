@@ -13,6 +13,6 @@ fi
 REGISTRY='ci.int.centreon.com:5000'
 for distrib in centos7 ; do
   docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-awie-3.5:$distrib"
-  docker push "$REGISTRY/mon-awie-3.5:$distrib"
+  docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-awie-18.9:$distrib"
+  docker push "$REGISTRY/mon-awie-18.9:$distrib"
 done
