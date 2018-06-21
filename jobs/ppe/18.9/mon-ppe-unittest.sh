@@ -25,7 +25,7 @@ get_internal_source "ppe/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unitttest container.
-UT_IMAGE=ci.int.centreon.com:5000/mon-unittest-3.5:$DISTRIB
+UT_IMAGE=ci.int.centreon.com:5000/mon-unittest-18.9:$DISTRIB
 docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
 

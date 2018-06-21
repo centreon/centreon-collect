@@ -13,6 +13,6 @@ fi
 REGISTRY='ci.int.centreon.com:5000'
 for distrib in centos7 ; do
   docker pull "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-ppe-3.5:$distrib"
-  docker push "$REGISTRY/mon-ppe-3.5:$distrib"
+  docker tag "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-ppe-18.9:$distrib"
+  docker push "$REGISTRY/mon-ppe-18.9:$distrib"
 done
