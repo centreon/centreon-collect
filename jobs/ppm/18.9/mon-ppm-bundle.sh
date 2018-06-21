@@ -17,18 +17,18 @@ DISTRIB="$1"
 # Pull images.
 REGISTRY="ci.int.centreon.com:5000"
 PPM_IMAGE="$REGISTRY/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
-PPM_WIP_IMAGE="$REGISTRY/mon-ppm-3.5-wip:$DISTRIB"
+PPM_WIP_IMAGE="$REGISTRY/mon-ppm-18.9-wip:$DISTRIB"
 PPM_AUTODISCO_IMAGE="$REGISTRY/mon-ppm-autodisco-$VERSION-$RELEASE:$DISTRIB"
-PPM_AUTODISCO_WIP_IMAGE="$REGISTRY/mon-ppm-autodisco-3.5-wip:$DISTRIB"
-WEB_IMAGE="$REGISTRY/mon-lm-3.5:$DISTRIB"
+PPM_AUTODISCO_WIP_IMAGE="$REGISTRY/mon-ppm-autodisco-18.9-wip:$DISTRIB"
+WEB_IMAGE="$REGISTRY/mon-lm-18.9:$DISTRIB"
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed -e "s#@BASE_IMAGE@#$WEB_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/3.5/ppm.Dockerfile.in > ppm/ppm.Dockerfile
-sed -e "s#@BASE_IMAGE@#$PPM_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/3.5/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
+sed -e "s#@BASE_IMAGE@#$WEB_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/18.9/ppm.Dockerfile.in > ppm/ppm.Dockerfile
+sed -e "s#@BASE_IMAGE@#$PPM_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/18.9/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
 
 # Build ppm image.
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .
