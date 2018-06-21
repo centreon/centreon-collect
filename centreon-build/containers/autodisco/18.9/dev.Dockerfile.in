@@ -1,5 +1,5 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-autodisco-3.5:@DISTRIB@
+FROM ci.int.centreon.com:5000/mon-autodisco-18.9:@DISTRIB@
 LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 
 ENV MODULEPATH centreon-autodiscovery/www/modules/centreon-autodiscovery-server
@@ -10,8 +10,8 @@ COPY centreon-bam-server/@DISTRIB@/*.rpm /tmp/
 RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
 
 # Database.
-COPY web/3.5/install-centreon-module.php /tmp/install-centreon-module.php
-COPY web/3.5/dev.sh /tmp/install.sh
+COPY web/18.9/install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/18.9/dev.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
 COPY $MODULEPATH/sql $WEBMODULEPATH/sql
 RUN /tmp/install.sh
