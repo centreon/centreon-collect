@@ -13,6 +13,8 @@ Name:           centreon-engine
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Engine monitoring core.
+%define thismajor 18.9.0
+%define nextmajor 18.10.0
 
 Group:          %{group}
 License:        GPLv2
@@ -30,8 +32,8 @@ BuildRequires:  cmake >= 2.8
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
 BuildRequires:  make
-BuildRequires:  centreon-clib-devel >= 18.9.0
-BuildRequires:  centreon-clib-devel < 18.10.0
+BuildRequires:  centreon-clib-devel >= %{thismajor}
+BuildRequires:  centreon-clib-devel < %{nextmajor}
 Requires:       %{name}-daemon = %{version}-%{release}
 Requires:       %{name}-extcommands = %{version}-%{release}
 
@@ -42,8 +44,8 @@ configuration, designed to monitor hosts and services on your network.
 %package daemon
 Summary:    Centreon Engine Daemon is the daemon to schedule checks.
 Group:      %{group}
-Requires:   centreon-clib >= 18.9.0
-Requires:   centreon-clib < 18.10.0
+Requires:   centreon-clib >= %{thismajor}
+Requires:   centreon-clib < %{nextmajor}
 %if 0%{?suse_version}
 Requires:   lsb
 %else
@@ -68,8 +70,8 @@ engine daemon.
 %package devel
 Summary:    Provide include files for Centreon Engine.
 Group:      %{group}
-Requires:   centreon-clib-devel >= 18.9.0
-Requires:   centreon-clib-devel < 18.10.0
+Requires:   centreon-clib-devel >= %{thismajor}
+Requires:   centreon-clib-devel < %{nextmajor}
 
 %description devel
 Centreon Engine devel provide include files to develop Centreon Engine
@@ -78,8 +80,8 @@ Modules or Centreon Engine Connector.
 %package bench
 Summary:    Centreon Engine benchmarking tools.
 Group:      %{group}
-Requires:   centreon-clib >= 18.9.0
-Requires:   centreon-clib < 18.10.0
+Requires:   centreon-clib >= %{thismajor}
+Requires:   centreon-clib < %{nextmajor}
 
 %description bench
 Some Centreon Engine benchmarking tools.
