@@ -35,7 +35,7 @@ cp "$PROJECT-$VERSION.tar.gz" input/
 cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.5:$DISTRIB"
+BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.9:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
@@ -48,4 +48,4 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "3.5" "$DISTRIB" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "18.9" "$DISTRIB" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
