@@ -32,7 +32,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz" -C ../
 cd ..
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.5:$DISTRIB"
+BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.9:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
@@ -46,4 +46,4 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "3.5" "$DISTRIB" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+put_internal_rpms "18.9" "$DISTRIB" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
