@@ -11,6 +11,6 @@ RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
     yum clean all
 
 # Install module in Centreon.
-COPY ppm/3.5/install-autodisco.sh /tmp/install-autodisco.sh
+COPY ppm/18.9/install-autodisco.sh /tmp/install-autodisco.sh
 RUN chmod +x /tmp/install-autodisco.sh && \
     /tmp/install-autodisco.sh
