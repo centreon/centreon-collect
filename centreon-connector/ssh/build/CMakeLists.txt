@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2015,2017 Centreon
+## Copyright 2011-2015,2017-2018 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 include_directories("${PROJECT_SOURCE_DIR}/inc")
 
 # Project version.
-set(CONNECTOR_SSH_MAJOR 1)
-set(CONNECTOR_SSH_MINOR 1)
-set(CONNECTOR_SSH_PATCH 3)
+set(CONNECTOR_SSH_MAJOR 18)
+set(CONNECTOR_SSH_MINOR 9)
+set(CONNECTOR_SSH_PATCH 0)
 set(CONNECTOR_SSH_VERSION "${CONNECTOR_SSH_MAJOR}.${CONNECTOR_SSH_MINOR}.${CONNECTOR_SSH_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_SSH_VERSION=\"${CONNECTOR_SSH_VERSION}\")
 
