@@ -15,19 +15,19 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-3.5:$DISTRIB
+WEB_IMAGE=ci.int.centreon.com:5000/mon-web-18.9:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" < lm/3.5/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
+sed "s/@DISTRIB@/$DISTRIB/g" < lm/18.9/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
-LM_WIP_IMAGE="$REGISTRY/mon-lm-3.5-wip:$DISTRIB"
+LM_WIP_IMAGE="$REGISTRY/mon-lm-18.9-wip:$DISTRIB"
 docker build --no-cache -t "$LM_IMAGE" -f lm/lm.$DISTRIB.Dockerfile .
 docker push "$LM_IMAGE"
 docker tag "$LM_IMAGE" "$LM_WIP_IMAGE"

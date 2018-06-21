@@ -13,6 +13,6 @@ fi
 REGISTRY='ci.int.centreon.com:5000'
 for distrib in centos7 ; do
   docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-lm-3.5:$distrib"
-  docker push "$REGISTRY/mon-lm-3.5:$distrib"
+  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-lm-18.9:$distrib"
+  docker push "$REGISTRY/mon-lm-18.9:$distrib"
 done
