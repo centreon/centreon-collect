@@ -10,8 +10,8 @@ if [ -z "$COMMIT" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -64,14 +64,14 @@ else
   git pull
   cd ..
 fi
-cp packaging-centreon-web/rpm/centreon.spectemplate input/
+cp packaging-centreon-web/rpm/centreon-3.4.spectemplate input/
 
 # Retrieve additional sources.
-cp packaging-centreon-web/src/current/* input
+cp packaging-centreon-web/src/3.4/* input
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6 input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7 input output-centos7
 
 # Copy files to server.
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/standard/testing/centreon-web-$VERSION-$RELEASE"
