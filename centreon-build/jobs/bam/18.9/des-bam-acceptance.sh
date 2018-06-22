@@ -30,7 +30,7 @@ get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.g
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
 
 # Prepare Docker Compose file.
-sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/3.5/docker-compose.yml.in > "$PROJECT-$VERSION-full/docker-compose-bam.yml"
+sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/18.9/docker-compose.yml.in > "$PROJECT-$VERSION-full/docker-compose-bam.yml"
 
 # Copy compose file of webdriver
 cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION-full/docker-compose-webdriver.yml"
