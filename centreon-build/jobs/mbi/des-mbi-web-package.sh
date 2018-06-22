@@ -45,7 +45,7 @@ fi
 curl -F "file=@centreon-bi-server-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o "input/centreon-bi-server-$VERSION-php$phpversion.tar.gz"
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
+BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
@@ -63,4 +63,3 @@ else
 fi
 
 put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm

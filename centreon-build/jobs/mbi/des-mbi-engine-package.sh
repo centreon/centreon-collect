@@ -68,7 +68,7 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
  mv $SPECS_NAME input/
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies:$DISTRIB"
+BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
@@ -83,4 +83,3 @@ else
   DISTRIB='el7'
 fi
 put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-put_internal_rpms "3.5" "$DISTRIB" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
