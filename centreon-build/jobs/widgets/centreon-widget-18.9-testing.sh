@@ -4,8 +4,8 @@ set -e
 set -x
 
 # Check arguments.
-if [ -z "$WIDGET" -o -z "$COMMIT" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
-  echo "You need to specify WIDGET, COMMIT, VERSION and RELEASE environment variables."
+if [ -z "$WIDGET" -o -z "$COMMIT" -o -z "$RELEASE" ] ; then
+  echo "You need to specify WIDGET, COMMIT and RELEASE environment variables."
   exit 1
 fi
 
@@ -24,6 +24,7 @@ rm -rf "$PROJECT"
 git clone "https://github.com/centreon/$PROJECT"
 cd "$PROJECT"
 git checkout --detach "$COMMIT"
+export VERSION="`sed -n 's|\s*<version>\(.*\)</version>|\1|p' $WIDGET/configs.xml 2>/dev/null`"
 export SUMMARY="`sed -n 's|\s*<description>\(.*\)</description>|\1|p' $WIDGET/configs.xml 2>/dev/null`"
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
