@@ -34,7 +34,7 @@ git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERS
 cd ..
 
 # Build RPMs.
-cp `dirname $0`/../../packaging/centreon-open-tickets/centreon-open-tickets.spectemplate input/
+cp `dirname $0`/../../packaging/centreon-open-tickets/centreon-open-tickets-3.4.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7 input output-centos7
 
