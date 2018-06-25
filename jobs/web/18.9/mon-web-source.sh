@@ -7,19 +7,14 @@ set -x
 
 #
 # This script will generate Centreon Web sources from the local clone
-# of Centreon Web repository (centreon-web directory) and Centreon Plugins
-# (centreon-plugins directory). These sources will then be pushed to the
-# internal repository (srvi-repo) and used in downstream jobs, thanks to
-# the property file generated at the end of the script.
+# of Centreon Web repository (centreon-web directory). These sources
+# will then be pushed to the internal repository (srvi-repo) and used
+# in downstream jobs, thanks to the property file generated at the end
+# of the script.
 #
 
 # Project.
 PROJECT=centreon-web
-
-# Checkout Centreon Plugins.
-if [ \! -d centreon-plugins ] ; then
-  git clone https://github.com/centreon/centreon-plugins.git
-fi
 
 # Get version.
 VERSION=
@@ -71,8 +66,6 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
-cd ../centreon-plugins
-git archive --prefix=plugins/ "origin/2.7.x" | tar -C "../$PROJECT-$VERSION" -x
 
 # Generate release notes.
 # Code adapted from centreon-tools/make_package.sh.
