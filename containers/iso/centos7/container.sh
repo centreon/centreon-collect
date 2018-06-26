@@ -38,7 +38,7 @@ if [ "$VERSION" = '3.4' ] ; then
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-3.4-4.el7.centos.noarch.rpm
 else
   yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
-  yum -y --disablerepo=updates centos-release-scl
+  yum -y --disablerepo=updates install centos-release-scl
   wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/18.9/el7/stable/noarch/RPMS/centreon-release-18.9-1.el7.centos.noarch.rpm
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-18.9-1.el7.centos.noarch.rpm
   # Temporary fix until 18.9 is sync'd outside.
