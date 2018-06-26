@@ -3,6 +3,16 @@
 set -e
 set -x
 
+# ---------------
+# Check arguments
+# ---------------
+
+VERSION="$1"
+if [ "$VERSION" '!=' '3.4' -a "$VERSION" '!=' '18.9' ] ; then
+  echo "Unsupported version $VERSION"
+  exit 1
+fi
+
 # -----------
 # Extract ISO
 # -----------
@@ -23,8 +33,13 @@ umount mount
 # Download and install Centreon repository
 # ----------------------------------------
 
-wget -P centreon-iso/Packages http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
-yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-3.4-4.el7.centos.noarch.rpm
+if [ "$VERSION" = '3.4' ] ; then
+  wget -P centreon-iso/Packages http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
+  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-3.4-4.el7.centos.noarch.rpm
+else
+  wget -P centreon-iso/Packages http://yum.centreon.com/standard/18.9/el7/stable/noarch/RPMS/centreon-release-18.9-1.el7.centos.noarch.rpm
+  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-18.9-1.el7.centos.noarch.rpm
+fi
 
 # -----------------------------------------
 # Download packages for basic configuration
@@ -32,7 +47,11 @@ yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon
 
 # Retrieve the necessary packages.
 yum -y --disablerepo=updates install yum-utils
-yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon centreon-widget-* MariaDB-server centreon-poller-centreon-engine
+if [ "$VERSION" = '3.4' ] ; then
+  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon centreon-widget-* MariaDB-server centreon-poller-centreon-engine
+else
+  yum -y --disablerepo=updates --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
+fi
 
 # Unpack the addon Anaconda Centreon and create the file "product.img"
 cd /tmp/addon
