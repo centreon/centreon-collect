@@ -8,10 +8,11 @@ export PROJECT=centreon-iso
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 
 # Check arguments.
-if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
-  echo "You need to specify VERSION and RELEASE environment variables."
+if [ -z "$RELEASE" ] ; then
+  echo "You need to specify RELEASE environment variable."
   exit 1
 fi
+export VERSION=3.4
 
 # Release ISO for el6 and el7
 for distrib in el6 el7 ; do

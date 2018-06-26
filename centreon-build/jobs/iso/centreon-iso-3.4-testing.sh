@@ -4,10 +4,11 @@ set -e
 set -x
 
 # Check arguments.
-if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
-  echo "You need to specify VERSION and RELEASE environment variables."
+if [ -z "$RELEASE" ] ; then
+  echo "You need to specify RELEASE environment variable."
   exit 1
 fi
+export VERSION=3.4
 
 ##
 ## CENTOS 6
