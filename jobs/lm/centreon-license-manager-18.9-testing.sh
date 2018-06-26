@@ -58,12 +58,16 @@ Requires:       centreon-web < %{nextmajor}
 This extension manage licenses of proprietary Centreon products.
 
 %prep
+%setup -q -n %{name}-%{version}
 
 %build
 
 %install
 
+%files
+
 %clean
+rm -rf $RPM_BUILD_ROOT
 
 %changelog
 EOF
