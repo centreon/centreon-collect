@@ -40,7 +40,7 @@ else
   wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/18.9/el7/stable/noarch/RPMS/centreon-release-18.9-1.el7.centos.noarch.rpm
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-18.9-1.el7.centos.noarch.rpm
   # Temporary fix until 18.9 is sync'd outside.
-  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.conf
+  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
 fi
 
 # -----------------------------------------
