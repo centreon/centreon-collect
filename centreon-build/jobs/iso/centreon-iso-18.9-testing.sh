@@ -20,7 +20,7 @@ docker pull $ISO_IMAGE
 containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
 
 # Copy construction scripts to container.
-docker cp `dirname $0`/../../containers/iso/centos7/addon "$containerid:/tmp/addon"
+docker cp `dirname $0`"/../../containers/iso/centos7/addon/$VERSION" "$containerid:/tmp/addon"
 docker start -a "$containerid"
 docker cp "$containerid:/tmp/ces.iso" "ces.iso"
 
