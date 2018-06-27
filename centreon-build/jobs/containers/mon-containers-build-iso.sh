@@ -18,7 +18,7 @@ if [ "$1" = "centos6" ] ; then
 # CentOS 7.
 elif [ "$1" = "centos7" ] ; then
   # Pull base image.
-  docker pull centos:7.4.1708
+  docker pull ci.int.centreon.com:5000/centos:7.5.1804
 
   # Build image.
   cd `dirname $0`/../../containers
