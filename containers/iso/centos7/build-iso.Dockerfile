@@ -1,5 +1,5 @@
 # Base information.
-FROM centos:7.4.1708
+FROM ci.int.centreon.com:5000/centos:7.5.1804
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Dependencies.
