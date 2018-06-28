@@ -1,6 +1,6 @@
 # Base information.
-FROM centos:6
-MAINTAINER Alexandre Fouille <afouille@centreon.com>
+FROM centos:7
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install httpd
 RUN yum install -y httpd
