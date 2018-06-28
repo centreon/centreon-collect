@@ -11,7 +11,7 @@ RUN yum install -y curl && \
 RUN yum install -y httpd
 
 # Install MariaDB.
-RUN yum install -y mariadb-server mariadb
+RUN yum install -y mariadb-server mariadb initscripts
 
 # Install PHP
 RUN yum install -y php php-mysql
