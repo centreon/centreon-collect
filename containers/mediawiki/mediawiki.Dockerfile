@@ -2,17 +2,22 @@
 FROM centos:7
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+# Install Centreon repository.
+RUN yum install -y curl && \
+    curl -o centreon-release.rpm "http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm" && \
+    yum install -y --nogpgcheck centreon-release.rpm
+
 # Install httpd
 RUN yum install -y httpd
 
-# Install MySQL
-RUN yum install -y mysql-server mysql
+# Install MariaDB.
+RUN yum install -y mariadb-server mariadb
 
 # Install PHP
 RUN yum install -y php php-mysql
 
 # Install PHP deps
-RUN yum install -y php-xml php-intl php-gd texlive epel-release php-xcache
+RUN yum install -y php-xml php-intl php-gd php-xcache
 
 # Install mediawiki
 COPY mediawiki/mediawiki.tar.gz mediawiki/LocalSettings.php /tmp/
