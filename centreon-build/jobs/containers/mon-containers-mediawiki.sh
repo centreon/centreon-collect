@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Pull base image.
-docker pull centos:6
+docker pull centos:7
 
 # Build image.
 cd centreon-build/containers
