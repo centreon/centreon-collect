@@ -30,12 +30,14 @@ WEB_WIDGETS_IMAGE="ci.int.centreon.com:5000/mon-web-widgets-$VERSION-$RELEASE:$D
 MEDIAWIKI_IMAGE=ci.int.centreon.com:5000/mon-mediawiki:latest
 OPENLDAP_IMAGE=ci.int.centreon.com:5000/mon-openldap:latest
 INFLUXDB_IMAGE=influxdb:latest
+NEWMAN_IMAGE=postman/newman_alpine33:latest
 docker pull $WEB_IMAGE
 docker pull $WEB_FRESH_IMAGE
 docker pull $WEB_WIDGETS_IMAGE
 docker pull $MEDIAWIKI_IMAGE
 docker pull $OPENLDAP_IMAGE
 docker pull $INFLUXDB_IMAGE
+docker pull $NEWMAN_IMAGE
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
