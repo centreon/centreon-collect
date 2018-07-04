@@ -122,7 +122,8 @@ if ($synchronize) {
     $images = array(
         '/mon-middleware' => array(),
         '/hub' => array(),
-        '/mon-mediawiki' => array(),
+        '/mon-mediawiki-3.4' => array(),
+        '/mon-mediawiki-18.9' => array(),
         '/mon-openldap' => array(),
         '/mon-squid-simple' => array(),
         '/mon-squid-basic-auth' => array(),
@@ -292,7 +293,7 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/mediawiki/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/mediawiki/18.9/docker-compose.yml.in'),
         xpath('mon-web-kb-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
