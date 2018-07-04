@@ -20,7 +20,7 @@ RUN yum install -y php php-mysql
 RUN yum install -y php-xml php-intl php-gd php-xcache
 
 # Install mediawiki
-COPY mediawiki/mediawiki.tar.gz mediawiki/LocalSettings.php /tmp/
+COPY mediawiki/3.4/mediawiki.tar.gz mediawiki/LocalSettings.php /tmp/
 RUN cd /tmp && \
     tar xvzf mediawiki.tar.gz && \
     mv mediawiki-1.21.11/* /var/www/html && \
@@ -28,7 +28,7 @@ RUN cd /tmp && \
     rm -f mediawiki.tar.gz
 
 # Main script
-COPY mediawiki/run.sh /usr/share/mediawiki.sh
-COPY mediawiki/wikidb.db /usr/share/wikidb.db
+COPY mediawiki/3.4/run.sh /usr/share/mediawiki.sh
+COPY mediawiki/3.4/wikidb.db /usr/share/wikidb.db
 RUN chmod +x /usr/share/mediawiki.sh
 ENTRYPOINT ["/usr/share/mediawiki.sh"]
