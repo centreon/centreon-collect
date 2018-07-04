@@ -1,0 +1,26 @@
+version: '2'
+services:
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+    links:
+    - mediawiki
+    external_links:
+    - webdriver
+    networks:
+    - default
+    - webdriver_default
+  mediawiki:
+    image: ci.int.centreon.com:5000/mon-mediawiki-3.4:latest
+    ports:
+    - "80"
+    external_links:
+    - webdriver
+    networks:
+    - default
+    - webdriver_default
+networks:
+  webdriver_default:
+    external: true
