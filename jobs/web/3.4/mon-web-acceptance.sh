@@ -24,7 +24,7 @@ fi
 WEB_IMAGE="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:$DISTRIB"
 WEB_FRESH_IMAGE="ci.int.centreon.com:5000/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 WEB_WIDGETS_IMAGE="ci.int.centreon.com:5000/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
-MEDIAWIKI_IMAGE=ci.int.centreon.com:5000/mon-mediawiki:latest
+MEDIAWIKI_IMAGE=ci.int.centreon.com:5000/mon-mediawiki-3.4:latest
 OPENLDAP_IMAGE=ci.int.centreon.com:5000/mon-openldap:latest
 INFLUXDB_IMAGE=influxdb:latest
 NEWMAN_IMAGE=postman/newman_alpine33:latest
@@ -47,7 +47,7 @@ sed 's#@WEB_IMAGE@#'$WEB_FRESH_IMAGE'#g' < `dirname $0`/../../../containers/web/
 sed 's#@WEB_IMAGE@#'$WEB_WIDGETS_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-widgets.yml"
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-squid-simple.yml"
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-squid-basic-auth.yml"
-sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/mediawiki/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-kb.yml"
+sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/mediawiki/3.4/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-kb.yml"
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/openldap/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-openldap.yml"
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose-influxdb.yml.in > "centreon-$VERSION/docker-compose-web-influxdb.yml"
 
