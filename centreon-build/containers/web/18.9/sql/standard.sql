@@ -315,3 +315,9 @@ INSERT INTO `service_categories_relation` (`scr_id`, `service_service_id`, `sc_i
 INSERT INTO `service_categories_relation` (`scr_id`, `service_service_id`, `sc_id`) VALUES(82, 3, 1);
 INSERT INTO `service_categories_relation` (`scr_id`, `service_service_id`, `sc_id`) VALUES(83, 4, 1);
 INSERT INTO `service_categories_relation` (`scr_id`, `service_service_id`, `sc_id`) VALUES(84, 13, 4);
+
+--
+-- Contact template.
+--
+INSERT INTO `contact` (`contact_name`, `contact_alias`, `contact_activate`, `contact_auth_type`, `contact_register`)
+VALUES ('contact_template', 'contact_template', '1', 'local', 0);
