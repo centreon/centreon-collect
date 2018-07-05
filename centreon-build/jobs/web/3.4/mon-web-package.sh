@@ -34,7 +34,7 @@ cd packaging-centreon-web
 git checkout "$BRANCH_NAME" || true
 git pull
 cd ..
-cp packaging-centreon-web/rpm/centreon.spectemplate input/
+cp packaging-centreon-web/rpm/centreon-3.4.spectemplate input/
 
 # Retrieve additional sources.
 cp packaging-centreon-web/src/3.4/* input
