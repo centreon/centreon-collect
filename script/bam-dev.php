@@ -20,7 +20,7 @@ $dockerfile = xpath($centreon_build_dir . '/containers/bam/bam-' . $version . '-
 file_put_contents($dockerfile, $content);
 
 # Get Engine and Broker packages.
-getPackages($distrib, $version);
+// getPackages($distrib, $version);
 
 # Build BAM image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon-bam-server'));
