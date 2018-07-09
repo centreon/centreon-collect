@@ -20,7 +20,7 @@ $dockerfile = xpath($centreon_build_dir . '/containers/web/' . $version . '/dev.
 file_put_contents($dockerfile, $content);
 
 # Get Engine and Broker packages.
-getPackages($distrib, $version);
+// getPackages($distrib, $version);
 
 # Build web image.
 xrmdir(xpath($centreon_build_dir . '/containers/centreon'));
