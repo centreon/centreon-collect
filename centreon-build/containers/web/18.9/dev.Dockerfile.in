@@ -7,11 +7,11 @@ RUN mv composer.phar /usr/local/bin/composer
 RUN chmod +x /usr/local/bin/composer
 
 # Update to the latest Engine and Broker.
-COPY centreon/@DISTRIB@/*.rpm /tmp/
-RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
-COPY web/18.9/centengine.sh /etc/init.d/centengine
-COPY web/18.9/cbd.sh /etc/init.d/cbd
-RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
+# COPY centreon/@DISTRIB@/*.rpm /tmp/
+# RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
+# COPY web/18.9/centengine.sh /etc/init.d/centengine
+# COPY web/18.9/cbd.sh /etc/init.d/cbd
+# RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 
 # Centreon update is made through custom scripts.
 COPY web/18.9/container.cnf /etc/my.cnf.d/
