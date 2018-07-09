@@ -5,8 +5,8 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 ENV MODULEPATH centreon-bam-server/www/modules/centreon-bam-server
 
 # Update to the latest Engine and Broker.
-COPY centreon-bam-server/@DISTRIB@/*.rpm /tmp/
-RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
+# COPY centreon-bam-server/@DISTRIB@/*.rpm /tmp/
+# RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
 
 # Database.
 COPY web/18.9/install-centreon-module.php /tmp/install-centreon-module.php

@@ -2,11 +2,11 @@ FROM ci.int.centreon.com:5000/mon-web-stable:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Update to the latest Engine and Broker.
-COPY centreon/@DISTRIB@/*.rpm /tmp/
-RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
-COPY web/3.4/centengine.sh /etc/init.d/centengine
-COPY web/3.4/cbd.sh /etc/init.d/cbd
-RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
+# COPY centreon/@DISTRIB@/*.rpm /tmp/
+# RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
+# COPY web/3.4/centengine.sh /etc/init.d/centengine
+# COPY web/3.4/cbd.sh /etc/init.d/cbd
+# RUN chmod +x /etc/init.d/centengine /etc/init.d/cbd
 
 # Centreon update is made through custom scripts.
 COPY web/3.4/container.cnf /etc/my.cnf.d/
@@ -39,4 +39,3 @@ COPY centreon/www/lib /usr/share/centreon/www/lib
 COPY centreon/www/include /usr/share/centreon/www/include
 COPY centreon/www/api /usr/share/centreon/www/api
 COPY centreon/www/class /usr/share/centreon/www/class
-
