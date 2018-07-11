@@ -24,7 +24,7 @@ if [ "$PROJECT" = "centreon-bi-server" ] ; then
   # Put sources online.
   SRCHASH=`$SSH_REPO "cat /srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php{53,54}.tar.gz | md5sum | cut -d ' ' -f 1"`
   for phpversion in 53 54 ; do
-    $SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz" "s3://centreon-download/enterprises/centreon-mbi/centreon-mbi-3.1/centreon-mbi-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
+    $SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz" "s3://centreon-download/enterprises/centreon-mbi/centreon-mbi-3.2/centreon-mbi-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
   done
 
   # Download link.
@@ -42,6 +42,6 @@ if [ "$DOCUMENTATION" '!=' 'false' ] ; then
   SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bi-2 -V latest -p'"
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bi-2 -V latest -p'"
-  $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bi-2 -V 3.1.x -p'"
-  $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bi-2 -V 3.1.x -p'"
+  $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bi-2 -V 3.2.x -p'"
+  $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bi-2 -V 3.2.x -p'"
 fi
