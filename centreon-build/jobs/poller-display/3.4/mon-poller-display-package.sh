@@ -29,10 +29,10 @@ rm -rf output
 mkdir output
 
 # Retrieve spec file.
-cd input
-cp `dirname $0`/../../../packaging/poller-display/centreon-poller-display.spectemplate .
+cp `dirname $0`/../../../packaging/poller-display/centreon-poller-display.spectemplate input
 
 # Retrieve sources.
+cd input
 get_internal_source "poller-display/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 cd ..
 
