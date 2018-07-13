@@ -34,7 +34,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 sed -e 's#@WEB_IMAGE@#'$CENTRAL_IMAGE'#g' -e 's#@POLLER_IMAGE@#'$POLLER_IMAGE'#g' < `dirname $0`/../../../containers/poller-display/3.4/docker-compose.yml.in > mon-poller-display-dev.yml
 
 # Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in $PROJECT-$VERSION/docker-compose-webdriver.yml
 
 # Prepare Behat.yml
 cd "$PROJECT-$VERSION"
