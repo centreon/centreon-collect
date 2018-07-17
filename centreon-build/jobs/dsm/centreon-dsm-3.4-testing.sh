@@ -13,8 +13,8 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -34,10 +34,10 @@ git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERS
 cd ..
 
 # Build RPMs.
-cp `dirname $0`/../../packaging/dsm/$PROJECT.spectemplate input/
+cp `dirname $0`/../../packaging/dsm/$PROJECT-3.4.spectemplate input/
 cp `dirname $0`/../../packaging/dsm/src/* input/
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6 input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7 input output-centos7
 
 # Copy files to server.
 REPO="ubuntu@srvi-repo.int.centreon.com"
