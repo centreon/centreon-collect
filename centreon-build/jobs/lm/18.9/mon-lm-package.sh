@@ -20,9 +20,8 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-tar xzf "$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION-php71.tar.gz"
+get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz"
 
 # Create input and output directories.
 rm -rf input
@@ -31,7 +30,7 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION.tar.gz" input/
+cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION.tar.gz"
 cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 
 # Pull latest build dependencies.
