@@ -31,7 +31,7 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION.tar.gz"
+cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION-php71.tar.gz"
 cp "$PROJECT-$VERSION-php71/packaging/$PROJECT.spectemplate" input/
 
 # Pull latest build dependencies.
