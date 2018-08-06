@@ -20,9 +20,9 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-tar xzf "$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION-php71.tar.gz" "$PROJECT-$VERSION-php71"
+get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz"
+tar xzf "$PROJECT-$VERSION-php71.tar.gz"
 
 # Create input and output directories.
 rm -rf input
@@ -30,13 +30,15 @@ mkdir input
 rm -rf output
 mkdir output
 
+# Retrieve sources.
+cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION-php71.tar.gz"
+cp "$PROJECT-$VERSION-php71/packaging/$PROJECT.spectemplate" input/
+
 # Pull latest build dependencies.
 BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.9:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-cp "$PROJECT-$VERSION.tar.gz" input/
-cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
