@@ -25,6 +25,7 @@ xargs yum install < /tmp/dependencies.txt
 
 # Configuration.
 echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php71/php.d/centreon.ini
+echo 'zend_extension = ioncube_loader_lin_7.1.so' >> /etc/opt/rh/rh-php71/php.d/centreon.ini
 
 # Clean packages
 yum clean all
