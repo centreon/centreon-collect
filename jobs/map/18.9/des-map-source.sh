@@ -59,7 +59,9 @@ cp -r "$PROJECT/server" "$PROJECT-server-$VERSION"
 tar czf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
 
 # Send it to srvi-repo.
+curl -F "file=@centreon-map4-web-client-$VERSIONWEB.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "centreon-map4-web-client-$VERSIONWEB-php71.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSIONWEB.tar.gz"
+put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSIONWEB-php71.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/web/packaging/centreon-map4-web-client.spectemplate"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-server-$VERSION.tar.gz"
