@@ -17,7 +17,7 @@ Source0:        ioncube_loader_lin_7.1.so
 Source1:        ioncube_loader.ini
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
-Requires:       rh-php71-php
+Requires:       rh-php71
 
 %description
 ionCube loader packaged for use within the Centreon software suite.
