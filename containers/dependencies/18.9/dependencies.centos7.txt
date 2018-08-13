@@ -22,6 +22,7 @@ perl-DateTime
 perl-DBD-MySQL
 perl-DBI
 perl-HTML-Parser
+rh-php71-ioncube-loader
 rh-php71-php
 rh-php71-php-cli
 rh-php71-php-curl
@@ -33,6 +34,7 @@ rh-php71-php-mbstring
 rh-php71-php-mysqlnd
 rh-php71-php-pdo
 rh-php71-php-pear
+rh-php71-php-pecl-gnupg
 rh-php71-php-snmp
 rh-php71-php-xml
 rh-php71-php-zip
