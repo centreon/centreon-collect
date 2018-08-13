@@ -1,0 +1,47 @@
+##
+## Copyright 2018 Centreon
+##
+
+Name:           rh-php71-php-pecl-gnupg
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        This module allows you to interact with gnupg.
+
+Group:          Applications/System
+License:        GPLv2
+URL:            https://github.com/php-gnupg/php-gnupg
+Packager:       Matthieu Kermagoret <mkermagoret@centreon.com>
+Vendor:         Centreon Entreprise Server (CES) Repository, http://yum.centreon.com/standard/
+
+Source0:        gnupg.ini
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
+
+BuildRequires:  gpgme-devel
+BuildRequires:  rh-php71-php-devel
+BuildRequires:  rh-php71-php-pear
+Requires:       gpgme
+Requires:       rh-php71
+
+%description
+PHP wrapper around the gpgme library.
+
+%prep
+
+%build
+pecl install gnupg
+
+%install
+%{__install} -d $RPM_BUILD_ROOT/opt/rh/rh-php71/root/usr/lib64/php/modules/
+%{__cp} /opt/rh/rh-php71/root/usr/lib64/php/modules/gnupg.so $RPM_BUILD_ROOT/opt/rh/rh-php71/root/usr/lib64/php/modules/gnupg.so
+%{__install} -d $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/
+%{__cp} %SOURCE0 $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/gnupg.ini
+
+%clean
+%{__rm} -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root,-)
+/opt/rh/rh-php71/root/usr/lib64/php/modules/gnupg.so
+/etc/opt/rh/rh-php71/php.d/gnupg.ini
+
+%changelog
