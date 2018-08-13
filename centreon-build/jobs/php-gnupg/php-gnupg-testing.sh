@@ -18,12 +18,9 @@ docker pull "$BUILD_CENTOS7"
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
-mkdir input
+cp -r `dirname $0`/../../packaging/php-gnupg input
 rm -rf output-centos7
 mkdir output-centos7
-
-# Retrieve spec file and additional sources.
-cp -r `dirname $0`/../../packaging/php-gnupg input
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
