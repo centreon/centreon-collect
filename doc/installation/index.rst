@@ -4,8 +4,8 @@
 Installation
 ############
 
-Centreon recommends using its official packages from the Centreon
-Entreprise Server (CES) repository. Most of Centreon' endorsed
+Centreon recommends using its official packages from the Centreon Open Sources
+version available free of charge on our repository (ex CES). Most of Centreon endorsed
 software are available as RPM packages.
 
 Alternatively, you can build and install your own version of this
@@ -15,9 +15,9 @@ software by following the :ref:`user_installation_using_sources`.
 Using packages
 **************
 
-Centreon provides RPM for its products through Centreon Entreprise
-Server (CES). Open source products are freely available from our
-repository. These packages are available for CentOS 6 x86_64, which is
+Centreon provides RPM for its products through Centreon Open Sources (ex CES).
+Open source products are freely available from our
+repository. These packages are available for CentOS 6 or 7 architeture x86_64, which is
 the sole platform officially supported by Centreon.
 
 .. _user_installation_packages_prerequisites:
@@ -25,15 +25,30 @@ the sole platform officially supported by Centreon.
 Prerequisites
 =============
 
-In order to use RPM from the CES repository, you have to install the
+In order to use RPM from the COS repository, you have to install the
 appropriate repo file. Run the following command as privileged user ::
+
+CentOS 6
+--------
 
 Run the following commands as privileged user ::
 
-  $ wget http://yum.centreon.com/standard/3.0/stable/noarch/RPMS/ces-release-3.0-1.noarch.rpm
-  $ yum install --nogpgcheck ces-release-3.0-1.noarch.rpm
-  $ rm -f ces-release-3.0-1.noarch.rpm
+  $ wget http://yum.centreon.com/standard/3.4/el6/stable/noarch/RPMS/centreon-release-3.4-4.el6.noarch.rpm
+  $ yum install --nogpgcheck -y centreon-release-3.4-4.el6.noarch.rpm
+  $ rm -f centreon-release-3.4-4.el6.noarch.rpm
   $ yum clean all
+
+
+CentOS 7
+--------
+
+Run the following commands as privileged user ::
+
+  $ wget http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
+  $ yum install --nogpgcheck -y centreon-release-3.4-4.el7.centos.noarch.rpm
+  $ rm -f centreon-release-3.4-4.el6.noarch.rpm
+  $ yum clean all
+
 
 Install
 =======
@@ -65,10 +80,8 @@ Prerequisites
 CentOS
 ------
 
-In CentOS, you first need to manually add cmake. After that you can
-install binary packages. Either use the Package Manager or the yum
-tool to install them. You should check package versions when
-necessary.
+Either use the Package Manager or the yum tool to install them. You should check
+package versions when necessary.
 
 Required packages:
 
@@ -82,17 +95,8 @@ CMake **(>= 2.8)**          cmake             Read the build script and
 
 #. Install basic compilation tools::
 
-   $ yum install gcc gcc-c++ make
+   $ yum install gcc gcc-c++ make cmake
 
-#. Install Centreon repository
-
-   You need to install Centreon Entreprise Server (CES) repository as
-   explained :ref:`user_installation_packages_prerequisites` to use some
-   specific package version.
-
-#. Install cmake ::
-
-   $ yum install cmake
 
 Debian/Ubuntu
 -------------
@@ -152,7 +156,7 @@ this is just a matter of ::
   $ git clone -b 1.4 https://github.com/centreon/centreon-clib
 
 Or You can get the latest Centreon Clib's sources from its
-`download website <http://www.centreon.com/Content-Download/download-centreon-clib>`_
+`download website <https://download.centreon.com/>`_
 Once downloaded, extract it ::
 
   $ tar xzf centreon-clib.tar.gz
