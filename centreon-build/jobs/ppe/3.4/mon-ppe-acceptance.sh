@@ -23,7 +23,7 @@ DISTRIB="$1"
 REGISTRY="ci.int.centreon.com:5000"
 WEB_IMAGE="$REGISTRY/mon-web-3.4:$DISTRIB"
 PPE_IMAGE="$REGISTRY/mon-ppe-$VERSION-$RELEASE:$DISTRIB"
-PPE1_IMAGE="$REGISTRY/mon-ppe1:$DISTRI1B"
+PPE1_IMAGE="$REGISTRY/mon-ppe1:$DISTRIB"
 docker pull $WEB_IMAGE
 docker pull $PPE_IMAGE
 docker pull $PPE1_IMAGE
