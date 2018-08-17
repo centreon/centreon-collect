@@ -17,7 +17,7 @@ docker push "$REGISTRY/mon-middleware:latest"
 
 # Build middleware dataset image
 rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+cp -r `dirname $0`/../../containers centreon-build-containers
 cd centreon-build-containers
 MIDDLEWARE_DATASET_IMAGE="$REGISTRY/mon-middleware-dataset:latest"
 docker build --no-cache -t "$MIDDLEWARE_DATASET_IMAGE" -f middleware/middleware-dataset.Dockerfile .
