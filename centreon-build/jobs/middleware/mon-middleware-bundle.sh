@@ -17,15 +17,14 @@ fi
 # Pull base image.
 docker pull ubuntu:16.04
 
-# Fetch middleware sources.
+# Prepare container build directory.
+rm -rf centreon-build-containers
+cp -r `dirname $0`/../../containers centreon-build-containers
+
+# Fetch sources.
 get_internal_source "middleware/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf $PROJECT-$VERSION.tar.gz
-rm -rf /opt/centreon-build/containers/$PROJECT
-mv $PROJECT-$VERSION /opt/centreon-build/containers/$PROJECT
-
-# CentOS middleware image.
-rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+mv $PROJECT-$VERSION centreon-build-containers/$PROJECT
 cd centreon-build-containers
 
 # Build image.
