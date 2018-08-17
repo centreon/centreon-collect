@@ -30,7 +30,7 @@ ionCube loader packaged for use within the Centreon software suite.
 %{__install} -d $RPM_BUILD_ROOT/opt/rh/rh-php71/root/usr/lib64/php/modules/
 %{__cp} %SOURCE0 $RPM_BUILD_ROOT/opt/rh/rh-php71/root/usr/lib64/php/modules/ioncube_loader_lin_7.1.so
 %{__install} -d $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/
-%{__cp} %SOURCE1 $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/ioncube_loader.ini
+%{__cp} %SOURCE1 $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/10-ioncube_loader.ini
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -38,6 +38,6 @@ ionCube loader packaged for use within the Centreon software suite.
 %files
 %defattr(-,root,root,-)
 /opt/rh/rh-php71/root/usr/lib64/php/modules/ioncube_loader_lin_7.1.so
-/etc/opt/rh/rh-php71/php.d/ioncube_loader.ini
+/etc/opt/rh/rh-php71/php.d/10-ioncube_loader.ini
 
 %changelog
