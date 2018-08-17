@@ -34,7 +34,7 @@ pecl install gnupg
 %{__install} -d $RPM_BUILD_ROOT/opt/rh/rh-php71/root/usr/lib64/php/modules/
 %{__cp} /opt/rh/rh-php71/root/usr/lib64/php/modules/gnupg.so $RPM_BUILD_ROOT/opt/rh/rh-php71/root/usr/lib64/php/modules/gnupg.so
 %{__install} -d $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/
-%{__cp} %SOURCE0 $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/gnupg.ini
+%{__cp} %SOURCE0 $RPM_BUILD_ROOT/etc/opt/rh/rh-php71/php.d/20-gnupg.ini
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -42,6 +42,6 @@ pecl install gnupg
 %files
 %defattr(-,root,root,-)
 /opt/rh/rh-php71/root/usr/lib64/php/modules/gnupg.so
-/etc/opt/rh/rh-php71/php.d/gnupg.ini
+/etc/opt/rh/rh-php71/php.d/20-gnupg.ini
 
 %changelog
