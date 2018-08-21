@@ -3,7 +3,7 @@
 set -e
 set -x
 
-. `dirname $0`/../common.sh
+. `dirname $0`/../../common.sh
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
@@ -50,7 +50,7 @@ docker pull "$BUILD_IMG"
 
 # Build RPMs.
 cp centreon-bi-server/packaging/centreon-bi-server.spectemplate input
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then

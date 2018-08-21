@@ -3,7 +3,7 @@
 set -e
 set -x
 
-. `dirname $0`/../common.sh
+. `dirname $0`/../../common.sh
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
@@ -74,7 +74,7 @@ docker pull "$BUILD_IMG"
 # Build RPMs.
 #sed 's/@/@@/g' < centreon-bi-etl/RPM-SPECS/centreon-bi-etl.spec > input/centreon-bi-etl.spectemplate
 #sed -i 's/^Release:.*$/Release: '"$RELEASE"'%{?dist}/g' input/centreon-bi-etl.spectemplate
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = "centos6" ] ; then
