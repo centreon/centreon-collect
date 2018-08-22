@@ -38,8 +38,7 @@ cd ..
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 if [ "$PROJECT" = "centreon-bi-server" ]; then
-  curl -F file=@centreon-bi-server-$VERSION.tar.gz -F 'version=53' -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o centreon-bi-server-$VERSION-php53.tar.gz
-  curl -F file=@centreon-bi-server-$VERSION.tar.gz -F 'version=54' -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o centreon-bi-server-$VERSION-php54.tar.gz
+  curl -F file=@centreon-bi-server-$VERSION.tar.gz -F 'version=71' -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o centreon-bi-server-$VERSION-php71.tar.gz
   ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/mbi/testing/$PROJECT-$VERSION-$RELEASE"
   scp -o StrictHostKeyChecking=no $PROJECT-$VERSION*.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/testing/$PROJECT-$VERSION-$RELEASE"
 fi
