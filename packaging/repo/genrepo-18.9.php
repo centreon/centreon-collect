@@ -2,28 +2,28 @@
 
 // Base centreon version.
 $centreonversion = '18.9';
-$reporelease = '1';
+$reporelease = '2';
 
 // Information table.
 $repos = array(
     '' => array(
-        'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
+        'name' => 'Centreon open source software repository.',
         'path' => 'standard'
     ),
     'bam' => array(
-        'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
+        'name' => 'Centreon BAM module repository',
         'path' => 'centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3'
     ),
     'map' => array(
-        'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
+        'name' => 'Centreon Map module repository',
         'path' => 'centreon-map/bfcfef6922ae08bd2b641324188d8a5f'
     ),
     'mbi' => array(
-        'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
+        'name' => 'Centreon MBI module repository',
         'path' => 'centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7'
     ),
     'plugin-packs' => array(
-        'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
+        'name' => 'Centreon Plugin Packs repository',
         'path' => 'plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f'
     )
 );
@@ -52,7 +52,7 @@ foreach ($repos as $repo => $repodata) {
                 $content .= "]\n";
 
                 // Description.
-                $content .= 'name=' . $repodata['name'] . "\n";
+                $content .= 'name=' . $repodata['name'] . ($flavor == 'stable' ? '' : ' (UNSUPPORTED)') . "\n";
                 $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
                 $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
                 $content .= "gpgcheck=1\n";
