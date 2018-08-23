@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -18,3 +20,6 @@ for image in mon-web-fresh mon-web mon-web-widgets ; do
     docker push "$REGISTRY/$image-18.9:$distrib"
   done
 done
+
+# Move RPMs to unstable.
+move_internal_rpms_to_unstable "standard" "18.9" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"

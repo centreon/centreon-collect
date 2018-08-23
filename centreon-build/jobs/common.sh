@@ -64,6 +64,19 @@ put_internal_debs () {
   done
 }
 
+move_internal_rpms_to_unstable () {
+  TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/RPMS/$5"
+  ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
+  clean_directory "$TARGETDIR"
+  DESTFILE=`ssh "$REPO_CREDS" mktemp`
+  UPDATEREPODIR=`dirname $0`
+  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+    UPDATEREPODIR="$UPDATEREPODIR/.."
+  done
+  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+  ssh "$REPO_CREDS" sh $DESTFILE $REPO
+}
+
 # Acceptance tests.
 
 launch_webdriver() {
