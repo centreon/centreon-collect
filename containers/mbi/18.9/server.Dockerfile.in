@@ -4,7 +4,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install packages.
 RUN yum --disablerepo='*' --enablerepo='centreon*' clean all
-RUN yum install -y centreon-bi-reporting-server mysql-server
+RUN yum install -y --enablerepo='centreon*' centreon-bi-reporting-server mysql-server
 
 # Copy configuration files.
 COPY mbi/18.9/cbis-profile.xml /etc/centreon-bi/cbis-profile.xml
