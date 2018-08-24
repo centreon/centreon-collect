@@ -30,6 +30,12 @@ try {
         sh 'setup_centreon_build.sh'
         sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian9-armhf'
       }
+    },
+    'debian10': {
+      node {
+        sh 'setup_centreon_build.sh'
+        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian10'
+      }
     }
     if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
       error('Package stage failure.');
