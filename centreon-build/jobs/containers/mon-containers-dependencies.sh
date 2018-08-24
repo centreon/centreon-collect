@@ -17,6 +17,9 @@ case "$2" in
   debian9)
     BASE_IMAGE="debian:9"
     ;;
+  debian10)
+    BASE_IMAGE="debian:buster"
+    ;;
   *)
     echo "USAGE: $0 <distrib>"
     exit 1
