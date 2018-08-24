@@ -12,7 +12,7 @@ apt-get install curl gnupg
 
 # Install development repository.
 curl http://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -
-# echo 'deb http://srvi-repo.int.centreon.com/apt/internal/18.9 buster main' > /etc/apt/sources.list.d/centreon-internal.list
+echo 'deb http://srvi-repo.int.centreon.com/apt/internal/18.9 buster main' > /etc/apt/sources.list.d/centreon-internal.list
 
 # Install Node.js repository.
 curl -sL https://deb.nodesource.com/setup_8.x | bash -
