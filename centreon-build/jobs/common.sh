@@ -76,6 +76,7 @@ move_internal_rpms_to_unstable () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
 }
 
 # Acceptance tests.
