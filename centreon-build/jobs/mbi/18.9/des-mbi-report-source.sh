@@ -13,7 +13,7 @@ set -x
 #
 
 # Project.
-PROJECT=centreon-bi-source
+PROJECT=centreon-bi-report
 
 # Get version.
 cd "$PROJECT"
