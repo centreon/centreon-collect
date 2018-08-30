@@ -32,45 +32,11 @@ export VERSION="$VERSION"
 git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
 cd ..
 
-# Retrieve (fake) spectemplate.
-cat <<EOF > input/centreon-license-manager.spectemplate
-%define debug_package %{nil}
+# Encrypt source tarball.
+curl -f file=@$PROJECT-$VERSION.tar.gz -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
 
-Name:           centreon-license-manager
-Version:        @VERSION@
-Release:        @RELEASE@%{?dist}
-Summary:        Centreon License Manager
-%define thismajor 18.9.0
-%define nextmajor 18.10.0
-
-Group:          Applications/System
-License:        Proprietary
-URL:            https://www.centreon.com
-Source0:        %{name}-%{version}.tar.gz
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-BuildArch:      noarch
-BuildRequires:  centreon-devel
-Requires:       centreon-web >= %{thismajor}
-Requires:       centreon-web < %{nextmajor}
-
-%description
-This extension manage licenses of proprietary Centreon products.
-
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-
-%install
-
-%files
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%changelog
-EOF
+# Copy spectemplate.
+cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
