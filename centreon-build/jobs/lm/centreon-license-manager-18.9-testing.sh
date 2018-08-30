@@ -36,7 +36,7 @@ cd ..
 curl -F "file=@$PROJECT-$VERSION.tar.gz" -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
 
 # Copy spectemplate.
-cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
+cp "$PROJECT/packaging/$PROJECT.spectemplate" input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
