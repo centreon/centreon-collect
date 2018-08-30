@@ -29,7 +29,7 @@ VERSION=`grep mod_release www/modules/$PROJECT/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
 # Create source tarball.
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
+git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 cd ..
 
 # Encrypt source tarball.
