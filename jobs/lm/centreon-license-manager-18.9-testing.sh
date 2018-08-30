@@ -45,7 +45,7 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" inpu
 SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
 DESTDIR="/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
 $SSH_REPO mkdir "$DESTDIR"
-scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:$DESTDIR/"
+scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION-php71.tar.gz" "ubuntu@srvi-repo.int.centreon.com:$DESTDIR/"
 
 # Copy files to server.
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
