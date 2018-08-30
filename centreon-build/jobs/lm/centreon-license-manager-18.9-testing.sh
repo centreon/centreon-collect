@@ -33,7 +33,7 @@ git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERS
 cd ..
 
 # Encrypt source tarball.
-curl -f file=@$PROJECT-$VERSION.tar.gz -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
 
 # Copy spectemplate.
 cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
