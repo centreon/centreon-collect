@@ -29,50 +29,14 @@ VERSION=`grep mod_release www/modules/$PROJECT/conf.php | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
 # Create source tarball.
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
+git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 cd ..
 
-# Retrieve (fake) spectemplate.
-cat <<EOF > input/centreon-pp-manager.spectemplate
-%define debug_package %{nil}
-%define centreon_www %{_datadir}/centreon/www
+# Encrypt source tarball.
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
 
-Name:           centreon-pp-manager
-Version:        @VERSION@
-Release:        @RELEASE@%{?dist}
-Summary:        Centreon Plugin Pack Manager
-%define thismajor 18.9.0
-%define nextmajor 18.10.0
-
-Group:          Applications/System
-License:        Proprietary
-URL:            https://www.centreon.com
-Source0:        %{name}-%{version}.tar.gz
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-Requires:       centreon-web >= %{thismajor}
-Requires:       centreon-web < %{nextmajor}
-Requires:       centreon-license-manager >= %{thismajor}
-Requires:       centreon-license-manager < %{nextmajor}
-BuildArch:      noarch
-
-%description
-Install, update and manager your Plugin Packs with this Centreon extension.
-
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-
-%install
-
-%files
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%changelog
-EOF
+# Copy spectemplate.
+cp "$PROJECT/packaging/$PROJECT.spectemplate" input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
@@ -87,7 +51,3 @@ scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-re
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/18.9/el7/testing/noarch/RPMS"
 $SSH_REPO createrepo /srv/yum/standard/18.9/el7/testing/noarch
-
-# Generate doc.
-SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"
