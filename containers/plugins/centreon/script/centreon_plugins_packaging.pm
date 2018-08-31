@@ -462,10 +462,15 @@ sub check_last_plugin {
         return 0;
     }
 
-    if (defined($self->{last_plugin_data}->{custom_pkg_data}) &&
+    if (defined($self->{pkg_data}->{custom_pkg_data}) && !defined($self->{last_plugin_data}->{custom_pkg_data})) { 
+        $self->{logger}->writeLogInfo(
+            "new custom_pkg_data = " . $self->{pkg_data}->{custom_pkg_data} . " [old = not defined]"
+        );
+        return 0;
+    } elsif (defined($self->{last_plugin_data}->{custom_pkg_data}) &&
         $self->{last_plugin_data}->{custom_pkg_data} ne $self->{pkg_data}->{custom_pkg_data}) {
         $self->{logger}->writeLogInfo(
-            "new custom_pkg_data = " . $self->{pkg_data}->{custom_pkg_data} . " [old = $self->{last_plugin_data}->{custom_pkg_data}]"
+            "new (updated) custom_pkg_data = " . $self->{pkg_data}->{custom_pkg_data} . " [old = $self->{last_plugin_data}->{custom_pkg_data}]"
         );
         return 0;
     }
