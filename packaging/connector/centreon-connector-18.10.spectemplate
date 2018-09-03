@@ -13,8 +13,8 @@ Name:           centreon-connector
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Connector provide some tools for Centreon Engine to monitoring and management system.
-%define thismajor 18.9.0
-%define nextmajor 18.10.0
+%define thismajor 18.10.0
+%define nextmajor 18.11.0
 
 Group:		%{group}
 License:        ASL 2.0
