@@ -1,8 +1,8 @@
 <?php
 
 // Base centreon version.
-$centreonversion = '18.9';
-$reporelease = '2';
+$centreonversion = '18.10';
+$reporelease = '1';
 
 // Information table.
 $repos = array(
