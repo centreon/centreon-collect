@@ -18,7 +18,7 @@ case "$2" in
     BASE_IMAGE="debian:9"
     ;;
   debian9-armhf)
-    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.9:debian9"
+    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.10:debian9"
     ;;
   debian10)
     BASE_IMAGE="debian:buster"
