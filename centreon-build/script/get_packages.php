@@ -44,7 +44,7 @@ function getIfNotExists($filename, $newFile, $url) {
  *  Get Engine and Broker packages.
  *
  * @param $distrib  Distribution name. Can be one of 'centos6' or 'centos7'.
- * @param $version  Centreon version (3.4 or 18.9)
+ * @param $version  Centreon version (3.4 or 18.10)
  * @throws Exception
  */
 function getPackages($distrib, $version) {
