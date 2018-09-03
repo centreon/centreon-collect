@@ -4,7 +4,7 @@ stage('Source') {
     dir('centreon-clib') {
       checkout scm
     }
-    sh './centreon-build/jobs/clib/18.9/mon-clib-source.sh'
+    sh './centreon-build/jobs/clib/18.10/mon-clib-source.sh'
     source = readProperties file: 'source.properties'
     env.VERSION = "${source.VERSION}"
     env.RELEASE = "${source.RELEASE}"
@@ -16,25 +16,25 @@ try {
     parallel 'centos7': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh centos7'
+        sh './centreon-build/jobs/clib/18.10/mon-clib-package.sh centos7'
       }
     },
     'debian9': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian9'
+        sh './centreon-build/jobs/clib/18.10/mon-clib-package.sh debian9'
       }
     },
     'debian9-armhf': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian9-armhf'
+        sh './centreon-build/jobs/clib/18.10/mon-clib-package.sh debian9-armhf'
       }
     },
     'debian10': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/18.9/mon-clib-package.sh debian10'
+        sh './centreon-build/jobs/clib/18.10/mon-clib-package.sh debian10'
       }
     }
     if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
