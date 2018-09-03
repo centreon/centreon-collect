@@ -39,8 +39,8 @@ if [ "$VERSION" = '3.4' ] ; then
 else
   yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
   yum -y --disablerepo=updates install centos-release-scl
-  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/18.10/el7/stable/noarch/RPMS/centreon-release-18.10-2.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-18.10-2.el7.centos.noarch.rpm
+  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/18.10/el7/stable/noarch/RPMS/centreon-release-18.10-1.el7.centos.noarch.rpm
+  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-18.10-1.el7.centos.noarch.rpm
   # Temporary fix until 18.10 is sync'd outside.
   sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
 fi
