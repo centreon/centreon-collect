@@ -48,7 +48,7 @@ rm -rf armhf
 docker cp "$containerid:/script/centreon-plugins/armhf" .
 
 for file in $(ls armhf/*.deb 2>/dev/null); do
-    put_internal_debs "18.9" "stretch" $file
+    put_internal_debs "18.10" "stretch" $file
 done
 
 
