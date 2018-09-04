@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-map4-web-client
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -18,3 +23,6 @@ for image in des-map-server des-map-web ; do
     docker push "$REGISTRY/$image-3.4:$distrib"
   done
 done
+
+# Move RPMs to unstable.
+move_internal_rpms_to_unstable "map" "18.10" "el7" "noarch" "map" "$PROJECT-$VERSION-$RELEASE"
