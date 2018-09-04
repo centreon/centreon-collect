@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=centreon-map4-web-client
+PROJECT=centreon-map
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
