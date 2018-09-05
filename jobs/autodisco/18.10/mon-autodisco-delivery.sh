@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-autodiscovery
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -16,3 +21,6 @@ for distrib in centos7 ; do
   docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-autodisco-18.10:$distrib"
   docker push "$REGISTRY/mon-autodisco-18.10:$distrib"
 done
+
+# Move RPMs to unstable.
+move_internal_rpms_to_unstable "standard" "18.10" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
