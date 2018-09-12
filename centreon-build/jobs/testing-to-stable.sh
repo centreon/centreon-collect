@@ -137,7 +137,6 @@ case "$PROJECT" in
           centreon-lang-fr_FR
           centreon-installed
           centreon-perl-libs
-          centreon-plugin-meta
           centreon-plugins
           centreon-poller-centreon-engine
           centreon-trap
