@@ -16,7 +16,7 @@ RUN apt-get update && \
     gpg --export 5072E1F5 > /etc/apt/trusted.gpg.d/mysql.gpg && \
     apt-get update && \
     apt-get install --allow-unauthenticated -y build-essential curl \
-        mysql-client=5.6.40-1debian8 mysql-community-server=5.6.40-1debian8 mysql-server=5.6.40-1debian8 \
+        mysql-client=5.6.41-1debian8 mysql-community-server=5.6.41-1debian8 mysql-server=5.6.41-1debian8 \
         netcat php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
