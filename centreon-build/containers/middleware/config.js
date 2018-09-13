@@ -86,7 +86,7 @@ module.exports = {
     test: true,
     username: 'apiuser@centreon.com.sandbox',
     password: '1234centreon!',
-    security: 'ZOA83NPLzPMeSUz5XUU5kqOA2',
+    security: 'fsrit36e0tJxcIvYUzizhqgO',
     ids: {
       IMP_1_MONTH: '01u0Y000001JstcQAC',
       IMP_12_MONTH: '01u0Y000001JstdQAC',
