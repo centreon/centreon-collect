@@ -200,19 +200,25 @@ class CentreonData(AddonData):
         # Disable firewall
         execWithRedirect("systemctl", ["disable", "firewalld"], root=getSysroot())
 
+        # NTP.
+        execWithRedirect("timedatectl", ["set-ntp", "true"], root=getSysroot())
+
         # MariaDB-Server
         if self.installation_type == 'central' or self.installation_type == 'database' or self.installation_type == 'centreonmbi' or self.installation_type == 'pollerdisplay':
             limit_mariadb_path = os.path.normpath(getSysroot() + '/etc/systemd/system/mariadb.service.d/limits.conf')
             with open(limit_mariadb_path, "w") as fobj:
                 fobj.write("[Service]\nLimitNOFILE=32000\n")
 
-        if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'poller' or self.installation_type == 'pollerdisplay' or self.installation_type == 'database':
+        # httpd and PHP.
+        if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'pollerdisplay':
             execWithRedirect("systemctl", ["enable", "httpd"], root=getSysroot())
             execWithRedirect("systemctl", ["enable", "rh-php71-php-fpm"], root=getSysroot())
-            execWithRedirect("systemctl", ["enable", "snmptrapd"], root=getSysroot())
-            execWithRedirect("systemctl", ["enable", "snmpd"], root=getSysroot())
-            execWithRedirect("timedatectl", ["set-ntp", "true"], root=getSysroot())
-            execWithRedirect("systemctl", ["enable", "centreontrapd"], root=getSysroot())
             centreon_ini_path = os.path.normpath(getSysroot() + '/etc/opt/rh/rh-php71/php.d/50-centreon.ini')
             with open(centreon_ini_path, "w") as fobj:
                 fobj.write("date.timezone=" + ksdata.timezone.timezone + "\n")
+
+        # SNMP related services.
+        if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'poller' or self.installation_type == 'pollerdisplay':
+            execWithRedirect("systemctl", ["enable", "snmpd"], root=getSysroot())
+            execWithRedirect("systemctl", ["enable", "snmptrapd"], root=getSysroot())
+            execWithRedirect("systemctl", ["enable", "centreontrapd"], root=getSysroot())
