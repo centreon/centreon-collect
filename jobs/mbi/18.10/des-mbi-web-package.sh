@@ -21,10 +21,10 @@ DISTRIB="$1"
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION-full.tar.gz" "$PROJECT-$VERSION-full"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
+get_internal_source "mbi-web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
 rm -rf "$PROJECT-$VERSION-php71.tar.gz" "$PROJECT-$VERSION-php71"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz"
+get_internal_source "mbi-web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz"
 tar xzf "$PROJECT-$VERSION-php71.tar.gz"
 
 # Create input and output directories.
