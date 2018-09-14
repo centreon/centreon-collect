@@ -214,7 +214,7 @@ class CentreonData(AddonData):
             execWithRedirect("systemctl", ["enable", "httpd"], root=getSysroot())
             execWithRedirect("systemctl", ["enable", "rh-php71-php-fpm"], root=getSysroot())
             centreon_ini_path = os.path.normpath(getSysroot() + '/etc/opt/rh/rh-php71/php.d/50-centreon.ini')
-            with open(centreon_ini_path, "w") as fobj:
+            with open(centreon_ini_path, "a") as fobj:
                 fobj.write("date.timezone=" + ksdata.timezone.timezone + "\n")
 
         # SNMP related services.
