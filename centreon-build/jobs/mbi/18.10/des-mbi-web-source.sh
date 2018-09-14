@@ -37,9 +37,9 @@ cd ..
 
 # Send it to srvi-repo.
 curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php71.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php71.tar.gz"
+put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
+put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php71.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
