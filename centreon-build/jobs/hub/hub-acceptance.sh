@@ -29,15 +29,15 @@ docker pull $OPENLDAP_IMAGE
 rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
 get_internal_source "hub/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION"
 
 # Prepare Docker Compose file.
 sed -e 's#@WEB_IMAGE@#'$HUB_IMAGE'#g' -e 's#@MIDDLEWARE_IMAGE@#'$MIDDLEWARE_IMAGE'#g' < `dirname $0`/../../containers/middleware/docker-compose-web.yml.in > docker-compose-hub.yml
 
 # Copy compose file of webdriver
-cp `dirname $0`/../../containers/webdrivers/docker-compose.yml.in docker-compose-webdriver.yml
+cp `dirname $0`/../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"
 
 # Prepare behat.yml.
+cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-middleware.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      hub: docker-compose-hub.yml#g' behat.yml
