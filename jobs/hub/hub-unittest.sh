@@ -14,7 +14,7 @@ get_internal_source "hub/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Prepare NodeJS container.
-NODEJS_IMAGE="node:6"
+NODEJS_IMAGE="node:8"
 docker pull "$NODEJS_IMAGE"
 containerid=`docker create $NODEJS_IMAGE /tmp/unittest.sh`
 
