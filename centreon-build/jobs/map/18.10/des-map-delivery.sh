@@ -25,4 +25,5 @@ for image in des-map-server des-map-web ; do
 done
 
 # Move RPMs to unstable.
-move_internal_rpms_to_unstable "map" "18.10" "el7" "noarch" "map" "$PROJECT-$VERSION-$RELEASE"
+move_internal_rpms_to_unstable "map" "18.10" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE"
+move_internal_rpms_to_unstable "map" "18.10" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE"

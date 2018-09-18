@@ -49,4 +49,4 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "18.10" "$DISTRIB" "noarch" "map" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "18.10" "$DISTRIB" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
