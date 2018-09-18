@@ -38,9 +38,9 @@ rm -f output/noarch/centreon-pack-1.0.0*.rpm
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos6' ] ; then
-  REPO='plugin-packs/dev/el6/unstable/noarch'
+  REPO='plugin-packs/3.4/el6/unstable/noarch'
 else
-  REPO='plugin-packs/dev/el7/unstable/noarch'
+  REPO='plugin-packs/3.4/el7/unstable/noarch'
 fi
 FILES='output/noarch/*.rpm'
 scp -o StrictHostKeyChecking=no $FILES "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/RPMS"
