@@ -45,6 +45,7 @@ cp -a build/widget "$WEBDIR"
 cp -a build/install.sh "$WEBDIR"
 cp -a build/libinstall "$WEBDIR"
 cp -a build/examples "$WEBDIR"
+cp -a utils "$WEBDIR"
 cd ../..
 tar czf centreon-map4-web-client-$VERSIONWEB.tar.gz centreon-map4-web-client-$VERSIONWEB
 
