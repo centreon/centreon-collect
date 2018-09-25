@@ -157,10 +157,10 @@ if id -g nagios &>/dev/null; then
 fi
 
 %post daemon
-%systemd_post centengine.service
+%systemd_post centengine.service || :
 
 %preun daemon
-%systemd_preun centengine.service
+%systemd_preun centengine.service || :
 
 %files
 
