@@ -34,6 +34,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  make
 BuildRequires:  centreon-clib-devel >= %{thismajor}
 BuildRequires:  centreon-clib-devel < %{nextmajor}
+BuildRequires:  systemd
 Requires:       %{name}-daemon = %{version}-%{release}
 Requires:       %{name}-extcommands = %{version}-%{release}
 
@@ -51,6 +52,7 @@ Requires:   lsb
 %else
 Requires:   redhat-lsb
 %endif
+%{?systemd_requires}
 
 %description daemon
 Centreon Engine is a monitoring engine that schedule checks on your
@@ -91,9 +93,6 @@ Some Centreon Engine benchmarking tools.
 
 %build
 
-%define startup_script systemd
-%define startup_dir %{_sysconfdir}/systemd/system
-
 cd build
 CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
     -DWITH_BENCH=1 \
@@ -103,13 +102,13 @@ CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
     -DWITH_LOGROTATE_SCRIPT=1 \
     -DWITH_PKGCONFIG_DIR=%{_libdir}/pkgconfig \
     -DWITH_PKGCONFIG_SCRIPT=1 \
-    -DWITH_STARTUP_SCRIPT=%{startup_script} \
+    -DWITH_STARTUP_SCRIPT=systemd \
     -DWITH_PREFIX=%{_prefix} \
     -DWITH_PREFIX_BIN=%{_sbindir} \
     -DWITH_PREFIX_CONF=%{_sysconfdir}/centreon-engine \
     -DWITH_PREFIX_LIB=%{_libdir}/centreon-engine \
     -DWITH_RW_DIR=%{_localstatedir}/lib/centreon-engine/rw \
-    -DWITH_STARTUP_DIR=%{startup_dir} \
+    -DWITH_STARTUP_DIR=%{_unitdir} \
     -DWITH_TESTING=0 \
     -DWITH_USER=%{user} \
     -DWITH_VAR_DIR=%{_localstatedir}/log/centreon-engine
@@ -158,8 +157,10 @@ if id -g nagios &>/dev/null; then
 fi
 
 %post daemon
-/sbin/chkconfig --add centengine || :
-/sbin/chkconfig centengine on || :
+%systemd_post centengine.service
+
+%preun daemon
+%systemd_preun centengine.service
 
 %files
 
@@ -175,7 +176,7 @@ fi
 
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine
-%{_sysconfdir}/systemd/system/centengine.service
+%{_unitdir}/centengine.service
 %{_sbindir}/centengine
 %{_sbindir}/centenginestats
 %attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
