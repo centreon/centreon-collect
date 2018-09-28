@@ -52,3 +52,6 @@ else
   exit 1
 fi
 put_internal_rpms "18.10" "$DISTRIB" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+if [ "$BRANCH_NAME" '=' 'master' ] ; then
+  copy_internal_rpms_to_canary "bam" "18.10" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+fi
