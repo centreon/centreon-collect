@@ -15,7 +15,7 @@ curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x8
 yum install centos-release-scl-rh.rpm
 
 # Install required build dependencies for all Centreon projects.
-xargs yum install --downloadonly < /tmp/build-dependencies.txt
+xargs yum install < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
 curl --silent --location https://rpm.nodesource.com/setup_8.x | bash -
