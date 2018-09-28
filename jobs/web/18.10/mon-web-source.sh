@@ -62,29 +62,25 @@ export RELEASE="$now.$COMMIT"
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
-# Prepare source directory
-rm -rf "../$PROJECT-$VERSION"
-mkdir "../$PROJECT-$VERSION"
-git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+# Prepare base source tarball.
+git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+cd ..
 
-# Generate release notes.
-# Code adapted from centreon-tools/make_package.sh.
-cd "../$PROJECT-$VERSION/doc/en"
-make SPHINXOPTS="-D html_theme=scrolls" html
-cp "_build/html/release_notes/centreon-$major.$minor/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
-sed -i \
-    -e "/<link/d" \
-    -e "/<script .*>.*<\/script>/d" \
-    -e "s/href=\"..\//href=\"http:\/\/documentation.centreon.com\/docs\/centreon\/en\/latest\//g" \
-    -e "/<\/head>/i \
-    <style type=\"text/css\">\n \
-    #toc, .footer, .relnav, .header { display: none; }\n \
-    <\/style>" ../../www/install/RELEASENOTES.html
-make clean
-cd ../../..
+# Create and populate container.
+BUILD_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7"
+docker pull "$BUILD_IMAGE"
+containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" $BUILD_IMAGE /usr/local/bin/source.sh`
+docker cp `dirname $0`/mon-web-source.container.sh "$containerid:/usr/local/bin/source.sh"
+docker cp "$PROJECT-$VERSION.tar.gz" "$containerid:/usr/local/src/"
 
-# Create source tarballs.
-tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+# Run container that will generate complete tarball.
+docker start -a "$containerid"
+rm -f "$PROJECT-$VERSION.tar.gz"
+docker cp "$containerid:/usr/local/src/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
+
+# Stop container.
+docker stop "$containerid"
+docker rm "$containerid"
 
 # Send it to srvi-repo.
 put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
