@@ -25,4 +25,4 @@ for image in mon-web-fresh mon-web mon-web-widgets ; do
 done
 
 # Move RPMs to unstable.
-move_internal_rpms_to_unstable "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
+promote_canary_rpms_to_unstable "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
