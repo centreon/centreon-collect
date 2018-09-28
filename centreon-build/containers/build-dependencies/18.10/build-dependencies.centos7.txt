@@ -6,6 +6,7 @@ gettext
 make
 gnutls-devel
 libgcrypt-devel
+python-sphinx
 qt4-devel
 rrdtool-devel
 redhat-lsb
