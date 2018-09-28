@@ -2,7 +2,7 @@
 
 // Base centreon version.
 $centreonversion = '18.10';
-$reporelease = '1';
+$reporelease = '2';
 
 // Information table.
 $repos = array(
@@ -36,7 +36,7 @@ foreach ($repos as $repo => $repodata) {
         $content = '';
 
         // Process all flavors.
-        foreach (array('stable', 'testing', 'unstable') as $flavor) {
+        foreach (array('stable', 'testing', 'unstable', 'canary') as $flavor) {
             // Process architectures.
             $archs = array('noarch', '$basearch');
             foreach ($archs as $arch) {
