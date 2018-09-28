@@ -29,4 +29,4 @@ for distrib in centos7 ; do
 done
 
 # Move RPMs to unstable.
-move_internal_rpms_to_unstable "mbi" "18.10" "el7" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE"
+promote_canary_rpms_to_unstable "mbi" "18.10" "el7" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE"
