@@ -8,7 +8,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 #     chmod 0644 /etc/my.cnf.d/container.cnf
 COPY composer.json /usr/share/centreon/composer.json
 COPY package.json /usr/share/centreon/package.json
-COPY webpack.config.js /usr/share/centreon/webpack.config.js
+COPY www/front_src/webpack.config.js /usr/share/centreon/www/front_src/webpack.config.js
 COPY bootstrap.php /usr/share/centreon/bootstrap.php
 COPY vendor /usr/share/centreon/vendor
 COPY node_modules /usr/share/centreon/node_modules
