@@ -7,7 +7,6 @@ set -x
 curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/18.10/el7/stable/noarch/RPMS/centreon-release-18.10-2.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
 yum-config-manager --enable 'centreon-testing*'
-sed -e 's/@VERSION@/18.10/g' -e 's/@DISTRIB@/el7/g' < /tmp/centreon-internal.repo.in > /etc/yum.repos.d/centreon-internal.repo
 
 # Install Software Collections (for PHP 7).
 curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm"
