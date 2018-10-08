@@ -3,6 +3,5 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Run distribution-dependent installation.
 COPY build-dependencies/@VERSION@/build-dependencies.@DISTRIB@.txt /tmp/build-dependencies.txt
-COPY repo/centreon-internal.repo.in /tmp/centreon-internal.repo.in
 COPY build-dependencies/@VERSION@/install.@DISTRIB@.sh /tmp/install.sh
 RUN /tmp/install.sh

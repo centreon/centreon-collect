@@ -3,10 +3,6 @@
 set -e
 set -x
 
-# Install development repositories.
-sed -i -e 's/@DISTRIB@/leap/g' -e 's/@VERSION@/18.10/g' -e 's/gpgcheck=1/gpgcheck=0/g' /tmp/centreon-internal.repo.in
-zypper --non-interactive ar /tmp/centreon-internal.repo.in
-
 # Install required build dependencies for all Centreon projects.
 zypper --non-interactive install rpm-build
 xargs zypper --non-interactive install --download-only < /tmp/build-dependencies.txt
