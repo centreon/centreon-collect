@@ -23,8 +23,8 @@ DISTRIB="$1"
 docker pull ci.int.centreon.com:5000/mon-build-dependencies-18.10:$DISTRIB
 
 # Retrieve sources.
-get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 rm -rf "$PROJECT-$VERSION" "centreon-$VERSION" "centreon-$VERSION.tar.gz"
+get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 mv "$PROJECT-$VERSION" "centreon-$VERSION"
 tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
