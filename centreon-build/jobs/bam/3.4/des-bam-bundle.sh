@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=centreon-bam
+PROJECT=centreon-bam-server
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
