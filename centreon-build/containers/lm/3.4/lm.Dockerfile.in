@@ -5,9 +5,12 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 # Set middleware server
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
 
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
 # Install package.
-RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
-    yum install -y centreon-license-manager && \
+RUN yum install -y centreon-license-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
 # Install module in Centreon.

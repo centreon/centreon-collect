@@ -5,9 +5,12 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 # Set middleware server.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
 
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
 # Install package.
-RUN yum --disablerepo='*' --enablerepo='centreon-internal*' clean all && \
-    yum install -y centreon-pp-manager && \
+RUN yum install -y centreon-pp-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
 # Install Plugin Pack JSON files.
