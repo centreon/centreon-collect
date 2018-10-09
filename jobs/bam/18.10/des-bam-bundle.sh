@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-bam
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -23,6 +28,7 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < bam/18.10/Dockerfile.in > bam/Dockerfile
+sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#18.10/el7/noarch/bam/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"

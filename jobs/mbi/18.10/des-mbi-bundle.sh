@@ -27,7 +27,7 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < mbi/18.10/server.Dockerfile.in > mbi/server.Dockerfile
 sed "s/@DISTRIB@/$DISTRIB/g" < mbi/18.10/web.Dockerfile.in > mbi/web.Dockerfile
-sed "s#@VERSION@#18.10#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+sed "s#@PROJECT@#mbi#g;s#@SUBDIR@#18.10/el$CENTOS_VERSION/noarch/mbi-web/centreon-bi-server-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"

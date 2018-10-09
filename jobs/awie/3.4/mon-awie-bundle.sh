@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-awie
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -13,6 +18,11 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
+if [ "$DISTRIB" = "centos6" ] ; then
+  CENTOS_VERSION=6
+else
+  CENTOS_VERSION=7
+fi
 
 # Pull Centreon Web image.
 WEB_IMAGE=ci.int.centreon.com:5000/mon-web-3.4:$DISTRIB
@@ -23,6 +33,7 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < awie/3.4/awie.Dockerfile.in > awie/Dockerfile
+sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#3.4/el$CENTOS_VERSION/noarch/awie/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"

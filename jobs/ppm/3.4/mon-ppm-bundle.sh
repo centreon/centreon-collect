@@ -3,6 +3,11 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-pp-manager
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -13,6 +18,11 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
+if [ "$DISTRIB" = "centos6" ] ; then
+  CENTOS_VERSION=6
+else
+  CENTOS_VERSION=7
+fi
 
 # Pull images.
 REGISTRY="ci.int.centreon.com:5000"
@@ -29,6 +39,7 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed -e "s#@BASE_IMAGE@#$WEB_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/3.4/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 sed -e "s#@BASE_IMAGE@#$PPM_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/3.4/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
+sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#3.4/el$CENTOS_VERSION/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build ppm image.
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .

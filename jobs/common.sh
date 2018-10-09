@@ -44,13 +44,7 @@ put_internal_rpms () {
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
   scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
   clean_directory "$DIR"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
-  done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" createrepo "$DIR/$NEWDIR"
 }
 
 put_internal_debs () {
