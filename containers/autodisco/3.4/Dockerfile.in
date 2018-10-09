@@ -2,9 +2,12 @@
 FROM ci.int.centreon.com:5000/mon-web-3.4:@DISTRIB@
 LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
 # Install package.
-RUN yum --enablerepo='centreon-internal*' clean all && \
-    yum install -y centreon-auto-discovery-server && \
+RUN yum install -y centreon-auto-discovery-server && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
 # Install module in Centreon.
