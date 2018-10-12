@@ -69,7 +69,7 @@ cd ..
 # Create and populate container.
 BUILD_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7"
 docker pull "$BUILD_IMAGE"
-containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" $BUILD_IMAGE /usr/local/bin/source.sh`
+containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" -e "COMMIT=$COMMIT" $BUILD_IMAGE /usr/local/bin/source.sh`
 docker cp `dirname $0`/mon-web-source.container.sh "$containerid:/usr/local/bin/source.sh"
 docker cp "$PROJECT-$VERSION.tar.gz" "$containerid:/usr/local/src/"
 

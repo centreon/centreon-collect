@@ -7,10 +7,14 @@ set -x
 cd /usr/local/src
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
+# Replace basic macros.
+cd "$PROJECT-$VERSION"
+find . -type f | xargs --delimiter='\n' sed -i -e "s/@COMMIT@/$COMMIT/g"
+
 # Generate release notes.
 major=`echo $VERSION | cut -d . -f 1`
 minor=`echo $VERSION | cut -d . -f 2`
-cd "$PROJECT-$VERSION/doc/en"
+cd "doc/en"
 make SPHINXOPTS="-D html_theme=scrolls" html
 cp "_build/html/release_notes/centreon-$major.$minor/centreon-$VERSION.html" "../../www/install/RELEASENOTES.html"
 sed -i \
