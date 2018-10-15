@@ -29,9 +29,14 @@ make clean
 
 # Generate lang files.
 cd ../..
+# fr_FR
 mkdir -p www/locale/fr_FR.UTF-8/LC_MESSAGES
 msgfmt lang/fr/LC_MESSAGES/messages.po -o www/locale/fr_FR.UTF-8/LC_MESSAGES/messages.mo
 msgfmt lang/fr/LC_MESSAGES/help.po -o www/locale/fr_FR.UTF-8/LC_MESSAGES/help.mo
+# pt_BR
+mkdir -p www/locale/pt_BR.UTF-8/LC_MESSAGES
+msgfmt lang/pt_BR/LC_MESSAGES/messages.po -o www/locale/pt_BR.UTF-8/LC_MESSAGES/messages.mo
+msgfmt lang/pt_BR/LC_MESSAGES/help.po -o www/locale/pt_BR.UTF-8/LC_MESSAGES/help.mo
 rm -rf lang
 
 # Install Composer dependencies.
