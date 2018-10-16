@@ -29,6 +29,10 @@ make clean
 
 # Generate lang files.
 cd ../..
+# es_ES
+mkdir -p www/locale/es_ES.UTF-8/LC_MESSAGES
+msgfmt lang/es/LC_MESSAGES/messages.po -o www/locale/es_ES.UTF-8/LC_MESSAGES/messages.mo
+msgfmt lang/es/LC_MESSAGES/help.po -o www/locale/es_ES.UTF-8/LC_MESSAGES/help.mo
 # fr_FR
 mkdir -p www/locale/fr_FR.UTF-8/LC_MESSAGES
 msgfmt lang/fr/LC_MESSAGES/messages.po -o www/locale/fr_FR.UTF-8/LC_MESSAGES/messages.mo
