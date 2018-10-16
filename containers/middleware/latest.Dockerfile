@@ -19,7 +19,8 @@ RUN apt-get update && \
         mysql-client=5.6.41-1debian8 mysql-community-server=5.6.41-1debian8 mysql-server=5.6.41-1debian8 \
         netcat php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
-RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
+RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf && \
+    chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
 
 # Install Node.js and NPM.
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
