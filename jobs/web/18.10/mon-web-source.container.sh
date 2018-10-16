@@ -41,6 +41,10 @@ msgfmt lang/fr/LC_MESSAGES/help.po -o www/locale/fr_FR.UTF-8/LC_MESSAGES/help.mo
 mkdir -p www/locale/pt_BR.UTF-8/LC_MESSAGES
 msgfmt lang/pt_BR/LC_MESSAGES/messages.po -o www/locale/pt_BR.UTF-8/LC_MESSAGES/messages.mo
 msgfmt lang/pt_BR/LC_MESSAGES/help.po -o www/locale/pt_BR.UTF-8/LC_MESSAGES/help.mo
+# pt_PT
+mkdir -p www/locale/pt_PT.UTF-8/LC_MESSAGES
+msgfmt lang/pt_PT/LC_MESSAGES/messages.po -o www/locale/pt_PT.UTF-8/LC_MESSAGES/messages.mo
+msgfmt lang/pt_PT/LC_MESSAGES/help.po -o www/locale/pt_PT.UTF-8/LC_MESSAGES/help.mo
 rm -rf lang
 
 # Install Composer dependencies.
