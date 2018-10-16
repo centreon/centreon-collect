@@ -24,7 +24,7 @@ SRCCOMMIT=`git log -1 HEAD --pretty=format:%h`
 cd ..
 
 # Create and populate container.
-containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" -e "COMMIT=$SRCCOMMIT" $BUILD_CENTOS7 /usr/local/bin/source`
+containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" -e "COMMIT=$SRCCOMMIT" $BUILD_CENTOS7 /usr/local/bin/source.sh`
 docker cp `dirname $0`/18.10/mon-web-source.container.sh "$containerid:/usr/local/bin/source.sh"
 docker cp "$PROJECT-$VERSION.tar.gz" "$containerid:/usr/local/src/"
 
