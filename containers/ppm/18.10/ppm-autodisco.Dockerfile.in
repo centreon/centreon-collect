@@ -7,7 +7,7 @@ RUN curl -o centreon-plugin-packs-release.rpm http://yum.centreon.com/plugin-pac
 RUN yum install centreon-plugin-packs-release.rpm
 
 # Install package.
-RUN yum install --enablerepo='centreon-unstable*' -y centreon-auto-discovery-server && \
+RUN yum install --enablerepo='centreon-plugin-packs-testing*' --enablerepo='centreon-plugin-packs-unstable*' -y centreon-auto-discovery-server && \
     yum clean all
 
 # Install module in Centreon.
