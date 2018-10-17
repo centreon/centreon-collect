@@ -3,7 +3,8 @@ FROM @BASE_IMAGE@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Copy autodiscovery repository.
-COPY repo/centreon-pluginpacks.@DISTRIB@.repo /etc/yum.repos.d/centreon-pluginpacks-stable.repo
+RUN curl -o centreon-plugin-packs-release.rpm http://yum.centreon.com/plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f/18.10/el7/stable/noarch/RPMS/centreon-plugin-packs-release-18.10-2.el7.centos.noarch.rpm
+RUN yum install centreon-plugin-packs-release.rpm
 
 # Install package.
 RUN yum install --enablerepo='centreon-unstable*' -y centreon-auto-discovery-server && \
