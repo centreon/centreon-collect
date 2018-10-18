@@ -124,6 +124,21 @@ promote_canary_rpms_to_unstable () {
   ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
 }
 
+promote_testing_rpms_to_stable () {
+  SOURCEDIR="/srv/yum/$1/$2/$3/testing/$4/$5/$6"
+  TARGETDIR="/srv/yum/$1/$2/$3/stable/$4/RPMS"
+  REPO="$1/$2/$3/stable/$4"
+  ssh "$REPO_CREDS" cp "$SOURCEDIR/*.rpm" "$TARGETDIR/"
+  DESTFILE=`ssh "$REPO_CREDS" mktemp`
+  UPDATEREPODIR=`dirname $0`
+  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+    UPDATEREPODIR="$UPDATEREPODIR/.."
+  done
+  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+  ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/stable/$4"
+}
+
 # Acceptance tests.
 
 launch_webdriver() {
