@@ -62,7 +62,7 @@ cp "centreon-$VERSION.tar.gz" input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
 
 # Copy files to server.
-put_testing_source "web" "$PROJECT-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
+put_testing_source "standard" "web" "$PROJECT-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
 put_testing_rpms "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 
 # Generate doc.
