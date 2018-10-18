@@ -62,6 +62,8 @@ put_testing_rpms () {
   DIR="/srv/yum/$1/$2/$3/testing/$4/$5"
   NEWDIR="$6"
   REPO="$1/$2/$3/testing/$4"
+  REPOROOT="$1"
+  REPOSUBDIR="/$2/$3/testing/$4"
   shift
   shift
   shift
@@ -77,7 +79,7 @@ put_testing_rpms () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/testing/$4"
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$REPOROOT.sh" --confirm "$REPOSUBDIR"
 }
 
 put_internal_debs () {
