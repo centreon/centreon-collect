@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Check arguments.
 if [ -z "$COMMIT" -o -z "$RELEASE" -o -z "$PROJECT" ]; then
   echo "You need to specify COMMIT, RELEASE and PROJECT environment variables."
@@ -39,8 +41,7 @@ tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 if [ "$PROJECT" = "centreon-bi-server" ]; then
   curl -F file=@centreon-bi-server-$VERSION.tar.gz -F 'version=71' -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o centreon-bi-server-$VERSION-php71.tar.gz
-  ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/mbi/testing/$PROJECT-$VERSION-$RELEASE"
-  scp -o StrictHostKeyChecking=no $PROJECT-$VERSION*.tar.gz "ubuntu@srvi-repo.int.centreon.com:/srv/sources/mbi/testing/$PROJECT-$VERSION-$RELEASE"
+  put_testing_source "mbi" "mbi-web" "$PROJECT-$VERSION-$RELEASE" $PROJECT-$VERSION*.tar.gz
 fi
 
 if [ "$generateRPM" = "No" ]; then
@@ -55,9 +56,7 @@ cp $PROJECT/packaging/*.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key $BUILD_CENTOS7 input output-centos7
 
 # Copy files to server.
-FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/18.10/el7/testing/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/18.10/el7/testing/noarch
+put_testing_rpms "mbi" "18.10" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 
 # Generate documentation on doc-dev.
 if [ "$DOCUMENTATION" '!=' 'false' ] ; then
