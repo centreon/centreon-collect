@@ -16,7 +16,7 @@ clean_directory () {
   ssh "$REPO_CREDS" "$CMD"
 }
 
-# Internal sources.
+# Sources.
 
 get_internal_source () {
   wget "http://srvi-repo.int.centreon.com/sources/internal/$1"
@@ -26,11 +26,20 @@ put_internal_source () {
   DIR="/srv/sources/internal/$1"
   NEWDIR="$2"
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
-  scp "$3" "$REPO_CREDS:$DIR/$NEWDIR"
+  scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
   clean_directory "$DIR"
 }
 
-# Internal packages.
+put_testing_source () {
+  DIR="/srv/sources/testing/$1"
+  NEWDIR="$2"
+  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  shift
+  shift
+  scp "$3" "$REPO_CREDS:$DIR/$NEWDIR"
+}
+
+# Packages.
 
 put_internal_rpms () {
   DIR="/srv/yum/internal/$1/$2/$3/$4"
@@ -45,6 +54,28 @@ put_internal_rpms () {
   scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
   clean_directory "$DIR"
   ssh "$REPO_CREDS" createrepo "$DIR/$NEWDIR"
+}
+
+put_testing_rpms () {
+  DIR="/srv/yum/$1/$2/$3/testing/$4/$5"
+  NEWDIR="$6"
+  REPO="$1/$2/$3/testing/$4"
+  shift
+  shift
+  shift
+  shift
+  shift
+  shift
+  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+  DESTFILE=`ssh "$REPO_CREDS" mktemp`
+  UPDATEREPODIR=`dirname $0`
+  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+    UPDATEREPODIR="$UPDATEREPODIR/.."
+  done
+  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+  ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/testing/$4"
 }
 
 put_internal_debs () {
