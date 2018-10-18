@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Project.
 PROJECT=centreon-dsm
 
@@ -37,12 +39,8 @@ cp `dirname $0`/../../packaging/dsm/src/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
 
 # Copy files to server.
-REPO="ubuntu@srvi-repo.int.centreon.com"
-ssh "$REPO" mkdir -p "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
-scp "input/$PROJECT-$VERSION.tar.gz" "$REPO:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
-FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp $FILES_CENTOS7 "$REPO:/srv/yum/standard/18.10/el7/testing/noarch/RPMS"
-ssh "$REPO" createrepo /srv/yum/standard/18.10/el7/testing/noarch
+put_testing_source "standard" "dsm" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION.tar.gz"
+put_testing_rpms "standard" "18.10" "el7" "noarch" "dsm" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 
 # Generate testing documentation.
 DOC="root@doc-dev.int.centreon.com"
