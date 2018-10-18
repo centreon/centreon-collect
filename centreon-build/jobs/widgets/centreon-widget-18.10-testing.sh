@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Check arguments.
 if [ -z "$WIDGET" -o -z "$COMMIT" -o -z "$RELEASE" ] ; then
   echo "You need to specify WIDGET, COMMIT and RELEASE environment variables."
@@ -46,8 +48,5 @@ cp packaging-centreon-web/rpm/centreon-widget-18.10.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7 input output-centos7
 
 # Copy files to server.
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
-scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
-FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/18.10/el7/testing/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/18.10/el7/testing/noarch
+put_testing_source "standard" "widget" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION.tar.gz"
+put_testing_rpms "standard" "18.10" "el7" "noarch" "widget" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
