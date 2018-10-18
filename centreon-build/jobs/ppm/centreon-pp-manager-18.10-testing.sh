@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Project.
 PROJECT=centreon-pp-manager
 
@@ -41,13 +43,6 @@ cp "$PROJECT/packaging/$PROJECT.spectemplate" input/
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
 
-# Copy sources to server.
-SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
-DESTDIR="/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
-$SSH_REPO mkdir "$DESTDIR"
-scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION-php71.tar.gz" "ubuntu@srvi-repo.int.centreon.com:$DESTDIR/"
-
 # Copy files to server.
-FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/18.10/el7/testing/noarch/RPMS"
-$SSH_REPO createrepo /srv/yum/standard/18.10/el7/testing/noarch
+put_testing_source "standard" "ppm" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION-php71.tar.gz"
+put_testing_rpms "standard" "18.10" "el7" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
