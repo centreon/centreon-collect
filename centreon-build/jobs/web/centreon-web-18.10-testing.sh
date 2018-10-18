@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../common.sh
+
 # Project.
 PROJECT=centreon-web
 
@@ -60,12 +62,8 @@ cp "centreon-$VERSION.tar.gz" input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
 
 # Copy files to server.
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
-scp -o StrictHostKeyChecking=no "centreon-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
-scp -o StrictHostKeyChecking=no "$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
-FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/18.10/el7/testing/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/18.10/el7/testing/noarch
+put_testing_source "web" "$PROJECT-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
+put_testing_rpms "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 
 # Generate doc.
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
