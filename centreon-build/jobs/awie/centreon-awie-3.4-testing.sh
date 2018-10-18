@@ -13,8 +13,8 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
