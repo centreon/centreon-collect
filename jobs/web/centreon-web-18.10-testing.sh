@@ -69,3 +69,5 @@ put_testing_rpms "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$REL
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
 $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon -V latest -p'"
 $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon -V latest -p'"
+$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon -V 18.10 -p'"
+$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon -V 18.10 -p'"
