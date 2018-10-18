@@ -26,6 +26,8 @@ put_internal_source () {
   DIR="/srv/sources/internal/$1"
   NEWDIR="$2"
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  shift
+  shift
   scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
   clean_directory "$DIR"
 }
@@ -36,7 +38,7 @@ put_testing_source () {
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
   shift
   shift
-  scp "$3" "$REPO_CREDS:$DIR/$NEWDIR"
+  scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
 }
 
 # Packages.
