@@ -13,8 +13,8 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ]; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6
+docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -41,8 +41,8 @@ curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=54' -F "modulename=$PROJECT" 
 cp centreon-bam/packaging/*.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6 input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7 input output-centos7
 
 # Copy files to server.
 ssh "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/srv/sources/bam/testing/$PROJECT-$VERSION-$RELEASE"
