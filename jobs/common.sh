@@ -33,9 +33,10 @@ put_internal_source () {
 }
 
 put_testing_source () {
-  DIR="/srv/sources/testing/$1"
-  NEWDIR="$2"
+  DIR="/srv/sources/$1/testing/$2"
+  NEWDIR="$3"
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+  shift
   shift
   shift
   scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
