@@ -29,15 +29,18 @@ git checkout --detach "$COMMIT"
 export VERSION=`grep mod_release www/modules/centreon-awie/conf.php | cut -d '"' -f 4`
 
 # Create source tarball.
-git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERSION.tar.gz"
+git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "$PROJECT-$VERSION.tar.gz"
 cd ..
+
+# Encrypt source tarballs.
+curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
 
 # Build RPMs.
 cp $PROJECT/packaging/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7 input output-centos7
 
 # Copy files to server.
-put_testing_source "standard" "awie" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION.tar.gz"
+put_testing_source "standard" "awie" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION-php71.tar.gz"
 put_testing_rpms "standard" "18.10" "el7" "noarch" "awie" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 
 # Generate testing documentation.
