@@ -38,5 +38,4 @@ docker pull "$BUILD_IMG"
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
-put_testing_source "mbi" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION.tar.gz"
-put_testing_rpms "mbi" "18.10" "el7" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_testing_rpms "mbi" "18.10" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
