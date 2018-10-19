@@ -7,8 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-map-server
-
-SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
+VERSION=18.10
 
 # This is run once the Maven build terminated.
 
@@ -27,6 +26,7 @@ done
 put_testing_rpms "map" "18.10" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE" $TOMCAT7_PATH/$TOMCAT7_FILE
 
 # Sign RPMs on directly on the remote internal RPM repository.
+SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign /srv/yum/map/18.10/el7/testing/noarch/map-server/$PROJECT-$VERSION-$RELEASE/$TOMCAT7_FILE
 
 # update yum metadata so that the remote RPM repository will be up to date
