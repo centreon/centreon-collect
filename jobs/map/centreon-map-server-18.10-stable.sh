@@ -8,8 +8,6 @@ set -x
 # Project.
 PROJECT=centreon-map-server
 
-SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "map" "18.10" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE"
 
