@@ -13,3 +13,4 @@ redhat-lsb
 git
 lua-devel
 expect
+perl-XML-SAX
