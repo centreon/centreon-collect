@@ -12,6 +12,7 @@ if [ -z "$PROJECT" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Move RPMs to the stable repository.
+SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 promote_testing_rpms_to_stable "mbi" "18.10" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"
 
 if [ "$PROJECT" = "centreon-bi-server" ] ; then
