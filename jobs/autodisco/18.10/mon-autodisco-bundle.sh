@@ -28,7 +28,7 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < autodisco/18.10/Dockerfile.in > autodisco/Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#18.10/el7/noarch/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#18.10/el7/x86_64/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="ci.int.centreon.com:5000"
