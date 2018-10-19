@@ -35,7 +35,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
 put_testing_rpms "mbi" "18.10" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
