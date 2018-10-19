@@ -36,7 +36,7 @@ cp desktop/com.centreon.studio.client.packaging.nsis.x86_64/target/*.exe install
 cp desktop/com.centreon.studio.client.product/target/products/Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz installs/
 
 # Copy installers to remote repository.
-path="/srv/sources/map/testing/centreon-map-client-$VERSION"
+path="/srv/sources/map/testing/map-client/centreon-map-client-$VERSION"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" rm -rf "$path"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$path"
 scp -o StrictHostKeyChecking=no -r installs/* "ubuntu@srvi-repo.int.centreon.com:$path"
