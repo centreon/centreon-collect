@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=centreon-autodisco
+PROJECT=centreon-autodiscovery
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
