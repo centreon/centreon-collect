@@ -50,5 +50,5 @@ else
 fi
 put_internal_rpms "18.10" "$DISTRIB" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
 if [ "$BRANCH_NAME" '=' 'master' ] ; then
-  copy_internal_rpms_to_canary "plugin-packs" "18.10" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "standard" "18.10" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 fi
