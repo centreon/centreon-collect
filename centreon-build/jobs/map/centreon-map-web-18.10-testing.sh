@@ -40,7 +40,10 @@ cp -a build/install.sh ../centreon-map4-web-client-$VERSION
 cp -a build/libinstall ../centreon-map4-web-client-$VERSION
 cp -a build/examples ../centreon-map4-web-client-$VERSION
 cd ..
-tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
+tar czf centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
+
+# Encode source tarball.
+curl -F "file=@centreon-map4-web-client-$VERSIONWEB.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "input/centreon-map4-web-client-$VERSIONWEB-php71.tar.gz"
 
 # Pull mon-build-dependencies containers.
 docker pull ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7
