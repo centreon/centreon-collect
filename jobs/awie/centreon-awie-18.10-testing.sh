@@ -29,7 +29,7 @@ git checkout --detach "$COMMIT"
 export VERSION=`grep mod_release www/modules/centreon-awie/conf.php | cut -d '"' -f 4`
 
 # Create source tarball.
-git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+git archive "--prefix=$PROJECT-$VERSION-php71/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 cd ..
 
 cp $PROJECT-$VERSION.tar.gz input/$PROJECT-$VERSION-php71.tar.gz
