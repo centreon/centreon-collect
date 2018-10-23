@@ -29,11 +29,8 @@ git checkout --detach "$COMMIT"
 export VERSION=`grep mod_release www/modules/centreon-awie/conf.php | cut -d '"' -f 4`
 
 # Create source tarball.
-git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+git archive "--prefix=$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION-php71.tar.gz"
 cd ..
-
-# Encrypt source tarballs.
-curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
 
 # Build RPMs.
 cp $PROJECT/packaging/* input/
