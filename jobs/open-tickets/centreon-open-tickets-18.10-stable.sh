@@ -14,7 +14,7 @@ fi
 
 # Move sources to the stable directory.
 SSH_REPO='ssh ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO mv "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
+$SSH_REPO mv "/srv/sources/standard/testing/open-tickets/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
 
 # Put sources online.
 SRCHASH=`$SSH_REPO "md5sum /srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz | cut -d ' ' -f 1"`
