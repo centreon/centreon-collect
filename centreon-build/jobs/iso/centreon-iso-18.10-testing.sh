@@ -29,4 +29,4 @@ docker stop "$containerid"
 docker rm "$containerid"
 
 # Send to srvi-repo.
-scp -o StrictHostKeyChecking=no ces.iso "ubuntu@srvi-repo.int.centreon.com:/srv/iso/centreon-$VERSION.$RELEASE.el7.x86_64.iso"
+scp -o StrictHostKeyChecking=no ces.iso "ubuntu@srvi-repo.int.centreon.com:/srv/iso/centreon-$VERSION-$RELEASE.el7.x86_64.iso"
