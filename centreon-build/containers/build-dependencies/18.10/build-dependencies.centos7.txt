@@ -6,6 +6,7 @@ gettext
 make
 gnutls-devel
 libgcrypt-devel
+perl-App-FatPacker
 python-sphinx
 qt4-devel
 rrdtool-devel
