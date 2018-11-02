@@ -7,6 +7,8 @@ make
 gnutls-devel
 libgcrypt-devel
 perl-App-FatPacker
+perl-File-Copy-Recursive
+perl-JSON
 python-sphinx
 qt4-devel
 rrdtool-devel
