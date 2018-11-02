@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Hp-3par-7000-Ssh",
+    "plugin_name": "centreon_hp_3par_7000.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "storage/hp/3par/7000/"
+    ]
+}

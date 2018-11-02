@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Network-Stormshield-Ssh",
+    "plugin_name": "centreon_stormshield_ssh.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "network/stormshield/local/"
+    ]
+}

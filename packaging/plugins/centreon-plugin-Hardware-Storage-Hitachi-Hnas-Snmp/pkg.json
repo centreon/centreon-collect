@@ -1,0 +1,12 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Hitachi-Hnas-Snmp",
+    "plugin_name": "centreon_hitachi_hnas_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/interfaces.pm",
+        "snmp_standard/mode/listinterfaces.pm",
+        "centreon/common/bluearc/",
+        "storage/hitachi/hnas/snmp/"
+    ]
+}

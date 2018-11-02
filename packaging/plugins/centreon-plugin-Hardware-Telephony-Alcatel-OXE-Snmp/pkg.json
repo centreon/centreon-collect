@@ -1,0 +1,13 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Telephony-Alcatel-OXE-Snmp",
+    "plugin_name": "centreon_alcatel_oxe.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/cpu.pm",
+        "snmp_standard/mode/memory.pm",
+        "snmp_standard/mode/storage.pm",
+        "snmp_standard/mode/swap.pm",
+        "network/alcatel/oxe/snmp/"
+    ]
+}

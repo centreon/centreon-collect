@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Quantum-Scalar-Snmp",
+    "plugin_name": "centreon_quantum_scalar_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "centreon/common/adic/tape/snmp/",
+        "storage/quantum/scalar/snmp/"
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Aws-Cloudwatch-Api",
+    "plugin_name": "centreon_aws_cloudwatch_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/aws/custom/",
+        "cloud/aws/cloudwatch/"
+    ]
+}

@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Emc-Celerra-Ssh",
+    "plugin_name": "centreon_emc_celerra_local.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "storage/emc/celerra/local/"
+    ]
+}

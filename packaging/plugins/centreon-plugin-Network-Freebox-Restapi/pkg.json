@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Network-Freebox-Restapi",
+    "plugin_name": "centreon_freebox_restapi.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "network/freebox/restapi/"
+    ]
+}

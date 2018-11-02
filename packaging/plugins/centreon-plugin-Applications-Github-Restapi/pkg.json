@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Github-Restapi",
+    "plugin_name": "centreon_github_restapi.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/github/"
+    ]
+}

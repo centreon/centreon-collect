@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Operatingsystems-Linux-Local",
+    "plugin_name": "centreon_linux_local.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "os/linux/local/"
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Hp-P2000-Xmlapi",
+    "plugin_name": "centreon_hp_p2000.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "storage/hp/p2000/xmlapi/"
+    ]
+}

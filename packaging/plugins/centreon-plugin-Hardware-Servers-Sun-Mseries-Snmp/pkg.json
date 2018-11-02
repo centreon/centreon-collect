@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Servers-Sun-Mseries-Snmp",
+    "plugin_name": "centreon_sun_mseries.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "hardware/server/sun/mseries/"
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Notification-Highsms",
+    "plugin_name": "centreon_notification_highsms.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "notification/highsms/"
+    ]
+}

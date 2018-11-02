@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Emc-Vplex-Restapi",
+    "plugin_name": "centreon_emc_vplex.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "storage/emc/vplex/restapi/"
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "dependencies": [
+        "centreon-cwrapper-perl",
+        "libio-socket-perl",
+        "libio-select-perl",
+        "libnet-dhcp-packet-perl",
+        "libnet-dhcp-constants-perl",
+        "libnet-subnet-perl"
+    ]
+}

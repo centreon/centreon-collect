@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Solr-Jmx",
+    "plugin_name": "centreon_solr_jmx.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/common/protocols/jmx/",
+        "apps/java/solr/jmx/"
+    ]
+}

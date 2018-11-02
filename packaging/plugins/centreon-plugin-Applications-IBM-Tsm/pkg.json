@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Applications-IBM-Tsm",
+    "plugin_name": "centreon_ibm_tsm.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "apps/backup/tsm/local/"
+    ]
+}

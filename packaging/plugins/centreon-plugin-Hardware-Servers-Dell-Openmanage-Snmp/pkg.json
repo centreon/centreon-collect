@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Servers-Dell-Openmanage-Snmp",
+    "plugin_name": "centreon_dell_openmanage_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "hardware/server/dell/openmanage/snmp/"
+    ]
+}

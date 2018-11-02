@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Aws-Api",
+    "plugin_name": "centreon_aws_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/aws/"
+    ]
+}

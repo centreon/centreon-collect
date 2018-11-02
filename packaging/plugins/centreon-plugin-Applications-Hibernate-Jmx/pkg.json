@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Hibernate-Jmx",
+    "plugin_name": "centreon_hibernate_jmx.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/common/protocols/jmx/",
+        "apps/java/hibernate/jmx/"
+    ]
+}

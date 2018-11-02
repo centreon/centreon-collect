@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "centreon-cwrapper-perl",
+        "libio-select-perl",
+        "libio-socket-inet-perl"
+    ]
+}

@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Hp-Storeonce-Ssh",
+    "plugin_name": "centreon_hp_storeonce_ssh.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "storage/hp/storeonce/ssh/"
+    ]
+}

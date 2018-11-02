@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Docker-Restapi",
+    "plugin_name": "centreon_docker_restapi.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "cloud/docker/restapi/"
+    ]
+}

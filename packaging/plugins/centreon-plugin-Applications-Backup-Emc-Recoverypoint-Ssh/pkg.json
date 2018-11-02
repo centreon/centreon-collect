@@ -1,0 +1,8 @@
+{
+	"pkg_name": "centreon-plugin-Applications-Backup-Emc-Recoverypoint-Ssh",
+	"plugin_name": "centreon_emc_recoverypoint.pl",
+	"files": [
+		"centreon/plugins/script_simple.pm",
+		"storage/emc/recoverypoint/ssh/"
+    ]
+}

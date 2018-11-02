@@ -1,0 +1,12 @@
+{
+    "pkg_name": "centreon-plugin-Network-Polycom-Rmx-Snmp",
+    "plugin_name": "centreon_polycom_rmx_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/cpudetailed.pm",
+        "snmp_standard/mode/loadaverage.pm",
+        "snmp_standard/mode/memory.pm",
+        "network/polycom/rmx/snmp/"
+    ]
+}

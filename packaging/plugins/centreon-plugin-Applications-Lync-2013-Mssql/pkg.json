@@ -1,0 +1,16 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Lync-2013-Mssql",
+    "plugin_name": "centreon_lync_2k13.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/script_sql.pm",
+        "centreon/plugins/statefile.pm",
+        "centreon/plugins/dbi.pm",
+        "centreon/plugins/values.pm",
+        "centreon/plugins/misc.pm",
+        "centreon/plugins/templates/counter.pm",
+        "centreon/common/protocols/sql",
+        "database/mssql/",
+        "apps/lync/2013/mssql/"
+    ]
+}

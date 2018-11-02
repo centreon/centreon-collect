@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Dell-Ml6000-Snmp",
+    "plugin_name": "centreon_dell_ml6000.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "centreon/common/adic/tape/snmp/",
+        "storage/dell/ml6000/snmp/"
+    ]
+}

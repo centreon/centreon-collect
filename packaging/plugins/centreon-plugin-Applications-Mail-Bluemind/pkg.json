@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Mail-Bluemind",
+    "plugin_name": "centreon_bluemind.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/bluemind/"
+    ]
+}

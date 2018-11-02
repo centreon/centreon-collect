@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "perl(IO::Socket::SSL)",
+        "perl(Net::SSLeay)",
+        "perl(Date::Manip)"
+    ]
+}

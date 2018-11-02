@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Prometheus-Kubernetes-Api",
+    "plugin_name": "centreon_prometheus_kubernetes_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/prometheus/restapi/custom/",
+        "cloud/prometheus/direct/kubernetes/"
+    ]
+}
