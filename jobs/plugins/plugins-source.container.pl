@@ -1,0 +1,65 @@
+#!/usr/bin/env perl
+
+use App::FatPacker;
+use File::Copy::Recursive;
+use File::Path;
+use JSON;
+
+my $plugins_dir = '/usr/local/src/centreon-plugins';
+my $packaging_dir = '/usr/local/src/packaging-centreon-plugins';
+my $build_dir = '/usr/local/src/build';
+
+# Prepare destination directory.
+File::Path::remove_tree($build_dir);
+File::Path::make_path($build_dir);
+
+# Browse all plugins.
+chdir($packaging_dir);
+@plugins = glob('centreon-plugin-*');
+foreach $plugin (@plugins) {
+    # Load plugin configuration file.
+    print "Processing $plugin...\n";
+    if (-f $plugin . '/pkg.json') {
+        open($fh, '<', $plugin . '/pkg.json');
+        my $json_content = do { local $/; <$fh> };
+        close($fh);
+        $config = JSON::decode_json($json_content);
+
+        # Prepare plugin layout.
+        chdir($plugins_dir);
+        File::Path::remove_tree('lib');
+        File::Path::make_path('lib');
+        my @common_files = (
+            'centreon/plugins/misc.pm',
+            'centreon/plugins/mode.pm',
+            'centreon/plugins/options.pm',
+            'centreon/plugins/output.pm',
+            'centreon/plugins/perfdata.pm',
+            'centreon/plugins/script.pm',
+            'centreon/plugins/statefile.pm',
+            'centreon/plugins/values.pm',
+            'centreon/plugins/alternative/Getopt.pm',
+            'centreon/plugins/alternative/FatPackerOptions.pm',
+            'centreon/plugins/templates/counter.pm',
+            'centreon/plugins/templates/hardware.pm'
+        );
+        foreach my $file ((@common_files, @{$config->{files}})) {
+	    print "  - $file\n";
+            if (-f $file) {
+                File::Copy::Recursive::fcopy($file, 'lib/' . $file);
+            } elsif (-d $file) {
+                File::Copy::Recursive::dircopy($file, 'lib/' . $file);
+            }
+        }
+
+        # Fatpack plugin.
+        my $fatpacker = App::FatPacker->new();
+        my $content = $fatpacker->fatpack_file("centreon_plugins.pl");
+        open($fh, '>', $build_dir . '/' . $config->{plugin_name});
+        print $fh $content;
+        close($fh);
+    }
+
+    # Get back in the packaging directory for the next plugin.
+    chdir($packaging_dir);
+}
