@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Webservers-Nginx-Serverstatus",
+    "plugin_name": "centreon_nginx_serverstatus.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/nginx/serverstatus/"
+    ]
+}

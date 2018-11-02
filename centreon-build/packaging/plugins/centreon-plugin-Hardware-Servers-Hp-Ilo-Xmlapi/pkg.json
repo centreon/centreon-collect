@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Servers-Hp-Ilo-Xmlapi",
+    "plugin_name": "centreon_hp_ilo_xmlapi.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "hardware/server/hp/ilo/xmlapi/"
+    ]
+}

@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Monitoring-Centreon-Poller",
+    "plugin_name": "centreon_centreon_poller.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "apps/centreon/local/"
+    ]
+}

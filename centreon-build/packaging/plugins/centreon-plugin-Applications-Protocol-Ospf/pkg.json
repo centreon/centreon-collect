@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Protocol-Ospf",
+    "plugin_name": "centreon_protocol_ospf.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "apps/protocols/ospf/snmp/"
+    ]
+}

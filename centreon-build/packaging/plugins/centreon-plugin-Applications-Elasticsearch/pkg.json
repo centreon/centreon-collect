@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Elasticsearch",
+    "plugin_name": "centreon_elasticsearch.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/elasticsearch/restapi/"
+    ]
+}

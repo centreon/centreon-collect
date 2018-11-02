@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Prometheus-Api",
+    "plugin_name": "centreon_prometheus_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/prometheus/restapi/"
+    ]
+}

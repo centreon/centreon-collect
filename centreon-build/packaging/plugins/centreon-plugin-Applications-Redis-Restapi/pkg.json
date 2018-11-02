@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Redis-Restapi",
+    "plugin_name": "centreon_redis_restapi.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/redis/restapi/"
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "libjson-perl",
+        "libzmq-libzmq4-perl",
+        "libuuid-perl"
+    ]
+}

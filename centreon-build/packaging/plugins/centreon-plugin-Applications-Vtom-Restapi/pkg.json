@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Vtom-Restapi",
+    "plugin_name": "centreon_vtom_restapi.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/vtom/restapi/"
+    ]
+}

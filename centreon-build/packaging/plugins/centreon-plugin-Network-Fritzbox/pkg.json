@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Network-Fritzbox",
+    "plugin_name": "centreon_fritzbox.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "network/fritzbox/"
+    ]
+}

@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Redis-Cli",
+    "plugin_name": "centreon_redis_cli.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "apps/redis/cli/"
+    ]
+}

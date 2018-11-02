@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "libio-socket-ssl-perl",
+        "libnet-ssleay-perl",
+        "libdate-manip-perl"
+    ]
+}

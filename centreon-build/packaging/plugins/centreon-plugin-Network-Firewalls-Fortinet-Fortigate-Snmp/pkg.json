@@ -1,0 +1,12 @@
+{
+    "pkg_name": "centreon-plugin-Network-Firewalls-Fortinet-Fortigate-Snmp",
+    "plugin_name": "centreon_fortinet_fortigate.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/interfaces.pm",
+        "snmp_standard/mode/listinterfaces.pm",
+        "centreon/common/fortinet/fortigate/",
+        "network/fortinet/fortigate/"
+    ]
+}

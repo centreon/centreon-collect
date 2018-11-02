@@ -1,0 +1,11 @@
+{
+    "pkg_name": "centreon-plugin-Network-Netgear-Mseries-Snmp",
+    "plugin_name": "centreon_netgear_mseries_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/interfaces.pm",
+        "snmp_standard/mode/listinterfaces.pm",
+        "network/netgear/mseries/snmp/"
+    ]
+}

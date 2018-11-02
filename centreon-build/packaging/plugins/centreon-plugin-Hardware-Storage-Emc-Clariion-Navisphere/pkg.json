@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Storage-Emc-Clariion-Navisphere",
+    "plugin_name": "centreon_emc_clariion.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/common/emc/navisphere/",
+        "storage/emc/clariion/"
+    ]
+}

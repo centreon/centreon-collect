@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Weblogic-Jmx",
+    "plugin_name": "centreon_weblogic_jmx.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/common/protocols/jmx/",
+        "centreon/common/jvm",
+        "apps/java/weblogic/jmx/"
+    ]
+}

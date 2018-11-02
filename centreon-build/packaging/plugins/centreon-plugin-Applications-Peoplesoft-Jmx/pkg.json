@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Peoplesoft-Jmx",
+    "plugin_name": "centreon_peoplesoft_jmx.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/common/protocols/jmx/",
+        "apps/java/peoplesoft/jmx/"
+    ]
+}

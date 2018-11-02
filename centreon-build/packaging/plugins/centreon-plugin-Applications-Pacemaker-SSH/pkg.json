@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Pacemaker-Ssh",
+    "plugin_name": "centreon_pacemaker_ssh.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "apps/pacemaker/local/"
+    ]
+}

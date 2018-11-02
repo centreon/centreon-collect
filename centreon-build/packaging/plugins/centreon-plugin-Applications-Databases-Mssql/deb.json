@@ -1,0 +1,11 @@
+{
+    "dependencies": [
+        "libdbi-perl",
+        "libdigest-md5-perl",
+        "libtime-hires-perl",
+        "libposix-perl",
+        "libdbd-sybase-perl",
+        "freetds",
+        "unixODBC"
+    ]
+}

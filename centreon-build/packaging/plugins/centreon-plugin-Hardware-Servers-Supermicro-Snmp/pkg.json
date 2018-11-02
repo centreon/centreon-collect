@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Servers-Supermicro-Snmp",
+    "plugin_name": "centreon_supermicro_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "hardware/server/supermicro/snmp/"
+    ]
+}

@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "libdbi-perl",
+        "libtime-hires-perl"
+    ]
+}

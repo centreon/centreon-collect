@@ -1,0 +1,11 @@
+{
+    "pkg_name": "centreon-plugin-Operatingsystems-Hpux-Snmp",
+    "plugin_name": "centreon_hpux_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/tcpcon.pm",
+        "snmp_standard/mode/uptime.pm",
+        "os/hpux/snmp/"
+    ]
+}

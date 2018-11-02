@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Jboss-Jmx",
+    "plugin_name": "centreon_jboss_jmx.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "centreon/common/protocols/jmx/",
+        "centreon/common/jvm",
+        "apps/java/jboss/jmx/"
+    ]
+}

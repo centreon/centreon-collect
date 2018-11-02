@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Sensors-Sensorip-Snmp",
+    "plugin_name": "centreon_sensorip.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "hardware/sensors/sensorip/snmp/"
+    ]
+}

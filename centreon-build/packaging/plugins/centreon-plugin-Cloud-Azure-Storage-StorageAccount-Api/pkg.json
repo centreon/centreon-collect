@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Azure-Storage-StorageAccount-Api",
+    "plugin_name": "centreon_azure_storage_storageaccount_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/azure/custom/",
+        "cloud/azure/storage/storageaccount/"
+    ]
+}

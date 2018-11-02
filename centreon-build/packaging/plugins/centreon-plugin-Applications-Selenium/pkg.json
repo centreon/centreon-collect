@@ -1,0 +1,8 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Selenium",
+    "plugin_name": "centreon_selenium.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "apps/selenium/"
+    ]
+}

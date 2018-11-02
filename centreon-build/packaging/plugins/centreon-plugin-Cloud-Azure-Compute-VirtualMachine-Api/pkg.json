@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Azure-Compute-VirtualMachine-Api",
+    "plugin_name": "centreon_azure_compute_virtualmachine_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/azure/custom/",
+        "cloud/azure/compute/virtualmachine/"
+    ]
+}

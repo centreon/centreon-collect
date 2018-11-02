@@ -1,0 +1,10 @@
+{
+    "pkg_name": "centreon-plugin-Applications-Php-Apc-Web",
+    "plugin_name": "centreon_php_apc_web.pl",
+    "files": [
+        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
+        "apps/php/apc/web"
+    ]
+}

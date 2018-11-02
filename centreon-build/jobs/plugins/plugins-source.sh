@@ -31,7 +31,7 @@ docker pull "$IMAGE"
 containerid=`docker create $IMAGE /usr/local/bin/source.pl`
 docker cp `dirname $0`/plugins-source.container.pl "$containerid:/usr/local/bin/source.pl"
 docker cp "$PROJECT" "$containerid:/usr/local/src/$PROJECT"
-docker cp "packaging-$PROJECT" "$containerid:/usr/local/src/packaging-$PROJECT"
+docker cp `dirname $0`/../../packaging/plugins "$containerid:/usr/local/src/packaging-$PROJECT"
 
 # Run container to fatpack all plugins.
 docker start -a "$containerid"

@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Cloud-Prometheus-cAdvisor-Api",
+    "plugin_name": "centreon_prometheus_cadvisor_api.pl",
+    "files": [
+        "centreon/plugins/script_custom.pm",
+        "cloud/prometheus/restapi/custom/",
+        "cloud/prometheus/exporters/cadvisor/"
+    ]
+}

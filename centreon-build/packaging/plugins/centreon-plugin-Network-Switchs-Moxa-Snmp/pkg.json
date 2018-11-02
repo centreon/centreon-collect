@@ -1,0 +1,12 @@
+{
+    "pkg_name": "centreon-plugin-Network-Switchs-Moxa-Snmp",
+    "plugin_name": "centreon_moxa_switch_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/interfaces.pm",
+        "snmp_standard/mode/listinterfaces.pm",
+        "snmp_standard/mode/uptime.pm",
+        "network/moxa/switch/snmp/"
+    ]
+}

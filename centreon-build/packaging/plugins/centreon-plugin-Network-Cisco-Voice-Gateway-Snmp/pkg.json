@@ -1,0 +1,12 @@
+{
+    "pkg_name": "centreon-plugin-Network-Cisco-Voice-Gateway-Snmp",
+    "plugin_name": "centreon_cisco_voice_gateway_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/listinterfaces.pm",
+        "snmp_standard/mode/interfaces.pm",
+        "snmp_standard/mode/isdnusage.pm",
+        "network/cisco/vg/snmp/"
+    ]
+}

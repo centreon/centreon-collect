@@ -1,0 +1,9 @@
+{
+    "pkg_name": "centreon-plugin-Hardware-Ups-Apc-Snmp",
+    "plugin_name": "centreon_ups_apc.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "hardware/ups/apc/snmp/"
+    ]
+}
