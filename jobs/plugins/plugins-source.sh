@@ -24,6 +24,7 @@ export RELEASE=`date '+%H%M%S'`
 # Get committer.
 cd "$PROJECT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
+cd ..
 
 # Create and populate container.
 IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7"
