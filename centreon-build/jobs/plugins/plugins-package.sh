@@ -68,7 +68,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
   cmp $pkgpath pkg.json
   pkgdiff=$?
   cmp $rpmpath rpm.json
-  rmpdiff=$?
+  rpmdiff=$?
   set -e
   if [ "$specdiff" -ne 0 -o "$plugindiff" -ne 0 -o "$pkgdiff" -ne 0 -o "$rpmdiff" -ne 0 ] ; then
     # Build RPMs.
