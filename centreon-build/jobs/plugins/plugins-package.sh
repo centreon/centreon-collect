@@ -29,7 +29,7 @@ BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.10:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Process all packages.
-for package in `dirname $0`/../../packaging/plugins/* ; do
+for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
   package=`echo $package | rev | cut -d / -f 1 | rev`
 
   # Create input and output directories.
