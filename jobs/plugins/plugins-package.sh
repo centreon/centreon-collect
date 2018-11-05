@@ -91,7 +91,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
     sed -e "s#@NAME@#$subpkgname#g" -e "s#@PLUGIN_NAME@#$PLUGIN_NAME#g" -e "s#@REQUIRES@#$REQUIRES#g" -e "s#@CUSTOM_PKG_DATA@#$CUSTOM_PKG_DATA#g" < "$bodyspecpath" >> input/plugin.spectemplate
 
     # Populate cache with new files.
-    cachedir="/srv/cache/plugins/internal/$VERSION-$RELEASE/$package"
+    cachedir="cache-$VERSION-$RELEASE/$package"
     mkdir "$cachedir"
     cp "$headspecpath" "$cachedir/"
     cp "$bodyspecpath" "$cachedir/"
