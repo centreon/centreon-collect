@@ -1,4 +1,4 @@
-Name:           @NAME@
+Name:           centreon-plugin
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon plugin
@@ -8,11 +8,6 @@ URL:            https://www.centreon.com/
 BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 AutoReqProv:    no
-Source0:        @PLUGIN_NAME@
-
-Requires: @REQUIRES@
-
-@CUSTOM_PKG_DATA@
 
 %description
 
@@ -23,11 +18,11 @@ Requires: @REQUIRES@
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/lib/centreon/plugins/
-%{__install} -m 775 %{SOURCE0} %{buildroot}%{_prefix}/lib/centreon/plugins/@PLUGIN_NAME@
+%{__install} -m 775 *.pl %{buildroot}%{_prefix}/lib/centreon/plugins/
 
 %clean
 rm -rf \%{buildroot}
 
 %files
-%defattr(-,root,root,-)
-%{_prefix}/lib/centreon/plugins
+
+%changelog
