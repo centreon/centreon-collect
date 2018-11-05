@@ -43,7 +43,7 @@ for package in `dirname $0`/../../packaging/plugins/* ; do
   export NAME=`python -c "import sys, json; print json.load(sys.stdin)['pkg_name']" < $pkgpath`
   export PLUGIN_NAME=`python -c "import sys, json; print json.load(sys.stdin)['plugin_name']" < $pkgpath`
   rpmpath=`dirname $0`/../../packaging/plugins/$package/rpm.json
-  export REQUIRES=`python -c "import sys, json; print json.load(sys.stdin)['dependencies']" < $rpmpath`
+  export REQUIRES=`python -c "import sys, json; print ', '.join(json.load(sys.stdin)['dependencies'])" < $rpmpath`
   export CUSTOM_PKG_DATA=`python -c "import sys, json; print json.load(sys.stdin)['custom_pkg_data']" < $rpmpath`
 
   # Get spec file.
