@@ -40,11 +40,15 @@ for package in `dirname $0`/../../packaging/plugins/* ; do
 
   # Extract package information.
   pkgpath=`dirname $0`/../../packaging/plugins/$package/pkg.json
-  export NAME=`python -c "import sys, json; print json.load(sys.stdin)['pkg_name']" < $pkgpath`
-  export PLUGIN_NAME=`python -c "import sys, json; print json.load(sys.stdin)['plugin_name']" < $pkgpath`
+  NAME=`python -c "import sys, json; print json.load(sys.stdin)['pkg_name']" < $pkgpath`
+  PLUGIN_NAME=`python -c "import sys, json; print json.load(sys.stdin)['plugin_name']" < $pkgpath`
   rpmpath=`dirname $0`/../../packaging/plugins/$package/rpm.json
-  export REQUIRES=`python -c "import sys, json; print ', '.join(json.load(sys.stdin)['dependencies'])" < $rpmpath`
-  export CUSTOM_PKG_DATA=`python -c "import sys, json; print json.load(sys.stdin)['custom_pkg_data']" < $rpmpath`
+  REQUIRES=`python -c "import sys, json; print ', '.join(json.load(sys.stdin)['dependencies'])" < $rpmpath`
+  CUSTOM_PKG_DATA=`python -c "import sys, json; print json.load(sys.stdin)['custom_pkg_data']" < $rpmpath`
+  export NAME
+  export PLUGIN_NAME
+  export REQUIRES
+  export CUSTOM_PKG_DATA
 
   # Get spec file.
   cp `dirname $0`/../../packaging/plugins/plugin.spectemplate input/
