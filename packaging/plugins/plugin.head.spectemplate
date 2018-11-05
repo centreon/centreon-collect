@@ -1,6 +1,7 @@
 Name:           centreon-plugin
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
+Source0:        %{name}-%{version}.tar.gz
 Summary:        Centreon plugin
 Group:          Development/Libraries
 License:        ASL 2.0
@@ -12,6 +13,7 @@ AutoReqProv:    no
 %description
 
 %prep
+%setup
 
 %build
 
