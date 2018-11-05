@@ -34,7 +34,7 @@ mkdir "cache-$VERSION-$RELEASE"
 
 # Create input and output directories.
 rm -rf input
-mkdir input
+mkdir -p "input/centreon-plugin-$VERSION"
 rm -rf output
 mkdir output
 
@@ -84,7 +84,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
     atleastoneplugin=1
 
     # Copy plugin to input directory.
-    cp "$PROJECT-$VERSION/$PLUGIN_NAME" input/
+    cp "$PROJECT-$VERSION/$PLUGIN_NAME" "input/centreon-plugin-$VERSION"
 
     # Append package to spectemplate.
     subpkgname=`echo $NAME | cut -d - -f 3-`
@@ -102,6 +102,11 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
 done
 
 if [ "$atleastoneplugin" -ne 0 ] ; then
+  # Create source tarball.
+  cd input
+  tar czf "centreon-plugin-$VERSION.tar.gz" "centreon-plugin-$VERSION"
+  cd ..
+
   # Build RPMs.
   docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
   rm -f output/noarch/centreon-plugin-$VERSION-*
