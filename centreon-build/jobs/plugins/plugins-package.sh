@@ -88,10 +88,11 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
     fi
 
     # Populate cache with new files.
-    ssh "$REPO_CREDS" mkdir -p "/srv/cache/plugins/$package" || true
-    scp input/plugin.spectemplate "$REPO_CREDS:/srv/cache/plugins/$package/plugin.spectemplate"
-    scp "$PROJECT-$VERSION/$PLUGIN_NAME" "$REPO_CREDS:/srv/cache/plugins/$package/plugin.pl"
-    scp "$pkgpath" "$REPO_CREDS:/srv/cache/plugins/$package/pkg.json"
-    scp "$rpmpath" "$REPO_CREDS:/srv/cache/plugins/$package/rpm.json"
+    cachedir="/srv/cache/plugins/canary/$VERSION-$RELEASE/$package"
+    ssh "$REPO_CREDS" mkdir -p "$cachedir"
+    scp input/plugin.spectemplate "$REPO_CREDS:$cachedir/plugin.spectemplate"
+    scp "$PROJECT-$VERSION/$PLUGIN_NAME" "$REPO_CREDS:$cachedir/plugin.pl"
+    scp "$pkgpath" "$REPO_CREDS:$cachedir/pkg.json"
+    scp "$rpmpath" "$REPO_CREDS:$cachedir/rpm.json"
   fi
 done
