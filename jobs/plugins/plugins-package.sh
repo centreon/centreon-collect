@@ -76,13 +76,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
     docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
     # Copy files to server.
-    if [ "$DISTRIB" = 'centos7' ] ; then
-      DISTRIB='el7'
-    else
-      echo "Unsupported distribution $DISTRIB."
-      exit 1
-    fi
-    put_internal_rpms "18.10" "$DISTRIB" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+    put_internal_rpms "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
     if [ "$BRANCH_NAME" '=' 'master' ] ; then
       copy_internal_rpms_to_canary "standard" "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     fi
