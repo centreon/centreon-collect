@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Databases-Sap-Hana",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_sap_hana.pl",
     "files": [
         "centreon/plugins/script_sql.pm",

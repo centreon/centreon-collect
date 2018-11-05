@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Hardware-Storage-Dell-Md3000-Smcli",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_dell_md3000.pl",
     "files": [
         "centreon/plugins/script_custom.pm",

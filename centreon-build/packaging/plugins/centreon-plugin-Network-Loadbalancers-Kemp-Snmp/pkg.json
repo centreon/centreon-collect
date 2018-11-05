@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Loadbalancers-Kemp-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_kemp_loadbalancers.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

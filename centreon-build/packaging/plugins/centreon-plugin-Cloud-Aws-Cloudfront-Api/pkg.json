@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Cloud-Aws-Cloudfront-Api",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_aws_cloudfront_api.pl",
     "files": [
         "centreon/plugins/script_custom.pm",

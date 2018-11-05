@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Oracle-Infiniband-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_oracle_infiniband.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

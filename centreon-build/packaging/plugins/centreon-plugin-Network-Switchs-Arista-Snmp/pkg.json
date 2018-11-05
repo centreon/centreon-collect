@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Switchs-Arista-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_arista.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

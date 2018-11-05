@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Cisco-Standard-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_cisco_standard_snmp.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

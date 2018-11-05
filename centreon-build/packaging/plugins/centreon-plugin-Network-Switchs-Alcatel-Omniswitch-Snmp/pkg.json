@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Switchs-Alcatel-Omniswitch-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_alcatel_omniswitch_snmp.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

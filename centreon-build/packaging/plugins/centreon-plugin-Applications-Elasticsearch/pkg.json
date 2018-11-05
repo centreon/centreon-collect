@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Elasticsearch",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_elasticsearch.pl",
     "files": [
         "centreon/plugins/script_custom.pm",

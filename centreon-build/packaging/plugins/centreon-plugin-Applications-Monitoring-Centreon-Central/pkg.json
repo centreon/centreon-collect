@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Monitoring-Centreon-Central",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_centreon_central.pl",
     "custom_pkg_data": "Obsoletes:    centreon-plugin-meta",
     "files": [

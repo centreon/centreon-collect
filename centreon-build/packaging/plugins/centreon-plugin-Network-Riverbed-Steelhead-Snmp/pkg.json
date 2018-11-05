@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Riverbed-Steelhead-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_riverbed-steelhead.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",
