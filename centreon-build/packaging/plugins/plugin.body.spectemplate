@@ -1,5 +1,5 @@
 %package @NAME@
-Summary:        Centreon plugin
+Summary:        @SUMMARY@
 Requires:       @REQUIRES@
 @CUSTOM_PKG_DATA@
 
