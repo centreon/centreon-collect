@@ -59,11 +59,11 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
   export CUSTOM_PKG_DATA
 
   # Get current reference files.
-  curl -o plugin.head.spectemplate "http://srvi-repo.int.centreon.com/cache/plugins/$package/plugin.head.spectemplate"
-  curl -o plugin.body.spectemplate "http://srvi-repo.int.centreon.com/cache/plugins/$package/plugin.body.spectemplate"
-  curl -o plugin.pl "http://srvi-repo.int.centreon.com/cache/plugins/$package/plugin.pl"
-  curl -o pkg.json "http://srvi-repo.int.centreon.com/cache/plugins/$package/pkg.json"
-  curl -o rpm.json "http://srvi-repo.int.centreon.com/cache/plugins/$package/rpm.json"
+  curl -o plugin.head.spectemplate "http://srvi-repo.int.centreon.com/cache/plugins/stable/$package/plugin.head.spectemplate"
+  curl -o plugin.body.spectemplate "http://srvi-repo.int.centreon.com/cache/plugins/stable/$package/plugin.body.spectemplate"
+  curl -o plugin.pl "http://srvi-repo.int.centreon.com/cache/plugins/stable/$package/plugin.pl"
+  curl -o pkg.json "http://srvi-repo.int.centreon.com/cache/plugins/stable/$package/pkg.json"
+  curl -o rpm.json "http://srvi-repo.int.centreon.com/cache/plugins/stable/$package/rpm.json"
 
   # Build plugin only if current files are different.
   set +e
