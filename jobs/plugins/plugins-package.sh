@@ -49,11 +49,13 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
   # Extract package information.
   pkgpath=`dirname $0`/../../packaging/plugins/$package/pkg.json
   NAME=`python -c "import sys, json; print json.load(sys.stdin)['pkg_name']" < $pkgpath`
+  SUMMARY=`python -c "import sys, json; print json.load(sys.stdin)['pkg_summary']" < $pkgpath`
   PLUGIN_NAME=`python -c "import sys, json; print json.load(sys.stdin)['plugin_name']" < $pkgpath`
   rpmpath=`dirname $0`/../../packaging/plugins/$package/rpm.json
   REQUIRES=`python -c "import sys, json; print ', '.join(json.load(sys.stdin).get('dependencies', ''))" < $rpmpath`
   CUSTOM_PKG_DATA=`python -c "import sys, json; print json.load(sys.stdin).get('custom_pkg_data', '')" < $rpmpath`
   export NAME
+  export SUMMARY
   export PLUGIN_NAME
   export REQUIRES
   export CUSTOM_PKG_DATA
@@ -88,7 +90,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
 
     # Append package to spectemplate.
     subpkgname=`echo $NAME | cut -d - -f 3-`
-    sed -e "s#@NAME@#$subpkgname#g" -e "s#@PLUGIN_NAME@#$PLUGIN_NAME#g" -e "s#@REQUIRES@#$REQUIRES#g" -e "s#@CUSTOM_PKG_DATA@#$CUSTOM_PKG_DATA#g" < "$bodyspecpath" >> input/plugin.spectemplate
+    sed -e "s#@NAME@#$subpkgname#g" -e "s#@SUMMARY@#$PLUGIN_NAME#g" -e "s#@PLUGIN_NAME@#$PLUGIN_NAME#g" -e "s#@REQUIRES@#$REQUIRES#g" -e "s#@CUSTOM_PKG_DATA@#$CUSTOM_PKG_DATA#g" < "$bodyspecpath" >> input/plugin.spectemplate
 
     # Populate cache with new files.
     cachedir="cache-$VERSION-$RELEASE/$package"
