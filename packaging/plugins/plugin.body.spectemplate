@@ -1,0 +1,8 @@
+%package @NAME@
+Summary:        Centreon plugin
+Requires:       @REQUIRES@
+@CUSTOM_PKG_DATA@
+
+%files @NAME@
+%defattr(-,root,root,-)
+%{_prefix}/lib/centreon/plugins/@PLUGIN_NAME@
