@@ -73,7 +73,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
   if [ "$specdiff" -ne 0 -o "$plugindiff" -ne 0 -o "$pkgdiff" -ne 0 -o "$rpmdiff" -ne 0 ] ; then
     # Build RPMs.
     cp "$PROJECT-$VERSION/$PLUGIN_NAME" input/
-    docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
+    docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
 
     # Copy files to server.
     if [ "$DISTRIB" = 'centos7' ] ; then
