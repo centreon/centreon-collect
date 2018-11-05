@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Databases-Postgresql",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_postgresql.pl",
     "files": [
         "centreon/plugins/script_sql.pm",

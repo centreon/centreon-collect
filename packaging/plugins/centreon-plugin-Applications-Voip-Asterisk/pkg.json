@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Voip-Asterisk",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_asterisk.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

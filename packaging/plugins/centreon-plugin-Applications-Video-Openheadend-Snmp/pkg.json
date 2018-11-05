@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Video-Openheadend-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_openheadend_snmp.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

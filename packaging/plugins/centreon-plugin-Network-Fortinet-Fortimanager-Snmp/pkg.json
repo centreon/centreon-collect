@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Fortinet-Fortimanager-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_fortinet_fortimanager_snmp.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

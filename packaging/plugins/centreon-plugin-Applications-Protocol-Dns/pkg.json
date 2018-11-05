@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Protocol-Dns",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_protocol_dns.pl",
     "files": [
         "centreon/plugins/script_simple.pm",

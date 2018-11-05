@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Cloud-Azure-Management-Monitor-Api",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_azure_management_monitor_api.pl",
     "files": [
         "centreon/plugins/script_custom.pm",

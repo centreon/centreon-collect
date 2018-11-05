@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Lync-2013-Mssql",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_lync_2k13.pl",
     "files": [
         "centreon/plugins/script_simple.pm",

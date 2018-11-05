@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Protocol-X509",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_protocol_x509.pl",
     "files": [
         "centreon/plugins/script_simple.pm",

@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Operatingsystems-Aix-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_aix_snmp.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Hardware-Storage-Synology-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_synology.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",

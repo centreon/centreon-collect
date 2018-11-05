@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Hardware-Storage-Ibm-Ds5000-Smcli",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_ibm_ds5000.pl",
     "files": [
         "centreon/plugins/script_custom.pm",

@@ -1,5 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Network-Juniper-Trapeze-Snmp",
+    "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_juniper_trapeze.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",
