@@ -30,6 +30,8 @@ docker pull "$BUILD_IMG"
 
 # Process all packages.
 for package in `dirname $0`/../../packaging/plugins/* ; do
+  package=`echo $package | rev | cut -d / -f 1 | rev`
+
   # Create input and output directories.
   rm -rf input
   mkdir input
@@ -54,6 +56,7 @@ for package in `dirname $0`/../../packaging/plugins/* ; do
   curl -o rpm.json "http://srvi-repo.int.centreon.com/cache/plugins/$package/rpm.json"
 
   # Build plugin only if current files are different.
+  set +e
   cmp input/plugin.spectemplate plugin.spectemplate
   specdiff=$?
   cmp "$PROJECT-$VERSION/$PLUGIN_NAME" plugin.pl
@@ -62,6 +65,7 @@ for package in `dirname $0`/../../packaging/plugins/* ; do
   pkgdiff=$?
   cmp $rpmpath rpm.json
   rmpdiff=$?
+  set -e
   if [ "$specdiff" -ne 0 -o "$plugindiff" -ne 0 -o "$pkgdiff" -ne 0 -o "$rpmdiff" -ne 0 ] ; then
     # Build RPMs.
     cp "$PROJECT-$VERSION/$PLUGIN_NAME" input/
