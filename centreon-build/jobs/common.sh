@@ -109,6 +109,21 @@ copy_internal_rpms_to_canary () {
   ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/canary/$4"
 }
 
+copy_internal_rpms_to_unstable () {
+  TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/$5"
+  REPO="$1/$2/$3/unstable/$4"
+  ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
+  clean_directory "$TARGETDIR"
+  DESTFILE=`ssh "$REPO_CREDS" mktemp`
+  UPDATEREPODIR=`dirname $0`
+  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+    UPDATEREPODIR="$UPDATEREPODIR/.."
+  done
+  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+  ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
+}
+
 promote_canary_rpms_to_unstable () {
   TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/$5"
   REPO="$1/$2/$3/unstable/$4"
