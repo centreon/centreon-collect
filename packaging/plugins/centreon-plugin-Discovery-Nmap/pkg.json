@@ -1,9 +1,0 @@
-{
-    "pkg_name": "centreon-plugin-Discovery-Nmap",
-    "pkg_summary": "Centreon Plugin",
-    "plugin_name": "centreon_discovery_nmap.pl",
-    "files": [
-        "centreon/plugins/script_simple.pm",
-        "discovery/nmap/"
-    ]
-}
