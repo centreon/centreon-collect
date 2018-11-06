@@ -23,6 +23,14 @@ do {
         print;
     }
 };
+do {
+    local $^I = '.bak';
+    local @ARGV = ($plugins_dir . '/centreon/plugins/script.pm');
+    while (<>) {
+        s/^my \$alternative_fatpacker = 0;$/my \$alternative_fatpacker = 1;/ig;
+        print;
+    }
+};
 
 # Browse all plugins.
 chdir($packaging_dir);
