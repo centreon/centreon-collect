@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libjson-perl",
-        "nmap"
-    ]
-}
