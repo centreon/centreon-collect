@@ -90,7 +90,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
 
     # Append package to spectemplate.
     subpkgname=`echo $NAME | cut -d - -f 3-`
-    sed -e "s#@NAME@#$subpkgname#g" -e "s#@SUMMARY@#$PLUGIN_NAME#g" -e "s#@PLUGIN_NAME@#$PLUGIN_NAME#g" -e "s#@REQUIRES@#$REQUIRES#g" -e "s#@CUSTOM_PKG_DATA@#$CUSTOM_PKG_DATA#g" < "$bodyspecpath" >> input/plugin.spectemplate
+    sed -e "s#@NAME@#$subpkgname#g" -e "s#@SUMMARY@#$SUMMARY#g" -e "s#@PLUGIN_NAME@#$PLUGIN_NAME#g" -e "s#@REQUIRES@#$REQUIRES#g" -e "s#@CUSTOM_PKG_DATA@#$CUSTOM_PKG_DATA#g" < "$bodyspecpath" >> input/plugin.spectemplate
 
     # Populate cache with new files.
     cachedir="cache-$VERSION-$RELEASE/$package"
