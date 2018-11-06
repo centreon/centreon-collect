@@ -13,6 +13,17 @@ my $build_dir = '/usr/local/src/build';
 File::Path::remove_tree($build_dir);
 File::Path::make_path($build_dir);
 
+# Set version within sources.
+my $global_version = $ARGV[0];
+do {
+    local $^I = '.bak';
+    local @ARGV = ($plugins_dir . '/centreon/plugins/script.pm');
+    while (<>) {
+        s/^my \$global_version = .*$/my \$global_version = '$global_version';/ig;
+        print;
+    }
+};
+
 # Browse all plugins.
 chdir($packaging_dir);
 @plugins = glob('centreon-plugin-*');
@@ -44,7 +55,7 @@ foreach $plugin (@plugins) {
             'centreon/plugins/templates/hardware.pm'
         );
         foreach my $file ((@common_files, @{$config->{files}})) {
-	    print "  - $file\n";
+            print "  - $file\n";
             if (-f $file) {
                 File::Copy::Recursive::fcopy($file, 'lib/' . $file);
             } elsif (-d $file) {

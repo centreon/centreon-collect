@@ -23,13 +23,14 @@ export RELEASE=`date '+%H%M%S'`
 
 # Get committer.
 cd "$PROJECT"
+COMMIT=`git log -1 HEAD --pretty=format:%h`
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 cd ..
 
 # Create and populate container.
 IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7"
 docker pull "$IMAGE"
-containerid=`docker create $IMAGE /usr/local/bin/source.pl`
+containerid=`docker create $IMAGE /usr/local/bin/source.pl "$VERSION ($COMMIT)"`
 docker cp `dirname $0`/plugins-source.container.pl "$containerid:/usr/local/bin/source.pl"
 docker cp "$PROJECT" "$containerid:/usr/local/src/$PROJECT"
 docker cp `dirname $0`/../../packaging/plugins "$containerid:/usr/local/src/packaging-$PROJECT"
