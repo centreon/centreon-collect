@@ -13,11 +13,6 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
-  exit 1
-fi
-DISTRIB="$1"
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
@@ -25,8 +20,11 @@ get_internal_source "plugins/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.10:$DISTRIB"
-docker pull "$BUILD_IMG"
+REGISTRY="ci.int.centreon.com:5000"
+BUILD_IMG_CENTOS6="$REGISTRY/mon-build-dependencies-3.4:centos6"
+BUILD_IMG_CENTOS7="$REGISTRY/mon-build-dependencies-18.10:centos7"
+docker pull "$BUILD_IMG_CENTOS6"
+docker pull "$BUILD_IMG_CENTOS7"
 
 # Create cache directory.
 rm -rf "cache-$VERSION-$RELEASE"
@@ -35,8 +33,10 @@ mkdir "cache-$VERSION-$RELEASE"
 # Create input and output directories.
 rm -rf input
 mkdir -p "input/centreon-plugin-$VERSION"
-rm -rf output
-mkdir output
+rm -rf output-centos6
+mkdir output-centos6
+rm -rf output-centos7
+mkdir output-centos7
 
 # Get base spec file.
 cp `dirname $0`/../../packaging/plugins/plugin.head.spectemplate input/plugin.spectemplate
@@ -110,11 +110,15 @@ if [ "$atleastoneplugin" -ne 0 ] ; then
   cd ..
 
   # Build RPMs.
-  docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
-  rm -f output/noarch/centreon-plugin-$VERSION-*
+  docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS6" input output-centos6
+  rm -f output-centos6/noarch/centreon-plugin-$VERSION-*
+  docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS7" input output-centos7
+  rm -f output-centos7/noarch/centreon-plugin-$VERSION-*
 
   # Copy files to server.
-  put_internal_rpms "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+  put_internal_rpms "3.4" "el6" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos6/noarch/*.rpm
+  put_internal_rpms "3.4" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+  put_internal_rpms "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   if [ "$BRANCH_NAME" '=' 'master' ] ; then
     copy_internal_rpms_to_canary "standard" "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
   fi
