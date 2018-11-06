@@ -4,6 +4,8 @@
     "plugin_name": "centreon_prometheus_api.pl",
     "files": [
         "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
         "cloud/prometheus/restapi/"
     ]
 }
