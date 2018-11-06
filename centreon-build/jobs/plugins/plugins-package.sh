@@ -75,14 +75,15 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
   bodyspecpath=`dirname $0`/../../packaging/plugins/plugin.body.spectemplate
   cmp "$bodyspecpath" plugin.body.spectemplate
   bodyspecdiff=$?
-  cmp "$PROJECT-$VERSION/$PLUGIN_NAME" plugin.pl
-  plugindiff=$?
+  # plugindiff will be compared to 1, as the $global_version variable
+  # in the fatpack will always be different between two builds.
+  plugindiff=`diff --suppress-common-lines --side-by-side "$PROJECT-$VERSION/$PLUGIN_NAME" plugin.pl | wc -l`
   cmp $pkgpath pkg.json
   pkgdiff=$?
   cmp $rpmpath rpm.json
   rpmdiff=$?
   set -e
-  if [ "$headspecdiff" -ne 0 -o "$bodyspecdiff" -ne 0 -o "$plugindiff" -ne 0 -o "$pkgdiff" -ne 0 -o "$rpmdiff" -ne 0 ] ; then
+  if [ "$headspecdiff" -ne 0 -o "$bodyspecdiff" -ne 0 -o "$plugindiff" -gt 1 -o "$pkgdiff" -ne 0 -o "$rpmdiff" -ne 0 ] ; then
     atleastoneplugin=1
 
     # Copy plugin to input directory.
