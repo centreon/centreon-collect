@@ -1,5 +1,6 @@
 %package @NAME@
 Summary:        @SUMMARY@
+AutoReqProv:    no
 Requires:       @REQUIRES@
 @CUSTOM_PKG_DATA@
 
