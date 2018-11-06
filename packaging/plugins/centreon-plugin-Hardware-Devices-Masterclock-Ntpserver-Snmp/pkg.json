@@ -6,6 +6,6 @@
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
         "snmp_standard/mode/uptime.pm",
-        "network/masterclock/ntp100gps/snmp/"
+        "hardware/devices/masterclock/ntp100gps/snmp/"
     ]
 }
