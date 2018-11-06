@@ -98,7 +98,7 @@ for package in `dirname $0`/../../packaging/plugins/centreon-plugin-* ; do
     mkdir "$cachedir"
     cp "$headspecpath" "$cachedir/"
     cp "$bodyspecpath" "$cachedir/"
-    cp "$PROJECT-$VERSION/$PLUGIN_NAME" "$cachedir/"
+    cp "$PROJECT-$VERSION/$PLUGIN_NAME" "$cachedir/plugin.pl"
     cp "$pkgpath" "$cachedir/"
     cp "$rpmpath" "$cachedir/"
   fi
