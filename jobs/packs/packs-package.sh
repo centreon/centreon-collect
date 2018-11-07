@@ -34,20 +34,18 @@ cp `dirname $0`/../../packaging/packs/pack.head.spectemplate input/centreon-pack
 # Get packs that changed.
 rm -rf packs
 mkdir packs
-cd centreon-plugin-packs/src
-for pack in * ; do
+for pack in `ls centreon-plugin-packs/src` ; do
   curl -o base.json "http://srvi-repo.int.centreon.com/cache/packs/stable/$pack/pack.json"
   set +e
   baseversion=`python -c "import sys, json; print json.load(sys.stdin)['information']['version']" < base.json`
   set -e
-  newversion=`python -c "import sys, json; print json.load(sys.stdin)['information']['version']" < $pack/pack.json`
+  newversion=`python -c "import sys, json; print json.load(sys.stdin)['information']['version']" < centreon-plugin-packs/src/$pack/pack.json`
   if [ "$baseversion" '!=' "$newversion" ] ; then
     oldpack=`echo "$pack" | sed -e 's/^\([a-z]\)/\U\1/g' -e 's/-\([a-z]\)/-\U\1/g'`
-    cp "$pack/pack.json" "../../packs/$pack.json"
-    sed -e "s/@PACK@/$pack/g" -e "s/@VERSION@/$newversion/g" -e "s/@OLDPACK@/$oldpack/g" < `dirname $0`/../../packaging/packs/pack.body.spectemplate >> ../../input/centreon-packs.spec
+    cp "centreon-plugin-packs/src/$pack/pack.json" "packs/$pack.json"
+    sed -e "s/@PACK@/$pack/g" -e "s/@VERSION@/$newversion/g" -e "s/@OLDPACK@/$oldpack/g" < `dirname $0`/../../packaging/packs/pack.body.spectemplate >> input/centreon-packs.spec
   fi
 done
-cd ../..
 
 # Build RPMs.
 tar czf input/packs.tar.gz packs
