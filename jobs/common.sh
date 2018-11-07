@@ -151,7 +151,7 @@ promote_testing_rpms_to_stable () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
-#  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/stable/$4"
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/stable/$4"
 }
 
 # Acceptance tests.
