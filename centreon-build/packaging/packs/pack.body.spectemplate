@@ -1,0 +1,14 @@
+
+%package @PACK@
+Summary:  Centreon pack
+Version:  @VERSION@
+Requires: centreon-pp-manager >= 2.0
+Obsoletes: ces-pack-@OLDPACK@
+Provides: ces-pack-@OLDPACK@
+
+%description @PACK@
+@PACK@
+
+%files @PACK@
+%defattr(-,root,root,-)
+%{_datadir}/centreon-packs/@PACK@.json
