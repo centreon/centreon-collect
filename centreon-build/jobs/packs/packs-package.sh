@@ -29,7 +29,7 @@ rm -rf output-centos6
 mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
-cp `dirname $0`/../../packaging/packs/pack.head.spectemplate ../input/centreon-packs.spec
+cp `dirname $0`/../../packaging/packs/pack.head.spectemplate input/centreon-packs.spec
 
 # Get packs that changed.
 rm -rf packs
