@@ -47,18 +47,19 @@ for pack in `ls centreon-plugin-packs/src` ; do
   fi
 done
 
-# Build RPMs.
-tar czf input/packs.tar.gz packs
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS6" input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS7" input output-centos7
-
-# Remove 'fake' package.
-rm -f output-centos6/noarch/centreon-pack-1.0.0*.rpm
-rm -f output-centos7/noarch/centreon-pack-1.0.0*.rpm
-
-# Process only if some packages were generated.
-packagecount=`ls output-centos7/noarch | wc -l`
+# Process only if some packages are to be generated.
+packagecount=`ls packs | wc -l`
 if [ "$packagecount" -gt 0 ] ; then
+  # Build RPMs.
+  tar czf input/packs.tar.gz packs
+  docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS6" input output-centos6
+  docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS7" input output-centos7
+
+  # Remove 'fake' package.
+  rm -f output-centos6/noarch/centreon-pack-1.0.0*.rpm
+  rm -f output-centos7/noarch/centreon-pack-1.0.0*.rpm
+
+  # Publish RPMs.
   put_internal_rpms "3.4" "el6" "noarch" "packs" "$PROJECT-$RELEASE" output-centos6/noarch/*.rpm
   put_internal_rpms "3.4" "el7" "noarch" "packs" "$PROJECT-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "18.10" "el7" "noarch" "packs" "$PROJECT-$RELEASE" output-centos7/noarch/*.rpm
