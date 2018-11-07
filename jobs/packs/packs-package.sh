@@ -37,7 +37,9 @@ mkdir packs
 cd centreon-plugin-packs/src
 for pack in * ; do
   curl -o base.json "http://srvi-repo.int.centreon.com/cache/packs/stable/$pack/pack.json"
+  set +e
   baseversion=`python -c "import sys, json; print json.load(sys.stdin)['information']['version']" < base.json`
+  set -e
   newversion=`python -c "import sysm json; print json.load(sys.stdin)['information']['version']" < $pack/pack.json`
   if [ "$baseversion" '!=' "$newversion" ] ; then
     oldpack=`echo "$pack" | sed -e 's/^\([a-z]\)/\U\1/g' -e 's/-\([a-z]\)/-\U\1/g'`
