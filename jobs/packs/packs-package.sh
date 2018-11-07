@@ -58,7 +58,7 @@ rm -f output-centos7/noarch/centreon-pack-1.0.0*.rpm
 
 # Process only if some packages were generated.
 packagecount=`ls output-centos7/noarch | wc -l`
-if [ "$packagecount" -gt 0 ] ; do
+if [ "$packagecount" -gt 0 ] ; then
   put_internal_rpms "3.4" "el6" "noarch" "packs" "$PROJECT-$RELEASE" output-centos6/noarch/*.rpm
   put_internal_rpms "3.4" "el7" "noarch" "packs" "$PROJECT-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "18.10" "el7" "noarch" "packs" "$PROJECT-$RELEASE" output-centos7/noarch/*.rpm
