@@ -9,7 +9,7 @@ set -x
 PROJECT=centreon-packs
 
 # Pull build dependencies images.
-REGISTRY="ci.int.centreon.com"
+REGISTRY="ci.int.centreon.com:5000"
 BUILD_IMG_CENTOS6="$REGISTRY/mon-build-dependencies-3.4:centos6"
 BUILD_IMG_CENTOS7="$REGISTRY/mon-build-dependencies-18.10:centos7"
 docker pull "$BUILD_IMG_CENTOS6"
