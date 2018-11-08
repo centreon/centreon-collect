@@ -9,8 +9,8 @@ set -x
 PROJECT=centreon-plugins
 
 # Check arguments.
-if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
-  echo "You need to specify COMMIT and RELEASE environment variables."
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
 
