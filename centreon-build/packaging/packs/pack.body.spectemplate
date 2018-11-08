@@ -11,4 +11,4 @@ Provides: ces-pack-@OLDPACK@
 
 %files @PACK@
 %defattr(-,root,root,-)
-%{_datadir}/centreon-packs/@PACK@.json
+%{_datadir}/centreon-packs/pluginpack_@PACK@-@VERSION@.json
