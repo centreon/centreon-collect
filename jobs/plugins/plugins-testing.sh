@@ -16,7 +16,7 @@ fi
 
 # Move sources to the testing directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO mv "/srv/sources/standard/internal/plugins/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/testing/plugins/"
+$SSH_REPO mv "/srv/sources/internal/plugins/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/testing/plugins/"
 
 # Move RPMs to the testing repository.
 promote_unstable_rpms_to_testing "standard" "3.4" "el6" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
