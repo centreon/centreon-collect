@@ -42,7 +42,7 @@ for pack in `ls centreon-plugin-packs/src` ; do
   newversion=`python -c "import sys, json; print json.load(sys.stdin)['information']['version']" < centreon-plugin-packs/src/$pack/pack.json`
   if [ "$baseversion" '!=' "$newversion" ] ; then
     oldpack=`echo "$pack" | sed -e 's/^\([a-z]\)/\U\1/g' -e 's/-\([a-z]\)/-\U\1/g'`
-    cp "centreon-plugin-packs/src/$pack/pack.json" "packs/$pack.json"
+    cp "centreon-plugin-packs/src/$pack/pack.json" "packs/pluginpack_$pack-$newversion.json"
     sed -e "s/@PACK@/$pack/g" -e "s/@VERSION@/$newversion/g" -e "s/@OLDPACK@/$oldpack/g" < `dirname $0`/../../packaging/packs/pack.body.spectemplate >> input/centreon-packs.spec
   fi
 done
