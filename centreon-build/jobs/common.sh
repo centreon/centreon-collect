@@ -142,7 +142,7 @@ promote_canary_rpms_to_unstable () {
 promote_unstable_rpms_to_testing () {
   TARGETDIR="/srv/yum/$1/$2/$3/testing/$4/$5"
   REPO="$1/$2/$3/testing/$4"
-  ssh "$REPO_CREDS" cp -r "/srv/yum/$1/$2/$3/canary/$4/$5/$6" "$TARGETDIR/"
+  ssh "$REPO_CREDS" cp -r "/srv/yum/$1/$2/$3/unstable/$4/$5/$6" "$TARGETDIR/"
   clean_directory "$TARGETDIR"
   DESTFILE=`ssh "$REPO_CREDS" mktemp`
   UPDATEREPODIR=`dirname $0`
