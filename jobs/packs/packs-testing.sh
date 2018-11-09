@@ -28,8 +28,9 @@ MIDDLEWARE='https://ppd-api.imp.centreon.com/api'
 TOKEN=`curl -H "Content-Type: application/json" -X POST -d '{ "name": "digitalplatform", "token": "97c7715b-ba84-43ce-97ac-f63fd4693fc1" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
 cd "$PROJECT-$VERSION"
 for json in *.json ; do
-  echo '{"data": {"type": "pluginpack", "attributes": { "slug": "' > ../query.json
-  python -c "import sys, json; print json.load(sys.stdin)['information']['slug']" < "$json" >> ../query.json
+  echo -n '{"data": {"type": "pluginpack", "attributes": { "slug": "' > ../query.json
+  slug=`python -c "import sys, json; print json.load(sys.stdin)['information']['slug']" < "$json"`
+  echo -n "$slug" >> ../query.json
   echo '", "information": ' >> ../query.json
   cat < "$json" >> ../query.json
   echo '}}}' >> ../query.json
