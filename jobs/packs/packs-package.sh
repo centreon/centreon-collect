@@ -15,12 +15,9 @@ BUILD_IMG_CENTOS7="$REGISTRY/mon-build-dependencies-18.10:centos7"
 docker pull "$BUILD_IMG_CENTOS6"
 docker pull "$BUILD_IMG_CENTOS7"
 
-# Get project release.
-cd centreon-plugin-packs
-COMMIT=`git log -1 HEAD --pretty=format:%h`
-now=`date +%s`
-RELEASE="$now.$COMMIT"
-cd ..
+# Generate version and release.
+VERSION=`date '+%Y%m%d'`
+RELEASE=`date '+%H%M%S'`
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -50,8 +47,14 @@ done
 # Process only if some packages are to be generated.
 packagecount=`ls packs | wc -l`
 if [ "$packagecount" -gt 0 ] ; then
-  # Build RPMs.
+  # Generate source tarballs.
   tar czf input/packs.tar.gz packs
+  rm -rf "$PROJECT-$VERSION"
+  mv packs "$PROJECT-$VERSION"
+  tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+  put_internal_source "packs" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+
+  # Build RPMs.
   docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS6" input output-centos6
   docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS7" input output-centos7
 
@@ -60,12 +63,12 @@ if [ "$packagecount" -gt 0 ] ; then
   rm -f output-centos7/noarch/centreon-pack-1.0.0*.rpm
 
   # Publish RPMs.
-  put_internal_rpms "3.4" "el6" "noarch" "packs" "$PROJECT-$RELEASE" output-centos6/noarch/*.rpm
-  put_internal_rpms "3.4" "el7" "noarch" "packs" "$PROJECT-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "18.10" "el7" "noarch" "packs" "$PROJECT-$RELEASE" output-centos7/noarch/*.rpm
+  put_internal_rpms "3.4" "el6" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos6/noarch/*.rpm
+  put_internal_rpms "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+  put_internal_rpms "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   if [ "$BRANCH_NAME" '=' 'master' ] ; then
-    copy_internal_rpms_to_unstable "plugin-packs" "3.4" "el6" "noarch" "packs" "$PROJECT-$RELEASE"
-    copy_internal_rpms_to_unstable "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$RELEASE"
-    copy_internal_rpms_to_canary "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$RELEASE"
+    copy_internal_rpms_to_unstable "plugin-packs" "3.4" "el6" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+    copy_internal_rpms_to_unstable "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+    copy_internal_rpms_to_unstable "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
   fi
 fi
