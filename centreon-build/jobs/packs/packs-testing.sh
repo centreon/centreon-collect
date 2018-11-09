@@ -18,6 +18,25 @@ fi
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO mv "/srv/sources/internal/packs/$PROJECT-$VERSION-$RELEASE" "/srv/sources/plugin-packs/testing/packs/"
 
+# Retrieve sources.
+curl -o "$PROJECT-$VERSION.tar.gz" "http://srvi-repo.int.centreon.com/sources/plugin-packs/testing/packs/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+
+# Upload packs to the middleware.
+MIDDLEWARE='https://ppd-api.imp.centreon.com/api'
+TOKEN=`curl -H "Content-Type: application/json" -X POST -d '{ "name": "digitalplatform", "token": "97c7715b-ba84-43ce-97ac-f63fd4693fc1" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
+cd "$PROJECT-$VERSION"
+for json in *.json ; do
+  echo '{"data": {"type": "pluginpack", "attributes": { "slug": "' > ../query.json
+  python -c "import sys, json; print json.load(sys.stdin)['information']['slug']" < "$json" >> ../query.json
+  echo '", "information": ' >> ../query.json
+  cat < "$json" >> ../query.json
+  echo '}}}' >> ../query.json
+  curl -H "Content-Type: application/json" -H "centreon-imp-token: $TOKEN" -X POST -d '@-' "$MIDDLEWARE/pluginpack/pluginpack" < ../query.json
+done
+cd ..
+
 # Move RPMs to the testing repository.
 promote_unstable_rpms_to_testing "plugin-packs" "3.4" "el6" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
