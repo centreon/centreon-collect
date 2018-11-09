@@ -19,6 +19,10 @@ docker pull "$BUILD_IMG_CENTOS7"
 VERSION=`date '+%Y%m%d'`
 RELEASE=`date '+%H%M%S'`
 
+# Create cache directory.
+rm -rf "cache-$VERSION-$RELEASE"
+mkdir "cache-$VERSION-$RELEASE"
+
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
@@ -41,6 +45,7 @@ for pack in `ls centreon-plugin-packs/src` ; do
     oldpack=`echo "$pack" | sed -e 's/^\([a-z]\)/\U\1/g' -e 's/-\([a-z]\)/-\U\1/g'`
     cp "centreon-plugin-packs/src/$pack/pack.json" "packs/pluginpack_$pack-$newversion.json"
     sed -e "s/@PACK@/$pack/g" -e "s/@VERSION@/$newversion/g" -e "s/@OLDPACK@/$oldpack/g" < `dirname $0`/../../packaging/packs/pack.body.spectemplate >> input/centreon-packs.spec
+    cp -r "centreon-plugin-packs/src/$pack" "cache-$VERSION-$RELEASE/"
   fi
 done
 
@@ -71,4 +76,7 @@ if [ "$packagecount" -gt 0 ] ; then
     copy_internal_rpms_to_unstable "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
   fi
+
+  # Populate cache.
+  scp -r "cache-$VERSION-$RELEASE" "$REPO_CREDS:/srv/cache/packs/unstable"
 fi
