@@ -24,8 +24,8 @@ rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Upload packs to the middleware.
-MIDDLEWARE='https://ppd-api.imp.centreon.com/api'
-TOKEN=`curl -H "Content-Type: application/json" -X POST -d '{ "name": "digitalplatform", "token": "97c7715b-ba84-43ce-97ac-f63fd4693fc1" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
+MIDDLEWARE='https://api.imp.centreon.com/api'
+TOKEN=`curl -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "b46567488e4140d921b76cc063678af3dfeace77" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
 cd "$PROJECT-$VERSION"
 for json in *.json ; do
   echo -n '{"data": {"type": "pluginpack", "attributes": { "slug": "' > ../query.json
