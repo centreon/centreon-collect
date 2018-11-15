@@ -165,7 +165,7 @@ class CentreonData(AddonData):
                 ['centreon-release', 'centos-release-scl', 'centreon-base-config-centreon-engine', 'centreon', 'mariadb-server'])
             ksdata.packages.packageList.extend(widget_list)
         if self.installation_type == 'centralwithoutdb':
-            ksdata.packages.packageList.extend(['centreon-release', 'centos-release-scl', 'centreon-base-config-centreon-engine', 'centreon'])
+            ksdata.packages.packageList.extend(['centreon-release', 'centos-release-scl', 'centreon-base-config-centreon-engine'])
             ksdata.packages.packageList.extend(widget_list)
         if self.installation_type == 'poller':
             ksdata.packages.packageList.extend(['centreon-release', 'centreon-poller-centreon-engine'])
