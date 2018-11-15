@@ -177,11 +177,6 @@ class CentreonData(AddonData):
         if self.installation_type == 'centreonmbi':
             ksdata.packages.packageList.extend(
                 ['centreon-release', 'centos-release-scl', 'centreon-mbi-release', 'centreon-bi-reporting-server', 'mariadb-server'])
-        if self.installation_type == 'pollerdisplay':
-            ksdata.packages.packageList.extend(
-                ['centreon-release', 'centos-release-scl', 'centreon-base-config-centreon-engine', 'centreon-poller-display',
-                 'mariadb-server'])
-            ksdata.packages.packageList.extend(widget_list)
 
     def execute(self, storage, ksdata, instclass, users, payload):
         """
