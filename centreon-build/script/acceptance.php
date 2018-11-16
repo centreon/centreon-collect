@@ -431,7 +431,7 @@ else {
         )
     );
     replace_in_file(
-        xpath($centreon_build_dir . '/containers/mbi/docker-compose.yml.in'),
+        xpath($centreon_build_dir . '/containers/mbi/18.10/docker-compose.yml.in'),
         xpath('des-mbi-dev.yml'),
         array(
             '@MBI_IMAGE@' => build_image_name('des-mbi-server'),
