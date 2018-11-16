@@ -20,7 +20,7 @@ file_put_contents($dockerfile, $content);
 
 # Build web image.
 xrmdir('centreon-build');
-xcopy(xpath($centreon_build_dir . '/containers/web/18.10'), 'centreon-build');
+xcopy(xpath($centreon_build_dir . '/containers/web/' . $version), 'centreon-build');
 passthru(
     'docker build -t mon-web-' . $version . '-dev:' . $distrib . ' -f ' . $dockerfile . ' .',
     $return
