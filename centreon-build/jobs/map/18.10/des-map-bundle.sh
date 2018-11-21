@@ -32,7 +32,7 @@ cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$DEP_IMAGE#g" < map/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
 sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/18.10/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
 sed "s#@PROJECT@#map-web#g;s#@SUBDIR@#18.10/el7/noarch/map-web/centreon-map-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-sed "s#@PROJECT@#ap-server#g;s#@SUBDIR@#18.10/el7/noarch/map-server/centreon-map-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
+sed "s#@PROJECT@#map-server#g;s#@SUBDIR@#18.10/el7/noarch/map-server/centreon-map-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
 
 # Server image.
 docker build --no-cache -t "$SERVER_IMAGE" -f map/server.$DISTRIB.Dockerfile .

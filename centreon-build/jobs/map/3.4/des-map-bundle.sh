@@ -36,7 +36,7 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$DEP_IMAGE#g" < map/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
 sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/3.4/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
-sed "s#@VERSION@#3.4#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+sed "s#@VERSION@#3.4#g;s#@SUBDIR@#3.4/el7/noarch/map/centreon-map-$VERSION-$RELEASE#g;s#@DISTRIB@#el$CENTOS_VERSION#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Server image.
 docker build --no-cache -t "$SERVER_IMAGE" -f map/server.$DISTRIB.Dockerfile .
