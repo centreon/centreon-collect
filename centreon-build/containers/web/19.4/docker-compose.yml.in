@@ -1,0 +1,17 @@
+version: '2'
+services:
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+    dns:
+    - "10.50.1.1"
+    external_links:
+    - webdriver
+    networks:
+    - default
+    - webdriver_default
+networks:
+  webdriver_default:
+    external: true
