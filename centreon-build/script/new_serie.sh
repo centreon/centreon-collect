@@ -3,7 +3,7 @@
 # Check arguments.
 if [ -z "$1" -o -z "$2" ] ; then
   echo "USAGE:     $0 <OLDSERIE> <NEWSERIE>"
-  echo "  example: $0 18.10 19.04"
+  echo "  example: $0 18.10 19.4"
   exit 1
 fi
 
@@ -14,3 +14,9 @@ for olddir in `find . -type d -name $1` ; do
   find "$newdir" -type f | xargs sed -i -e "s#$1#$2#g"
   git add "$newdir"
 done
+
+# Add tasks to Jenkins role.
+echo "  - import_tasks: $2/jobs-build-dependencies.yml
+  - import_tasks: $2/jobs-dependencies.yml
+  - import_tasks: $2/jobs-unittest.yml" >> infrastructure/jenkins/roles/master/tasks/main.yml
+git add infrastructure/jenkins/roles/master/tasks/main.yml
