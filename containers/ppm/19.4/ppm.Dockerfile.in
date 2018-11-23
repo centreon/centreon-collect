@@ -1,0 +1,24 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Set middleware server.
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y centreon-pp-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install Plugin Pack JSON files.
+COPY middleware/data/pluginpacks/**/*.json /usr/share/centreon-packs/
+
+# Install module in Centreon.
+COPY web/19.4/install-centreon-module.php /tmp/install-centreon-module.php
+COPY ppm/19.4/install.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh

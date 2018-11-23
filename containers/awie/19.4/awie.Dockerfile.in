@@ -1,0 +1,16 @@
+# Base information.
+FROM ci.int.centreon.com:5000/mon-web-19.4:@DISTRIB@
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y centreon-awie && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install module in Centreon.
+COPY web/19.4/install-centreon-module.php awie/19.4/install.sh /tmp/
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh

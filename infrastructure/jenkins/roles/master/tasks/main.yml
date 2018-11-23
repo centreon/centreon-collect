@@ -5,3 +5,6 @@
   - import_tasks: 18.10/jobs-build-dependencies.yml
   - import_tasks: 18.10/jobs-dependencies.yml
   - import_tasks: 18.10/jobs-unittest.yml
+  - import_tasks: 19.4/jobs-build-dependencies.yml
+  - import_tasks: 19.4/jobs-dependencies.yml
+  - import_tasks: 19.4/jobs-unittest.yml
