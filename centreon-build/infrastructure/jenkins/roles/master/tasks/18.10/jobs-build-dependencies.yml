@@ -2,34 +2,29 @@
   - jenkins_job:
       name: mon-containers-build-dependencies-18.10-centos7
       config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '18.10') | regex_replace('@DISTRIB@', 'centos7')}}"
-      url: "{{ jenkins_url }}"
       user: "{{ jenkins_user }}"
       password: "{{ jenkins_password }}"
 
   - jenkins_job:
       name: mon-containers-build-dependencies-18.10-debian9
       config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '18.10') | regex_replace('@DISTRIB@', 'debian9')}}"
-      url: "{{ jenkins_url }}"
       user: "{{ jenkins_user }}"
       password: "{{ jenkins_password }}"
 
   - jenkins_job:
       name: mon-containers-build-dependencies-18.10-debian9-armhf
       config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '18.10') | regex_replace('@DISTRIB@', 'debian9-armhf')}}"
-      url: "{{ jenkins_url }}"
       user: "{{ jenkins_user }}"
       password: "{{ jenkins_password }}"
 
   - jenkins_job:
       name: mon-containers-build-dependencies-18.10-debian10
       config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '18.10') | regex_replace('@DISTRIB@', 'debian10')}}"
-      url: "{{ jenkins_url }}"
       user: "{{ jenkins_user }}"
       password: "{{ jenkins_password }}"
 
   - jenkins_job:
       name: mon-containers-build-dependencies-18.10-opensuse-leap
       config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '18.10') | regex_replace('@DISTRIB@', 'opensuse-leap')}}"
-      url: "{{ jenkins_url }}"
       user: "{{ jenkins_user }}"
       password: "{{ jenkins_password }}"
