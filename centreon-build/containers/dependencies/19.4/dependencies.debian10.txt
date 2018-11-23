@@ -1,4 +1,3 @@
-centreon-clib
 nodejs
 php
 php-cli
