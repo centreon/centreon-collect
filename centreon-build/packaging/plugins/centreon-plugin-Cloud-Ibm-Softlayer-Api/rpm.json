@@ -6,5 +6,5 @@
         "perl(IO::Socket::SSL)",
         "perl(URI)",
         "perl(HTTP::ProxyPAC)"
-    ],
+    ]
 }
