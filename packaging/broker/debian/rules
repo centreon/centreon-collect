@@ -1,0 +1,50 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	cd build && CXXFLAGS="-std=c++03" cmake \
+	  -DWITH_TESTING=0 \
+	  -DWITH_PREFIX=/usr \
+	  -DWITH_PREFIX_CONF=/etc/centreon-broker \
+	  -DWITH_PREFIX_LIB=/usr/lib/centreon-broker \
+	  -DWITH_PREFIX_MODULES=/usr/lib/centreon-broker/modules \
+	  -DWITH_PREFIX_VAR=/var/lib/centreon-broker \
+	  -DWITH_STARTUP_SCRIPT=systemd \
+	  -DWITH_STARTUP_DIR=/lib/systemd/system \
+	  -DWITH_DAEMONS='central-rrd;central-broker' \
+	  -DWITH_CONFIG_FILES=y \
+	  .
+
+override_dh_auto_build:
+	make -C build
+
+override_dh_auto_install:
+# centreon-broker-core
+	make -C build install DESTDIR=../debian/centreon-broker-core
+	mkdir -p debian/centreon-broker-core/var/lib/centreon-broker
+	mkdir -p debian/centreon-broker-core/var/log/centreon-broker
+# centreon-broker-graphite
+	mkdir -p debian/centreon-broker-graphite/usr/lib/centreon-broker/modules
+	mv debian/centreon-broker-core/usr/lib/centreon-broker/modules/*graphite* debian/centreon-broker-graphite/usr/lib/centreon-broker/modules/
+# centreon-broker-influxdb
+	mkdir -p debian/centreon-broker-influxdb/usr/lib/centreon-broker/modules
+	mv debian/centreon-broker-core/usr/lib/centreon-broker/modules/*influxdb* debian/centreon-broker-influxdb/usr/lib/centreon-broker/modules/
+# centreon-broker-cbd
+	mkdir -p debian/centreon-broker-cbd/usr/bin
+	mv debian/centreon-broker-core/usr/bin/cbd debian/centreon-broker-cbd/usr/bin/
+# centreon-broker-cbmod
+	mkdir -p debian/centreon-broker-cbmod/usr/lib/centreon-broker
+	mv debian/centreon-broker-core/usr/lib/centreon-broker/cbmod.so debian/centreon-broker-cbmod/usr/lib/centreon-broker/
+# centreon-broker
+	mkdir -p debian/centreon-broker
+# centreon-broker-dev
+	mkdir -p debian/centreon-broker-dev/usr/include
+	mv debian/centreon-broker-core/usr/include/centreon-broker debian/centreon-broker-dev/usr/include/
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod -R g+w debian/centreon-broker-core/etc/centreon-broker debian/centreon-broker-core/var/lib/centreon-broker debian/centreon-broker-core/var/log/centreon-broker
