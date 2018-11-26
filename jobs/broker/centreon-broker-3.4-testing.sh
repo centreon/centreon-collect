@@ -38,15 +38,7 @@ git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERS
 cd ..
 
 # Retrieve spec file.
-if [ \! -d packaging-centreon-broker ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon-broker.git
-else
-  cd packaging-centreon-broker
-  git checkout master
-  git pull
-  cd ..
-fi
-cp packaging-centreon-broker/rpm/centreon-broker-3.4.spectemplate input/
+cp `dirname $0`/../../packaging/broker/rpm/centreon-broker-3.4.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6 input output-centos6

@@ -6,7 +6,7 @@ mkdir output
 
 # Retrieve sources.
 mv "$PROJECT-$VERSION.tar.gz" input/
-cp packaging-centreon-broker/rpm/centreon-broker-18.10.spectemplate input/
+cp `dirname $0`/../../../packaging/broker/rpm/centreon-broker-18.10.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-18.10:opensuse-leap input output

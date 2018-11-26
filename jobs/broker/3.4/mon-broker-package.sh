@@ -25,14 +25,5 @@ docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB
 # Retrieve sources.
 get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 
-# Retrieve packaging files.
-if [ \! -d packaging-centreon-broker ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon-broker.git
-else
-  cd packaging-centreon-broker
-  git pull
-  cd ..
-fi
-
 # Run distribution-dependent script.
 . `dirname $0`/mon-broker-package.$DISTRIB.sh
