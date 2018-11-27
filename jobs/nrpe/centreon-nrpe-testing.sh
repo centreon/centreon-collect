@@ -30,7 +30,7 @@ rm -rf output-centos7
 mkdir output-centos7
 
 # Get source tarball.
-curl -o input/nrpe-3.2.1.tar.gz 'https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz'
+curl -Lo input/nrpe-3.2.1.tar.gz 'https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz'
 
 # Get packaging files.
 cp `dirname $0`/../../packaging/nrpe/* input/
