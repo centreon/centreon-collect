@@ -7,7 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-nrpe
-VERSION=3.2.1
+export VERSION=3.2.1
 
 # Check arguments.
 if [ -z "$RELEASE" ] ; then
