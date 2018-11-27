@@ -21,7 +21,6 @@ tar xzf "$PROJECT-server-$VERSION.tar.gz"
 
 # Tweak pom files.
 cd "$PROJECT-server-$VERSION"
-sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat6/pom.xml
 sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/pom.xml
 
 # Build with Maven.
@@ -29,7 +28,7 @@ mvn -f com.centreon.studio.server.parent/pom.xml clean install
 
 # This is run once the Maven build terminated.
 cd ..
-FILES_TOMCAT7="$PROJECT-server-$VERSION/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map4-server/RPMS/noarch/"'*.rpm'
+FILES_TOMCAT7="$PROJECT-server-$VERSION/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
 put_internal_rpms "18.10" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE" $FILES_TOMCAT7
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/18.10/el7/noarch/map-server/$PROJECT-$VERSION-$RELEASE/*.rpm"

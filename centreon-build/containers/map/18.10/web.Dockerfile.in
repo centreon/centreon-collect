@@ -6,7 +6,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install Centreon Map web client.
-RUN yum install -y centreon-map4-web-client && \
+RUN yum install -y centreon-map-web-client && \
     rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 COPY web/18.10/install-centreon-module.php /tmp/install-centreon-module.php

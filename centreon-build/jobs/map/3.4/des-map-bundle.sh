@@ -34,7 +34,7 @@ docker pull $BASE_IMAGE
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s#@BASE_IMAGE@#$DEP_IMAGE#g" < map/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
+sed "s#@BASE_IMAGE@#$DEP_IMAGE#g" < map/3.4/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
 sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/3.4/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
 sed "s#@PROJECT@#map-server#g;s#@SUBDIR@#3.4/el$CENTOS_VERSION/noarch/map/centreon-map-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 

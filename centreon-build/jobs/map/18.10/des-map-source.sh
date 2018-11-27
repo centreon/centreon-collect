@@ -37,7 +37,7 @@ node ./node_modules/gulp/bin/gulp.js build-module
 node ./node_modules/gulp/bin/gulp.js build-widget
 
 # Generate Centreon Map web client source tarball used for packaging.
-WEBDIR="../../centreon-map4-web-client-$VERSIONWEB"
+WEBDIR="../../centreon-map-web-client-$VERSIONWEB"
 rm -rf "$WEBDIR"
 mkdir "$WEBDIR"
 cp -a build/module "$WEBDIR"
@@ -46,7 +46,7 @@ cp -a build/install.sh "$WEBDIR"
 cp -a build/libinstall "$WEBDIR"
 cp -a build/examples "$WEBDIR"
 cd ../..
-tar czf centreon-map4-web-client-$VERSIONWEB.tar.gz centreon-map4-web-client-$VERSIONWEB
+tar czf centreon-map-web-client-$VERSIONWEB.tar.gz centreon-map-web-client-$VERSIONWEB
 
 # Generate Centreon Map client source tarball.
 rm -rf "$PROJECT-desktop-$VERSION" "$PROJECT-desktop-$VERSION.tar.gz"
@@ -59,10 +59,10 @@ cp -r "$PROJECT/server" "$PROJECT-server-$VERSION"
 tar czf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
 
 # Send it to srvi-repo.
-curl -F "file=@centreon-map4-web-client-$VERSIONWEB.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "centreon-map4-web-client-$VERSIONWEB-php71.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSIONWEB.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map4-web-client-$VERSIONWEB-php71.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/web/packaging/centreon-map4-web-client.spectemplate"
+curl -F "file=@centreon-map-web-client-$VERSIONWEB.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "centreon-map-web-client-$VERSIONWEB-php71.tar.gz"
+put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map-web-client-$VERSIONWEB.tar.gz"
+put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map-web-client-$VERSIONWEB-php71.tar.gz"
+put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/web/packaging/centreon-map-web-client.spectemplate"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-server-$VERSION.tar.gz"
 
