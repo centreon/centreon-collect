@@ -1,0 +1,39 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+{
+  "product": {
+    "name": "bam"
+  },
+  "client": {
+    "name": "centreon"
+  },
+  "platform": {
+    "fingerprint": [],
+    "environment": "demo",
+    "mode": "online"
+  },
+  "licensing": {
+    "type": "demo",
+    "isMachineLocked": "false",
+    "generated": "2018-11-27",
+    "start": "2018-11-27",
+    "end": "2019-04-19",
+    "hosts": -1,
+    "catalog_level": "4"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v1.6.2
+Comment: http://openpgpjs.org
+
+wsBcBAEBCAAQBQJb/R2ECRC4oxbLyI+7ygAAuKYH/04P/Lr/Adc+v+0dQm5g
+fSEHATui79XX99qXJg/tU3eKVE6z8ykasqTfoGe+i8VpXwda8XEYii//6OGc
+N5B/XSsFbrc8YioqvCJ0nV+hUWjPlzMuct2jBoQej6EexRpkwjhs3gAmq+4W
+nvkVlHnZsTDPT+PqYoaYXmglwjmAe4DJENCikkG25LsqYM1tN6w6oZsv1mro
+Y9gxZ3gqoYG7EPNfiEoBAK6kpsUmBWDnZb5+3Mix4uI4eJPinAcXy8kLiRkG
+bBPrf2pONTwYQWWT/gZrgDwSFtTByqCpXD7iphcajNZdAUedJM5HYDaV0WqD
+Pd5G6xdBNAUOv9P9QiPTliw=
+=/HGB
+-----END PGP SIGNATURE-----

@@ -11,7 +11,7 @@ RUN yum install -y centreon-bam-server && \
     yum clean all
 
 # Install license file.
-COPY bam/merethis_lic.zl /usr/share/centreon/www/modules/centreon-bam-server/license/merethis_lic.zl
+COPY bam/3.4/merethis_lic.zl /usr/share/centreon/www/modules/centreon-bam-server/license/merethis_lic.zl
 
 # Install module in Centreon.
 COPY web/3.4/install-centreon-module.php /tmp/install-centreon-module.php
