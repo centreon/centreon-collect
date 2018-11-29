@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../common.sh
 
 # Project.
-PROJECT=centreon-map4-web-client
+PROJECT=centreon-map-web-client
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "map" "18.10" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE"
