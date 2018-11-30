@@ -4,7 +4,7 @@ mkdir debuildir
 cp "${PROJECT}-${VERSION}.tar.gz" "debuildir/${PROJECT}_${VERSION}.orig.tar.gz"
 cd debuildir
 tar xzf "${PROJECT}_${VERSION}.orig.tar.gz"
-cp -r "../packaging-${PROJECT}/debian" "${PROJECT}-${VERSION}/"
+cp -r `dirname $0`"/../../../packaging/broker/debian" "${PROJECT}-${VERSION}/"
 sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian10/g" < "${PROJECT}-${VERSION}/debian/changelog.in" > "${PROJECT}-${VERSION}/debian/changelog"
 cd ..
 
