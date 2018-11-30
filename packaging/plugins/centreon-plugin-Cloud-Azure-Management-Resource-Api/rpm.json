@@ -1,7 +1,14 @@
 {
     "dependencies": [
         "perl(JSON::XS)",
-        "perl(DateTime)"
+        "perl(DateTime)",
+        "perl(Digest::MD5)",
+        "perl(Digest::SHA)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(HTTP::ProxyPAC)"
     ],
     "custom_pkg_data": "Obsoletes:    centreon-plugin-Cloud-Azure-Resources-Api"
 }
