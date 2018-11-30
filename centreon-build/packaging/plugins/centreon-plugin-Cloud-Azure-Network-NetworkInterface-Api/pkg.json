@@ -1,9 +1,11 @@
 {
     "pkg_name": "centreon-plugin-Cloud-Azure-Network-NetworkInterface-Api",
-    "pkg_summary": "Centreon Plugin",
+    "pkg_summary": "Centreon Plugin to monitor Microsoft Azure Network provider/Network Interface service using CLI or RestAPI",
     "plugin_name": "centreon_azure_network_networkinterface_api.pl",
     "files": [
         "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
         "cloud/azure/custom/",
         "cloud/azure/network/networkinterface/"
     ]

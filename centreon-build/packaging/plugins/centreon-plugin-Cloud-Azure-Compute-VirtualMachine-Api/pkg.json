@@ -1,9 +1,11 @@
 {
     "pkg_name": "centreon-plugin-Cloud-Azure-Compute-VirtualMachine-Api",
-    "pkg_summary": "Centreon Plugin",
+    "pkg_summary": "Centreon Plugin to monitor Microsoft Azure Compute provider/Virtual Machine service using CLI or RestAPI",
     "plugin_name": "centreon_azure_compute_virtualmachine_api.pl",
     "files": [
         "centreon/plugins/script_custom.pm",
+        "centreon/plugins/http.pm",
+        "centreon/plugins/useragent.pm",
         "cloud/azure/custom/",
         "cloud/azure/compute/virtualmachine/"
     ]
