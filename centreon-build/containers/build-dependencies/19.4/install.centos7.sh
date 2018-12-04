@@ -17,7 +17,7 @@ yum install centos-release-scl-rh.rpm
 xargs yum install < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-curl --silent --location https://rpm.nodesource.com/setup_8.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_10.x | bash -
 yum install --nogpgcheck -y nodejs
 npm install -g gulp
 
