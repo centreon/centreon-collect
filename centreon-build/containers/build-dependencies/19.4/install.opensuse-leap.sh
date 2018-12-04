@@ -8,7 +8,7 @@ zypper --non-interactive install rpm-build
 xargs zypper --non-interactive install --download-only < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-zypper --non-interactive install nodejs10 npm10 system-user-nobody
+zypper --non-interactive install nodejs8 npm8 system-user-nobody
 npm install -g gulp
 
 # Install Composer.
