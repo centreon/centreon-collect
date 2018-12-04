@@ -58,7 +58,7 @@ rm -rf lang
 composer install --no-dev --optimize-autoloader
 
 # Install npm dependencies.
-npm install
+npm ci
 npm run build
 rm -rf node_modules
 

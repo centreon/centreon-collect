@@ -5,7 +5,7 @@ set -x
 
 # Install dependencies.
 cd /usr/local/src/centreon-web
-npm install
+npm ci
 
 # Run unit tests.
 npm run test:build
