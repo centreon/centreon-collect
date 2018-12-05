@@ -15,6 +15,7 @@ set -x
 
 # Project.
 PROJECT=centreon-web
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 VERSION=
@@ -84,6 +85,7 @@ docker rm "$containerid"
 
 # Send it to srvi-repo.
 put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
