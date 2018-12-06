@@ -17,6 +17,4 @@ tar xzf centreon-web-git.tar.gz
 
 # Copy reports and run analysis.
 cd centreon-web
-cp ../ut.xml .
-cp ../coverage.xml .
 sonar-scanner
