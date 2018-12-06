@@ -19,4 +19,5 @@ tar xzf centreon-web-git.tar.gz
 cd centreon-web
 cp ../ut.xml .
 cp ../coverage.xml .
+sed -i -e 's#/usr/local/src/centreon-web/##g' coverage.xml
 sonar-scanner
