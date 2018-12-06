@@ -70,6 +70,8 @@ foreach $plugin (@plugins) {
                 File::Copy::Recursive::dircopy($file, 'lib/' . $file);
             }
         }
+        # Remove __END__ for Centreon Connector Perl compatibility.
+        system 'find', 'lib', '-name', '*.pm', '-exec', 'sed', '-i', ' /__END__/d', '{}', ';';
 
         # Fatpack plugin.
         my $fatpacker = App::FatPacker->new();
