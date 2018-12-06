@@ -19,8 +19,8 @@ REGISTRY='ci.int.centreon.com:5000'
 for image in des-map-server des-map-web ; do
   for distrib in centos7 ; do
     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-3.4:$distrib"
-    docker push "$REGISTRY/$image-3.4:$distrib"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-18.10:$distrib"
+    docker push "$REGISTRY/$image-18.10:$distrib"
   done
 done
 
