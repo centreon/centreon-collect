@@ -13,6 +13,9 @@ set -x
 # the property file generated at the end of the script.
 #
 
+# Create repository tarball.
+tar czf centreon-web-git.tar.gz centreon-web
+
 # Checkout Centreon Plugins.
 if [ \! -d centreon-plugins ] ; then
   git clone https://github.com/centreon/centreon-plugins.git
@@ -92,6 +95,7 @@ tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
 # Send it to srvi-repo.
 put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-$VERSION.tar.gz"
+put_internal_source "web" "centreon-web-$VERSION-$RELEASE" "centreon-web-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
