@@ -15,6 +15,7 @@ set -x
 
 # Project.
 PROJECT=centreon-broker
+tar czf "$PROJECT-git.tar.gz"
 
 # Get version.
 cd $PROJECT
@@ -38,6 +39,7 @@ cd ..
 
 # Send it to srvi-repo.
 put_internal_source "broker" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "broker" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
