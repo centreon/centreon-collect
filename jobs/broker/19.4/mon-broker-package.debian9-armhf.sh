@@ -4,9 +4,9 @@ mkdir debuildir
 cp "${PROJECT}-${VERSION}.tar.gz" "debuildir/${PROJECT}_${VERSION}.orig.tar.gz"
 cd debuildir
 tar xzf "${PROJECT}_${VERSION}.orig.tar.gz"
-cp -r `dirname $0`"/../../../packaging/broker/debian" "${PROJECT}-${VERSION}/"
-sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian9/g" < "${PROJECT}-${VERSION}/debian/changelog.in" > "${PROJECT}-${VERSION}/debian/changelog"
 cd ..
+cp -r `dirname $0`"/../../../packaging/broker/debian" "debuildir/${PROJECT}-${VERSION}/"
+sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian9/g" < "debuildir/${PROJECT}-${VERSION}/debian/changelog.in" > "debuildir/${PROJECT}-${VERSION}/debian/changelog"
 
 # Launch debuild.
 containerid=`docker create ci.int.centreon.com:5000/mon-build-dependencies-19.4:debian9-armhf sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && export CC=arm-linux-gnueabihf-gcc && export CXX=arm-linux-gnueabihf-g++ && dpkg-buildpackage -us -uc -d -aarmhf"`
