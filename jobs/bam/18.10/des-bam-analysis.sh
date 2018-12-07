@@ -11,7 +11,7 @@ set -x
 PROJECT=centreon-bam-server
 
 # Retrieve copy of git repository.
-curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-git.tar.gz"
+curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-git.tar.gz"
 rm -rf "$PROJECT"
 tar xzf "$PROJECT-git.tar.gz"
 
