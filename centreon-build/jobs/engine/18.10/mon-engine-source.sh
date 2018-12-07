@@ -7,6 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-engine
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 #
 # This script will generate Centreon Engine sources from the local clone
@@ -38,6 +39,7 @@ cd ..
 
 # Send it to srvi-repo.
 put_internal_source "engine" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "engine" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
