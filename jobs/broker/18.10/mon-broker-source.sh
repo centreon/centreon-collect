@@ -15,7 +15,7 @@ set -x
 
 # Project.
 PROJECT=centreon-broker
-tar czf "$PROJECT-git.tar.gz"
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd $PROJECT
