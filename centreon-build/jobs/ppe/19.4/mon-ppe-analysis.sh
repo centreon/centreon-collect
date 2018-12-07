@@ -17,4 +17,7 @@ tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
 cd "$PROJECT"
+cp ../ut.xml .
+cp ../coverage.xml .
+sed -i -e 's#/usr/local/src/centreon-export/##g' coverage.xml
 sonar-scanner
