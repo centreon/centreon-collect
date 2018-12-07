@@ -14,6 +14,7 @@ set -x
 
 # Project.
 PROJECT=centreon-bam-server
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd "$PROJECT"
@@ -45,6 +46,7 @@ put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php53.tar.gz"
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php54.tar.gz"
+put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
