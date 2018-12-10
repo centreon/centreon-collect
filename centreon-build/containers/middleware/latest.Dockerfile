@@ -12,7 +12,7 @@ RUN apt-get update && \
     echo 'mysql-community-server mysql-community-server/root-pass password centreon' | debconf-set-selections && \
     echo 'mysql-community-server mysql-community-server/re-root-pass password centreon' | debconf-set-selections && \
     dpkg -i mysql-apt-config_0.3.7-1debian8_all.deb && \
-    gpg --recv-keys 5072E1F5 && \
+    gpg --keyserver keyserver.ubuntu.com --recv-keys 5072E1F5 && \
     gpg --export 5072E1F5 > /etc/apt/trusted.gpg.d/mysql.gpg && \
     apt-get update && \
     apt-get install --allow-unauthenticated -y build-essential curl \
