@@ -23,7 +23,7 @@ RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf && \
     chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
 
 # Install Node.js and NPM.
-RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
     apt-get install -y nodejs
 
 # Install middleware.
