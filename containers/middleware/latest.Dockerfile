@@ -12,11 +12,11 @@ RUN apt-get update && \
     echo 'mysql-community-server mysql-community-server/root-pass password centreon' | debconf-set-selections && \
     echo 'mysql-community-server mysql-community-server/re-root-pass password centreon' | debconf-set-selections && \
     dpkg -i mysql-apt-config_0.3.7-1debian8_all.deb && \
-    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 5072E1F5 && \
+    gpg --recv-keys 5072E1F5 && \
     gpg --export 5072E1F5 > /etc/apt/trusted.gpg.d/mysql.gpg && \
     apt-get update && \
     apt-get install --allow-unauthenticated -y build-essential curl \
-        mysql-client=5.6.41-1debian8 mysql-community-server=5.6.41-1debian8 mysql-server=5.6.41-1debian8 \
+        mysql-client=5.6.42-1debian8 mysql-community-server=5.6.42-1debian8 mysql-server=5.6.42-1debian8 \
         netcat php-cli php-curl php-mysql unicode-data
 # By default MySQL listens only to the loopback interface.
 RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf && \
