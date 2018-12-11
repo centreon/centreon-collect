@@ -14,7 +14,7 @@ set -x
 #
 
 # Project.
-PROJECT=centreon-web
+export PROJECT=centreon-web
 tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
@@ -95,3 +95,8 @@ RELEASE=$RELEASE
 COMMIT=$COMMIT
 COMMITTER=$COMMITTER
 EOF
+
+# Generate summary report.
+rm -rf summary
+cp -r `dirname $0`/summary .
+generate_summary
