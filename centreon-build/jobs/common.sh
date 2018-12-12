@@ -12,7 +12,7 @@ export COMPOSE_HTTP_TIMEOUT=180
 # Cleanup routine.
 
 clean_directory () {
-  CMD='ls -rc '"$1"' | head -n -10 | xargs rm -rf'
+  CMD='ls -drc '"$1/*"' | head -n -10 | xargs rm -rf'
   ssh "$REPO_CREDS" "$CMD"
 }
 
