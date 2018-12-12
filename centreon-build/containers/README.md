@@ -7,11 +7,7 @@ testing environments. Usually any image is provided with two tags :
 **centos6** and **centos7**, according to the operating system flavor.
 
 Images are hosted on a private registry hosted at
-*ci.int.centreon.com:5000*. If you wish to use images provided by this
-registry you need to configure Docker to explicit trust it.
-Edit the file */etc/docker/daemon.json* (create it if needed) and add the following line:
-
-**{ "insecure-registries":["ci.int.centreon.com:5000"] }**
+*registry.centreon.com*.
 
 ## Building images
 
@@ -22,7 +18,7 @@ could do it like so.
 
 ```shell
 cd centreon-build/containers
-docker build -t ci.int.centreon.com:5000/mon-build-dependencies:centos6 -f build-dependencies.centos6.Dockerfile .
+docker build -t registry.centreon.com/mon-build-dependencies:centos6 -f build-dependencies.centos6.Dockerfile .
 ```
 
 Note the ending dot. This is directory context we're talking about.

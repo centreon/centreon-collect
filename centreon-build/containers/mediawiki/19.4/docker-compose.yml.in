@@ -13,7 +13,7 @@ services:
     - default
     - webdriver_default
   mediawiki:
-    image: ci.int.centreon.com:5000/mon-mediawiki-19.4:latest
+    image: registry.centreon.com/mon-mediawiki-19.4:latest
     ports:
     - "80"
     external_links:

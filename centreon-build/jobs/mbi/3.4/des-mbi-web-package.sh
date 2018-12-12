@@ -45,7 +45,7 @@ fi
 curl -F "file=@centreon-bi-server-$VERSION.tar.gz" -F "version=$phpversion" -F 'modulename=centreon-bi-server-2' 'http://encode.int.centreon.com/api/' -o "input/centreon-bi-server-$VERSION-php$phpversion.tar.gz"
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB"
+BUILD_IMG="registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.

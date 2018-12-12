@@ -13,8 +13,8 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7
+docker pull registry.centreon.com/mon-build-dependencies-3.4:centos6
+docker pull registry.centreon.com/mon-build-dependencies-3.4:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -41,8 +41,8 @@ cd ..
 cp `dirname $0`/../../packaging/broker/rpm/centreon-broker-3.4.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos6 input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-3.4:centos6 input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-3.4:centos7 input output-centos7
 
 # Copy sources to server.
 SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"

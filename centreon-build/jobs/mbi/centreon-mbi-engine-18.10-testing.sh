@@ -31,7 +31,7 @@ cp "packaging/$PROJECT.spectemplate" "../input/"
 cd ..
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7"
+BUILD_IMG="registry.centreon.com/mon-build-dependencies-18.10:centos7"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.

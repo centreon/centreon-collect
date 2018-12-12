@@ -59,8 +59,8 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
  mv $SPECS_NAME input/
 
 # Pull latest build dependencies.
- BUILD_IMG_CENTOS6="ci.int.centreon.com:5000/mon-build-dependencies:centos6"
- BUILD_IMG_CENTOS7="ci.int.centreon.com:5000/mon-build-dependencies:centos7"
+ BUILD_IMG_CENTOS6="registry.centreon.com/mon-build-dependencies:centos6"
+ BUILD_IMG_CENTOS7="registry.centreon.com/mon-build-dependencies:centos7"
  docker pull "$BUILD_IMG_CENTOS6"
  docker pull "$BUILD_IMG_CENTOS7"
 

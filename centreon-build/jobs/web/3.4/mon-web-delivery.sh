@@ -10,7 +10,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Set Docker images as latest.
-REGISTRY='ci.int.centreon.com:5000'
+REGISTRY='registry.centreon.com'
 for image in mon-web-fresh mon-web mon-web-widgets ; do
   for distrib in centos6 centos7 ; do
     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"

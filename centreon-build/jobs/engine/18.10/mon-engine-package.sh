@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-18.10:$DISTRIB
+docker pull registry.centreon.com/mon-build-dependencies-18.10:$DISTRIB
 
 # Retrieve sources.
 get_internal_source "engine/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"

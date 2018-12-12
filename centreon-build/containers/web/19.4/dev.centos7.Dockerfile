@@ -1,4 +1,4 @@
-FROM ci.int.centreon.com:5000/mon-web-fresh-19.4:centos7
+FROM registry.centreon.com/mon-web-fresh-19.4:centos7
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Centreon update is made through custom scripts.

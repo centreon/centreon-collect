@@ -40,14 +40,14 @@ cd ..
 tar czf input/centreon-map4-web-client-$VERSION.tar.gz centreon-map4-web-client-$VERSION
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull registry.centreon.com/mon-build-dependencies:centos6
+docker pull registry.centreon.com/mon-build-dependencies:centos7
 
 # Build RPMs.
 cp web/packaging/centreon-map4-web-client.spectemplate input
 
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos6 input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos7 input output-centos7
 
 
 # Copy files to server.

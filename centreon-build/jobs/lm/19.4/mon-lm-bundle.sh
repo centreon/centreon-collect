@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-19.4:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-19.4:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
@@ -31,7 +31,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < lm/19.4/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerf
 sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#19.4/el7/noarch/lm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
 LM_WIP_IMAGE="$REGISTRY/mon-lm-19.4-wip:$DISTRIB"
 docker build --no-cache -t "$LM_IMAGE" -f lm/lm.$DISTRIB.Dockerfile .

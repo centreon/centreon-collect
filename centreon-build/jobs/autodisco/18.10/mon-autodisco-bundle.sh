@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull base image.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-18.10:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-18.10:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
@@ -31,7 +31,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < autodisco/18.10/Dockerfile.in > autodisco/Dockerf
 sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#18.10/el7/x86_64/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 AUTODISCO_IMAGE="$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$DISTRIB"
 AUTODISCO_WIP_IMAGE="$REGISTRY/mon-autodisco-18.10-wip:$DISTRIB"
 docker build --no-cache -t "$AUTODISCO_IMAGE" -f autodisco/Dockerfile .

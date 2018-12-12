@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
 MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware:latest"
 REDIS_IMAGE="redis:latest"

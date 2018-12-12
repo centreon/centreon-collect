@@ -1,5 +1,5 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-middleware:latest
+FROM registry.centreon.com/mon-middleware:latest
 LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 
 ENV DATAPATH middleware/data

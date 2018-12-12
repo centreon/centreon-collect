@@ -38,7 +38,7 @@ fi
 sed -i -e "s/@VERSION@/$VERSION/g" -e "s/@DISTRIB@/$DISTRIB/g" -e "s/@BASE_IMAGE@/$BASE_IMAGE/g" dependencies/Dockerfile
 
 # Build image.
-DEP_IMG="ci.int.centreon.com:5000/mon-dependencies-$VERSION:$DISTRIB"
+DEP_IMG="registry.centreon.com/mon-dependencies-$VERSION:$DISTRIB"
 docker pull "$BASE_IMAGE"
 docker build --no-cache -t "$DEP_IMG" -f dependencies/Dockerfile .
 docker push "$DEP_IMG"

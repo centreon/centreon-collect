@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 AWIE_IMAGE="$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
 docker pull $AWIE_IMAGE
 

@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Set Docker images as latest.
-REGISTRY='ci.int.centreon.com:5000'
+REGISTRY='registry.centreon.com'
 for distrib in centos7 ; do
   docker pull "$REGISTRY/des-bam-$VERSION-$RELEASE:$distrib"
   docker tag "$REGISTRY/des-bam-$VERSION-$RELEASE:$distrib" "$REGISTRY/des-bam-19.4:$distrib"

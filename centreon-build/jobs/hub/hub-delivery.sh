@@ -10,7 +10,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Set Docker images as latest.
-REGISTRY='ci.int.centreon.com:5000'
+REGISTRY='registry.centreon.com'
 docker pull "$REGISTRY/hub-$VERSION-$RELEASE:latest"
 docker tag "$REGISTRY/hub-$VERSION-$RELEASE:latest" "$REGISTRY/hub:latest"
 docker push "$REGISTRY/hub:latest"

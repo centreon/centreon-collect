@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Tag and push images.
-REGISTRY='ci.int.centreon.com:5000'
+REGISTRY='registry.centreon.com'
 for image in des-map-server des-map-web ; do
   for distrib in centos7 ; do
     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"

@@ -11,7 +11,7 @@ docker pull ubuntu:rolling
 
 # Build image.
 cd `dirname $0`/../../containers
-docker build -t ci.int.centreon.com:5000/mon-$browser:latest -f webdrivers/$browser.Dockerfile .
+docker build -t registry.centreon.com/mon-$browser:latest -f webdrivers/$browser.Dockerfile .
 
 # Push image.
-docker push ci.int.centreon.com:5000/mon-$browser:latest
+docker push registry.centreon.com/mon-$browser:latest

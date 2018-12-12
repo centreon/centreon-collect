@@ -1,5 +1,5 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-squid-simple:latest
+FROM registry.centreon.com/mon-squid-simple:latest
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Install squid

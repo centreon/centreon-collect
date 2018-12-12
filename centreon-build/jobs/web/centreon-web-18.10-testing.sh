@@ -15,7 +15,7 @@ if [ -z "$COMMIT" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-BUILD_CENTOS7=ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7
+BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-18.10:centos7
 docker pull "$BUILD_CENTOS7"
 
 # Prepare base source tarball.

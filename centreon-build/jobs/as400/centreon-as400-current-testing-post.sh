@@ -38,12 +38,12 @@ tar czf "input-plugin/$PLUGINDIR.tar.gz" "$PLUGINDIR"
 cp $SRCDIR/Plugins/rpm/*.spectemplate input-plugin/
 
 # Build server.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input-server output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input-server output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos6 input-server output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos7 input-server output-centos7
 
 # Build plugin.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input-plugin output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input-plugin output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos6 input-plugin output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos7 input-plugin output-centos7
 
 # Copy files to server.
 FILES_CENTOS6_NOARCH='output-centos6/noarch/*.rpm'

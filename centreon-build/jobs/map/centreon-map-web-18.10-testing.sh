@@ -46,11 +46,11 @@ tar czf centreon-map-web-client-$VERSION.tar.gz centreon-map-web-client-$VERSION
 curl -F "file=@centreon-map-web-client-$VERSION.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "input/centreon-map-web-client-$VERSION-php71.tar.gz"
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7
+docker pull registry.centreon.com/mon-build-dependencies-18.10:centos7
 
 # Build RPMs.
 cp web/packaging/centreon-map-web-client.spectemplate input
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-18.10:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-18.10:centos7 input output-centos7
 
 # Copy files to server.
 put_testing_rpms "map" "18.10" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm

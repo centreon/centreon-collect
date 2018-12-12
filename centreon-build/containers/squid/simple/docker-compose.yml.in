@@ -15,7 +15,7 @@ services:
     - default
     - webdriver_default
   squid:
-    image: ci.int.centreon.com:5000/mon-squid-simple:latest
+    image: registry.centreon.com/mon-squid-simple:latest
     ports:
     - "3128"
     external_links:

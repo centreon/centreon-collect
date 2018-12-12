@@ -15,7 +15,7 @@ export VERSION=3.4
 ##
 
 # Launch container.
-ISO_IMAGE=ci.int.centreon.com:5000/mon-build-iso:centos6
+ISO_IMAGE=registry.centreon.com/mon-build-iso:centos6
 docker pull $ISO_IMAGE
 containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
 
@@ -36,7 +36,7 @@ scp -o StrictHostKeyChecking=no ces.iso "ubuntu@srvi-repo.int.centreon.com:/srv/
 ##
 
 # Launch container.
-ISO_IMAGE=ci.int.centreon.com:5000/mon-build-iso:centos7
+ISO_IMAGE=registry.centreon.com/mon-build-iso:centos7
 docker pull $ISO_IMAGE
 containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
 

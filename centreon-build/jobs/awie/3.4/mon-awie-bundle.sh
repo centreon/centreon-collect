@@ -25,7 +25,7 @@ else
 fi
 
 # Pull Centreon Web image.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-3.4:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-3.4:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
@@ -36,7 +36,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < awie/3.4/awie.Dockerfile.in > awie/Dockerfile
 sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#3.4/el$CENTOS_VERSION/noarch/awie/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 AWIE_IMAGE="$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
 AWIE_WIP_IMAGE="$REGISTRY/mon-awie-3.4-wip:$DISTRIB"
 docker build --no-cache -t "$AWIE_IMAGE" -f awie/Dockerfile .

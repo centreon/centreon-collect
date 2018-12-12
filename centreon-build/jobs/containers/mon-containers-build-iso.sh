@@ -10,22 +10,22 @@ if [ "$1" = "centos6" ] ; then
 
   # Build image.
   cd `dirname $0`/../../containers
-  docker build -t ci.int.centreon.com:5000/mon-build-iso:centos6 -f iso/centos6/build-iso.Dockerfile .
+  docker build -t registry.centreon.com/mon-build-iso:centos6 -f iso/centos6/build-iso.Dockerfile .
 
   # Push image.
-  docker push ci.int.centreon.com:5000/mon-build-iso:centos6
+  docker push registry.centreon.com/mon-build-iso:centos6
 
 # CentOS 7.
 elif [ "$1" = "centos7" ] ; then
   # Pull base image.
-  docker pull ci.int.centreon.com:5000/centos:7.5.1804
+  docker pull registry.centreon.com/centos:7.5.1804
 
   # Build image.
   cd `dirname $0`/../../containers
-  docker build -t ci.int.centreon.com:5000/mon-build-iso:centos7 -f iso/centos7/build-iso.Dockerfile .
+  docker build -t registry.centreon.com/mon-build-iso:centos7 -f iso/centos7/build-iso.Dockerfile .
 
   # Push image.
-  docker push ci.int.centreon.com:5000/mon-build-iso:centos7
+  docker push registry.centreon.com/mon-build-iso:centos7
 
 # Unknown distrib.
 else

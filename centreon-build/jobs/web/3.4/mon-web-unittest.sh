@@ -54,7 +54,7 @@ docker rm "$containerid"
 ###################
 
 # Launch mon-unittest container.
-UT_IMAGE=ci.int.centreon.com:5000/mon-unittest-3.4:$DISTRIB
+UT_IMAGE=registry.centreon.com/mon-unittest-3.4:$DISTRIB
 docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing centreon`
 

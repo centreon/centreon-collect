@@ -20,11 +20,11 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-PPM_IMAGE="ci.int.centreon.com:5000/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
-PPM1_IMAGE=ci.int.centreon.com:5000/mon-ppm1:$DISTRIB
-PPM_AUTODISCO_IMAGE=ci.int.centreon.com:5000/mon-ppm-autodisco-$VERSION-$RELEASE:$DISTRIB
-SQUID_SIMPLE_IMAGE=ci.int.centreon.com:5000/mon-squid-simple:latest
-SQUID_BASIC_AUTH_IMAGE=ci.int.centreon.com:5000/mon-squid-basic-auth:latest
+PPM_IMAGE="registry.centreon.com/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
+PPM1_IMAGE=registry.centreon.com/mon-ppm1:$DISTRIB
+PPM_AUTODISCO_IMAGE=registry.centreon.com/mon-ppm-autodisco-$VERSION-$RELEASE:$DISTRIB
+SQUID_SIMPLE_IMAGE=registry.centreon.com/mon-squid-simple:latest
+SQUID_BASIC_AUTH_IMAGE=registry.centreon.com/mon-squid-basic-auth:latest
 docker pull $PPM_IMAGE
 docker pull $PPM1_IMAGE
 docker pull $PPM_AUTODISCO_IMAGE
