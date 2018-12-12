@@ -105,3 +105,8 @@ RELEASE=$RELEASE
 COMMIT=$COMMIT
 COMMITTER=$COMMITTER
 EOF
+
+# Generate summary report.
+rm -rf summary
+cp -r `dirname $0`/summary .
+generate_summary
