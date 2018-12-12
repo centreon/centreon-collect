@@ -16,8 +16,8 @@ DISTRIB="$1"
 CENTOS_VERSION=7
 
 # Pull base image.
-DEP_IMAGE=ci.int.centreon.com:5000/mon-dependencies-19.4:$DISTRIB
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-19.4:$DISTRIB
+DEP_IMAGE=registry.centreon.com/mon-dependencies-19.4:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-19.4:$DISTRIB
 docker pull $DEP_IMAGE
 docker pull $WEB_IMAGE
 
@@ -30,7 +30,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < mbi/19.4/web.Dockerfile.in > mbi/web.Dockerfile
 sed "s#@PROJECT@#mbi#g;s#@SUBDIR@#19.4/el$CENTOS_VERSION/noarch/mbi-web/centreon-bi-server-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 MBI_SERVER_IMAGE="$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB"
 MBI_SERVER_WIP_IMAGE="$REGISTRY/des-mbi-server-19.4-wip:$DISTRIB"
 MBI_WEB_IMAGE="$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB"

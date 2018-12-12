@@ -10,8 +10,8 @@ if [ -z "$COMMIT" -o -z "$REPO" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos6
-docker pull ci.int.centreon.com:5000/mon-build-dependencies:centos7
+docker pull registry.centreon.com/mon-build-dependencies:centos6
+docker pull registry.centreon.com/mon-build-dependencies:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -37,8 +37,8 @@ curl -F "file=@centreon-pp-manager-$VERSION.tar.gz" -F "version=54" -F 'modulena
 cp centreon-pp-manager/packaging/centreon-pp-manager.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos6 input output-centos6
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos6 input output-centos6
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos7 input output-centos7
 
 # Copy files to server.
 FILES_CENTOS6='output-centos6/noarch/*.rpm'

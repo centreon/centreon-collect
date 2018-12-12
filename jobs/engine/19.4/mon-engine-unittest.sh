@@ -28,7 +28,7 @@ get_internal_source "engine/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
-UNITTEST_IMAGE=ci.int.centreon.com:5000/mon-unittest-19.4:$DISTRIB
+UNITTEST_IMAGE=registry.centreon.com/mon-unittest-19.4:$DISTRIB
 docker pull $UNITTEST_IMAGE
 containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-engine $DISTRIB`
 

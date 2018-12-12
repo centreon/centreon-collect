@@ -68,7 +68,7 @@ git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.ta
 cd ..
 
 # Create and populate container.
-BUILD_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-19.4:centos7"
+BUILD_IMAGE="registry.centreon.com/mon-build-dependencies-19.4:centos7"
 docker pull "$BUILD_IMAGE"
 containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" -e "COMMIT=$COMMIT" $BUILD_IMAGE /usr/local/bin/source.sh`
 docker cp `dirname $0`/mon-web-source.container.sh "$containerid:/usr/local/bin/source.sh"

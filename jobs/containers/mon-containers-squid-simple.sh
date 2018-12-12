@@ -8,7 +8,7 @@ docker pull centos:7
 
 # Build image.
 cd centreon-build/containers
-docker build -t ci.int.centreon.com:5000/mon-squid-simple:latest -f squid/simple/squid.Dockerfile .
+docker build -t registry.centreon.com/mon-squid-simple:latest -f squid/simple/squid.Dockerfile .
 
 # Push image.
-docker push ci.int.centreon.com:5000/mon-squid-simple:latest
+docker push registry.centreon.com/mon-squid-simple:latest

@@ -17,7 +17,7 @@ fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB
+docker pull registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
@@ -45,7 +45,7 @@ get_internal_source "web/centreon-web-$VERSION-$RELEASE/centreon-$VERSION.tar.gz
 cd ..
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB input output
 
 # Copy files to server.
 if [ "$DISTRIB" = "centos6" ] ; then

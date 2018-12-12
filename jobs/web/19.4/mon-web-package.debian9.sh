@@ -10,7 +10,7 @@ sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian9/g" < "centr
 cd ..
 
 # Launch debuild.
-containerid=`docker create ci.int.centreon.com:5000/mon-build-dependencies-19.4:debian9 sh -c "cd /usr/local/src/debuildir/centreon-${VERSION} && debuild -us -uc -i"`
+containerid=`docker create registry.centreon.com/mon-build-dependencies-19.4:debian9 sh -c "cd /usr/local/src/debuildir/centreon-${VERSION} && debuild -us -uc -i"`
 docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start -a "$containerid"
 

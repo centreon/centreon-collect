@@ -20,7 +20,7 @@ get_internal_source "plugins/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Pull latest build dependencies.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 BUILD_IMG_CENTOS6="$REGISTRY/mon-build-dependencies-3.4:centos6"
 BUILD_IMG_CENTOS7="$REGISTRY/mon-build-dependencies-18.10:centos7"
 docker pull "$BUILD_IMG_CENTOS6"

@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 BAM_IMAGE="$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB"
 docker pull $BAM_IMAGE
 

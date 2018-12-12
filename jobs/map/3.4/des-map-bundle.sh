@@ -20,7 +20,7 @@ else
 fi
 
 # Pull base image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 DEP_IMAGE="$REGISTRY/mon-dependencies-3.4:$DISTRIB"
 BASE_IMAGE="$REGISTRY/mon-web-3.4:$DISTRIB"
 SERVER_IMAGE="$REGISTRY/des-map-server-$VERSION-$RELEASE:$DISTRIB"

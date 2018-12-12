@@ -20,8 +20,8 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-POLLER_IMAGE="ci.int.centreon.com:5000/mon-poller-display-$VERSION-$RELEASE:$DISTRIB"
-CENTRAL_IMAGE="ci.int.centreon.com:5000/mon-poller-display-central-$VERSION-$RELEASE:$DISTRIB"
+POLLER_IMAGE="registry.centreon.com/mon-poller-display-$VERSION-$RELEASE:$DISTRIB"
+CENTRAL_IMAGE="registry.centreon.com/mon-poller-display-central-$VERSION-$RELEASE:$DISTRIB"
 docker pull $POLLER_IMAGE
 docker pull $CENTRAL_IMAGE
 

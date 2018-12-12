@@ -24,7 +24,7 @@ services:
     - default
     - webdriver_default
   openldap:
-    image: ci.int.centreon.com:5000/mon-openldap:latest
+    image: registry.centreon.com/mon-openldap:latest
   redis:
     image: redis:latest
 networks:

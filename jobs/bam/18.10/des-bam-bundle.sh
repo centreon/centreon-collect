@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull base image.
-WEB_IMAGE=ci.int.centreon.com:5000/mon-web-18.10:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-18.10:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
@@ -31,7 +31,7 @@ sed "s/@DISTRIB@/$DISTRIB/g" < bam/18.10/Dockerfile.in > bam/Dockerfile
 sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#18.10/el7/noarch/bam/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 BAM_IMAGE="$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB"
 BAM_WIP_IMAGE="$REGISTRY/des-bam-18.10-wip:$DISTRIB"
 docker build --no-cache -t "$BAM_IMAGE" -f bam/Dockerfile .

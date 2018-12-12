@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 WEBDRIVER_IMAGE=selenium/standalone-chrome:latest
 MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware-$VERSION-$RELEASE:latest"
 REDIS_IMAGE=redis:latest

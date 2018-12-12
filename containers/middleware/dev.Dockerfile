@@ -1,4 +1,4 @@
-FROM ci.int.centreon.com:5000/mon-middleware:latest
+FROM registry.centreon.com/mon-middleware:latest
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # npm packages.

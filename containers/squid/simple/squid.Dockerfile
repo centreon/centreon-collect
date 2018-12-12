@@ -1,5 +1,5 @@
 # Base information.
-FROM ci.int.centreon.com:5000/mon-dependencies:centos7
+FROM registry.centreon.com/mon-dependencies:centos7
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Install squid

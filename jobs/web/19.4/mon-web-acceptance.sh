@@ -24,11 +24,11 @@ if [ -z "$TESTTAGS" ] ; then
 fi
 
 # Pull images.
-WEB_IMAGE="ci.int.centreon.com:5000/mon-web-$VERSION-$RELEASE:$DISTRIB"
-WEB_FRESH_IMAGE="ci.int.centreon.com:5000/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
-WEB_WIDGETS_IMAGE="ci.int.centreon.com:5000/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
-MEDIAWIKI_IMAGE=ci.int.centreon.com:5000/mon-mediawiki-19.4:latest
-OPENLDAP_IMAGE=ci.int.centreon.com:5000/mon-openldap:latest
+WEB_IMAGE="registry.centreon.com/mon-web-$VERSION-$RELEASE:$DISTRIB"
+WEB_FRESH_IMAGE="registry.centreon.com/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
+WEB_WIDGETS_IMAGE="registry.centreon.com/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
+MEDIAWIKI_IMAGE=registry.centreon.com/mon-mediawiki-19.4:latest
+OPENLDAP_IMAGE=registry.centreon.com/mon-openldap:latest
 INFLUXDB_IMAGE=influxdb:latest
 NEWMAN_IMAGE=postman/newman_alpine33:latest
 docker pull $WEB_IMAGE

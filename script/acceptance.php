@@ -12,7 +12,7 @@ function build_image_name($base) {
     global $version;
 
     if ($ci) {
-        $name = 'ci.int.centreon.com:5000/' . $base;
+        $name = 'registry.centreon.com/' . $base;
         if (!empty($version)) {
             $name .= '-' . $version;
         }
@@ -190,7 +190,7 @@ if ($synchronize) {
     $finalImages = array();
     foreach ($images as $image => $parameters) {
         if ($image[0] == '/') {
-            $image = 'ci.int.centreon.com:5000' . $image;
+            $image = 'registry.centreon.com' . $image;
         }
         if (isset($parameters['version'])) {
             foreach ($parameters['version'] as $version) {
@@ -281,7 +281,7 @@ else {
         xpath('mon-lm-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-lm'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -289,7 +289,7 @@ else {
         xpath('hub-dev.yml'),
         array(
             '@WEB_IMAGE@' => 'hub-dev:latest',
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware-dataset:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware-dataset:latest'
         )
     );
     replace_in_file(
@@ -312,7 +312,7 @@ else {
         xpath('mon-ppm-squid-simple-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-ppm'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -320,7 +320,7 @@ else {
         xpath('mon-lm-squid-simple-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-lm'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -333,7 +333,7 @@ else {
         xpath('mon-ppm-squid-basic-auth-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-ppm'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -341,7 +341,7 @@ else {
         xpath('mon-lm-squid-basic-auth-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-lm'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -352,7 +352,7 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/middleware/docker-compose-standalone.yml.in'),
         xpath('mon-middleware-dev.yml'),
-        array('@MIDDLEWARE_IMAGE@' => ($ci ? 'ci.int.centreon.com:5000/mon-middleware:latest' : 'mon-middleware-dev:latest'))
+        array('@MIDDLEWARE_IMAGE@' => ($ci ? 'registry.centreon.com/mon-middleware:latest' : 'mon-middleware-dev:latest'))
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/poller-display/3.4/docker-compose.yml.in'),
@@ -370,14 +370,14 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/18.10/docker-compose.yml.in'),
         xpath('mon-ppe1-dev.yml'),
-        array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-ppe1:' . $distrib)
+        array('@WEB_IMAGE@' => 'registry.centreon.com/mon-ppe1:' . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/18.10/docker-compose.yml.in'),
         xpath('mon-ppm-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-ppm'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -385,7 +385,7 @@ else {
         xpath('mon-ppm-autodisco-dev.yml'),
         array(
             '@WEB_IMAGE@' => build_image_name('mon-ppm-autodisco'),
-            '@MIDDLEWARE_IMAGE@' => 'ci.int.centreon.com:5000/mon-middleware:latest'
+            '@MIDDLEWARE_IMAGE@' => 'registry.centreon.com/mon-middleware:latest'
         )
     );
     replace_in_file(
@@ -396,7 +396,7 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/18.10/docker-compose.yml.in'),
         xpath('mon-ppm1-dev.yml'),
-        array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-ppm1:' . $distrib)
+        array('@WEB_IMAGE@' => 'registry.centreon.com/mon-ppm1:' . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/18.10/docker-compose.yml.in'),
@@ -406,7 +406,7 @@ else {
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/18.10/docker-compose.yml.in'),
         xpath('mon-web-fresh-dev.yml'),
-        array('@WEB_IMAGE@' => 'ci.int.centreon.com:5000/mon-web-fresh-' . $version . ':' . $distrib)
+        array('@WEB_IMAGE@' => 'registry.centreon.com/mon-web-fresh-' . $version . ':' . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/18.10/docker-compose.yml.in'),
@@ -425,8 +425,8 @@ else {
         ),
         xpath('des-map-dev.yml'),
         array(
-            '@MAP_IMAGE@' => 'ci.int.centreon.com:5000/des-map-server-' . $version . ':' . $distrib,
-            '@WEB_IMAGE@' => 'ci.int.centreon.com:5000/des-map-web-' . $version . ':' . $distrib,
+            '@MAP_IMAGE@' => 'registry.centreon.com/des-map-server-' . $version . ':' . $distrib,
+            '@WEB_IMAGE@' => 'registry.centreon.com/des-map-web-' . $version . ':' . $distrib,
             '@SOURCE_DIR@' => xpath(realpath('web/build'))
         )
     );

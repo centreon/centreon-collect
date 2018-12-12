@@ -12,7 +12,7 @@ It manages both authentication and authorization and provides headers for accoun
 You need to modify docker-compose file
 (*centreon-build/containers/lemonldap/docker-compose.yml.in*)
 and replace "@WEB_IMAGE@" by Centreon Web image you want to use
-(i.e "ci.int.centreon.com:5000/mon-web:centos7")
+(i.e "registry.centreon.com/mon-web:centos7")
 
 Then, you can use docker-compose to run lemonldap SSO architecture :<br>
 `docker-compose -f centreon-build/containers/lemonldap/docker-compose.yml.in up -d`

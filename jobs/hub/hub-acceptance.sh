@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 HUB_IMAGE="$REGISTRY/hub-$VERSION-$RELEASE:latest"
 MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware-dataset:latest"
 REDIS_IMAGE=redis:latest

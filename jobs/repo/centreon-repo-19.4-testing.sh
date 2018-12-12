@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Pull build images.
-docker pull ci.int.centreon.com:5000/mon-build-dependencies-19.4:centos7
+docker pull registry.centreon.com/mon-build-dependencies-19.4:centos7
 
 # Generate .repo and .spec.
 rm -rf el7
@@ -30,7 +30,7 @@ for distrib in el7 ; do
       echo "Unsupported distribution $distrib"
       exit 1
     fi
-    docker-rpm-builder dir --sign-with `dirname $0`/../ces.key ci.int.centreon.com:5000/mon-build-dependencies-19.4:$tag input output
+    docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-19.4:$tag input output
 
     # Push RPM.
     if [ "$project" = centreon ] ; then

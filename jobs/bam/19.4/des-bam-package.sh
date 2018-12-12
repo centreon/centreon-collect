@@ -38,7 +38,7 @@ cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION-php71.tar.gz"
 cp "$PROJECT-$VERSION-full/packaging/$PROJECT.spectemplate" input
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-19.4:$DISTRIB"
+BUILD_IMG="registry.centreon.com/mon-build-dependencies-19.4:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.

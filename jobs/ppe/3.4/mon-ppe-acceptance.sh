@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 WEB_IMAGE="$REGISTRY/mon-web-3.4:$DISTRIB"
 PPE_IMAGE="$REGISTRY/mon-ppe-$VERSION-$RELEASE:$DISTRIB"
 PPE1_IMAGE="$REGISTRY/mon-ppe1:$DISTRIB"

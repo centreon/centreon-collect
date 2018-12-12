@@ -18,7 +18,7 @@ case "$2" in
     BASE_IMAGE="debian:9"
     ;;
   debian9-armhf)
-    BASE_IMAGE="ci.int.centreon.com:5000/mon-build-dependencies-18.10:debian9"
+    BASE_IMAGE="registry.centreon.com/mon-build-dependencies-18.10:debian9"
     ;;
   debian10)
     BASE_IMAGE="debian:buster"
@@ -44,7 +44,7 @@ fi
 sed -i -e "s#@VERSION@#$VERSION#g" -e "s#@DISTRIB@#$DISTRIB#g" -e "s#@BASE_IMAGE@#$BASE_IMAGE#g" build-dependencies/Dockerfile
 
 # Build image.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-$VERSION:$DISTRIB"
+BUILD_IMG="registry.centreon.com/mon-build-dependencies-$VERSION:$DISTRIB"
 docker pull "$BASE_IMAGE"
 docker build --no-cache -t "$BUILD_IMG" -f build-dependencies/Dockerfile .
 docker push "$BUILD_IMG"

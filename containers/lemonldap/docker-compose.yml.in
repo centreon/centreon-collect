@@ -6,11 +6,11 @@ services:
     - "80"
     - "3306"
   openldap:
-    image: ci.int.centreon.com:5000/mon-openldap:latest
+    image: registry.centreon.com/mon-openldap:latest
     ports:
     - "389"
   lemonldap:
-    image: ci.int.centreon.com:5000/mon-lemonldap:latest
+    image: registry.centreon.com/mon-lemonldap:latest
     ports:
     - "80"
     links:

@@ -15,7 +15,7 @@ export VERSION=18.10
 ##
 
 # Launch container.
-ISO_IMAGE=ci.int.centreon.com:5000/mon-build-iso:centos7
+ISO_IMAGE=registry.centreon.com/mon-build-iso:centos7
 docker pull $ISO_IMAGE
 containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh 18.10`
 

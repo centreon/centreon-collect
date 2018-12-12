@@ -24,7 +24,7 @@ fi
 sed -i -e "s/@VERSION@/$VERSION/g" -e "s/@DISTRIB@/$DISTRIB/g" unittest/Dockerfile
 
 # Build image.
-UNITTEST_IMG="ci.int.centreon.com:5000/mon-unittest-$VERSION:$DISTRIB"
-docker pull "ci.int.centreon.com:5000/mon-dependencies-$VERSION:$DISTRIB"
+UNITTEST_IMG="registry.centreon.com/mon-unittest-$VERSION:$DISTRIB"
+docker pull "registry.centreon.com/mon-dependencies-$VERSION:$DISTRIB"
 docker build --no-cache -t "$UNITTEST_IMG" -f unittest/Dockerfile .
 docker push "$UNITTEST_IMG"

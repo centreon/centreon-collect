@@ -28,7 +28,7 @@ mv $PROJECT-$VERSION centreon-build-containers/$PROJECT
 cd centreon-build-containers
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 MIDDLEWARE_IMAGE="$REGISTRY/mon-middleware-$VERSION-$RELEASE:latest"
 MIDDLEWARE_WIP_IMAGE="$REGISTRY/mon-middleware-wip:latest"
 docker build --no-cache -t "$MIDDLEWARE_IMAGE" -f middleware/latest.Dockerfile .

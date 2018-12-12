@@ -13,7 +13,7 @@ services:
     - default
     - webdriver_default
   openldap:
-    image: ci.int.centreon.com:5000/mon-openldap:latest
+    image: registry.centreon.com/mon-openldap:latest
     ports:
     - "389"
     external_links:

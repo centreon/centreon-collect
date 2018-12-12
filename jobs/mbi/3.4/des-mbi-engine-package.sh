@@ -68,7 +68,7 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
  mv $SPECS_NAME input/
 
 # Pull latest build dependencies.
-BUILD_IMG="ci.int.centreon.com:5000/mon-build-dependencies-3.4:$DISTRIB"
+BUILD_IMG="registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.

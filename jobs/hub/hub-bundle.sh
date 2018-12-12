@@ -27,7 +27,7 @@ mv "$PROJECT-$VERSION-release" "$PROJECT"
 docker pull httpd:latest
 
 # Build image.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 HUB_IMAGE="$REGISTRY/hub-$VERSION-$RELEASE:latest"
 HUB_WIP_IMAGE="$REGISTRY/hub-wip:latest"
 docker build --no-cache -t "$HUB_IMAGE" -f hub/Dockerfile .

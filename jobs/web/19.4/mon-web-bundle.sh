@@ -21,7 +21,7 @@ DISTRIB="$1"
 CENTOS_VERSION=7
 
 # Target images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 BASE_IMG="$REGISTRY/mon-dependencies-19.4:$DISTRIB"
 FRESH_IMG="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 FRESH_WIP_IMG="$REGISTRY/mon-web-fresh-19.4-wip:$DISTRIB"

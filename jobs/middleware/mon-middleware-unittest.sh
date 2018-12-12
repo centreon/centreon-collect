@@ -14,7 +14,7 @@ get_internal_source "middleware/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
-UT_IMAGE=ci.int.centreon.com:5000/mon-unittest:centos7
+UT_IMAGE=registry.centreon.com/mon-unittest:centos7
 docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-middleware`
 

@@ -10,7 +10,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Set Docker images as latest.
-REGISTRY='ci.int.centreon.com:5000'
+REGISTRY='registry.centreon.com'
 for distrib in centos6 centos7 ; do
   docker pull "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib"
   docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-autodisco-3.4:$distrib"

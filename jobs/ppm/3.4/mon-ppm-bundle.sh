@@ -25,7 +25,7 @@ else
 fi
 
 # Pull images.
-REGISTRY="ci.int.centreon.com:5000"
+REGISTRY="registry.centreon.com"
 PPM_IMAGE="$REGISTRY/mon-ppm-$VERSION-$RELEASE:$DISTRIB"
 PPM_WIP_IMAGE="$REGISTRY/mon-ppm-3.4-wip:$DISTRIB"
 PPM_AUTODISCO_IMAGE="$REGISTRY/mon-ppm-autodisco-$VERSION-$RELEASE:$DISTRIB"
