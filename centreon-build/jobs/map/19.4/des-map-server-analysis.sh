@@ -9,5 +9,5 @@ set -x
 PROJECT=centreon-map
 
 # Copy reports and run analysis.
-cd "$PROJECT"
+cd "$PROJECT-server-$VERSION"
 sonar-scanner
