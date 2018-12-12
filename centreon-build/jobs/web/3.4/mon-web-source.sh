@@ -13,6 +13,9 @@ set -x
 # the property file generated at the end of the script.
 #
 
+# Project.
+export PROJECT=centreon-web
+
 # Create repository tarball.
 tar czf centreon-web-git.tar.gz centreon-web
 
