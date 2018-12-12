@@ -14,6 +14,7 @@ set -x
 
 # Project.
 PROJECT=centreon-map
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd "$PROJECT/web"
@@ -65,6 +66,7 @@ put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map-web-client-
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/web/packaging/centreon-map-web-client.spectemplate"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
 put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-server-$VERSION.tar.gz"
+put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
