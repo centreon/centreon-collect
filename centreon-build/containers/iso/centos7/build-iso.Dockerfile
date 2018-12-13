@@ -1,5 +1,5 @@
 # Base information.
-FROM registry.centreon.com/centos:7.5.1804
+FROM registry.centreon.com/centos:7.6.1810
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Dependencies.
