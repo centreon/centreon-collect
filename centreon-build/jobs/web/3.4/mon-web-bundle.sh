@@ -45,6 +45,7 @@ sed "s#@BASE_IMAGE@#$BASE_IMG#g" < web/3.4/fresh.Dockerfile.in > web/fresh.Docke
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/3.4/standard.Dockerfile.in > web/standard.Dockerfile
 sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/3.4/widgets.Dockerfile.in > web/widgets.Dockerfile
 sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#3.4/el$CENTOS_VERSION/noarch/web/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+scp repo/centreon-internal.repo "$REPO_CREDS:/srv/yum/internal/3.4/el$CENTOS_VERSION/noarch/web/$PROJECT-$VERSION-$RELEASE/"
 
 # Build 'fresh' image.
 docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .
