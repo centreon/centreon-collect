@@ -43,8 +43,8 @@ To make a build goes from unstable to testing, the
 should be launched.
 This job needs a version and a release number:
 
-* The version is the timestamp of the unstable build considered as the most mature,
-* The release number is the a number starting from 1 and indicating the build occurence.
+* The version is the date of the unstable build considered as the most mature,
+* The release number is the time of the unstable build considered as the most mature.
 
 For each successful jobs, packages will be available on the testing repositories:
 
