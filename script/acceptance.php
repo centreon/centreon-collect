@@ -47,7 +47,7 @@ if (function_exists('pcntl_signal')) {
 }
 
 // Parse the options.
-$opts = getopt("cd:ghsv:i:");
+$opts = getopt("cd:ghsv:i:t:");
 array_shift($argv);
 if (isset($opts['h'])) {
     echo "USAGE: acceptance.php [-h] [-g] [-s] [-c] [-v version] [-d distrib] [feature1 [feature2 [...] ] ]\n";
@@ -63,6 +63,7 @@ if (isset($opts['h'])) {
     echo "    -v  Use precise version (can be use with -c for CI).\n";
     echo "    -d  Distribution used to run tests. Default is centos7.\n";
     echo "    -g  Only generate files and images. Do not run tests.\n";
+    echo "    -t  Filter features or scenarios by tags.\n";
     echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
     echo "\n";
     echo "  Prerequisites:\n";
@@ -106,6 +107,13 @@ if (isset($opts['g'])) {
     array_shift($argv);
 } else {
     $only_generate = false;
+}
+if (isset($opts['t'])) {
+    $tags = $opts['t'];
+    array_shift($argv);
+    array_shift($argv);
+} else {
+    $tags = null;
 }
 if (isset($opts['s'])) {
     $synchronize = true;
@@ -459,7 +467,12 @@ else {
     if ($only_generate) {
         echo "Image generation only mode (-g), step not needed\n";
     } else {
-        $cmd = xpath("./vendor/bin/behat --strict --no-colors --no-interaction");
+        $cmdAttr = '';
+        if ($tags !== null) {
+            $cmdAttr .= " --tags '{$tags}'";
+        }
+
+        $cmd = xpath("./vendor/bin/behat --strict --no-colors --no-interaction{$cmdAttr}");
         if (empty($argv)) {
             $argv[] = '';
         }
