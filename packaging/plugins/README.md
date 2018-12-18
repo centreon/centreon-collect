@@ -21,8 +21,7 @@ Those configuration files are hosted in this project.
 
 As the packaging process is based on two components, the CI can be triggered by both.
 
-.. image:: .images/ci_workflow.png
-    :align: center
+![workflow](.images/ci_workflow.png "Continuous integration workflows")
 
 * Each time a commit is made on Centreon Plugins master branch, a build is automatically launched (green arrows),
 * Each time a new plugin configuration files are added, or existing files modified, a build as to
