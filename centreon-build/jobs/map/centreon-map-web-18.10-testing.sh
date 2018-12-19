@@ -57,4 +57,4 @@ put_testing_rpms "map" "18.10" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELE
 
 # Generate doc on internal server.
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V master ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-map-4 -V master'"
+$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V latest'"
