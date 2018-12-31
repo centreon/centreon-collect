@@ -18,9 +18,9 @@ RUN apt-get update && \
     apt-get install --allow-unauthenticated -y build-essential curl \
         mysql-client=5.6.42-1debian8 mysql-community-server=5.6.42-1debian8 mysql-server=5.6.42-1debian8 \
         netcat php-cli php-curl php-mysql unicode-data
+
 # By default MySQL listens only to the loopback interface.
-RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf && \
-    chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
+RUN sed -i s/127.0.0.1/0.0.0.0/g /etc/mysql/mysql.conf.d/mysqld.cnf
 
 # Install Node.js and NPM.
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
@@ -42,7 +42,8 @@ COPY middleware/data/contact.sql  /usr/local/src/contact.sql
 COPY middleware/install.sh /tmp/install.sh
 RUN mkdir /usr/local/src/data && \
     chmod +x /tmp/install.sh && \
-    /tmp/install.sh
+    /tmp/install.sh && \
+    chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
 
 # Entry point.
 COPY middleware/run.sh /usr/local/bin/container.sh
