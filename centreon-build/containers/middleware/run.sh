@@ -3,6 +3,7 @@
 set -e
 set -x
 
+find /var/lib/mysql -type f -exec touch {} \;
 service mysql start
 set +e
 started=1

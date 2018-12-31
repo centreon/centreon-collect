@@ -3,6 +3,7 @@
 set -e
 set -x
 
+find /var/lib/mysql -type f -exec touch {} \;
 service mysql start
 mysql -u root -pcentreon -e 'DROP DATABASE IF EXISTS imp'
 mysql -u root -pcentreon -e 'CREATE DATABASE imp'
