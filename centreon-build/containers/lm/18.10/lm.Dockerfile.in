@@ -4,7 +4,7 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Set middleware server
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
-RUN echo 'env[CENTREON_IMP_SERVER] = HELLOWORLD:http://middleware:3000/api' >> /etc/opt/rh/rh-php71/php-fpm.d/www.conf
+COPY lm/18.10/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php71/php-fpm.d/centreon-license-manager.conf
 
 # Install repository.
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
