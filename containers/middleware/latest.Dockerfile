@@ -42,8 +42,7 @@ COPY middleware/data/contact.sql  /usr/local/src/contact.sql
 COPY middleware/install.sh /tmp/install.sh
 RUN mkdir /usr/local/src/data && \
     chmod +x /tmp/install.sh && \
-    /tmp/install.sh && \
-    chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
+    /tmp/install.sh
 
 # Entry point.
 COPY middleware/run.sh /usr/local/bin/container.sh
