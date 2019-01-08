@@ -29,29 +29,16 @@ make clean
 
 # Generate lang files.
 cd ../..
-# en_US
+# Special case for english front-end translation that uses french as base.
 mkdir -p www/locale/en_US.UTF-8/LC_MESSAGES
-php bin/centreon-translations.php en lang/fr/LC_MESSAGES/messages.po www/locale/en_US.UTF-8/LC_MESSAGES/messages.ser
-# es_ES
-mkdir -p www/locale/es_ES.UTF-8/LC_MESSAGES
-msgfmt lang/es/LC_MESSAGES/messages.po -o www/locale/es_ES.UTF-8/LC_MESSAGES/messages.mo
-msgfmt lang/es/LC_MESSAGES/help.po -o www/locale/es_ES.UTF-8/LC_MESSAGES/help.mo
-php bin/centreon-translations.php es lang/es/LC_MESSAGES/messages.po www/locale/es_ES.UTF-8/LC_MESSAGES/messages.ser
-# fr_FR
-mkdir -p www/locale/fr_FR.UTF-8/LC_MESSAGES
-msgfmt lang/fr/LC_MESSAGES/messages.po -o www/locale/fr_FR.UTF-8/LC_MESSAGES/messages.mo
-msgfmt lang/fr/LC_MESSAGES/help.po -o www/locale/fr_FR.UTF-8/LC_MESSAGES/help.mo
-php bin/centreon-translations.php fr lang/fr/LC_MESSAGES/messages.po www/locale/fr_FR.UTF-8/LC_MESSAGES/messages.ser
-# pt_BR
-mkdir -p www/locale/pt_BR.UTF-8/LC_MESSAGES
-msgfmt lang/pt_BR/LC_MESSAGES/messages.po -o www/locale/pt_BR.UTF-8/LC_MESSAGES/messages.mo
-msgfmt lang/pt_BR/LC_MESSAGES/help.po -o www/locale/pt_BR.UTF-8/LC_MESSAGES/help.mo
-php bin/centreon-translations.php pt lang/pt_BR/LC_MESSAGES/messages.po www/locale/pt_BR.UTF-8/LC_MESSAGES/messages.ser
-# pt_PT
-mkdir -p www/locale/pt_PT.UTF-8/LC_MESSAGES
-msgfmt lang/pt_PT/LC_MESSAGES/messages.po -o www/locale/pt_PT.UTF-8/LC_MESSAGES/messages.mo
-msgfmt lang/pt_PT/LC_MESSAGES/help.po -o www/locale/pt_PT.UTF-8/LC_MESSAGES/help.mo
-php bin/centreon-translations.php pt lang/pt_PT/LC_MESSAGES/messages.po www/locale/pt_PT.UTF-8/LC_MESSAGES/messages.ser
+php bin/centreon-translations.php en lang/fr_FR.UTF-8/LC_MESSAGES/messages.po www/locale/en_US.UTF-8/LC_MESSAGES/messages.ser
+for i in lang/* ; do
+  langcode=`basename $i | cut -d _ -f 1`
+  mkdir -p "www/locale/$i/LC_MESSAGES"
+  msgfmt "lang/$i/LC_MESSAGES/messages.po" -o "www/locale/$i/LC_MESSAGES/messages.mo"
+  msgfmt "lang/$i/LC_MESSAGES/help.po" -o "www/locale/$i/LC_MESSAGES/help.mo"
+  php bin/centreon-translations.php "$langcode" "lang/$i/LC_MESSAGES/messages.po" "www/locale/$i/LC_MESSAGES/messages.ser"
+done
 rm -rf lang
 
 # Install Composer dependencies.
