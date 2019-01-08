@@ -35,7 +35,7 @@ php bin/centreon-translations.php en lang/fr_FR.UTF-8/LC_MESSAGES/messages.po ww
 for i in lang/* ; do
   localefull=`basename $i`
   langcode=`echo $localefull | cut -d _ -f 1`
-  mkdir -p "www/locale/$i/LC_MESSAGES"
+  mkdir -p "www/locale/$localefull/LC_MESSAGES"
   msgfmt "lang/$localefull/LC_MESSAGES/messages.po" -o "www/locale/$localefull/LC_MESSAGES/messages.mo"
   msgfmt "lang/$localefull/LC_MESSAGES/help.po" -o "www/locale/$localefull/LC_MESSAGES/help.mo"
   php bin/centreon-translations.php "$langcode" "lang/$localefull/LC_MESSAGES/messages.po" "www/locale/$localefull/LC_MESSAGES/messages.ser"
