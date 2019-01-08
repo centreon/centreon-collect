@@ -7,6 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-bam-server
+curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
 
 # Check arguments.
 if [ -z "$COMMIT" -o -z "$RELEASE" ]; then
@@ -29,8 +30,17 @@ git checkout --detach "$COMMIT"
 export VERSION=`grep mod_release www/modules/centreon-bam-server/conf.php | cut -d '"' -f 4`
 
 # Create source tarball.
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+rm -rf "../$PROJECT-$VERSION"
+mkdir "../$PROJECT-$VERSION"
+git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+for i in "../$PROJECT-$VERSION/www/modules/centreon-bam-server/locale"/*.UTF-8 ; do
+  lang=`basename $i | cut -d _ -f 1`
+  msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
+  php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
+  rm -f "$i/LC_MESSAGES/messages.po"
+done
 cd ..
+tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Encrypt source tarballs.
 curl -F file=@$PROJECT-$VERSION.tar.gz -F 'version=71' -F "modulename=$PROJECT" 'http://encode.int.centreon.com/api/' -o "input/$PROJECT-$VERSION-php71.tar.gz"
