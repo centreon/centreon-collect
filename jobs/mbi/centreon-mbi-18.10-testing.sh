@@ -11,6 +11,9 @@ if [ -z "$COMMIT" -o -z "$RELEASE" -o -z "$PROJECT" ]; then
   exit 1
 fi
 
+# Get build helper.
+curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
+
 # Pull mon-build-dependencies containers.
 BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-18.10:centos7
 
@@ -36,6 +39,12 @@ fi
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+for i in "../$PROJECT-$VERSION/www/modules/centreon-bi-server/locale"/*.UTF-8 ; do
+  lang=`basename $i | cut -d _ -f 1`
+  msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
+  php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
+  rm -f "$i/LC_MESSAGES/messages.po"
+done
 cd ..
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 

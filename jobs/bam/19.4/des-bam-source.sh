@@ -15,6 +15,7 @@ set -x
 # Project.
 PROJECT=centreon-bam-server
 tar czf "$PROJECT-git.tar.gz" "$PROJECT"
+curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
 
 # Get version.
 cd "$PROJECT"
@@ -30,7 +31,18 @@ export RELEASE="$now.$COMMIT"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Create source tarballs (f*cking .gitattributes).
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+rm -rf "../$PROJECT-$VERSION"
+mkdir "../$PROJECT-$VERSION"
+git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+for i in "../$PROJECT-$VERSION/www/modules/centreon-bam-server/locale"/*.UTF-8 ; do
+  lang=`basename $i | cut -d _ -f 1`
+  msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
+  php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
+  rm -f "$i/LC_MESSAGES/messages.po"
+done
+cd ..
+tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+cd "$PROJECT"
 echo '/* -export-ignore' > .git/info/attributes
 git archive --prefix="$PROJECT-$VERSION-full/" HEAD | gzip > "../$PROJECT-$VERSION-full.tar.gz"
 rm -f .git/info/attributes
