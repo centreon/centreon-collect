@@ -33,6 +33,7 @@ case "$PROJECT" in
   bi-engine|bi-etl|bi-report|bi-reporting-server|bi-server)
     arch=noarch
     repo=mbi
+    PROJECT=`echo $PROJECT | cut -d - -f 2-`
     ;;
   packs)
     arch=noarch
