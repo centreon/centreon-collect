@@ -31,7 +31,7 @@ promote_testing_rpms_to_stable "standard" "18.10" "el7" "noarch" "plugins" "$PRO
 # Move cache files to the stable directory.
 TESTINGCACHE="/srv/cache/plugins/testing/cache-$VERSION-$RELEASE"
 STABLECACHE="/srv/cache/plugins/stable"
-$SSH_REPO 'for i in `ls '$TESTINGCACHE'` ; do rm -rf '$STABLECACHE'/$i ; mv '$TESTINGCACHE'/$i '$STABLECACHE'/ ; rm -rf '$TESTINGCACHE' ; done'
+$SSH_REPO 'for i in `ls '$TESTINGCACHE'` ; do rm -rf '$STABLECACHE'/$i ; mv '$TESTINGCACHE'/$i '$STABLECACHE'/ ; done ; rm -rf '$TESTINGCACHE
 
 # Generate online documentation.
 SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
