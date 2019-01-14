@@ -22,6 +22,7 @@ mkdir output
 
 # Get version.
 cd "$PROJECT"
+git checkout --detach "$COMMIT"
 VERSION=`grep cbis.version com.merethis.bi.cbis/pom.xml | cut -d '<' -f 2 | cut -d '>' -f 2`
 export VERSION="$VERSION"
 
