@@ -59,6 +59,7 @@ foreach $plugin (@plugins) {
             'centreon/plugins/values.pm',
             'centreon/plugins/alternative/Getopt.pm',
             'centreon/plugins/alternative/FatPackerOptions.pm',
+            'centreon/plugins/templates/catalog_functions.pm',
             'centreon/plugins/templates/counter.pm',
             'centreon/plugins/templates/hardware.pm'
         );
