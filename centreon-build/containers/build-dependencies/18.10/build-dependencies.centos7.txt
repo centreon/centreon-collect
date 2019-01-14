@@ -13,6 +13,7 @@ python-sphinx
 qt4-devel
 rrdtool-devel
 redhat-lsb
+rh-maven35
 git
 lua-devel
 expect
