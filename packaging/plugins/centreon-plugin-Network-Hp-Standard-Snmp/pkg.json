@@ -8,6 +8,7 @@
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
         "snmp_standard/mode/spanningtree.pm",
+        "snmp_standard/mode/uptime.pm",
         "centreon/common/h3c/snmp",
         "network/hp/standard/snmp"
     ]
