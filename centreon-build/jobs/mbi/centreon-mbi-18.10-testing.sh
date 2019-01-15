@@ -39,12 +39,14 @@ fi
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
-for i in "../$PROJECT-$VERSION/www/modules/centreon-bi-server/locale"/*.UTF-8 ; do
-  lang=`basename $i | cut -d _ -f 1`
-  msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
-  php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
-  rm -f "$i/LC_MESSAGES/messages.po"
-done
+if [ "$PROJECT" = 'centreon-bi-server'] ; then
+  for i in "../$PROJECT-$VERSION/www/modules/centreon-bi-server/locale"/*.UTF-8 ; do
+    lang=`basename $i | cut -d _ -f 1`
+    msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
+    php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
+    rm -f "$i/LC_MESSAGES/messages.po"
+  done
+fi
 cd ..
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
