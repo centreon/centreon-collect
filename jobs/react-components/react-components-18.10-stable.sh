@@ -28,6 +28,7 @@ npm publish --access=public --tag=latest ./
 
 # push tag on github if $COMMIT is not a tag
 if ! git tag --list | egrep -q "^$COMMIT$" ; then
+  git config remote.origin.url ssh://git@github.com/centreon/centreon-react-components
   git tag $VERSION
   git push origin $VERSION
 fi
