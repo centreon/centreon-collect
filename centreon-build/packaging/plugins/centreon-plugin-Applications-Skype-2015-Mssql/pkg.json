@@ -8,6 +8,6 @@
         "centreon/plugins/dbi.pm",
         "centreon/common/protocols/sql/",
         "centreon/common/microsoft/skype/mssql/",
-        "database/mssql/",
+        "database/mssql/"
     ]
 }
