@@ -22,5 +22,5 @@ apt-get update
 xargs apt-get install < /tmp/dependencies.txt
 
 # Configuration.
-echo 'date.timezone = Europe/Paris' > /etc/php/7.2/apache2/conf.d/50-centreon.ini
-echo 'date.timezone = Europe/Paris' > /etc/php/7.2/cli/conf.d/50-centreon.ini
+echo 'date.timezone = Europe/Paris' > /etc/php/7.3/apache2/conf.d/50-centreon.ini
+echo 'date.timezone = Europe/Paris' > /etc/php/7.3/cli/conf.d/50-centreon.ini
