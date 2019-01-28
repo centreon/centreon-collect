@@ -73,9 +73,9 @@ rm -rf $RPM_BUILD_ROOT
 %{__install} -m 0755 bin/* %buildroot/usr/share/centreon/bin
 
 # Install daemon starting script
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/init.d
+%{__install} -d -m 0755 %buildroot%{_unitdir}
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/sysconfig
-%{__install} -m 0755 libinstall/redhat/init.d.dsmd %buildroot%{_sysconfdir}/init.d/dsmd
+%{__install} -m 0755 libinstall/redhat/dsmd.systemd %buildroot%{_unitdir}/dsmd.service
 %{__install} -m 0644 libinstall/redhat/dsmd.sysconfig %buildroot%{_sysconfdir}/sysconfig/dsmd
 
 %clean
@@ -102,7 +102,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/centreon/bin/dsmd.pl
 
 %defattr(0755,root,root,-)
-%{_sysconfdir}/init.d/dsmd
+%{_unitdir}/dsmd.service
 %{_sysconfdir}/sysconfig/dsmd
 
 %post server
