@@ -10,4 +10,4 @@ lintian
 lsb-base
 make
 pbuilder
-zlib-dev
+zlib1g-dev
