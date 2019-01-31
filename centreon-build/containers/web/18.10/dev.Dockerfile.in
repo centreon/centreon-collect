@@ -1,4 +1,4 @@
-FROM registry.centreon.com/mon-web-fresh-18.10:@DISTRIB@
+FROM registry.centreon.com/mon-web-18.10:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Centreon update is made through custom scripts.
