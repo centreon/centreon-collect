@@ -10,6 +10,5 @@
         "perl(URI)",
         "perl(URI::Encode)",
         "perl(HTTP::ProxyPAC)"
-    ],
-    "custom_pkg_data": "Obsoletes:    centreon-plugin-Cloud-Azure-Monitor-Api"
+    ]
 }

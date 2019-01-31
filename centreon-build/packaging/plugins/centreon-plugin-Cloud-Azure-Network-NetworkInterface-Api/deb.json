@@ -8,6 +8,7 @@
         "liblwp-protocol-https-perl",
         "libio-socket-ssl-perl",
         "liburi-perl",
+        "libencode-perl",
         "libhttp-proxypac-perl"
     ]
 }
