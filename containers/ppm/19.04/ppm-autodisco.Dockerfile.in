@@ -1,0 +1,16 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Kevin Duret <kduret@centreon.com>
+
+# Copy autodiscovery repository.
+RUN curl -o centreon-plugin-packs-release.rpm http://yum.centreon.com/plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f/19.04/el7/stable/noarch/RPMS/centreon-plugin-packs-release-19.04-2.el7.centos.noarch.rpm
+RUN yum install centreon-plugin-packs-release.rpm
+
+# Install package.
+RUN yum install --enablerepo='centreon-plugin-packs-testing*' --enablerepo='centreon-plugin-packs-unstable*' -y centreon-auto-discovery-server && \
+    yum clean all
+
+# Install module in Centreon.
+COPY ppm/19.04/install-autodisco.sh /tmp/install-autodisco.sh
+RUN chmod +x /tmp/install-autodisco.sh && \
+    /tmp/install-autodisco.sh

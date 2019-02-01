@@ -3,7 +3,7 @@
 # Check arguments.
 if [ -z "$1" -o -z "$2" ] ; then
   echo "USAGE:     $0 <OLDSERIE> <NEWSERIE>"
-  echo "  example: $0 18.10 19.4"
+  echo "  example: $0 18.10 19.04"
   exit 1
 fi
 
