@@ -1,7 +1,7 @@
 <?php
 
 // Base centreon version.
-$centreonversion = '19.4';
+$centreonversion = '19.04';
 $reporelease = '1';
 
 // Information table.
