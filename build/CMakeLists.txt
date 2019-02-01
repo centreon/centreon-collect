@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2014,2018 Centreon
+## Copyright 2011-2014,2018-2019 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 # Version.
 set(CLIB_MAJOR 19)
-set(CLIB_MINOR 4)
+set(CLIB_MINOR 04)
 set(CLIB_PATCH 0)
 set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
