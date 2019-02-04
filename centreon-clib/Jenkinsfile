@@ -41,12 +41,14 @@ try {
         sh 'setup_centreon_build.sh'
         sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh debian10'
       }
+    /*
     },
     'opensuse-leap': {
       node {
         sh 'setup_centreon_build.sh'
         sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh opensuse-leap'
       }
+    */
     }
     if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
       error('Package stage failure.');
