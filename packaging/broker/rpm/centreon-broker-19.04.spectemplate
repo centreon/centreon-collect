@@ -1,13 +1,13 @@
 ##
-## Copyright 2011-2018 Centreon
+## Copyright 2011-2019 Centreon
 ##
 
 Name:           centreon-broker
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Store Centreon Engine/Nagios events in a database.
-%define thismajor 19.4.0
-%define nextmajor 19.5.0
+%define thismajor 19.04.0
+%define nextmajor 19.05.0
 
 Group:          Applications/Communications
 License:        ASL 2.0
