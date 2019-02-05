@@ -38,7 +38,7 @@ git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../input/$PROJECT-$VERS
 cd ..
 
 # Retrieve spec file.
-cp `dirname $0`/../../packaging/broker/centreon-broker-18.10.spectemplate input/
+cp `dirname $0`/../../packaging/broker/rpm/centreon-broker-18.10.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
