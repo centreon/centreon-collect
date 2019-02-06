@@ -47,6 +47,6 @@ else
   exit 1
 fi
 put_internal_rpms "19.04" "$DISTRIB" "noarch" "open-tickets" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BRANCH_NAME" '=' 'master' -o  "$BRANCH_NAME" '=' '19.04.x' ] ; then
   copy_internal_rpms_to_canary "standard" "19.04" "el7" "noarch" "open-tickets" "$PROJECT-$VERSION-$RELEASE"
 fi
