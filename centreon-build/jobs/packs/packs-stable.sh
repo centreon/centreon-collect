@@ -22,6 +22,7 @@ $SSH_REPO mv "/srv/sources/plugin-packs/testing/packs/$PROJECT-$VERSION-$RELEASE
 promote_testing_rpms_to_stable "plugin-packs" "3.4" "el6" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "plugin-packs" "19.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 
 # Move cache files to the stable directory.
 TESTINGCACHE="/srv/cache/packs/testing/cache-$VERSION-$RELEASE"
