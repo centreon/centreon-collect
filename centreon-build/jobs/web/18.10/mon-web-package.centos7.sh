@@ -14,6 +14,6 @@ docker-rpm-builder dir --verbose --sign-with `dirname $0`/../../ces.key registry
 
 # Publish RPMs.
 put_internal_rpms "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BRANCH_NAME" '=' '18.10.x' ] ; then
   copy_internal_rpms_to_canary "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
 fi
