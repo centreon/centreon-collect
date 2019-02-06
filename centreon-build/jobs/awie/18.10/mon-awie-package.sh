@@ -20,9 +20,9 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION-php71.tar.gz" "$PROJECT-$VERSION-php71"
-get_internal_source "awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz"
-tar xzf "$PROJECT-$VERSION-php71.tar.gz"
+rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+get_internal_source "awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Create input and output directories.
 rm -rf input
@@ -31,8 +31,8 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION-php71.tar.gz"
-cp "$PROJECT-$VERSION-php71/packaging/$PROJECT.spectemplate" input/
+cp "$PROJECT-$VERSION.tar.gz" input/"$PROJECT-$VERSION.tar.gz"
+cp "$PROJECT-$VERSION/packaging/$PROJECT.spectemplate" input/
 
 # Pull latest build dependencies.
 BUILD_IMG="registry.centreon.com/mon-build-dependencies-18.10:$DISTRIB"
