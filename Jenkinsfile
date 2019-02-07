@@ -46,7 +46,7 @@ try {
 }
 finally {
   buildStatus = currentBuild.result ?: 'SUCCESS';
-  if ((buildStatus != 'SUCCESS') && (env.BRANCH_NAME == 'master')) {
+  if ((buildStatus != 'SUCCESS') && ((env.BRANCH_NAME == '19.04.x') || (env.BRANCH_NAME == 'master'))) {
     slackSend channel: '#monitoring-metrology', message: "@channel Centreon Connector build ${env.BUILD_NUMBER} of branch ${env.BRANCH_NAME} was broken by ${source.COMMITTER}. Please fix it ASAP."
   }
 }
