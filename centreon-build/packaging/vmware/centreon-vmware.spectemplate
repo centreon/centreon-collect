@@ -25,7 +25,7 @@ Obsoletes:  centreon-plugin-Virtualisation-VMWare-daemon
 %description
 
 %prep
-%setup -q -n %{connector_name}-%{version}
+%setup -q -n %{name}-%{version}
 
 %build
 
