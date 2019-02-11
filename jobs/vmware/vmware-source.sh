@@ -29,7 +29,7 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Create source tarball.
 PKGNAME='centreon-plugin-Virtualization-VMWare-daemon'
-git archive --prefix="$PKGNAME/" HEAD | gzip > "../$PKGNAME-$VERSION.tar.gz"
+git archive --prefix="$PKGNAME-$VERSION/" HEAD | gzip > "../$PKGNAME-$VERSION.tar.gz"
 cd ..
 
 # Send it to srvi-repo.
