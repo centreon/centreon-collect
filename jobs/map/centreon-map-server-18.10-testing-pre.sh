@@ -18,4 +18,4 @@ cd server
 git checkout --detach "$COMMIT"
 
 # Tweak pom files to add release version in the name of the gererated rpm.
-sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/pom.xml
+sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml

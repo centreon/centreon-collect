@@ -14,7 +14,7 @@ VERSION=18.10
 # Copy the generated RPM files into the internal RPM repository.
 
 # Get the folder path of the generated RPMs.
-TOMCAT7_PATH="server/com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"
+TOMCAT7_PATH="server/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"
 
 # Get the name of each RPM files.
 # This way of getting the RPM's names is not pretty but it works.
