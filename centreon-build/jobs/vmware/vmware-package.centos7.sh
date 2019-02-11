@@ -9,7 +9,7 @@ mv "$PKGNAME-$VERSION.tar.gz" input/
 cp `dirname $0`/../../packaging/vmware/$PROJECT.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-18.10:centos7 input output
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-18.10:centos7 input output
 
 # Publish RPMs.
 put_internal_rpms "18.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
