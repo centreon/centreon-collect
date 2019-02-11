@@ -26,11 +26,11 @@ export RELEASE="$now.$COMMIT"
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
-cd ..
 
 # Create source tarball.
 PKGNAME='centreon-plugin-Virtualization-VMWare-daemon'
 git archive --prefix="$PKGNAME/" HEAD | gzip > "../$PKGNAME-$VERSION.tar.gz"
+cd ..
 
 # Send it to srvi-repo.
 put_internal_source "vmware" "$PROJECT-$VERSION-$RELEASE" "$PKGNAME-$VERSION.tar.gz"
