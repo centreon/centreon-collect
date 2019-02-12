@@ -43,6 +43,12 @@ put_testing_source () {
   scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
 }
 
+copy_internal_source_to_testing () {
+  SRCDIR="/srv/sources/internal/$2/$3"
+  DESTDIR="/srv/sources/$1/testing/$2/"
+  ssh "$REPO_CREDS" cp -r "$SRCDIR" "$DESTDIR"
+}
+
 # Packages.
 
 put_internal_rpms () {
@@ -125,6 +131,22 @@ copy_internal_rpms_to_unstable () {
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
   ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
+}
+
+copy_internal_rpms_to_testing () {
+  TARGETDIR="/srv/yum/$1/$2/$3/testing/$4/$5"
+  REPO="$1/$2/$3/testing/$4"
+  ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
+  ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
+  clean_directory "$TARGETDIR"
+  DESTFILE=`ssh "$REPO_CREDS" mktemp`
+  UPDATEREPODIR=`dirname $0`
+  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+    UPDATEREPODIR="$UPDATEREPODIR/.."
+  done
+  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+  ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/testing/$4"
 }
 
 promote_canary_rpms_to_unstable () {
