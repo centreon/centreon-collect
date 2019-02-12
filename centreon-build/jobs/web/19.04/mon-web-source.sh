@@ -58,7 +58,11 @@ now=`date +%s`
 # We do not care about $VERSION_EXTRA, as $now is strictly incremental
 # and officially released packages do not always care about semantic
 # versioning.
-export RELEASE="$now.$COMMIT"
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  export RELEASE="$BUILD_NUMBER"
+else
+  export RELEASE="$now.$COMMIT"
+fi
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
