@@ -9,14 +9,12 @@ Source0:    %{name}-%{version}.tar.gz
 BuildArch:  noarch
 BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires:   centreon-plugins-base
-Requires:   perl-centreon-base >= 1.18
 Requires:   perl-VMware-vSphere >= 5.1
-Requires:   perl(Date::Parse)
-Requires:   perl(IO::Socket::INET6)
-Requires:   perl(LWP::Protocol::https)
 Requires:   perl(ZMQ::LibZMQ4)
 Requires:   perl(ZMQ::Constants)
+Requires:   perl(LWP::Protocol::https)
+Requires:   perl(IO::Socket::INET6)
+Requires:   perl(JSON::XS)
 AutoReqProv:   no
 
 Obsoletes:  ces-plugins-Virtualization-VMWare-daemon
