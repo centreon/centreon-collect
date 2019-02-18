@@ -53,6 +53,6 @@ else
 fi
 
 put_internal_rpms "18.10" "$DISTRIB" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BRANCH_NAME" '=' '18.10.x' ] ; then
   copy_internal_rpms_to_canary "mbi" "18.10" "el7" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE"
 fi
