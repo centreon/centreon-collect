@@ -24,4 +24,5 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/centreon-web-18.10/centreon-web-18.10-release/g' sonar-project.properties
   sed -i -e 's/Centreon Web 18.10/Centreon Web 18.10 (release)/g' sonar-project.properties
 fi
+echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
 sonar-scanner
