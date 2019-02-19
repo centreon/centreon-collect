@@ -20,4 +20,8 @@ cd centreon-web
 cp ../ut.xml .
 cp ../coverage.xml .
 sed -i -e 's#/usr/local/src/centreon-web/##g' coverage.xml
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  sed -i -e 's/centreon-web-19.04/centreon-web-19.04-release/g' sonar-project.properties
+  sed -i -e 's/Centreon Web 19.04/Centreon Web 19.04 (release)/g' sonar-project.properties
+fi
 sonar-scanner
