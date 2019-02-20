@@ -28,7 +28,7 @@ sed -i \
     #toc, .footer, .relnav, .header { display: none; }\n \
     <\/style>" ../../../../www/install/RELEASENOTES.html
 make clean
-rm -f Makefile conf.py _build
+rm -rf Makefile conf.py _build
 
 # Generate lang files.
 cd ../../../..
