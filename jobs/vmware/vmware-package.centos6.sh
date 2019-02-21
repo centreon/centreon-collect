@@ -13,3 +13,6 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 
 # Publish RPMs.
 put_internal_rpms "3.4" "el6" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+if [ "$BRANCH_NAME" '=' 'master' ] ; then
+  copy_internal_rpms_to_unstable "standard" "3.4" "el6" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+fi
