@@ -12,9 +12,11 @@ cp `dirname $0`/../../packaging/vmware/$PROJECT.spectemplate input/
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-18.10:centos7 input output
 
 # Publish RPMs.
+put_internal_rpms "3.4" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 put_internal_rpms "18.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 put_internal_rpms "19.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 if [ "$BRANCH_NAME" '=' 'master' ] ; then
-  copy_internal_rpms_to_canary "standard" "18.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_canary "standard" "19.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_unstable "standard" "3.4" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_unstable "standard" "18.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_unstable "standard" "19.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 fi
