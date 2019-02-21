@@ -21,8 +21,7 @@ export VERSION=`grep VERSION centreon/script/centreon_vmware.pm | cut -d '"' -f 
 
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
-now=`date +%s`
-export RELEASE="$now.$COMMIT"
+export RELEASE=`date '+%Y%m%d%H%M%S'`
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
