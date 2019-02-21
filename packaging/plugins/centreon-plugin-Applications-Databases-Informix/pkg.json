@@ -6,6 +6,6 @@
         "centreon/plugins/dbi.pm",
         "centreon/plugins/script_sql.pm",
         "centreon/common/protocols/sql/",
-        "database/informix/"
+        "database/informix/sql/"
     ]
 }
