@@ -28,7 +28,7 @@ mvn -f map-server-parent/pom.xml clean install
 
 # This is run once the Maven build terminated.
 cd ..
-FILES_TOMCAT7="$PROJECT-server-$VERSION/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map4-server/RPMS/noarch/"'*.rpm'
+FILES_TOMCAT7="$PROJECT-server-$VERSION/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
 put_internal_rpms "19.04" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE" $FILES_TOMCAT7
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/19.04/el7/noarch/map-server/$PROJECT-$VERSION-$RELEASE/*.rpm"

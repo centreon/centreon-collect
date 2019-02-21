@@ -7,7 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-map
-PACKAGE=centreon-map4-web-client
+PACKAGE=centreon-map-web-client
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$VERSIONWEB" -o -z "$RELEASE" ] ; then
