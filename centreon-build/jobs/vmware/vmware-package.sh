@@ -21,7 +21,11 @@ fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-docker pull registry.centreon.com/mon-build-dependencies-18.10:$DISTRIB
+if [ "$DISTRIB" '=' 'centos6' ] ; then
+  docker pull registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB
+else
+  docker pull registry.centreon.com/mon-build-dependencies-18.10:$DISTRIB
+fi
 
 # Retrieve sources.
 rm -rf "$PKGNAME-$VERSION" "$PKGNAME-$VERSION.tar.gz"
