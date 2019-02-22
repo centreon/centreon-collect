@@ -26,7 +26,11 @@ export VERSION="$VERSION"
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
-export RELEASE="$now.$COMMIT"
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  export RELEASE="$BUILD_NUMBER"
+else
+  export RELEASE="$now.$COMMIT"
+fi
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`

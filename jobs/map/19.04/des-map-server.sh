@@ -33,6 +33,6 @@ put_internal_rpms "19.04" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEAS
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/19.04/el7/noarch/map-server/$PROJECT-$VERSION-$RELEASE/*.rpm"
 $SSH_REPO createrepo "/srv/yum/internal/19.04/el7/noarch/map-server/$PROJECT-$VERSION-$RELEASE"
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "map" "19.04" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE"
 fi
