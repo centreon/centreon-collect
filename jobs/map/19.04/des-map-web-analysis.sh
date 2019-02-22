@@ -15,6 +15,7 @@ tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
 cd "$PROJECT/web"
+git checkout sonar-project.properties
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/centreon-map-web-19.04/centreon-map-web-19.04-release/g' sonar-project.properties
   sed -i -e 's/Centreon Map Web 19.04/Centreon Map Web 19.04 (release)/g' sonar-project.properties
