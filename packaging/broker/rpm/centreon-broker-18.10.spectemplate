@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2018 Centreon
+## Copyright 2011-2019 Centreon
 ##
 
 Name:           centreon-broker
@@ -160,6 +160,7 @@ CXXFLAGS="-O2 -g" %{cmake} \
 %{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d
 %{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/centreon-engine/conf.d
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/doc/centreon-broker
+%{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
 %{__install} -m 644 script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
 %{__install} -m 664 config/cbmod.cfg $RPM_BUILD_ROOT%{_sysconfdir}/centreon-engine/conf.d/cbmod.cfg
 cd build
@@ -219,6 +220,9 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
 %{_datadir}/centreon/lib/centreon-broker/80-sql.so
 %{_sysconfdir}/logrotate.d/cbd
+%defattr(0775,centreon-broker,centreon-broker,-)
+%{_datadir}/centreon-broker
+%{_datadir}/centreon-broker/lua
 
 %files storage
 %defattr(-,root,root,-)
