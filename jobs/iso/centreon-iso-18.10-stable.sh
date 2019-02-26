@@ -24,7 +24,7 @@ for distrib in el7 ; do
   # Sync ISO in database (dryrun=1 does not show ISO on website)
   OUTPUT=`curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=18.10-$RELEASE.$distrib.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"`
   SUCCESS=`echo $OUTPUT | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["status"]'`
-  if [ \( "$SUCCESS" -ne "success" \) ] ; then
+  if [ \( "$SUCCESS" '!=' "success" \) ] ; then
     echo "ISO synchronization failed."
     exit 1
   fi
@@ -32,7 +32,7 @@ for distrib in el7 ; do
   DOWNLOADID=`echo $OUTPUT | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["id"]'`
 
   # Enable download link on website
-  # curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&action=enable&release_id=$DOWNLOADID"
+  curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&action=enable&release_id=$DOWNLOADID"
 
   # Check if download link is available
   STATUSCODE=`curl -s -w "%{http_code}" "https://download.centreon.com/?action=download&id=$DOWNLOADID" -o /dev/null`

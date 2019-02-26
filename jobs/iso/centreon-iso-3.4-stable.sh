@@ -22,7 +22,7 @@ for distrib in el6 el7 ; do
   # Sync ISO in database (dryrun=1 does not show ISO on website)
   OUTPUT=`curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.$distrib.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"`
   SUCCESS=`echo $OUTPUT | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["status"]'`
-  if [ \( "$SUCCESS" -ne "success" \) ] ; then
+  if [ \( "$SUCCESS" '!=' "success" \) ] ; then
     echo "ISO synchronization failed."
     exit 1
   fi
