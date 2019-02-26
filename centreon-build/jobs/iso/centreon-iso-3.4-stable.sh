@@ -20,7 +20,7 @@ for distrib in el6 el7 ; do
   $SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso" "s3://centreon-iso/stable/centreon-$VERSION.$RELEASE.$distrib.x86_64.iso"
 
   # Sync ISO in database (dryrun=1 does not show ISO on website)
-  OUTPUT=`curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.$distrib.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"`
+  OUTPUT=`curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=$VERSION.$RELEASE.$distrib.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=0"`
   SUCCESS=`echo $OUTPUT | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["status"]'`
   if [ \( "$SUCCESS" -ne "success" \) ] ; then
     echo "ISO synchronization failed."
