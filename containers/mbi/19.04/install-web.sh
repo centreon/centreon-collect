@@ -5,7 +5,6 @@ set -x
 
 # Start services.
 service mysql start
-httpd -k start
 
 # Install Centreon MBI server.
 /tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-bi-server
@@ -23,5 +22,4 @@ mysql -e "UPDATE mod_bi_options SET opt_value='mbi' WHERE opt_key='reportingDB.i
 mysql -e "UPDATE mod_bi_options SET opt_value='mbi' WHERE opt_key='cbis.host'" centreon
 
 # Stop services.
-httpd -k stop
 service mysql stop

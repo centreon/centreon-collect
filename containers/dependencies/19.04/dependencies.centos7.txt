@@ -3,7 +3,7 @@ centreon-clib-devel
 centreon-common
 centreon-perl-libs
 gnutls
-httpd
+httpd24-httpd
 initscripts
 libgcrypt
 libssh2

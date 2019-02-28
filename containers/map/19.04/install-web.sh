@@ -5,7 +5,6 @@ set -x
 
 # Start services.
 service mysql start
-httpd -k start
 
 # Give DB access to centreon_map user.
 mysql -e "CREATE USER 'centreon_map'@'%' IDENTIFIED BY 'centreon_map'"
@@ -49,5 +48,4 @@ centreon -d -u admin -p centreon -a CFGMOVE -v 1
 mysql -e "UPDATE options SET value='http://map:8080' WHERE \`key\`='map_light_server_address'" centreon
 
 # Stop services.
-httpd -k stop
 service mysql stop
