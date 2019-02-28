@@ -1,2 +1,2 @@
 # Print logs.
-tail -f /var/log/httpd/error_log /var/opt/rh/rh-php71/log/php-fpm/centreon-error.log
+tail -f /opt/rh/httpd24/root/etc/httpd/logs/error_log /var/opt/rh/rh-php71/log/php-fpm/centreon-error.log
