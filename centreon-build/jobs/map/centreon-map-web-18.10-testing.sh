@@ -53,6 +53,7 @@ cp web/packaging/centreon-map-web-client.spectemplate input
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-18.10:centos7 input output-centos7
 
 # Copy files to server.
+put_testing_rpms "map" "18.10" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 
 # Generate doc on internal server.
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
