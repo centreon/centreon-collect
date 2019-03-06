@@ -18,8 +18,8 @@ export VERSION=18.10
 
 # Release ISO.
 for distrib in el7 ; do
-  SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-18.10.0-$RELEASE.$distrib.x86_64.iso | cut -d ' ' -f 1"`
-  $SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-18.10.0-$RELEASE.$distrib.x86_64.iso" "s3://centreon-iso/stable/centreon-18.10-$RELEASE.$distrib.x86_64.iso"
+  SRCHASH=`$SSH_REPO "md5sum /srv/iso/centreon-18.10-$RELEASE.$distrib.x86_64.iso | cut -d ' ' -f 1"`
+  $SSH_REPO aws s3 cp --acl public-read "/srv/iso/centreon-18.10-$RELEASE.$distrib.x86_64.iso" "s3://centreon-iso/stable/centreon-18.10-$RELEASE.$distrib.x86_64.iso"
 
   # Sync ISO in database (dryrun=1 does not show ISO on website)
   OUTPUT=`curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon&version=18.10-$RELEASE.$distrib.x86_64&extension=iso&md5=$SRCHASH&ddos=1&dryrun=1"`
