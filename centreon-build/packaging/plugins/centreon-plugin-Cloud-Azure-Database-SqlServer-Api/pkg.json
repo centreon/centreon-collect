@@ -5,7 +5,7 @@
     "files": [
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
-        "centreon/plugins/useragent.pm",
+        "centreon/plugins/backend/http/",
         "cloud/azure/custom/",
         "cloud/azure/database/sqlserver/"
     ]
