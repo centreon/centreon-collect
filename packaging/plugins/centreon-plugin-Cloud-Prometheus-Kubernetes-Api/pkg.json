@@ -6,7 +6,7 @@
         "centreon/plugins/script_custom.pm",
         "cloud/prometheus/restapi/custom/",
         "centreon/plugins/http.pm",
-        "centreon/plugins/useragent.pm",
+        "centreon/plugins/backend/http/",
         "cloud/prometheus/direct/kubernetes/"
     ]
 }

@@ -5,7 +5,7 @@
     "files": [
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
-        "centreon/plugins/useragent.pm",
+        "centreon/plugins/backend/http/",
         "cloud/microsoft/office365/custom/managementapi.pm",
         "cloud/microsoft/office365/management/"
     ]
