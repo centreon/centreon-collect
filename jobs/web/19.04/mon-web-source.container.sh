@@ -45,10 +45,8 @@ for i in lang/* ; do
 done
 rm -rf lang
 
-# Install Composer and its dependencies.
-curl -o bin/composer 'http://srvi-repo.int.centreon.com/cache/tools/composer'
-php bin/composer install --no-dev
-rm -rf vendor/composer/*.php
+# Install Composer dependencies.
+composer install --no-dev --optimize-autoloader
 
 # Install npm dependencies.
 npm ci
