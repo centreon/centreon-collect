@@ -33,7 +33,7 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Generate sources of Centreon Map web client.
 npm ci
-./node_modules/bower/bin/bower install
+
 node ./node_modules/gulp/bin/gulp.js build-module
 node ./node_modules/gulp/bin/gulp.js build-widget
 
