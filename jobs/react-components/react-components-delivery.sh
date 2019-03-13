@@ -25,6 +25,7 @@ cat > .npmrc << EOF
 //registry.npmjs.org/:_authToken=2a5c102e-2d32-449a-9a5f-03da082f123b
 EOF
 
+npm ci
 if [ "$BRANCH_NAME" == "master" ] ; then
   # if job is run from master branch, publish the next release as an alpha
   npm version $VERSION-alpha.$BUILD_NUMBER
