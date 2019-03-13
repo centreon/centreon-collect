@@ -130,4 +130,5 @@ if [ "$atleastoneplugin" -ne 0 ] ; then
 
   # Populate cache.
   scp -r "cache-$VERSION-$RELEASE" "$REPO_CREDS:/srv/cache/plugins/unstable/"
+  clean_directory /srv/cache/plugins/unstable
 fi
