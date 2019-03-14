@@ -21,8 +21,8 @@ tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 VERSION=
 VERSION_NUM=0
 VERSION_EXTRA=
-for file in centreon-web/www/install/sql/centreon/*.sql ; do
-  full_version=`echo "$file" | cut -d _ -f 3 | sed 's/.sql$//'`
+for file in centreon-web/www/install/php/Update-*.php ; do
+  full_version=`echo "$file" | cut -d - -f 3 | sed 's/.php$//'`
   major=`echo "$full_version" | cut -d . -f 1`
   minor=`echo "$full_version" | cut -d . -f 2`
   # Patch is not necessarily set.
