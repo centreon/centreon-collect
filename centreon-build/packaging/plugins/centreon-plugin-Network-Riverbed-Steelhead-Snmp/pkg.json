@@ -1,10 +1,11 @@
 {
     "pkg_name": "centreon-plugin-Network-Riverbed-Steelhead-Snmp",
-    "pkg_summary": "Centreon Plugin",
+    "pkg_summary": "Centreon Plugin to monitor Riverbed SteelHead (common and EX series) using SNMP",
     "plugin_name": "centreon_riverbed-steelhead.pl",
     "files": [
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
+        "centreon/common/riverbed/steelhead/snmp/",
         "network/riverbed/steelhead/snmp/"
     ]
 }
