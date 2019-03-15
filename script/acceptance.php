@@ -355,7 +355,7 @@ else {
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/19.04/docker-compose-influxdb.yml.in'),
-        xpath('mon-web-influxdb.yml'),
+        xpath('mon-web-influxdb-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-web'))
     );
     replace_in_file(
