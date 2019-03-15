@@ -5,8 +5,8 @@
     "files": [
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
-        "centreon/common/riverbed/steelhead/snmp/loadaverage.pm",
-        "centreon/common/riverbed/steelhead/snmp/status.pm",
+        "centreon/common/riverbed/steelhead/snmp/mode/loadaverage.pm",
+        "centreon/common/riverbed/steelhead/snmp/mode/status.pm",
         "network/riverbed/interceptor/snmp/"
     ]
 }
