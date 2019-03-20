@@ -9,20 +9,19 @@ services:
     - poller
     dns:
     - "10.50.1.1"
-    external_links:
-    - webdriver
-    networks:
-    - default
-    - webdriver_default
   poller:
     image: @POLLER_IMAGE@
     ports:
     - "80"
     dns:
     - "10.50.1.1"
-    networks:
-    - default
-    - webdriver_default
-networks:
-  webdriver_default:
-    external: true
+  webdriver:
+    image: selenium/standalone-chrome-debug:latest
+    environment:
+    - "SCREEN_WIDTH=1600"
+    - "SCREEN_HEIGHT=2000"
+    ports:
+    - "4444"
+    - "5900"
+    volumes:
+    - /dev/shm:/dev/shm

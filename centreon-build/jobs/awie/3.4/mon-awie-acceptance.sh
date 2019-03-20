@@ -32,9 +32,6 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$AWIE_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-awie.yml"
 
-# Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"
-
 # Run acceptance tests.
 cd "$PROJECT-$VERSION"
 rm -rf ../xunit-reports
@@ -46,6 +43,4 @@ alreadyset=`grep docker-compose-awie.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      awie: docker-compose-awie.yml#g' behat.yml
 fi
-launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-stop_webdriver docker-compose-webdriver.yml

@@ -51,9 +51,6 @@ sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/mediawiki/
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/openldap/docker-compose.yml.in > "centreon-$VERSION/docker-compose-web-openldap.yml"
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/3.4/docker-compose-influxdb.yml.in > "centreon-$VERSION/docker-compose-web-influxdb.yml"
 
-# Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "centreon-$VERSION/docker-compose-webdriver.yml"
-
 # Prepare Behat.yml
 cd "centreon-$VERSION"
 alreadyset=`grep docker-compose-web.yml < behat.yml || true`
@@ -67,6 +64,4 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --tags "$TESTTAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-stop_webdriver docker-compose-webdriver.yml

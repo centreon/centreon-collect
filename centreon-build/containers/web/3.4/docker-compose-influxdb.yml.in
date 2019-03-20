@@ -7,16 +7,18 @@ services:
     - "3306"
     links:
     - influxdb
-    external_links:
-    - webdriver
-    networks:
-    - default
-    - webdriver_default
   influxdb:
    image: influxdb:latest
    ports:
    - "8083"
    - "8086"
-networks:
-  webdriver_default:
-    external: true
+  webdriver:
+    image: selenium/standalone-chrome-debug:latest
+    environment:
+    - "SCREEN_WIDTH=1600"
+    - "SCREEN_HEIGHT=2000"
+    ports:
+    - "4444"
+    - "5900"
+    volumes:
+    - /dev/shm:/dev/shm

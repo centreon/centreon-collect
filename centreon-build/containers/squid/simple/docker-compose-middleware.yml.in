@@ -10,11 +10,6 @@ services:
     links:
     - "middleware:api.imp.centreon.com"
     - squid
-    external_links:
-    - webdriver
-    networks:
-    - default
-    - webdriver_default
   middleware:
     image: @MIDDLEWARE_IMAGE@
     ports:
@@ -23,9 +18,6 @@ services:
     extra_hosts:
     - "crm.int.centreon.com:10.24.11.73"
     - "support.centreon.com:10.30.2.62"
-    networks:
-    - default
-    - webdriver_default
   openldap:
     image: registry.centreon.com/mon-openldap:latest
   redis:
@@ -34,6 +26,13 @@ services:
     image: registry.centreon.com/mon-squid-simple:latest
     ports:
     - "3128"
-networks:
-  webdriver_default:
-    external: true
+  webdriver:
+    image: selenium/standalone-chrome-debug:latest
+    environment:
+    - "SCREEN_WIDTH=1600"
+    - "SCREEN_HEIGHT=2000"
+    ports:
+    - "4444"
+    - "5900"
+    volumes:
+    - /dev/shm:/dev/shm
