@@ -32,9 +32,6 @@ tar xzf "$PROJECT-$VERSION-full.tar.gz"
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$BAM_IMAGE'#g' < `dirname $0`/../../../containers/web/19.04/docker-compose.yml.in > "$PROJECT-$VERSION-full/docker-compose-bam.yml"
 
-# Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION-full/docker-compose-webdriver.yml"
-
 # Prepare Behat.yml
 cd "$PROJECT-$VERSION-full"
 alreadyset=`grep docker-compose-bam.yml < behat.yml || true`
@@ -48,6 +45,4 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-stop_webdriver docker-compose-webdriver.yml

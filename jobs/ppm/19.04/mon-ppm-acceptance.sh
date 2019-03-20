@@ -40,9 +40,6 @@ sed -e 's#@WEB_IMAGE@#'$PPM_AUTODISCO_IMAGE'#g' < `dirname $0`/../../../containe
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/simple/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm-squid-simple.yml"
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/squid/basic-auth/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm-squid-basic-auth.yml"
 
-# Copy compose file of webdriver
-cp `dirname $0`/../../../containers/webdrivers/docker-compose.yml.in "$PROJECT-$VERSION/docker-compose-webdriver.yml"
-
 # Prepare behat.yml.
 cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-ppm.yml < behat.yml || true`
@@ -56,6 +53,4 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-launch_webdriver docker-compose-webdriver.yml
 ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
-stop_webdriver docker-compose-webdriver.yml

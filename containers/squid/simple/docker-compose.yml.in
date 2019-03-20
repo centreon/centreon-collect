@@ -9,20 +9,17 @@ services:
     - "10.50.1.1"
     links:
     - squid
-    external_links:
-    - webdriver
-    networks:
-    - default
-    - webdriver_default
   squid:
     image: registry.centreon.com/mon-squid-simple:latest
     ports:
     - "3128"
-    external_links:
-    - webdriver
-    networks:
-    - default
-    - webdriver_default
-networks:
-  webdriver_default:
-    external: true
+  webdriver:
+    image: selenium/standalone-chrome-debug:latest
+    environment:
+    - "SCREEN_WIDTH=1600"
+    - "SCREEN_HEIGHT=2000"
+    ports:
+    - "4444"
+    - "5900"
+    volumes:
+    - /dev/shm:/dev/shm
