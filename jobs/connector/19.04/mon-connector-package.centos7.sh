@@ -13,6 +13,6 @@ docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.
 
 # Publish RPMs.
 put_internal_rpms "19.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "standard" "19.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
 fi

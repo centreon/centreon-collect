@@ -7,6 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-connector
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 #
 # This script will generate Centreon Connector sources from the local clone
@@ -27,7 +28,11 @@ export VERSION="$major.$minor.$patch"
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
-export RELEASE="$now.$COMMIT"
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  export RELEASE="$BUILD_NUMBER"
+else
+  export RELEASE="$now.$COMMIT"
+fi
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
@@ -38,6 +43,7 @@ cd ..
 
 # Send it to srvi-repo.
 put_internal_source "connector" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "connector" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
