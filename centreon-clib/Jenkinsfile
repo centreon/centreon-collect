@@ -70,6 +70,18 @@ try {
       error('Package stage failure.');
     }
   }
+
+  if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
+    stage('Delivery') {
+      node {
+        sh 'setup_centreon_build.sh'
+        sh "./centreon-build/jobs/clib/${serie}/mon-clib-delivery.sh"
+      }
+      if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+        error('Delivery stage failure.');
+      }
+    }
+  }
 }
 finally {
   buildStatus = currentBuild.result ?: 'SUCCESS';
