@@ -1,16 +1,32 @@
+/*
+** Variables.
+*/
+def serie = '19.04'
+def maintenanceBranch = "${serie}.x"
+if (env.BRANCH_NAME.startsWith('release-')) {
+  env.BUILD = 'RELEASE'
+} else if ((env.BRANCH_NAME == 'master') || (env.BRANCH_NAME == maintenanceBranch)) {
+  env.BUILD = 'REFERENCE'
+} else {
+  env.BUILD = 'CI'
+}
+
+/*
+** Pipeline code.
+*/
 stage('Source') {
   node {
     sh 'setup_centreon_build.sh'
     dir('centreon-clib') {
       checkout scm
     }
-    sh './centreon-build/jobs/clib/19.04/mon-clib-source.sh'
+    sh './centreon-build/jobs/clib/${serie}/mon-clib-source.sh'
     source = readProperties file: 'source.properties'
     env.VERSION = "${source.VERSION}"
     env.RELEASE = "${source.RELEASE}"
-    if (env.BRANCH_NAME == '19.04.x' || env.BRANCH_NAME == 'master') {
+    if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
       withSonarQubeEnv('SonarQube') {
-        sh './centreon-build/jobs/clib/19.04/mon-clib-analysis.sh'
+        sh './centreon-build/jobs/clib/${serie}/mon-clib-analysis.sh'
       }
     }
   }
@@ -21,32 +37,32 @@ try {
     parallel 'centos7': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh centos7'
+        sh './centreon-build/jobs/clib/${serie}/mon-clib-package.sh centos7'
       }
     },
     'debian9': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh debian9'
+        sh './centreon-build/jobs/clib/${serie}/mon-clib-package.sh debian9'
       }
     },
     'debian9-armhf': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh debian9-armhf'
+        sh './centreon-build/jobs/clib/${serie}/mon-clib-package.sh debian9-armhf'
       }
     },
     'debian10': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh debian10'
+        sh './centreon-build/jobs/clib/${serie}/mon-clib-package.sh debian10'
       }
     /*
     },
     'opensuse-leap': {
       node {
         sh 'setup_centreon_build.sh'
-        sh './centreon-build/jobs/clib/19.04/mon-clib-package.sh opensuse-leap'
+        sh './centreon-build/jobs/clib/${serie}/mon-clib-package.sh opensuse-leap'
       }
     */
     }
@@ -57,7 +73,7 @@ try {
 }
 finally {
   buildStatus = currentBuild.result ?: 'SUCCESS';
-  if ((buildStatus != 'SUCCESS') && ((env.BRANCH_NAME == '19.04.x') || (env.BRANCH_NAME == 'master'))) {
+  if ((buildStatus != 'SUCCESS') && ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE'))) {
     slackSend channel: '#monitoring-metrology', message: "@channel Centreon Clib build ${env.BUILD_NUMBER} of branch ${env.BRANCH_NAME} was broken by ${source.COMMITTER}. Please fix it ASAP."
   }
 }
