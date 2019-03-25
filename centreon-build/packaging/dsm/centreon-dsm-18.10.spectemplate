@@ -50,11 +50,13 @@ Centreon-dsm client package
 find . -type f | xargs sed -i -f %{SOURCE1}
 find .          \
         -type f \
-        -exec %{__grep} -qE '(@@DB_CENTSTORAGE@@)' {} ';'   \
+        -exec %{__grep} -qE '(@@DB_CENTSTORAGE@@|@@CENTREON_BINDIR@@|@@CENTREON_ETC@@)|@@CENTREON_DSM_PATH@@|@@CENTREON_LOG@@)' {} ';'   \
         -exec %{__sed} -i -e 's|@@DB_CENTSTORAGE@@|'"centreon_storage"'|g'\
-	-exec %{__grep} -qE '(@@CENTREON_BINDIR@@)' {} ';'   \
-	-exec %{__sed} -i -e 's|@@CENTREON_BINDIR@@|'"/usr/share/centreon/bin/"'|g'\
-        {} ';'
+                          -e 's|@@CENTREON_BINDIR@@|'"/usr/share/centreon/bin/"'|g'i
+                          -e "s|@@CENTREON_ETC@@|%{centreon_etc}/|g" \
+                          -e "s|@@CENTREON_LOG@@|%{centreon_log}|g" \
+                          -e "s|@@CENTREON_DSM_PATH@@|%{centreon_www}/modules/centreon-dsm/|g" \
+                       {} ';'
 
 %build
 
@@ -71,6 +73,10 @@ rm -rf $RPM_BUILD_ROOT
 # Install centreon-dsm bin
 %{__install} -d -m 0775 %buildroot/usr/share/centreon/bin
 %{__install} -m 0755 bin/* %buildroot/usr/share/centreon/bin
+
+# Install centreon-dsm cron
+%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/cron.d
+%{__cp} cron/* $RPM_BUILD_ROOT%{_sysconfdir}/cron.d
 
 # Install daemon starting script
 %{__install} -d -m 0755 %buildroot%{_unitdir}
@@ -100,6 +106,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %defattr(-,centreon,centreon,0755)
 %{_datadir}/centreon/bin/dsmd.pl
+
+%attr(-,root,root)
+%{_sysconfdir}/cron.d/centreon-dsm
 
 %defattr(0755,root,root,-)
 %{_unitdir}/dsmd.service
