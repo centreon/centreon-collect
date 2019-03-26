@@ -20,4 +20,9 @@ cd "$PROJECT"
 cp ../ut.xml .
 cp ../coverage.xml .
 sed -i -e 's#/usr/local/src/centreon-license-manager/##g' coverage.xml
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  sed -i -e 's/centreon-license-manager-19.04/centreon-license-manager-19.04-release/g' sonar-project.properties
+  sed -i -e 's/Centreon License Manager 19.04/Centreon License Manager 19.04 (release)/g' sonar-project.properties
+fi
+echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
 sonar-scanner

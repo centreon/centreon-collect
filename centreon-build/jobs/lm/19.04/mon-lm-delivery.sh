@@ -14,13 +14,25 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-# Set Docker images as latest.
-REGISTRY='registry.centreon.com'
-for distrib in centos7 ; do
-  docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-lm-19.04:$distrib"
-  docker push "$REGISTRY/mon-lm-19.04:$distrib"
-done
+#
+# Release delivery.
+#
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  copy_internal_source_to_testing "standard" "lm" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "19.04" "el7" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE"
 
-# Move RPMs to unstable.
-promote_canary_rpms_to_unstable "standard" "19.04" "el7" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE"
+#
+# CI delivery.
+#
+else
+  # Set Docker images as latest.
+  REGISTRY='registry.centreon.com'
+  for distrib in centos7 ; do
+    docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib"
+    docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-lm-19.04:$distrib"
+    docker push "$REGISTRY/mon-lm-19.04:$distrib"
+  done
+
+  # Move RPMs to unstable.
+  promote_canary_rpms_to_unstable "standard" "19.04" "el7" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE"
+fi
