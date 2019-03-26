@@ -49,6 +49,6 @@ else
   exit 1
 fi
 put_internal_rpms "19.04" "$DISTRIB" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' -o "$BRANCH_NAME" '=' '19.04.x' ] ; then
+if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "standard" "19.04" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 fi
