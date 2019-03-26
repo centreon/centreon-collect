@@ -17,4 +17,9 @@ tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
 cd "$PROJECT"
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  sed -i -e 's/centreon-awie-19.04/centreon-awie-19.04-release/g' sonar-project.properties
+  sed -i -e 's/Centreon AWIE 19.04/Centreon AWIE 19.04 (release)/g' sonar-project.properties
+fi
+echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
 sonar-scanner
