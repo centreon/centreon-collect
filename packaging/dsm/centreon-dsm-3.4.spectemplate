@@ -43,15 +43,6 @@ Centreon-dsm client package
 
 # Change macro
 find . -type f | xargs sed -i -f %{SOURCE1}
-find .          \
-        -type f \
-        -exec %{__grep} -qE '(@@DB_CENTSTORAGE@@|@@CENTREON_BINDIR@@|@@CENTREON_ETC@@)|@@CENTREON_DSM_PATH@@|@@CENTREON_LOG@@)' {} ';'   \
-        -exec %{__sed} -i -e 's|@@DB_CENTSTORAGE@@|'"centreon_storage"'|g'\
-                          -e 's|@@CENTREON_BINDIR@@|'"/usr/share/centreon/bin/"'|g'i \
-                          -e "s|@@CENTREON_ETC@@|%{centreon_etc}/|g" \
-                          -e "s|@@CENTREON_LOG@@|%{centreon_log}|g" \
-                          -e "s|@@CENTREON_DSM_PATH@@|%{centreon_www}/modules/centreon-dsm/|g" \
-                       {} ';'
 
 %build
 
