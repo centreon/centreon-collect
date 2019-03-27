@@ -27,7 +27,7 @@ export VERSION=`grep mod_release app/module/conf.php | cut -d '"' -f 4`
 
 # Generate sources of Centreon Map web client.
 npm ci
-./node_modules/bower/bin/bower install
+
 node ./node_modules/gulp/bin/gulp.js build-module
 node ./node_modules/gulp/bin/gulp.js build-widget
 
