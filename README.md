@@ -53,13 +53,14 @@ This paragraph is only a quickstart guide for the compilation of
 Centreon Clib. For a more in-depth guide with build options you should
 refer to the [online documentation](https://documentation.centreon.com/docs/centreon-clib/en/latest/).
 
-Once the sources of Centreon Clib extracted, got to the *./build/*
+Once the sources of Centreon Clib extracted, create the *./build/*
 directory and launch the CMake command. This will look for required
 dependencies and print a summary of the compilation parameters if
 everything went fine.
 
-    $> cd centreon-clib/build
-    $> cmake .
+    $> cd centreon-clib
+    $> mkdir build && cd build
+    $> cmake ..
     ...
 
 Now launch the compilation using the *make* command and then install the
