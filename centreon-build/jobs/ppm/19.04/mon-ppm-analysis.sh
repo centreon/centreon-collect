@@ -17,4 +17,9 @@ tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
 cd "$PROJECT"
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  sed -i -e 's/centreon-pp-manager-19.04/centreon-pp-manager-19.04-release/g' sonar-project.properties
+  sed -i -e 's/Centreon PP Manager 19.04/Centreon PP Manager 19.04 (release)/g' sonar-project.properties
+fi
+echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
 sonar-scanner
