@@ -22,7 +22,6 @@ project("Centreon Clib" C CXX)
 
 
 # Set directories.
-set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(INC_DIR "${INCLUDE_DIR}/com/centreon")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
@@ -207,7 +206,8 @@ check_include_file_cxx("spawn.h" HAVE_SPAWN_H)
 if (HAVE_SPAWN_H)
   add_definitions(-DHAVE_SPAWN_H)
 else ()
-  message(WARNING "Your plateform does not have spawn.h. Some features might be disabled.")
+  message(WARNING "Your plateform does not have spawn.h. Some features might "
+    "be disabled.")
 endif ()
 
 # Platform-specific files.
@@ -283,14 +283,14 @@ include_directories("${INCLUDE_DIR}")
 
 
 # Add subdirectories.
-add_subdirectory("clib")
-add_subdirectory("concurrency")
-add_subdirectory("exceptions")
-add_subdirectory("logging")
-add_subdirectory("misc")
-add_subdirectory("io")
+add_subdirectory(src/clib)
+add_subdirectory(src/concurrency)
+add_subdirectory(src/exceptions)
+add_subdirectory(src/logging)
+add_subdirectory(src/misc)
+add_subdirectory(src/io)
 if (WITH_TESTING)
-  add_subdirectory("test")
+  add_subdirectory(test)
 endif ()
 
 
@@ -366,7 +366,7 @@ install(
 
 
 # Include build package.
-include("package.cmake")
+include(cmake/package.cmake)
 
 # Print summary.
 message(STATUS "")
@@ -385,7 +385,8 @@ message(STATUS "    - Version                   ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "    - Processor                 ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "")
 message(STATUS "  Build")
-message(STATUS "    - Compiler                  ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})")
+message(STATUS "    - Compiler                  ${CMAKE_CXX_COMPILER} "
+  "(${CMAKE_CXX_COMPILER_ID})")
 message(STATUS "    - Extra compilation flags   ${CMAKE_CXX_FLAGS}")
 message(STATUS "    - Build unit tests          ${UNIT_TEST}")
 message(STATUS "")
