@@ -8,3 +8,4 @@
   - import_tasks: 19.04/jobs-build-dependencies.yml
   - import_tasks: 19.04/jobs-dependencies.yml
   - import_tasks: 19.04/jobs-unittest.yml
+  - import_tasks: 19.04/jobs-stable.yml
