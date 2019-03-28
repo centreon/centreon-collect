@@ -477,11 +477,6 @@ else {
         if (empty($argv)) {
             $argv[] = '';
         }
-        passthru(
-            'docker-compose -f ' . $centreon_build_dir . '/containers/webdrivers/docker-compose.yml.in ' .
-            '-p webdriver up -d',
-            $return_var
-        );
         foreach ($argv as $feature) {
             passthru($cmd . ' ' . $feature, $return_var);
         }
