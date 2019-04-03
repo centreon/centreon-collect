@@ -18,7 +18,7 @@ tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd "$PROJECT/web"
-VERSIONWEB=`grep mod_release app/module/conf.php | cut -d '"' -f 4`
+VERSIONWEB=`grep '$release = ' app/module/conf.php | cut -d "'" -f 2`
 export VERSIONWEB="$VERSIONWEB"
 VERSION=`echo "$VERSIONWEB" | cut -d . -f 1-2`
 export VERSION="$VERSION"
