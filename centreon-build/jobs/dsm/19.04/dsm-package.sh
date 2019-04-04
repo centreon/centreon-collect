@@ -37,6 +37,7 @@ docker pull "$BUILD_IMG"
 # Build RPMs.
 cp "$PROJECT-$VERSION.tar.gz" input/
 cp `dirname $0`"/../../../packaging/dsm/$PROJECT-19.04.spectemplate" input/
+cp `dirname $0`/../../../packaging/dsm/src/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
