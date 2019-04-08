@@ -57,3 +57,7 @@ rm -rf node_modules
 cd ..
 rm -f "$PROJECT-$VERSION.tar.gz"
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+cd "$PROJECT-$VERSION"
+composer install
+rm -f "../vendor.tar.gz"
+tar czf "../vendor.tar.gz" "vendor"
