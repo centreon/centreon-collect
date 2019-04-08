@@ -13,15 +13,11 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...> [tags]"
+if [ "$#" -lt 2 ] ; then
+  echo "USAGE: $0 <centos7|...> [feature]"
   exit 1
 fi
 DISTRIB="$1"
-TESTTAGS="$2"
-if [ -z "$TESTTAGS" ] ; then
-  TESTTAGS='@tag,~@tag'
-fi
 
 # Pull images.
 WEB_IMAGE="registry.centreon.com/mon-web-$VERSION-$RELEASE:$DISTRIB"
@@ -40,9 +36,14 @@ docker pull $INFLUXDB_IMAGE
 docker pull $NEWMAN_IMAGE
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz" "vendor.tar.gz"
 get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+get_internal_source "web/$PROJECT-$VERSION-$RELEASE/vendor.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
+cd "$PROJECT-$VERSION"
+rm -rf vendor
+tar xzf "../vendor.tar.gz"
+cd ..
 
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/19.04/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-web.yml"
@@ -66,5 +67,4 @@ rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
-composer install
-ls features/*.feature | parallel ./vendor/bin/behat --tags "$TESTTAGS" --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"

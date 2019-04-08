@@ -80,8 +80,9 @@ docker cp "$PROJECT-$VERSION.tar.gz" "$containerid:/usr/local/src/"
 
 # Run container that will generate complete tarball.
 docker start -a "$containerid"
-rm -f "$PROJECT-$VERSION.tar.gz"
+rm -f "$PROJECT-$VERSION.tar.gz" "vendor.tar.gz"
 docker cp "$containerid:/usr/local/src/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
+docker cp "$containerid:/usr/local/src/vendor.tar.gz" "vendor.tar.gz"
 
 # Stop container.
 docker stop "$containerid"
@@ -90,6 +91,7 @@ docker rm "$containerid"
 # Send it to srvi-repo.
 put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
+put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "vendor.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
