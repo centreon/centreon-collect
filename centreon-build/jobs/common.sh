@@ -20,7 +20,7 @@ clean_directory () {
 
 get_internal_source () {
   rm -f `basename $1`
-  wget "http://srvi-repo.int.centreon.com/sources/internal/$1"
+  wget -q "http://srvi-repo.int.centreon.com/sources/internal/$1"
 }
 
 put_internal_source () {
