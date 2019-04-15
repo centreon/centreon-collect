@@ -39,6 +39,7 @@ git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.ta
 # Install Composer dependencies.
 composer install
 tar czf "../vendor.tar.gz" vendor
+cd ..
 
 # Send it to srvi-repo.
 curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php71.tar.gz"
