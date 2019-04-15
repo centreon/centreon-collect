@@ -13,8 +13,8 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+if [ "$#" -lt 2 ] ; then
+  echo "USAGE: $0 <centos7|...> [feature]"
   exit 1
 fi
 DISTRIB="$1"
@@ -30,9 +30,14 @@ docker pull $SQUID_SIMPLE_IMAGE
 docker pull $SQUID_BASIC_AUTH_IMAGE
 
 # Get sources.
-rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz" "vendor.tar.gz"
 get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/vendor.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
+cd "$PROJECT-$VERSION"
+rm -rf vendor
+tar xzf "../vendor.tar.gz"
+cd ..
 
 # Prepare Docker compose file.
 sed -e 's#@WEB_IMAGE@#'$PPM_IMAGE'#g' < `dirname $0`/../../../containers/web/19.04/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppm.yml"
@@ -52,5 +57,4 @@ rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
-composer install
-ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
