@@ -32,9 +32,24 @@ fi
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
-# Create source tarballs (f*cking .gitattributes).
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
-cd ..
+# Create source tarball.
+rm -rf "../$PROJECT-$VERSION"
+mkdir "../$PROJECT-$VERSION"
+git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+# build job listing page
+cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react/pages/configuration/hosts/discovery/jobs"
+npm ci
+npm run build
+# build discovered hosts listing page
+cd _id
+npm ci
+npm run build
+# clean frontend sources
+cd ../../../../../../..
+rm -rf react
+# archive module
+cd ../../../..
+tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Send it to srvi-repo.
 curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php71.tar.gz"
