@@ -35,13 +35,17 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Create source tarball.
 git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
-cd ..
+
+# Install Composer dependencies.
+composer install
+tar czf "../vendor.tar.gz" vendor
 
 # Send it to srvi-repo.
 curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php71.tar.gz"
 put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php71.tar.gz"
 put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
+put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "vendor.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
