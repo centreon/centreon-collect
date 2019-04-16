@@ -6,7 +6,7 @@ LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install package.
-RUN yum install -y centreon-auto-discovery-server && \
+RUN yum install -y --enablerepo='centreon-unstable*' centreon-auto-discovery-server centreon-license-manager && \
     rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
