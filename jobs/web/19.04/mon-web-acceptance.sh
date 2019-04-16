@@ -25,6 +25,7 @@ WEB_FRESH_IMAGE="registry.centreon.com/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 WEB_WIDGETS_IMAGE="registry.centreon.com/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
 MEDIAWIKI_IMAGE=registry.centreon.com/mon-mediawiki-19.04:latest
 OPENLDAP_IMAGE=registry.centreon.com/mon-openldap:latest
+PROXY_IMAGE=registry.centreon.com/mon-squid-simple:latest
 INFLUXDB_IMAGE=influxdb:latest
 NEWMAN_IMAGE=postman/newman_alpine33:latest
 docker pull $WEB_IMAGE
@@ -32,6 +33,7 @@ docker pull $WEB_FRESH_IMAGE
 docker pull $WEB_WIDGETS_IMAGE
 docker pull $MEDIAWIKI_IMAGE
 docker pull $OPENLDAP_IMAGE
+docker pull $PROXY_IMAGE
 docker pull $INFLUXDB_IMAGE
 docker pull $NEWMAN_IMAGE
 
