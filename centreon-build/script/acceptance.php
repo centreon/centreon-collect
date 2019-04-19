@@ -152,9 +152,6 @@ if ($synchronize) {
         '/mon-ppe' => array(
             'version' => array('3.4', '18.10', '19.04')
         ),
-        '/mon-ppe1' => array(
-            'distribution' => array('centos6', 'centos7')
-        ),
         '/mon-ppm' => array(
             'version' => array('3.4', '18.10', '19.04')
         ),
@@ -375,11 +372,6 @@ else {
         xpath($centreon_build_dir . '/containers/web/19.04/docker-compose.yml.in'),
         xpath('mon-ppe-dev.yml'),
         array('@WEB_IMAGE@' => build_image_name('mon-ppe'))
-    );
-    replace_in_file(
-        xpath($centreon_build_dir . '/containers/web/19.04/docker-compose.yml.in'),
-        xpath('mon-ppe1-dev.yml'),
-        array('@WEB_IMAGE@' => 'registry.centreon.com/mon-ppe1:' . $distrib)
     );
     replace_in_file(
         xpath($centreon_build_dir . '/containers/web/19.04/docker-compose.yml.in'),
