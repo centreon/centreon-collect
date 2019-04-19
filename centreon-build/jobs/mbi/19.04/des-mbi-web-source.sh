@@ -14,6 +14,7 @@ set -x
 
 # Project.
 PROJECT=centreon-bi-server
+tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
 
 # Get version.
@@ -24,7 +25,11 @@ export VERSION="$VERSION"
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
-export RELEASE="$now.$COMMIT"
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  export RELEASE="$BUILD_NUMBER"
+else
+  export RELEASE="$now.$COMMIT"
+fi
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
@@ -52,6 +57,7 @@ curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=71" 'http://encode.int.cent
 put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
 put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php71.tar.gz"
+put_internal_source "mbi-web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
