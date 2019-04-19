@@ -31,8 +31,8 @@ try {
   stage('Unit tests') {
     parallel 'centos7': {
       node {
-/*
         sh 'setup_centreon_build.sh'
+/*
         sh './centreon-build/jobs/connector/${serie}/mon-connector-unittest.sh centos7'
         step([
           $class: 'XUnitBuilder',
