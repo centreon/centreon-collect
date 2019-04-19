@@ -49,6 +49,6 @@ else
   exit 1
 fi
 put_internal_rpms "19.04" "$DISTRIB" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "mbi" "19.04" "el7" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE"
 fi
