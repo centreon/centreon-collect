@@ -12,15 +12,15 @@ Hash: SHA256
   "platform": {
     "fingerprint": [],
     "environment": "demo",
-    "mode": "online"
+    "mode": "offline"
   },
   "licensing": {
     "type": "demo",
     "isMachineLocked": "false",
-    "generated": "2018-11-27",
-    "start": "2018-11-27",
-    "end": "2019-04-19",
-    "hosts": -1,
+    "generated": "2019-04-19",
+    "start": "2019-04-19",
+    "end": "2020-04-19",
+    "hosts": 500,
     "catalog_level": "4"
   }
 }
@@ -28,12 +28,12 @@ Hash: SHA256
 Version: OpenPGP.js v1.6.2
 Comment: http://openpgpjs.org
 
-wsBcBAEBCAAQBQJb/R2ECRC4oxbLyI+7ygAAuKYH/04P/Lr/Adc+v+0dQm5g
-fSEHATui79XX99qXJg/tU3eKVE6z8ykasqTfoGe+i8VpXwda8XEYii//6OGc
-N5B/XSsFbrc8YioqvCJ0nV+hUWjPlzMuct2jBoQej6EexRpkwjhs3gAmq+4W
-nvkVlHnZsTDPT+PqYoaYXmglwjmAe4DJENCikkG25LsqYM1tN6w6oZsv1mro
-Y9gxZ3gqoYG7EPNfiEoBAK6kpsUmBWDnZb5+3Mix4uI4eJPinAcXy8kLiRkG
-bBPrf2pONTwYQWWT/gZrgDwSFtTByqCpXD7iphcajNZdAUedJM5HYDaV0WqD
-Pd5G6xdBNAUOv9P9QiPTliw=
-=/HGB
+wsBcBAEBCAAQBQJcuYnkCRC4oxbLyI+7ygAA2QAIAILAiDQom7phgRFfZW5k
+nDhcrrsyAJjG4IyBXdQ1AJqcg8eDifZIAEL58LB+mQdEpnCDW1NhrBh5m4yO
+rQwi8LoV1PaXMzohEjlJJwIwW5qzYjqxE5Y4abbnZ5M4WP2ndeOWrvIFb3ny
+EFEaUI654/9viETGIfpfPD7q/avUWeU3LBwNj/NVpPeIf1VkzF3MwZwz+zhw
+WtyeeqtluqjxPjJgfaBiD6N+PVCaVEj49McuUYoK9+vLhbedhC3iZ8nJ04CK
+wkuGjcArooFqfMpuCI2fcNUBFQt9HwA8c4dt/ArkqF6+eh+rydg7CqAw2S7n
+hwCt84m9l1dq6uG5ot7czTo=
+=H/wT
 -----END PGP SIGNATURE-----
