@@ -19,7 +19,7 @@ fi
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_source_to_testing "standard" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "19.04" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "19.04" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
   SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-auto-discovery -V latest -p'"
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-auto-discovery -V latest -p'"
