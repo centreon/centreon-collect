@@ -35,11 +35,14 @@ fi
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
-# Generate sources of Centreon Map web client.
+# Installation of the dependency packages verified by the "package-lock.json" file
+# present in the web repository of centreon-map, which therefore allows to obtain
+# the "node_modules".
 npm ci
 
-node ./node_modules/gulp/bin/gulp.js build-module
-node ./node_modules/gulp/bin/gulp.js build-widget
+# Generate sources of Centreon Map web client.
+# Launch this command which allows you to build the module and widget in a "build" folder.
+npm run build
 
 # Generate Centreon Map web client source tarball used for packaging.
 WEBDIR="../../centreon-map-web-client-$VERSIONWEB"
