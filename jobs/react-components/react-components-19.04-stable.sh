@@ -23,6 +23,9 @@ cat > .npmrc << EOF
 //registry.npmjs.org/:_authToken=2a5c102e-2d32-449a-9a5f-03da082f123b
 EOF
 
+# install dependencies
+npm ci
+
 # release on npm registry
 npm publish --access=public --tag=latest ./
 
