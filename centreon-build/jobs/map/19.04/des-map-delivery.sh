@@ -19,17 +19,15 @@ fi
 # Release delivery.
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  case "$PRODUCT" in
-    desktop)
-      copy_internal_source_to_testing "map" "map-desktop" "$PROJECT-$VERSION-$RELEASE"
-    ;;
-    server)
-      copy_internal_rpms_to_testing "map" "19.04" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE"
-    ;;
-    web)
-      copy_internal_rpms_to_testing "map" "19.04" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE"
-    ;;
-  esac
+  if [ "$PRODUCT" '=' 'desktop' -o "$PRODUCT" '=' 'all' ] ; then
+    copy_internal_source_to_testing "map" "map-desktop" "$PROJECT-$VERSION-$RELEASE"
+  fi
+  if [ "$PRODUCT" '=' 'server' -o "$PRODUCT" '=' 'all' ] ; then
+    copy_internal_rpms_to_testing "map" "19.04" "el7" "noarch" "map-server" "$PROJECT-$VERSION-$RELEASE"
+  fi
+  if [ "$PRODUCT" '=' 'web' -o "$PRODUCT" '=' 'all' ] ; then
+    copy_internal_rpms_to_testing "map" "19.04" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE"
+  fi
   SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V latest'"
 
