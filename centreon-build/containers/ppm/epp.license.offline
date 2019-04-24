@@ -1,0 +1,39 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+{
+  "product": {
+    "name": "epp"
+  },
+  "client": {
+    "name": "centreon"
+  },
+  "platform": {
+    "fingerprint": [],
+    "environment": "demo",
+    "mode": "offline"
+  },
+  "licensing": {
+    "type": "demo",
+    "isMachineLocked": "false",
+    "generated": "2019-04-19",
+    "start": "2019-04-19",
+    "end": "2020-04-19",
+    "hosts": 500,
+    "catalog_level": "4"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v1.6.2
+Comment: http://openpgpjs.org
+
+wsBcBAEBCAAQBQJcvwQ3CRDzHVLX3VyIwQAAxBMH+QEXTMXit9UaWlfXTAJA
+E9ZFHRhsr+nSffGSq7R01KGcM6eV6FNF4RNZXjoqLqg8EQquv/W9wMCfMTBD
+tR2+HLTi++AzPkgjLNOYFdnwwa74lZ1Xwu5ay04TkQINYWJEKoUkgc+fYpL7
++nteOezVNGd6DZUKb1TLSEIxqj8g2e6pWfUCwvkHg3Ea0YYhmihI6mACW8mf
+SU7R6W8R2nzTCFnipCDz0/SKy4JCJNlTNEVKf5+FiZ/2sL3WdMjLQCUkVXZr
+ApOWW0VV9J5r2hoUP1p3hUceb9QIP+u8AJoW/YQ5U6bBKP1AU6bBe6mVRO0G
+9BWkvorVmAC32YiIFg6DeEM=
+=5Zqa
+-----END PGP SIGNATURE-----
