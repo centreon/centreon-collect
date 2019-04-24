@@ -3,11 +3,11 @@
 set -e
 set -x
 
-export PROJECT='centreon-map-client'
+export PROJECT=centreon-map
 
 # Check arguments.
-if [ -z "$VERSION" ] ; then
-  echo "You need to specify VERSION environment variable."
+if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
+  echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
 
@@ -18,12 +18,12 @@ export BUGFIX=`echo $VERSION | cut -d . -f 3`
 # Move artifacts to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rm -rf "/srv/sources/map/stable/$PROJECT-$VERSION"
-$SSH_REPO mv "/srv/sources/map/testing/map-client/$PROJECT-$VERSION" "/srv/sources/map/stable/"
+$SSH_REPO mv "/srv/sources/map/testing/map-desktop/$PROJECT-$MAJOR.$MINOR-$RELEASE" "/srv/sources/map/stable/"
 
 # Upload installers to centreon download website
 # The url is specific for this version. We have to change it for new minor versions
 
-BASE_INTERNAL_URL="/srv/sources/map/stable/$PROJECT-$VERSION/"
+BASE_INTERNAL_URL="/srv/sources/map/stable/$PROJECT-$MAJOR.$MINOR-$RELEASE/"
 BASE_EXTERNAL_URL="s3://centreon-download/enterprises/centreon-map/centreon-map-$MAJOR.$MINOR/centreon-map-$MAJOR.$MINOR/9ae03a4457fa0ce578379a4e0c8b51f2/"
 
 # Copy MacOS .tar.gz version
