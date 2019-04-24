@@ -1,5 +1,5 @@
 ##
-## Copyright 2018 Centreon
+## Copyright 2018-2019 Centreon
 ##
 
 %if 0%{?suse_version}
@@ -12,8 +12,8 @@ Name:           centreon-fingerprint
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Fingerprint
-%define thismajor 18.10.0
-%define nextmajor 18.11.0
+%define thismajor 19.04.0
+%define nextmajor 19.05.0
 
 Group:          %{group}
 License:        GPLv2
