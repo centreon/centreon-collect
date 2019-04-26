@@ -1,5 +1,6 @@
 {
     "dependencies": [
+        "perl(XML::Simple)",
         "perl(Time::HiRes)",
         "perl(LWP::UserAgent)",
         "perl(LWP::Protocol::https)",
