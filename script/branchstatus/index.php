@@ -58,7 +58,7 @@ $projects1904 = array(
   array('name' => 'centreon-autodiscovery', 'branch' => 'master'),
   array('name' => 'centreon-awie', 'branch' => 'master'),
   array('name' => 'centreon-broker', 'branch' => 'master'),
-  array('name' => 'centreon-clib', 'branch' => 'master'),
+  array('name' => 'centreon-clib', 'branch' => '19.04'),
   array('name' => 'centreon-connector', 'branch' => 'master'),
   array('name' => 'centreon-dsm', 'branch' => 'master'),
   array('name' => 'centreon-engine', 'branch' => 'master'),
