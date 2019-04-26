@@ -17,6 +17,9 @@ RUN yum install -y centreon-pp-manager && \
 # Install Plugin Pack JSON files.
 COPY middleware/data/pluginpacks/**/*.json /usr/share/centreon-packs/
 
+# Install license file.
+COPY ppm/epp.license.offline /etc/centreon/license.d/epp.license.offline
+
 # Install module in Centreon.
 COPY web/18.10/install-centreon-module.php /tmp/install-centreon-module.php
 COPY ppm/18.10/install.sh /tmp/install.sh
