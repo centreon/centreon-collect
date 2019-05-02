@@ -16,7 +16,7 @@ fi
 
 # Fetch sources.
 rm -rf "$PROJECT-desktop-$VERSION.tar.gz" "$PROJECT-desktop-$VERSION"
-get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PROJECT-desktop-$VERSION.tar.gz"
+get_internal_source "map/$PROJECT-desktop-$VERSION-$RELEASE/$PROJECT-desktop-$VERSION.tar.gz"
 tar xzf "$PROJECT-desktop-$VERSION.tar.gz"
 
 # Build with Maven.
@@ -56,4 +56,4 @@ cp com.centreon.studio.client.product/target/products/Centreon-Map4.product-maco
 cd ..
 
 # Copy installers to remote repository.
-put_internal_source "map-desktop" "$PROJECT-$VERSION-$RELEASE" installs/*
+put_internal_source "map-desktop" "$PROJECT-desktop-$VERSION-$RELEASE" installs/*
