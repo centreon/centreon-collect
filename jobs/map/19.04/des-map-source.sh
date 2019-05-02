@@ -17,14 +17,14 @@ PROJECT=centreon-map
 tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
-cd "$PROJECT/web"
+cd "$PROJECT/server"
+VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
+export VERSIONSERVER="$VERSIONSERVER"
+cd ../web
 VERSIONWEB=`grep '$release = ' app/module/conf.php | cut -d "'" -f 2`
 export VERSIONWEB="$VERSIONWEB"
 VERSION=`echo "$VERSIONWEB" | cut -d . -f 1-2`
 export VERSION="$VERSION"
-cd ../server
-VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
-export VERSIONSERVER="$VERSIONSERVER"
 
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
