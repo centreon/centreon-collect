@@ -17,7 +17,7 @@ fi
 # Fetch sources.
 rm -rf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
 get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
-tar xzf "$PROJECT-server-$VERSION.tar.gz"
+tar xzf "$PROJECT-server-$VERSIONSERVER.tar.gz"
 
 # Build with Maven.
 cd "$PROJECT-server-$VERSIONSERVER"
@@ -25,7 +25,7 @@ mvn -f map-server-parent/pom.xml clean install
 
 # This is run once the Maven build terminated.
 cd ..
-FILES_TOMCAT7="$PROJECT-server-$VERSION/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
+FILES_TOMCAT7="$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
 put_internal_rpms "19.04" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" $FILES_TOMCAT7
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/19.04/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/*.rpm"
