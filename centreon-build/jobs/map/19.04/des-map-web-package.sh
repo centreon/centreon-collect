@@ -28,8 +28,8 @@ mkdir output
 
 # Fetch sources.
 cd input
-get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PACKAGE-$VERSIONWEB-php71.tar.gz"
-get_internal_source "map/$PROJECT-$VERSION-$RELEASE/$PACKAGE.spectemplate"
+get_internal_source "map/$PROJECT-web-$VERSIONWEB-$RELEASE/$PACKAGE-$VERSIONWEB-php71.tar.gz"
+get_internal_source "map/$PROJECT-web-$VERSIONWEB-$RELEASE/$PACKAGE.spectemplate"
 cd ..
 
 # Pull latest build dependencies.
@@ -49,7 +49,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "19.04" "$DISTRIB" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "19.04" "$DISTRIB" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "map" "19.04" "el7" "noarch" "map-web" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "map" "19.04" "el7" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE"
 fi
