@@ -18,5 +18,6 @@ done
 # Add tasks to Jenkins role.
 echo "  - import_tasks: $2/jobs-build-dependencies.yml
   - import_tasks: $2/jobs-dependencies.yml
-  - import_tasks: $2/jobs-unittest.yml" >> infrastructure/jenkins/roles/master/tasks/main.yml
-git add infrastructure/jenkins/roles/master/tasks/main.yml
+  - import_tasks: $2/jobs-unittest.yml
+  - import_tasks: $2/jobs-stable.yml" >> infrastructure/ci/roles/jenkins-master/tasks/main.yml
+git add infrastructure/ci/roles/jenkins-master/tasks/main.yml
