@@ -17,7 +17,10 @@ PROJECT=centreon-map
 tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
-cd "$PROJECT/web"
+cd "$PROJECT/server"
+VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
+export VERSIONSERVER="$VERSIONSERVER"
+cd ../web
 VERSIONWEB=`grep '$release = ' app/module/conf.php | cut -d "'" -f 2`
 export VERSIONWEB="$VERSIONWEB"
 VERSION=`echo "$VERSIONWEB" | cut -d . -f 1-2`
@@ -45,7 +48,7 @@ npm ci
 npm run build
 
 # Generate Centreon Map web client source tarball used for packaging.
-WEBDIR="../../centreon-map-web-client-$VERSIONWEB"
+WEBDIR="../../$PROJECT-web-client-$VERSIONWEB"
 rm -rf "$WEBDIR"
 mkdir "$WEBDIR"
 cp -a build/module "$WEBDIR"
@@ -54,7 +57,7 @@ cp -a build/install.sh "$WEBDIR"
 cp -a build/libinstall "$WEBDIR"
 cp -a build/examples "$WEBDIR"
 cd ../..
-tar czf centreon-map-web-client-$VERSIONWEB.tar.gz centreon-map-web-client-$VERSIONWEB
+tar czf $PROJECT-web-client-$VERSIONWEB.tar.gz $PROJECT-web-client-$VERSIONWEB
 
 # Generate Centreon Map client source tarball.
 rm -rf "$PROJECT-desktop-$VERSION" "$PROJECT-desktop-$VERSION.tar.gz"
@@ -62,23 +65,25 @@ cp -r "$PROJECT/desktop" "$PROJECT-desktop-$VERSION"
 tar czf "$PROJECT-desktop-$VERSION.tar.gz" "$PROJECT-desktop-$VERSION"
 
 # Generate Centreon Map server source tarball.
-rm -rf "$PROJECT-server-$VERSION" "$PROJECT-server-$VERSION.tar.gz"
-cp -r "$PROJECT/server" "$PROJECT-server-$VERSION"
-tar czf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
+rm -rf "$PROJECT-server-$VERSIONSERVER" "$PROJECT-server-$VERSIONSERVER.tar.gz"
+cp -r "$PROJECT/server" "$PROJECT-server-$VERSIONSERVER"
+sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml"
+tar czf "$PROJECT-server-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
 
 # Send it to srvi-repo.
-curl -F "file=@centreon-map-web-client-$VERSIONWEB.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "centreon-map-web-client-$VERSIONWEB-php71.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map-web-client-$VERSIONWEB.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "centreon-map-web-client-$VERSIONWEB-php71.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/web/packaging/centreon-map-web-client.spectemplate"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-server-$VERSION.tar.gz"
-put_internal_source "map" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
+curl -F "file=@$PROJECT-web-client-$VERSIONWEB.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-web-client-$VERSIONWEB-php71.tar.gz"
+put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB.tar.gz"
+put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB-php71.tar.gz"
+put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT/web/packaging/$PROJECT-web-client.spectemplate"
+put_internal_source "map" "$PROJECT-desktop-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
+put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-$VERSIONSERVER.tar.gz"
+put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
 PROJECT=$PROJECT
 VERSION=$VERSION
+VERSIONSERVER=$VERSIONSERVER
 VERSIONWEB=$VERSIONWEB
 RELEASE=$RELEASE
 COMMIT=$COMMIT
