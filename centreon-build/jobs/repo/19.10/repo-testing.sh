@@ -3,6 +3,8 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
 # Generate .repo and .spec.
 rm -rf el7
 php `dirname $0`/../../../packaging/repo/19.10/genrepo.php
@@ -43,10 +45,6 @@ for distrib in el7 ; do
     elif [ "$project" = 'centreon-plugin-packs' ] ; then
       REPO='plugin-packs'
     fi
-    REPO="$REPO/19.10/$distrib/testing/noarch"
-    scp -o StrictHostKeyChecking=no output/noarch/*.rpm "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/repo"
-    DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-    scp -o StrictHostKeyChecking=no `dirname $0`/../../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
-    ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
+    put_testing_rpms "$REPO" 19.10 "$distrib" noarch repo '' output/noarch/*.rpm
   done
 done
