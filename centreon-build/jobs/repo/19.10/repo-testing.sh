@@ -29,7 +29,7 @@ for distrib in el7 ; do
     fi
     BUILD_IMG="registry.centreon.com/mon-build-dependencies-19.04:$tag"
     docker pull "$BUILD_IMG"
-    docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
+    docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
     # Push RPM.
     if [ "$project" = centreon ] ; then
@@ -46,7 +46,7 @@ for distrib in el7 ; do
     REPO="$REPO/19.10/$distrib/testing/noarch"
     scp -o StrictHostKeyChecking=no output/noarch/*.rpm "ubuntu@srvi-repo.int.centreon.com:/srv/yum/$REPO/repo"
     DESTFILE=`ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mktemp`
-    scp -o StrictHostKeyChecking=no `dirname $0`/../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
+    scp -o StrictHostKeyChecking=no `dirname $0`/../../updaterepo.sh "ubuntu@srvi-repo.int.centreon.com:$DESTFILE"
     ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" sh $DESTFILE $REPO
   done
 done
