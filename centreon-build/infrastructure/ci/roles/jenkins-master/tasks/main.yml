@@ -13,3 +13,4 @@
   - import_tasks: 19.10/jobs-dependencies.yml
   - import_tasks: 19.10/jobs-unittest.yml
   - import_tasks: 19.10/jobs-stable.yml
+  - import_tasks: 19.10/jobs-misc.yml
