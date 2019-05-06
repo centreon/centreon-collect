@@ -32,7 +32,7 @@ mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
 # Install PAR:Packer to build perl binaries
-yum install -y perl perl-App-cpanminus perl-ExtUtils-Embed openssl openssl-devel
+yum install -y perl perl-App-cpanminus perl-ExtUtils-Embed gcc openssl openssl-devel
 cpanm PAR::Packer
 cpanm PAR::Filter::Crypto
 
