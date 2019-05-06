@@ -16,7 +16,7 @@ for distrib in el7 ; do
     mkdir output
 
     # Copy source files.
-    cp `dirname $0`/../../packaging/repo/RPM-GPG-KEY-CES input
+    cp `dirname $0`/../../../packaging/repo/RPM-GPG-KEY-CES input
     cp $distrib/$project.repo input
     cp $project.spec input
 
