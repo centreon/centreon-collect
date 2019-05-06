@@ -1,4 +1,3 @@
-centreon-clib:armhf
 crossbuild-essential-armhf
 libgnutls28-dev:armhf
 libidn11-dev:armhf
