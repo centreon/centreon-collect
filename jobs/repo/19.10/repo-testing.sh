@@ -5,7 +5,7 @@ set -x
 
 # Generate .repo and .spec.
 rm -rf el7
-php `dirname $0`/../../packaging/repo/19.10/genrepo.php
+php `dirname $0`/../../../packaging/repo/19.10/genrepo.php
 
 # Build all release RPMs.
 for distrib in el7 ; do
