@@ -31,9 +31,10 @@ curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
-# Install PAR::Packer to build perl binaries
-yum install -y perl-core perl-devel openssl openssl-devel
-curl --silent --location http://xrl.us/cpanm | perl - PAR::Packer PAR::Filter::Crypto --force
+# Install PAR:Packer to build perl binaries
+yum install -y perl perl-App-cpanminus perl-ExtUtils-Embed openssl openssl-devel
+cpanm PAR::Packer
+cpanm PAR::Filter::Crypto
 
 # Workaround, yum does not seem to exit correctly.
 rm -f /var/run/yum.pid
