@@ -6,7 +6,7 @@ mkdir output
 
 # Retrieve source tarball, spectemplate and additional source files.
 mv "$PROJECT-$VERSION.tar.gz" input/
-cp `dirname $0`/../../../packaging/connector/centreon-connector-19.10.spectemplate input/
+cp `dirname $0`/../../../packaging/connector/19.10/centreon-connector.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-19.10:centos7 input output
