@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2017 Centreon
+## Copyright 2011-2019 Centreon
 ##
 
 %if 0%{?suse_version}
@@ -48,7 +48,6 @@ Centreon products written in C/C++.
 %setup
 
 %build
-cd build
 CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
 	-DWITH_PKGCONFIG_DIR=%{_libdir}/pkgconfig \
 	-DWITH_PREFIX=%{_prefix} \
