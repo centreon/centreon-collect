@@ -104,6 +104,7 @@ put_internal_debs () {
 copy_internal_rpms_to_canary () {
   TARGETDIR="/srv/yum/$1/$2/$3/canary/$4/$5"
   REPO="$1/$2/$3/canary/$4"
+  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
   ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
   ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
   clean_directory "$TARGETDIR"
@@ -120,6 +121,7 @@ copy_internal_rpms_to_canary () {
 copy_internal_rpms_to_unstable () {
   TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/$5"
   REPO="$1/$2/$3/unstable/$4"
+  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
   ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
   ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
   clean_directory "$TARGETDIR"
@@ -136,6 +138,7 @@ copy_internal_rpms_to_unstable () {
 copy_internal_rpms_to_testing () {
   TARGETDIR="/srv/yum/$1/$2/$3/testing/$4/$5"
   REPO="$1/$2/$3/testing/$4"
+  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
   ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
   ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
   clean_directory "$TARGETDIR"
@@ -152,6 +155,7 @@ copy_internal_rpms_to_testing () {
 promote_canary_rpms_to_unstable () {
   TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/$5"
   REPO="$1/$2/$3/unstable/$4"
+  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
   ssh "$REPO_CREDS" cp -r "/srv/yum/$1/$2/$3/canary/$4/$5/$6" "$TARGETDIR/"
   clean_directory "$TARGETDIR"
   DESTFILE=`ssh "$REPO_CREDS" mktemp`
@@ -167,6 +171,7 @@ promote_canary_rpms_to_unstable () {
 promote_unstable_rpms_to_testing () {
   TARGETDIR="/srv/yum/$1/$2/$3/testing/$4/$5"
   REPO="$1/$2/$3/testing/$4"
+  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
   ssh "$REPO_CREDS" cp -r "/srv/yum/$1/$2/$3/unstable/$4/$5/$6" "$TARGETDIR/"
   clean_directory "$TARGETDIR"
   DESTFILE=`ssh "$REPO_CREDS" mktemp`
@@ -183,6 +188,7 @@ promote_testing_rpms_to_stable () {
   SOURCEDIR="/srv/yum/$1/$2/$3/testing/$4/$5/$6"
   TARGETDIR="/srv/yum/$1/$2/$3/stable/$4/RPMS"
   REPO="$1/$2/$3/stable/$4"
+  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
   ssh "$REPO_CREDS" cp "$SOURCEDIR/*.rpm" "$TARGETDIR/"
   DESTFILE=`ssh "$REPO_CREDS" mktemp`
   UPDATEREPODIR=`dirname $0`
