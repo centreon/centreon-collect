@@ -19,7 +19,7 @@ tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd $PROJECT
-cmakelists=build/CMakeLists.txt
+cmakelists=CMakeLists.txt
 major=`grep 'set(CLIB_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CLIB_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 patch=`grep 'set(CLIB_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
