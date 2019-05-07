@@ -6,7 +6,7 @@ mkdir output
 
 # Retrieve source tarball, spectemplate and additional source files.
 mv "$PROJECT-$VERSION.tar.gz" input/
-cp `dirname $0`/../../../packaging/engine/centreon-engine-19.10.spectemplate input/
+cp `dirname $0`/../../../packaging/engine/19.10/centreon-engine.spectemplate input/
 cp `dirname $0`/../../../packaging/engine/centreonengine_integrate_centreon_engine2centreon.sh input/
 
 # Build RPMs.
