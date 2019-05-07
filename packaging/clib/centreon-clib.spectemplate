@@ -60,7 +60,6 @@ CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
-cd build
 %{__make} install DESTDIR="$RPM_BUILD_ROOT"
 
 %clean
