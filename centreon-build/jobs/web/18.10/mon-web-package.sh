@@ -29,12 +29,5 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 mv "$PROJECT-$VERSION" "centreon-$VERSION"
 tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
 
-# Retrieve packaging files.
-rm -rf packaging-centreon-web
-git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
-cd packaging-centreon-web
-git checkout "$BRANCH_NAME" || true
-cd ..
-
 # Run distribution-dependent script.
 . `dirname $0`/mon-web-package.$DISTRIB.sh

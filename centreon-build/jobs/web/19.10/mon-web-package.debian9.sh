@@ -4,8 +4,8 @@ mkdir debuildir
 cd debuildir
 cp "../centreon-${VERSION}.tar.gz" "centreon_${VERSION}.orig.tar.gz"
 tar xzf "centreon_${VERSION}.orig.tar.gz"
-cp -r "../packaging-${PROJECT}/debian/19.10" "centreon-${VERSION}/debian"
-cp -r "../packaging-${PROJECT}/src/19.10" "centreon-${VERSION}/debian/src"
+cp -r `dirname $0`"/../../../packaging/web/debian/19.10" "centreon-${VERSION}/debian"
+cp -r `dirname $0`"/../../../packaging/web/src/19.10" "centreon-${VERSION}/debian/src"
 sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian9/g" < "centreon-${VERSION}/debian/changelog.in" > "centreon-${VERSION}/debian/changelog"
 cd ..
 
