@@ -49,13 +49,9 @@ mkdir input
 rm -rf output-centos7
 mkdir output-centos7
 
-# Retrieve spec file.
-rm -rf packaging-centreon-web
-git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
-cp packaging-centreon-web/rpm/centreon-18.10.spectemplate input/
-
-# Retrieve additional sources.
-cp packaging-centreon-web/src/18.10/* input/
+# Retrieve spec file and additional sources.
+cp `dirname $0`/../../packaging/web/rpm/18.10/centreon.spectemplate input/
+cp `dirname $0`/../../packaging/web/src/18.10/* input/
 cp "centreon-$VERSION.tar.gz" input/
 
 # Build RPMs.
