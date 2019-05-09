@@ -36,14 +36,7 @@ cd ..
 tar czf "input/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Retrieve spec file.
-if [ \! -d packaging-centreon-web ] ; then
-  git clone http://gitbot:gitbot@git.int.centreon.com/packaging-centreon packaging-centreon-web
-else
-  cd packaging-centreon-web
-  git pull
-  cd ..
-fi
-cp packaging-centreon-web/rpm/centreon-widget-3.4.spectemplate input/
+cp `dirname $0`/../../packaging/widget/3.4/centreon-widget.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-3.4:centos6 input output-centos6
