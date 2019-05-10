@@ -269,7 +269,6 @@ set(
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/process_manager.hh"
   "${INC_DIR}/process.hh"
-  "${INC_DIR}/shared_ptr.hh"
   "${INC_DIR}/task.hh"
   "${INC_DIR}/task_manager.hh"
   "${INC_DIR}/timestamp.hh"

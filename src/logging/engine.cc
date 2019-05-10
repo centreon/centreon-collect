@@ -51,7 +51,7 @@ unsigned long engine::add(
     throw (basic_error() << "add backend on the logging engine "
            "failed: invalid verbose");
 
-  std::auto_ptr<backend_info> info(new backend_info);
+  std::unique_ptr<backend_info> info(new backend_info);
   info->obj = obj;
   info->types = types;
   info->verbose = verbose;
