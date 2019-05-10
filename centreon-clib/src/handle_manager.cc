@@ -108,7 +108,7 @@ void handle_manager::add(
 
   // Check that handle isn't already registered.
   if (_handles.find(nh) == _handles.end()) {
-    std::auto_ptr<handle_action>
+    std::unique_ptr<handle_action>
       ha(new handle_action(h, hl, is_threadable));
     std::pair<native_handle, handle_action*> item(nh, ha.get());
     _handles.insert(item);

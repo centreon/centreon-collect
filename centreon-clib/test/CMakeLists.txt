@@ -77,30 +77,6 @@ add_test("${TEST_NAME}" "${TEST_NAME}")
 set(LIB_NAME "shared_testing_library")
 add_library("${LIB_NAME}" SHARED "${TEST_DIR}/${LIB_NAME}.cc")
 
-# shared_ptr_clear
-set(TEST_NAME "shared_ptr_clear")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# shared_ptr_constructor
-set(TEST_NAME "shared_ptr_constructor")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# shared_ptr_copy
-set(TEST_NAME "shared_ptr_copy")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# shared_ptr_is_null
-set(TEST_NAME "shared_ptr_is_null")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # process_env
 set(TEST_NAME "process_env")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
