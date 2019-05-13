@@ -21,7 +21,7 @@ cd "$PROJECT/server"
 VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
 export VERSIONSERVER="$VERSIONSERVER"
 cd ../web
-VERSIONWEB=`echo 'echo $module_conf["centreon-map4-web-client"]["mod_release"];' | cat web/app/module/conf.php - | php`
+VERSIONWEB=`echo 'echo $module_conf["centreon-map4-web-client"]["mod_release"];' | cat app/module/conf.php - | php`
 export VERSIONWEB="$VERSIONWEB"
 VERSION=`echo "$VERSIONWEB" | cut -d . -f 1-2`
 export VERSION="$VERSION"
