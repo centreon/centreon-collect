@@ -132,7 +132,8 @@ if ($synchronize) {
         '/hub' => array(),
         '/mon-mediawiki-3.4' => array(),
         '/mon-mediawiki-18.10' => array(),
-	'/mon-mediawiki-19.04' => array(),
+        '/mon-mediawiki-19.04' => array(),
+        '/mon-mediawiki-19.10' => array(),
         '/mon-openldap' => array(),
         '/mon-squid-simple' => array(),
         '/mon-squid-basic-auth' => array(),
@@ -141,7 +142,7 @@ if ($synchronize) {
         'selenium/node-chrome' => array(),
         'redis' => array(),
         '/mon-lm' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-poller-display-central' => array(
             'version' => array('3.4')
@@ -150,46 +151,46 @@ if ($synchronize) {
             'version' => array('3.4')
         ),
         '/mon-ppe' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-ppm' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-awie' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-ppm-autodisco' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-ppm1' => array(
             'distribution' => array('centos6', 'centos7')
         ),
         '/mon-web-fresh' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-web' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-web-widgets' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/mon-web-stable' => array(
             'version' => array('3.4')
         ),
         '/des-bam' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/des-map-server' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/des-map-web' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/des-mbi-server' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         ),
         '/des-mbi-web' => array(
-            'version' => array('3.4', '18.10', '19.04')
+            'version' => array('3.4', '18.10', '19.04', '19.10')
         )
     );
 
