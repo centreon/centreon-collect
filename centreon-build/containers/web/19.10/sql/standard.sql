@@ -123,16 +123,16 @@ INSERT INTO `command_arg_description` (`cmd_id`, `macro_name`, `macro_descriptio
 --
 -- Contenu de la table `contact_hostcommands_relation`
 --
-INSERT INTO `contact_hostcommands_relation` (`chr_id`, `contact_contact_id`, `command_command_id`) VALUES(1, 1, 35);
-INSERT INTO `contact_hostcommands_relation` (`chr_id`, `contact_contact_id`, `command_command_id`) VALUES(2, 17, 35);
-INSERT INTO `contact_hostcommands_relation` (`chr_id`, `contact_contact_id`, `command_command_id`) VALUES(3, 18, 35);
+INSERT INTO `contact_hostcommands_relation` (`contact_contact_id`, `command_command_id`) VALUES(1, 35);
+INSERT INTO `contact_hostcommands_relation` (`contact_contact_id`, `command_command_id`) VALUES(17, 35);
+INSERT INTO `contact_hostcommands_relation` (`contact_contact_id`, `command_command_id`) VALUES(18, 35);
 
 --
 -- Contenu de la table `contact_servicecommands_relation`
 --
-INSERT INTO `contact_servicecommands_relation` (`csc_id`, `contact_contact_id`, `command_command_id`) VALUES(1, 1, 36);
-INSERT INTO `contact_servicecommands_relation` (`csc_id`, `contact_contact_id`, `command_command_id`) VALUES(2, 17, 36);
-INSERT INTO `contact_servicecommands_relation` (`csc_id`, `contact_contact_id`, `command_command_id`) VALUES(3, 18, 36);
+INSERT INTO `contact_servicecommands_relation` (`contact_contact_id`, `command_command_id`) VALUES(1, 36);
+INSERT INTO `contact_servicecommands_relation` (`contact_contact_id`, `command_command_id`) VALUES(17, 36);
+INSERT INTO `contact_servicecommands_relation` (`contact_contact_id`, `command_command_id`) VALUES(18, 36);
 
 --
 -- Contenu de la table `host`
@@ -192,7 +192,7 @@ INSERT INTO `ns_host_relation` (`nagios_server_id`, `host_host_id`) VALUES(1, 14
 --
 -- Contenu de la table `contactgroup_host_relation`
 --
-INSERT INTO `contactgroup_host_relation` (`cghr_id`, `host_host_id`, `contactgroup_cg_id`) VALUES(4425, 2, 5);
+INSERT INTO `contactgroup_host_relation` (`host_host_id`, `contactgroup_cg_id`) VALUES(2, 5);
 
 --
 -- Contenu de la table `hostgroup`
@@ -296,7 +296,7 @@ INSERT INTO `host_service_relation` (`hostgroup_hg_id`, `host_host_id`, `service
 --
 -- Contenu de la table `contactgroup_service_relation`
 --
-INSERT INTO `contactgroup_service_relation` (`cgsr_id`, `contactgroup_cg_id`, `service_service_id`) VALUES (121, 5, 1);
+INSERT INTO `contactgroup_service_relation` (`contactgroup_cg_id`, `service_service_id`) VALUES (5, 1);
 
 --
 -- Contenu de la table `service_categories_relation`
