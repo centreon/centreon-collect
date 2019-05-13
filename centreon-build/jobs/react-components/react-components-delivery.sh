@@ -30,6 +30,12 @@ if [ "$BRANCH_NAME" == "master" ] ; then
   # if job is run from master branch, publish the next release as an alpha
   npm version $VERSION-alpha.$BUILD_NUMBER
   npm publish --access=public --tag=next ./
+
+  # push stable docker container
+  REGISTRY='registry.centreon.com'
+  docker pull "$REGISTRY/react-components-$VERSION-$RELEASE:latest"
+  docker tag "$REGISTRY/react-components-$VERSION-$RELEASE:latest" "$REGISTRY/react-components:latest"
+  docker push "$REGISTRY/react-components:latest"
 else
   # if job is run from another branch, publish the branch as version 0.0.0 and with tag unstable
   npm version 0.0.0-$BRANCH_NAME.$BUILD_NUMBER
