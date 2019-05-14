@@ -21,7 +21,7 @@ RUN yum clean all && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     yum clean all && \
     rm -rf /tmp/fresh && \
-    touch /var/opt/rh/rh-php71/log/php-fpm/centreon-error.log && \
-    chown apache:apache /var/opt/rh/rh-php71/log/php-fpm/centreon-error.log
+    touch /var/opt/rh/rh-php72/log/php-fpm/centreon-error.log && \
+    chown apache:apache /var/opt/rh/rh-php72/log/php-fpm/centreon-error.log
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]

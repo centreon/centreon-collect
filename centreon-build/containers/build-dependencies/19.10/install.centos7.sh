@@ -26,8 +26,8 @@ yum install --nogpgcheck -y nodejs
 npm install -g gulp
 
 # Install Composer.
-yum install -y rh-php71-php rh-php71-php-cli rh-php71-php-dom rh-php71-php-mbstring
-export PATH="$PATH:/opt/rh/rh-php71/root/usr/bin"
+yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring
+export PATH="$PATH:/opt/rh/rh-php72/root/usr/bin"
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
