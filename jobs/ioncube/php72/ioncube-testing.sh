@@ -13,7 +13,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-18.10:centos7
+BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-19.10:centos7
 docker pull "$BUILD_CENTOS7"
 
 # Create input and output directories for docker-rpm-builder.
@@ -26,16 +26,16 @@ mkdir output-centos7
 rm -rf "$PROJECT.tar.gz" ioncube
 curl -o "$PROJECT.tar.gz" 'https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz'
 tar xzf "$PROJECT.tar.gz"
-cp ioncube/ioncube_loader_lin_7.1.so input/
+cp ioncube/ioncube_loader_lin_7.2.so input/
 
 # Retrieve spec file and additional sources.
-cp `dirname $0`/../../packaging/ioncube/* input/
+cp `dirname $0`/../../../packaging/ioncube/php72/* input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS7" input output-centos7
 
 # Copy files to server.
 SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
 FILES_CENTOS7='output-centos7/x86_64/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/18.10/el7/testing/x86_64/RPMS"
-$SSH_REPO createrepo /srv/yum/standard/18.10/el7/testing/x86_64
+scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/19.10/el7/testing/x86_64/RPMS"
+$SSH_REPO createrepo /srv/yum/standard/19.10/el7/testing/x86_64
