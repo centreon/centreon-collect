@@ -5,7 +5,7 @@
 %define nextmajor 19.11.0
 
 # Define base for rpm
-%define php_scl rh-php71
+%define php_scl rh-php72
 
 Summary:    Centreon, Network & System Monitoring
 Name:       %{name}
@@ -262,12 +262,12 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 # Install httpd and PHP configuration
 %{__install} -d -m 0755 %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php71/php.d
-%{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/opt/rh/rh-php71/php.d/50-centreon.ini
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php71/php-fpm.d
-%{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/opt/rh/rh-php71/php-fpm.d/centreon.conf
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/rh-php71-php-fpm.service.d
-%{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/rh-php71-php-fpm.service.d/centreon.conf
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php72/php.d
+%{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/opt/rh/rh-php72/php.d/50-centreon.ini
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php72/php-fpm.d
+%{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d
+%{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
 
 # Install systemd configuration files
 %{__install} -d -m 0755 %buildroot%{_unitdir}
@@ -480,9 +480,9 @@ fi
 # httpd and PHP configuration
 %defattr(-, root, root, -)
 %config(noreplace) /opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
-%config(noreplace) %{_sysconfdir}/opt/rh/rh-php71/php.d/50-centreon.ini
-%config(noreplace) %{_sysconfdir}/opt/rh/rh-php71/php-fpm.d/centreon.conf
-%config(noreplace) %{_sysconfdir}/systemd/system/rh-php71-php-fpm.service.d/centreon.conf
+%config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php.d/50-centreon.ini
+%config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
+%config(noreplace) %{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
 
 # Init daemon
 %defattr(-, root, root, -)
