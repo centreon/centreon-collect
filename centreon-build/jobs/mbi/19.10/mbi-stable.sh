@@ -20,8 +20,8 @@ if [ "$PROJECT" = "centreon-bi-server" ] ; then
   $SSH_REPO mv "/srv/sources/mbi/testing/mbi-web/$PROJECT-$VERSION-$RELEASE" "/srv/sources/mbi/stable/"
 
   # Put sources online.
-  SRCHASH=`$SSH_REPO "cat /srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz | md5sum | cut -d ' ' -f 1"`
-  for phpversion in 71 ; do
+  SRCHASH=`$SSH_REPO "cat /srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz | md5sum | cut -d ' ' -f 1"`
+  for phpversion in 72 ; do
     $SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php$phpversion.tar.gz" "s3://centreon-download/enterprises/centreon-mbi/centreon-mbi-19.10/centreon-mbi-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
   done
 

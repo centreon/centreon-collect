@@ -42,9 +42,9 @@ tar czf "../vendor.tar.gz" vendor
 cd ..
 
 # Send it to srvi-repo.
-curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=71" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php71.tar.gz"
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php72.tar.gz"
 put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
-put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php71.tar.gz"
+put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php72.tar.gz"
 put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 put_internal_source "ppm" "$PROJECT-$VERSION-$RELEASE" "vendor.tar.gz"
 
