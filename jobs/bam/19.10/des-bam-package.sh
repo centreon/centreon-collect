@@ -23,9 +23,9 @@ DISTRIB="$1"
 rm -rf "$PROJECT-$VERSION-full.tar.gz" "$PROJECT-$VERSION-full"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
-rm -rf "$PROJECT-$VERSION-php71.tar.gz" "$PROJECT-$VERSION-php71"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz"
-tar xzf "$PROJECT-$VERSION-php71.tar.gz"
+rm -rf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
+get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz"
+tar xzf "$PROJECT-$VERSION-php72.tar.gz"
 
 # Create input and output directories.
 rm -rf input
@@ -34,7 +34,7 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION-php71.tar.gz" input/"$PROJECT-$VERSION-php71.tar.gz"
+cp "$PROJECT-$VERSION-php72.tar.gz" input/"$PROJECT-$VERSION-php72.tar.gz"
 cp "$PROJECT-$VERSION-full/packaging/$PROJECT.spectemplate" input
 
 # Pull latest build dependencies.
