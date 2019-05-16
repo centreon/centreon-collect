@@ -1,0 +1,44 @@
+{
+    "project": {
+        "codename": "centreon-map",
+        "displayname": "Centreon Map",
+        "shortname": "map"
+    },
+    "version": {
+        "full": "19.10.0",
+        "release": "42",
+        "serie": "19.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "Server RPM repository",
+            "flavor": "centos7",
+            "url": "http://foo/foo"
+        },
+	{
+	    "displayname": "Web Client RPM repository",
+	    "flavor": "centos7",
+	    "url": "http://foo/bar"
+	},
+        {
+            "displayname": "Docker web image",
+            "flavor": "centos7",
+            "url": "http://bar"
+        },
+        {
+            "displayname": "Docker server image",
+            "flavor": "centos7",
+            "url": "http://baz"
+        },
+        {
+            "displayname": "Desktop Client Installer",
+            "flavor": "deb",
+            "url": "http://qux/foo"
+        },
+	{
+	    "displayname": "Desktop Client Installer",
+	    "flavor": "tar.gz",
+	    "url": "http://qux/bar"
+	}
+    ]
+}

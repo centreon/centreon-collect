@@ -203,5 +203,7 @@ promote_testing_rpms_to_stable () {
 # Summary report.
 
 generate_summary() {
-    sed -i -e "s#@REGISTRY@#registry.centreon.com#g" -e "s#@REPOSITORY@#http://srvi-repo.int.centreon.com#g" -e "s#@PROJECT@#$PROJECT#g" -e "s#@VERSION@#$VERSION#g" -e "s#@RELEASE@#$RELEASE#g" summary/index.html
+  sed -i -e "s#@REGISTRY@#registry.centreon.com#g" -e "s#@REPOSITORY@#http://srvi-repo.int.centreon.com#g" -e "s#@PROJECT@#$PROJECT#g" -e "s#@VERSION@#$VERSION#g" -e "s#@RELEASE@#$RELEASE#g" summary/jobData.json
+  php summary/index.php > summary/index.html
+  rm -f summary/index.php summary/jobData.json
 }
