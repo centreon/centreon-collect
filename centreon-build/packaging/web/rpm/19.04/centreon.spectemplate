@@ -271,9 +271,9 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 
 # Install systemd configuration files
 %{__install} -d -m 0755 %buildroot%{_unitdir}
-%{__install} -m 0755 tmpl/install/redhat/centcore.systemd %buildroot%{_unitdir}/centcore.service
-%{__install} -m 0755 tmpl/install/redhat/centreontrapd.systemd %buildroot%{_unitdir}/centreontrapd.service
-%{__install} -m 0755 tmpl/install/redhat/centreon.systemd %buildroot%{_unitdir}/centreon.service
+%{__install} -m 0644 tmpl/install/redhat/centcore.systemd %buildroot%{_unitdir}/centcore.service
+%{__install} -m 0644 tmpl/install/redhat/centreontrapd.systemd %buildroot%{_unitdir}/centreontrapd.service
+%{__install} -m 0644 tmpl/install/redhat/centreon.systemd %buildroot%{_unitdir}/centreon.service
 
 # Install centcore and centreontrapd sysconfig files
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/sysconfig
