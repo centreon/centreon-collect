@@ -37,6 +37,7 @@ $_SESSION['CENTREONBROKER_LIB'] = '/usr/share/centreon/lib/centreon-broker';
 $_SESSION['CENTREONBROKER_LOG'] = '/var/log/centreon-broker';
 $_SESSION['CENTREONBROKER_VARLIB'] = '/var/lib/centreon-broker';
 $_SESSION['BIN_RRDTOOL'] = '/usr/bin/rrdtool';
+$_SESSION['root_user'] = 'root';
 $_SESSION['root_password'] = '';
 $_SESSION['BIN_MAIL'] = '/bin/mail';
 $_SESSION['CURRENT_VERSION'] = '2.7.1';
