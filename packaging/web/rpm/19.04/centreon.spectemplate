@@ -421,14 +421,8 @@ touch %buildroot%{_sysconfdir}/centreon/conf.pm
 ######################################################
 %files
 %ghost %{_sysconfdir}/centreon/centreon.conf.php
-%ghost %{_sysconfdir}/centreon/conf.pm
 
 %post
-if [ -f "/etc/centreon/conf.pm" ]; then
-    chown centreon: /etc/centreon/conf.pm
-    chmod g+w /etc/centreon/conf.pm
-fi
-
 export MIN=$(awk 'BEGIN{srand(); print int(rand()*60)}')
 export HOUR=$(awk 'BEGIN{srand(); print int(rand()*24)}')
 sed -i -E "s/0\s0(.*)centreon\-send\-stats\.php(.*)/$MIN $HOUR\1centreon-send-stats.php\2/" /etc/cron.d/centreon
@@ -666,12 +660,13 @@ fi
 
 sed -i -e "s/\$instance_mode = \"poller\";/\$instance_mode = \"central\";/g" /etc/centreon/conf.pm
 sed -i -e "s/\$cmdFile = \"\/var\/lib\/centreon-engine\/rw\/centengine\.cmd\";/\$cmdFile = \"\/var\/lib\/centreon\/centcore\.cmd\"\;/g" /etc/centreon/conf.pm
+sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 
 ######################################################
 # Package centreon-poller-centreon-engine
 ######################################################
 %files poller-centreon-engine
-%defattr(-, centreon, centreon, -)
+%defattr(0664, centreon, centreon, -)
 %config(noreplace) %{_sysconfdir}/centreon/conf.pm
 %config(noreplace) %{_sysconfdir}/centreon/centreontrapd.pm
 
