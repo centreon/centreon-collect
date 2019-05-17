@@ -5,6 +5,7 @@
         "shortname": "map"
     },
     "version": {
+        "version": "@VERSION@",
         "versionserver": "@VERSIONSERVER@",
         "versionweb": "@VERSIONWEB@",
         "release": "@RELEASE@",
