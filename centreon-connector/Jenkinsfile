@@ -22,6 +22,14 @@ stage('Source') {
     }
     sh "./centreon-build/jobs/connector/${serie}/mon-connector-source.sh"
     source = readProperties file: 'source.properties'
+    publishHTML([
+      allowMissing: false,
+      keepAll: true,
+      reportDir: 'summary',
+      reportFiles: 'index.html',
+      reportName: 'Centreon Connector Build Artifacts',
+      reportTitles: ''
+    ])
     env.VERSION = "${source.VERSION}"
     env.RELEASE = "${source.RELEASE}"
   }
