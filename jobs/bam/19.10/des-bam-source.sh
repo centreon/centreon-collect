@@ -72,3 +72,9 @@ RELEASE=$RELEASE
 COMMIT=$COMMIT
 COMMITTER=$COMMITTER
 EOF
+
+# Generate summary report.
+rm -rf summary
+cp -r `dirname $0`/../../common/build-artifacts summary
+cp `dirname $0`/jobData.json summary/
+generate_summary
