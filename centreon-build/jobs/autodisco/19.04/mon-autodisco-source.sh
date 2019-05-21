@@ -15,6 +15,8 @@ set -x
 # Project.
 PROJECT=centreon-autodiscovery
 
+curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
+
 # Get version.
 cd "$PROJECT"
 VERSION=`grep mod_release www/modules/centreon-autodiscovery-server/conf.php | cut -d '"' -f 4`
@@ -36,6 +38,15 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+
+# Generate lang file.
+for i in "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/locale"/*.UTF-8 ; do
+  lang=`basename $i | cut -d _ -f 1`
+  msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
+  php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
+  rm -f "$i/LC_MESSAGES/messages.po"
+done
+
 # build job listing page
 cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react/pages/configuration/hosts/discovery/jobs"
 npm ci
