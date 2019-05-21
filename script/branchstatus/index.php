@@ -14,7 +14,7 @@
     <div class="container container-fluid">
       <h1>Branch Status</h1>
 
-      <h2>19.04</h2>
+      <h2>19.10</h2>
 
       <table class="table table-hover table-sm" style="margin-top:50px">
         <thead class="thead-dark">
@@ -54,11 +54,11 @@ function printProjectStatus($projects)
   }
 }
 
-$projects1904 = array(
+$projects1910 = array(
   array('name' => 'centreon-autodiscovery', 'branch' => 'master'),
   array('name' => 'centreon-awie', 'branch' => 'master'),
   array('name' => 'centreon-broker', 'branch' => 'master'),
-  array('name' => 'centreon-clib', 'branch' => '19.04'),
+  array('name' => 'centreon-clib', 'branch' => 'master'),
   array('name' => 'centreon-connector', 'branch' => 'master'),
   array('name' => 'centreon-dsm', 'branch' => 'master'),
   array('name' => 'centreon-engine', 'branch' => 'master'),
@@ -75,6 +75,45 @@ $projects1904 = array(
   array('name' => 'centreon-bi-report', 'branch' => 'master'),
   array('name' => 'centreon-bi-reporting-server', 'branch' => 'master'),
   array('name' => 'centreon-bi-server', 'branch' => 'master')
+);
+printProjectStatus($projects1910);
+
+?>
+        </tbody>
+      </table>
+
+      <h2>19.04</h2>
+
+      <table class="table table-hover table-sm" style="margin-top:50px">
+        <thead class="thead-dark">
+          <th scope="col">Project</th>
+          <th scope="col">Branch</th>
+          <th scope="col">Status</th>
+        </thead>
+        <tbody>
+<?php
+
+$projects1904 = array(
+  array('name' => 'centreon-autodiscovery', 'branch' => '19.04.x'),
+  array('name' => 'centreon-awie', 'branch' => '19.04.x'),
+  array('name' => 'centreon-broker', 'branch' => '19.04.x'),
+  array('name' => 'centreon-clib', 'branch' => '19.04'),
+  array('name' => 'centreon-connector', 'branch' => '19.04.x'),
+  array('name' => 'centreon-dsm', 'branch' => '19.04.x'),
+  array('name' => 'centreon-engine', 'branch' => '19.04.x'),
+  array('name' => 'centreon-export', 'branch' => '19.04.x'),
+  array('name' => 'centreon-license-manager', 'branch' => '19.04.x'),
+  array('name' => 'centreon-open-tickets', 'branch' => '19.04.x'),
+  array('name' => 'centreon-pp-manager', 'branch' => '19.04.x'),
+  array('name' => 'centreon-react-components', 'branch' => '19.04.x'),
+  array('name' => 'centreon-web', 'branch' => '19.04.x'),
+  array('name' => 'centreon-bam', 'branch' => '19.04.x'),
+  array('name' => 'centreon-map', 'branch' => '19.04.x'),
+  array('name' => 'centreon-bi-engine', 'branch' => '19.04.x'),
+  array('name' => 'centreon-bi-etl', 'branch' => '19.04.x'),
+  array('name' => 'centreon-bi-report', 'branch' => '19.04.x'),
+  array('name' => 'centreon-bi-reporting-server', 'branch' => '19.04.x'),
+  array('name' => 'centreon-bi-server', 'branch' => '19.04.x')
 );
 printProjectStatus($projects1904);
 
