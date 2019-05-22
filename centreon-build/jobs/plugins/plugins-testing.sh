@@ -32,3 +32,7 @@ ssh "$REPO_CREDS" mv "/srv/cache/plugins/unstable/cache-$VERSION-$RELEASE" "/srv
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
 $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-plugins -V latest -p'"
 $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-plugins -V latest -p'"
+
+# Create entry in download-dev.
+SRCHASH=00112233445566778899aabbccddeeff
+curl "$DLDEV_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
