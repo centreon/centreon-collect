@@ -37,19 +37,19 @@ curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&p
 
 # Copy Windows .exe
 PRODUCT_NAME="centreon-map4-desktop-client-$VERSION-SNAPSHOT-x86_64.exe"
-EXTERNAL_PRODUCT_NAME="centreon-map-desktop-client-$VERSION-x86_64.exe"
+EXTERNAL_PRODUCT_NAME="centreon-map-desktop-client-$VERSION-x86_64-windows.exe"
 $SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
 $SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
 SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
-curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64.exe&extension=exe&md5=$SRCHASH&ddos=0&dryrun=0"
+curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-windows&extension=exe&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Copy Ubuntu .deb
 PRODUCT_NAME="centreon-map4-desktop-client-$VERSION-SNAPSHOT-x86_64.deb"
-EXTERNAL_PRODUCT_NAME="centreon-map-desktop-client-$VERSION-x86_64.deb"
+EXTERNAL_PRODUCT_NAME="centreon-map-desktop-client-$VERSION-x86_64-debian.deb"
 $SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
 $SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
 SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
-curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64.deb&extension=deb&md5=$SRCHASH&ddos=0&dryrun=0"
+curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-debian&extension=deb&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Copy p2 artifacts to remote server.
 $SSH_REPO ssh -o StrictHostKeyChecking=no "map-repo@10.24.1.107" rm -rf "centreon-studio-repository/$MAJOR/$MINOR"
