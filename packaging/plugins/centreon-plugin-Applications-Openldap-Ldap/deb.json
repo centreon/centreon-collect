@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "libtime-hires-perl",
+        "libnet-ldap-perl"
+    ]
+}
