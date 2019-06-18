@@ -6,5 +6,6 @@
         "perl(IO::Socket::SSL)",
         "perl(URI)",
         "perl(HTTP::ProxyPAC)"
-    ]
+    ],
+    "custom_pkg_data": "Obsoletes:    centreon-plugin-Applications-Elasticsearch"
 }
