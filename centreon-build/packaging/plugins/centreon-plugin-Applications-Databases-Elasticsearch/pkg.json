@@ -7,6 +7,5 @@
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
         "database/elasticsearch/restapi/"
-    ],
-    "custom_pkg_data": "Obsoletes:    centreon-plugin-Applications-Elasticsearch"
+    ]
 }
