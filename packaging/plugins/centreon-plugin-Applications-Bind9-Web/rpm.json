@@ -1,0 +1,10 @@
+{
+    "dependencies": [
+        "perl(XML::XPath)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(HTTP::ProxyPAC)"
+    ]
+}
