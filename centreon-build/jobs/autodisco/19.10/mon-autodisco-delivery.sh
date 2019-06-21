@@ -20,7 +20,7 @@ fi
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   # Copy artifacts.
   copy_internal_source_to_testing "standard" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "19.10" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "19.10" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 
   # Build documentation.
   SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
@@ -44,5 +44,5 @@ else
   done
 
   # Move RPMs to unstable.
-  promote_canary_rpms_to_unstable "standard" "19.10" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "19.10" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 fi
