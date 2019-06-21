@@ -1,0 +1,12 @@
+{
+    "pkg_name": "centreon-plugin-Network-Peplink-Pepwave-Snmp",
+    "pkg_summary": "Centreon Plugin Peplink Pepwave SNMP",
+    "plugin_name": "centreon_peplink_pepwave_snmp.pl",
+    "files": [
+        "centreon/plugins/script_snmp.pm",
+        "centreon/plugins/snmp.pm",
+        "network/peplink/pepwave/snmp/",
+        "snmp_standard/mode/listinterfaces.pm",
+        "snmp_standard/mode/interfaces.pm"
+    ]
+}
