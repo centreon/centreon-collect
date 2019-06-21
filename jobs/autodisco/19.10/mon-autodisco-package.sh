@@ -48,7 +48,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "19.10" "$DISTRIB" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+put_internal_rpms "19.10" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "19.10" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "standard" "19.10" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 fi
