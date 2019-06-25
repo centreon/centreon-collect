@@ -16,6 +16,8 @@ set -x
 PROJECT=centreon-license-manager
 tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
+curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
+
 # Get version.
 cd "$PROJECT"
 VERSION=`grep mod_release www/modules/$PROJECT/conf.php | cut -d '"' -f 4`
@@ -37,7 +39,20 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
-cd "../$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend/hooks/administration/extensions/manager/button"
+
+# Generate lang file.
+for i in "../$PROJECT-$VERSION/www/modules/centreon-license-manager/locale"/*.UTF-8 ; do
+  lang=`basename $i | cut -d _ -f 1`
+  msgfmt "$i/LC_MESSAGES/messages.po" -o "$i/LC_MESSAGES/messages.mo"
+  php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
+  rm -f "$i/LC_MESSAGES/messages.po"
+done
+
+# Build frontend
+cd "../$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend/app"
+npm ci
+npm run build
+cd "../hooks/administration/extensions/manager/button"
 npm ci
 npm run build
 cd ../../../../..
