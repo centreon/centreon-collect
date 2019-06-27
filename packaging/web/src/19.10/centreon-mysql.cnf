@@ -21,3 +21,6 @@ max_allowed_packet = 8M
 # For 8 Go Ram
 #innodb_additional_mem_pool_size=1G
 #innodb_buffer_pool_size=1G
+
+# Disable strict mode.
+sql_mode=NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
