@@ -44,12 +44,16 @@ for i in "../$PROJECT-$VERSION/www/modules/centreon-bam-server/locale"/*.UTF-8 ;
   php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
   rm -f "$i/LC_MESSAGES/messages.po"
 done
-cd "../$PROJECT-$VERSION/www/modules/centreon-bam-server/react/hooks/header/topCounter"
-npm ci
-npm run build
-cd ../../../..
-rm -rf react
-cd ../../../..
+cd "../$PROJECT-$VERSION/www/modules/centreon-bam-server/react"
+OLDDIR=`pwd`
+find . -name package.json | xargs dirname > reacttargets.txt
+for i in `cat reacttargets.txt` ; do
+  cd "$OLDDIR/$i"
+  npm ci
+  npm run build
+done
+cd "$OLDDIR/../../../../.."
+rm -rf "$PROJECT-$VERSION/www/modules/centreon-bam-server/react"
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 cd "$PROJECT"
 echo '/* -export-ignore' > .git/info/attributes
