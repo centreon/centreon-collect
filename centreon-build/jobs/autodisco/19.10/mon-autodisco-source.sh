@@ -47,16 +47,12 @@ for i in "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/locale"
   rm -f "$i/LC_MESSAGES/messages.po"
 done
 
-# build job listing page
-cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react/pages/configuration/hosts/discovery/jobs"
-npm ci
-npm run build
-# build discovered hosts listing page
-cd _id
+# build job pages
+cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react"
 npm ci
 npm run build
 # clean frontend sources
-cd ../../../../../../..
+cd ..
 rm -rf react
 # archive module
 cd ../../../..
