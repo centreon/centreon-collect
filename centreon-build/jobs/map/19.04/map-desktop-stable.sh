@@ -17,6 +17,7 @@ export BUGFIX=`echo $VERSION | cut -d . -f 3`
 
 # Move artifacts to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
+$SSH_REPO rm -rf "/srv/sources/map/stable/$PROJECT-desktop-$MAJOR.$MINOR-$RELEASE"
 $SSH_REPO mv "/srv/sources/map/testing/map-desktop/$PROJECT-desktop-$MAJOR.$MINOR-$RELEASE" "/srv/sources/map/stable/"
 
 # Upload installers to centreon download website
