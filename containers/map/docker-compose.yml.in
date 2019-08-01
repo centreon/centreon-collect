@@ -15,7 +15,7 @@ services:
     dns:
     - "10.50.1.1"
   webdriver:
-    image: selenium/standalone-chrome-debug:latest
+    image: selenium/standalone-chrome-debug:3.141.59-oxygen
     environment:
     - "SCREEN_WIDTH=1600"
     - "SCREEN_HEIGHT=2000"
