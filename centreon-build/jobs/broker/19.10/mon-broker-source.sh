@@ -23,7 +23,12 @@ cmakelists=build/CMakeLists.txt
 major=`grep 'set(CENTREON_BROKER_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CENTREON_BROKER_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 patch=`grep 'set(CENTREON_BROKER_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
-export VERSION="$major.$minor.$patch"
+prerelease=`grep 'set(CENTREON_BROKER_PRERELEASE' "$cmakelists" | cut -d '"' -f 2 || true`
+if [ -n "$prerelease" ] ; then
+  export VERSION="$major.$minor.$patch-$prerelease"
+else
+  export VERSION="$major.$minor.$patch"
+fi
 
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`

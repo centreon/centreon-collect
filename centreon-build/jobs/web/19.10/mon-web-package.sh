@@ -26,8 +26,9 @@ docker pull registry.centreon.com/mon-build-dependencies-19.10:$DISTRIB
 rm -rf "$PROJECT-$VERSION" "centreon-$VERSION" "centreon-$VERSION.tar.gz"
 get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-mv "$PROJECT-$VERSION" "centreon-$VERSION"
-tar czf "centreon-$VERSION.tar.gz" "centreon-$VERSION"
+export THREEDIGITVERSION=`echo $VERSION | cut -d - -f 1`
+mv "$PROJECT-$VERSION" "centreon-$THREEDIGITVERSION"
+tar czf "centreon-$THREEDIGITVERSION.tar.gz" "centreon-$THREEDIGITVERSION"
 
 # Run distribution-dependent script.
 . `dirname $0`/mon-web-package.$DISTRIB.sh
