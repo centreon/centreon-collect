@@ -40,7 +40,7 @@ int main() {
     if (e.remove(1) || e.remove(42))
       throw (basic_error() << "try to remove invalid id");
 
-    std::auto_ptr<backend_test> obj(new backend_test);
+    std::unique_ptr<backend_test> obj(new backend_test);
     unsigned long id(e.add(obj.get(), 1, 0));
 
     if (!e.remove(id))

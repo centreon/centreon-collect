@@ -36,7 +36,7 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    std::auto_ptr<backend_test> obj(new backend_test);
+    std::unique_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 2, 0);
 
     temp_logger(1, 2) << "Centreon Clib test";
