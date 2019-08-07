@@ -22,7 +22,7 @@ VERSION=
 VERSION_NUM=0
 VERSION_EXTRA=
 for file in centreon-web/www/install/php/Update-*.php ; do
-  full_version=`echo "$file" | cut -d - -f 3 | sed 's/.php$//'`
+  full_version=`echo "$file" | cut -d - -f 3- | sed -e 's/.post.php$//' -e 's/.php$//'`
   major=`echo "$full_version" | cut -d . -f 1`
   minor=`echo "$full_version" | cut -d . -f 2`
   # Patch is not necessarily set.
@@ -45,19 +45,16 @@ for file in centreon-web/www/install/php/Update-*.php ; do
     fi
   fi
 done
-export VERSION="$VERSION"
-export VERSION_EXTRA="$VERSION_EXTRA"
-major=`echo $VERSION | cut -d . -f 1`
-minor=`echo $VERSION | cut -d . -f 2`
-patch=`echo $VERSION | cut -d . -f 3`
+if [ -z "$VERSION_EXTRA" ] ; then
+  export VERSION="$VERSION"
+else
+  export VERSION="$VERSION-$VERSION_EXTRA"
+fi
 
 # Get release.
 cd centreon-web
 COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
-# We do not care about $VERSION_EXTRA, as $now is strictly incremental
-# and officially released packages do not always care about semantic
-# versioning.
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   export RELEASE="$BUILD_NUMBER"
 else

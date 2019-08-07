@@ -23,7 +23,12 @@ DISTRIB="$1"
 docker pull registry.centreon.com/mon-build-dependencies-19.10:$DISTRIB
 
 # Retrieve sources.
+export THREEDIGITVERSION=`echo $VERSION | cut -d - -f 1`
+rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz" "$PROJECT-$THREEDIGITVERSION"
 get_internal_source "broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+tar xzf "$PROJECT-$VERSION.tar.gz"
+mv "$PROJECT-$VERSION" "$PROJECT-$THREEDIGITVERSION"
+tar czf "$PROJECT-$THREEDIGITVERSION.tar.gz" "$PROJECT-$THREEDIGITVERSION"
 
 # Run distribution-dependent script.
 . `dirname $0`/mon-broker-package.$DISTRIB.sh
