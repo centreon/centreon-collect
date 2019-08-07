@@ -20,7 +20,7 @@ mkdir input
 rm -rf output-centos7
 mkdir output-centos7
 
-# Create source tarball.
+# Create source tarballs.
 export PROJECT="centreon-widget-$WIDGET"
 rm -rf "$PROJECT"
 git clone "https://github.com/centreon/$PROJECT"
@@ -33,12 +33,24 @@ mkdir "../$PROJECT-$VERSION"
 git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
 cd ..
 tar czf "input/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+OLDVERSION="$VERSION"
+OLDRELEASE="$RELEASE"
+PRERELEASE=`echo $VERSION | cut -d - -f 2-`
+if [ -n "$PRERELEASE" ] ; then
+  export VERSION=`echo $VERSION | cut -d - -f 1`
+  export RELEASE="$PRERELEASE.$RELEASE"
+  rm -rf "$PROJECT-$VERSION"
+  mv "$PROJECT-$OLDVERSION" "$PROJECT-$VERSION"
+  tar czf "input/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+fi
 
 # Retrieve spec file.
 cp `dirname $0`/../../../packaging/widget/19.10/centreon-widget.spectemplate input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-19.10:centos7 input output-centos7
+export VERSION="$OLDVERSION"
+export RELEASE="$OLDRELEASE"
 
 # Copy files to server.
 put_testing_source "standard" "widget" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION.tar.gz"
