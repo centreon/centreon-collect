@@ -55,7 +55,7 @@ int main() {
     if (!null_pointer())
       throw (basic_error() << "try to add null pointer");
 
-    std::auto_ptr<backend_test> obj(new backend_test);
+    std::unique_ptr<backend_test> obj(new backend_test);
     unsigned long id(e.add(obj.get(), 0, 0));
     if (!id)
       throw (basic_error() << "add backend failed, invalid id");

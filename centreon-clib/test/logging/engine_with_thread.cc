@@ -64,7 +64,7 @@ int main() {
   try {
     engine& e(engine::instance());
 
-    std::auto_ptr<backend_test> obj(new backend_test);
+    std::unique_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 1, 0);
 
     std::vector<thread*> threads;

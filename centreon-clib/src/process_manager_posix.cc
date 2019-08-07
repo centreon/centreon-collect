@@ -52,7 +52,7 @@ static process_manager* _instance = NULL;
 void process_manager::add(process* p) {
   // Check viability pointer.
   if (!p)
-    throw (basic_error() << "invalid process: null pointer");
+    throw basic_error() << "invalid process: null pointer";
 
   concurrency::locker lock_process(&p->_lock_process);
   // Check if the process need to be manage.
@@ -71,11 +71,10 @@ void process_manager::add(process* p) {
 
   // Add timeout to kill process if necessary.
   if (p->_timeout)
-    _processes_timeout.insert(std::make_pair(p->_timeout, p));
+    _processes_timeout.insert({p->_timeout, p});
 
   // Need to update file descriptor list.
   _update = true;
-  return;
 }
 
 /**
@@ -84,7 +83,7 @@ void process_manager::add(process* p) {
  *  @return the process manager.
  */
 process_manager& process_manager::instance() {
-  return (*_instance);
+  return *_instance;
 }
 
 /**
@@ -93,7 +92,6 @@ process_manager& process_manager::instance() {
 void process_manager::load() {
   if (!_instance)
     _instance = new process_manager;
-  return;
 }
 
 /**
@@ -102,7 +100,6 @@ void process_manager::load() {
 void process_manager::unload() {
   delete _instance;
   _instance = NULL;
-  return;
 }
 
 /**************************************
@@ -123,7 +120,7 @@ process_manager::process_manager()
   // Create pipe to notify ending to the process manager thread.
   if (::pipe(_fds_exit)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "pipe creation failed: " << msg);
+    throw basic_error() << "pipe creation failed: " << msg;
   }
 
   process::_set_cloexec(_fds_exit[1]);
@@ -209,8 +206,8 @@ void process_manager::_close_stream(int fd) throw () {
       umap<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw (basic_error() << "invalid fd: "
-               "not found into processes fd list");
+        throw basic_error() << "invalid fd: "
+               "not found into processes fd list";
       }
       p = it->second;
       _processes_fd.erase(it);
@@ -281,7 +278,6 @@ void process_manager::_kill_processes_timeout() throw () {
     process* p(it->second);
     try {
       p->kill();
-      p->_is_timeout = true;
     }
     catch (std::exception const& e) {
       log_error(logging::high) << e.what();
@@ -309,8 +305,8 @@ unsigned int process_manager::_read_stream(int fd) throw () {
       umap<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw (basic_error() << "invalid fd: "
-               "not found into processes fd list");
+        throw basic_error() << "invalid fd: "
+               "not found into processes fd list";
       }
       p = it->second;
     }
@@ -319,7 +315,7 @@ unsigned int process_manager::_read_stream(int fd) throw () {
     // Read content of the stream and push it.
     char buffer[4096];
     if (!(size = p->_read(fd, buffer, sizeof(buffer))))
-      return (0);
+      return 0;
 
     if (p->_stream[process::out] == fd) {
       p->_buffer_out.append(buffer, size);
@@ -343,7 +339,7 @@ unsigned int process_manager::_read_stream(int fd) throw () {
   catch (std::exception const& e) {
     log_error(logging::high) << e.what();
   }
-  return (size);
+  return size;
 }
 
 /**
@@ -365,7 +361,7 @@ void process_manager::_run() {
         ret = 0;
       else if (ret < 0) {
         char const* msg(strerror(errno));
-        throw (basic_error() << "poll failed: " << msg);
+        throw basic_error() << "poll failed: " << msg;
       }
       for (unsigned int i(0), checked(0);
            checked < static_cast<unsigned int>(ret) && i < _fds_size;
@@ -445,7 +441,6 @@ void process_manager::_update_ending_process(
     p->_cv_buffer_out.wake_one();
     p->_cv_process.wake_one();
   }
-  return;
 }
 
 /**
@@ -476,7 +471,6 @@ void process_manager::_update_list() {
   }
   // Disable update.
   _update = false;
-  return;
 }
 
 /**
@@ -513,7 +507,6 @@ void process_manager::_wait_orphans_pid() throw () {
   catch (std::exception const& e) {
     log_error(logging::high) << e.what();
   }
-  return;
 }
 
 /**
@@ -543,11 +536,12 @@ void process_manager::_wait_processes() throw () {
       }
 
       // Update process.
+      if (WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL)
+        p->_is_timeout = true;
       _update_ending_process(p, status);
     }
   }
   catch (std::exception const& e) {
     log_error(logging::high) << e.what();
   }
-  return;
 }

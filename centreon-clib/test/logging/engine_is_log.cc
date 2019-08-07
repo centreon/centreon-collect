@@ -34,7 +34,7 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    std::auto_ptr<backend_test> obj(new backend_test);
+    std::unique_ptr<backend_test> obj(new backend_test);
 
     unsigned int limits(sizeof(unsigned int) * CHAR_BIT);
     for (unsigned int i(0); i < 3; ++i) {

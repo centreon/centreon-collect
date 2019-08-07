@@ -60,7 +60,7 @@ int main() {
   try {
     engine& e(engine::instance());
 
-    std::auto_ptr<backend_test> obj(new backend_test(
+    std::unique_ptr<backend_test> obj(new backend_test(
                                           false,
                                           true,
                                           none,

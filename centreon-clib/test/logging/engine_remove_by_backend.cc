@@ -55,7 +55,7 @@ int main() {
     if (!null_pointer())
       throw (basic_error() << "try to remove with null pointer");
 
-    std::auto_ptr<backend_test> obj(new backend_test);
+    std::unique_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 1, 0);
     if (e.remove(obj.get()) != 1)
       throw (basic_error() << "remove one backend failed");

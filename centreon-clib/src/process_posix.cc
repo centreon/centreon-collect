@@ -92,7 +92,6 @@ void process::enable_stream(stream s, bool enable) {
       throw (basic_error() << "cannot reenable \""
              << s << "\" while process is running");
   }
-  return;
 }
 
 /**
@@ -102,7 +101,7 @@ void process::enable_stream(stream s, bool enable) {
  */
 timestamp const& process::end_time() const throw () {
   concurrency::locker lock(&_lock_process);
-  return (_end_time);
+  return _end_time;
 }
 
 /**
@@ -231,7 +230,6 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     }
     throw;
   }
-  return;
 }
 
 /**
@@ -243,7 +241,6 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
  */
 void process::exec(std::string const& cmd, unsigned int timeout) {
   exec(cmd.c_str(), NULL, timeout);
-  return;
 }
 
 /**
@@ -254,8 +251,8 @@ void process::exec(std::string const& cmd, unsigned int timeout) {
 int process::exit_code() const throw () {
   concurrency::locker lock(&_lock_process);
   if (WIFEXITED(_status))
-    return (WEXITSTATUS(_status));
-  return (0);
+    return WEXITSTATUS(_status);
+  return 0;
 }
 
 /**
@@ -268,10 +265,10 @@ int process::exit_code() const throw () {
 process::status process::exit_status() const throw () {
   concurrency::locker lock(&_lock_process);
   if (_is_timeout)
-    return (timeout);
+    return timeout;
   if (WIFEXITED(_status))
-    return (normal);
-  return (crash);
+    return normal;
+  return crash;
 }
 
 /**
@@ -280,7 +277,6 @@ process::status process::exit_status() const throw () {
 void process::kill() {
   concurrency::locker lock(&_lock_process);
   _kill(SIGKILL);
-  return;
 }
 
 /**
@@ -296,7 +292,6 @@ void process::read(std::string& data) {
   // Switch content.
   data.clear();
   data.swap(_buffer_out);
-  return;
 }
 
 /**
@@ -312,7 +307,6 @@ void process::read_err(std::string& data) {
   // Switch content.
   data.clear();
   data.swap(_buffer_err);
-  return;
 }
 
 /**
@@ -335,7 +329,7 @@ void process::setpgid_on_exec(bool enable) throw () {
  */
 bool process::setpgid_on_exec() const throw () {
   concurrency::locker lock(&_lock_process);
-  return (_create_process == &_create_process_with_setpgid);
+  return _create_process == &_create_process_with_setpgid;
 }
 
 /**
@@ -345,7 +339,7 @@ bool process::setpgid_on_exec() const throw () {
  */
 timestamp const& process::start_time() const throw () {
   concurrency::locker lock(&_lock_process);
-  return (_start_time);
+  return _start_time;
 }
 
 /**
@@ -354,7 +348,6 @@ timestamp const& process::start_time() const throw () {
 void process::terminate() {
   concurrency::locker lock(&_lock_process);
   _kill(SIGTERM);
-  return;
 }
 
 /**
@@ -364,7 +357,6 @@ void process::wait() const {
   concurrency::locker lock(&_lock_process);
   while (_is_running())
     _cv_process.wait(&_lock_process);
-  return;
 }
 
 /**
@@ -378,9 +370,9 @@ void process::wait() const {
 bool process::wait(unsigned long timeout) const {
   concurrency::locker lock(&_lock_process);
   if (!_is_running())
-    return (true);
+    return true;
   _cv_process.wait(&_lock_process, timeout);
-  return (!_is_running());
+  return !_is_running();
 }
 
 /**
@@ -391,7 +383,7 @@ bool process::wait(unsigned long timeout) const {
  *  @return Number of bytes actually written.
  */
 unsigned int process::write(std::string const& data) {
-  return (write(data.c_str(), data.size()));
+  return write(data.c_str(), data.size());
 }
 
 /**
@@ -412,7 +404,7 @@ unsigned int process::write(void const* data, unsigned int size) {
     throw (basic_error() << "could not write on process "
            << _process << "'s input: " << msg);
   }
-  return (wb);
+  return wb;
 }
 
 /**************************************
@@ -432,7 +424,6 @@ void process::_close(int& fd) throw () {
       ;
   }
   fd = -1;
-  return;
 }
 
 pid_t process::_create_process_with_setpgid(
@@ -482,7 +473,7 @@ pid_t process::_create_process_with_setpgid(
     ::_exit(EXIT_FAILURE);
   }
 #endif // HAVE_SPAWN_H
-  return (pid);
+  return pid;
 }
 
 pid_t process::_create_process_without_setpgid(
@@ -509,7 +500,7 @@ pid_t process::_create_process_without_setpgid(
     ::_exit(EXIT_FAILURE);
   }
 #endif // HAVE_SPAWN_H
-  return (pid);
+  return pid;
 }
 
 /**
@@ -532,7 +523,6 @@ void process::_dev_null(int fd, int flags) {
     throw;
   }
   _close(newfd);
-  return;
 }
 
 /**
@@ -550,7 +540,7 @@ int process::_dup(int oldfd) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not duplicate FD: " << msg);
   }
-  return (newfd);
+  return newfd;
 }
 
 /**
@@ -567,7 +557,6 @@ void process::_dup2(int oldfd, int newfd) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not duplicate FD: " << msg);
   }
-  return;
 }
 
 /**
@@ -595,7 +584,6 @@ void process::_kill(int sig) {
              << _process << ": " << msg);
     }
   }
-  return;
 }
 
 /**
@@ -608,7 +596,6 @@ void process::_pipe(int fds[2]) {
     char const* msg(strerror(errno));
     throw (basic_error() << "pipe creation failed: " << msg);
   }
-  return;
 }
 
 /**
@@ -629,7 +616,7 @@ unsigned int process::_read(int fd, void* data, unsigned int size) {
     throw (basic_error() << "could not read from process "
            << _process << ": " << msg);
   }
-  return (rb);
+  return rb;
 }
 
 /**
@@ -654,5 +641,4 @@ void process::_set_cloexec(int fd) {
     throw (basic_error() << "Could not set close-on-exec flag: "
            << msg);
   }
-  return;
 }
