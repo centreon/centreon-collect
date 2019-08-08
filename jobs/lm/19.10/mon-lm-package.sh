@@ -19,11 +19,6 @@ if [ "$#" -lt 1 ] ; then
 fi
 DISTRIB="$1"
 
-# Fetch sources.
-rm -rf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
-get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz"
-tar xzf "$PROJECT-$VERSION-php72.tar.gz"
-
 # Create input and output directories.
 rm -rf input
 mkdir input
