@@ -180,7 +180,7 @@ Requires:   centreon-auto-discovery-server >= %{thismajor}
 Requires:   centreon-auto-discovery-server < %{nextmajor}
 Requires(post): /usr/sbin/usermod
 Conflicts:  centreon-base-config-nagios
-Provides:   centreon-base-config
+Provides:   centreon-base-config = %{version}-%{release}
 Provides:   /etc/centreon/conf.pm
 
 %description base-config-centreon-engine
