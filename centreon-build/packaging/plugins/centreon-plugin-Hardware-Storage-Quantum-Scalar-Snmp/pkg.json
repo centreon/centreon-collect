@@ -5,7 +5,6 @@
     "files": [
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
-        "centreon/common/adic/tape/snmp/",
         "storage/quantum/scalar/snmp/"
     ]
 }
