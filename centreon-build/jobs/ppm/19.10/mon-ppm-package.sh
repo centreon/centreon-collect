@@ -31,7 +31,7 @@ get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.
 tar xzf "$PROJECT-$VERSION-php72.tar.gz"
 OLDVERSION="$VERSION"
 OLDRELEASE="$RELEASE"
-PRERELEASE=`echo $VERSION | cut -d - -f 2-`
+PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
 if [ -n "$PRERELEASE" ] ; then
   export VERSION=`echo $VERSION | cut -d - -f 1`
   export RELEASE="$PRERELEASE.$RELEASE"
