@@ -7,7 +7,7 @@ mkdir output
 # Retrieve source tarball, spectemplate and additional source files.
 OLDVERSION="$VERSION"
 OLDRELEASE="$RELEASE"
-PRERELEASE=`echo $VERSION | cut -d - -f 2-`
+PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
 if [ -n "$PRERELEASE" ] ; then
   export VERSION=`echo $VERSION | cut -d - -f 1`
   export RELEASE="$PRERELEASE.$RELEASE"

@@ -31,7 +31,7 @@ get_internal_source "awie/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 OLDVERSION="$VERSION"
 OLDRELEASE="$RELEASE"
-PRERELEASE=`echo $VERSION | cut -d - -f 2-`
+PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
 if [ -n "$PRERELEASE" ] ; then
   export VERSION=`echo $VERSION | cut -d - -f 1`
   export RELEASE="$PRERELEASE.$RELEASE"
