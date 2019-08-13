@@ -7,6 +7,9 @@ COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 COPY web/19.10 /tmp/fresh
 
 RUN yum clean all && \
+    yum-config-manager --setopt='centreon-stable-noarch.exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' --save \
+    yum-config-manager --setopt='centreon-testing-noarch.exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' --save \
+    yum-config-manager --setopt='centreon-unstable-noarch.exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' --save \
     yum install -y centreon-base-config-centreon-engine centreon centreon-broker* MariaDB-server git libfaketime && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
