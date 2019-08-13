@@ -58,7 +58,7 @@ now=`date +%s`
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   export RELEASE="$BUILD_NUMBER"
 else
-  export RELEASE="0.$now.$COMMIT"
+  export RELEASE="$now.$COMMIT"
 fi
 
 # Get committer.
