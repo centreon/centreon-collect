@@ -18,6 +18,7 @@ $_SESSION['CENTREON_ENGINE_LIB'] = '/usr/lib64/centreon-engine';
 $_SESSION['CENTREON_ENGINE_STATS_BINARY'] = '/usr/sbin/centenginestats';
 $_SESSION['CENTREON_LOG'] = '/var/log/centreon';
 $_SESSION['CENTREON_RRD_DIR'] = '/var/lib/centreon';
+$_SESSION['CENTREON_CACHEDIR'] = '/var/cache/centreon';
 $_SESSION['CENTREON_VARLIB'] = '/var/lib/centreon';
 $_SESSION['MONITORING_ENGINE'] = 'centreon-engine';
 $_SESSION['MONITORING_BINARY'] = '/usr/sbin/centengine';

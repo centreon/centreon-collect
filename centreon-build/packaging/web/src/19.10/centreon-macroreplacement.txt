@@ -8,6 +8,7 @@ s:@CENTREON_ETC@:/etc/centreon:g
 s:@CENTREON_LOG@:/var/log/centreon:g
 s:@CENTREON_PATH@:/usr/share/centreon:g
 s:@CENTREON_RUNDIR@:/var/run/centreon:g
+s:@CENTREON_CACHEDIR@:/var/cache/centreon:g
 s:@CENTREON_VARLIB@:/var/lib/centreon:g
 s:@CENTREON_VARLOG@:/var/log/centreon:g
 s:@CENTSTORAGE_BINDIR@:/usr/share/centreon/bin:g
@@ -21,7 +22,6 @@ s:@SNMPTT_BINDIR@:/usr/share/centreon/bin:g
 s:@SNMP_ETC@:/etc/snmp/centreon_traps/:g
 s:@SNMPTT_INI_FILE@:/etc/snmp/centreon_traps/snmptt.ini:g
 s:@CENTSTORAGE_LIB@:/var/lib/centreon:g
-s:@CENTREON_GENDIR@:/usr/share/centreon:g
 s:@PERL_BIN@:/usr/bin/perl:g
 s:@CENTPLUGINSTRAPS_BINDIR@:/usr/share/centreon/bin:g
 s:@P1_PL@:/usr/sbin/p1.pl:g

@@ -4,6 +4,7 @@
   "centreon_dir_www": "\/usr\/share\/centreon\/www",
   "centreon_dir_rrd": "\/var\/lib\/centreon",
   "centreon_log": "\/var\/log\/centreon",
+  "centreon_cachedir": "\/var\/cache\/centreon",
   "centreon_varlib": "\/var\/lib\/centreon",
   "centreon_group": "centreon",
   "centreon_user": "centreon",
