@@ -341,7 +341,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0644 config/partition.d/* %buildroot%{_datadir}/centreon/config/partition.d
 
 # Add new installation backup directory
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/installDir
+%{__install} -d -m 0775 %buildroot%{_localstatedir}/lib/centreon/installs
 
 # Install clapi lib
 %{__install} -d -m 0755 %buildroot%{_datadir}/centreon/lib/Centreon
@@ -372,11 +372,10 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -d -m 0775 %buildroot%{_datadir}/centreon/www/img/media
 
 # Directory for Files Generation
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/filesGeneration
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/filesUpload
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/filesGeneration/engine
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/filesGeneration/broker
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/filesUpload/images
+%{__install} -d -m 0775 %buildroot%{_localstatedir}/cache/centreon/config
+%{__install} -d -m 0775 %buildroot%{_localstatedir}/cache/centreon/config/broker
+%{__install} -d -m 0775 %buildroot%{_localstatedir}/cache/centreon/config/engine
+%{__install} -d -m 0775 %buildroot%{_localstatedir}/cache/centreon/config/export
 
 # Install var files
 %{__install} -d -m 0755 %buildroot%{_localstatedir}/lib/centreon
@@ -516,12 +515,11 @@ fi
 %{_datadir}/centreon/bin/centreon
 %{_bindir}/centcore
 %{_bindir}/centreon
-%{_datadir}/centreon/installDir
+%{_localstatedir}/lib/centreon/installs
 
 # Directory for files generation
-%defattr(-, centreon, centreon, 0775)
-%{_datadir}/centreon/filesGeneration
-%{_datadir}/centreon/filesUpload
+%defattr(-, centreon, centreon, 2775)
+%{_localstatedir}/cache/centreon/config
 
 # Contents
 %defattr(-, root, root, -)
@@ -558,14 +556,6 @@ fi
 %exclude %{_datadir}/centreon/www/install/install.conf.php
 
 %post web
-
-# Change users for files and directory
-chown -R centreon:centreon %{_localstatedir}/log/centreon
-chmod -R g+w %{_localstatedir}/log/centreon
-chown -R centreon:centreon %{_localstatedir}/lib/centreon
-chmod -R g+w %{_localstatedir}/lib/centreon
-chown -R centreon:centreon %{_datadir}/centreon/filesGeneration
-chmod -R g+wrxs %{_datadir}/centreon/filesGeneration
 
 %systemd_post centcore.service || :
 systemctl try-restart %{php_scl}-php-fpm || :
