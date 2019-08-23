@@ -20,7 +20,7 @@ fi
 DISTRIB="$1"
 
 # Pull Centreon Web image.
-WEB_IMAGE=registry.centreon.com/mon-ppm-19.10:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-ppm-autodisco-19.10:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
