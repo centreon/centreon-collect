@@ -27,10 +27,12 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 else
   # Set Docker images as latest.
   REGISTRY='registry.centreon.com'
-  for distrib in centos7 ; do
-    docker pull "$REGISTRY/mon-ppm-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/mon-ppm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-ppm-19.04:$distrib"
-    docker push "$REGISTRY/mon-ppm-19.04:$distrib"
+  for image in mon-ppm mon-ppm-autodisco ; do
+    for distrib in centos7 ; do
+      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
+      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-19.04:$distrib"
+      docker push "$REGISTRY/$image-19.04:$distrib"
+    done
   done
 
   # Move RPMs to unstable.
