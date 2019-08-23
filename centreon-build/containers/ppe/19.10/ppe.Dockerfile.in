@@ -1,5 +1,5 @@
 # Base information.
-FROM registry.centreon.com/mon-ppm-19.10:@DISTRIB@
+FROM registry.centreon.com/mon-ppm-autodisco-19.10:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install repository.
