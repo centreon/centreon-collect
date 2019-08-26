@@ -27,6 +27,7 @@ rm -rf "$PROJECT-$VERSION" "centreon-$VERSION" "centreon-$VERSION.tar.gz"
 get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 export THREEDIGITVERSION=`echo $VERSION | cut -d - -f 1`
+rm -rf "centreon-$THREEDIGITVERSION" "centreon-$THREEDIGITVERSION.tar.gz"
 mv "$PROJECT-$VERSION" "centreon-$THREEDIGITVERSION"
 tar czf "centreon-$THREEDIGITVERSION.tar.gz" "centreon-$THREEDIGITVERSION"
 
