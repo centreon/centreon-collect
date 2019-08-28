@@ -6,7 +6,7 @@ export DH_VERBOSE=1
 	dh $@
 
 override_dh_auto_configure:
-	cd build && CXXFLAGS="-std=c++03" cmake \
+	CXXFLAGS="-std=c++11" cmake \
 	  -DWITH_TESTING=0 \
 	  -DWITH_PREFIX=/usr \
 	  -DWITH_PREFIX_CONF=/etc/centreon-broker \
@@ -19,12 +19,9 @@ override_dh_auto_configure:
 	  -DWITH_CONFIG_FILES=y \
 	  .
 
-override_dh_auto_build:
-	make -C build
-
 override_dh_auto_install:
 # centreon-broker-core
-	make -C build install DESTDIR=../debian/centreon-broker-core
+	make install DESTDIR=debian/centreon-broker-core
 	mkdir -p debian/centreon-broker-core/var/lib/centreon-broker
 	mkdir -p debian/centreon-broker-core/var/log/centreon-broker
 # centreon-broker-graphite

@@ -34,6 +34,7 @@ containerid=`docker create $UNITTEST_IMAGE /usr/local/bin/unittest-engine $DISTR
 
 # Copy sources to container.
 docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
+docker cp `dirname $0`/unittest.sh "$containerid:/usr/local/bin/unittest-engine"
 
 # Run unit tests.
 docker start -a "$containerid"

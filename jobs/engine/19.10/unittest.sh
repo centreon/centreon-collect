@@ -9,7 +9,14 @@ mkdir /tmp/build
 cd /tmp/build
 
 # Configure project.
-CXXFLAGS="-O0 -g3 -std=c++11 -Wall -Wno-long-long" cmake -DWITH_TESTING=1 /usr/local/src/centreon-broker
+case "$1" in
+  "centos6")
+    cmake -DWITH_TESTING=1 /usr/local/src/centreon-engine
+    ;;
+  *)
+    CXXFLAGS="-std=c++11" cmake -DWITH_TESTING=1 /usr/local/src/centreon-engine
+    ;;
+esac
 
 # Build project.
 make -j 4
