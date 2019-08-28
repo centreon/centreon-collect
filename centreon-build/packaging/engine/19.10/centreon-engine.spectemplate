@@ -93,7 +93,6 @@ Some Centreon Engine benchmarking tools.
 
 %build
 
-cd build
 CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
     -DWITH_BENCH=1 \
     -DWITH_CREATE_FILES=0 \
@@ -116,7 +115,6 @@ CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
-cd build
 %{__make} install DESTDIR="$RPM_BUILD_ROOT"
 # Engine 2.x
 #%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/centreon-engine
