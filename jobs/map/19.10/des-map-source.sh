@@ -51,6 +51,7 @@ npm run build
 WEBDIR="../../$PROJECT-web-client-$VERSIONWEB"
 rm -rf "$WEBDIR"
 mkdir "$WEBDIR"
+cp -a build/media "$WEBDIR"
 cp -a build/module "$WEBDIR"
 cp -a build/widget "$WEBDIR"
 cp -a build/install.sh "$WEBDIR"
