@@ -1,9 +1,10 @@
 {
     "pkg_name": "centreon-plugin-Operatingsystems-Linux-Local",
-    "pkg_summary": "Centreon Plugin",
+    "pkg_summary": "Centreon Plugin to monitor Linux server/equipment using local commands",
     "plugin_name": "centreon_linux_local.pl",
     "files": [
         "centreon/plugins/script_simple.pm",
+        "centreon/plugins/snmp.pm",
         "os/linux/local/"
     ]
 }
