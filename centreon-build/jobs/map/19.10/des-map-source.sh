@@ -55,7 +55,6 @@ cp -a build/module "$WEBDIR"
 cp -a build/widget "$WEBDIR"
 cp -a build/install.sh "$WEBDIR"
 cp -a build/libinstall "$WEBDIR"
-cp -a build/examples "$WEBDIR"
 cd ../..
 tar czf $PROJECT-web-client-$VERSIONWEB.tar.gz $PROJECT-web-client-$VERSIONWEB
 
