@@ -15,6 +15,7 @@ set -x
 # Project.
 PROJECT=centreon-map
 tar czf "$PROJECT-git.tar.gz" "$PROJECT"
+curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
 
 # Get version.
 cd "$PROJECT/server"
@@ -56,6 +57,14 @@ cp -a build/module "$WEBDIR"
 cp -a build/widget "$WEBDIR"
 cp -a build/install.sh "$WEBDIR"
 cp -a build/libinstall "$WEBDIR"
+for i in app/locale/*.UTF-8 ; do
+  lang=`basename $i | cut -d _ -f 1`
+  locale=`basename $i`
+  outputdir="$WEBDIR/module/locale/$locale/LC_MESSAGES"
+  mkdir -p "$outputdir"
+  msgfmt "$i/LC_MESSAGES/messages.po" -o "$outputdir/messages.mo"
+  php ../../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$outputdir/messages.ser"
+done
 cd ../..
 tar czf $PROJECT-web-client-$VERSIONWEB.tar.gz $PROJECT-web-client-$VERSIONWEB
 
