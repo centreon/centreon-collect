@@ -3,8 +3,8 @@ Name:           centreon-open-tickets
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Open Tickets add-on for Centreon
-%define thismajor 19.04.0
-%define nextmajor 19.05.0
+%define thismajor 19.10.0
+%define nextmajor 19.11.0
 
 Group:          System Environment/Base
 License:        Apache-2.0
