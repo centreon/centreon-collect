@@ -10,7 +10,7 @@ sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d
 yum-config-manager --enable 'centreon-testing*'
 
 # Install Software Collections (for PHP 7).
-curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm"
+curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm"
 yum install centos-release-scl-rh.rpm
 # Only keep centos-sclo-rh repository, as other repositories
 # might be unavailable.
