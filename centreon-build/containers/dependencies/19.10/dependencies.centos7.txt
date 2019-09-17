@@ -10,6 +10,7 @@ libssh2
 lua
 MariaDB-client
 MariaDB-server
+MariaDB-shared
 nodejs
 redhat-lsb
 nagios-plugins
