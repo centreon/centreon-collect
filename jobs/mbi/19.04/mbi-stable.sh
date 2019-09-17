@@ -11,9 +11,32 @@ if [ -z "$PROJECT" -o -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
+# Get codename.
+case "$PROJECT" in
+  centreon-bi-engine)
+    CODENAME=mbi-engine
+    ;;
+  centreon-bi-etl)
+    CODENAME=mbi-etl
+    ;;
+  centreon-bi-report)
+    CODENAME=mbi-report
+    ;;
+  centreon-bi-reporting-server)
+    CODENAME=mbi-reporting-server
+    ;;
+  centreon-bi-server)
+    CODENAME=mbi-web
+    ;;
+  *)
+    echo "$PROJECT is not a supported project."
+    exit 1
+    ;;
+esac
+
 # Move RPMs to the stable repository.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-promote_testing_rpms_to_stable "mbi" "19.04" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "mbi" "19.04" "el7" "noarch" "$CODENAME" "$PROJECT-$VERSION-$RELEASE"
 
 if [ "$PROJECT" = "centreon-bi-server" ] ; then
   # Move sources to the stable directory.
