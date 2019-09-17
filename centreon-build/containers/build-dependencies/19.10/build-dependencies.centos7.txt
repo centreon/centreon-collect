@@ -18,3 +18,4 @@ git
 lua-devel
 expect
 perl-XML-SAX
+MariaDB-devel
