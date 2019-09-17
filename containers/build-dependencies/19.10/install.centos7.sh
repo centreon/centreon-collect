@@ -13,6 +13,10 @@ yum-config-manager --enable 'centreon-unstable*'
 # Install Software Collections (for PHP 7).
 curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm"
 yum install centos-release-scl-rh.rpm
+# Only keep centos-sclo-rh repository, as other repositories
+# might be unavailable.
+head -n 12 < /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo > /tmp/scl-rh.repo
+mv /tmp/scl-rh.repo /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
 
 # Install required build dependencies for all Centreon projects.
 xargs yum install < /tmp/build-dependencies.txt
