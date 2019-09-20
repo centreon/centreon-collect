@@ -65,9 +65,9 @@ fi
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Prepare base source tarball.
-rm -f .gitattributes
+git rm .gitattributes
 git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
-git checkout .gitattributes
+git reset --hard HEAD
 cd ..
 
 # Create and populate container.
