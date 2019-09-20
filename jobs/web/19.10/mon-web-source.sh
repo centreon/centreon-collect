@@ -66,7 +66,7 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Prepare base source tarball.
 git rm .gitattributes
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+git archive --worktree-attributes --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 git reset --hard HEAD
 cd ..
 
