@@ -50,5 +50,4 @@ CENTREON   ALL = NOPASSWD: /usr/bin/systemctl stop cbd
 CENTREON   ALL = NOPASSWD: /usr/bin/systemctl restart cbd
 CENTREON   ALL = NOPASSWD: /usr/bin/systemctl reload cbd
 
-
 ## END: CENTREON SUDO
