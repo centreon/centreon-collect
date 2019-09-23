@@ -22,7 +22,6 @@ CENTREON   ALL = NOPASSWD: /usr/sbin/service centengine start
 CENTREON   ALL = NOPASSWD: /usr/sbin/service centengine stop
 CENTREON   ALL = NOPASSWD: /usr/sbin/service centengine restart
 CENTREON   ALL = NOPASSWD: /usr/sbin/service centengine reload
-CENTREON   ALL = NOPASSWD: /usr/sbin/service centengine reload
 CENTREON   ALL = NOPASSWD: /bin/systemctl start centengine
 CENTREON   ALL = NOPASSWD: /bin/systemctl stop centengine
 CENTREON   ALL = NOPASSWD: /bin/systemctl restart centengine
