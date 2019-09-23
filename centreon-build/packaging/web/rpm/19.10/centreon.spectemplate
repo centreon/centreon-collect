@@ -418,9 +418,6 @@ touch %buildroot%{_sysconfdir}/centreon/conf.pm
 ######################################################
 # Package centreon
 ######################################################
-%files
-%ghost %{_sysconfdir}/centreon/centreon.conf.php
-
 %post
 export MIN=$(awk 'BEGIN{srand(); print int(rand()*60)}')
 export HOUR=$(awk 'BEGIN{srand(); print int(rand()*24)}')
@@ -459,6 +456,7 @@ fi
 %defattr(0664, centreon, centreon, 0775)
 %dir %{_sysconfdir}/centreon
 %config(noreplace) %{_sysconfdir}/centreon/instCentCore.conf
+%ghost %{_sysconfdir}/centreon/centreon.conf.php
 
 # Cron
 %defattr(-, root, root, -)
