@@ -418,6 +418,8 @@ touch %buildroot%{_sysconfdir}/centreon/conf.pm
 ######################################################
 # Package centreon
 ######################################################
+%files
+
 %post
 export MIN=$(awk 'BEGIN{srand(); print int(rand()*60)}')
 export HOUR=$(awk 'BEGIN{srand(); print int(rand()*24)}')
