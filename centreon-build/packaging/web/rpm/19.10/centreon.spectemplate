@@ -333,13 +333,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/changeRrdDsName.pl %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/migrateWikiPages.php %buildroot%{_datadir}/centreon/bin/
 
-# Install configuration file
-%{__install} -d -m 0755 %buildroot%{_datadir}/centreon/config
-%{__install} -d -m 0755 %buildroot%{_datadir}/centreon/config/partition.d
-%{__install} -m 0644 config/centreon.config.php.template %buildroot%{_datadir}/centreon/config/centreon.config.php
-%{__install} -m 0644 config/centreon-statistics.config.php %buildroot%{_datadir}/centreon/config/centreon-statistics.config.php
-%{__install} -m 0644 config/partition.d/* %buildroot%{_datadir}/centreon/config/partition.d
-
 # Add new installation backup directory
 %{__install} -d -m 0775 %buildroot%{_localstatedir}/lib/centreon/installs
 
@@ -352,6 +345,9 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/centreon %buildroot%{_datadir}/centreon/bin/
 %{__ln_s} -f %{_datadir}/centreon/bin/centreon %buildroot%{_bindir}/centreon
 
+# Install Symfony console script
+%{__install} -m 0755 bin/console %buildroot%{_datadir}/centreon/bin/
+
 # Install indexes template schema
 
 # Install doc
@@ -362,8 +358,11 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__cp} tmpl/install/redhat/centreontrapd.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} additional/centreon-apache.conf %buildroot%{_datadir}/centreon/examples/centreon.apache.conf
 
-# Copy Lib
-%{__cp} -r composer.json package.json bootstrap.php GPL_LIB vendor src www %buildroot%{_datadir}/centreon/
+# Copy base files.
+%{__cp} -r .env .env.local.php bootstrap.php composer.json container.php package.json config GPL_LIB api src vendor www %buildroot%{_datadir}/centreon/
+
+# Install configuration files.
+%{__mv} %buildroot%{_datadir}/centreon/config/centreon.config.php.template %buildroot%{_datadir}/centreon/config/centreon.config.php
 
 # Directory for modules
 %{__install} -d -m 0755 %buildroot%{_datadir}/centreon/www/modules
@@ -424,6 +423,9 @@ touch %buildroot%{_sysconfdir}/centreon/conf.pm
 export MIN=$(awk 'BEGIN{srand(); print int(rand()*60)}')
 export HOUR=$(awk 'BEGIN{srand(); print int(rand()*24)}')
 sed -i -E "s/0\s0(.*)centreon\-send\-stats\.php(.*)/$MIN $HOUR\1centreon-send-stats.php\2/" /etc/cron.d/centreon
+
+# Create HASH secret for Symfony application
+REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/%{php_scl}/root/usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
 
 ######################################################
 # Package centreon-common
@@ -498,9 +500,6 @@ fi
 %{_datadir}/centreon/bin/migrateWikiPages.php
 %{_datadir}/centreon/bin/centreon-partitioning.php
 %{_datadir}/centreon/bin/logAnalyserBroker
-%{_datadir}/centreon/config/centreon.config.php
-%{_datadir}/centreon/config/centreon-statistics.config.php
-%{_datadir}/centreon/config/partition.d
 %{_bindir}/centFillTrapDB
 %{_bindir}/centreon_trap_send
 %{_bindir}/centreon_check_perfdata
@@ -513,6 +512,7 @@ fi
 %{_datadir}/centreon/bin/import-mysql-indexes
 %{_datadir}/centreon/bin/export-mysql-indexes
 %{_datadir}/centreon/bin/centreon
+%{_datadir}/centreon/bin/console
 %{_bindir}/centcore
 %{_bindir}/centreon
 %{_localstatedir}/lib/centreon/installs
@@ -523,13 +523,18 @@ fi
 
 # Contents
 %defattr(-, root, root, -)
+%{_datadir}/centreon/.env
+%{_datadir}/centreon/.env.local.php
 %{_datadir}/centreon/composer.json
 %{_datadir}/centreon/package.json
 %{_datadir}/centreon/bootstrap.php
+%{_datadir}/centreon/container.php
 %{_datadir}/centreon/GPL_LIB
 %{_datadir}/centreon/vendor
+%{_datadir}/centreon/config
 %attr(0775, centreon, centreon) %{_datadir}/centreon/src
 %attr(0775, centreon, centreon) %{_datadir}/centreon/www
+%attr(0775, centreon, centreon) %{_datadir}/centreon/api
 %{_datadir}/centreon/cron
 %{_datadir}/centreon/lib
 
@@ -547,9 +552,8 @@ fi
 %{_localstatedir}/lib/centreon/status
 %{_localstatedir}/lib/centreon/nagios-perf
 %{_localstatedir}/lib/centreon/perfdata
-%{_localstatedir}/log/centreon
 %{_localstatedir}/run/centreon
-%{_localstatedir}/cache/centreon/backup
+%{_localstatedir}/cache/centreon
 
 %defattr(-, root, root, -)
 

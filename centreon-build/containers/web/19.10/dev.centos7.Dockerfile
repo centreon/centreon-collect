@@ -10,6 +10,8 @@ COPY composer.json /usr/share/centreon/composer.json
 COPY package.json /usr/share/centreon/package.json
 COPY www/front_src/webpack.config.js /usr/share/centreon/www/front_src/webpack.config.js
 COPY bootstrap.php /usr/share/centreon/bootstrap.php
+COPY container.php /usr/share/centreon/container.php
+COPY api /usr/share/centreon/api
 COPY vendor /usr/share/centreon/vendor
 COPY node_modules /usr/share/centreon/node_modules
 COPY GPL_LIB /usr/share/centreon/GPL_LIB
