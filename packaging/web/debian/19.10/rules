@@ -25,4 +25,4 @@ override_dh_auto_install:
 	cp debian/src/sudoersCentreonEngine debian/centreon-poller-centreon-engine/etc/sudoers.d/centreon
 # centreon-web
 	install -d debian/centreon-web/usr/share/centreon
-	cp -r bootstrap.php composer.json GPL_LIB src vendor www debian/centreon-web/usr/share/centreon/
+	cp -r .env .env.local.php container.php bootstrap.php composer.json GPL_LIB src vendor www api debian/centreon-web/usr/share/centreon/
