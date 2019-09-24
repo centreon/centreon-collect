@@ -37,6 +37,30 @@ BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:  noarch
 Requires:   centreon-base-config = %{version}-%{release}
 Requires:   centreon-database = %{version}-%{release}
+Requires:   centreon-widget-engine-status >= %{thismajor}
+Requires:   centreon-widget-engine-status < %{nextmajor}
+Requires:   centreon-widget-global-health >= %{thismajor}
+Requires:   centreon-widget-global-health < %{nextmajor}
+Requires:   centreon-widget-graph-monitoring >= %{thismajor}
+Requires:   centreon-widget-graph-monitoring < %{nextmajor}
+Requires:   centreon-widget-grid-map >= %{thismajor}
+Requires:   centreon-widget-grid-map < %{nextmajor}
+Requires:   centreon-widget-host-monitoring >= %{thismajor}
+Requires:   centreon-widget-host-monitoring < %{nextmajor}
+Requires:   centreon-widget-hostgroup-monitoring >= %{thismajor}
+Requires:   centreon-widget-hostgroup-monitoring < %{nextmajor}
+Requires:   centreon-widget-httploader >= %{thismajor}
+Requires:   centreon-widget-httploader < %{nextmajor}
+Requires:   centreon-widget-live-top10-cpu-usage >= %{thismajor}
+Requires:   centreon-widget-live-top10-cpu-usage < %{nextmajor}
+Requires:   centreon-widget-live-top10-memory-usage >= %{thismajor}
+Requires:   centreon-widget-live-top10-memory-usage < %{nextmajor}
+Requires:   centreon-widget-service-monitoring >= %{thismajor}
+Requires:   centreon-widget-service-monitoring < %{nextmajor}
+Requires:   centreon-widget-servicegroup-monitoring >= %{thismajor}
+Requires:   centreon-widget-servicegroup-monitoring < %{nextmajor}
+Requires:   centreon-widget-tactical-overview >= %{thismajor}
+Requires:   centreon-widget-tactical-overview < %{nextmajor}
 Requires(post): coreutils
 Requires(post): sed
 Requires(post): sudo
