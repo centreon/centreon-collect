@@ -25,5 +25,4 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 # CI delivery.
 #
 else
-  promote_canary_rpms_to_unstable "standard" "19.10" "el7" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE"
 fi
