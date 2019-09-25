@@ -17,7 +17,7 @@ PROJECT=centreon-gorgone
 
 # Get version.
 cd "$PROJECT"
-export VERSION=`grep Version packaging/$PROJECT.spectemplate | cut -d ' ' -f 9`
+export VERSION=`grep Version packaging/$PROJECT.spectemplate | cut -d ' ' -f 5`
 
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
