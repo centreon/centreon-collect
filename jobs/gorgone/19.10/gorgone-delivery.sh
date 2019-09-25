@@ -24,5 +24,5 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 #
 # CI delivery.
 #
-else
+
 fi
