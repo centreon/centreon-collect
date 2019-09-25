@@ -117,6 +117,7 @@ copy_internal_rpms_to_canary () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/canary/$4"
 }
 
 copy_internal_rpms_to_unstable () {
@@ -133,6 +134,7 @@ copy_internal_rpms_to_unstable () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
 }
 
 copy_internal_rpms_to_testing () {
@@ -165,6 +167,7 @@ promote_canary_rpms_to_unstable () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
+  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
 }
 
 promote_unstable_rpms_to_testing () {
