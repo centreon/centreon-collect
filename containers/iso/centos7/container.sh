@@ -18,14 +18,14 @@ fi
 # -----------
 
 # Download minimal CentOS image.
-wget http://srvi-repo.int.centreon.com/iso/CentOS-7-x86_64-Minimal-1810.iso
+wget http://srvi-repo.int.centreon.com/iso/CentOS-7-x86_64-Minimal-1908.iso
 
 # Create mount point and tree.
 rm -rf mount centreon-iso
 mkdir -p mount
 
 # Mount the downloaded ISO file and copy the files
-mount -t iso9660 -o loop CentOS-7-x86_64-Minimal-1810.iso mount/
+mount -t iso9660 -o loop CentOS-7-x86_64-Minimal-1908.iso mount/
 cp -Rp mount centreon-iso
 umount mount
 
