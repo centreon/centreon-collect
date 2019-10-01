@@ -35,7 +35,7 @@ PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
 if [ -n "$PRERELEASE" ] ; then
   export VERSION=`echo $VERSION | cut -d - -f 1`
   export RELEASE="$PRERELEASE.$RELEASE"
-  rm -rf "$PROJECT-$VERSION"
+  rm -rf "$PROJECT-$VERSION-php72"
   mv "$PROJECT-$OLDVERSION-php72" "$PROJECT-$VERSION-php72"
   tar czf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
 fi
