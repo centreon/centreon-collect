@@ -7,6 +7,7 @@
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
         "cloud/azure/custom/",
+        "cloud/azure/management/monitor/mode/discovery.pm",
         "cloud/azure/network/networkinterface/"
     ]
 }
