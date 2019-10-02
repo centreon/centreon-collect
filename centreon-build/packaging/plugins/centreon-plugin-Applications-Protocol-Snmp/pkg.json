@@ -13,6 +13,5 @@
         "snmp_standard/mode/uptime.pm",
         "os/linux/local/plugin.pm",
         "os/linux/local/mode/discoverysnmp.pm"
-    ],
-    "custom_pkg_data": "Obsoletes:    centreon-plugin-Generic-SNMP"
+    ]
 }
