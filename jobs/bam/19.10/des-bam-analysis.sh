@@ -19,6 +19,7 @@ tar xzf "$PROJECT-git.tar.gz"
 cd "$PROJECT"
 cp ../ut.xml .
 cp ../coverage.xml .
+sed -i -e 's#/usr/local/src/centreon-bam-server/##g' coverage.xml
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/centreon-bam-19.10/centreon-bam-19.10-release/g' sonar-project.properties
   sed -i -e 's/Centreon BAM 19.10/Centreon BAM 19.10 (release)/g' sonar-project.properties
