@@ -24,12 +24,12 @@ add_subdirectory("clib")
 add_subdirectory("concurrency")
 add_subdirectory("exceptions")
 add_subdirectory("io")
-add_subdirectory("logging")
+#add_subdirectory("logging")
 add_subdirectory("misc")
 
 # bin_test_process_output
-set(TEST_NAME "bin_test_process_output")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#set(TEST_NAME "bin_test_process_output")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 
 # handle_manager_add
 set(TEST_NAME "handle_manager_add")
@@ -79,46 +79,46 @@ add_library("${LIB_NAME}" SHARED "${TEST_DIR}/${LIB_NAME}.cc")
 
 # process_env
 set(TEST_NAME "process_env")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # process_kill
-set(TEST_NAME "process_kill")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+#set(TEST_NAME "process_kill")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # process_output
-set(TEST_NAME "process_output")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}_stderr" "${TEST_NAME}" "err")
-add_test("${TEST_NAME}_stdout" "${TEST_NAME}" "out")
+#set(TEST_NAME "process_output")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}_stderr" "${TEST_NAME}" "err")
+#add_test("${TEST_NAME}_stdout" "${TEST_NAME}" "out")
 
 # process_return
-set(TEST_NAME "process_return")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+#set(TEST_NAME "process_return")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # process_terminate
-set(TEST_NAME "process_terminate")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+#set(TEST_NAME "process_terminate")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# process_timeout
-set(TEST_NAME "process_timeout")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# process_wait_timeout
-set(TEST_NAME "process_wait_timeout")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+## process_timeout
+#set(TEST_NAME "process_timeout")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}" "${TEST_NAME}")
+#
+## process_wait_timeout
+#set(TEST_NAME "process_wait_timeout")
+#add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+#target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+#add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # task_manager_add
 set(TEST_NAME "task_manager_add")

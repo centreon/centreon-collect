@@ -222,7 +222,7 @@ if (WIN32)
   )
 else ()
   set(SPECIFIC_SOURCES
-    "${INC_DIR}/handle_manager_posix.hh"
+     "${SRC_DIR}/handle_manager_posix.cc"
     "${SRC_DIR}/library_posix.cc"
   )
   set(SPECIFIC_HEADERS
