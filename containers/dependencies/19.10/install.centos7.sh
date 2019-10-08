@@ -7,6 +7,7 @@ set -x
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
 sed -i -e 's/\(override_install_langs=.*\)/\1:es_ES.utf8:fr_FR.utf8:pt_BR.utf8:pt_PT.utf8/' /etc/yum.conf
+yum update glibc-common
 yum reinstall glibc-common
 localedef -i es_ES -f UTF-8 es_ES.UTF-8
 localedef -i fr_FR -f UTF-8 fr_FR.UTF-8
