@@ -215,19 +215,27 @@ if (WIN32)
   set(SPECIFIC_SOURCES
     "${SRC_DIR}/handle_manager_win32.cc"
     "${SRC_DIR}/library_win32.cc"
+    "${SRC_DIR}/process_manager_win32.cc"
+    "${SRC_DIR}/process_win32.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/handle_manager_win32.hh"
     "${INC_DIR}/library_win32.hh"
+    "${INC_DIR}/process_manager_win32.hh"
+    "${INC_DIR}/process_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
-     "${SRC_DIR}/handle_manager_posix.cc"
+    "${SRC_DIR}/handle_manager_posix.cc"
     "${SRC_DIR}/library_posix.cc"
+    "${SRC_DIR}/process_manager_posix.cc"
+    "${SRC_DIR}/process_posix.cc"
   )
   set(SPECIFIC_HEADERS
     "${INC_DIR}/handle_manager_posix.hh"
     "${INC_DIR}/library_posix.hh"
+    "${INC_DIR}/process_manager_posix.hh"
+    "${INC_DIR}/process_posix.hh"
   )
 endif ()
 
@@ -235,6 +243,7 @@ endif ()
 set(
   SOURCES
   ${SPECIFIC_SOURCES}
+  "${SRC_DIR}/clib.cc"
   "${SRC_DIR}/handle.cc"
   "${SRC_DIR}/handle_action.cc"
   "${SRC_DIR}/handle_listener.cc"
@@ -249,6 +258,7 @@ set(
 set(
   HEADERS
   ${SPECIFIC_HEADERS}
+  "${INC_DIR}/clib.hh"
   "${INC_DIR}/delayed_delete.hh"
   "${INC_DIR}/handle.hh"
   "${INC_DIR}/handle_action.hh"
@@ -257,6 +267,8 @@ set(
   "${INC_DIR}/hash.hh"
   "${INC_DIR}/library.hh"
   "${INC_DIR}/namespace.hh"
+  "${INC_DIR}/process_manager.hh"
+  "${INC_DIR}/process.hh"
   "${INC_DIR}/task.hh"
   "${INC_DIR}/task_manager.hh"
   "${INC_DIR}/timestamp.hh"
@@ -273,6 +285,7 @@ include_directories("${INCLUDE_DIR}")
 add_subdirectory(src/clib)
 add_subdirectory(src/concurrency)
 add_subdirectory(src/exceptions)
+add_subdirectory(src/logging)
 add_subdirectory(src/misc)
 add_subdirectory(src/io)
 if (WITH_TESTING)

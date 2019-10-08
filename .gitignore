@@ -1,4 +1,0 @@
-build/*
-cmake-build-debug/*
-*.pc
-version.hh
