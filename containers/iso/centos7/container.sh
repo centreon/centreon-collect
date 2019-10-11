@@ -42,12 +42,18 @@ elif [ "$VERSION" = '18.10' ] ; then
   wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/18.10/el7/stable/noarch/RPMS/centreon-release-18.10-2.el7.centos.noarch.rpm
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-18.10-2.el7.centos.noarch.rpm
   sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
-else
+elif [ "$VERSION" = '19.04' ] ; then
   yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
   yum -y --disablerepo=updates install centos-release-scl
   wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/19.04/el7/stable/noarch/RPMS/centreon-release-19.04-1.el7.centos.noarch.rpm
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-19.04-1.el7.centos.noarch.rpm
   sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
+else
+  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
+  yum -y --disablerepo=updates install centos-release-scl
+  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/19.10/el7/stable/noarch/RPMS/centreon-release-19.10-1.el7.centos.noarch.rpm
+  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-19.10-1.el7.centos.noarch.rpm
+  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo    
 fi
 
 # -----------------------------------------
