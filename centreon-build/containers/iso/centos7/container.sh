@@ -8,7 +8,7 @@ set -x
 # ---------------
 
 VERSION="$1"
-if [ "$VERSION" '!=' '3.4' -a "$VERSION" '!=' '18.10' -a "$VERSION" '!=' '19.04' ] ; then
+if [ "$VERSION" '!=' '3.4' -a "$VERSION" '!=' '18.10' -a "$VERSION" '!=' '19.04' -a "$VERSION" '!=' '19.10' ] ; then
   echo "Unsupported version $VERSION"
   exit 1
 fi
