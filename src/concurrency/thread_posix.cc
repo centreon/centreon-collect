@@ -22,11 +22,11 @@
 #include <ctime>
 #include <pthread.h>
 #if defined(__FreeBSD__)
-#  include <pthread_np.h>
+#include <pthread_np.h>
 #elif defined(__NetBSD__)
-#  include <signal.h>
-#  include <sys/time.h>
-#endif // BSD flavor.
+#include <signal.h>
+#include <sys/time.h>
+#endif  // BSD flavor.
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread_posix.hh"
@@ -47,7 +47,7 @@ thread::thread() : _initialized(false) {}
 /**
  *  Destructor.
  */
-thread::~thread() throw () {}
+thread::~thread() throw() {}
 
 /**
  *  Execute the running method in the new thread.
@@ -55,11 +55,10 @@ thread::~thread() throw () {}
 void thread::exec() {
   locker lock(&_mtx);
   if (_initialized)
-    throw (basic_error() << "execute thread failed: already running");
+    throw(basic_error() << "execute thread failed: already running");
   int ret(pthread_create(&_th, NULL, &_execute, this));
   if (ret)
-    throw (basic_error() << "failed to create thread: "
-           << strerror(ret));
+    throw(basic_error() << "failed to create thread: " << strerror(ret));
   _initialized = true;
 }
 
@@ -68,9 +67,7 @@ void thread::exec() {
  *
  *  @return The current thread id.
  */
-thread_id thread::get_current_id() throw () {
-  return (pthread_self());
-}
+thread_id thread::get_current_id() throw() { return (pthread_self()); }
 
 /**
  *  Makes the calling thread sleep untils timeout.
@@ -84,7 +81,7 @@ void thread::msleep(unsigned long msecs) {
   ts.tv_sec = msecs / 1000;
   ts.tv_nsec = (msecs % 1000) * 1000000l;
   nanosleep(&ts, NULL);
-  return ;
+  return;
 }
 
 /**
@@ -99,7 +96,7 @@ void thread::nsleep(unsigned long nsecs) {
   ts.tv_sec = nsecs / 1000000000l;
   ts.tv_nsec = nsecs % 1000000000l;
   nanosleep(&ts, NULL);
-  return ;
+  return;
 }
 
 /**
@@ -114,7 +111,7 @@ void thread::sleep(unsigned long secs) {
   ts.tv_sec = secs;
   ts.tv_nsec = 0;
   nanosleep(&ts, NULL);
-  return ;
+  return;
 }
 
 /**
@@ -129,7 +126,7 @@ void thread::usleep(unsigned long usecs) {
   ts.tv_sec = usecs / 1000000l;
   ts.tv_nsec = (usecs % 1000000l) * 1000l;
   nanosleep(&ts, NULL);
-  return ;
+  return;
 }
 
 /**
@@ -142,11 +139,10 @@ void thread::wait() {
   if (_initialized) {
     int ret(pthread_join(_th, NULL));
     if (ret && ret != ESRCH)
-      throw (basic_error() << "failure while waiting thread: "
-             << strerror(ret));
+      throw(basic_error() << "failure while waiting thread: " << strerror(ret));
     _initialized = false;
   }
-  return ;
+  return;
 }
 
 /**
@@ -180,16 +176,15 @@ bool thread::wait(unsigned long timeout) {
 
     // Wait for the end of thread or timeout.
     bool running(true);
-    while (running
-           && ((now.tv_sec * 1000000ull + now.tv_usec)
-               < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
+    while (running && ((now.tv_sec * 1000000ull + now.tv_usec) <
+                       (limit.tv_sec * 1000000ull + limit.tv_usec))) {
       usleep(10000);
       int ret(pthread_kill(_th, 0));
       if (ret == ESRCH)
         running = false;
       else
-        throw (basic_error() << "failure while waiting thread: "
-               << strerror(ret));
+        throw(
+            basic_error() << "failure while waiting thread: " << strerror(ret));
       gettimeofday(&now, NULL);
     }
 
@@ -197,19 +192,19 @@ bool thread::wait(unsigned long timeout) {
     if (!running) {
       int ret(pthread_join(_th, NULL));
       if (ret)
-        throw (basic_error() << "failure while waiting thread: "
-               << strerror(ret));
+        throw(
+            basic_error() << "failure while waiting thread: " << strerror(ret));
       _initialized = false;
     }
     return (!running);
-#else // Other Unix systems.
+#else   // Other Unix systems.
     // Implementation based on pthread_timedjoin_np.
 
     // Get the current time.
     timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts))
-      throw (basic_error() << "failure while waiting thread: "
-             << strerror(errno));
+      throw(
+          basic_error() << "failure while waiting thread: " << strerror(errno));
 
     // Add timeout.
     ts.tv_sec += timeout / 1000;
@@ -228,9 +223,8 @@ bool thread::wait(unsigned long timeout) {
     }
     if (ret == ETIMEDOUT)
       return (false);
-    throw (basic_error() << "failure while waiting thread: "
-           << strerror(ret));
-#endif // Unix flavor.
+    throw(basic_error() << "failure while waiting thread: " << strerror(ret));
+#endif  // Unix flavor.
   }
   return (true);
 }
@@ -239,9 +233,7 @@ bool thread::wait(unsigned long timeout) {
  *  Causes the calling thread to relinquish the CPU.
  *  @remark This function is static.
  */
-void thread::yield() throw () {
-  sched_yield();
-}
+void thread::yield() throw() { sched_yield(); }
 
 /**************************************
 *                                     *

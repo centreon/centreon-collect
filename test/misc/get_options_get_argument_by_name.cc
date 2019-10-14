@@ -28,21 +28,15 @@ using namespace com::centreon::misc;
  *  @brief litle implementation of get_options to test it.
  */
 class my_options : public get_options {
-public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', "", true);
-        _arguments['t'] = argument("test", 't', "", true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default",
-                                   'd',
-                                   "",
-                                   true,
-                                   true,
-                                   "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
+ public:
+  my_options(std::vector<std::string> const& args) : get_options() {
+    _arguments['a'] = argument("arg", 'a', "", true);
+    _arguments['t'] = argument("test", 't', "", true);
+    _arguments['h'] = argument("help", 'h');
+    _arguments['d'] = argument("default", 'd', "", true, true, "def");
+    _parse_arguments(args);
+  }
+  ~my_options() throw() {}
 };
 
 /**
@@ -92,11 +86,11 @@ static bool valid_name() {
 int main() {
   try {
     if (!invalid_name())
-      throw (basic_error() << "get argument with invalid " \
-             "name failed");
+      throw(basic_error() << "get argument with invalid "
+                             "name failed");
     if (!valid_name())
-      throw (basic_error() << "get argument with valid " \
-             "name failed");
+      throw(basic_error() << "get argument with valid "
+                             "name failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

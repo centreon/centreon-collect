@@ -34,11 +34,11 @@ int main() {
     io::directory_entry e1(".");
     io::directory_entry e2(e1);
     if (e1 != e2)
-      throw (basic_error() << "copy constuctor failed");
+      throw(basic_error() << "copy constuctor failed");
 
     io::directory_entry e3 = e1;
     if (e1 != e3)
-      throw (basic_error() << "copy operator failed");
+      throw(basic_error() << "copy operator failed");
 
     ret = EXIT_SUCCESS;
   }

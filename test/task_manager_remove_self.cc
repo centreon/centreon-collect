@@ -29,13 +29,13 @@ task_manager tm;
  *  @class task_test
  *  @brief litle implementation of task to test task manager.
  */
-class  task_test : public task {
-public:
-       task_test() : task() {}
-       ~task_test() throw () {}
+class task_test : public task {
+ public:
+  task_test() : task() {}
+  ~task_test() throw() {}
   void run() {
     tm.remove(this);
-    return ;
+    return;
   }
 };
 

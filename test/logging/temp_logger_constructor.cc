@@ -41,11 +41,11 @@ int main() {
 
     temp_logger(0, 0) << "Centreon Clib test";
     if (obj->get_nb_call() != 0)
-      throw (basic_error() << "invalid number of call log");
+      throw(basic_error() << "invalid number of call log");
 
     temp_logger(1, 0) << "Centreon Clib test";
     if (obj->get_nb_call() != 1)
-      throw (basic_error() << "invalid number of call log");
+      throw(basic_error() << "invalid number of call log");
     retval = 0;
   }
   catch (std::exception const& e) {

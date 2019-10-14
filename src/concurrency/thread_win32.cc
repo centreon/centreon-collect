@@ -37,9 +37,7 @@ thread::thread() : _th(NULL) {}
 /**
  *  Destructor.
  */
-thread::~thread() throw () {
-  _close();
-}
+thread::~thread() throw() { _close(); }
 
 /**
  *  Execute the running method in the new thread.
@@ -48,10 +46,9 @@ void thread::exec() {
   _th = CreateThread(NULL, 0, &_helper, this, 0, NULL);
   if (!_th) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "failed to create thread (error "
-           << errcode << ")");
+    throw(basic_error() << "failed to create thread (error " << errcode << ")");
   }
-  return ;
+  return;
 }
 
 /**
@@ -59,9 +56,7 @@ void thread::exec() {
  *
  *  @return The current thread ID.
  */
-thread_id thread::get_current_id() throw () {
-  return (GetCurrentThread());
-}
+thread_id thread::get_current_id() throw() { return (GetCurrentThread()); }
 
 /**
  *  Sleep for some milliseconds.
@@ -70,7 +65,7 @@ thread_id thread::get_current_id() throw () {
  */
 void thread::msleep(unsigned long msecs) {
   Sleep(msecs);
-  return ;
+  return;
 }
 
 /**
@@ -80,7 +75,7 @@ void thread::msleep(unsigned long msecs) {
  */
 void thread::nsleep(unsigned long nsecs) {
   Sleep(nsecs / 1000000);
-  return ;
+  return;
 }
 
 /**
@@ -90,7 +85,7 @@ void thread::nsleep(unsigned long nsecs) {
  */
 void thread::sleep(unsigned long secs) {
   Sleep(secs * 1000);
-  return ;
+  return;
 }
 
 /**
@@ -100,7 +95,7 @@ void thread::sleep(unsigned long secs) {
  */
 void thread::usleep(unsigned long usecs) {
   Sleep(usecs / 1000);
-  return ;
+  return;
 }
 
 /**
@@ -109,10 +104,10 @@ void thread::usleep(unsigned long usecs) {
 void thread::wait() {
   if (WaitForSingleObject(_th, INFINITE) != WAIT_OBJECT_0) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "failure while waiting thread (error "
-           << errcode << ")");
+    throw(basic_error() << "failure while waiting thread (error " << errcode
+                        << ")");
   }
-  return ;
+  return;
 }
 
 /**
@@ -127,8 +122,8 @@ bool thread::wait(unsigned long timeout) {
   bool success(ret == WAIT_OBJECT_0);
   if (!success && (ret != WAIT_TIMEOUT)) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "failure while waiting thread (error "
-           << errcode << ")");
+    throw(basic_error() << "failure while waiting thread (error " << errcode
+                        << ")");
   }
   return (success);
 }
@@ -136,9 +131,9 @@ bool thread::wait(unsigned long timeout) {
 /**
  *  Release CPU.
  */
-void thread::yield() throw () {
+void thread::yield() throw() {
   Sleep(0);
-  return ;
+  return;
 }
 
 /**************************************
@@ -150,12 +145,12 @@ void thread::yield() throw () {
 /**
  *  Close thread.
  */
-void thread::_close() throw () {
+void thread::_close() throw() {
   if (_th) {
     CloseHandle(_th);
     _th = NULL;
   }
-  return ;
+  return;
 }
 
 /**

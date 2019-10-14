@@ -35,28 +35,28 @@ int main() {
     // load library.
     lib.load();
     if (!lib.is_loaded())
-      throw (basic_error() << "load failed");
+      throw(basic_error() << "load failed");
 
     // load a "add" symbole.
     int (*my_add)(int, int);
     my_add = (int (*)(int, int))lib.resolve_proc("add");
     if ((*my_add)(21, 21) != 42)
-      throw (basic_error() << "resolve failed: invalid call result");
+      throw(basic_error() << "resolve failed: invalid call result");
 
     // load a "export_lib_name" symbole.
     char const* lib_name(*(char**)lib.resolve("export_lib_name"));
     if (lib_name != std::string("shared_testing_library"))
-      throw (basic_error() << "resolve failed: invalid string");
+      throw(basic_error() << "resolve failed: invalid string");
 
     // load a "export_lib_version" symbole.
     int lib_version(*(int*)lib.resolve("export_lib_version"));
     if (lib_version != 42)
-      throw (basic_error() << "resolve failed: invalid value");
+      throw(basic_error() << "resolve failed: invalid value");
 
     // unload library.
     lib.unload();
     if (lib.is_loaded())
-      throw (basic_error() << "unload failed");
+      throw(basic_error() << "unload failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

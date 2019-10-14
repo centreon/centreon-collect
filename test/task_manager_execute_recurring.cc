@@ -26,10 +26,10 @@ using namespace com::centreon;
  *  @class task_test
  *  @brief litle implementation of task to test task manager.
  */
-class  task_test : public task {
-public:
-       task_test() : task() {}
-       ~task_test() throw () {}
+class task_test : public task {
+ public:
+  task_test() : task() {}
+  ~task_test() throw() {}
   void run() {}
 };
 
@@ -47,11 +47,11 @@ int main() {
       tm.add(t1, timestamp(), 1, true, true);
 
       if (tm.execute(timestamp::now()) != 1)
-        throw (basic_error() << "execute one task failed");
+        throw(basic_error() << "execute one task failed");
       if (tm.execute(timestamp::now()) != 1)
-        throw (basic_error() << "execute one task failed");
+        throw(basic_error() << "execute one task failed");
       if (tm.execute(timestamp::now()) != 1)
-        throw (basic_error() << "execute one task failed");
+        throw(basic_error() << "execute one task failed");
     }
 
     {
@@ -64,11 +64,11 @@ int main() {
       tm.add(t2, timestamp(), 1, false, false);
 
       if (tm.execute(timestamp::now()) != 4)
-        throw (basic_error() << "execute four task failed");
+        throw(basic_error() << "execute four task failed");
       if (tm.execute(timestamp::now()) != 4)
-        throw (basic_error() << "execute four task failed");
+        throw(basic_error() << "execute four task failed");
       if (tm.execute(timestamp::now()) != 4)
-        throw (basic_error() << "execute four task failed");
+        throw(basic_error() << "execute four task failed");
       delete t2;
     }
 
@@ -81,7 +81,7 @@ int main() {
       task_test* t2(new task_test);
       tm.add(t2, future, 0, false, false);
       if (tm.execute(timestamp::now()))
-        throw (basic_error() << "execute future task failed");
+        throw(basic_error() << "execute future task failed");
       delete t2;
     }
   }

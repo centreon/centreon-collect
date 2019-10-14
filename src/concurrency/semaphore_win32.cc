@@ -39,17 +39,15 @@ semaphore::semaphore(unsigned int n) {
   _sem = CreateSemaphore(NULL, n, LONG_MAX, NULL);
   if (!_sem) {
     int errcode(GetLastError());
-    throw (basic_error() << "unable to create semaphore (error "
-           << errcode << ")");
+    throw(basic_error() << "unable to create semaphore (error " << errcode
+                        << ")");
   }
 }
 
 /**
  *  Destructor.
  */
-semaphore::~semaphore() throw () {
-  CloseHandle(_sem);
-}
+semaphore::~semaphore() throw() { CloseHandle(_sem); }
 
 /**
  *  Acquire one ressource. If the semaphore's value is greater then zero
@@ -59,9 +57,8 @@ semaphore::~semaphore() throw () {
 void semaphore::acquire() {
   DWORD ret(WaitForSingleObject(_sem, INFINITE));
   if (ret != WAIT_OBJECT_0)
-    throw (basic_error() << "unable to acquire semaphore (error "
-           << ret << ")");
-  return ;
+    throw(basic_error() << "unable to acquire semaphore (error " << ret << ")");
+  return;
 }
 
 /**
@@ -76,8 +73,7 @@ bool semaphore::acquire(unsigned long timeout) {
   DWORD ret(WaitForSingleObject(_sem, timeout));
   bool success(ret == WAIT_OBJECT_0);
   if (!success && (ret != WAIT_TIMEOUT))
-    throw (basic_error() << "unable to acquire semaphore (error "
-           << ret << ")");
+    throw(basic_error() << "unable to acquire semaphore (error " << ret << ")");
   return (success);
 }
 
@@ -90,8 +86,8 @@ int semaphore::available() {
   LONG count;
   if (!ReleaseSemaphore(_sem, 0, &count)) {
     int errcode(GetLastError());
-    throw (basic_error() << "unable to get semaphore count (error "
-           << errcode << ")");
+    throw(basic_error() << "unable to get semaphore count (error " << errcode
+                        << ")");
   }
   return (count);
 }
@@ -102,10 +98,10 @@ int semaphore::available() {
 void semaphore::release() {
   if (!ReleaseSemaphore(_sem, 1, NULL)) {
     int errcode(GetLastError());
-    throw (basic_error() << "unable to release semaphore (error "
-           << errcode << ")");
+    throw(basic_error() << "unable to release semaphore (error " << errcode
+                        << ")");
   }
-  return ;
+  return;
 }
 
 /**
@@ -113,6 +109,4 @@ void semaphore::release() {
  *
  *  @return true if one ressource was acquired.
  */
-bool semaphore::try_acquire() {
-  return (acquire(0));
-}
+bool semaphore::try_acquire() { return (acquire(0)); }

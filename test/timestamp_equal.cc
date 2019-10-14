@@ -33,15 +33,15 @@ int main() {
 
     timestamp t2(42, 24);
     if (!(t1 == t2))
-      throw (basic_error() << "operator== failed");
+      throw(basic_error() << "operator== failed");
 
     timestamp t3(41, 1000024);
     if (!(t3 == t2))
-      throw (basic_error() << "operator== failed");
+      throw(basic_error() << "operator== failed");
 
     timestamp t4(43, -1000000 + 24);
     if (!(t4 == t2))
-      throw (basic_error() << "operator== failed");
+      throw(basic_error() << "operator== failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

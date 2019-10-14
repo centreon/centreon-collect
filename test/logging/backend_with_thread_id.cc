@@ -38,11 +38,7 @@ static bool check_thread_id(std::string const& data, char const* msg) {
   void* ptr(NULL);
   char message[1024];
 
-  int ret(sscanf(
-            data.c_str(),
-            "[%p] %s\n",
-            &ptr,
-            message));
+  int ret(sscanf(data.c_str(), "[%p] %s\n", &ptr, message));
   return (ret == 2 && !strncmp(msg, message, strlen(msg)));
 }
 
@@ -58,15 +54,12 @@ int main() {
   engine::load();
   try {
     engine& e(engine::instance());
-    std::unique_ptr<backend_test> obj(new backend_test(
-                                          false,
-                                          false,
-                                          none,
-                                          true));
+    std::unique_ptr<backend_test> obj(
+        new backend_test(false, false, none, true));
     e.add(obj.get(), 1, 0);
     e.log(1, 0, msg, sizeof(msg));
     if (!check_thread_id(obj->data(), msg))
-      throw (basic_error() << "log with thread id failed");
+      throw(basic_error() << "log with thread id failed");
     retval = 0;
   }
   catch (std::exception const& e) {

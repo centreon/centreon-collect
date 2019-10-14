@@ -38,8 +38,7 @@ int main() {
     p.wait();
     timestamp exectime(p.end_time() - p.start_time());
     if (exectime.to_seconds() > 1)
-      throw (basic_error() << "timeout failed: "
-             << exectime.to_useconds());
+      throw(basic_error() << "timeout failed: " << exectime.to_useconds());
   }
   catch (std::exception const& e) {
     ret = EXIT_FAILURE;

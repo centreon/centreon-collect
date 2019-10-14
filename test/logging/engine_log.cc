@@ -43,18 +43,16 @@ int main() {
 
     for (unsigned int i(0); i < 3; ++i) {
       for (unsigned int j(0); j < limits; ++j) {
-        unsigned long id(e.add(obj.get(),
-                               1 << j,
-                               i));
+        unsigned long id(e.add(obj.get(), 1 << j, i));
         for (unsigned int k(0); k < limits; ++k)
           e.log(1 << k, i, "", 0);
         if (!e.remove(id))
-          throw (basic_error() << "remove id failed");
+          throw(basic_error() << "remove id failed");
       }
     }
 
     if (obj->get_nb_call() != 3 * limits)
-      throw (basic_error() << "invalid number of call log function");
+      throw(basic_error() << "invalid number of call log function");
     retval = 0;
   }
   catch (std::exception const& e) {

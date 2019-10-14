@@ -33,11 +33,11 @@ int main() {
 
     timestamp t2(t1);
     if (!(t1 == t2))
-      throw (basic_error() << "copy constructor failed");
+      throw(basic_error() << "copy constructor failed");
 
     timestamp t3 = t1;
     if (!(t1 == t3))
-      throw (basic_error() << "copy operator failed");
+      throw(basic_error() << "copy operator failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

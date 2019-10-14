@@ -32,12 +32,12 @@ int main() {
     std::string cmdline("123456");
     command_line cmd;
     if (cmd.get_argv())
-      throw (basic_error() << "invalid argv value: not null");
+      throw(basic_error() << "invalid argv value: not null");
     cmd.parse(cmdline);
     if (!cmd.get_argv())
-      throw (basic_error() << "invalid argv value: null");
+      throw(basic_error() << "invalid argv value: null");
     if (cmd.get_argv()[0] != cmdline)
-      throw (basic_error() << "invalid argv value");
+      throw(basic_error() << "invalid argv value");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

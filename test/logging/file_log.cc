@@ -27,9 +27,7 @@
 
 using namespace com::centreon::logging;
 
-static bool check_log_message(
-              std::string const& path,
-              std::string const& msg) {
+static bool check_log_message(std::string const& path, std::string const& msg) {
   std::ifstream stream(path.c_str());
   char buffer[1024];
   stream.get(buffer, sizeof(buffer));
@@ -53,18 +51,18 @@ int main() {
       f.log(1, 0, msg, sizeof(msg));
     }
     if (!check_log_message(tmp, msg))
-      throw (basic_error() << "log message failed");
+      throw(basic_error() << "log message failed");
 
     {
       FILE* out(NULL);
       if (!(out = fopen(tmp, "w")))
-        throw (basic_error() << "failed to open file \"" << tmp << "\":"
-               << strerror(errno));
+        throw(basic_error() << "failed to open file \"" << tmp
+                            << "\":" << strerror(errno));
       file f(out, false, false, none, false);
       f.log(1, 0, msg, sizeof(msg));
     }
     if (!check_log_message(tmp, msg))
-      throw (basic_error() << "log message failed");
+      throw(basic_error() << "log message failed");
     retval = 0;
   }
   catch (std::exception const& e) {

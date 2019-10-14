@@ -36,14 +36,12 @@ task::task() {}
  *
  *  @param[in] t Object to copy.
  */
-task::task(task const& t) {
-  (void)t;
-}
+task::task(task const& t) { (void)t; }
 
 /**
  *  Destructor.
  */
-task::~task() throw () {}
+task::~task() throw() {}
 
 /**
  *  Assignment operator.
@@ -60,6 +58,4 @@ task& task::operator=(task const& t) {
 /**
  *  Empty task.
  */
-void task::run() {
-  return ;
-}
+void task::run() { return; }

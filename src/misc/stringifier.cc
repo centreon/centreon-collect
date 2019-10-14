@@ -24,19 +24,19 @@ using namespace com::centreon::misc;
 
 #ifdef _WIN32
 // Standards ? Like C99 ? What for ?
-#  define snprintf _snprintf
-#endif // Win32
+#define snprintf _snprintf
+#endif  // Win32
 
 /**
  *  Default constructor.
  *
  *  @param[in] buffer  Default buffer.
  */
-stringifier::stringifier(char const* buffer) throw ()
-  : _buffer(_static_buffer),
-    _current(0),
-    _precision(-1),
-    _size(_static_buffer_size) {
+stringifier::stringifier(char const* buffer) throw()
+    : _buffer(_static_buffer),
+      _current(0),
+      _precision(-1),
+      _size(_static_buffer_size) {
   reset();
   if (buffer)
     *this << buffer;
@@ -48,17 +48,17 @@ stringifier::stringifier(char const* buffer) throw ()
  *  @param[in] right  Object to copy.
  */
 stringifier::stringifier(stringifier const& right)
-  : _buffer(_static_buffer),
-    _current(0),
-    _precision(-1),
-    _size(_static_buffer_size) {
+    : _buffer(_static_buffer),
+      _current(0),
+      _precision(-1),
+      _size(_static_buffer_size) {
   _internal_copy(right);
 }
 
 /**
  *  Default destructor.
  */
-stringifier::~stringifier() throw () {
+stringifier::~stringifier() throw() {
   if (_static_buffer != _buffer)
     delete[] _buffer;
 }
@@ -81,7 +81,7 @@ stringifier& stringifier::operator=(stringifier const& right) {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(bool b) throw () {
+stringifier& stringifier::operator<<(bool b) throw() {
   return (_insert("%s", b ? "true" : "false"));
 }
 
@@ -92,7 +92,7 @@ stringifier& stringifier::operator<<(bool b) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(char const* str) throw () {
+stringifier& stringifier::operator<<(char const* str) throw() {
   if (!str)
     str = "(null)";
   return (_insert("%s", str));
@@ -105,7 +105,7 @@ stringifier& stringifier::operator<<(char const* str) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(char c) throw () {
+stringifier& stringifier::operator<<(char c) throw() {
   return (_insert("%c", c));
 }
 
@@ -116,7 +116,7 @@ stringifier& stringifier::operator<<(char c) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(double d) throw () {
+stringifier& stringifier::operator<<(double d) throw() {
   if (_precision < 0)
     return (_insert("%f", d));
   return (_insert("%.*f", _precision, d));
@@ -129,7 +129,7 @@ stringifier& stringifier::operator<<(double d) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(int i) throw () {
+stringifier& stringifier::operator<<(int i) throw() {
   return (_insert("%d", i));
 }
 
@@ -140,7 +140,7 @@ stringifier& stringifier::operator<<(int i) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(long long ll) throw () {
+stringifier& stringifier::operator<<(long long ll) throw() {
   return (_insert("%lld", ll));
 }
 
@@ -151,7 +151,7 @@ stringifier& stringifier::operator<<(long long ll) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(long l) throw () {
+stringifier& stringifier::operator<<(long l) throw() {
   return (_insert("%ld", l));
 }
 
@@ -162,7 +162,7 @@ stringifier& stringifier::operator<<(long l) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(std::string const& str) throw () {
+stringifier& stringifier::operator<<(std::string const& str) throw() {
   return (_insert("%s", str.c_str()));
 }
 
@@ -173,7 +173,7 @@ stringifier& stringifier::operator<<(std::string const& str) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(stringifier const& str) throw () {
+stringifier& stringifier::operator<<(stringifier const& str) throw() {
   return (_insert("%.*s", str.size(), str.data()));
 }
 
@@ -184,7 +184,7 @@ stringifier& stringifier::operator<<(stringifier const& str) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(unsigned int u) throw () {
+stringifier& stringifier::operator<<(unsigned int u) throw() {
   return (_insert("%u", u));
 }
 
@@ -195,7 +195,7 @@ stringifier& stringifier::operator<<(unsigned int u) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(unsigned long long ull) throw () {
+stringifier& stringifier::operator<<(unsigned long long ull) throw() {
   return (_insert("%llu", ull));
 }
 
@@ -206,7 +206,7 @@ stringifier& stringifier::operator<<(unsigned long long ull) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(unsigned long ul) throw () {
+stringifier& stringifier::operator<<(unsigned long ul) throw() {
   return (_insert("%lu", ul));
 }
 
@@ -217,7 +217,7 @@ stringifier& stringifier::operator<<(unsigned long ul) throw () {
  *
  *  @return This object.
  */
-stringifier& stringifier::operator<<(void const* p) throw () {
+stringifier& stringifier::operator<<(void const* p) throw() {
   return (_insert("%p", p));
 }
 
@@ -229,9 +229,7 @@ stringifier& stringifier::operator<<(void const* p) throw () {
  *
  *  @return This object
  */
-stringifier& stringifier::append(
-                            char const* str,
-                            unsigned int size) throw () {
+stringifier& stringifier::append(char const* str, unsigned int size) throw() {
   return (_insert("%.*s", size, str));
 }
 
@@ -240,32 +238,26 @@ stringifier& stringifier::append(
  *
  *  @return The pointer on data.
  */
-char const* stringifier::data() const throw () {
-  return (_buffer);
-}
+char const* stringifier::data() const throw() { return (_buffer); }
 
 /**
  *  Get precision.
  *
  *  @return The precision.
  */
-int stringifier::precision() const throw () {
-  return (_precision);
-}
+int stringifier::precision() const throw() { return (_precision); }
 
 /**
  *  Set precision.
  *
  *  @param[in] val  The precision.
  */
-void stringifier::precision(int val) throw () {
-  _precision = val;
-}
+void stringifier::precision(int val) throw() { _precision = val; }
 
 /**
  *  Reset the internal buffer to the empty string.
  */
-void stringifier::reset() throw () {
+void stringifier::reset() throw() {
   _buffer[0] = 0;
   _current = 0;
 }
@@ -275,9 +267,7 @@ void stringifier::reset() throw () {
  *
  *  @return The size of the buffer.
  */
-unsigned int stringifier::size() const throw () {
-  return (_current);
-}
+unsigned int stringifier::size() const throw() { return (_current); }
 
 /**
  *  Insert data into the current buffer.
@@ -289,13 +279,8 @@ unsigned int stringifier::size() const throw () {
  *  @return This object.
  */
 template <typename T>
-stringifier& stringifier::_insert(
-                            char const* format,
-                            T val) throw () {
-  int ret(snprintf(_buffer + _current,
-                   _size - _current,
-                   format,
-                   val));
+stringifier& stringifier::_insert(char const* format, T val) throw() {
+  int ret(snprintf(_buffer + _current, _size - _current, format, val));
   if (ret < 0)
     return (*this);
 
@@ -303,10 +288,7 @@ stringifier& stringifier::_insert(
   if (size + _current > _size) {
     if (!_realloc(size + _current))
       return (*this);
-    if ((ret = snprintf(_buffer + _current,
-                        _size - _current,
-                        format,
-                        val)) < 0)
+    if ((ret = snprintf(_buffer + _current, _size - _current, format, val)) < 0)
       return (*this);
   }
   _current += ret;
@@ -324,15 +306,10 @@ stringifier& stringifier::_insert(
  *  @return This object.
  */
 template <typename T>
-stringifier& stringifier::_insert(
-                            char const* format,
-                            unsigned int limit,
-                            T val) throw () {
-  int ret(snprintf(_buffer + _current,
-                   _size - _current,
-                   format,
-                   limit,
-                   val));
+stringifier& stringifier::_insert(char const* format,
+                                  unsigned int limit,
+                                  T val) throw() {
+  int ret(snprintf(_buffer + _current, _size - _current, format, limit, val));
   if (ret < 0)
     return (*this);
 
@@ -340,11 +317,8 @@ stringifier& stringifier::_insert(
   if (size + _current > _size) {
     if (!_realloc(size + _current))
       return (*this);
-    if ((ret = snprintf(_buffer + _current,
-                        _size - _current,
-                        format,
-                        limit,
-                        val)) < 0)
+    if ((ret = snprintf(
+             _buffer + _current, _size - _current, format, limit, val)) < 0)
       return (*this);
   }
   _current += ret;
@@ -380,7 +354,7 @@ stringifier& stringifier::_internal_copy(stringifier const& right) {
  *
  *  @return True on success, otherwise false.
  */
-bool stringifier::_realloc(unsigned int new_size) throw () {
+bool stringifier::_realloc(unsigned int new_size) throw() {
   try {
     _size = (new_size > _size * 2 ? new_size : _size * 2);
     char* new_buffer(new char[_size]);

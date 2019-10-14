@@ -36,14 +36,13 @@ int main(int argc, char* argv[]) {
     {
       io::file_entry entry(NULL);
       if (!entry.path().empty())
-        throw (basic_error()
-               << "invalid constructor: path is not empty");
+        throw(basic_error() << "invalid constructor: path is not empty");
     }
 
     {
       io::file_entry entry(argv[0]);
       if (entry.path().empty())
-        throw (basic_error() << "invalid constructor: path is empty");
+        throw(basic_error() << "invalid constructor: path is empty");
     }
 
     ret = EXIT_SUCCESS;

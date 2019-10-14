@@ -48,11 +48,11 @@ static process_manager* _instance = NULL;
  */
 void process_manager::add(process* p) {
   if (!p)
-    throw (basic_error() << "invalid process: null pointer");
+    throw(basic_error() << "invalid process: null pointer");
 
   concurrency::locker lock_process(&p->_lock_process);
   if (p->_process == static_cast<pid_t>(-1))
-    throw (basic_error() << "invalid process: not running");
+    throw(basic_error() << "invalid process: not running");
 
   concurrency::locker lock(&_lock_processes);
   _processes_pid[p->_process] = p;
@@ -69,9 +69,7 @@ void process_manager::add(process* p) {
  *
  *  @return the process manager.
  */
-process_manager& process_manager::instance() {
-  return (*_instance);
-}
+process_manager& process_manager::instance() { return (*_instance); }
 
 /**
  *  Load the process manager.
@@ -101,19 +99,19 @@ void process_manager::unload() {
  *  Default constructor.
  */
 process_manager::process_manager()
-  : concurrency::thread(),
-    _fds(NULL),
-    _fds_capacity(64),
-    _fds_size(0),
-    _quit(false),
-    _update(false) {
+    : concurrency::thread(),
+      _fds(NULL),
+      _fds_capacity(64),
+      _fds_size(0),
+      _quit(false),
+      _update(false) {
   exec();
 }
 
 /**
  *  Destructor.
  */
-process_manager::~process_manager() throw () {
+process_manager::~process_manager() throw() {
   _quit = true;
   wait();
   delete _fds;
@@ -124,7 +122,7 @@ process_manager::~process_manager() throw () {
  *
  *  @param[in] fd  The file descriptor to close.
  */
-void process_manager::_close_stream(HANDLE fd) throw () {
+void process_manager::_close_stream(HANDLE fd) throw() {
   try {
     process* p(NULL);
     {
@@ -133,8 +131,8 @@ void process_manager::_close_stream(HANDLE fd) throw () {
       htable<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw (basic_error() << "invalid fd: "
-               "not found into processes fd list");
+        throw(basic_error() << "invalid fd: "
+                               "not found into processes fd list");
       }
       p = it->second;
       _processes_fd.erase(it);
@@ -156,13 +154,12 @@ void process_manager::_close_stream(HANDLE fd) throw () {
   }
 }
 
-
 /**
  *  Read stream.
  *
  *  @param[in] fd  The file descriptor to read.
  */
-void process_manager::_read_stream(HANDLE fd) throw () {
+void process_manager::_read_stream(HANDLE fd) throw() {
   try {
     process* p(NULL);
     {
@@ -170,8 +167,8 @@ void process_manager::_read_stream(HANDLE fd) throw () {
       htable<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw (basic_error() << "invalid fd: "
-               "not found into processes fd list");
+        throw(basic_error() << "invalid fd: "
+                               "not found into processes fd list");
       }
       p = it->second;
     }
@@ -202,7 +199,7 @@ void process_manager::_run() {
         continue;
       }
       // XXX: todo manage handle (WaitForMultipleObjects).
-      throw (basic_error() << "process_manager dosn't work on windows");
+      throw(basic_error() << "process_manager dosn't work on windows");
       _wait_processes();
     }
   }
@@ -224,8 +221,8 @@ void process_manager::_update_list() {
     _fds = new pollfd[_processes_fd.size()];
   }
   _fds_size = 0;
-  for (htable<int, process*>::const_iterator
-         it(_processes_fd.begin()), end(_processes_fd.end());
+  for (htable<int, process*>::const_iterator it(_processes_fd.begin()),
+       end(_processes_fd.end());
        it != end;
        ++it) {
     // XXX: todo make handle information for manage these.
@@ -237,7 +234,7 @@ void process_manager::_update_list() {
 /**
  *  Waiting finished process.
  */
-void process_manager::_wait_processes() throw () {
+void process_manager::_wait_processes() throw() {
   try {
     // XXX: catch ending process.
   }

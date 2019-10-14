@@ -33,7 +33,7 @@ int main() {
     timestamp t2(42, 42);
 
     if (!(t1 != t2))
-      throw (basic_error() << "operator!= failed");
+      throw(basic_error() << "operator!= failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

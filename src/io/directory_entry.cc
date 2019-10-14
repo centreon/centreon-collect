@@ -20,19 +20,19 @@
 #include <cstdlib>
 #include <cstring>
 #ifdef _WIN32
-#  include <direct.h>
-#  include <io.h>
-#  include <windows.h>
+#include <direct.h>
+#include <io.h>
+#include <windows.h>
 #else
-#  include <dirent.h>
-#  include <unistd.h>
-#endif // _WIN32
+#include <dirent.h>
+#include <unistd.h>
+#endif  // _WIN32
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/directory_entry.hh"
 
 #ifdef _WIN32
-#  define getcwd _getcwd
-#endif // _WIN32
+#define getcwd _getcwd
+#endif  // _WIN32
 
 using namespace com::centreon::io;
 
@@ -41,20 +41,14 @@ using namespace com::centreon::io;
  *
  *  @param[in] path  The directory path.
  */
-directory_entry::directory_entry(char const* path)
-  : _entry(path) {
-
-}
+directory_entry::directory_entry(char const* path) : _entry(path) {}
 
 /**
  *  Constructor.
  *
  *  @param[in] path  The directory path.
  */
-directory_entry::directory_entry(std::string const& path)
-  : _entry(path) {
-
-}
+directory_entry::directory_entry(std::string const& path) : _entry(path) {}
 
 /**
  *  Copy constructor.
@@ -84,7 +78,7 @@ directory_entry& directory_entry::operator=(directory_entry const& right) {
  *
  *  @return True if is the same object, owtherwise false.
  */
-bool directory_entry::operator==(directory_entry const& right) const throw () {
+bool directory_entry::operator==(directory_entry const& right) const throw() {
   return (_entry == right._entry);
 }
 
@@ -95,16 +89,14 @@ bool directory_entry::operator==(directory_entry const& right) const throw () {
  *
  *  @return True if is not the same object, owtherwise false.
  */
-bool directory_entry::operator!=(directory_entry const& right) const throw () {
+bool directory_entry::operator!=(directory_entry const& right) const throw() {
   return (!operator==(right));
 }
 
 /**
  *  Destructor.
  */
-directory_entry::~directory_entry() throw () {
-
-}
+directory_entry::~directory_entry() throw() {}
 
 /**
  *  Get the current directory path.
@@ -114,7 +106,7 @@ directory_entry::~directory_entry() throw () {
 std::string directory_entry::current_path() {
   char* buffer(getcwd(NULL, 0));
   if (!buffer)
-    throw (basic_error() << "current path failed");
+    throw(basic_error() << "current path failed");
   std::string path(buffer);
   free(buffer);
   return (path);
@@ -125,9 +117,7 @@ std::string directory_entry::current_path() {
  *
  *  @return The directory entry.
  */
-file_entry const& directory_entry::entry() const throw () {
-  return (_entry);
-}
+file_entry const& directory_entry::entry() const throw() { return (_entry); }
 
 /**
  *  Get the list of all entry into a directory.
@@ -137,7 +127,7 @@ file_entry const& directory_entry::entry() const throw () {
  *  @return The file entry list.
  */
 std::list<file_entry> const& directory_entry::entry_list(
-                                                std::string const& filter) {
+    std::string const& filter) {
   _entry_lst.clear();
   char const* filter_ptr(filter.empty() ? NULL : filter.c_str());
 
@@ -145,7 +135,7 @@ std::list<file_entry> const& directory_entry::entry_list(
   WIN32_FIND_DATA ffd;
   HANDLE hwd(FindFirstFile(_entry.path().c_str(), &ffd));
   if (hwd == INVALID_HANDLE_VALUE)
-    throw (basic_error() << "open directory failed");
+    throw(basic_error() << "open directory failed");
 
   do {
     if (!filter_ptr || _nmatch(ffd.cFileName, filter_ptr))
@@ -154,12 +144,12 @@ std::list<file_entry> const& directory_entry::entry_list(
   DWORD error(GetLastError());
   FindClose(hwd);
   if (error != ERROR_NO_MORE_FILES)
-    throw (basic_error() << "parse directory failed");
+    throw(basic_error() << "parse directory failed");
 #else
   DIR* dir(opendir(_entry.path().c_str()));
   if (!dir) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "open directory failed: " << msg);
+    throw(basic_error() << "open directory failed: " << msg);
   }
 
   dirent entry;
@@ -167,7 +157,7 @@ std::list<file_entry> const& directory_entry::entry_list(
   while (true) {
     if (readdir_r(dir, &entry, &result)) {
       closedir(dir);
-      throw (basic_error() << "parse directory failed");
+      throw(basic_error() << "parse directory failed");
     }
     if (!result)
       break;
@@ -175,7 +165,7 @@ std::list<file_entry> const& directory_entry::entry_list(
       _entry_lst.push_back(file_entry(_entry.path() + "/" + entry.d_name));
   }
   closedir(dir);
-#endif // _WIN32
+#endif  // _WIN32
 
   return (_entry_lst);
 }
@@ -205,9 +195,7 @@ int directory_entry::_nmatch(char const* str, char const* pattern) {
     return (1);
   if (*str == *pattern)
     return (_nmatch(str + 1, pattern + 1));
-  return (*pattern == '*'
-          ? (*str
-             ? _nmatch(str + 1, pattern)
-             : 0) + _nmatch(str, pattern + 1)
-          : 0);
+  return (*pattern == '*' ? (*str ? _nmatch(str + 1, pattern) : 0) +
+                                _nmatch(str, pattern + 1)
+                          : 0);
 }

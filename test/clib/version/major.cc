@@ -29,21 +29,18 @@ using namespace com::centreon::clib;
  */
 int main() {
   // Check.
-  int retval((version::get_major() != version::major)
-             || (version::major != CENTREON_CLIB_VERSION_MAJOR));
+  int retval((version::get_major() != version::major) ||
+             (version::major != CENTREON_CLIB_VERSION_MAJOR));
 
   // Message.
   if (retval)
-    std::cout << "Version major mismatch" << std::endl
-              << "  library returned "
-              << version::get_major() << std::endl
-              << "  header returned  "
-              << version::major << std::endl
-              << "  macro returned   "
+    std::cout << "Version major mismatch" << std::endl << "  library returned "
+              << version::get_major() << std::endl << "  header returned  "
+              << version::major << std::endl << "  macro returned   "
               << CENTREON_CLIB_VERSION_MAJOR << std::endl;
   else
-    std::cout << "Version major is consistent (" << version::major
-              << ")" << std::endl;
+    std::cout << "Version major is consistent (" << version::major << ")"
+              << std::endl;
 
   // Return check result.
   return (retval);

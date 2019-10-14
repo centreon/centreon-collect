@@ -27,6 +27,4 @@ char const* export_lib_name = "shared_testing_library";
  *
  *  @return i1 + i2.
  */
-extern "C" int add(int i1, int i2) {
-  return (i1 + i2);
-}
+extern "C" int add(int i1, int i2) { return (i1 + i2); }

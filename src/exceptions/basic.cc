@@ -35,10 +35,7 @@ basic::basic() {}
  *  @param[in] function  The function from calling this object.
  *  @param[in] line      The line from calling this object.
  */
-basic::basic(
-         char const* file,
-         char const* function,
-         int line) {
+basic::basic(char const* file, char const* function, int line) {
   *this << "[" << file << ":" << line << "(" << function << ")] ";
 }
 
@@ -47,15 +44,14 @@ basic::basic(
  *
  *  @param[in] other  Object to copy.
  */
-basic::basic(basic const& other)
-  : std::exception(other) {
+basic::basic(basic const& other) : std::exception(other) {
   _internal_copy(other);
 }
 
 /**
  *  Destructor.
  */
-basic::~basic() throw () {}
+basic::~basic() throw() {}
 
 /**
  *  Assignment operator.
@@ -77,9 +73,7 @@ basic& basic::operator=(basic const& other) {
  *
  *  @return Basic message.
  */
-char const* basic::what() const throw () {
-  return (_buffer.data());
-}
+char const* basic::what() const throw() { return (_buffer.data()); }
 
 /**
  *  Internal copy method.
@@ -88,5 +82,5 @@ char const* basic::what() const throw () {
  */
 void basic::_internal_copy(basic const& other) {
   _buffer = other._buffer;
-  return ;
+  return;
 }

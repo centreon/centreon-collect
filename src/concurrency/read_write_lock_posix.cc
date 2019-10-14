@@ -42,16 +42,14 @@ read_write_lock::read_write_lock() {
   // Initialize RWL.
   ret = pthread_rwlock_init(&_rwl, NULL);
   if (ret)
-    throw (basic_error() << "cannot initialize readers-writer lock: "
-           << strerror(ret));
+    throw(basic_error() << "cannot initialize readers-writer lock: "
+                        << strerror(ret));
 }
 
 /**
  *  Destructor.
  */
-read_write_lock::~read_write_lock() throw () {
-  pthread_rwlock_destroy(&_rwl);
-}
+read_write_lock::~read_write_lock() throw() { pthread_rwlock_destroy(&_rwl); }
 
 /**
  *  Read (shared) lock.
@@ -59,9 +57,9 @@ read_write_lock::~read_write_lock() throw () {
 void read_write_lock::read_lock() {
   int ret(pthread_rwlock_rdlock(&_rwl));
   if (ret)
-    throw (basic_error() << "cannot lock readers-writer lock: "
-           << strerror(ret));
-  return ;
+    throw(
+        basic_error() << "cannot lock readers-writer lock: " << strerror(ret));
+  return;
 }
 
 /**
@@ -77,8 +75,8 @@ bool read_write_lock::read_lock(unsigned long timeout) {
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts)) {
     char const* msg(strerror(errno));
-    throw (basic_error()
-           << "unable to get time within readers-writer lock: " << msg);
+    throw(basic_error() << "unable to get time within readers-writer lock: "
+                        << msg);
   }
 
   // Add the timeout.
@@ -93,8 +91,8 @@ bool read_write_lock::read_lock(unsigned long timeout) {
   // Wait to acquire lock.
   int ret(pthread_rwlock_timedrdlock(&_rwl, &ts));
   if (ret && (ret != ETIMEDOUT))
-    throw (basic_error() << "cannot lock readers-writer lock: "
-           << strerror(ret));
+    throw(
+        basic_error() << "cannot lock readers-writer lock: " << strerror(ret));
 
   return (ret != ETIMEDOUT);
 }
@@ -109,8 +107,8 @@ bool read_write_lock::read_lock(unsigned long timeout) {
 bool read_write_lock::read_trylock() {
   int ret(pthread_rwlock_tryrdlock(&_rwl));
   if (ret && (ret != EBUSY))
-    throw (basic_error() << "cannot lock readers-writer lock: "
-           << strerror(ret));
+    throw(
+        basic_error() << "cannot lock readers-writer lock: " << strerror(ret));
   return (ret != EBUSY);
 }
 
@@ -120,9 +118,9 @@ bool read_write_lock::read_trylock() {
 void read_write_lock::read_unlock() {
   int ret(pthread_rwlock_unlock(&_rwl));
   if (ret)
-    throw (basic_error() << "cannot unlock readers-writer lock: "
-           << strerror(ret));
-  return ;
+    throw(basic_error() << "cannot unlock readers-writer lock: "
+                        << strerror(ret));
+  return;
 }
 
 /**
@@ -131,9 +129,9 @@ void read_write_lock::read_unlock() {
 void read_write_lock::write_lock() {
   int ret(pthread_rwlock_wrlock(&_rwl));
   if (ret)
-    throw (basic_error() << "cannot lock readers-writer lock: "
-           << strerror(ret));
-  return ;
+    throw(
+        basic_error() << "cannot lock readers-writer lock: " << strerror(ret));
+  return;
 }
 
 /**
@@ -149,8 +147,8 @@ bool read_write_lock::write_lock(unsigned long timeout) {
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts)) {
     char const* msg(strerror(errno));
-    throw (basic_error()
-           << "unable to get time within readers-writer lock: " << msg);
+    throw(basic_error() << "unable to get time within readers-writer lock: "
+                        << msg);
   }
 
   // Add the timeout.
@@ -165,8 +163,8 @@ bool read_write_lock::write_lock(unsigned long timeout) {
   // Wait to acquire lock.
   int ret(pthread_rwlock_timedwrlock(&_rwl, &ts));
   if (ret && (ret != ETIMEDOUT))
-    throw (basic_error() << "cannot lock readers-writer lock: "
-           << strerror(ret));
+    throw(
+        basic_error() << "cannot lock readers-writer lock: " << strerror(ret));
 
   return (ret != ETIMEDOUT);
 }
@@ -181,8 +179,8 @@ bool read_write_lock::write_lock(unsigned long timeout) {
 bool read_write_lock::write_trylock() {
   int ret(pthread_rwlock_trywrlock(&_rwl));
   if (ret && (ret != EBUSY))
-    throw (basic_error() << "cannot lock readers-writer lock: "
-           << strerror(ret));
+    throw(
+        basic_error() << "cannot lock readers-writer lock: " << strerror(ret));
   return (ret != EBUSY);
 }
 
@@ -192,7 +190,7 @@ bool read_write_lock::write_trylock() {
 void read_write_lock::write_unlock() {
   int ret(pthread_rwlock_unlock(&_rwl));
   if (ret)
-    throw (basic_error() << "cannot unlock readers-writer lock: "
-           << strerror(ret));
-  return ;
+    throw(basic_error() << "cannot unlock readers-writer lock: "
+                        << strerror(ret));
+  return;
 }

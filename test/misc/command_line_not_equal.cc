@@ -33,7 +33,7 @@ int main() {
     command_line cmd1(cmdline);
     command_line cmd2(cmdline);
     if (cmd1 != cmd2)
-      throw (basic_error() << "operator not equal failed");
+      throw(basic_error() << "operator not equal failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

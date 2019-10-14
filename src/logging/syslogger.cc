@@ -35,31 +35,28 @@ using namespace com::centreon::logging;
  *  @param[in] show_timestamp  Enable show timestamp.
  *  @param[in] show_thread_id  Enable show thread id.
  */
-syslogger::syslogger(
-             std::string const& id,
-             int facility,
-             bool is_sync,
-             bool show_pid,
-             time_precision show_timestamp,
-             bool show_thread_id)
-  : backend(is_sync, show_pid, show_timestamp, show_thread_id),
-    _facility(facility),
-    _id(id) {
+syslogger::syslogger(std::string const& id,
+                     int facility,
+                     bool is_sync,
+                     bool show_pid,
+                     time_precision show_timestamp,
+                     bool show_thread_id)
+    : backend(is_sync, show_pid, show_timestamp, show_thread_id),
+      _facility(facility),
+      _id(id) {
   open();
 }
 
 /**
  *  Default destructor.
  */
-syslogger::~syslogger() throw () {
-  close();
-}
+syslogger::~syslogger() noexcept { close(); }
 
 /**
  *  Close syslog.
  */
-void syslogger::close() throw () {
-  concurrency::locker lock(&_lock);
+void syslogger::close() noexcept {
+  std::lock_guard<std::mutex> lock(_lock);
   closelog();
 }
 
@@ -72,11 +69,10 @@ void syslogger::close() throw () {
  *  @param[in] msg      The message to write.
  *  @param[in] size     The message's size.
  */
-void syslogger::log(
-                  unsigned long long types,
-                  unsigned int verbose,
-                  char const* msg,
-                  unsigned int size) throw () {
+void syslogger::log(uint64_t types,
+                    uint32_t verbose,
+                    char const* msg,
+                    uint32_t size) noexcept {
   (void)types;
   (void)verbose;
   (void)size;
@@ -84,7 +80,7 @@ void syslogger::log(
   misc::stringifier header;
   _build_header(header);
 
-  concurrency::locker lock(&_lock);
+  std::lock_guard<std::mutex> lock(_lock);
   syslog(LOG_ERR, "%s%s", header.data(), msg);
 }
 
@@ -92,7 +88,7 @@ void syslogger::log(
  *  Open syslog.
  */
 void syslogger::open() {
-  concurrency::locker lock(&_lock);
+  std::lock_guard<std::mutex> lock(_lock);
   openlog(_id.c_str(), 0, _facility);
 }
 
@@ -100,7 +96,7 @@ void syslogger::open() {
  *  Close and open syslog.
  */
 void syslogger::reopen() {
-  concurrency::locker lock(&_lock);
+  std::lock_guard<std::mutex> lock(_lock);
   closelog();
   openlog(_id.c_str(), 0, _facility);
 }

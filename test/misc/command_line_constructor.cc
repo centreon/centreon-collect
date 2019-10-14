@@ -31,9 +31,9 @@ int main() {
   try {
     command_line cmd;
     if (cmd.get_argc())
-      throw (basic_error() << "invalid argc value");
+      throw(basic_error() << "invalid argc value");
     if (cmd.get_argv())
-      throw (basic_error() << "invalid argv value");
+      throw(basic_error() << "invalid argv value");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

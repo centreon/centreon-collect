@@ -41,9 +41,8 @@ int main() {
 
   // Write.
   char const* data("some data");
-  if (tmp_file_stream.write(
-        data,
-        static_cast<unsigned long>(strlen(data))) == 0)
+  if (tmp_file_stream.write(data, static_cast<unsigned long>(strlen(data))) ==
+      0)
     retval = 1;
   else {
     // NULL-read.

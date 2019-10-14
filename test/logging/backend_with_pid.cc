@@ -36,7 +36,7 @@ static bool check_pid(std::string const& data, char const* msg) {
   if (data[0] != '[' || data.size() < 4)
     return (false);
   unsigned int pid_size(
-    static_cast<unsigned int>(data.size() - strlen(msg) - 1 - 3));
+      static_cast<unsigned int>(data.size() - strlen(msg) - 1 - 3));
   for (unsigned int i(1); i < pid_size; ++i)
     if (!isdigit(data[i]))
       return (false);
@@ -44,8 +44,6 @@ static bool check_pid(std::string const& data, char const* msg) {
     return (false);
   return (true);
 }
-
-
 
 /**
  *  Check add backend on to the logging engine.
@@ -60,16 +58,13 @@ int main() {
   try {
     engine& e(engine::instance());
 
-    std::unique_ptr<backend_test> obj(new backend_test(
-                                          false,
-                                          true,
-                                          none,
-                                          false));
+    std::unique_ptr<backend_test> obj(
+        new backend_test(false, true, none, false));
     e.add(obj.get(), 1, 0);
 
     e.log(1, 0, msg, sizeof(msg));
     if (!check_pid(obj->data(), msg))
-      throw (basic_error() << "log with pid failed");
+      throw(basic_error() << "log with pid failed");
     retval = 0;
   }
   catch (std::exception const& e) {

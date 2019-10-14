@@ -32,16 +32,17 @@ using namespace com::centreon;
  *  Default constructor.
  */
 library::library(std::string const& filename)
-  : _filename(filename), _handle(NULL) {}
+    : _filename(filename), _handle(NULL) {}
 
 /**
  *  Destructor.
  */
-library::~library() throw () {
+library::~library() throw() {
   try {
     unload();
   }
-  catch (...) {}
+  catch (...) {
+  }
 }
 
 /**
@@ -49,18 +50,14 @@ library::~library() throw () {
  *
  *  @return The filename.
  */
-std::string const& library::filename() const throw () {
-  return (_filename);
-}
+std::string const& library::filename() const throw() { return (_filename); }
 
 /**
  *  Check if the library has loaded.
  *
  *  @return True if the library is loaded, otherwise false.
  */
-bool library::is_loaded() const throw () {
-  return (_handle);
-}
+bool library::is_loaded() const throw() { return (_handle); }
 
 /**
  *  Load the library.
@@ -70,7 +67,7 @@ void library::load() {
     return;
   if (!(_handle = LoadLibrary(_filename.c_str()))) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "load library failed: error " << errcode);
+    throw(basic_error() << "load library failed: error " << errcode);
   }
 }
 
@@ -83,13 +80,13 @@ void library::load() {
  */
 void* library::resolve(char const* symbol) {
   if (!_handle)
-    throw (basic_error() << "resolve symbol failed: "
-           "library not loaded");
+    throw(basic_error() << "resolve symbol failed: "
+                           "library not loaded");
   void* sym(GetProcAddress(_handle, symbol));
   if (!sym) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "resolve symbol failed: "
-           "error " << errcode);
+    throw(basic_error() << "resolve symbol failed: "
+                           "error " << errcode);
   }
   return (sym);
 }
@@ -110,7 +107,7 @@ void* library::resolve(std::string const& symbol) {
  *
  *  @return Symbol address.
  */
-void (* library::resolve_proc(char const* symbol))() {
+void (*library::resolve_proc(char const* symbol))() {
   return ((void (*)())resolve(symbol));
 }
 
@@ -119,7 +116,7 @@ void (* library::resolve_proc(char const* symbol))() {
  *
  *  @see resolve_proc
  */
-void (* library::resolve_proc(std::string const& symbol))() {
+void (*library::resolve_proc(std::string const& symbol))() {
   return (resolve_proc(symbol.c_str()));
 }
 
@@ -131,7 +128,7 @@ void library::unload() {
     return;
   if (!FreeLibrary(_handle)) {
     DWORD errcode(GetLastError());
-    throw (basic_error() << "unload library failed: error " << errcode);
+    throw(basic_error() << "unload library failed: error " << errcode);
   }
   _handle = NULL;
 }

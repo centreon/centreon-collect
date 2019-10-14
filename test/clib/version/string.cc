@@ -30,21 +30,18 @@ using namespace com::centreon::clib;
  */
 int main() {
   // Check.
-  int retval(strcmp(version::get_string(), version::string)
-             || strcmp(version::string, CENTREON_CLIB_VERSION_STRING));
+  int retval(strcmp(version::get_string(), version::string) ||
+             strcmp(version::string, CENTREON_CLIB_VERSION_STRING));
 
   // Message.
   if (retval)
-    std::cout << "Version string mismatch" << std::endl
-              << "  library returned "
-              << version::get_string() << std::endl
-              << "  header returned  "
-              << version::string << std::endl
-              << "  macro returned   "
+    std::cout << "Version string mismatch" << std::endl << "  library returned "
+              << version::get_string() << std::endl << "  header returned  "
+              << version::string << std::endl << "  macro returned   "
               << CENTREON_CLIB_VERSION_STRING << std::endl;
   else
-    std::cout << "Version string is consistent (" << version::string
-              << ")" << std::endl;
+    std::cout << "Version string is consistent (" << version::string << ")"
+              << std::endl;
 
   // Return check result.
   return (retval);

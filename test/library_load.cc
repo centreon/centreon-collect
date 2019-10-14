@@ -29,17 +29,17 @@ void load_library_success() {
   // create library object.
   library lib("./libshared_testing_library.so");
   if (lib.is_loaded())
-    throw (basic_error() << "constructor failed");
+    throw(basic_error() << "constructor failed");
 
   // load library.
   lib.load();
   if (!lib.is_loaded())
-    throw (basic_error() << "load failed");
+    throw(basic_error() << "load failed");
 
   // unload library.
   lib.unload();
   if (lib.is_loaded())
-    throw (basic_error() << "unload failed");
+    throw(basic_error() << "unload failed");
 }
 
 /**
@@ -50,7 +50,7 @@ void load_library_failed() {
     // create library object.
     library lib("libnot_found.so");
     lib.load();
-    throw (basic_error() << "load failed: lib dosn't exist");
+    throw(basic_error() << "load failed: lib dosn't exist");
   }
   catch (std::exception const& e) {
     (void)e;

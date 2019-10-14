@@ -34,14 +34,13 @@ int main() {
     {
       io::directory_entry entry(NULL);
       if (!entry.entry().path().empty())
-        throw (basic_error()
-               << "invalid constructor: path is not empty");
+        throw(basic_error() << "invalid constructor: path is not empty");
     }
 
     {
       io::directory_entry entry(".");
       if (entry.entry().path().empty())
-        throw (basic_error() << "invalid constructor: path is empty");
+        throw(basic_error() << "invalid constructor: path is empty");
     }
 
     ret = EXIT_SUCCESS;

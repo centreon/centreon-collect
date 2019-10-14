@@ -31,17 +31,17 @@ using namespace com::centreon::misc;
  */
 static void check_argument(argument const& a1, argument const& a2) {
   if (a1.get_long_name() != a2.get_long_name())
-    throw (basic_error() << "invalid long name");
+    throw(basic_error() << "invalid long name");
   if (a1.get_description() != a2.get_description())
-    throw (basic_error() << "invalid description");
+    throw(basic_error() << "invalid description");
   if (a1.get_name() != a2.get_name())
-    throw (basic_error() << "invalid name");
+    throw(basic_error() << "invalid name");
   if (a1.get_has_value() != a2.get_has_value())
-    throw (basic_error() << "invalid has value");
+    throw(basic_error() << "invalid has value");
   if (a1.get_is_set() != a2.get_is_set())
-    throw (basic_error() << "invalid is set");
+    throw(basic_error() << "invalid is set");
   if (a1.get_value() != a2.get_value())
-    throw (basic_error() << "invalid value");
+    throw(basic_error() << "invalid value");
 }
 
 /**
@@ -51,12 +51,8 @@ static void check_argument(argument const& a1, argument const& a2) {
  */
 int main() {
   try {
-    argument ref("help",
-                 'c',
-                 "this help",
-                 true,
-                 true,
-                 "help:\n --help, -h  this help");
+    argument ref(
+        "help", 'c', "this help", true, true, "help:\n --help, -h  this help");
 
     argument arg1(ref);
     check_argument(ref, arg1);

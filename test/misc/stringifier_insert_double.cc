@@ -36,11 +36,9 @@ static bool check_double(double d) {
   buffer << d;
   char* ptr(NULL);
   double converted(strtod(buffer.data(), &ptr));
-  return (ptr
-          && !*ptr
-          && (fabs(d - converted)
-              // Roughly 0.1% error margin.
-              <= (fabs(d / 1000) + 2 * DBL_EPSILON)));
+  return (ptr && !*ptr && (fabs(d - converted)
+                           // Roughly 0.1% error margin.
+                           <= (fabs(d / 1000) + 2 * DBL_EPSILON)));
 }
 
 /**
@@ -49,9 +47,7 @@ static bool check_double(double d) {
  *  @return 0 on success.
  */
 int main() {
-  return (!check_double(DBL_MIN)
-          || !check_double(DBL_MAX)
-          || !check_double(0.0)
-          || !check_double(1.1)
-          || !check_double(-1.456657563));
+  return (!check_double(DBL_MIN) || !check_double(DBL_MAX) ||
+          !check_double(0.0) || !check_double(1.1) ||
+          !check_double(-1.456657563));
 }

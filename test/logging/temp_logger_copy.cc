@@ -43,7 +43,7 @@ int main() {
     tmp << "Centreon Clib test";
     temp_logger(tmp) << " copy";
     if (obj->data().find("copy") == std::string::npos)
-      throw (basic_error() << "invalid number of call log");
+      throw(basic_error() << "invalid number of call log");
     retval = 0;
   }
   catch (std::exception const& e) {

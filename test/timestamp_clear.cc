@@ -32,7 +32,7 @@ int main() {
     timestamp t(42, 24);
     t.clear();
     if (t != timestamp())
-      throw (basic_error() << "clear failed");
+      throw(basic_error() << "clear failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

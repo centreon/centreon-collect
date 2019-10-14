@@ -36,9 +36,8 @@ using namespace com::centreon;
 void handle_manager::multiplex() {
   // Check that task manager is set.
   if (!_task_manager)
-    throw (basic_error() << "cannot multiplex if handle manager " \
-           "has no task manager");
-
+    throw(basic_error() << "cannot multiplex if handle manager "
+                           "has no task manager");
 }
 
 /**************************************
@@ -54,7 +53,7 @@ void handle_manager::_setup_array() {
   // Should we reallocate the array ?
   if (_recreate_array) {
     // Remove old array.
-    delete [] _array;
+    delete[] _array;
 
     // Is there any handle ?
     if (_handles.empty())
@@ -66,12 +65,12 @@ void handle_manager::_setup_array() {
 
     // Set handles.
     unsigned int i(0);
-    for (std::map<native_handle, handle_action*>::iterator
-           it(_handles.begin()), end(_handles.end());
+    for (std::map<native_handle, handle_action*>::iterator it(_handles.begin()),
+         end(_handles.end());
          it != end;
          ++it)
       _array[i++] = it->first;
   }
 
-  return ;
+  return;
 }

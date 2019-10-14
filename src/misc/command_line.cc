@@ -32,8 +32,7 @@ using namespace com::centreon::misc;
 /**
  *  Default constructor.
  */
-command_line::command_line()
-  : _argc(0), _argv(NULL), _size(0) {}
+command_line::command_line() : _argc(0), _argv(NULL), _size(0) {}
 
 /**
  *  Parse command line.
@@ -43,7 +42,7 @@ command_line::command_line()
  *                      calculate the command line size.
  */
 command_line::command_line(char const* cmdline, unsigned int size)
-  : _argc(0), _argv(NULL), _size(0) {
+    : _argc(0), _argv(NULL), _size(0) {
   parse(cmdline, size);
 }
 
@@ -53,7 +52,7 @@ command_line::command_line(char const* cmdline, unsigned int size)
  *  @param[in] cmdline  The command line to parse.
  */
 command_line::command_line(std::string const& cmdline)
-  : _argc(0), _argv(NULL), _size(0) {
+    : _argc(0), _argv(NULL), _size(0) {
   parse(cmdline);
 }
 
@@ -62,17 +61,14 @@ command_line::command_line(std::string const& cmdline)
  *
  *  @param[in] right  The object to copy.
  */
-command_line::command_line(command_line const& right)
-  : _argv(NULL) {
+command_line::command_line(command_line const& right) : _argv(NULL) {
   _internal_copy(right);
 }
 
 /**
  *  Destructor.
  */
-command_line::~command_line() throw () {
-  _release();
-}
+command_line::~command_line() throw() { _release(); }
 
 /**
  *  Copy operator.
@@ -93,10 +89,9 @@ command_line& command_line::operator=(command_line const& right) {
  *
  *  @return True if objects are equal, otherwise false.
  */
-bool command_line::operator==(command_line const& right) const throw () {
-  return (_argc == right._argc
-          && _size == right._size
-          && !memcmp(_argv[0], right._argv[0], _size));
+bool command_line::operator==(command_line const& right) const throw() {
+  return (_argc == right._argc && _size == right._size &&
+          !memcmp(_argv[0], right._argv[0], _size));
 }
 
 /**
@@ -106,7 +101,7 @@ bool command_line::operator==(command_line const& right) const throw () {
  *
  *  @return True if objects are not equal, otherwise false.
  */
-bool command_line::operator!=(command_line const& right) const throw () {
+bool command_line::operator!=(command_line const& right) const throw() {
   return (!operator==(right));
 }
 
@@ -115,18 +110,14 @@ bool command_line::operator!=(command_line const& right) const throw () {
  *
  *  @return Size.
  */
-int command_line::get_argc() const throw () {
-  return (_argc);
-}
+int command_line::get_argc() const throw() { return (_argc); }
 
 /**
  *  Get the array of arguments.
  *
  *  @return Array arguments.
  */
-char** command_line::get_argv() const throw () {
-  return (_argv);
-}
+char** command_line::get_argv() const throw() { return (_argv); }
 
 /**
  *  Parse command line and store arguments.
@@ -162,31 +153,31 @@ void command_line::parse(char const* cmdline, unsigned int size) {
     escap = (last == '\\' ? !escap : false);
     if (escap) {
       switch (c) {
-      case 'n':
-        c = '\n';
-        break ;
-      case 'r':
-        c = '\r';
-        break ;
-      case 't':
-        c = '\t';
-        break ;
-      case 'a':
-        c = '\a';
-        break ;
-      case 'b':
-        c = '\b';
-        break ;
-      case 'v':
-        c = '\v';
-        break ;
-      case 'f':
-        c = '\f';
-        break ;
-      // default:
-      //   if (c != '"' && c != '\'')
-      //     str[_size++] = '\\';
-      //   break ;
+        case 'n':
+          c = '\n';
+          break;
+        case 'r':
+          c = '\r';
+          break;
+        case 't':
+          c = '\t';
+          break;
+        case 'a':
+          c = '\a';
+          break;
+        case 'b':
+          c = '\b';
+          break;
+        case 'v':
+          c = '\v';
+          break;
+        case 'f':
+          c = '\f';
+          break;
+          // default:
+          //   if (c != '"' && c != '\'')
+          //     str[_size++] = '\\';
+          //   break ;
       }
     }
 
@@ -214,8 +205,8 @@ void command_line::parse(char const* cmdline, unsigned int size) {
 
   // Not-terminated quote.
   if (sep) {
-    delete [] str;
-    throw (basic_error() << "missing separator '" << sep << "'");
+    delete[] str;
+    throw(basic_error() << "missing separator '" << sep << "'");
   }
 
   // Terminate string if not already done so.
@@ -226,18 +217,19 @@ void command_line::parse(char const* cmdline, unsigned int size) {
 
   // Put tokens in table.
   _size = 0;
-  _argv = new char*[_argc + 1];
+  _argv = new char* [_argc + 1];
   _argv[_argc] = NULL;
   for (int i(0); i < _argc; ++i) {
     _argv[i] = str + _size;
-    while (str[_size++]);
+    while (str[_size++])
+      ;
   }
 
   // If no token were found, avoid memory leak.
   if (!_argv[0])
-    delete [] str;
+    delete[] str;
 
-  return ;
+  return;
 }
 
 /**
@@ -266,18 +258,19 @@ void command_line::_internal_copy(command_line const& right) {
     _size = right._size;
     _release();
     if (right._argv) {
-      _argv = new char*[_argc + 1];
+      _argv = new char* [_argc + 1];
       _argv[0] = new char[_size];
       _argv[_argc] = NULL;
       memcpy(_argv[0], right._argv[0], _size);
       unsigned int pos(0);
       for (int i(0); i < _argc; ++i) {
         _argv[i] = _argv[0] + pos;
-        while (_argv[0][pos++]);
+        while (_argv[0][pos++])
+          ;
       }
     }
   }
-  return ;
+  return;
 }
 
 /**
@@ -285,8 +278,8 @@ void command_line::_internal_copy(command_line const& right) {
  */
 void command_line::_release() {
   if (_argv)
-    delete [] _argv[0];
-  delete [] _argv;
+    delete[] _argv[0];
+  delete[] _argv;
   _argv = NULL;
-  return ;
+  return;
 }

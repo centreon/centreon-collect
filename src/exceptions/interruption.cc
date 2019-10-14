@@ -32,11 +32,8 @@ interruption::interruption() {}
  *  @param[in] function  The function creating this object.
  *  @param[in] line      The line in the file creating this object.
  */
-interruption::interruption(
-                char const* file,
-                char const* function,
-                int line)
-  : basic(file, function, line) {}
+interruption::interruption(char const* file, char const* function, int line)
+    : basic(file, function, line) {}
 
 /**
  *  Copy constructor.
@@ -48,7 +45,7 @@ interruption::interruption(interruption const& other) : basic(other) {}
 /**
  *  Destructor.
  */
-interruption::~interruption() throw () {}
+interruption::~interruption() throw() {}
 
 /**
  *  Assignment operator.

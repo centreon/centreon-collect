@@ -36,7 +36,7 @@ static bool check_time(std::string const& data, char const* msg) {
   if (data[0] != '[' || data.size() < 4)
     return (false);
   unsigned int time_size(
-    static_cast<unsigned int>(data.size() - strlen(msg) - 1 - 3));
+      static_cast<unsigned int>(data.size() - strlen(msg) - 1 - 3));
   for (unsigned int i(1); i < time_size; ++i)
     if (!isdigit(data[i]))
       return (false);
@@ -58,30 +58,27 @@ int main() {
   try {
     engine& e(engine::instance());
 
-    std::unique_ptr<backend_test> obj(new backend_test(
-                                          false,
-                                          false,
-                                          none,
-                                          false));
+    std::unique_ptr<backend_test> obj(
+        new backend_test(false, false, none, false));
     e.add(obj.get(), 1, 0);
     obj->show_timestamp(second);
     e.log(1, 0, msg, sizeof(msg));
     if (!check_time(obj->data(), msg))
-      throw (basic_error() << "log with timestamp in second failed");
+      throw(basic_error() << "log with timestamp in second failed");
     obj->reset();
 
     obj->show_timestamp(millisecond);
     e.log(1, 0, msg, sizeof(msg));
     if (!check_time(obj->data(), msg))
-      throw (basic_error() << "log with timestamp in millisecond " \
-             "failed");
+      throw(basic_error() << "log with timestamp in millisecond "
+                             "failed");
     obj->reset();
 
     obj->show_timestamp(microsecond);
     e.log(1, 0, msg, sizeof(msg));
     if (!check_time(obj->data(), msg))
-      throw (basic_error() << "log with timestamp in microsecond " \
-             "failed");
+      throw(basic_error() << "log with timestamp in microsecond "
+                             "failed");
     obj->reset();
     retval = 0;
   }

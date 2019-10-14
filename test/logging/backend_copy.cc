@@ -36,10 +36,10 @@ using namespace com::centreon::logging;
  *  @return True if equal, otherwise false.
  */
 static bool is_same(backend const& b1, backend const& b2) {
-  return (b1.enable_sync() == b2.enable_sync()
-          && b1.show_pid() == b2.show_pid()
-          && b1.show_timestamp() == b2.show_timestamp()
-          && b1.show_thread_id() == b2.show_thread_id());
+  return (b1.enable_sync() == b2.enable_sync() &&
+          b1.show_pid() == b2.show_pid() &&
+          b1.show_timestamp() == b2.show_timestamp() &&
+          b1.show_thread_id() == b2.show_thread_id());
 }
 
 /**
@@ -56,11 +56,11 @@ int main() {
 
     backend_test c1(ref);
     if (!is_same(ref, c1))
-      throw (basic_error() << "invalid copy constructor");
+      throw(basic_error() << "invalid copy constructor");
 
     backend_test c2 = ref;
     if (!is_same(ref, c2))
-      throw (basic_error() << "invalid copy operator");
+      throw(basic_error() << "invalid copy operator");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

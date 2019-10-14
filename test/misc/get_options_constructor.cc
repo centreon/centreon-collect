@@ -28,22 +28,16 @@ using namespace com::centreon::misc;
  *  @brief litle implementation of get_options to test it.
  */
 class my_options : public get_options {
-public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', "", true);
-        _arguments['c'] = argument("cold", 'c', "", true);
-        _arguments['t'] = argument("test", 't', "", true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default",
-                                   'd',
-                                   "",
-                                   true,
-                                   true,
-                                   "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
+ public:
+  my_options(std::vector<std::string> const& args) : get_options() {
+    _arguments['a'] = argument("arg", 'a', "", true);
+    _arguments['c'] = argument("cold", 'c', "", true);
+    _arguments['t'] = argument("test", 't', "", true);
+    _arguments['h'] = argument("help", 'h');
+    _arguments['d'] = argument("default", 'd', "", true, true, "def");
+    _parse_arguments(args);
+  }
+  ~my_options() throw() {}
 };
 
 /**
@@ -64,9 +58,8 @@ int main() {
     args.push_back("param3");
 
     my_options opt(args);
-    if (opt.get_parameters().size() != 3
-        || opt.get_arguments().size() != 5)
-      throw (basic_error() << "constructor failed");
+    if (opt.get_parameters().size() != 3 || opt.get_arguments().size() != 5)
+      throw(basic_error() << "constructor failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

@@ -35,11 +35,8 @@ using namespace com::centreon;
  *  @param[in] hl            Listener
  *  @param[in] is_threadable Can this task be threaded ?
  */
-handle_action::handle_action(
-                 handle* h,
-                 handle_listener* hl,
-                 bool is_threadable)
-  : _action(none), _h(h), _hl(hl), _is_threadable(is_threadable) {}
+handle_action::handle_action(handle* h, handle_listener* hl, bool is_threadable)
+    : _action(none), _h(h), _hl(hl), _is_threadable(is_threadable) {}
 
 /**
  *  Copy constructor.
@@ -53,7 +50,7 @@ handle_action::handle_action(handle_action const& right) : task(right) {
 /**
  *  Destructor.
  */
-handle_action::~handle_action() throw () {}
+handle_action::~handle_action() throw() {}
 
 /**
  *  Assignment operator.
@@ -75,25 +72,21 @@ handle_action& handle_action::operator=(handle_action const& right) {
  *
  *  @return true if the task is threadable.
  */
-bool handle_action::is_threadable() const throw () {
-  return (_is_threadable);
-}
+bool handle_action::is_threadable() const throw() { return (_is_threadable); }
 
 /**
  *  Get the handle.
  *
  *  @return Handle.
  */
-handle* handle_action::get_handle() const throw () {
-  return (_h);
-}
+handle* handle_action::get_handle() const throw() { return (_h); }
 
 /**
  *  Get the listener.
  *
  *  @return Listener.
  */
-handle_listener* handle_action::get_handle_listener() const throw () {
+handle_listener* handle_action::get_handle_listener() const throw() {
   return (_hl);
 }
 
@@ -109,7 +102,7 @@ void handle_action::run() {
     _hl->read(*_h);
   else if (a == write)
     _hl->write(*_h);
-  return ;
+  return;
 }
 
 /**
@@ -117,9 +110,9 @@ void handle_action::run() {
  *
  *  @param[in] a Action to perform.
  */
-void handle_action::set_action(action a) throw () {
+void handle_action::set_action(action a) throw() {
   _action = a;
-  return ;
+  return;
 }
 
 /**************************************
@@ -138,5 +131,5 @@ void handle_action::_internal_copy(handle_action const& right) {
   _h = right._h;
   _hl = right._hl;
   _is_threadable = right._is_threadable;
-  return ;
+  return;
 }

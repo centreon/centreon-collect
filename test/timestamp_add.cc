@@ -34,22 +34,22 @@ int main() {
 
     timestamp t3(t1 + t2);
     if (t3.to_useconds() != 3000066)
-      throw (basic_error() << "operator+ failed");
+      throw(basic_error() << "operator+ failed");
 
     timestamp t4(-1, -24);
     timestamp t5(t2 + t4);
     if (t5.to_useconds() != 1000000)
-      throw (basic_error() << "operator+ failed");
+      throw(basic_error() << "operator+ failed");
 
     timestamp t6(1, 42);
     t6 += t2;
     if (t6.to_useconds() != 3000066)
-      throw (basic_error() << "operator+= failed");
+      throw(basic_error() << "operator+= failed");
 
     timestamp t7(2, 24);
     t7 += t4;
     if (t7.to_useconds() != 1000000)
-      throw (basic_error() << "operator+= failed");
+      throw(basic_error() << "operator+= failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

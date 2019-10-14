@@ -58,27 +58,27 @@ int main() {
 
     io::file_entry e1(p1);
     if (e1.base_name() != "test")
-      throw (basic_error() << "invalid base name");
+      throw(basic_error() << "invalid base name");
     if (e1.file_name() != "test.ext")
-      throw (basic_error() << "invalid file name");
+      throw(basic_error() << "invalid file name");
     if (e1.directory_name() != "/tmp")
-      throw (basic_error() << "invalid directory name");
+      throw(basic_error() << "invalid directory name");
 
     io::file_entry e2(p2);
     if (e2.base_name() != ".test")
-      throw (basic_error() << "invalid base name");
+      throw(basic_error() << "invalid base name");
     if (e2.file_name() != ".test")
-      throw (basic_error() << "invalid file name");
+      throw(basic_error() << "invalid file name");
     if (e2.directory_name() != "/tmp")
-      throw (basic_error() << "invalid directory name");
+      throw(basic_error() << "invalid directory name");
 
     io::file_entry e3(p3);
     if (e3.base_name() != "test")
-      throw (basic_error() << "invalid base name");
+      throw(basic_error() << "invalid base name");
     if (e3.file_name() != "test")
-      throw (basic_error() << "invalid file name");
+      throw(basic_error() << "invalid file name");
     if (e3.directory_name() != "/tmp")
-      throw (basic_error() << "invalid directory name");
+      throw(basic_error() << "invalid directory name");
 
     ret = EXIT_SUCCESS;
   }
