@@ -53,12 +53,12 @@ int main() {
   try {
     engine& e(engine::instance());
     if (!null_pointer())
-      throw (basic_error() << "try to add null pointer");
+      throw(basic_error() << "try to add null pointer");
 
     std::unique_ptr<backend_test> obj(new backend_test);
     unsigned long id(e.add(obj.get(), 0, 0));
     if (!id)
-      throw (basic_error() << "add backend failed, invalid id");
+      throw(basic_error() << "add backend failed, invalid id");
     retval = 0;
   }
   catch (std::exception const& e) {

@@ -33,27 +33,27 @@ int main() {
 
     timestamp t2(1, 0);
     if (!(t1 >= t2))
-      throw (basic_error() << "operator>= failed");
+      throw(basic_error() << "operator>= failed");
 
     timestamp t3(3, -1000);
     if (!(t3 >= t2))
-      throw (basic_error() << "operator>= failed");
+      throw(basic_error() << "operator>= failed");
 
     timestamp t4(1, -1);
     if (!(t2 >= t4))
-      throw (basic_error() << "operator>= failed");
+      throw(basic_error() << "operator>= failed");
 
     timestamp t5(-1, 0);
     if (!(t1 >= t5))
-      throw (basic_error() << "operator>= failed");
+      throw(basic_error() << "operator>= failed");
 
     timestamp t6(0, 1000000);
     if (!(t6 >= t2))
-      throw (basic_error() << "operator>= failed");
+      throw(basic_error() << "operator>= failed");
 
     timestamp t7(1, 0);
     if (!(t7 >= t2))
-      throw (basic_error() << "operator>= failed");
+      throw(basic_error() << "operator>= failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

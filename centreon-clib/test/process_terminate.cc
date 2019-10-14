@@ -41,7 +41,7 @@ int main() {
     p.wait();
     timestamp end(timestamp::now());
     if ((end - start).to_seconds() != 0)
-      throw (basic_error() << "terminate failed");
+      throw(basic_error() << "terminate failed");
   }
   catch (std::exception const& e) {
     ret = EXIT_FAILURE;

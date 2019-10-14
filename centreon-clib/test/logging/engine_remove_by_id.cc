@@ -38,13 +38,13 @@ int main() {
   try {
     engine& e(engine::instance());
     if (e.remove(1) || e.remove(42))
-      throw (basic_error() << "try to remove invalid id");
+      throw(basic_error() << "try to remove invalid id");
 
     std::unique_ptr<backend_test> obj(new backend_test);
     unsigned long id(e.add(obj.get(), 1, 0));
 
     if (!e.remove(id))
-      throw (basic_error() << "remove id failed");
+      throw(basic_error() << "remove id failed");
     retval = 0;
   }
   catch (std::exception const& e) {

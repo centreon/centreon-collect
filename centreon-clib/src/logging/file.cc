@@ -36,15 +36,16 @@ using namespace com::centreon::logging;
  *  @param[in] show_thread_id  Enable show thread id.
  *  @param[in] max_size        Maximum file size.
  */
-file::file(
-        FILE* file,
-        bool is_sync,
-        bool show_pid,
-        time_precision show_timestamp,
-        bool show_thread_id,
-        long long max_size)
-  : backend(is_sync, show_pid, show_timestamp, show_thread_id),
-    _max_size(max_size), _out(file), _size(0) {}
+file::file(FILE* file,
+           bool is_sync,
+           bool show_pid,
+           time_precision show_timestamp,
+           bool show_thread_id,
+           uint64_t max_size)
+    : backend(is_sync, show_pid, show_timestamp, show_thread_id),
+      _max_size(max_size),
+      _out(file),
+      _size(0) {}
 
 /**
  *  Constructor with file path name.
@@ -56,33 +57,30 @@ file::file(
  *  @param[in] show_thread_id  Enable show thread id.
  *  @param[in] max_size        Maximum file size.
  */
-file::file(
-        std::string const& path,
-        bool is_sync,
-        bool show_pid,
-        time_precision show_timestamp,
-        bool show_thread_id,
-        long long max_size)
-  : backend(is_sync, show_pid, show_timestamp, show_thread_id),
-    _max_size(max_size),
-    _path(path),
-    _out(NULL),
-    _size(0) {
+file::file(std::string const& path,
+           bool is_sync,
+           bool show_pid,
+           time_precision show_timestamp,
+           bool show_thread_id,
+           uint64_t max_size)
+    : backend(is_sync, show_pid, show_timestamp, show_thread_id),
+      _max_size(max_size),
+      _path(path),
+      _out(NULL),
+      _size(0) {
   open();
 }
 
 /**
  *  Default destructor.
  */
-file::~file() throw () {
-  close();
-}
+file::~file() noexcept { close(); }
 
 /**
  *  Close file.
  */
-void file::close() throw () {
-  concurrency::locker lock(&_lock);
+void file::close() noexcept {
+  std::lock_guard<std::mutex> lock(_lock);
 
   if (!_out || _out == stdout || _out == stderr)
     return;
@@ -99,9 +97,7 @@ void file::close() throw () {
  *
  *  @return The filename string.
  */
-std::string const& file::filename() const throw () {
-  return (_path);
-}
+std::string const& file::filename() const noexcept { return (_path); }
 
 /**
  *  Write message into the file.
@@ -112,11 +108,10 @@ std::string const& file::filename() const throw () {
  *  @param[in] msg      The message to write.
  *  @param[in] size     The message's size.
  */
-void file::log(
-             unsigned long long types,
-             unsigned int verbose,
-             char const* msg,
-             unsigned int size) throw () {
+void file::log(uint64_t types,
+               uint32_t verbose,
+               char const* msg,
+               uint32_t size) noexcept {
   (void)types;
   (void)verbose;
   (void)size;
@@ -126,8 +121,8 @@ void file::log(
 
   // Split msg by line.
   misc::stringifier buffer;
-  unsigned int i(0);
-  unsigned int last(0);
+  uint32_t i(0);
+  uint32_t last(0);
   while (msg[i]) {
     if (msg[i] == '\n') {
       buffer << header;
@@ -141,7 +136,7 @@ void file::log(
     buffer.append(msg + last, i - last) << "\n";
   }
 
-  concurrency::locker lock(&_lock);
+  std::lock_guard<std::mutex> lock(_lock);
   if (_out) {
     // Size control.
     if ((_max_size > 0) && (_size + buffer.size() > _max_size))
@@ -165,24 +160,24 @@ void file::log(
  *  Open file.
  */
 void file::open() {
-  concurrency::locker lock(&_lock);
+  std::lock_guard<std::mutex> lock(_lock);
 
   if (_out && _path.empty())
     return;
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw (basic_error() << "failed to open file '" << _path << "': "
-           << strerror(errno));
+    throw(basic_error() << "failed to open file '" << _path
+                        << "': " << strerror(errno));
   _size = ftell(_out);
 
-  return ;
+  return;
 }
 
 /**
  *  Close and open file.
  */
 void file::reopen() {
-  concurrency::locker lock(&_lock);
+  std::lock_guard<std::mutex> lock(_lock);
 
   if (!_out || _out == stdout || _out == stderr)
     return;
@@ -193,19 +188,29 @@ void file::reopen() {
   } while (ret == -1 && errno == EINTR);
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw (basic_error() << "failed to open file '" << _path << "': "
-           << strerror(errno));
+    throw(basic_error() << "failed to open file '" << _path
+                        << "': " << strerror(errno));
   _size = ftell(_out);
 
-  return ;
+  return;
 }
 
 /**
  *  Method called when max size is reached.
  */
 void file::_max_size_reached() {
-  close();
+  if (!_out || _out == stdout || _out == stderr)
+    return;
+
+  int ret;
+  do {
+    ret = fclose(_out);
+  } while (ret == -1 && errno == EINTR);
+
   remove(_path.c_str());
-  open();
-  return ;
+
+  if (!(_out = fopen(_path.c_str(), "a")))
+    throw(basic_error() << "failed to open file '" << _path
+                        << "': " << strerror(errno));
+  _size = ftell(_out);
 }

@@ -31,9 +31,7 @@ using namespace com::centreon::misc;
  *
  *  @return True on success, otherwise false.
  */
-static bool compare(
-              command_line const& cmd1,
-              command_line const& cmd2) {
+static bool compare(command_line const& cmd1, command_line const& cmd2) {
   if (cmd1.get_argc() != cmd2.get_argc())
     return (false);
   char** argv1(cmd1.get_argv());
@@ -58,11 +56,11 @@ int main() {
 
     command_line cmd1(ref);
     if (!compare(ref, cmd1))
-      throw (basic_error() << "copy constructor failed");
+      throw(basic_error() << "copy constructor failed");
 
     command_line cmd2 = ref;
     if (!compare(ref, cmd2))
-      throw (basic_error() << "copy operator failed");
+      throw(basic_error() << "copy operator failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

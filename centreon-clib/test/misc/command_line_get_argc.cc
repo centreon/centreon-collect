@@ -32,10 +32,10 @@ int main() {
     std::string cmdline(" 1 2 3 4 5 6 7 8 9 0 ");
     command_line cmd;
     if (cmd.get_argc())
-      throw (basic_error() << "invalid argc value: not null");
+      throw(basic_error() << "invalid argc value: not null");
     cmd.parse(cmdline);
     if (cmd.get_argc() != 10)
-      throw (basic_error() << "invalid argc value");
+      throw(basic_error() << "invalid argc value");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

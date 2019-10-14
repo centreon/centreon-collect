@@ -18,11 +18,11 @@
 
 #include <limits>
 #ifdef _WIN32
-#  define NOMINMAX
-#  include <windows.h>
+#define NOMINMAX
+#include <windows.h>
 #else
-#  include <sys/time.h>
-#endif // Windows or POSIX.
+#include <sys/time.h>
+#endif  // Windows or POSIX.
 #include "com/centreon/timestamp.hh"
 
 using namespace com::centreon;
@@ -39,8 +39,7 @@ using namespace com::centreon;
  *  @param[in] secs   Set the seconds.
  *  @param[in] usecs  Set the microseconds.
  */
-timestamp::timestamp(time_t secs, int usecs)
-  : _secs(0), _usecs(0) {
+timestamp::timestamp(time_t secs, int usecs) : _secs(0), _usecs(0) {
   add_seconds(secs);
   add_useconds(usecs);
 }
@@ -50,14 +49,12 @@ timestamp::timestamp(time_t secs, int usecs)
  *
  *  @param[in] right  The object to copy.
  */
-timestamp::timestamp(timestamp const& right) {
-  _internal_copy(right);
-}
+timestamp::timestamp(timestamp const& right) { _internal_copy(right); }
 
 /**
  *  Destructor.
  */
-timestamp::~timestamp() throw () {}
+timestamp::~timestamp() throw() {}
 
 /**
  *  Assignment operator.
@@ -79,7 +76,7 @@ timestamp& timestamp::operator=(timestamp const& right) {
  *
  *  @return True if equal, otherwise false.
  */
-bool timestamp::operator==(timestamp const& right) const throw () {
+bool timestamp::operator==(timestamp const& right) const throw() {
   return (_secs == right._secs && _usecs == right._usecs);
 }
 
@@ -90,7 +87,7 @@ bool timestamp::operator==(timestamp const& right) const throw () {
  *
  *  @return True if not equal, otherwise false.
  */
-bool timestamp::operator!=(timestamp const& right) const throw () {
+bool timestamp::operator!=(timestamp const& right) const throw() {
   return (!operator==(right));
 }
 
@@ -101,9 +98,9 @@ bool timestamp::operator!=(timestamp const& right) const throw () {
  *
  *  @return True if less, otherwise false.
  */
-bool timestamp::operator<(timestamp const& right) const throw () {
-  return (_secs < right._secs
-          || (_secs == right._secs && _usecs < right._usecs));
+bool timestamp::operator<(timestamp const& right) const throw() {
+  return (_secs < right._secs ||
+          (_secs == right._secs && _usecs < right._usecs));
 }
 
 /**
@@ -113,7 +110,7 @@ bool timestamp::operator<(timestamp const& right) const throw () {
  *
  *  @return True if less or equal, otherwise false.
  */
-bool timestamp::operator<=(timestamp const& right) const throw () {
+bool timestamp::operator<=(timestamp const& right) const throw() {
   return (operator<(right) || operator==(right));
 }
 
@@ -124,7 +121,7 @@ bool timestamp::operator<=(timestamp const& right) const throw () {
  *
  *  @return True if greater, otherwise false.
  */
-bool timestamp::operator>(timestamp const& right) const throw () {
+bool timestamp::operator>(timestamp const& right) const throw() {
   return (!operator<=(right));
 }
 
@@ -135,7 +132,7 @@ bool timestamp::operator>(timestamp const& right) const throw () {
  *
  *  @return True if greater or equal, otherwise false.
  */
-bool timestamp::operator>=(timestamp const& right) const throw () {
+bool timestamp::operator>=(timestamp const& right) const throw() {
   return (!operator<(right));
 }
 
@@ -198,7 +195,7 @@ timestamp& timestamp::operator-=(timestamp const& right) {
  */
 void timestamp::add_mseconds(long msecs) {
   add_useconds(msecs * 1000);
-  return ;
+  return;
 }
 
 /**
@@ -208,7 +205,7 @@ void timestamp::add_mseconds(long msecs) {
  */
 void timestamp::add_seconds(time_t secs) {
   _secs += secs;
-  return ;
+  return;
 }
 
 /**
@@ -220,22 +217,22 @@ void timestamp::add_useconds(long usecs) {
   long long us(_usecs);
   us += usecs;
   if (us < 0) {
-    _secs += (us / 1000000); // Will be negative.
+    _secs += (us / 1000000);  // Will be negative.
     us %= 1000000;
-    if (us) { // Non zero means negative value.
+    if (us) {  // Non zero means negative value.
       --_secs;
       us += 1000000;
     }
   }
   _usecs = static_cast<unsigned int>(us);
   _transfer(&_secs, &_usecs);
-  return ;
+  return;
 }
 
 /**
  *  Reset timestamp.
  */
-void timestamp::clear() throw () {
+void timestamp::clear() throw() {
   _secs = 0;
   _usecs = 0;
 }
@@ -245,7 +242,7 @@ void timestamp::clear() throw () {
  *
  *  @return Maximum time.
  */
-timestamp timestamp::max_time() throw () {
+timestamp timestamp::max_time() throw() {
   timestamp t;
   t._secs = std::numeric_limits<time_t>::max();
   t._usecs = 999999;
@@ -257,7 +254,7 @@ timestamp timestamp::max_time() throw () {
  *
  *  @return Minimum time.
  */
-timestamp timestamp::min_time() throw () {
+timestamp timestamp::min_time() throw() {
   timestamp t;
   t._secs = std::numeric_limits<time_t>::min();
   t._usecs = 0;
@@ -269,7 +266,7 @@ timestamp timestamp::min_time() throw () {
  *
  *  @return The current timestamp.
  */
-timestamp timestamp::now() throw () {
+timestamp timestamp::now() throw() {
 #ifdef _WIN32
   // Convert Epoch to FILETIME.
   SYSTEMTIME st_epoch;
@@ -296,14 +293,13 @@ timestamp timestamp::now() throw () {
   large_now.HighPart = ft_now.dwHighDateTime;
   large_now.QuadPart -= large_epoch.QuadPart;
   // Time is now expressed in units of 100ns since Unix Epoch.
-  return (timestamp(
-            large_now.QuadPart / (10 * 1000000),
-            (large_now.QuadPart % (10 * 1000000)) / 10));
+  return (timestamp(large_now.QuadPart / (10 * 1000000),
+                    (large_now.QuadPart % (10 * 1000000)) / 10));
 #else
   timeval tv;
   gettimeofday(&tv, NULL);
   return (timestamp(tv.tv_sec, tv.tv_usec));
-#endif // Windows or POSIX.
+#endif  // Windows or POSIX.
 }
 
 /**
@@ -313,7 +309,7 @@ timestamp timestamp::now() throw () {
  */
 void timestamp::sub_mseconds(long msecs) {
   add_mseconds(-msecs);
-  return ;
+  return;
 }
 
 /**
@@ -323,7 +319,7 @@ void timestamp::sub_mseconds(long msecs) {
  */
 void timestamp::sub_seconds(time_t secs) {
   add_seconds(-secs);
-  return ;
+  return;
 }
 
 /**
@@ -333,7 +329,7 @@ void timestamp::sub_seconds(time_t secs) {
  */
 void timestamp::sub_useconds(long usecs) {
   add_useconds(-usecs);
-  return ;
+  return;
 }
 
 /**
@@ -341,7 +337,7 @@ void timestamp::sub_useconds(long usecs) {
  *
  *  @return The time in milliseconds.
  */
-long long timestamp::to_mseconds() const throw () {
+long long timestamp::to_mseconds() const throw() {
   return (_secs * 1000ll + _usecs / 1000);
 }
 
@@ -350,16 +346,14 @@ long long timestamp::to_mseconds() const throw () {
  *
  *  @return The time in seconds.
  */
-time_t timestamp::to_seconds() const throw () {
-  return (_secs);
-}
+time_t timestamp::to_seconds() const throw() { return (_secs); }
 
 /**
  *  Get the time in microseconds.
  *
  *  @return The time in microseconds.
  */
-long long timestamp::to_useconds() const throw () {
+long long timestamp::to_useconds() const throw() {
   return (_secs * 1000000ll + _usecs);
 }
 
@@ -377,7 +371,7 @@ long long timestamp::to_useconds() const throw () {
 void timestamp::_internal_copy(timestamp const& right) {
   _usecs = right._usecs;
   _secs = right._secs;
-  return ;
+  return;
 }
 
 /**
@@ -391,5 +385,5 @@ void timestamp::_transfer(time_t* secs, unsigned int* usecs) {
   // Transforms unnecessary microseconds into seconds.
   *secs += (*usecs / 1000000);
   *usecs %= 1000000;
-  return ;
+  return;
 }

@@ -35,11 +35,11 @@ using namespace com::centreon;
  *  Default constructor.
  */
 process::process(process_listener* listener)
-  : _exit_code(0),
-    _is_timeout(false),
-    _listener(listener),
-    _process(NULL),
-    _timeout(0) {
+    : _exit_code(0),
+      _is_timeout(false),
+      _listener(listener),
+      _process(NULL),
+      _timeout(0) {
   memset(_enable_stream, 1, sizeof(_enable_stream));
   memset(_stream, NULL, sizeof(_stream));
 }
@@ -47,7 +47,7 @@ process::process(process_listener* listener)
 /**
  *  Destructor.
  */
-process::~process() throw () {
+process::~process() throw() {
   kill();
   wait();
 }
@@ -66,8 +66,8 @@ void process::enable_stream(stream s, bool enable) {
     else if (!enable)
       _close(_stream[s]);
     else
-      throw (basic_error() << "cannot reenable \""
-             << s << "\" while process is running");
+      throw(basic_error() << "cannot reenable \"" << s
+                          << "\" while process is running");
   }
   return;
 }
@@ -77,7 +77,7 @@ void process::enable_stream(stream s, bool enable) {
  *
  *  @return The ending timestamp.
  */
-timestamp const& process::end_time() const throw () {
+timestamp const& process::end_time() const throw() {
   concurrency::locker lock(&_lock_process);
   return (_end_time);
 }
@@ -98,8 +98,8 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
 
   // Check viability.
   if (_process)
-    throw (basic_error() << "process " << _process->dwProcessId
-           << " is already started and has not been waited");
+    throw(basic_error() << "process " << _process->dwProcessId
+                        << " is already started and has not been waited");
 
   // Reset exit code.
   _buffer_err.clear();
@@ -110,7 +110,7 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
   _start_time.clear();
   _timeout = timeout;
 
-  HANDLE child_stream[3] = { NULL, NULL, NULL };
+  HANDLE child_stream[3] = {NULL, NULL, NULL};
 
   try {
     // Create pipes if necessary.
@@ -145,20 +145,19 @@ void process::exec(char const* cmd, char** env, unsigned int timeout) {
     unsigned int size(strlen(cmd) + 1);
     unique_array_ptr<char> cmd_str(new char[size]);
     memcpy(cmd_str.get(), cmd, size);
-    if (CreateProcess(
-          NULL,
-          cmdstr.get(),
-          NULL,
-          NULL,
-          TRUE,
-          0,
-          env,
-          NULL,
-          &si,
-          _process) == FALSE) {
+    if (CreateProcess(NULL,
+                      cmdstr.get(),
+                      NULL,
+                      NULL,
+                      TRUE,
+                      0,
+                      env,
+                      NULL,
+                      &si,
+                      _process) == FALSE) {
       int errcode(GetLastError());
-      throw (basic_error() << "could not create process (error "
-             << errcode << ")");
+      throw(basic_error() << "could not create process (error " << errcode
+                          << ")");
     }
 
     _start_time = timestamp::now();
@@ -197,7 +196,7 @@ void process::exec(std::string const& cmd, unsigned int timeout) {
  *
  *  @return The exit code.
  */
-int process::exit_code() const throw () {
+int process::exit_code() const throw() {
   concurrency::locker lock(&_lock_process);
   return (_exit_code);
 }
@@ -207,7 +206,7 @@ int process::exit_code() const throw () {
  *
  *  @return The exit status.
  */
-process::status process::exit_status() const throw () {
+process::status process::exit_status() const throw() {
   concurrency::locker lock(&_lock_process);
   if (_is_timeout)
     return (timeout);
@@ -222,8 +221,9 @@ void process::kill() {
   if (_process) {
     if (!TerminateProcess(_process->hProcess, EXIT_FAILURE)) {
       int errcode(GetLastError());
-      throw (basic_error() << "could not terminate process "
-             << _process->dwProcessId << " (error " << errcode << ")");
+      throw(basic_error() << "could not terminate process "
+                          << _process->dwProcessId << " (error " << errcode
+                          << ")");
     }
   }
 }
@@ -261,7 +261,7 @@ void process::read_err(std::string& data) {
  *
  *  @return The starting timestamp.
  */
-timestamp const& process::start_time() const throw () {
+timestamp const& process::start_time() const throw() {
   concurrency::locker lock(&_lock_process);
   return (_start_time);
 }
@@ -272,9 +272,7 @@ timestamp const& process::start_time() const throw () {
 void process::terminate() {
   concurrency::locker lock(&_lock_process);
   if (_process) {
-    EnumWindows(
-      &_terminate_window,
-      static_cast<LPARAM>(_process->dwProcessId));
+    EnumWindows(&_terminate_window, static_cast<LPARAM>(_process->dwProcessId));
     PostThreadMessage(_process->dwThreadId, WM_CLOSE, 0, 0);
   }
   return;
@@ -328,20 +326,20 @@ unsigned int process::write(void const* data, unsigned int size) {
   concurrency::locker lock(&_lock_process);
   // Check viability.
   if (!_process)
-    throw (basic_error() << "could not write on " \
-           "process' input: process is not running");
+    throw(basic_error() << "could not write on "
+                           "process' input: process is not running");
   if (!_stream[in])
-    throw (basic_error() << "could not write on process "
-           << _process->dwProcessId << "'s input: not connected");
+    throw(basic_error() << "could not write on process "
+                        << _process->dwProcessId << "'s input: not connected");
 
   // Write data.
   DWORD wb;
   bool success(WriteFile(_stream[in], data, size, &wb, NULL) != 0);
   if (!success) {
     int errcode(GetLastError());
-    throw (basic_error() << "could not write on process "
-           << _process->dwProcessId << "'s input (error "
-           << errcode << ")");
+    throw(basic_error() << "could not write on process "
+                        << _process->dwProcessId << "'s input (error "
+                        << errcode << ")");
   }
   return (wb);
 }
@@ -357,7 +355,7 @@ unsigned int process::write(void const* data, unsigned int size) {
  *
  *  @param[in, out] fd The file descriptor to close.
  */
-void process::_close(HANDLE& fd) throw () {
+void process::_close(HANDLE& fd) throw() {
   if (!fd) {
     CloseHandle(fd);
     fd = NULL;
@@ -370,11 +368,8 @@ void process::_close(HANDLE& fd) throw () {
  *
  *  @return True is process run, otherwise false.
  */
-bool process::_is_running() const throw () {
-  return (_process
-          || _stream[in]
-          || _stream[out]
-          || _stream[err]);
+bool process::_is_running() const throw() {
+  return (_process || _stream[in] || _stream[out] || _stream[err]);
 }
 
 /**
@@ -386,8 +381,7 @@ bool process::_is_running() const throw () {
 void process::_pipe(HANDLE* rh, HANDLE* wh) {
   if (!CreatePipe(rh, wh, NULL, 0)) {
     int errcode(GetLastError());
-    throw (basic_error() << "pipe creation failed (error "
-           << errcode << ")");
+    throw(basic_error() << "pipe creation failed (error " << errcode << ")");
   }
   return;
 }
@@ -403,13 +397,13 @@ void process::_pipe(HANDLE* rh, HANDLE* wh) {
  */
 unsigned int process::_read(HANDLE h, void* data, unsigned int size) {
   if (!h)
-    throw (basic_error() << "attempt to read from NULL handle");
+    throw(basic_error() << "attempt to read from NULL handle");
   DWORD rb;
   bool success(ReadFile(h, data, size, &rb, NULL) != 0);
   if (!success) {
     int errcode(GetLastError());
-    throw (basic_error() << "could not read from process (error "
-           << errcode << ")");
+    throw(basic_error() << "could not read from process (error " << errcode
+                        << ")");
   }
   return (rb);
 }
@@ -439,13 +433,13 @@ BOOL process::_terminate_window(HWND hwnd, LPARAM proc_id) {
  */
 bool process::_wait(DWORD timeout) {
   if (!_process)
-    throw (basic_error() << "could not wait on non-running process");
+    throw(basic_error() << "could not wait on non-running process");
   DWORD ret(WaitForSingleObject(_process->hProcess, timeout));
   bool success(ret == WAIT_OBJECT_0);
   if (!success && (ret != WAIT_TIMEOUT)) {
     int errcode(GetLastError());
-    throw (basic_error() << "could not wait process "
-           << _process->dwProcessId << " (error " << errcode << ")");
+    throw(basic_error() << "could not wait process " << _process->dwProcessId
+                        << " (error " << errcode << ")");
   }
   if (success) {
     _exit_code = EXIT_FAILURE;

@@ -33,22 +33,16 @@ int main() {
   try {
     {
       io::directory_entry entry(".");
-      std::list<io::file_entry>
-        lst_all(entry.entry_list());
-      std::list<io::file_entry>
-        lst_point(entry.entry_list(".*"));
-      std::list<io::file_entry>
-        lst_de(entry.entry_list("io_directory_entry*"));
+      std::list<io::file_entry> lst_all(entry.entry_list());
+      std::list<io::file_entry> lst_point(entry.entry_list(".*"));
+      std::list<io::file_entry> lst_de(entry.entry_list("io_directory_entry*"));
 
       if (lst_all.size() < lst_point.size() + lst_de.size())
-        throw (basic_error()
-               << "invalid result size: list all");
+        throw(basic_error() << "invalid result size: list all");
       if (lst_point.size() < 2)
-        throw (basic_error()
-               << "invalid result size: list point");
+        throw(basic_error() << "invalid result size: list point");
       if (lst_de.size() < 2)
-        throw (basic_error()
-               << "invalid result size: list directory entry");
+        throw(basic_error() << "invalid result size: list directory entry");
     }
 
     ret = EXIT_SUCCESS;

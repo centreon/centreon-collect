@@ -34,7 +34,7 @@ int main() {
     argument arg;
     arg.set_long_name(long_name);
     if (arg.get_long_name() != long_name)
-      throw (basic_error() << "invalid long name");
+      throw(basic_error() << "invalid long name");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

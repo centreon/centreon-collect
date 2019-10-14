@@ -17,29 +17,32 @@
 */
 
 #ifndef CC_TEST_CONCURRENCY_THREAD_TEST_HH
-#  define CC_TEST_CONCURRENCY_THREAD_TEST_HH
+#define CC_TEST_CONCURRENCY_THREAD_TEST_HH
 
-#  include "com/centreon/concurrency/locker.hh"
+#include "com/centreon/concurrency/locker.hh"
 
 CC_BEGIN()
 
 namespace concurrency {
-  /**
-   *  @class thread_test
-   *  @brief litle implementation of thread to test concurrency thread.
-   */
-  class   thread_test : public thread {
-  public:
-          thread_test() : _quit(false) {}
-          ~thread_test() throw () {}
-    void  quit() { _quit = true; }
+/**
+ *  @class thread_test
+ *  @brief litle implementation of thread to test concurrency thread.
+ */
+class thread_test : public thread {
+ public:
+  thread_test() : _quit(false) {}
+  ~thread_test() throw() {}
+  void quit() { _quit = true; }
 
-  private:
-    void  _run() { while (!_quit) yield(); }
-    bool  _quit;
-  };
+ private:
+  void _run() {
+    while (!_quit)
+      yield();
+  }
+  bool _quit;
+};
 }
 
 CC_END()
 
-#endif // !CC_TEST_CONCURRENCY_THREAD_TEST_HH
+#endif  // !CC_TEST_CONCURRENCY_THREAD_TEST_HH

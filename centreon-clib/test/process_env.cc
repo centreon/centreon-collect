@@ -34,18 +34,15 @@ int main() {
   clib::load();
   try {
     process p;
-    char* env[] = {
-      (char*)"key1=value1",
-      (char*)"key2=value2",
-      (char*)"key3=value3",
-      NULL
-    };
-    p.exec("./bin_test_process_output check_env "
-           "key1=value1 key2=value2 key3=value3",
-           env);
+    char* env[] = {(char*)"key1=value1", (char*)"key2=value2",
+                   (char*)"key3=value3", NULL};
+    p.exec(
+        "./bin_test_process_output check_env "
+        "key1=value1 key2=value2 key3=value3",
+        env);
     p.wait();
-    if (p.exit_code()!= EXIT_SUCCESS)
-      throw (basic_error() << "check environment failed");
+    if (p.exit_code() != EXIT_SUCCESS)
+      throw(basic_error() << "check environment failed");
   }
   catch (std::exception const& e) {
     ret = EXIT_FAILURE;

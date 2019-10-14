@@ -19,8 +19,6 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
@@ -33,13 +31,13 @@ using namespace com::centreon::logging;
  *  @class writter
  *  @brief little implementation of thread to test logging engine.
  */
-class                writter : public thread {
-public:
-                     writter(unsigned int nb_write)
-                       : _nb_write(nb_write) {}
-                     ~writter() throw () {}
-private:
-  void               _run() {
+class writter : public thread {
+ public:
+  writter(unsigned int nb_write) : _nb_write(nb_write) {}
+  ~writter() throw() {}
+
+ private:
+  void _run() {
     engine& e(engine::instance());
     for (unsigned int i(0); i < _nb_write; ++i) {
       std::ostringstream oss;
@@ -47,7 +45,7 @@ private:
       e.log(1, 0, oss.str().c_str(), oss.str().size());
     }
   }
-  unsigned int       _nb_write;
+  unsigned int _nb_write;
 };
 
 /**
@@ -80,9 +78,9 @@ int main() {
     for (unsigned int i(0); i < nb_writter; ++i) {
       for (unsigned int j(0); j < nb_writter; ++j) {
         std::ostringstream oss;
-        oss <<&threads[i] << ":" << j << "\n";
+        oss << &threads[i] << ":" << j << "\n";
         if (!obj->data().find(oss.str()))
-          throw (basic_error() << "pattern not found");
+          throw(basic_error() << "pattern not found");
       }
       delete threads[i];
     }

@@ -31,36 +31,6 @@ add_subdirectory("misc")
 set(TEST_NAME "bin_test_process_output")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 
-# handle_manager_add
-set(TEST_NAME "handle_manager_add")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_constructor
-set(TEST_NAME "handle_manager_constructor")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_remove_by_handle
-set(TEST_NAME "handle_manager_remove_by_handle")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_remove_by_handle_listener
-set(TEST_NAME "handle_manager_remove_by_handle_listener")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_multiplex
-set(TEST_NAME "handle_manager_multiplex")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # library_resolve
 set(TEST_NAME "library_resolve")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
@@ -116,54 +86,6 @@ add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # process_wait_timeout
 set(TEST_NAME "process_wait_timeout")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_add
-set(TEST_NAME "task_manager_add")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_add_recurring
-set(TEST_NAME "task_manager_add_recurring")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_remove_by_task
-set(TEST_NAME "task_manager_remove_by_task")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_remove_by_id
-set(TEST_NAME "task_manager_remove_by_id")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_remove_self
-set(TEST_NAME "task_manager_remove_self")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_next_execution_time
-set(TEST_NAME "task_manager_next_execution_time")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_execute
-set(TEST_NAME "task_manager_execute")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# task_manager_execute_recurring
-set(TEST_NAME "task_manager_execute_recurring")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")

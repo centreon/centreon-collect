@@ -35,6 +35,5 @@ int main() {
 
   std::ostringstream oss;
   oss << "[" << __FILE__ << ":" << line << "(" << FUNCTION << ")] ";
-  return (strcmp(ex1.what(), "")
-          || strcmp(ex2.what(), oss.str().c_str()));
+  return (strcmp(ex1.what(), "") || strcmp(ex2.what(), oss.str().c_str()));
 }

@@ -31,9 +31,8 @@ using namespace com::centreon::misc;
  *
  *  @return True on success, otherwise false.
  */
-static bool check(
-              std::string const& cmdline,
-              std::vector<std::string> const& res) {
+static bool check(std::string const& cmdline,
+                  std::vector<std::string> const& res) {
   try {
     command_line cmd;
     cmd.parse(cmdline);
@@ -79,8 +78,8 @@ int main() {
   int ret(0);
   try {
     if (!check_invalid_cmdline())
-      throw (basic_error()
-             << "parsing error: try to parse invalid command line");
+      throw(
+          basic_error() << "parsing error: try to parse invalid command line");
 
     {
       std::string cmdline("\\ echo -n \"test\"");
@@ -89,7 +88,7 @@ int main() {
       res.push_back("-n");
       res.push_back("test");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -100,21 +99,21 @@ int main() {
       res.push_back("");
       res.push_back("|");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
       std::string cmdline("");
       std::vector<std::string> res;
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
       std::string cmdline("        \t\t\t\t\t       ");
       std::vector<std::string> res;
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -126,7 +125,7 @@ int main() {
       res.push_back("dd");
       res.push_back("ee");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -138,7 +137,7 @@ int main() {
       res.push_back("dd");
       res.push_back("ee");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -147,7 +146,7 @@ int main() {
       res.push_back("aa bbb   cc");
       res.push_back("dddd");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -156,7 +155,7 @@ int main() {
       res.push_back(" aa bbb   cc ");
       res.push_back("dddd");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -164,7 +163,7 @@ int main() {
       std::vector<std::string> res;
       res.push_back(" \" aa bbb bbb  cc ");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -173,7 +172,7 @@ int main() {
       res.push_back(" '\n aaa 42 ' ");
       res.push_back("4242");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -181,7 +180,7 @@ int main() {
       std::vector<std::string> res;
       res.push_back("\\ 1 2 ");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -192,7 +191,7 @@ int main() {
       res.push_back("2");
       res.push_back("\"");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -202,7 +201,7 @@ int main() {
       res.push_back(" 12 12 12 ");
       res.push_back("99 9 9");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
 
     {
@@ -210,7 +209,7 @@ int main() {
       std::vector<std::string> res;
       res.push_back("./-*1");
       if (!check(cmdline, res))
-        throw (basic_error() << "parsing error: " << cmdline);
+        throw(basic_error() << "parsing error: " << cmdline);
     }
   }
   catch (std::exception const& e) {

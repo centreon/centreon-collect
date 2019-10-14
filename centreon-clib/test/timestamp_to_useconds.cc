@@ -31,23 +31,23 @@ int main() {
   try {
     timestamp t1(1, 42);
     if (t1.to_useconds() != 1000042)
-      throw (basic_error() << "to_usecond failed");
+      throw(basic_error() << "to_usecond failed");
 
     timestamp t2(-1, 0);
     if (t2.to_useconds() != -1000000)
-      throw (basic_error() << "to_usecond failed");
+      throw(basic_error() << "to_usecond failed");
 
     timestamp t3(0, -42);
     if (t3.to_useconds() != -42)
-      throw (basic_error() << "to_usecond failed");
+      throw(basic_error() << "to_usecond failed");
 
     timestamp t4(-1, -42);
     if (t4.to_useconds() != -1000042)
-      throw (basic_error() << "to_usecond failed");
+      throw(basic_error() << "to_usecond failed");
 
     timestamp t5(1, -42);
     if (t5.to_useconds() != 999958)
-      throw (basic_error() << "to_usecond failed");
+      throw(basic_error() << "to_usecond failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

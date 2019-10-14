@@ -26,29 +26,22 @@ using namespace com::centreon::logging;
  *  @param[in] type     Logging types.
  *  @param[in] verbose  Verbosity level.
  */
-temp_logger::temp_logger(
-               unsigned long long type,
-               unsigned int verbose) throw ()
-  : _engine(engine::instance()),
-    _type(type),
-    _verbose(verbose) {
-
-}
+temp_logger::temp_logger(unsigned long long type, unsigned int verbose) throw()
+    : _engine(engine::instance()), _type(type), _verbose(verbose) {}
 
 /**
  *  Default copy constrcutor.
  *
  *  @param[in] right  The object to copy.
  */
-temp_logger::temp_logger(temp_logger const& right)
-  : _engine(right._engine) {
+temp_logger::temp_logger(temp_logger const& right) : _engine(right._engine) {
   _internal_copy(right);
 }
 
 /**
  *  Default destructor.
  */
-temp_logger::~temp_logger() throw () {
+temp_logger::~temp_logger() throw() {
   _engine.log(_type, _verbose, _buffer.data(), _buffer.size());
 }
 
@@ -70,7 +63,7 @@ temp_logger& temp_logger::operator=(temp_logger const& right) {
  *
  *  @return This object.
  */
-temp_logger& temp_logger::operator<<(setprecision const& obj) throw () {
+temp_logger& temp_logger::operator<<(setprecision const& obj) throw() {
   _buffer.precision(obj.precision);
   return (*this);
 }

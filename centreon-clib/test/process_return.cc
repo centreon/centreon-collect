@@ -37,7 +37,7 @@ int main() {
     p.exec("./bin_test_process_output check_return 42");
     p.wait();
     if (p.exit_code() != 42)
-      throw (basic_error() << "invalid return");
+      throw(basic_error() << "invalid return");
   }
   catch (std::exception const& e) {
     ret = EXIT_FAILURE;

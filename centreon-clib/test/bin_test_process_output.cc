@@ -21,10 +21,10 @@
 #include <exception>
 #include <iostream>
 #ifdef _WIN32
-#  include <windows.h>
+#include <windows.h>
 #else
-#  include <unistd.h>
-#endif // Win32 or POSIX
+#include <unistd.h>
+#endif  // Win32 or POSIX
 
 /**
  *  Find line into the environement.
@@ -80,12 +80,10 @@ static int check_output(char const* type) {
  *  @param[in] appname The application name.
  */
 static void usage(char const* appname) {
-  std::cerr
-    << "usage: " << appname << std::endl
-    << "  check_env key1=value1 keyx=valuex..." << std::endl
-    << "  check_output err|out" << std::endl
-    << "  check_return value" << std::endl
-    << "  check_sleep value" << std::endl;
+  std::cerr << "usage: " << appname << std::endl
+            << "  check_env key1=value1 keyx=valuex..." << std::endl
+            << "  check_output err|out" << std::endl << "  check_return value"
+            << std::endl << "  check_sleep value" << std::endl;
   exit(EXIT_FAILURE);
 }
 
@@ -108,7 +106,7 @@ int main(int argc, char** argv, char** env) {
           Sleep(timeout * 1000);
 #else
           sleep(timeout);
-#endif // Win32 or POSIX
+#endif  // Win32 or POSIX
           return (timeout);
         }
       }

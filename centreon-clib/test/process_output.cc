@@ -35,8 +35,7 @@ int main(int argc, char** argv) {
   int ret(EXIT_SUCCESS);
   clib::load();
   try {
-    if (argc != 2
-        || (strcmp(argv[1], "err") && strcmp(argv[1], "out"))) {
+    if (argc != 2 || (strcmp(argv[1], "err") && strcmp(argv[1], "out"))) {
       std::cerr << "usage: " << argv[0] << " err|out" << std::endl;
       return (EXIT_FAILURE);
     }
@@ -54,9 +53,8 @@ int main(int argc, char** argv) {
     unsigned int total_write(0);
     do {
       if (total_write < sizeof(buffer_write))
-        total_write += p.write(
-                         buffer_write,
-                         sizeof(buffer_write) - total_write);
+        total_write +=
+            p.write(buffer_write, sizeof(buffer_write) - total_write);
       if (!strcmp(argv[1], "out"))
         p.read(buffer_read);
       else
@@ -66,11 +64,11 @@ int main(int argc, char** argv) {
     p.enable_stream(process::in, false);
     p.wait();
     if (p.exit_code() != EXIT_SUCCESS)
-      throw (basic_error() << "invalid return");
+      throw(basic_error() << "invalid return");
     if (total_write != sizeof(buffer_write))
-      throw (basic_error() << "invalid data wirte");
+      throw(basic_error() << "invalid data wirte");
     if (total_write != total_read)
-      throw (basic_error() << "invalid data read");
+      throw(basic_error() << "invalid data read");
   }
   catch (std::exception const& e) {
     ret = EXIT_FAILURE;

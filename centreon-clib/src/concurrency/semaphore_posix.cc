@@ -41,16 +41,14 @@ using namespace com::centreon::concurrency;
 semaphore::semaphore(unsigned int n) {
   if (sem_init(&_sem, 0, n)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "unable to create semaphore: " << msg);
+    throw(basic_error() << "unable to create semaphore: " << msg);
   }
 }
 
 /**
  *  Destructor.
  */
-semaphore::~semaphore() throw () {
-  sem_destroy(&_sem);
-}
+semaphore::~semaphore() throw() { sem_destroy(&_sem); }
 
 /**
  *  Acquire one ressource. If the semaphore's value is greater than zero
@@ -60,11 +58,10 @@ semaphore::~semaphore() throw () {
 void semaphore::acquire() {
   if (sem_wait(&_sem)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "unable to acquire semaphore: " << msg);
+    throw(basic_error() << "unable to acquire semaphore: " << msg);
   }
-  return ;
+  return;
 }
-
 
 /**
  *  This is an overload of acquire().
@@ -82,8 +79,7 @@ bool semaphore::acquire(unsigned long timeout) {
   timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "unable to get time within semaphore: "
-           << msg);
+    throw(basic_error() << "unable to get time within semaphore: " << msg);
   }
 
   // Add the timeout.
@@ -99,7 +95,7 @@ bool semaphore::acquire(unsigned long timeout) {
   bool failed(sem_timedwait(&_sem, &ts));
   if (failed && (errno != ETIMEDOUT)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "unable to acquire semaphore: " << msg);
+    throw(basic_error() << "unable to acquire semaphore: " << msg);
   }
   return (!failed);
 #else
@@ -122,16 +118,15 @@ bool semaphore::acquire(unsigned long timeout) {
 
   // Wait to acquire ressource.
   bool locked(try_acquire());
-  while (!locked
-         && ((now.tv_sec * 1000000ull + now.tv_usec)
-             < (limit.tv_sec * 1000000ull + limit.tv_usec))) {
+  while (!locked && ((now.tv_sec * 1000000ull + now.tv_usec) <
+                     (limit.tv_sec * 1000000ull + limit.tv_usec))) {
     usleep(100);
     locked = try_acquire();
     gettimeofday(&now, NULL);
   }
 
   return (locked);
-#endif // SUSv3, Timeouts option.
+#endif  // SUSv3, Timeouts option.
 }
 
 /**
@@ -139,13 +134,12 @@ bool semaphore::acquire(unsigned long timeout) {
  *
  *  @return The number of available ressources.
  */
-int  semaphore::available() {
+int semaphore::available() {
   int sval(0);
   if (sem_getvalue(&_sem, &sval)) {
     char const* msg(strerror(errno));
-    throw (basic_error()
-           << "unable to get semaphore's ressource count: "
-           << msg);
+    throw(
+        basic_error() << "unable to get semaphore's ressource count: " << msg);
   }
   return (sval);
 }
@@ -156,9 +150,9 @@ int  semaphore::available() {
 void semaphore::release() {
   if (sem_post(&_sem)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "unable to release semaphore: " << msg);
+    throw(basic_error() << "unable to release semaphore: " << msg);
   }
-  return ;
+  return;
 }
 
 /**
@@ -170,7 +164,7 @@ bool semaphore::try_acquire() {
   bool failed(sem_trywait(&_sem));
   if (failed && (errno != EAGAIN)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "unable to acquire semaphore: " << msg);
+    throw(basic_error() << "unable to acquire semaphore: " << msg);
   }
   return (!failed);
 }

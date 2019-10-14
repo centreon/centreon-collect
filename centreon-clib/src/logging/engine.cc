@@ -20,12 +20,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
-#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/logging/engine.hh"
 
-using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
 
 // Class instance.
@@ -40,16 +38,15 @@ engine* engine::_instance = NULL;
  *
  *  @return The id of backend into the logging engine.
  */
-unsigned long engine::add(
-                        backend* obj,
-                        unsigned long long types,
-                        unsigned int verbose) {
+unsigned long engine::add(backend* obj,
+                          unsigned long long types,
+                          unsigned int verbose) {
   if (!obj)
-    throw (basic_error() << "add backend on the logging engine "
-           "failed: bad argument (null pointer)");
+    throw(basic_error() << "add backend on the logging engine "
+                           "failed: bad argument (null pointer)");
   if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-    throw (basic_error() << "add backend on the logging engine "
-           "failed: invalid verbose");
+    throw(basic_error() << "add backend on the logging engine "
+                           "failed: invalid verbose");
 
   std::unique_ptr<backend_info> info(new backend_info);
   info->obj = obj;
@@ -57,7 +54,7 @@ unsigned long engine::add(
   info->verbose = verbose;
 
   // Lock engine.
-  locker lock(&_mtx);
+  std::lock_guard<std::mutex> lock(_mtx);
   info->id = ++_id;
   for (unsigned int i(0); i <= verbose; ++i)
     _list_types[i] |= types;
@@ -83,18 +80,17 @@ void engine::load() {
  *  @param[in] msg      The string to log.
  *  @param[in] size     The string size to log.
  */
-void engine::log(
-               unsigned long long types,
-               unsigned int verbose,
-               char const* msg,
-               unsigned int size) {
+void engine::log(unsigned long long types,
+                 unsigned int verbose,
+                 char const* msg,
+                 unsigned int size) {
   if (!msg)
     return;
 
   // Lock engine.
-  locker lock(&_mtx);
-  for (std::vector<backend_info*>::const_iterator
-         it(_backends.begin()), end(_backends.end());
+  std::lock_guard<std::mutex> lock(_mtx);
+  for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
+       end(_backends.end());
        it != end;
        ++it)
     if (((*it)->types & types) && (*it)->verbose >= verbose)
@@ -110,9 +106,9 @@ void engine::log(
  */
 bool engine::remove(unsigned long id) {
   // Lock engine.
-  locker lock(&_mtx);
-  for (std::vector<backend_info*>::iterator
-         it(_backends.begin()), end(_backends.end());
+  std::lock_guard<std::mutex> lock(_mtx);
+  for (std::vector<backend_info*>::iterator it(_backends.begin()),
+       end(_backends.end());
        it != end;
        ++it)
     if ((*it)->id == id) {
@@ -133,11 +129,11 @@ bool engine::remove(unsigned long id) {
  */
 unsigned int engine::remove(backend* obj) {
   if (!obj)
-    throw (basic_error() << "remove backend on the logging engine "
-           "failed:bad argument (null pointer)");
+    throw(basic_error() << "remove backend on the logging engine "
+                           "failed:bad argument (null pointer)");
 
   // Lock engine.
-  locker lock(&_mtx);
+  std::lock_guard<std::mutex> lock(_mtx);
   std::vector<backend_info*>::iterator it(_backends.begin());
   unsigned int count_remove(0);
   while (it != _backends.end()) {
@@ -158,9 +154,9 @@ unsigned int engine::remove(backend* obj) {
  *  Close and open all backend.
  */
 void engine::reopen() {
-  locker lock(&_mtx);
-  for (std::vector<backend_info*>::const_iterator
-         it(_backends.begin()), end(_backends.end());
+  std::lock_guard<std::mutex> lock(_mtx);
+  for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
+       end(_backends.end());
        it != end;
        ++it)
     (*it)->obj->reopen();
@@ -178,17 +174,14 @@ void engine::unload() {
 /**
  *  Default constructor.
  */
-engine::engine()
-  : _id(0) {
-  memset(_list_types, 0, sizeof(_list_types));
-}
+engine::engine() : _id(0) { memset(_list_types, 0, sizeof(_list_types)); }
 
 /**
  *  Destructor.
  */
-engine::~engine() throw () {
-  for (std::vector<backend_info*>::const_iterator
-         it(_backends.begin()), end(_backends.end());
+engine::~engine() throw() {
+  for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
+       end(_backends.end());
        it != end;
        ++it)
     delete *it;
@@ -199,8 +192,8 @@ engine::~engine() throw () {
  */
 void engine::_rebuild_types() {
   memset(_list_types, 0, sizeof(_list_types));
-  for (std::vector<backend_info*>::const_iterator
-         it(_backends.begin()), end(_backends.end());
+  for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
+       end(_backends.end());
        it != end;
        ++it) {
     for (unsigned int i(0); i <= (*it)->verbose; ++i)

@@ -32,12 +32,12 @@ int main() {
     timestamp t1(2, 42);
     t1.sub_seconds(1);
     if (t1.to_seconds() != 1)
-      throw (basic_error() << "sub_second failed");
+      throw(basic_error() << "sub_second failed");
 
     timestamp t2(1, 42);
     t2.sub_seconds(-1);
     if (t2.to_seconds() != 2)
-      throw (basic_error() << "sub_second failed");
+      throw(basic_error() << "sub_second failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

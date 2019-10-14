@@ -35,11 +35,11 @@ int main(int argc, char* argv[]) {
   try {
     io::file_entry entry(argv[0]);
     if (entry.is_directory())
-      throw (basic_error() << "permission failed: is not a directory");
+      throw(basic_error() << "permission failed: is not a directory");
     if (entry.is_link())
-      throw (basic_error() << "permission failed: is not a link");
+      throw(basic_error() << "permission failed: is not a link");
     if (!entry.is_regular())
-      throw (basic_error() << "permission failed: is a regular file");
+      throw(basic_error() << "permission failed: is a regular file");
 
     ret = EXIT_SUCCESS;
   }

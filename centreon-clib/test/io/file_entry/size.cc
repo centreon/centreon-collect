@@ -44,7 +44,7 @@ int main() {
 
     io::file_entry entry(temp);
     if (entry.size())
-      throw (basic_error() << "invalid file size: not empty");
+      throw(basic_error() << "invalid file size: not empty");
 
     {
       std::string data(DATA_SIZE, ' ');
@@ -55,13 +55,12 @@ int main() {
     }
 
     if (entry.size())
-      throw (basic_error() << "invalid file size: not empty");
+      throw(basic_error() << "invalid file size: not empty");
 
     entry.refresh();
 
     if (entry.size() != DATA_SIZE)
-      throw (basic_error() << "invalid file size: is empty");
-
+      throw(basic_error() << "invalid file size: is empty");
 
     ret = EXIT_SUCCESS;
   }

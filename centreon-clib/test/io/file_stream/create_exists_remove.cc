@@ -42,8 +42,8 @@ int main() {
 
     // File must not exists.
     if (io::file_stream::exists(path))
-      throw (basic_error() << "file '" << path
-             << "' exists whereas it should not");
+      throw(basic_error() << "file '" << path
+                          << "' exists whereas it should not");
 
     // Create file.
     {
@@ -54,16 +54,15 @@ int main() {
 
     // File must exists.
     if (!io::file_stream::exists(path))
-      throw (basic_error() << "file '" << path
-             << "' does not exist whereas it should");
+      throw(basic_error() << "file '" << path
+                          << "' does not exist whereas it should");
 
     // Remove file.
 
     // File must not exists.
-    if (!io::file_stream::remove(path)
-        || io::file_stream::exists(path))
-      throw (basic_error() << "file '" << path
-             << "' exists whereas it should not");
+    if (!io::file_stream::remove(path) || io::file_stream::exists(path))
+      throw(basic_error() << "file '" << path
+                          << "' exists whereas it should not");
 
     // Success.
     retval = EXIT_SUCCESS;

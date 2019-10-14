@@ -33,7 +33,7 @@ int main() {
   try {
     std::string path(io::directory_entry::current_path());
     if (path.empty())
-      throw (basic_error() << "invalid current_path");
+      throw(basic_error() << "invalid current_path");
     ret = EXIT_SUCCESS;
   }
   catch (std::exception const& e) {

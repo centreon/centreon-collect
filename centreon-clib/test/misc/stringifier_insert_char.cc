@@ -32,6 +32,6 @@ int main() {
   buffer << static_cast<char>(CHAR_MIN);
   buffer << static_cast<char>(CHAR_MAX);
 
-  char ref[] = { CHAR_MIN, CHAR_MAX, 0 };
+  char ref[] = {CHAR_MIN, CHAR_MAX, 0};
   return (strcmp(buffer.data(), ref));
 }

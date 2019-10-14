@@ -213,26 +213,22 @@ endif ()
 # Platform-specific files.
 if (WIN32)
   set(SPECIFIC_SOURCES
-    "${SRC_DIR}/handle_manager_win32.cc"
     "${SRC_DIR}/library_win32.cc"
     "${SRC_DIR}/process_manager_win32.cc"
     "${SRC_DIR}/process_win32.cc"
   )
   set(SPECIFIC_HEADERS
-    "${INC_DIR}/handle_manager_win32.hh"
     "${INC_DIR}/library_win32.hh"
     "${INC_DIR}/process_manager_win32.hh"
     "${INC_DIR}/process_win32.hh"
   )
 else ()
   set(SPECIFIC_SOURCES
-    "${SRC_DIR}/handle_manager_posix.cc"
     "${SRC_DIR}/library_posix.cc"
     "${SRC_DIR}/process_manager_posix.cc"
     "${SRC_DIR}/process_posix.cc"
   )
   set(SPECIFIC_HEADERS
-    "${INC_DIR}/handle_manager_posix.hh"
     "${INC_DIR}/library_posix.hh"
     "${INC_DIR}/process_manager_posix.hh"
     "${INC_DIR}/process_posix.hh"
@@ -247,9 +243,7 @@ set(
   "${SRC_DIR}/handle.cc"
   "${SRC_DIR}/handle_action.cc"
   "${SRC_DIR}/handle_listener.cc"
-  "${SRC_DIR}/handle_manager.cc"
   "${SRC_DIR}/task.cc"
-  "${SRC_DIR}/task_manager.cc"
   "${SRC_DIR}/timestamp.cc"
 )
 
@@ -259,18 +253,15 @@ set(
   HEADERS
   ${SPECIFIC_HEADERS}
   "${INC_DIR}/clib.hh"
-  "${INC_DIR}/delayed_delete.hh"
   "${INC_DIR}/handle.hh"
   "${INC_DIR}/handle_action.hh"
   "${INC_DIR}/handle_listener.hh"
-  "${INC_DIR}/handle_manager.hh"
   "${INC_DIR}/hash.hh"
   "${INC_DIR}/library.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/process_manager.hh"
   "${INC_DIR}/process.hh"
   "${INC_DIR}/task.hh"
-  "${INC_DIR}/task_manager.hh"
   "${INC_DIR}/timestamp.hh"
   "${INC_DIR}/unique_array_ptr.hh"
   "${INC_DIR}/unordered_hash.hh"

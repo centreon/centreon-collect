@@ -31,15 +31,15 @@ int main() {
   try {
     timestamp t1;
     if (t1.to_mseconds() || t1.to_seconds() || t1.to_useconds())
-      throw (basic_error() << "default constructor failed");
+      throw(basic_error() << "default constructor failed");
 
     timestamp t2(42);
     if (t2.to_seconds() != 42)
-      throw (basic_error() << "constructor failed");
+      throw(basic_error() << "constructor failed");
 
     timestamp t3(42, 24);
     if (t3.to_useconds() != 42000024)
-      throw (basic_error() << "constructor failed");
+      throw(basic_error() << "constructor failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

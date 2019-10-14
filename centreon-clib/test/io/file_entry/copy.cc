@@ -36,11 +36,11 @@ int main(int argc, char* argv[]) {
     io::file_entry e1(argv[0]);
     io::file_entry e2(e1);
     if (e1 != e2)
-      throw (basic_error() << "copy constuctor failed");
+      throw(basic_error() << "copy constuctor failed");
 
     io::file_entry e3 = e1;
     if (e1 != e3)
-      throw (basic_error() << "copy operator failed");
+      throw(basic_error() << "copy operator failed");
 
     ret = EXIT_SUCCESS;
   }

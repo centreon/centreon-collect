@@ -38,14 +38,12 @@ handle::handle() {
  *
  *  @param[in] right  The object to copy.
  */
-handle::handle(handle const& right) {
-  (void)right;
-}
+handle::handle(handle const& right) { (void)right; }
 
 /**
  *  Destructor.
  */
-handle::~handle() throw () {}
+handle::~handle() throw() {}
 
 /**
  *  Assignment operator.

@@ -30,37 +30,30 @@ using namespace com::centreon::misc;
  *  @param[in] is_set     Argument is set by default.
  *  @param[in] value      The default value.
  */
-argument::argument(
-            std::string const& long_name,
-            char name,
-            std::string const& description,
-            bool has_value,
-            bool is_set,
-            std::string const& value)
-  : _description(description),
-    _is_set(is_set),
-    _has_value(has_value),
-    _long_name(long_name),
-    _name(name),
-    _value(value) {
-
-}
+argument::argument(std::string const& long_name,
+                   char name,
+                   std::string const& description,
+                   bool has_value,
+                   bool is_set,
+                   std::string const& value)
+    : _description(description),
+      _is_set(is_set),
+      _has_value(has_value),
+      _long_name(long_name),
+      _name(name),
+      _value(value) {}
 
 /**
  *  Default copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
-argument::argument(argument const& right) {
-  _internal_copy(right);
-}
+argument::argument(argument const& right) { _internal_copy(right); }
 
 /**
  *  Default destructor.
  */
-argument::~argument() throw () {
-
-}
+argument::~argument() throw() {}
 
 /**
  *  Default copy operator.
@@ -80,13 +73,10 @@ argument& argument::operator=(argument const& right) {
  *
  *  @return Tue if objects are equal, otherwise false.
  */
-bool argument::operator==(argument const& right) const throw () {
-  return (_name == right._name
-          && _long_name == right._long_name
-          && _value == right._value
-          && _is_set == right._is_set
-          && _has_value == right._has_value
-          && _description == right._description);
+bool argument::operator==(argument const& right) const throw() {
+  return (_name == right._name && _long_name == right._long_name &&
+          _value == right._value && _is_set == right._is_set &&
+          _has_value == right._has_value && _description == right._description);
 }
 
 /**
@@ -96,7 +86,7 @@ bool argument::operator==(argument const& right) const throw () {
  *
  *  @return True if objects are different, otherwise false.
  */
-bool argument::operator!=(argument const& right) const throw () {
+bool argument::operator!=(argument const& right) const throw() {
   return (!operator==(right));
 }
 
@@ -105,7 +95,7 @@ bool argument::operator!=(argument const& right) const throw () {
  *
  *  @return The description.
  */
-std::string const& argument::get_description() const throw () {
+std::string const& argument::get_description() const throw() {
   return (_description);
 }
 
@@ -114,25 +104,21 @@ std::string const& argument::get_description() const throw () {
  *
  *  @return True if argument is set.
  */
-bool argument::get_is_set() const throw () {
-  return (_is_set);
-}
+bool argument::get_is_set() const throw() { return (_is_set); }
 
 /**
  *  Get if argument need to has value.
  *
  *  @return True if argument need a value, otherwise false.
  */
-bool argument::get_has_value() const throw () {
-  return (_has_value);
-}
+bool argument::get_has_value() const throw() { return (_has_value); }
 
 /**
  *  Get the long name of the argument.
  *
  *  @return The long name.
  */
-std::string const& argument::get_long_name() const throw () {
+std::string const& argument::get_long_name() const throw() {
   return (_long_name);
 }
 
@@ -141,18 +127,14 @@ std::string const& argument::get_long_name() const throw () {
  *
  *  @return The name.
  */
-char argument::get_name() const throw () {
-  return (_name);
-}
+char argument::get_name() const throw() { return (_name); }
 
 /**
  *  Get the value.
  *
  *  @return The value.
  */
-std::string const& argument::get_value() const throw () {
-  return (_value);
-}
+std::string const& argument::get_value() const throw() { return (_value); }
 
 /**
  *  Set the argument description.
@@ -168,18 +150,14 @@ void argument::set_description(std::string const& description) {
  *
  *  @param[in] val  True if the argument is set.
  */
-void argument::set_is_set(bool val) throw () {
-  _is_set = val;
-}
+void argument::set_is_set(bool val) throw() { _is_set = val; }
 
 /**
  *  Set is the argument need a value.
  *
  *  @param[in] val  True if the argument need a value.
  */
-void argument::set_has_value(bool val) throw () {
-  _has_value = val;
-}
+void argument::set_has_value(bool val) throw() { _has_value = val; }
 
 /**
  *  Set the long name of the argument.
@@ -195,18 +173,14 @@ void argument::set_long_name(std::string const& long_name) {
  *
  *  @param[in] name  The name.
  */
-void argument::set_name(char name) {
-  _name = name;
-}
+void argument::set_name(char name) { _name = name; }
 
 /**
  *  Set the value of the argument.
  *
  *  @param[in] value  The value.
  */
-void argument::set_value(std::string const& value) {
-  _value = value;
-}
+void argument::set_value(std::string const& value) { _value = value; }
 
 /**
  *  Internal copy.

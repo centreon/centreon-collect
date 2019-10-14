@@ -37,13 +37,11 @@ int main() {
     timestamp end(timestamp::now());
     timestamp diff(end - start);
     if (diff.to_useconds() > waiting * 1.20)
-      throw (basic_error()
-             << "waiting more than necessary: "
-             << diff.to_useconds() << "/" << waiting);
+      throw(basic_error() << "waiting more than necessary: "
+                          << diff.to_useconds() << "/" << waiting);
     if (diff.to_useconds() < waiting * 0.90)
-      throw (basic_error()
-             << "waiting less than necessary: "
-             << diff.to_useconds() << "/" << waiting);
+      throw(basic_error() << "waiting less than necessary: "
+                          << diff.to_useconds() << "/" << waiting);
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

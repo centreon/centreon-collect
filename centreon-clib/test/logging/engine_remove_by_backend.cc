@@ -53,20 +53,19 @@ int main() {
   try {
     engine& e(engine::instance());
     if (!null_pointer())
-      throw (basic_error() << "try to remove with null pointer");
+      throw(basic_error() << "try to remove with null pointer");
 
     std::unique_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 1, 0);
     if (e.remove(obj.get()) != 1)
-      throw (basic_error() << "remove one backend failed");
+      throw(basic_error() << "remove one backend failed");
 
     static unsigned int const nb_backend(1000);
     for (unsigned int i(1); i < nb_backend; ++i)
       e.add(obj.get(), i, 0);
 
     if (e.remove(obj.get()) != nb_backend - 1)
-      throw (basic_error() << "remove " << nb_backend
-              << " backend failed");
+      throw(basic_error() << "remove " << nb_backend << " backend failed");
     retval = 0;
   }
   catch (std::exception const& e) {

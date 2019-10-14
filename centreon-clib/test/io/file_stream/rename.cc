@@ -46,12 +46,12 @@ int main() {
 
       // Write.
       if (!file.write(data, sizeof(data)))
-        throw (basic_error() << "write data failed");
+        throw(basic_error() << "write data failed");
     }
 
     // Rename file.
     if (!io::file_stream::rename(file_name, new_file_name))
-      throw (basic_error() << "rename failed");
+      throw(basic_error() << "rename failed");
 
     // Read data.
     {
@@ -62,9 +62,9 @@ int main() {
       // Read.
       char buffer[64];
       if (file.read(buffer, sizeof(buffer)) != sizeof(data))
-        throw (basic_error() << "read failed");
+        throw(basic_error() << "read failed");
       if (strncmp(buffer, data, sizeof(data)))
-        throw (basic_error() << "invalid data");
+        throw(basic_error() << "invalid data");
     }
     ret = 0;
   }

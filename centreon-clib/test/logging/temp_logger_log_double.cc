@@ -41,7 +41,7 @@ int main() {
 
     temp_logger(1, 0) << double(42.42);
     if (obj->get_nb_call() != 1)
-      throw (basic_error() << "invalid number of call log");
+      throw(basic_error() << "invalid number of call log");
     retval = 0;
   }
   catch (std::exception const& e) {

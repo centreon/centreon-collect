@@ -34,7 +34,7 @@ int main() {
     argument arg;
     arg.set_description(description);
     if (arg.get_description() != description)
-      throw (basic_error() << "invalid description");
+      throw(basic_error() << "invalid description");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

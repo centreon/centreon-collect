@@ -28,21 +28,15 @@ using namespace com::centreon::misc;
  *  @brief litle implementation of get_options to test it.
  */
 class my_options : public get_options {
-public:
-      my_options(std::vector<std::string> const& args)
-        : get_options() {
-        _arguments['a'] = argument("arg", 'a', "", true);
-        _arguments['t'] = argument("test", 't', "", true);
-        _arguments['h'] = argument("help", 'h');
-        _arguments['d'] = argument("default",
-                                   'd',
-                                   "",
-                                   true,
-                                   true,
-                                   "def");
-        _parse_arguments(args);
-      }
-      ~my_options() throw () {}
+ public:
+  my_options(std::vector<std::string> const& args) : get_options() {
+    _arguments['a'] = argument("arg", 'a', "", true);
+    _arguments['t'] = argument("test", 't', "", true);
+    _arguments['h'] = argument("help", 'h');
+    _arguments['d'] = argument("default", 'd', "", true, true, "def");
+    _parse_arguments(args);
+  }
+  ~my_options() throw() {}
 };
 
 /**
@@ -101,11 +95,11 @@ static bool check_require_argument() {
 int main() {
   try {
     if (!check_unknown_option())
-      throw (basic_error() << "constructor failed with unknown option");
+      throw(basic_error() << "constructor failed with unknown option");
 
     if (!check_require_argument())
-      throw (basic_error() << "constructor failed with " \
-             "require argument");
+      throw(basic_error() << "constructor failed with "
+                             "require argument");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

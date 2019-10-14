@@ -30,9 +30,7 @@
 using namespace com::centreon;
 using namespace com::centreon::logging;
 
-static bool check_log_message(
-              std::string const& path,
-              std::string const& msg) {
+static bool check_log_message(std::string const& path, std::string const& msg) {
   std::ifstream stream(path.c_str());
   char buffer[32 * 1024];
   memset(buffer, 0, sizeof(buffer));
@@ -56,8 +54,8 @@ int main() {
     std::ostringstream tmpref;
     for (unsigned int i(0); i < nb_line; ++i) {
       tmp << i << "\n";
-      tmpref << "[" << concurrency::thread::get_current_id()
-             << "] " << i << "\n";
+      tmpref << "[" << concurrency::thread::get_current_id() << "] " << i
+             << "\n";
     }
     std::string msg(tmp.str());
     std::string ref(tmpref.str());
@@ -67,7 +65,7 @@ int main() {
       f.log(1, 0, msg.c_str(), msg.size());
     }
     if (!check_log_message(tmpfile, ref))
-      throw (basic_error() << "log message failed");
+      throw(basic_error() << "log message failed");
 
     retval = 0;
   }

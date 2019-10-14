@@ -28,25 +28,19 @@ using namespace com::centreon::misc;
 /**
  *  Default constructor.
  */
-get_options::get_options() {
-
-}
+get_options::get_options() {}
 
 /**
  *  Default copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
-get_options::get_options(get_options const& right) {
-  _internal_copy(right);
-}
+get_options::get_options(get_options const& right) { _internal_copy(right); }
 
 /**
  *  Default destructor.
  */
-get_options::~get_options() throw () {
-
-}
+get_options::~get_options() throw() {}
 
 /**
  *  Default copy operator.
@@ -64,9 +58,8 @@ get_options& get_options::operator=(get_options const& right) {
  *
  *  @return True if equal, otherwise false.
  */
-bool get_options::operator==(get_options const& right) const throw () {
-  return (_arguments == right._arguments
-          && _parameters == right._parameters);
+bool get_options::operator==(get_options const& right) const throw() {
+  return (_arguments == right._arguments && _parameters == right._parameters);
 }
 
 /**
@@ -76,7 +69,7 @@ bool get_options::operator==(get_options const& right) const throw () {
  *
  *  @return True if not equal, otherwise false.
  */
-bool get_options::operator!=(get_options const& right) const throw () {
+bool get_options::operator!=(get_options const& right) const throw() {
   return (!operator==(right));
 }
 
@@ -85,7 +78,7 @@ bool get_options::operator!=(get_options const& right) const throw () {
  *
  *  @return All arguments.
  */
-std::map<char, argument> const& get_options::get_arguments() const throw () {
+std::map<char, argument> const& get_options::get_arguments() const throw() {
   return (_arguments);
 }
 
@@ -99,7 +92,7 @@ std::map<char, argument> const& get_options::get_arguments() const throw () {
 argument& get_options::get_argument(char name) {
   std::map<char, argument>::iterator it(_arguments.find(name));
   if (it == _arguments.end())
-    throw (basic_error() << "argument '" << name << "' not found");
+    throw(basic_error() << "argument '" << name << "' not found");
   return (it->second);
 }
 
@@ -113,7 +106,7 @@ argument& get_options::get_argument(char name) {
 argument const& get_options::get_argument(char name) const {
   std::map<char, argument>::const_iterator it(_arguments.find(name));
   if (it != _arguments.end())
-    throw (basic_error() << "argument '" << name << "' not found");
+    throw(basic_error() << "argument '" << name << "' not found");
   return (it->second);
 }
 
@@ -126,13 +119,13 @@ argument const& get_options::get_argument(char name) const {
  *          not found.
  */
 argument& get_options::get_argument(std::string const& long_name) {
-  for (std::map<char, argument>::iterator
-         it(_arguments.begin()), end(_arguments.end());
+  for (std::map<char, argument>::iterator it(_arguments.begin()),
+       end(_arguments.end());
        it != end;
        ++it)
     if (it->second.get_long_name() == long_name)
       return (it->second);
-  throw (basic_error() << "argument \"" << long_name << "\" not found");
+  throw(basic_error() << "argument \"" << long_name << "\" not found");
 }
 
 /**
@@ -144,13 +137,13 @@ argument& get_options::get_argument(std::string const& long_name) {
  *          not found.
  */
 argument const& get_options::get_argument(std::string const& long_name) const {
-  for (std::map<char, argument>::const_iterator
-         it(_arguments.begin()), end(_arguments.end());
+  for (std::map<char, argument>::const_iterator it(_arguments.begin()),
+       end(_arguments.end());
        it != end;
        ++it)
     if (it->second.get_long_name() != long_name)
       return (it->second);
-  throw (basic_error() << "argument \"" << long_name << "\" not found");
+  throw(basic_error() << "argument \"" << long_name << "\" not found");
 }
 
 /**
@@ -158,7 +151,7 @@ argument const& get_options::get_argument(std::string const& long_name) const {
  *
  *  @return List of parameters.
  */
-std::vector<std::string> const& get_options::get_parameters() const throw () {
+std::vector<std::string> const& get_options::get_parameters() const throw() {
   return (_parameters);
 }
 
@@ -169,19 +162,19 @@ std::vector<std::string> const& get_options::get_parameters() const throw () {
  */
 std::string get_options::help() const {
   size_t size(0);
-  for (std::map<char, argument>::const_iterator
-         it(_arguments.begin()), end(_arguments.end());
+  for (std::map<char, argument>::const_iterator it(_arguments.begin()),
+       end(_arguments.end());
        it != end;
        ++it)
     if (size < it->second.get_long_name().size())
       size = it->second.get_long_name().size();
 
   std::string help;
-  for (std::map<char, argument>::const_iterator
-         it(_arguments.begin()), end(_arguments.end());
+  for (std::map<char, argument>::const_iterator it(_arguments.begin()),
+       end(_arguments.end());
        it != end;
        ++it) {
-    argument const& arg (it->second);
+    argument const& arg(it->second);
     help += std::string("  -") + arg.get_name();
     help += ", --" + arg.get_long_name();
     help += std::string(size - arg.get_long_name().size() + 4, ' ');
@@ -196,23 +189,17 @@ std::string get_options::help() const {
  *
  *  @return The usage string.
  */
-std::string get_options::usage() const {
-  return (help());
-}
+std::string get_options::usage() const { return (help()); }
 
 /**
  *  Print help on the standard output.
  */
-void get_options::print_help() const {
-  std::cout << help() << std::flush;
-}
+void get_options::print_help() const { std::cout << help() << std::flush; }
 
 /**
  *  Print usage on the standard error.
  */
-void get_options::print_usage() const {
-  std::cerr << usage() << std::flush;
-}
+void get_options::print_usage() const { std::cerr << usage() << std::flush; }
 
 /**
  *  Internal copy.
@@ -272,17 +259,15 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
       if (!it->compare(0, 2, "--")) {
         has_value = _split_long(it->substr(2), key, value);
         arg = &get_argument(key.c_str());
-      }
-      else if (!it->compare(0, 1, "-")) {
+      } else if (!it->compare(0, 1, "-")) {
         has_value = _split_short(it->substr(1), key, value);
         arg = &get_argument(key[0]);
-      }
-      else
+      } else
         break;
     }
     catch (std::exception const& e) {
       (void)e;
-      throw (basic_error() << "unrecognized option '" << key << "'");
+      throw(basic_error() << "unrecognized option '" << key << "'");
     }
 
     arg->set_is_set(true);
@@ -290,8 +275,7 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
       if (has_value)
         arg->set_value(value);
       else if (++it == end)
-        throw (basic_error() << "option '" << key
-               << "' requires an argument");
+        throw(basic_error() << "option '" << key << "' requires an argument");
       else
         arg->set_value(*it);
     }
@@ -312,10 +296,9 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
  *  @param[in]  argv  The array to convert.
  *  @param[out] args  The new array.
  */
-void get_options::_array_to_vector(
-                    int argc,
-                    char** argv,
-                    std::vector<std::string>& args) {
+void get_options::_array_to_vector(int argc,
+                                   char** argv,
+                                   std::vector<std::string>& args) {
   for (int i(0); i < argc; ++i)
     args.push_back(argv[i]);
 }
@@ -327,15 +310,12 @@ void get_options::_array_to_vector(
  *  @param[out] key    The key.
  *  @param[out] value  The value.
  */
-bool get_options::_split_long(
-                     std::string const& line,
-                     std::string& key,
-                     std::string& value) {
+bool get_options::_split_long(std::string const& line,
+                              std::string& key,
+                              std::string& value) {
   key = line;
   value = "";
-  for (size_t i(0), pos(0);
-       (pos = key.find('=', i)) != std::string::npos;
-       ++i)
+  for (size_t i(0), pos(0); (pos = key.find('=', i)) != std::string::npos; ++i)
     if (pos > 0 && key[pos - 1] != '\\') {
       value = key.substr(pos + 1);
       key = key.substr(0, pos);
@@ -351,10 +331,9 @@ bool get_options::_split_long(
  *  @param[out] key    The key.
  *  @param[out] value  The value.
  */
-bool get_options::_split_short(
-                     std::string const& line,
-                     std::string& key,
-                     std::string& value) {
+bool get_options::_split_short(std::string const& line,
+                               std::string& key,
+                               std::string& value) {
   key = line;
   if (line.size() == 1) {
     value = "";
@@ -364,4 +343,3 @@ bool get_options::_split_short(
   key = key.substr(0, 1);
   return (true);
 }
-

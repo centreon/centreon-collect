@@ -36,25 +36,20 @@ int main() {
     bool has_value(true);
     bool is_set(true);
     std::string value("help:\n --help, -h  this help");
-    argument arg(long_name,
-                 name,
-                 description,
-                 has_value,
-                 is_set,
-                 value);
+    argument arg(long_name, name, description, has_value, is_set, value);
 
     if (arg.get_long_name() != long_name)
-      throw (basic_error() << "invalid long name");
+      throw(basic_error() << "invalid long name");
     if (arg.get_name() != name)
-      throw (basic_error() << "invalid name");
+      throw(basic_error() << "invalid name");
     if (arg.get_description() != description)
-      throw (basic_error() << "invalid description");
+      throw(basic_error() << "invalid description");
     if (arg.get_has_value() != has_value)
-      throw (basic_error() << "invalid has value");
+      throw(basic_error() << "invalid has value");
     if (arg.get_is_set() != is_set)
-      throw (basic_error() << "invalid is set");
+      throw(basic_error() << "invalid is set");
     if (arg.get_value() != value)
-      throw (basic_error() << "invalid value");
+      throw(basic_error() << "invalid value");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

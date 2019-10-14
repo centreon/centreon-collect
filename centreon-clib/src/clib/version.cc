@@ -25,33 +25,25 @@ using namespace com::centreon::clib;
  *
  *  @return Centreon Clib version major.
  */
-unsigned int version::get_major() throw () {
-  return (major);
-}
+unsigned int version::get_major() throw() { return (major); }
 
 /**
  *  Get version minor.
  *
  *  @return Centreon Clib version minor.
  */
-unsigned int version::get_minor() throw () {
-  return (minor);
-}
+unsigned int version::get_minor() throw() { return (minor); }
 
 /**
  *  Get version patch.
  *
  *  @return Centreon Clib version patch.
  */
-unsigned int version::get_patch() throw () {
-  return (patch);
-}
+unsigned int version::get_patch() throw() { return (patch); }
 
 /**
  *  Get version string.
  *
  *  @return Centreon Clib version as string.
  */
-char const* version::get_string() throw () {
-  return (version::string);
-}
+char const* version::get_string() throw() { return (version::string); }

@@ -23,16 +23,12 @@ using namespace com::centreon;
 /**
  *  Default constructor.
  */
-handle_listener::handle_listener() {
-
-}
+handle_listener::handle_listener() {}
 
 /**
  *  Default destructor.
  */
-handle_listener::~handle_listener() throw () {
-
-}
+handle_listener::~handle_listener() throw() {}
 
 /**
  *  Read action on a specific handle.
