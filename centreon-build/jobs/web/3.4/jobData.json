@@ -21,7 +21,7 @@
 	    "url": "@REGISTRY@/mon-web-@VERSION@-@RELEASE@:centos7"
 	},
         {
-            "displayname": "Docker fresh image",
+            "displayname": "Docker image (no resources)",
             "flavor": "centos7",
             "url": "@REGISTRY@/mon-web-fresh-@VERSION@-@RELEASE@:centos7"
         },
