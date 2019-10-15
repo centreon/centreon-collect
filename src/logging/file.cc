@@ -19,7 +19,6 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/misc/stringifier.hh"

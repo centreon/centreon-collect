@@ -28,7 +28,6 @@
 #include <sys/time.h>
 #endif  // BSD flavor.
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread_posix.hh"
 
 using namespace com::centreon::concurrency;
@@ -53,7 +52,7 @@ thread::~thread() throw() {}
  *  Execute the running method in the new thread.
  */
 void thread::exec() {
-  locker lock(&_mtx);
+  std::lock_guard<std::mutex> lock(_mtx);
   if (_initialized)
     throw(basic_error() << "execute thread failed: already running");
   int ret(pthread_create(&_th, NULL, &_execute, this));
@@ -133,7 +132,7 @@ void thread::usleep(unsigned long usecs) {
  *  Wait the end of the thread.
  */
 void thread::wait() {
-  locker lock(&_mtx);
+  std::lock_guard<std::mutex> lock(_mtx);
 
   // Wait the end of the thread.
   if (_initialized) {
@@ -154,7 +153,7 @@ void thread::wait() {
  *  @return true if the thread end before timeout, otherwise false.
  */
 bool thread::wait(unsigned long timeout) {
-  locker lock(&_mtx);
+  std::lock_guard<std::mutex> lock(_mtx);
   if (_initialized) {
 #if defined(__NetBSD__) || defined(__OpenBSD__)
     // Implementation based on pthread_kill and usleep.

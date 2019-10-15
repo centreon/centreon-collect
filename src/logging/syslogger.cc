@@ -18,7 +18,6 @@
 
 #include <cstdlib>
 #include <syslog.h>
-#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/syslogger.hh"
 #include "com/centreon/misc/stringifier.hh"

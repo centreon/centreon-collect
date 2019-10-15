@@ -19,8 +19,6 @@
 #ifndef CC_TEST_CONCURRENCY_THREAD_TEST_HH
 #define CC_TEST_CONCURRENCY_THREAD_TEST_HH
 
-#include "com/centreon/concurrency/locker.hh"
-
 CC_BEGIN()
 
 namespace concurrency {
