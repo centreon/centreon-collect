@@ -19,9 +19,9 @@
 #ifndef CC_CONCURRENCY_THREAD_POSIX_HH
 #define CC_CONCURRENCY_THREAD_POSIX_HH
 
+#include <mutex>
 #include <pthread.h>
 #include "com/centreon/namespace.hh"
-#include "com/centreon/concurrency/mutex_posix.hh"
 
 CC_BEGIN()
 
@@ -58,7 +58,7 @@ class thread {
   static void* _execute(void* data);
 
   bool _initialized;
-  mutable mutex _mtx;
+  mutable std::mutex _mtx;
   pthread_t _th;
 };
 }

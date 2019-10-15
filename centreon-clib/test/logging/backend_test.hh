@@ -19,7 +19,6 @@
 #ifndef CC_TEST_LOGGING_BACKEND_TEST_HH
 #define CC_TEST_LOGGING_BACKEND_TEST_HH
 
-#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/logging/backend.hh"
 
 CC_BEGIN()

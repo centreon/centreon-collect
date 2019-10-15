@@ -24,7 +24,6 @@
 #endif  // _WIN32
 
 #include <cstring>
-#include "com/centreon/concurrency/locker.hh"
 #include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/misc/stringifier.hh"
