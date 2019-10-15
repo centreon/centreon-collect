@@ -13,8 +13,8 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+if [ "$#" -lt 2 ] ; then
+  echo "USAGE: $0 <centos7|...> [feature]"
   exit 1
 fi
 DISTRIB="$1"
@@ -45,4 +45,4 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 composer install
-ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
