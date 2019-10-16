@@ -20,13 +20,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#ifdef _WIN32
-#include <io.h>
-#include <windows.h>
-#else
 #include <unistd.h>
 #include <fcntl.h>
-#endif  // Windows or POSIX.
 #include <fstream>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
@@ -94,19 +89,15 @@ void file_stream::copy(std::string const& src, std::string const& dst) {
  */
 bool file_stream::exists(char const* path) {
   if (!path)
-    return (false);
-#ifdef _WIN32
-  return (!_access(path, 0));
-#else
-  return (!access(path, F_OK));
-#endif  // Windows or POSIX
+    return false;
+  return !access(path, F_OK);
 }
 
 /**
  *  Overload of exists method.
  */
 bool file_stream::exists(std::string const& path) {
-  return (exists(path.c_str()));
+  return exists(path.c_str());
 }
 
 /**
@@ -129,16 +120,6 @@ com::centreon::native_handle file_stream::get_native_handle() {
   native_handle retval;
   if (!_stream)
     retval = native_handle_null;
-#ifdef _WIN32
-  else {
-    retval = (HANDLE)_get_osfhandle(_fileno(_stream));
-    if ((native_handle_null == retval) || (INVALID_HANDLE_VALUE == retval)) {
-      char const* msg(strerror(errno));
-      throw(basic_error() << "could not get native handle from "
-                             "file stream: " << msg);
-    }
-  }
-#else
   else {
     retval = fileno(_stream);
     if (retval < 0) {
@@ -147,8 +128,7 @@ com::centreon::native_handle file_stream::get_native_handle() {
                              "file stream: " << msg);
     }
   }
-#endif  // Windows or POSIX.
-  return (retval);
+  return retval;
 }
 
 /**
@@ -167,7 +147,6 @@ void file_stream::open(char const* path, char const* mode) {
     char const* msg(strerror(errno));
     throw(basic_error() << "could not open file '" << path << "': " << msg);
   }
-#ifndef _WIN32
   int fd(fileno(_stream));
   int flags(0);
   while ((flags = fcntl(fd, F_GETFD)) < 0) {
@@ -181,7 +160,6 @@ void file_stream::open(char const* path, char const* mode) {
       continue;
     return;
   }
-#endif  // !_WIN32
   return;
 }
 
@@ -206,23 +184,12 @@ unsigned long file_stream::read(void* data, unsigned long size) {
   if (!data || !size)
     throw(basic_error() << "attempt to read from "
                            "file stream but do not except any result");
-#ifdef _WIN32
-  DWORD rb;
-  bool success(ReadFile(get_native_handle(), data, size, &rb, NULL) != FALSE);
-  if (!success) {
-    int errcode(GetLastError());
-    throw(basic_error() << "could not read from file stream (error " << errcode
-                        << ")");
-  }
-  return (static_cast<unsigned long>(rb));
-#else
   ssize_t rb(::read(get_native_handle(), data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
     throw(basic_error() << "could not read from file stream: " << msg);
   }
-  return (static_cast<unsigned long>(rb));
-#endif  // Windows or POSIX.
+  return static_cast<unsigned long>(rb);
 }
 
 /**
@@ -234,15 +201,15 @@ unsigned long file_stream::read(void* data, unsigned long size) {
  */
 bool file_stream::remove(char const* path) {
   if (!path)
-    return (false);
-  return (!::remove(path));
+    return false;
+  return !::remove(path);
 }
 
 /**
  *  Overload of remove method.
  */
 bool file_stream::remove(std::string const& path) {
-  return (remove(path.c_str()));
+  return remove(path.c_str());
 }
 
 /**
@@ -255,11 +222,11 @@ bool file_stream::remove(std::string const& path) {
  */
 bool file_stream::rename(char const* old_filename, char const* new_filename) {
   if (!old_filename || !new_filename)
-    return (false);
+    return false;
   bool ret(!::rename(old_filename, new_filename));
   if (!ret) {
     if (errno != EXDEV)
-      return (false);
+      return false;
     try {
       file_stream file_read(NULL, true);
       file_read.open(old_filename, "r");
@@ -272,10 +239,10 @@ bool file_stream::rename(char const* old_filename, char const* new_filename) {
         file_write.write(data, len);
     }
     catch (...) {
-      return (false);
+      return false;
     }
   }
-  return (true);
+  return true;
 }
 
 /**
@@ -283,7 +250,7 @@ bool file_stream::rename(char const* old_filename, char const* new_filename) {
  */
 bool file_stream::rename(std::string const& old_filename,
                          std::string const& new_filename) {
-  return (rename(old_filename.c_str(), new_filename.c_str()));
+  return rename(old_filename.c_str(), new_filename.c_str());
 }
 
 /**
@@ -315,7 +282,7 @@ unsigned long file_stream::size() {
   // Get back to original position.
   fseek(_stream, original_offset, SEEK_SET);
 
-  return (size);
+  return size;
 }
 
 /**
@@ -327,7 +294,7 @@ char* file_stream::temp_path() {
   char* ret(::tmpnam(static_cast<char*>(NULL)));
   if (!ret)
     throw(basic_error() << "could not generate temporary file name");
-  return (ret);
+  return ret;
 }
 
 /**
@@ -343,21 +310,10 @@ unsigned long file_stream::write(void const* data, unsigned long size) {
     throw(basic_error() << "attempt to write to a closed file stream");
   if (!data || !size)
     throw(basic_error() << "attempt to write no data to file stream");
-#ifdef _WIN32
-  DWORD wb;
-  bool success(WriteFile(get_native_handle(), data, size, &wb, NULL) != FALSE);
-  if (!success) {
-    int errcode(GetLastError());
-    throw(basic_error() << "could not write to file stream (error " << errcode
-                        << ")");
-  }
-  return (static_cast<unsigned long>(wb));
-#else
   ssize_t wb(::write(get_native_handle(), data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
     throw(basic_error() << "could not write to file stream: " << msg);
   }
-  return (static_cast<unsigned long>(wb));
-#endif  // Windows or POSIX.
+  return static_cast<unsigned long>(wb);
 }

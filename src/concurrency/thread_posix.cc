@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #endif  // BSD flavor.
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/concurrency/thread_posix.hh"
+#include "com/centreon/concurrency/thread.hh"
 
 using namespace com::centreon::concurrency;
 
@@ -80,7 +80,6 @@ void thread::msleep(unsigned long msecs) {
   ts.tv_sec = msecs / 1000;
   ts.tv_nsec = (msecs % 1000) * 1000000l;
   nanosleep(&ts, NULL);
-  return;
 }
 
 /**
@@ -95,7 +94,6 @@ void thread::nsleep(unsigned long nsecs) {
   ts.tv_sec = nsecs / 1000000000l;
   ts.tv_nsec = nsecs % 1000000000l;
   nanosleep(&ts, NULL);
-  return;
 }
 
 /**
@@ -110,7 +108,6 @@ void thread::sleep(unsigned long secs) {
   ts.tv_sec = secs;
   ts.tv_nsec = 0;
   nanosleep(&ts, NULL);
-  return;
 }
 
 /**
@@ -125,7 +122,6 @@ void thread::usleep(unsigned long usecs) {
   ts.tv_sec = usecs / 1000000l;
   ts.tv_nsec = (usecs % 1000000l) * 1000l;
   nanosleep(&ts, NULL);
-  return;
 }
 
 /**
@@ -141,7 +137,6 @@ void thread::wait() {
       throw(basic_error() << "failure while waiting thread: " << strerror(ret));
     _initialized = false;
   }
-  return;
 }
 
 /**

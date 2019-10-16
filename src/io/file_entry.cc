@@ -19,9 +19,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#ifndef _WIN32
 #include <libgen.h>
-#endif  // !_WIN32
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_entry.hh"
 
@@ -51,7 +49,7 @@ file_entry::file_entry(file_entry const& right) { _internal_copy(right); }
 /**
  *  Destructor.
  */
-file_entry::~file_entry() throw() {}
+file_entry::~file_entry() noexcept {}
 
 /**
  *  Copy operator.
@@ -62,7 +60,7 @@ file_entry::~file_entry() throw() {}
  */
 file_entry& file_entry::operator=(file_entry const& right) {
   _internal_copy(right);
-  return (*this);
+  return *this;
 }
 
 /**
@@ -72,7 +70,7 @@ file_entry& file_entry::operator=(file_entry const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool file_entry::operator==(file_entry const& right) const throw() {
+bool file_entry::operator==(file_entry const& right) const noexcept {
   return (_sbuf.st_dev == right._sbuf.st_dev &&
           _sbuf.st_ino == right._sbuf.st_ino);
 }
@@ -84,8 +82,8 @@ bool file_entry::operator==(file_entry const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool file_entry::operator!=(file_entry const& right) const throw() {
-  return (!operator==(right));
+bool file_entry::operator!=(file_entry const& right) const noexcept {
+  return !operator==(right);
 }
 
 /**
@@ -95,17 +93,11 @@ bool file_entry::operator!=(file_entry const& right) const throw() {
  */
 std::string file_entry::base_name() const {
   std::string name;
-#ifdef _WIN32
-  char fname[_MAX_FNAME];
-  _splitpath(_path.c_str(), NULL, NULL, fname, NULL);
-  name = fname;
-#else
   name = file_name();
   size_t pos(name.find_last_of('.'));
   if (pos != 0 && pos != std::string::npos)
     name.erase(pos);
-#endif  // _WIN32
-  return (name);
+  return name;
 }
 
 /**
@@ -114,21 +106,8 @@ std::string file_entry::base_name() const {
  *  @return The directory path of this file.
  */
 std::string file_entry::directory_name() const {
-  std::string name;
-#ifdef _WIN32
-  char drive[_MAX_DRIVE];
-  char dir[_MAX_DIR];
-  _splitpath(_path.c_str(), drive, dir, NULL, NULL);
-  name = drive;
-  name.append(dir);
-#else
-  char* path(new char[_path.size() + 1]);
-  strcpy(path, _path.c_str());
-  char* dname(dirname(path));
-  name = dname;
-  delete[] path;
-#endif  // _WIN32
-  return (name);
+  std::string retval{dirname(const_cast<char*>(_path.c_str()))};
+  return retval;
 }
 
 /**
@@ -137,21 +116,8 @@ std::string file_entry::directory_name() const {
  *  @return The file name without extention.
  */
 std::string file_entry::file_name() const {
-  std::string name;
-#ifdef _WIN32
-  char fname[_MAX_FNAME];
-  char ext[_MAX_EXT];
-  _splitpath(_path.c_str(), NULL, NULL, fname, ext);
-  name = fname;
-  name.append(ext);
-#else
-  char* path(new char[_path.size() + 1]);
-  strcpy(path, _path.c_str());
-  char* fname(basename(path));
-  name = fname;
-  delete[] path;
-#endif  // _WIN32
-  return (name);
+  std::string retval{basename(const_cast<char*>(_path.c_str()))};
+  return retval;
 }
 
 /**
@@ -159,8 +125,8 @@ std::string file_entry::file_name() const {
  *
  *  @return True if this file is a directory, otherwise false.
  */
-bool file_entry::is_directory() const throw() {
-  return ((_sbuf.st_mode & S_IFMT) == S_IFDIR);
+bool file_entry::is_directory() const noexcept {
+  return (_sbuf.st_mode & S_IFMT) == S_IFDIR;
 }
 
 /**
@@ -168,12 +134,8 @@ bool file_entry::is_directory() const throw() {
  *
  *  @return True if this file is a symbolic link, otherwise false.
  */
-bool file_entry::is_link() const throw() {
-#ifdef _WIN32
-  return (false);
-#else
-  return ((_sbuf.st_mode & S_IFMT) == S_IFLNK);
-#endif  // Win32 or POSIX
+bool file_entry::is_link() const noexcept {
+  return (_sbuf.st_mode & S_IFMT) == S_IFLNK;
 }
 
 /**
@@ -181,8 +143,8 @@ bool file_entry::is_link() const throw() {
  *
  *  @return True if this file is regular, otherwise false.
  */
-bool file_entry::is_regular() const throw() {
-  return ((_sbuf.st_mode & S_IFMT) == S_IFREG);
+bool file_entry::is_regular() const noexcept {
+  return (_sbuf.st_mode & S_IFMT) == S_IFREG;
 }
 
 /**
@@ -190,7 +152,7 @@ bool file_entry::is_regular() const throw() {
  *
  *  @return The path.
  */
-std::string const& file_entry::path() const throw() { return (_path); }
+std::string const& file_entry::path() const noexcept { return _path; }
 
 /**
  *  Set the file entry path.
@@ -229,7 +191,7 @@ void file_entry::refresh() {
  *
  *  @return The file size.
  */
-unsigned long long file_entry::size() const throw() { return (_sbuf.st_size); }
+unsigned long long file_entry::size() const noexcept { return _sbuf.st_size; }
 
 /**
  *  Internal copy.

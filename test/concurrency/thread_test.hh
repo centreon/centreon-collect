@@ -19,6 +19,8 @@
 #ifndef CC_TEST_CONCURRENCY_THREAD_TEST_HH
 #define CC_TEST_CONCURRENCY_THREAD_TEST_HH
 
+#include <thread>
+
 CC_BEGIN()
 
 namespace concurrency {
@@ -26,16 +28,25 @@ namespace concurrency {
  *  @class thread_test
  *  @brief litle implementation of thread to test concurrency thread.
  */
-class thread_test : public thread {
+class thread_test {
  public:
-  thread_test() : _quit(false) {}
-  ~thread_test() throw() {}
+  thread_test() : _quit(false) {
+    _thread = new std::thread(&thread_test::_run, this);
+  }
+
+  ~thread_test() {
+    _thread->join();
+    delete _thread;
+  }
+
   void quit() { _quit = true; }
 
  private:
+  std::thread* _thread;
+
   void _run() {
     while (!_quit)
-      yield();
+      std::this_thread::yield();
   }
   bool _quit;
 };

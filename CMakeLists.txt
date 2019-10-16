@@ -44,27 +44,12 @@ if (WITH_TESTING)
 endif ()
 
 
-# Disable some unnecessary warnings on Windows by using secure
-# overloads.
-if (WIN32)
-  add_definitions(-D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)
+set(CMAKE_THREAD_PREFER_PTHREAD)
+include(FindThreads)
+if (NOT CMAKE_USE_PTHREADS_INIT)
+  message(FATAL_ERROR "Could not find pthreads library.")
 endif ()
 
-
-# Find pthreads.
-if (WIN32)
-  include(FindThreads)
-  if (NOT CMAKE_USE_WIN32_THREADS_INIT)
-    message(FATAL_ERROR "Could not find Win32 threads.")
-  endif ()
-else ()
-  set(CMAKE_THREAD_PREFER_PTHREAD)
-  include(FindThreads)
-  if (NOT CMAKE_USE_PTHREADS_INIT)
-    message(FATAL_ERROR "Could not find pthreads library.")
-  endif ()
-endif ()
 if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" AND CMAKE_COMPILER_IS_GNUCXX)
   set(LIB_THREAD "-pthread -lpthread")
 else ()
@@ -79,16 +64,14 @@ else ()
   set(LIB_RT "rt")
 endif ()
 
-if (NOT WIN32)
-  check_library_exists(
-    "${LIB_RT}"
-    "clock_gettime"
-    "${CMAKE_LIBRARY_PATH}"
-    FIND_LIB_RT
-    )
-  if (NOT FIND_LIB_RT)
-    message(FATAL_ERROR "Could not find real time library.")
-  endif ()
+check_library_exists(
+  "${LIB_RT}"
+  "clock_gettime"
+  "${CMAKE_LIBRARY_PATH}"
+  FIND_LIB_RT
+  )
+if (NOT FIND_LIB_RT)
+  message(FATAL_ERROR "Could not find real time library.")
 endif ()
 
 # Find dynamic linking library.
@@ -102,16 +85,14 @@ else ()
   set(LIB_DL "")
 endif ()
 
-if (NOT WIN32)
-  check_library_exists(
-    "${LIB_DL}"
-    "dlopen"
-    "${CMAKE_LIBRARY_PATH}"
-    FIND_LIB_DL
-    )
-  if (NOT FIND_LIB_DL)
-    message(FATAL_ERROR "Could not find dynamic linking library.")
-  endif ()
+check_library_exists(
+  "${LIB_DL}"
+  "dlopen"
+  "${CMAKE_LIBRARY_PATH}"
+  FIND_LIB_DL
+  )
+if (NOT FIND_LIB_DL)
+  message(FATAL_ERROR "Could not find dynamic linking library.")
 endif ()
 
 
@@ -210,35 +191,12 @@ else ()
     "be disabled.")
 endif ()
 
-# Platform-specific files.
-if (WIN32)
-  set(SPECIFIC_SOURCES
-    "${SRC_DIR}/library_win32.cc"
-    "${SRC_DIR}/process_manager_win32.cc"
-    "${SRC_DIR}/process_win32.cc"
-  )
-  set(SPECIFIC_HEADERS
-    "${INC_DIR}/library_win32.hh"
-    "${INC_DIR}/process_manager_win32.hh"
-    "${INC_DIR}/process_win32.hh"
-  )
-else ()
-  set(SPECIFIC_SOURCES
-    "${SRC_DIR}/library_posix.cc"
-    "${SRC_DIR}/process_manager_posix.cc"
-    "${SRC_DIR}/process_posix.cc"
-  )
-  set(SPECIFIC_HEADERS
-    "${INC_DIR}/library_posix.hh"
-    "${INC_DIR}/process_manager_posix.hh"
-    "${INC_DIR}/process_posix.hh"
-  )
-endif ()
-
 # Set sources.
 set(
   SOURCES
-  ${SPECIFIC_SOURCES}
+  "${SRC_DIR}/library_posix.cc"
+  "${SRC_DIR}/process_manager.cc"
+  "${SRC_DIR}/process_posix.cc"
   "${SRC_DIR}/clib.cc"
   "${SRC_DIR}/handle.cc"
   "${SRC_DIR}/handle_action.cc"

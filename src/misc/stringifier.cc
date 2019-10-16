@@ -22,11 +22,6 @@
 
 using namespace com::centreon::misc;
 
-#ifdef _WIN32
-// Standards ? Like C99 ? What for ?
-#define snprintf _snprintf
-#endif  // Win32
-
 /**
  *  Default constructor.
  *
@@ -219,6 +214,17 @@ stringifier& stringifier::operator<<(unsigned long ul) throw() {
  */
 stringifier& stringifier::operator<<(void const* p) throw() {
   return (_insert("%p", p));
+}
+
+/**
+ *  Insertion operator.
+ *
+ *  @param[in] p  Pointer address to concatenate to basic message.
+ *
+ *  @return This object.
+ */
+stringifier& stringifier::operator<<(std::thread::id const& id) throw() {
+  return (_insert("%lu", id));
 }
 
 /**

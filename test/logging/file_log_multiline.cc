@@ -22,7 +22,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
-#include "com/centreon/concurrency/thread.hh"
+#include <thread>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/logging/file.hh"
@@ -35,7 +35,7 @@ static bool check_log_message(std::string const& path, std::string const& msg) {
   char buffer[32 * 1024];
   memset(buffer, 0, sizeof(buffer));
   stream.read(buffer, sizeof(buffer));
-  return (buffer == msg);
+  return buffer == msg;
 }
 
 /**
@@ -54,7 +54,7 @@ int main() {
     std::ostringstream tmpref;
     for (unsigned int i(0); i < nb_line; ++i) {
       tmp << i << "\n";
-      tmpref << "[" << concurrency::thread::get_current_id() << "] " << i
+      tmpref << "[" << std::this_thread::get_id() << "] " << i
              << "\n";
     }
     std::string msg(tmp.str());
@@ -73,5 +73,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  return (retval);
+  return retval;
 }

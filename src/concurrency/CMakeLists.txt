@@ -20,36 +20,11 @@
 set(SRC_DIR "${SRC_DIR}/concurrency")
 set(INC_DIR "${INC_DIR}/concurrency")
 
-# Platform-specific files.
-if (WIN32)
-  set(SPECIFIC_SOURCES
-    "${SRC_DIR}/read_write_lock_win32.cc"
-    "${SRC_DIR}/semaphore_win32.cc"
-    "${SRC_DIR}/thread_win32.cc"
-  )
-  set(SPECIFIC_HEADERS
-    "${INC_DIR}/read_write_lock_win32.hh"
-    "${INC_DIR}/semaphore_win32.hh"
-    "${INC_DIR}/thread_win32.hh"
-  )
-else ()
-  set(SPECIFIC_SOURCES
-    "${SRC_DIR}/read_write_lock_posix.cc"
-    "${SRC_DIR}/semaphore_posix.cc"
-    "${SRC_DIR}/thread_posix.cc"
-  )
-  set(SPECIFIC_HEADERS
-    "${INC_DIR}/read_write_lock_posix.hh"
-    "${INC_DIR}/semaphore_posix.hh"
-    "${INC_DIR}/thread_posix.hh"
-  )
-endif ()
-
 # Set sources.
 set(
   SOURCES
   ${SOURCES}
-  ${SPECIFIC_SOURCES}
+  "${SRC_DIR}/thread_posix.cc"
   PARENT_SCOPE
 )
 
@@ -57,11 +32,6 @@ set(
 set(
   HEADERS
   ${HEADERS}
-  ${SPECIFIC_HEADERS}
-  "${INC_DIR}/read_locker.hh"
-  "${INC_DIR}/read_write_lock.hh"
-  "${INC_DIR}/semaphore.hh"
   "${INC_DIR}/thread.hh"
-  "${INC_DIR}/write_locker.hh"
   PARENT_SCOPE
 )

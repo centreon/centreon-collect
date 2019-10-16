@@ -19,20 +19,10 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#ifdef _WIN32
-#include <direct.h>
-#include <io.h>
-#include <windows.h>
-#else
 #include <dirent.h>
 #include <unistd.h>
-#endif  // _WIN32
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/directory_entry.hh"
-
-#ifdef _WIN32
-#define getcwd _getcwd
-#endif  // _WIN32
 
 using namespace com::centreon::io;
 
@@ -68,7 +58,7 @@ directory_entry::directory_entry(directory_entry const& right) {
  */
 directory_entry& directory_entry::operator=(directory_entry const& right) {
   _internal_copy(right);
-  return (*this);
+  return *this;
 }
 
 /**
@@ -78,8 +68,8 @@ directory_entry& directory_entry::operator=(directory_entry const& right) {
  *
  *  @return True if is the same object, owtherwise false.
  */
-bool directory_entry::operator==(directory_entry const& right) const throw() {
-  return (_entry == right._entry);
+bool directory_entry::operator==(directory_entry const& right) const noexcept {
+  return _entry == right._entry;
 }
 
 /**
@@ -89,14 +79,14 @@ bool directory_entry::operator==(directory_entry const& right) const throw() {
  *
  *  @return True if is not the same object, owtherwise false.
  */
-bool directory_entry::operator!=(directory_entry const& right) const throw() {
-  return (!operator==(right));
+bool directory_entry::operator!=(directory_entry const& right) const noexcept {
+  return !operator==(right);
 }
 
 /**
  *  Destructor.
  */
-directory_entry::~directory_entry() throw() {}
+directory_entry::~directory_entry() noexcept {}
 
 /**
  *  Get the current directory path.
@@ -109,7 +99,7 @@ std::string directory_entry::current_path() {
     throw(basic_error() << "current path failed");
   std::string path(buffer);
   free(buffer);
-  return (path);
+  return path;
 }
 
 /**
@@ -117,7 +107,7 @@ std::string directory_entry::current_path() {
  *
  *  @return The directory entry.
  */
-file_entry const& directory_entry::entry() const throw() { return (_entry); }
+file_entry const& directory_entry::entry() const noexcept { return _entry; }
 
 /**
  *  Get the list of all entry into a directory.
@@ -131,21 +121,6 @@ std::list<file_entry> const& directory_entry::entry_list(
   _entry_lst.clear();
   char const* filter_ptr(filter.empty() ? NULL : filter.c_str());
 
-#ifdef _WIN32
-  WIN32_FIND_DATA ffd;
-  HANDLE hwd(FindFirstFile(_entry.path().c_str(), &ffd));
-  if (hwd == INVALID_HANDLE_VALUE)
-    throw(basic_error() << "open directory failed");
-
-  do {
-    if (!filter_ptr || _nmatch(ffd.cFileName, filter_ptr))
-      _entry_lst.push_back(file_entry(ffd.cFileName));
-  } while (FindNextFile(hwd, &ffd) != 0);
-  DWORD error(GetLastError());
-  FindClose(hwd);
-  if (error != ERROR_NO_MORE_FILES)
-    throw(basic_error() << "parse directory failed");
-#else
   DIR* dir(opendir(_entry.path().c_str()));
   if (!dir) {
     char const* msg(strerror(errno));
@@ -165,9 +140,8 @@ std::list<file_entry> const& directory_entry::entry_list(
       _entry_lst.push_back(file_entry(_entry.path() + "/" + entry.d_name));
   }
   closedir(dir);
-#endif  // _WIN32
 
-  return (_entry_lst);
+  return _entry_lst;
 }
 
 /**
@@ -192,9 +166,9 @@ void directory_entry::_internal_copy(directory_entry const& right) {
  */
 int directory_entry::_nmatch(char const* str, char const* pattern) {
   if (!*str && !*pattern)
-    return (1);
+    return 1;
   if (*str == *pattern)
-    return (_nmatch(str + 1, pattern + 1));
+    return _nmatch(str + 1, pattern + 1);
   return (*pattern == '*' ? (*str ? _nmatch(str + 1, pattern) : 0) +
                                 _nmatch(str, pattern + 1)
                           : 0);
