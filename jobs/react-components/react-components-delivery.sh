@@ -26,7 +26,7 @@ cat > .npmrc << EOF
 EOF
 
 npm ci
-if [ "$BRANCH_NAME" == "master" ] ; then
+if [ "$BRANCH_NAME" == "19.04.x" -o "$BRANCH_NAME" == "master" ] ; then
   # if job is run from master branch, publish the next release as an alpha
   npm version $VERSION-alpha.$BUILD_NUMBER
   npm publish --access=public --tag=next ./
@@ -38,6 +38,7 @@ if [ "$BRANCH_NAME" == "master" ] ; then
   docker push "$REGISTRY/react-components:latest"
 else
   # if job is run from another branch, publish the branch as version 0.0.0 and with tag unstable
+  BRANCH_NAME=`echo "$BRANCH_NAME" | sed 's/\./-/g'`
   npm version 0.0.0-$BRANCH_NAME.$BUILD_NUMBER
   if [ "$BUILD_NUMBER" -gt "1" ] ; then
     npm deprecate @centreon/react-components@"0.0.0-$BRANCH_NAME.0 - 0.0.0-$BRANCH_NAME.$(($BUILD_NUMBER-1))" "deprecate previous versions of branch $BRANCH_NAME"
