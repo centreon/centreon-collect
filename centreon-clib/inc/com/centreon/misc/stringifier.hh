@@ -20,6 +20,7 @@
 #define CC_MISC_STRINGIFIER_HH
 
 #include <string>
+#include <thread>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -51,6 +52,7 @@ class stringifier {
   stringifier& operator<<(unsigned long long ull) throw();
   stringifier& operator<<(unsigned long ul) throw();
   stringifier& operator<<(void const* p) throw();
+  stringifier& operator<<(std::thread::id const& p) throw();
   stringifier& append(char const* str, unsigned int size) throw();
   char const* data() const throw();
   int precision() const throw();

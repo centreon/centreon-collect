@@ -21,19 +21,12 @@ set(SRC_DIR "${SRC_DIR}/logging")
 set(INC_DIR "${INC_DIR}/logging")
 
 # Platform-specific files.
-if (WIN32)
-  set(SPECIFIC_SOURCES
-  )
-  set(SPECIFIC_HEADERS
-  )
-else ()
-  set(SPECIFIC_SOURCES
-    "${SRC_DIR}/syslogger.cc"
-  )
-  set(SPECIFIC_HEADERS
-    "${INC_DIR}/syslogger.hh"
-  )
-endif ()
+set(SPECIFIC_SOURCES
+  "${SRC_DIR}/syslogger.cc"
+)
+set(SPECIFIC_HEADERS
+  "${INC_DIR}/syslogger.hh"
+)
 
 # Set sources.
 set(
