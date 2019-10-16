@@ -11,27 +11,6 @@ fi
 export VERSION=3.4
 
 ##
-## CENTOS 6
-##
-
-# Launch container.
-ISO_IMAGE=registry.centreon.com/mon-build-iso:centos6
-docker pull $ISO_IMAGE
-containerid=`docker create --privileged $ISO_IMAGE /usr/local/bin/container.sh $VERSION`
-
-# Copy construction scripts to container.
-docker cp `dirname $0`/../../packaging/iso "$containerid:/tmp/iso"
-docker start -a "$containerid"
-docker cp "$containerid:/tmp/build/centreon-standard-$VERSION-x86_64.iso" "ces.iso"
-
-# Stop container.
-docker stop "$containerid"
-docker rm "$containerid"
-
-# Send to srvi-repo.
-scp -o StrictHostKeyChecking=no ces.iso "ubuntu@srvi-repo.int.centreon.com:/srv/iso/centreon-$VERSION.$RELEASE.el6.x86_64.iso"
-
-##
 ## CENTOS 7
 ##
 
