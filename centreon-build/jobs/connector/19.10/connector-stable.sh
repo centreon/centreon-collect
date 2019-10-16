@@ -19,8 +19,8 @@ SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO mv "/srv/sources/standard/testing/connector/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
 
 # Put sources online.
-SRCHASH=`$SSH_REPO "md5sum /srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/centreon-connectors/$PROJECT-$VERSION.tar.gz"
+SRCHASH=`$SSH_REPO "md5sum /srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/centreon-connectors-$VERSION.tar.gz | cut -d ' ' -f 1"`
+$SSH_REPO aws s3 cp --acl public-read "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/centreon-connectors-$VERSION.tar.gz" "s3://centreon-download/public/centreon-connectors/centreon-connectors-$VERSION.tar.gz"
 curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=centreon-connectors&version=$VERSION&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Move RPMs to the stable repository.
