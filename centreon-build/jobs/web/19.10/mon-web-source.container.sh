@@ -18,7 +18,7 @@ cd "doc/en/release_notes"
 cp ../Makefile .
 cp ../conf.py .
 make SPHINXOPTS="-D html_theme=scrolls" html
-cp "_build/html/centreon-$major.$minor.html" "../../../../www/install/RELEASENOTES.html"
+cp "_build/html/centreon-$major.$minor.html" "../../../www/install/RELEASENOTES.html"
 sed -i \
     -e "/<link/d" \
     -e "/<script .*>.*<\/script>/d" \
@@ -26,7 +26,7 @@ sed -i \
     -e "/<\/head>/i \
     <style type=\"text/css\">\n \
     #toc, .footer, .relnav, .header { display: none; }\n \
-    <\/style>" ../../../../www/install/RELEASENOTES.html
+    <\/style>" ../../../www/install/RELEASENOTES.html
 make clean
 rm -rf Makefile conf.py _build
 
