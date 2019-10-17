@@ -1,0 +1,39 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+{
+  "product": {
+    "name": "mbi"
+  },
+  "client": {
+    "name": "centreon"
+  },
+  "platform": {
+    "fingerprint": [],
+    "environment": "demo",
+    "mode": "offline"
+  },
+  "licensing": {
+    "type": "demo",
+    "isMachineLocked": "false",
+    "generated": "2019-09-03",
+    "start": "2019-09-03",
+    "end": "2019-12-03",
+    "hosts": -1,
+    "catalog_level": "4"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v1.6.2
+Comment: http://openpgpjs.org
+
+wsBcBAEBCAAQBQJdbgy4CRC4oxbLyI+7ygAAbTUH/j/vLILk5RGeDMd1NvTV
+KGHeQP+U9M4Q3g6Pfx0tDN1BvfL1M2ZysmmqR3aUCl7JVKUa2fAttJC2Tl8J
+gd6HF0nExk+7EgfMstu2HQoLLQiMyOGg/lnpPxDQyrExkARiaCpLQRhDQh/9
+ko1L9kv5jCevLS35Bx+ya+pIliWBUe9rEJnI/3a3dufVEvY4WC5/F6S0EV0d
+jXQnP8+iJvB1pXcYmp3aSB1UFwAFenP+1FynROr+NswsN5R8yJAKjfegURjA
+NdWFwcAJWs0azc/XpJvcl4baArHxHznj2XSNx3ba1oK06Q4rLMCDYSiOhh/q
+9kgDGnUN4pm30DNQ/awRuNg=
+=tXQB
+-----END PGP SIGNATURE-----
