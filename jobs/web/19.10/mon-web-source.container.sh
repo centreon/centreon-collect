@@ -14,11 +14,11 @@ find . -type f | xargs --delimiter='\n' sed -i -e "s/@COMMIT@/$COMMIT/g"
 # Generate release notes.
 major=`echo $VERSION | cut -d . -f 1`
 minor=`echo $VERSION | cut -d . -f 2`
-cd "doc/en/release_notes/centreon-$major.$minor"
-cp ../../Makefile .
-cp ../../conf.py .
+cd "doc/en/release_notes"
+cp ../Makefile .
+cp ../conf.py .
 make SPHINXOPTS="-D html_theme=scrolls" html
-cp "_build/html/centreon-$VERSION.html" "../../../../www/install/RELEASENOTES.html"
+cp "_build/html/centreon-$major.$minor.html" "../../../../www/install/RELEASENOTES.html"
 sed -i \
     -e "/<link/d" \
     -e "/<script .*>.*<\/script>/d" \
@@ -31,7 +31,7 @@ make clean
 rm -rf Makefile conf.py _build
 
 # Generate lang files.
-cd ../../../..
+cd ../../..
 # Special case for english front-end translation that uses french as base.
 mkdir -p www/locale/en_US.UTF-8/LC_MESSAGES
 php bin/centreon-translations.php en lang/fr_FR.UTF-8/LC_MESSAGES/messages.po www/locale/en_US.UTF-8/LC_MESSAGES/messages.ser
