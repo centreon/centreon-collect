@@ -1,6 +1,6 @@
 {
     "pkg_name": "centreon-plugin-Applications-Ansible-Tower",
-    "pkg_summary": "Centreon Plugin Ansible Tower",
+    "pkg_summary": "Centreon Plugin to monitor Ansible Tower using Tower CLI",
     "plugin_name": "centreon_ansible_tower.pl",
     "files": [
         "centreon/plugins/script_custom.pm",
