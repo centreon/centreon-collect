@@ -1,0 +1,24 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon Widgets",
+        "shortname": "widgets"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "19.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/19.10/el7/noarch/widgets/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/widgets/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}
