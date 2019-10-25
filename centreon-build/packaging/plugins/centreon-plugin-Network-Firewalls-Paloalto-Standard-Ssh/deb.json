@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "plink",
+	"libxml-simple-perl",
+	"libdatetime-perl"
+    ]
+}
