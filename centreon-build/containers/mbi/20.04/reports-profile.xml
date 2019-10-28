@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<DataTools.ServerProfiles version="1.0">
+	<profile autoconnect="No" desc="" id="1f9b6ad0-5ffc-11de-9883-ba3216db2cbc" name="Centreon" providerID="org.eclipse.birt.report.data.oda.jdbc">
+		<baseproperties>
+			<property name="odaJndiName" value=""/>
+			<property name="odaDriverClass" value="org.mariadb.jdbc.Driver"/>
+			<property name="odaURL" value="jdbc:mariadb://localhost/centreon?autoReconnect=true"/>
+			<property name="odaUser" value="centreonbi"/>
+			<property name="odaPassword" value="centreonbi"/>
+		</baseproperties>
+	</profile>
+	<profile autoconnect="No" desc="" id="1f9b6ad0-5ffc-11de-9883-ba3216db2cbd" name="Censtorage" providerID="org.eclipse.birt.report.data.oda.jdbc">
+		<baseproperties>
+			<property name="odaJndiName" value=""/>
+			<property name="odaDriverClass" value="org.mariadb.jdbc.Driver"/>
+			<property name="odaURL" value="jdbc:mariadb://localhost/centreon_storage?autoReconnect=true"/>
+			<property name="odaUser" value="centreonbi"/>
+			<property name="odaPassword" value="centreonbi"/>
+		</baseproperties>
+	</profile>
+</DataTools.ServerProfiles>

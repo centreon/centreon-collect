@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+set -x
+
+. `dirname $0`/../../common.sh
+
+# This job is run directly after des-bam-unittest on centos7.
+
+# Project.
+PROJECT=centreon-bam-server
+
+# Retrieve copy of git repository.
+curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-git.tar.gz"
+rm -rf "$PROJECT"
+tar xzf "$PROJECT-git.tar.gz"
+
+# Copy reports and run analysis.
+cd "$PROJECT"
+cp ../ut.xml .
+cp ../coverage.xml .
+sed -i -e 's#/usr/local/src/centreon-bam-server/##g' coverage.xml
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  sed -i -e 's/centreon-bam-20.04/centreon-bam-20.04-release/g' sonar-project.properties
+  sed -i -e 's/Centreon BAM 20.04/Centreon BAM 20.04 (release)/g' sonar-project.properties
+fi
+echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
+sonar-scanner

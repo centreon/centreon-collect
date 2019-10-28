@@ -1,0 +1,72 @@
+---
+  - jenkins_job:
+      name: centreon-autodisco-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'autodisco') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-awie-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'awie') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-bam-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'bam') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-broker-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'broker') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-clib-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'clib') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-connector-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'connector') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-dsm-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'dsm') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-engine-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'engine') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-lm-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'lm') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-open-tickets-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'open-tickets') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-ppm-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'ppm') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: centreon-web-20.04-stable
+      config: "{{ lookup('file', 'stable.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@PROJECT@', 'web') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
