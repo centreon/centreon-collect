@@ -1,0 +1,18 @@
+---
+  - jenkins_job:
+      name: mon-containers-unittest-20.04-centos7
+      config: "{{ lookup('file', 'mon-containers-unittest.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@DISTRIB@', 'centos7')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: mon-containers-unittest-20.04-debian9
+      config: "{{ lookup('file', 'mon-containers-unittest.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@DISTRIB@', 'debian9')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: mon-containers-unittest-20.04-debian10
+      config: "{{ lookup('file', 'mon-containers-unittest.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@DISTRIB@', 'debian10')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"

@@ -1,0 +1,20 @@
+# Base information.
+FROM registry.centreon.com/mon-web-20.04:@DISTRIB@
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+
+# Set middleware server
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
+COPY lm/20.04/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y centreon-license-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install module in Centreon.
+COPY web/20.04/install-centreon-module.php lm/20.04/install.sh /tmp/
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh
