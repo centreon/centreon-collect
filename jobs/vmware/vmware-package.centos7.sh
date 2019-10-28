@@ -15,8 +15,12 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 put_internal_rpms "3.4" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 put_internal_rpms "18.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 put_internal_rpms "19.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "19.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "20.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 if [ "$BRANCH_NAME" '=' 'master' ] ; then
   copy_internal_rpms_to_unstable "standard" "3.4" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_unstable "standard" "18.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_unstable "standard" "19.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_unstable "standard" "19.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_unstable "standard" "20.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 fi

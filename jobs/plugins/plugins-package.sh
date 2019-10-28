@@ -122,12 +122,14 @@ if [ "$atleastoneplugin" -ne 0 ] ; then
   put_internal_rpms "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+  put_internal_rpms "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   if [ "$BRANCH_NAME" '=' 'master' ] ; then
     copy_internal_rpms_to_unstable "standard" "3.4" "el6" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "3.4" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
+    copy_internal_rpms_to_unstable "standard" "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
   fi
 
   # Populate cache.
