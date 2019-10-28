@@ -1,7 +1,3 @@
-centreon-clib
-centreon-clib-devel
-centreon-common
-centreon-perl-libs
 gnutls
 httpd24-httpd
 initscripts
