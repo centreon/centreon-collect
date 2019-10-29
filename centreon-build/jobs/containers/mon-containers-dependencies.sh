@@ -14,9 +14,6 @@ case "$2" in
   centos7)
     BASE_IMAGE="centos:7"
     ;;
-  debian9)
-    BASE_IMAGE="debian:9"
-    ;;
   debian10)
     BASE_IMAGE="debian:buster"
     ;;

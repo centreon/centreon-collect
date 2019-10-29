@@ -14,14 +14,11 @@ case "$2" in
   centos7)
     BASE_IMAGE="alanfranz/drb-epel-7-x86-64"
     ;;
-  debian9)
-    BASE_IMAGE="debian:9"
-    ;;
-  debian9-armhf)
-    BASE_IMAGE="registry.centreon.com/mon-build-dependencies-$VERSION:debian9"
-    ;;
   debian10)
     BASE_IMAGE="debian:buster"
+    ;;
+  debian10-armhf)
+    BASE_IMAGE="registry.centreon.com/mon-build-dependencies-$VERSION:debian10"
     ;;
   opensuse-leap)
     BASE_IMAGE="opensuse/leap:latest"
