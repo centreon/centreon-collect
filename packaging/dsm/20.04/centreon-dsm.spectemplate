@@ -4,7 +4,7 @@ Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon-dsm add-on for Centreon
 %define thismajor 20.04.0
-%define nextmajor 19.11.0
+%define nextmajor 20.05.0
 
 Group:          System Environment/Base
 License:        GPLv2

@@ -7,7 +7,7 @@ Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Store Centreon Engine/Nagios events in a database.
 %define thismajor 20.04.0
-%define nextmajor 19.11.0
+%define nextmajor 20.05.0
 
 Group:          Applications/Communications
 License:        ASL 2.0
