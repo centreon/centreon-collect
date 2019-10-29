@@ -14,7 +14,7 @@ Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Connector provide some tools for Centreon Engine to monitoring and management system.
 %define thismajor 20.04.0
-%define nextmajor 19.11.0
+%define nextmajor 20.05.0
 
 Group:		%{group}
 License:        ASL 2.0
