@@ -16,7 +16,7 @@ docker start -a "$containerid"
 # Send package to repository.
 rm -rf debuildir
 docker cp "$containerid:/usr/local/src/debuildir" .
-put_internal_debs "20.04" "stretch" debuildir/*.deb
+put_internal_debs "20.04" "buster" debuildir/*.deb
 
 # Stop container.
 docker stop "$containerid"
