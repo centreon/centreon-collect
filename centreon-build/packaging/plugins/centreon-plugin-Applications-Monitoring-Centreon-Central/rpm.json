@@ -1,6 +1,8 @@
 {
     "dependencies": [
-        "perl(XML::LibXML)"
+        "perl(XML::LibXML)",
+	"perl(DBI)",
+        "perl(DBD::mysql)"
     ],
     "custom_pkg_data": "Obsoletes:    centreon-plugin-meta"
 }

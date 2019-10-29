@@ -4,6 +4,7 @@
     "plugin_name": "centreon_centreon_central.pl",
     "files": [
         "centreon/plugins/script_simple.pm",
+        "centreon/plugins/dbi.pm",
         "apps/centreon/local/"
     ]
 }
