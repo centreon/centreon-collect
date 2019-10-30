@@ -4,6 +4,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Set middleware server.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+COPY lm/20.04/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
 RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
 
 # Install repository.
