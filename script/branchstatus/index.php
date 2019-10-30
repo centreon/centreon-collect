@@ -93,35 +93,6 @@ printProjectStatus($projects2004);
         <tbody>
 <?php
 
-function printProjectStatus($projects)
-{
-  foreach ($projects as $project) {
-    // Retrieve project status from Jenkins.
-    $ch = curl_init();
-    curl_setopt(
-      $ch,
-      CURLOPT_URL,
-      'https://jenkins.centreon.com/job/' . $project['name'] . '/job/' .
-      $project['branch'] . '/lastBuild/api/json'
-    );
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_USERPWD, 'mkermagoret:1137c11b1b163d762610e4250e078582d7');
-    $job = json_decode(curl_exec($ch), true);
-
-    // Print project line.
-    $lineStyle = ($job['result'] === 'SUCCESS') ? 'alert-success' : 'alert-danger';
-    $jobLink = 'https://jenkins.centreon.com/job/' . $project['name'] . '/job/' . $project['branch'];
-    echo '<tr class="' . $lineStyle . '">' .
-         '  <td><a href="' . $jobLink . '">' . $project['name'] . '</a></td>' .
-         '  <td>' . $project['branch'] . '</td>' .
-         '  <td>' . $job['result'] . '</td>' .
-         '</tr>';
-
-    // Clone connection.
-    curl_close($ch);
-  }
-}
-
 $projects1910 = array(
   array('name' => 'centreon-autodiscovery', 'branch' => '19.10.x'),
   array('name' => 'centreon-awie', 'branch' => '19.10.x'),
