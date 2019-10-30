@@ -196,12 +196,12 @@ Requires:   centreon-broker-storage >= %{thismajor}
 Requires:   centreon-broker-storage < %{nextmajor}
 Requires:   centreon-web = %{version}-%{release}
 Requires:   centreon-poller-centreon-engine = %{version}-%{release}
-#Requires:   centreon-pp-manager >= %{thismajor}
-#Requires:   centreon-pp-manager < %{nextmajor}
-#Requires:   centreon-license-manager >= %{thismajor}
-#Requires:   centreon-license-manager < %{nextmajor}
-#Requires:   centreon-auto-discovery-server >= %{thismajor}
-#Requires:   centreon-auto-discovery-server < %{nextmajor}
+Requires:   centreon-pp-manager >= %{thismajor}
+Requires:   centreon-pp-manager < %{nextmajor}
+Requires:   centreon-license-manager >= %{thismajor}
+Requires:   centreon-license-manager < %{nextmajor}
+Requires:   centreon-auto-discovery-server >= %{thismajor}
+Requires:   centreon-auto-discovery-server < %{nextmajor}
 Requires(post): /usr/sbin/usermod
 Conflicts:  centreon-base-config-nagios
 Provides:   centreon-base-config = %{version}-%{release}
