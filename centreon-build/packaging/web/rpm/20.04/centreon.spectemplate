@@ -226,8 +226,8 @@ Requires:   centreon-broker-cbmod >= %{thismajor}
 Requires:   centreon-broker-cbmod < %{nextmajor}
 Requires:   centreon-broker-storage >= %{thismajor}
 Requires:   centreon-broker-storage < %{nextmajor}
-Requires:   centreon-connector >= %{thismajor}
-Requires:   centreon-connector < %{nextmajor}
+#Requires:   centreon-connector >= %{thismajor}
+#Requires:   centreon-connector < %{nextmajor}
 Requires:   perl-DBD-MySQL
 Requires:   perl-DBD-SQLite
 Requires:   centreon-plugin-Applications-Databases-Mysql
