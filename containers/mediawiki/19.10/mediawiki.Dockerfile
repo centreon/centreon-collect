@@ -1,5 +1,5 @@
 # Base information.
-FROM mediawiki:latest
+FROM mediawiki:1.31
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 RUN mkdir -p -m 755 /var/www/data/locks
