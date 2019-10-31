@@ -360,6 +360,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -d -m 0775 %buildroot%{_datadir}/centreon/examples
 %{__cp} tmpl/install/redhat/centcore.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} tmpl/install/redhat/centreontrapd.systemd %buildroot%{_datadir}/centreon/examples/
+%{__cp} tmpl/install/redhat/rrdcached.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} %buildroot%{_sysconfdir}/httpd/conf.d/10-centreon.conf %buildroot%{_datadir}/centreon/examples/centreon.apache.conf
 
 # Copy Lib
