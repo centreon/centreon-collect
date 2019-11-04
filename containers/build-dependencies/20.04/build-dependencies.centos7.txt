@@ -19,3 +19,4 @@ lua-devel
 expect
 perl-XML-SAX
 MariaDB-devel
+MariaDB-shared
