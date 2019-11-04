@@ -30,22 +30,23 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   fi
   SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V latest'"
+  TARGETVERSION="$VERSION"
 
 #
 # CI delivery.
 #
 else
-  # Tag and push images.
-  REGISTRY='registry.centreon.com'
-  for image in des-map-server des-map-web ; do
-    for distrib in centos7 ; do
-      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-20.04:$distrib"
-      docker push "$REGISTRY/$image-20.04:$distrib"
-    done
-  done
-
-  # Move RPMs to unstable.
   promote_canary_rpms_to_unstable "map" "20.04" "el7" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE"
   promote_canary_rpms_to_unstable "map" "20.04" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
+  TARGETVERSION='20.04'
 fi
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+for image in des-map-server des-map-web ; do
+  for distrib in centos7 ; do
+    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
+    docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
+  done
+done

@@ -25,21 +25,22 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon -V latest -p'"
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon -V 18.10 -p'"
   $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon -V 18.10 -p'"
+  TARGETVERSION="$VERSION"
 
 #
 # CI delivery.
 #
 else
-  # Set Docker images as latest.
-  REGISTRY='registry.centreon.com'
-  for image in mon-web-fresh mon-web mon-web-widgets ; do
-    for distrib in centos7 ; do
-      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-18.10:$distrib"
-      docker push "$REGISTRY/$image-18.10:$distrib"
-    done
-  done
-
-  # Move RPMs to unstable.
   promote_canary_rpms_to_unstable "standard" "18.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
+  TARGETVERSION='18.10'
 fi
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+for image in mon-web-fresh mon-web mon-web-widgets ; do
+  for distrib in centos7 ; do
+    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
+    docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
+  done
+done

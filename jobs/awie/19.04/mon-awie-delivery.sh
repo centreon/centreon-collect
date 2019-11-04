@@ -31,18 +31,21 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   SRCHASH=00112233445566778899aabbccddeeff
   curl "$DLDEV_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
 
+  # Docker image target version.
+  TARGETVERSION="$VERSION"
+
 #
 # CI delivery.
 #
 else
-  # Set Docker images as latest.
-  REGISTRY='registry.centreon.com'
-  for distrib in centos7 ; do
-    docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-awie-19.04:$distrib"
-    docker push "$REGISTRY/mon-awie-19.04:$distrib"
-  done
-
-  # Move RPMs to unstable.
   promote_canary_rpms_to_unstable "standard" "19.04" "el7" "noarch" "awie" "$PROJECT-$VERSION-$RELEASE"
+  TARGETVERSION='19.04'
 fi
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+for distrib in centos7 ; do
+  docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib"
+  docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-awie-$TARGETVERSION:$distrib"
+  docker push "$REGISTRY/mon-awie-$TARGETVERSION:$distrib"
+done

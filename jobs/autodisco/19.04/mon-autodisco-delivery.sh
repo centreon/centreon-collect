@@ -31,18 +31,21 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   SRCHASH=00112233445566778899aabbccddeeff
   curl "$DLDEV_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION-php71&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
 
+  # Target Docker image version.
+  TARGETVERSION="$VERSION"
+
 #
 # CI delivery.
 #
 else
-  # Set Docker images as latest.
-  REGISTRY='registry.centreon.com'
-  for distrib in centos7 ; do
-    docker pull "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-autodisco-19.04:$distrib"
-    docker push "$REGISTRY/mon-autodisco-19.04:$distrib"
-  done
-
-  # Move RPMs to unstable.
   promote_canary_rpms_to_unstable "standard" "19.04" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  TARGETVERSION='19.04'
 fi
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+for distrib in centos7 ; do
+  docker pull "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib"
+  docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-autodisco-$TARGETVERSION:$distrib"
+  docker push "$REGISTRY/mon-autodisco-$TARGETVERSION:$distrib"
+done
