@@ -4,6 +4,7 @@ cmake
 devscripts
 libgnutls28-dev
 liblua5.3-dev
+libmariadb-dev
 libqt4-dev
 librrd-dev
 lintian
