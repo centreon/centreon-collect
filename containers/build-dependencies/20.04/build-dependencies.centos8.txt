@@ -12,5 +12,6 @@ mariadb-devel
 maven
 redhat-lsb
 rpm-build
+rpm-sign
 rrdtool-devel
 yum-utils
