@@ -7,10 +7,8 @@ gnutls-devel
 libgcrypt-devel
 lua-devel
 make
+mariadb-connector-c
 mariadb-devel
-mariadb-shared
 maven
-python-sphinx
-qt4-devel
 redhat-lsb
 rrdtool-devel
