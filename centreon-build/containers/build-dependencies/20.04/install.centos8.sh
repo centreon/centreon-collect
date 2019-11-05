@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Install development repository.
-curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el8.centos.noarch.rpm"
+curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/20.04/el8/stable/noarch/RPMS/centreon-release-20.04-1.el8.centos.noarch.rpm"
 dnf install --nogpgcheck centreon-release.rpm
 sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 yum-config-manager --enable 'centreon-testing*'
