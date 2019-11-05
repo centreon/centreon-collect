@@ -14,8 +14,11 @@ case "$2" in
   centos7)
     BASE_IMAGE="alanfranz/drb-epel-7-x86-64"
     ;;
+  centos8)
+    BASE_IMAGE="registry.centreon.com/centos:8"
+    ;;
   debian10)
-    BASE_IMAGE="debian:buster"
+    BASE_IMAGE="registry.centreon.com/debian:buster"
     ;;
   debian10-armhf)
     BASE_IMAGE="registry.centreon.com/mon-build-dependencies-$VERSION:debian10"
