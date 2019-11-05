@@ -6,6 +6,12 @@
       password: "{{ jenkins_password }}"
 
   - jenkins_job:
+      name: mon-containers-build-dependencies-20.04-centos8
+      config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@DISTRIB@', 'centos8')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
       name: mon-containers-build-dependencies-20.04-debian10
       config: "{{ lookup('file', 'mon-containers-build-dependencies.xml.in') | regex_replace('@SERIE@', '20.04') | regex_replace('@DISTRIB@', 'debian10')}}"
       user: "{{ jenkins_user }}"

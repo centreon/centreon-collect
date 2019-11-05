@@ -1,0 +1,16 @@
+cmake
+gcc
+gcc-c++
+gettext
+git
+gnutls-devel
+libgcrypt-devel
+lua-devel
+make
+mariadb-devel
+mariadb-shared
+maven
+python-sphinx
+qt4-devel
+redhat-lsb
+rrdtool-devel
