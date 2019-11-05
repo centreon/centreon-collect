@@ -6,6 +6,7 @@ set -x
 # Base dnf configuration.
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
+dnf install dnf-plugins-core
 
 # Install development repository.
 curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/20.04/el8/stable/noarch/RPMS/centreon-release-20.04-1.el8.noarch.rpm"
