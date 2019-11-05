@@ -24,7 +24,7 @@ dnf install --nogpgcheck -y nodejs
 npm install -g gulp
 
 # Install Composer.
-dnf install php php-cli php-dom php-mbstring
+dnf install php php-cli php-dom php-json php-mbstring
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
