@@ -31,7 +31,7 @@ $repos = array(
 // Generate all .repo files.
 foreach ($repos as $repo => $repodata) {
     // Process CentOS 7 only.
-    foreach (array('el7') as $distrib) {
+    foreach (array('el7', 'el8') as $distrib) {
         @mkdir($distrib);
         $content = '';
 
