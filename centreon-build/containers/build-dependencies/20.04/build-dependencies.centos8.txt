@@ -11,5 +11,6 @@ mariadb-connector-c
 mariadb-devel
 maven
 redhat-lsb
+rpm-build
 rrdtool-devel
 yum-utils
