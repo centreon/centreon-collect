@@ -12,3 +12,4 @@ mariadb-devel
 maven
 redhat-lsb
 rrdtool-devel
+yum-utils
