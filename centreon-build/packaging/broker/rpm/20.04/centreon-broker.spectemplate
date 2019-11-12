@@ -26,6 +26,8 @@ BuildRequires:  gcc-c++
 BuildRequires:  libgcrypt-devel
 BuildRequires:  lua-devel
 BuildRequires:  make
+BuildRequires:  MariaDB-devel
+BuildRequires:  MariaDB-shared
 BuildRequires:  rrdtool-devel
 BuildRequires:  systemd
 Requires:       centreon-common >= %{thismajor}
@@ -34,16 +36,10 @@ Requires:       coreutils
 
 %if 0%{?suse_version}
 BuildRequires:  libgnutls-devel >= 2.0
-BuildRequires:  libqt4-devel >= 4.7.4
 BuildRequires:  lsb
-Requires:       libqt4 >= 4.7.4
-Requires:       libqt4-sql-mysql >= 4.7.4
 %else
 BuildRequires:  gnutls-devel >= 2.0
-BuildRequires:  qt4-devel >= 4.7.4
 BuildRequires:  redhat-lsb
-Requires:       qt4 >= 4.7.4
-Requires:       qt4-mysql >= 4.7.4
 %endif
 
 %description
@@ -55,11 +51,6 @@ Summary:        Centreon Broker's shared library.
 Group:		Applications/Communications
 Requires:       gnutls >= 2.0
 Requires:       lua
-%if 0%{?suse_version}
-Requires:       libqt4 >= 4.7.4
-%else
-Requires:       qt4 >= 4.7.4
-%endif
 Requires:       %{name} = %{version}-%{release}
 Requires:       %{name}-storage = %{version}-%{release}
 
@@ -125,12 +116,6 @@ Include files needed to develop a module Centreon Broker.
 %setup
 
 %build
-%ifarch x86_64
-	export PATH=$PATH:/usr/lib64/qt4/bin/
-%else
-	export PATH=$PATH:/usr/lib/qt4/bin/
-%endif
-
 CXXFLAGS="-O2 -g -std=c++11" %{cmake} \
 	-DWITH_TESTING=0 \
 	-DWITH_PREFIX=/usr \
@@ -207,12 +192,10 @@ fi
 
 %files core
 %defattr(-,root,root,-)
-%{_datadir}/centreon/lib/centreon-broker/05-dumper.so
 %{_datadir}/centreon/lib/centreon-broker/10-neb.so
 %{_datadir}/centreon/lib/centreon-broker/15-stats.so
 %{_datadir}/centreon/lib/centreon-broker/20-bam.so
 %{_datadir}/centreon/lib/centreon-broker/30-correlation.so
-%{_datadir}/centreon/lib/centreon-broker/40-notification.so
 %{_datadir}/centreon/lib/centreon-broker/50-tcp.so
 %{_datadir}/centreon/lib/centreon-broker/60-tls.so
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
