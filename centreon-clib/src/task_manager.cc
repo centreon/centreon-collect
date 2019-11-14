@@ -83,19 +83,11 @@ uint64_t task_manager::add(task* t,
                        timestamp const& when,
                        bool is_runnable,
                        bool should_delete) {
-  system("echo 'task_manager::add lock _tasks_m' >> /tmp/titi");
   std::lock_guard<std::mutex> lock(_tasks_m);
-
-  // FIXME DBR
-  std::ostringstream oss;
-  oss << "echo 'task_manager::add1...runnable"
-    << is_runnable << "' >> /tmp/titi";
-  system(oss.str().c_str());
 
   internal_task* itask =
       new internal_task(t, ++_current_id, 0, is_runnable, should_delete);
   _tasks.insert({when, itask});
-  system("echo 'task_manager::add unlock _tasks_m' >> /tmp/titi");
   return _current_id;
 }
 
@@ -116,14 +108,7 @@ uint64_t task_manager::add(task* t,
                        uint32_t interval,
                        bool is_runnable,
                        bool should_delete) {
-  system("echo 'task_manager::add2 lock _tasks_m' >> /tmp/titi");
   std::lock_guard<std::mutex> lock(_tasks_m);
-
-  // FIXME DBR
-  std::ostringstream oss;
-  oss << "echo 'task_manager::add2...runnable"
-    << is_runnable << "' >> /tmp/titi";
-  system(oss.str().c_str());
 
   internal_task* itask = new internal_task(t, ++_current_id, interval, is_runnable, should_delete);
   _tasks.insert({when, itask});
@@ -138,7 +123,6 @@ uint64_t task_manager::add(task* t,
  *          task need to be run.
  */
 timestamp task_manager::next_execution_time() const {
-  system("echo 'task_manager::next_execution_time lock _tasks_m' >> /tmp/titi");
   std::lock_guard<std::mutex> lock(_tasks_m);
   auto front = _tasks.begin();
   return (front == _tasks.end()) ? timestamp::max_time() : front->first;
@@ -157,7 +141,6 @@ uint32_t task_manager::remove(task* t) {
     return 0;
 
   // Lock the task manager.
-  system("echo 'task_manager::remove lock _tasks_m' >> /tmp/titi");
   std::lock_guard<std::mutex> lock(_tasks_m);
 
   uint32_t retval = 0;
@@ -184,7 +167,6 @@ uint32_t task_manager::remove(task* t) {
  */
 bool task_manager::remove(uint64_t id) {
   // Lock the task manager.
-  system("echo 'task_manager::remove2 lock _tasks_m' >> /tmp/titi");
   std::lock_guard<std::mutex> lock(_tasks_m);
 
   uint32_t retval = 0;
@@ -208,37 +190,29 @@ bool task_manager::remove(uint64_t id) {
  *  @return The number of task to be execute.
  */
 uint32_t task_manager::execute(timestamp const& now) {
-  system("echo 'execute1...' >> /tmp/titi");
   std::deque<std::pair<timestamp, internal_task*>> recurring;
   uint32_t retval = 0;
-  system("echo 'task_manager::execute lock _tasks_m' >> /tmp/titi");
   std::unique_lock<std::mutex> lock(_tasks_m);
   auto it = _tasks.begin();
   while (it != _tasks.end() && it->first <= now) {
-    system("echo 'execute1 while' >> /tmp/titi");
     // Get internal task.
     internal_task* itask = it->second;
 
-    system("echo 'execute1 erase' >> /tmp/titi");
     // Remove entry
     _tasks.erase(it);
 
     if (itask->interval) {
-      system("echo 'execute1 interval' >> /tmp/titi");
       timestamp new_time(now);
       new_time.add_useconds(itask->interval);
       recurring.emplace_back(std::make_pair(new_time, itask));
     }
 
-    system("echo 'execute1 unlock' >> /tmp/titi");
     lock.unlock();
 
     if (itask->is_runnable) {
-      system("echo 'execute1 enqueue task' >> /tmp/titi");
       _enqueue(itask);
     }
     else {
-      system("echo 'execute1 wait...' >> /tmp/titi");
       /* This task needs to be run in the main thread without any concurrency */
       _wait_for_queue_empty();
       itask->tsk->run();
@@ -252,17 +226,14 @@ uint32_t task_manager::execute(timestamp const& now) {
     it = _tasks.begin();
   }
 
-  system("echo 'execute2 recurring tasks inserted...' >> /tmp/titi");
   /* Update the task table with recurring tasks. */
   for (auto& t : recurring) {
     _tasks.insert(t);
   }
-  system("echo 'execute3...' >> /tmp/titi");
 
   lock.unlock();
   /* Wait for task ending. */
   _wait_for_queue_empty();
-  system("echo 'execute4...' >> /tmp/titi");
   return retval;
 }
 
@@ -278,8 +249,6 @@ void task_manager::_enqueue(internal_task* t) {
 }
 
 void task_manager::_wait_for_queue_empty() const {
-  system("echo 'task_manager::wait_for_queue_empty lock _tasks_m' >> /tmp/titi");
   std::unique_lock<std::mutex> lock(_queue_m);
   _queue_cv.wait(lock, [this] { return _queue.empty(); });
-  system("echo 'task_manager::wait_for_queue_empty EMPTY' >> /tmp/titi");
 }

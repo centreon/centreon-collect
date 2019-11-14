@@ -159,17 +159,13 @@ unsigned int handle_manager::remove(handle_listener* hl) {
  *  execute the task manager.
  */
 void handle_manager::multiplex() {
-  system("echo 'multiplex1...' >> /tmp/titi");
   // Check that task manager is present.
   if (!_task_manager)
     throw basic_error() << "cannot multiplex handles with no task manager";
 
-  system("echo 'multiplex2 setup array...' >> /tmp/titi");
   // Create or update pollfd.
   _setup_array();
-  system("echo 'multiplex2 setup finished...' >> /tmp/titi");
 
-  system("echo 'multiplex3...' >> /tmp/titi");
   // Determined the poll timeout with the next execution time.
   int timeout(-1);
   timestamp now(timestamp::now());
@@ -183,7 +179,6 @@ void handle_manager::multiplex() {
   else
     timeout = next.to_mseconds() - now.to_mseconds();
 
-  system("echo 'multiplex4...' >> /tmp/titi");
   // Wait events.
   int ret = _poll(_array, _handles.size(), timeout);
   if (ret == -1) {
@@ -191,43 +186,26 @@ void handle_manager::multiplex() {
     throw basic_error() << "handle multiplexing failed: " << msg;
   }
 
-  system("echo 'multiplex5...' >> /tmp/titi");
-
-  //FIXME DBR
-  std::ostringstream oss;
-  oss << "echo 'multiplex5 _handles.size = " << _handles.size()
-    << " ret = " << ret << "' >> /tmp/titi";
-  system(oss.str().c_str());
-
   // Dispatch events.
   int nb_check(0);
   for (uint32_t i = 0, end = _handles.size(); i < end && nb_check < ret; ++i) {
     if (!_array[i].revents) {
-      system("echo 'multiplex5 no revents...' >> /tmp/titi");
       continue;
     }
     handle_action* task(_handles[_array[i].fd]);
     if (_array[i].revents & (POLLERR | POLLNVAL)) {
-      system("echo 'multiplex5 error...' >> /tmp/titi");
       task->set_action(handle_action::error);
     } else if (_array[i].revents & POLLOUT) {
-      system("echo 'multiplex5 write...' >> /tmp/titi");
       task->set_action(handle_action::write);
     } else if (_array[i].revents & (POLLHUP | POLLIN | POLLPRI)) {
-      system("echo 'multiplex5 read...' >> /tmp/titi");
       task->set_action(handle_action::read);
-    }
-    else {
-      system("echo 'multiplex5 NOTHING TO DO...' >> /tmp/titi");
     }
     _task_manager->add(task, now, task->is_threadable());
     ++nb_check;
   }
 
-  system("echo 'multiplex6...' >> /tmp/titi");
   // Flush task needs to be execute at this time.
   _task_manager->execute(timestamp::now());
-  system("echo 'multiplex7...' >> /tmp/titi");
 }
 
 /**
