@@ -72,7 +72,7 @@ Centreon Connector SSH provide persistante connection between checks.
 
 %build
 cd perl/build
-CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
+CXXFLAGS="-DNDEBUG -g -O2 -std=c++11 -Wno-long-long" %{cmake} \
 	-DWITH_PREFIX=%{_prefix} \
 	-DWITH_PREFIX_BINARY=%{_libdir}/centreon-connector \
 	-DWITH_TESTING=0 .
