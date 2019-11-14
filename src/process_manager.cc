@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include <algorithm>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -71,9 +72,9 @@ void process_manager::add(process* p) {
     _processes_fd[p->_stream[process::err]] = p;
 
   // Add timeout to kill process if necessary.
-  if (p->_timeout) {
+  if (p->_timeout)
     _processes_timeout.insert({p->_timeout, p});
-  }
+
   // Need to update file descriptor list.
   _update = true;
 }
@@ -184,7 +185,7 @@ process_manager::~process_manager() noexcept {
 void process_manager::_close(int& fd) noexcept {
   if (fd >= 0) {
     while (::close(fd) < 0 && errno == EINTR)
-      ;
+      std::this_thread::yield();
   }
   fd = -1;
 }
@@ -196,7 +197,7 @@ void process_manager::_close(int& fd) noexcept {
  */
 void process_manager::_close_stream(int fd) noexcept {
   try {
-    process* p(nullptr);
+    process* p;
     // Get process to link with fd and remove this
     // fd to the process manager.
     {
@@ -213,23 +214,7 @@ void process_manager::_close_stream(int fd) noexcept {
     }
 
     // Update process informations.
-    std::unique_lock<std::mutex> lock(p->_lock_process);
-    if (p->_stream[process::out] == fd)
-      p->_close(p->_stream[process::out]);
-    else if (p->_stream[process::err] == fd)
-      p->_close(p->_stream[process::err]);
-    if (!p->_is_running()) {
-      // Notify listener if necessary.
-      if (p->_listener) {
-        lock.unlock();
-        (p->_listener->finished)(*p);
-        lock.lock();
-      }
-      // Release condition variable.
-      p->_cv_buffer_err.notify_one();
-      p->_cv_buffer_out.notify_one();
-      p->_cv_process.notify_one();
-    }
+    p->do_close(fd);
   }
   catch (std::exception const& e) {
     log_error(logging::high) << e.what();
@@ -286,42 +271,19 @@ void process_manager::_kill_processes_timeout() noexcept {
 unsigned int process_manager::_read_stream(int fd) noexcept {
   unsigned int size(0);
   try {
-    process* p(nullptr);
+    process* p;
     // Get process to link with fd.
     {
       std::lock_guard<std::mutex> lock(_lock_processes);
       std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw basic_error() << "invalid fd: "
-                               "not found into processes fd list";
+        throw basic_error() << "invalid fd: not found into processes fd list";
       }
       p = it->second;
     }
 
-    std::unique_lock<std::mutex> lock(p->_lock_process);
-    // Read content of the stream and push it.
-    char buffer[4096];
-    if (!(size = p->_read(fd, buffer, sizeof(buffer))))
-      return 0;
-
-    if (p->_stream[process::out] == fd) {
-      p->_buffer_out.append(buffer, size);
-      p->_cv_buffer_out.notify_one();
-      // Notify listener if necessary.
-      if (p->_listener) {
-        lock.unlock();
-        (p->_listener->data_is_available)(*p);
-      }
-    } else if (p->_stream[process::err] == fd) {
-      p->_buffer_err.append(buffer, size);
-      p->_cv_buffer_err.notify_one();
-      // Notify listener if necessary.
-      if (p->_listener) {
-        lock.unlock();
-        (p->_listener->data_is_available_err)(*p);
-      }
-    }
+    size = p->do_read(fd);
   }
   catch (std::exception const& e) {
     log_error(logging::high) << e.what();
@@ -339,7 +301,7 @@ void process_manager::_run() {
       // Update the file descriptor list.
       _update_list();
 
-      if (quit && !_fds_size)
+      if (quit && _fds_size == 0)
         break;
 
       // Wait event on file descriptor.
@@ -360,7 +322,7 @@ void process_manager::_run() {
 
         ++checked;
 
-        // The process manager destructor was call,
+        // The process manager destructor was called,
         // it's time to quit the loop.
         if (_fds[i].fd == _fds_exit[0]) {
           _processes_fd.erase(_fds[i].fd);
@@ -376,6 +338,7 @@ void process_manager::_run() {
         // File descriptor was close.
         if ((_fds[i].revents & POLLHUP) && !size)
           _close_stream(_fds[i].fd);
+
         //  Error!
         else if (_fds[i].revents & (POLLERR | POLLNVAL)) {
           _update = true;
@@ -406,25 +369,24 @@ void process_manager::_update_ending_process(process* p, int status) noexcept {
   if (!p)
     return;
 
+  p->update_ending_process(status);
   // Update process informations.
-  std::unique_lock<std::mutex> lock(p->_lock_process);
-  p->_end_time = timestamp::now();
-  p->_status = status;
-  p->_process = static_cast<pid_t>(-1);
-  p->_close(p->_stream[process::in]);
+//  std::lock_guard<std::mutex> lock(p->_lock_process);
+//  p->_end_time = timestamp::now();
+//  p->_status = status;
+//  p->_process = static_cast<pid_t>(-1);
+//  p->_close(p->_stream[process::in]);
   _erase_timeout(p);
-  if (!p->_is_running()) {
-    // Notify listener if necessary.
-    if (p->_listener) {
-      lock.unlock();
-      (p->_listener->finished)(*p);
-      lock.lock();
-    }
-    // Release condition variable.
-    p->_cv_buffer_err.notify_one();
-    p->_cv_buffer_out.notify_one();
-    p->_cv_process.notify_one();
-  }
+//  if (!p->_is_running()) {
+//    // Notify listener if necessary.
+//    if (p->_listener)
+//      (p->_listener->finished)(*p);
+//
+//    // Release condition variable.
+//    p->_cv_buffer_err.notify_one();
+//    p->_cv_buffer_out.notify_one();
+//    p->_cv_process_running.notify_one();
+//  }
 }
 
 /**

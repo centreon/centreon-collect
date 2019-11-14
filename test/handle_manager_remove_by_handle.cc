@@ -16,32 +16,46 @@
 ** For more information : contact@centreon.com
 */
 
-#include <exception>
 #include <iostream>
-#include "com/centreon/concurrency/thread.hh"
+#include <stdio.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/timestamp.hh"
+#include "com/centreon/handle_listener.hh"
+#include "com/centreon/handle_manager.hh"
+#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
 
 /**
- *  Check the sleep methode.
+ *  @class listener
+ *  @brief litle implementation of handle listener to test the
+ *         handle manager.
+ */
+class     listener : public handle_listener {
+public:
+          listener() {}
+          ~listener() throw () {}
+  void    error(handle& h) { (void)h; }
+};
+
+/**
+ *  Check the handle manager remove by handle.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    unsigned long waiting(5000);
-    timestamp start(timestamp::now());
-    concurrency::thread::msleep(waiting);
-    timestamp end(timestamp::now());
-    timestamp diff(end - start);
-    if (diff.to_mseconds() > waiting * 1.20)
-      throw(basic_error() << "waiting more than necessary: "
-                          << diff.to_mseconds() << "/" << waiting);
-    if (diff.to_mseconds() < waiting * 0.90)
-      throw(basic_error() << "waiting less than necessary: "
-                          << diff.to_mseconds() << "/" << waiting);
+    handle_manager hm;
+    if (hm.remove(static_cast<handle*>(NULL)))
+      throw (basic_error() << "remove null pointer");
+
+    io::file_stream fs(stdin);
+    if (hm.remove(&fs))
+      throw (basic_error() << "remove invalid handle");
+
+    listener l;
+    hm.add(&fs, &l);
+    if (!hm.remove(&fs))
+      throw (basic_error() << "remove failed");
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;

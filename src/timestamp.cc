@@ -94,8 +94,8 @@ bool timestamp::operator!=(timestamp const& right) const throw() {
  *  @return True if less, otherwise false.
  */
 bool timestamp::operator<(timestamp const& right) const throw() {
-  return (_secs < right._secs ||
-          (_secs == right._secs && _usecs < right._usecs));
+  return _secs < right._secs ||
+          (_secs == right._secs && _usecs < right._usecs);
 }
 
 /**

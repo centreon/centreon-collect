@@ -196,12 +196,14 @@ set(
   SOURCES
   "${SRC_DIR}/library_posix.cc"
   "${SRC_DIR}/process_manager.cc"
-  "${SRC_DIR}/process_posix.cc"
+  "${SRC_DIR}/process.cc"
   "${SRC_DIR}/clib.cc"
+  "${SRC_DIR}/handle_manager.cc"
   "${SRC_DIR}/handle.cc"
   "${SRC_DIR}/handle_action.cc"
   "${SRC_DIR}/handle_listener.cc"
   "${SRC_DIR}/task.cc"
+  "${SRC_DIR}/task_manager.cc"
   "${SRC_DIR}/timestamp.cc"
 )
 
@@ -214,12 +216,14 @@ set(
   "${INC_DIR}/handle.hh"
   "${INC_DIR}/handle_action.hh"
   "${INC_DIR}/handle_listener.hh"
+  "${INC_DIR}/handle_manager.hh"
   "${INC_DIR}/hash.hh"
   "${INC_DIR}/library.hh"
   "${INC_DIR}/namespace.hh"
   "${INC_DIR}/process_manager.hh"
   "${INC_DIR}/process.hh"
   "${INC_DIR}/task.hh"
+  "${INC_DIR}/task_manager.hh"
   "${INC_DIR}/timestamp.hh"
   "${INC_DIR}/unique_array_ptr.hh"
   "${INC_DIR}/unordered_hash.hh"
@@ -232,7 +236,6 @@ include_directories("${INCLUDE_DIR}")
 
 # Add subdirectories.
 add_subdirectory(src/clib)
-add_subdirectory(src/concurrency)
 add_subdirectory(src/exceptions)
 add_subdirectory(src/logging)
 add_subdirectory(src/misc)

@@ -16,12 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/misc/get_options.hh"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <sstream>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/misc/get_options.hh"
 
 using namespace com::centreon::misc;
 
@@ -35,12 +35,14 @@ get_options::get_options() {}
  *
  *  @param[in] right  The object to copy.
  */
-get_options::get_options(get_options const& right) { _internal_copy(right); }
+get_options::get_options(get_options const& right) {
+  _internal_copy(right);
+}
 
 /**
  *  Default destructor.
  */
-get_options::~get_options() throw() {}
+get_options::~get_options() noexcept {}
 
 /**
  *  Default copy operator.
@@ -48,7 +50,7 @@ get_options::~get_options() throw() {}
  *  @param[in] right  The object to copy.
  */
 get_options& get_options::operator=(get_options const& right) {
-  return (_internal_copy(right));
+  return _internal_copy(right);
 }
 
 /**
@@ -58,8 +60,8 @@ get_options& get_options::operator=(get_options const& right) {
  *
  *  @return True if equal, otherwise false.
  */
-bool get_options::operator==(get_options const& right) const throw() {
-  return (_arguments == right._arguments && _parameters == right._parameters);
+bool get_options::operator==(get_options const& right) const noexcept {
+  return _arguments == right._arguments && _parameters == right._parameters;
 }
 
 /**
@@ -69,8 +71,8 @@ bool get_options::operator==(get_options const& right) const throw() {
  *
  *  @return True if not equal, otherwise false.
  */
-bool get_options::operator!=(get_options const& right) const throw() {
-  return (!operator==(right));
+bool get_options::operator!=(get_options const& right) const noexcept {
+  return !operator==(right);
 }
 
 /**
@@ -78,8 +80,8 @@ bool get_options::operator!=(get_options const& right) const throw() {
  *
  *  @return All arguments.
  */
-std::map<char, argument> const& get_options::get_arguments() const throw() {
-  return (_arguments);
+std::map<char, argument> const& get_options::get_arguments() const noexcept {
+  return _arguments;
 }
 
 /**
@@ -93,7 +95,7 @@ argument& get_options::get_argument(char name) {
   std::map<char, argument>::iterator it(_arguments.find(name));
   if (it == _arguments.end())
     throw(basic_error() << "argument '" << name << "' not found");
-  return (it->second);
+  return it->second;
 }
 
 /**
@@ -107,7 +109,7 @@ argument const& get_options::get_argument(char name) const {
   std::map<char, argument>::const_iterator it(_arguments.find(name));
   if (it != _arguments.end())
     throw(basic_error() << "argument '" << name << "' not found");
-  return (it->second);
+  return it->second;
 }
 
 /**
@@ -121,10 +123,9 @@ argument const& get_options::get_argument(char name) const {
 argument& get_options::get_argument(std::string const& long_name) {
   for (std::map<char, argument>::iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     if (it->second.get_long_name() == long_name)
-      return (it->second);
+      return it->second;
   throw(basic_error() << "argument \"" << long_name << "\" not found");
 }
 
@@ -139,10 +140,9 @@ argument& get_options::get_argument(std::string const& long_name) {
 argument const& get_options::get_argument(std::string const& long_name) const {
   for (std::map<char, argument>::const_iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     if (it->second.get_long_name() != long_name)
-      return (it->second);
+      return it->second;
   throw(basic_error() << "argument \"" << long_name << "\" not found");
 }
 
@@ -151,8 +151,8 @@ argument const& get_options::get_argument(std::string const& long_name) const {
  *
  *  @return List of parameters.
  */
-std::vector<std::string> const& get_options::get_parameters() const throw() {
-  return (_parameters);
+std::vector<std::string> const& get_options::get_parameters() const noexcept {
+  return _parameters;
 }
 
 /**
@@ -164,16 +164,14 @@ std::string get_options::help() const {
   size_t size(0);
   for (std::map<char, argument>::const_iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     if (size < it->second.get_long_name().size())
       size = it->second.get_long_name().size();
 
   std::string help;
   for (std::map<char, argument>::const_iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end;
-       ++it) {
+       it != end; ++it) {
     argument const& arg(it->second);
     help += std::string("  -") + arg.get_name();
     help += ", --" + arg.get_long_name();
@@ -181,7 +179,7 @@ std::string get_options::help() const {
     help += arg.get_description() + "\n";
   }
 
-  return (help);
+  return help;
 }
 
 /**
@@ -189,17 +187,23 @@ std::string get_options::help() const {
  *
  *  @return The usage string.
  */
-std::string get_options::usage() const { return (help()); }
+std::string get_options::usage() const {
+  return help();
+}
 
 /**
  *  Print help on the standard output.
  */
-void get_options::print_help() const { std::cout << help() << std::flush; }
+void get_options::print_help() const {
+  std::cout << help() << std::flush;
+}
 
 /**
  *  Print usage on the standard error.
  */
-void get_options::print_usage() const { std::cerr << usage() << std::flush; }
+void get_options::print_usage() const {
+  std::cerr << usage() << std::flush;
+}
 
 /**
  *  Internal copy.
@@ -212,7 +216,7 @@ get_options& get_options::_internal_copy(get_options const& right) {
   if (this != &right) {
     _arguments = right._arguments;
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -264,8 +268,7 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
         arg = &get_argument(key[0]);
       } else
         break;
-    }
-    catch (std::exception const& e) {
+    } catch (std::exception const& e) {
       (void)e;
       throw(basic_error() << "unrecognized option '" << key << "'");
     }
@@ -319,9 +322,9 @@ bool get_options::_split_long(std::string const& line,
     if (pos > 0 && key[pos - 1] != '\\') {
       value = key.substr(pos + 1);
       key = key.substr(0, pos);
-      return (true);
+      return true;
     }
-  return (false);
+  return false;
 }
 
 /**
@@ -337,9 +340,9 @@ bool get_options::_split_short(std::string const& line,
   key = line;
   if (line.size() == 1) {
     value = "";
-    return (false);
+    return false;
   }
   value = key.substr(1);
   key = key.substr(0, 1);
-  return (true);
+  return true;
 }

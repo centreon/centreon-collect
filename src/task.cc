@@ -41,7 +41,7 @@ task::task(task const& t) { (void)t; }
 /**
  *  Destructor.
  */
-task::~task() throw() {}
+task::~task() noexcept {}
 
 /**
  *  Assignment operator.
@@ -52,7 +52,7 @@ task::~task() throw() {}
  */
 task& task::operator=(task const& t) {
   (void)t;
-  return (*this);
+  return *this;
 }
 
 /**

@@ -19,34 +19,12 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include "com/centreon/concurrency/thread.hh"
+#include <thread>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/engine.hh"
 #include "./backend_test.hh"
 
-using namespace com::centreon::concurrency;
 using namespace com::centreon::logging;
-
-/**
- *  @class writter
- *  @brief little implementation of thread to test logging engine.
- */
-class writter : public thread {
- public:
-  writter(unsigned int nb_write) : _nb_write(nb_write) {}
-  ~writter() throw() {}
-
- private:
-  void _run() {
-    engine& e(engine::instance());
-    for (unsigned int i(0); i < _nb_write; ++i) {
-      std::ostringstream oss;
-      oss << this << ":" << i;
-      e.log(1, 0, oss.str().c_str(), oss.str().size());
-    }
-  }
-  unsigned int _nb_write;
-};
 
 /**
  *  Check add backend on to the logging engine.
@@ -54,8 +32,8 @@ class writter : public thread {
  *  @return 0 on success.
  */
 int main() {
-  static unsigned int const nb_writter(10);
-  static unsigned int const nb_write(10);
+  static uint32_t const nb_writter(10);
+  static uint32_t const nb_write(10);
   int retval;
 
   engine::load();
@@ -65,24 +43,27 @@ int main() {
     std::unique_ptr<backend_test> obj(new backend_test);
     e.add(obj.get(), 1, 0);
 
-    std::vector<thread*> threads;
-    for (unsigned int i(0); i < nb_writter; ++i)
-      threads.push_back(new writter(nb_write));
+    std::vector<std::thread> threads;
+    for (uint32_t i = 0; i < nb_writter; ++i)
+      threads.push_back(std::thread([]() {
+        engine& e(engine::instance());
+        for (uint32_t i = 0; i < nb_writter; ++i) {
+          std::ostringstream oss;
+          oss << std::this_thread::get_id() << ":" << i;
+          e.log(1, 0, oss.str().c_str(), oss.str().size());
+        }
+      }));
 
-    for (unsigned int i(0); i < nb_writter; ++i)
-      threads[i]->exec();
+    for (auto& t : threads)
+      t.join();
 
-    for (unsigned int i(0); i < nb_writter; ++i)
-      threads[i]->wait();
-
-    for (unsigned int i(0); i < nb_writter; ++i) {
-      for (unsigned int j(0); j < nb_writter; ++j) {
+    for (uint32_t i(0); i < nb_writter; ++i) {
+      for (uint32_t j(0); j < nb_writter; ++j) {
         std::ostringstream oss;
         oss << &threads[i] << ":" << j << "\n";
         if (!obj->data().find(oss.str()))
-          throw(basic_error() << "pattern not found");
+          throw basic_error() << "pattern not found";
       }
-      delete threads[i];
     }
     retval = 0;
   }
@@ -91,5 +72,5 @@ int main() {
     retval = 1;
   }
   engine::unload();
-  return (retval);
+  return retval;
 }

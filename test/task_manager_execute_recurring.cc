@@ -29,7 +29,7 @@ using namespace com::centreon;
 class task_test : public task {
  public:
   task_test() : task() {}
-  ~task_test() throw() {}
+  ~task_test() noexcept {}
   void run() {}
 };
 
@@ -47,11 +47,11 @@ int main() {
       tm.add(t1, timestamp(), 1, true, true);
 
       if (tm.execute(timestamp::now()) != 1)
-        throw(basic_error() << "execute one task failed");
+        throw basic_error() << "execute one task failed";
       if (tm.execute(timestamp::now()) != 1)
-        throw(basic_error() << "execute one task failed");
+        throw basic_error() << "execute one task failed";
       if (tm.execute(timestamp::now()) != 1)
-        throw(basic_error() << "execute one task failed");
+        throw basic_error() << "execute one task failed";
     }
 
     {
@@ -64,11 +64,11 @@ int main() {
       tm.add(t2, timestamp(), 1, false, false);
 
       if (tm.execute(timestamp::now()) != 4)
-        throw(basic_error() << "execute four task failed");
+        throw basic_error() << "execute four task failed";
       if (tm.execute(timestamp::now()) != 4)
-        throw(basic_error() << "execute four task failed");
+        throw basic_error() << "execute four task failed";
       if (tm.execute(timestamp::now()) != 4)
-        throw(basic_error() << "execute four task failed");
+        throw basic_error() << "execute four task failed";
       delete t2;
     }
 
@@ -84,10 +84,9 @@ int main() {
         throw(basic_error() << "execute future task failed");
       delete t2;
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    return 1;
   }
-  return (0);
+  return 0;
 }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2019 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,36 +16,43 @@
 ** For more information : contact@centreon.com
 */
 
-#include <exception>
 #include <iostream>
-#include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/timestamp.hh"
+#include "com/centreon/task_manager.hh"
 
 using namespace com::centreon;
 
 /**
- *  Check the sleep methode.
+ *  @class task_test
+ *  @brief litle implementation of task to test task manager.
+ */
+class task_test : public task {
+ public:
+  task_test() : task() {}
+  ~task_test() noexcept {}
+  void run() {}
+};
+
+/**
+ *  Check the task manager add.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    unsigned long waiting(5000000l);
-    timestamp start(timestamp::now());
-    concurrency::thread::usleep(waiting);
-    timestamp end(timestamp::now());
-    timestamp diff(end - start);
-    if (diff.to_useconds() > waiting * 1.20)
-      throw(basic_error() << "waiting more than necessary: "
-                          << diff.to_useconds() << "/" << waiting);
-    if (diff.to_useconds() < waiting * 0.90)
-      throw(basic_error() << "waiting less than necessary: "
-                          << diff.to_useconds() << "/" << waiting);
-  }
-  catch (std::exception const& e) {
+    task_manager tm;
+
+    task_test* t1 = new task_test;
+    tm.add(t1, timestamp::now(), true, true);
+    if (!tm.next_execution_time().to_useconds())
+      throw basic_error() << "add failed";
+
+    task_test* t2 = new task_test;
+    tm.add(t2, timestamp::now(), false, false);
+    delete t2;
+  } catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
-    return (1);
+    return 1;
   }
-  return (0);
+  return 0;
 }

@@ -16,33 +16,28 @@
 ** For more information : contact@centreon.com
 */
 
-#include <exception>
 #include <iostream>
-#include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/timestamp.hh"
+#include "com/centreon/handle_manager.hh"
+#include "com/centreon/task_manager.hh"
 
 using namespace com::centreon;
 
 /**
- *  Check the sleep methode.
+ *  Check the handle manager constructor.
  *
  *  @return 0 on success.
  */
 int main() {
   try {
-    unsigned long waiting(4000000000ul);
-    timestamp start(timestamp::now());
-    concurrency::thread::nsleep(waiting);
-    timestamp end(timestamp::now());
-    timestamp diff(end - start);
-    waiting /= 1000;
-    if (diff.to_useconds() > waiting * 1.20)
-      throw(basic_error() << "waiting more than necessary: "
-                          << diff.to_useconds() << "/" << waiting);
-    if (diff.to_useconds() < waiting * 0.90)
-      throw(basic_error() << "waiting less than necessary: "
-                          << diff.to_useconds() << "/" << waiting);
+    {
+      handle_manager hm(NULL);
+    }
+
+    {
+      task_manager tm;
+      handle_manager hm(&tm);
+    }
   }
   catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
