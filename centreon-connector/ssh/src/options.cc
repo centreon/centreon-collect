@@ -69,7 +69,7 @@ options::~options() throw () {}
 options& options::operator=(options const& opts) {
   if (this != & opts)
     misc::get_options::operator=(opts);
-  return (*this);
+  return *this;
 }
 
 /**
@@ -91,7 +91,7 @@ std::string options::help() const {
       << "Check results will be sent back using also the Centreon\n"
       << "Connector protocol version 1.0, on the process' standard\n"
       << "output.";
-  return (oss.str());
+  return oss.str();
 }
 
 /**
@@ -102,14 +102,13 @@ std::string options::help() const {
  */
 void options::parse(int argc, char* argv[]) {
   _parse_arguments(argc, argv);
-  return ;
 }
 
 /**
  *  Get the program usage.
  */
 std::string options::usage() const {
-  return (help());
+  return help();
 }
 
 /**************************************
@@ -154,6 +153,4 @@ void options::_init() {
     arg.set_description(log_file_description);
     arg.set_has_value(true);
   }
-
-  return ;
 }

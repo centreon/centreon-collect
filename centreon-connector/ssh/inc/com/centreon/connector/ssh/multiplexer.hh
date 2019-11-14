@@ -17,36 +17,36 @@
 */
 
 #ifndef CCCS_MULTIPLEXER_HH
-#  define CCCS_MULTIPLEXER_HH
+#define CCCS_MULTIPLEXER_HH
 
-#  include "com/centreon/handle_manager.hh"
-#  include "com/centreon/task_manager.hh"
-#  include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/handle_manager.hh"
+#include "com/centreon/task_manager.hh"
 
 CCCS_BEGIN()
 
 /**
- *  @class multiplexer multiplexer.hh "com/centreon/connector/ssh/multiplexer.hh"
+ *  @class multiplexer multiplexer.hh
+ * "com/centreon/connector/ssh/multiplexer.hh"
  *  @brief Multiplexing class.
  *
  *  Singleton that aggregates multiplexing features such as file
  *  descriptor monitoring and task execution.
  */
-class                 multiplexer
-  : public com::centreon::task_manager,
-    public com::centreon::handle_manager {
-public:
-                      ~multiplexer() throw ();
-  static multiplexer& instance() throw ();
-  static void         load();
-  static void         unload();
+class multiplexer : public com::centreon::task_manager,
+                    public com::centreon::handle_manager {
+ public:
+  static multiplexer& instance() noexcept;
+  static void load();
+  static void unload();
 
-private:
-                      multiplexer();
-                      multiplexer(multiplexer const& m);
-  multiplexer&        operator=(multiplexer const& m);
+ private:
+  multiplexer();
+  ~multiplexer() noexcept;
+  multiplexer(multiplexer const& m) = delete;
+  multiplexer& operator=(multiplexer const& m) = delete;
 };
 
 CCCS_END()
 
-#endif // !CCCS_MULTIPLEXER_HH
+#endif  // !CCCS_MULTIPLEXER_HH

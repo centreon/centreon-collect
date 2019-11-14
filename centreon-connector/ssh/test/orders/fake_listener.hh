@@ -40,7 +40,7 @@ public:
   };
   struct           callback_info {
     e_callback     callback;
-    unsigned long long
+    uint64_t
                    cmd_id;
     time_t         timeout;
     std::string    host;
@@ -63,10 +63,10 @@ public:
                    get_callbacks() const throw ();
   void             on_eof();
   void             on_error(
-                     unsigned long long cmd_id,
+                     uint64_t cmd_id,
                      char const* msg);
   void             on_execute(
-                     unsigned long long cmd_id,
+                     uint64_t cmd_id,
                      time_t timeout,
                      std::string const& host,
                      unsigned short port,

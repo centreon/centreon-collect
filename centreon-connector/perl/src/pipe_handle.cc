@@ -19,9 +19,8 @@
 #include <cerrno>
 #include <cstring>
 #include <set>
+#include <mutex>
 #include <unistd.h>
-#include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
@@ -35,8 +34,8 @@ using namespace com::centreon::connector::perl;
 *                                     *
 **************************************/
 
-static std::multiset<int>* gl_fds(NULL);
-static concurrency::mutex* gl_fdsm(NULL);
+static std::multiset<int> gl_fds;
+static std::mutex gl_fdsm;
 
 /**************************************
 *                                     *
@@ -82,7 +81,7 @@ pipe_handle& pipe_handle::operator=(pipe_handle const& ph) {
     close();
     _internal_copy(ph);
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -91,10 +90,10 @@ pipe_handle& pipe_handle::operator=(pipe_handle const& ph) {
 void pipe_handle::close() throw () {
   if (_fd >= 0) {
     {
-      concurrency::locker lock(gl_fdsm);
-      std::multiset<int>::iterator it(gl_fds->find(_fd));
-      if (it != gl_fds->end())
-        gl_fds->erase(it);
+      std::lock_guard<std::mutex> lock(gl_fdsm);
+      auto it = gl_fds.find(_fd);
+      if (it != gl_fds.end())
+        gl_fds.erase(it);
     }
     if (::close(_fd) != 0) {
       char const* msg(strerror(errno));
@@ -102,17 +101,16 @@ void pipe_handle::close() throw () {
     }
     _fd = -1;
   }
-  return ;
 }
 
 /**
  *  Close all handles.
  */
 void pipe_handle::close_all_handles() {
-  concurrency::locker lock(gl_fdsm);
+  std::lock_guard<std::mutex> lock(gl_fdsm);
   for (std::multiset<int>::const_iterator
-         it(gl_fds->begin()),
-         end(gl_fds->end());
+         it(gl_fds.begin()),
+         end(gl_fds.end());
        it != end;
        ++it) {
     int retval;
@@ -121,12 +119,11 @@ void pipe_handle::close_all_handles() {
     } while ((retval != 0) && (EINTR == errno));
     if (retval != 0) {
       char const* msg(strerror(errno));
-      gl_fds->erase(gl_fds->begin(), it);
+      gl_fds.erase(gl_fds.begin(), it);
       throw (basic_error() << msg);
     }
   }
-  gl_fds->clear();
-  return ;
+  gl_fds.clear();
 }
 
 /**
@@ -135,19 +132,13 @@ void pipe_handle::close_all_handles() {
  *  @return Pipe FD.
  */
 int pipe_handle::get_native_handle() throw () {
-  return (_fd);
+  return _fd;
 }
 
 /**
  *  Initialize static members of the pipe_handle class.
  */
-void pipe_handle::load() {
-  if (!gl_fds) {
-    gl_fds = new std::multiset<int>();
-    gl_fdsm = new concurrency::mutex();
-  }
-  return ;
-}
+void pipe_handle::load() {}
 
 /**
  *  Read data from the file descriptor.
@@ -163,7 +154,7 @@ unsigned long pipe_handle::read(void* data, unsigned long size) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not read from pipe: " << msg);
   }
-  return (rb);
+  return rb;
 }
 
 /**
@@ -175,22 +166,15 @@ void pipe_handle::set_fd(int fd) {
   close();
   _fd = fd;
   if (_fd >= 0) {
-    concurrency::locker lock(gl_fdsm);
-    gl_fds->insert(fd);
+    std::lock_guard<std::mutex> lock(gl_fdsm);
+    gl_fds.insert(fd);
   }
-  return ;
 }
 
 /**
  *  Cleanup static ressources used by the pipe_handle class.
  */
-void pipe_handle::unload() {
-  delete gl_fds;
-  gl_fds = NULL;
-  delete gl_fdsm;
-  gl_fdsm = NULL;
-  return ;
-}
+void pipe_handle::unload() {}
 
 /**
  *  Write data to the pipe.
@@ -206,7 +190,7 @@ unsigned long pipe_handle::write(void const* data, unsigned long size) {
     char const* msg(strerror(errno));
     throw (basic_error() << "could not write to pipe: " << msg);
   }
-  return (wb);
+  return wb;
 }
 
 /**************************************
@@ -228,11 +212,10 @@ void pipe_handle::_internal_copy(pipe_handle const& ph) {
       throw (basic_error() << "could not duplicate pipe: " << msg);
     }
     {
-      concurrency::locker lock(gl_fdsm);
-      gl_fds->insert(_fd);
+    std::lock_guard<std::mutex> lock(gl_fdsm);
+      gl_fds.insert(_fd);
     }
   }
   else
     _fd = -1;
-  return ;
 }

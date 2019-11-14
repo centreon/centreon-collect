@@ -33,13 +33,13 @@ using namespace com::centreon;
              "123456789\0" \
              "check_by_ssh " \
              "-H localhost " \
-             " -C 'echo Merethis is wonderful'\0\0\0\0"
+             " -C 'echo Centreon is wonderful'\0\0\0\0"
 #define RESULT "3\0" \
                "4242\0" \
                "1\0" \
                "0\0" \
                " \0" \
-               "Merethis is wonderful\n\0\0\0\0"
+               "Centreon is wonderful\n\0\0\0\0"
 
 /**
  *  Replace null char by string "\0".
@@ -52,7 +52,7 @@ std::string& replace_null(std::string& str) {
   size_t pos(0);
   while ((pos = str.find('\0', pos)) != std::string::npos)
     str.replace(pos++, 1, "\\0");
-  return (str);
+  return str;
 }
 
 /**
@@ -116,5 +116,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
   }
 
-  return (retval);
+  return retval;
 }
