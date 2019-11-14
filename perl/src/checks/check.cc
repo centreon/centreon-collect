@@ -102,7 +102,7 @@ pid_t check::execute(
     this);
 
   // Register timeout.
-  std::auto_ptr<timeout> t(new timeout(this, false));
+  std::unique_ptr<timeout> t(new timeout(this, false));
   _timeout = multiplexer::instance().com::centreon::task_manager::add(
     t.get(),
     tmt - 1,
@@ -151,7 +151,7 @@ void check::on_timeout(bool final) {
     kill(_child, SIGTERM);
 
     // Schedule a final timeout.
-    std::auto_ptr<timeout> t(new timeout(this, true));
+    std::unique_ptr<timeout> t(new timeout(this, true));
     _timeout = multiplexer::instance().com::centreon::task_manager::add(
       t.get(),
       time(NULL) + 1,

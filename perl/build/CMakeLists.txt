@@ -19,11 +19,12 @@
 # Global options.
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Perl Connector" C CXX)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/connector/perl")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
-include_directories("${PROJECT_SOURCE_DIR}/inc")
+include_directories("${PROJECT_SOURCE_DIR}/inc" "/usr/lib64/perl5/CORE")
 
 # Project version.
 set(CONNECTOR_PERL_MAJOR 20)
