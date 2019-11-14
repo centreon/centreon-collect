@@ -21,7 +21,6 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/test")
 
 # Add subdirectories.
 add_subdirectory("clib")
-add_subdirectory("concurrency")
 add_subdirectory("exceptions")
 add_subdirectory("io")
 add_subdirectory("logging")
@@ -30,6 +29,36 @@ add_subdirectory("misc")
 # bin_test_process_output
 set(TEST_NAME "bin_test_process_output")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+
+# handle_manager_add
+set(TEST_NAME "handle_manager_add")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# handle_manager_constructor
+set(TEST_NAME "handle_manager_constructor")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# handle_manager_remove_by_handle
+set(TEST_NAME "handle_manager_remove_by_handle")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# handle_manager_remove_by_handle_listener
+set(TEST_NAME "handle_manager_remove_by_handle_listener")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# handle_manager_multiplex
+set(TEST_NAME "handle_manager_multiplex")
+add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # library_resolve
 set(TEST_NAME "library_resolve")
@@ -89,6 +118,25 @@ set(TEST_NAME "process_wait_timeout")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}" "${TEST_NAME}")
+
+# task_manager tests
+set(TASK_MANAGER_LIST
+    task_manager_add
+    task_manager_add_recurring
+    task_manager_execute
+    task_manager_execute_recurring
+    task_manager_next_execution_time
+    task_manager_remove_by_id
+    task_manager_remove_by_task
+    task_manager_remove_self
+   )
+
+foreach(name ${TASK_MANAGER_LIST})
+  message(STATUS "toto => ${name}")
+  add_executable("${name}" "${TEST_DIR}/${name}.cc")
+  target_link_libraries("${name}" "${DEFAULT_LINK_NAME}")
+  add_test("${name}" "${name}")
+endforeach(name)
 
 # timestamp_add
 set(TEST_NAME "timestamp_add")

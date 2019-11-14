@@ -19,8 +19,8 @@
 #ifndef CC_HANDLE_LISTENER_HH
 #define CC_HANDLE_LISTENER_HH
 
-#include "com/centreon/namespace.hh"
 #include "com/centreon/handle.hh"
+#include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
@@ -34,7 +34,7 @@ CC_BEGIN()
 class handle_listener {
  public:
   handle_listener();
-  virtual ~handle_listener() throw();
+  virtual ~handle_listener() noexcept;
   virtual void error(handle& h) = 0;
   virtual void read(handle& h);
   virtual bool want_read(handle& h);

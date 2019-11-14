@@ -16,17 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/handle.hh"
+#include <cstdlib>
 #include "com/centreon/handle_action.hh"
+#include "com/centreon/handle.hh"
 #include "com/centreon/handle_listener.hh"
 
 using namespace com::centreon;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Constructor.
@@ -50,7 +51,7 @@ handle_action::handle_action(handle_action const& right) : task(right) {
 /**
  *  Destructor.
  */
-handle_action::~handle_action() throw() {}
+handle_action::~handle_action() noexcept {}
 
 /**
  *  Assignment operator.
@@ -64,7 +65,7 @@ handle_action& handle_action::operator=(handle_action const& right) {
     task::operator=(right);
     _internal_copy(right);
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -72,37 +73,48 @@ handle_action& handle_action::operator=(handle_action const& right) {
  *
  *  @return true if the task is threadable.
  */
-bool handle_action::is_threadable() const throw() { return (_is_threadable); }
+bool handle_action::is_threadable() const noexcept {
+  return _is_threadable;
+}
 
 /**
  *  Get the handle.
  *
  *  @return Handle.
  */
-handle* handle_action::get_handle() const throw() { return (_h); }
+handle* handle_action::get_handle() const noexcept {
+  return _h;
+}
 
 /**
  *  Get the listener.
  *
  *  @return Listener.
  */
-handle_listener* handle_action::get_handle_listener() const throw() {
-  return (_hl);
+handle_listener* handle_action::get_handle_listener() const noexcept {
+  return _hl;
 }
 
 /**
  *  Run the task.
  */
 void handle_action::run() {
-  action a(_action);
+  action a = _action;
   _action = none;
-  if (a == error)
-    _hl->error(*_h);
-  else if (a == read)
-    _hl->read(*_h);
-  else if (a == write)
-    _hl->write(*_h);
-  return;
+  switch (a) {
+    case error:
+      _hl->error(*_h);
+      break;
+    case read:
+      system("echo 'handle_action::run Call read on *_h' >> /tmp/titi");
+      _hl->read(*_h);
+      break;
+    case write:
+      _hl->write(*_h);
+      break;
+    default:
+      break;
+  }
 }
 
 /**
@@ -110,16 +122,15 @@ void handle_action::run() {
  *
  *  @param[in] a Action to perform.
  */
-void handle_action::set_action(action a) throw() {
+void handle_action::set_action(action a) noexcept {
   _action = a;
-  return;
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Copy internal data members.
@@ -131,5 +142,4 @@ void handle_action::_internal_copy(handle_action const& right) {
   _h = right._h;
   _hl = right._hl;
   _is_threadable = right._is_threadable;
-  return;
 }

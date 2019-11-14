@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013 Centreon
+** Copyright 2012-2013,2019 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -50,11 +50,11 @@ class process_manager {
   uint32_t _fds_capacity;
   int _fds_exit[2];
   uint32_t _fds_size;
-  std::mutex _lock_processes;
+  mutable std::mutex _lock_processes;
   std::deque<orphan> _orphans_pid;
   std::unordered_map<int, process*> _processes_fd;
   std::unordered_map<pid_t, process*> _processes_pid;
-  std::multimap<std::time_t, process*> _processes_timeout;
+  std::multimap<uint32_t, process*> _processes_timeout;
   bool _update;
 
   process_manager();

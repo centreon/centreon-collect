@@ -28,7 +28,7 @@ handle_listener::handle_listener() {}
 /**
  *  Default destructor.
  */
-handle_listener::~handle_listener() throw() {}
+handle_listener::~handle_listener() noexcept {}
 
 /**
  *  Read action on a specific handle.
@@ -50,7 +50,7 @@ void handle_listener::read(handle& h) {
  */
 bool handle_listener::want_read(handle& h) {
   (void)h;
-  return (false);
+  return false;
 }
 
 /**
@@ -62,7 +62,7 @@ bool handle_listener::want_read(handle& h) {
  */
 bool handle_listener::want_write(handle& h) {
   (void)h;
-  return (false);
+  return false;
 }
 
 /**

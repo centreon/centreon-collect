@@ -21,10 +21,10 @@
 using namespace com::centreon;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
@@ -38,12 +38,14 @@ handle::handle() {
  *
  *  @param[in] right  The object to copy.
  */
-handle::handle(handle const& right) { (void)right; }
+handle::handle(handle const& right) {
+  (void)right;
+}
 
 /**
  *  Destructor.
  */
-handle::~handle() throw() {}
+handle::~handle() noexcept {}
 
 /**
  *  Assignment operator.
@@ -54,5 +56,5 @@ handle::~handle() throw() {}
  */
 handle& handle::operator=(handle const& right) {
   (void)right;
-  return (*this);
+  return *this;
 }

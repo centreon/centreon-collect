@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2019 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -22,9 +22,6 @@
 
 using namespace com::centreon;
 
-// Global task manager.
-task_manager tm;
-
 /**
  *  @class task_test
  *  @brief litle implementation of task to test task manager.
@@ -33,7 +30,7 @@ class task_test : public task {
  public:
   task_test() : task() {}
   ~task_test() noexcept {}
-  void run() { tm.remove(this); }
+  void run() {}
 };
 
 /**
@@ -43,17 +40,32 @@ class task_test : public task {
  */
 int main() {
   try {
+    task_manager tm;
+
     task_test* t1(new task_test);
     tm.add(t1, timestamp::now(), true, true);
-    tm.execute();
+
+    task_test none;
+    if (tm.remove(&none))
+      throw basic_error() << "remove invalid task";
+
+    if (tm.remove(t1) != 1)
+      throw basic_error() << "remove one task failed";
 
     task_test* t2(new task_test);
     tm.add(t2, timestamp::now(), false, false);
     tm.add(t2, timestamp::now(), false, false);
     tm.add(t2, timestamp::now(), false, false);
     tm.add(t2, timestamp::now(), false, false);
-    tm.execute();
+    if (tm.remove(t2) != 4)
+      throw basic_error() << "remove four task failed";
     delete t2;
+
+    if (tm.remove(reinterpret_cast<task*>(0x4242)))
+      throw basic_error() << "remove invalid task failed";
+
+    if (tm.next_execution_time() != timestamp::max_time())
+      throw basic_error() << "invalid next_execution_time";
   } catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     return 1;
