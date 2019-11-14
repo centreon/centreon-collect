@@ -39,9 +39,9 @@ timeout::timeout(check* chk) : _check(chk) {}
  *
  *  @param[in] t Object to copy.
  */
-timeout::timeout(timeout const& t) : com::centreon::task(t) {
-  _internal_copy(t);
-}
+//timeout::timeout(timeout const& t) : com::centreon::task(t) {
+//  _internal_copy(t);
+//}
 
 /**
  *  Destructor.
@@ -55,13 +55,13 @@ timeout::~timeout() throw () {}
  *
  *  @return This object.
  */
-timeout& timeout::operator=(timeout const& t) {
-  if (this != &t) {
-    com::centreon::task::operator=(t);
-    _internal_copy(t);
-  }
-  return (*this);
-}
+//timeout& timeout::operator=(timeout const& t) {
+//  if (this != &t) {
+//    com::centreon::task::operator=(t);
+//    _internal_copy(t);
+//  }
+//  return (*this);
+//}
 
 /**
  *  Get the check object.

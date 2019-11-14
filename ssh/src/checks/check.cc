@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2019 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/ssh/checks/check.hh"
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
-#include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/timeout.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
@@ -28,10 +28,10 @@
 using namespace com::centreon::connector::ssh::checks;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
@@ -40,19 +40,19 @@ using namespace com::centreon::connector::ssh::checks;
  *  @param[in] skip_stderr Ignore all or first n error lines.
  */
 check::check(int skip_stdout, int skip_stderr)
-  : _channel(NULL),
-    _cmd_id(0),
-    _listnr(NULL),
-    _session(NULL),
-    _skip_stderr(skip_stderr),
-    _skip_stdout(skip_stdout),
-    _step(chan_open),
-    _timeout(0) {}
+    : _channel(nullptr),
+      _cmd_id(0),
+      _listnr(nullptr),
+      _session(nullptr),
+      _skip_stderr(skip_stderr),
+      _skip_stdout(skip_stdout),
+      _step(chan_open),
+      _timeout(0) {}
 
 /**
  *  Destructor.
  */
-check::~check() throw () {
+check::~check() throw() {
   try {
     // Send result if we haven't already done so.
     sessions::session* sess(_session);
@@ -68,9 +68,7 @@ check::~check() throw () {
       // process writes). However if process does not write we will hang
       // until it exits (which could be like forever).
       int ret(LIBSSH2_ERROR_EAGAIN);
-      for (unsigned int i = 0;
-           (i < 32) && (ret == LIBSSH2_ERROR_EAGAIN);
-           ++i) {
+      for (unsigned int i = 0; (i < 32) && (ret == LIBSSH2_ERROR_EAGAIN); ++i) {
         ret = libssh2_channel_close(_channel);
         if ((ret == LIBSSH2_ERROR_SOCKET_SEND) && sess)
           sess->error();
@@ -79,8 +77,8 @@ check::~check() throw () {
       // Free channel.
       libssh2_channel_free(_channel);
     }
+  } catch (...) {
   }
-  catch (...) {}
 }
 
 /**
@@ -91,14 +89,12 @@ check::~check() throw () {
  *  @param[in] cmds    Commands to execute.
  *  @param[in] tmt     Command timeout.
  */
-void check::execute(
-              sessions::session& sess,
-              unsigned long long cmd_id,
-              std::list<std::string> const& cmds,
-              time_t tmt) {
+void check::execute(sessions::session& sess,
+                    unsigned long long cmd_id,
+                    std::list<std::string> const& cmds,
+                    time_t tmt) {
   // Log message.
-  log_debug(logging::low) << "check "
-    << this << " has ID " << cmd_id;
+  log_debug(logging::low) << "check " << this << " has ID " << cmd_id;
 
   // Store command information.
   _cmds = cmds;
@@ -106,19 +102,15 @@ void check::execute(
   _session = &sess;
 
   // Register timeout.
-  std::auto_ptr<timeout> t(new timeout(this));
+  std::unique_ptr<timeout> t{new timeout(this)};
   _timeout = multiplexer::instance().com::centreon::task_manager::add(
-    t.get(),
-    tmt,
-    false,
-    true);
+      t.get(), tmt, false, true);
   t.release();
 
   // Session-related actions.
   sess.listen(this);
   if (sess.is_connected())
     on_connected(sess);
-  return ;
 }
 
 /**
@@ -127,10 +119,9 @@ void check::execute(
  *  @param[in] listnr Listener.
  */
 void check::listen(checks::listener* listnr) {
-  log_debug(logging::medium) << "check "
-    << this << " is listened by " << listnr;
+  log_debug(logging::medium)
+      << "check " << this << " is listened by " << listnr;
   _listnr = listnr;
-  return ;
 }
 
 /**
@@ -141,70 +132,64 @@ void check::listen(checks::listener* listnr) {
 void check::on_available(sessions::session& sess) {
   try {
     switch (_step) {
-    case chan_open:
-      log_info(logging::high)
-        << "attempting to open channel for check " << _cmd_id;
-      if (!_open()) {
-        log_info(logging::high) << "check " << _cmd_id
-          << " channel was successfully opened";
-        _step = chan_exec;
-        on_available(sess);
-      }
-      break ;
-    case chan_exec:
-      log_info(logging::high)
-        << "attempting to execute check " << _cmd_id;
-      if (!_exec()) {
+      case chan_open:
         log_info(logging::high)
-          << "check " << _cmd_id << " was successfully executed";
-        _step = chan_read;
-        on_available(sess);
-      }
-      break ;
-    case chan_read:
-      log_info(logging::high)
-        << "reading check " << _cmd_id << " result from channel";
-      if (!_read()) {
-        log_info(logging::high) << "result of check "
-          << _cmd_id << " was successfully fetched";
-        _step = chan_close;
-        on_available(sess);
-      }
-      break ;
-    case chan_close:
-      {
-        unsigned long long cmd_id(_cmd_id);
-        log_info(logging::high) << "attempting to close check "
-          << cmd_id << " channel";
-        if (!_close()) {
-          log_info(logging::medium) << "channel of check "
-            << cmd_id << " successfully closed";
+            << "attempting to open channel for check " << _cmd_id;
+        if (!_open()) {
+          log_info(logging::high)
+              << "check " << _cmd_id << " channel was successfully opened";
+          _step = chan_exec;
+          on_available(sess);
         }
-      }
-      break ;
-    default:
-      throw (basic_error() << "channel requested to run at invalid step");
+        break;
+      case chan_exec:
+        log_info(logging::high) << "attempting to execute check " << _cmd_id;
+        if (!_exec()) {
+          log_info(logging::high)
+              << "check " << _cmd_id << " was successfully executed";
+          _step = chan_read;
+          on_available(sess);
+        }
+        break;
+      case chan_read:
+        log_info(logging::high)
+            << "reading check " << _cmd_id << " result from channel";
+        if (!_read()) {
+          log_info(logging::high)
+              << "result of check " << _cmd_id << " was successfully fetched";
+          _step = chan_close;
+          on_available(sess);
+        }
+        break;
+      case chan_close: {
+        unsigned long long cmd_id(_cmd_id);
+        log_info(logging::high)
+            << "attempting to close check " << cmd_id << " channel";
+        if (!_close()) {
+          log_info(logging::medium)
+              << "channel of check " << cmd_id << " successfully closed";
+        }
+      } break;
+      default:
+        throw(basic_error() << "channel requested to run at invalid step");
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     log_error(logging::low)
-      << "error occured while executing check " << _cmd_id
-      << " on session " << sess.get_credentials().get_user() << "@"
-      << sess.get_credentials().get_host() << ": " << e.what();
+        << "error occured while executing check " << _cmd_id << " on session "
+        << sess.get_credentials().get_user() << "@"
+        << sess.get_credentials().get_host() << ": " << e.what();
+    result r;
+    r.set_command_id(_cmd_id);
+    _send_result_and_unregister(r);
+  } catch (...) {
+    log_error(logging::low)
+        << "unknown error occured while executing check " << _cmd_id
+        << " on session " << sess.get_credentials().get_user() << "@"
+        << sess.get_credentials().get_host();
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
   }
-  catch (...) {
-    log_error(logging::low)
-      << "unknown error occured while executing check " << _cmd_id
-      << " on session " << sess.get_credentials().get_user() << "@"
-      << sess.get_credentials().get_host();
-    result r;
-    r.set_command_id(_cmd_id);
-    _send_result_and_unregister(r);
-  }
-  return ;
 }
 
 /**
@@ -214,12 +199,10 @@ void check::on_available(sessions::session& sess) {
  */
 void check::on_close(sessions::session& sess) {
   (void)sess;
-  log_error(logging::medium)
-    << "session closed before check could execute";
+  log_error(logging::medium) << "session closed before check could execute";
   result r;
   r.set_command_id(_cmd_id);
   _send_result_and_unregister(r);
-  return ;
 }
 
 /**
@@ -228,10 +211,8 @@ void check::on_close(sessions::session& sess) {
  *  @param[in] sess Connected session.
  */
 void check::on_connected(sessions::session& sess) {
-  log_debug(logging::high) << "manually starting check "
-    << _cmd_id;
+  log_debug(logging::high) << "manually starting check " << _cmd_id;
   on_available(sess);
-  return ;
 }
 
 /**
@@ -239,8 +220,7 @@ void check::on_connected(sessions::session& sess) {
  */
 void check::on_timeout() {
   // Log message.
-  log_error(logging::low) << "check " << _cmd_id
-    << " reached timeout";
+  log_error(logging::low) << "check " << _cmd_id << " reached timeout";
 
   // Reset timeout task ID.
   _timeout = 0;
@@ -249,8 +229,6 @@ void check::on_timeout() {
   result r;
   r.set_command_id(_cmd_id);
   _send_result_and_unregister(r);
-
-  return ;
 }
 
 /**
@@ -259,17 +237,16 @@ void check::on_timeout() {
  *  @param[in] listnr Listener.
  */
 void check::unlisten(checks::listener* listnr) {
-  log_debug(logging::medium) << "listener " << listnr
-    << " stops listening check " << this;
-  _listnr = NULL;
-  return ;
+  log_debug(logging::medium)
+      << "listener " << listnr << " stops listening check " << this;
+  _listnr = nullptr;
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Attempt to close channel.
@@ -286,14 +263,11 @@ bool check::_close() {
     if (ret) {
       if (ret != LIBSSH2_ERROR_EAGAIN) {
         char* msg;
-        libssh2_session_last_error(
-          _session->get_libssh2_session(),
-          &msg,
-          NULL,
-          0);
+        libssh2_session_last_error(_session->get_libssh2_session(), &msg,
+                                   nullptr, 0);
         if (ret == LIBSSH2_ERROR_SOCKET_SEND)
           _session->error();
-        throw (basic_error() << "could not close channel: " << msg);
+        throw(basic_error() << "could not close channel: " << msg);
       }
       retval = true;
     }
@@ -304,7 +278,7 @@ bool check::_close() {
 
       // Free channel.
       libssh2_channel_free(_channel);
-      _channel = NULL;
+      _channel = nullptr;
 
       // Method should not be called again.
       retval = false;
@@ -323,19 +297,18 @@ bool check::_close() {
         r.set_exit_code(exitcode);
         r.set_output(_stdout);
         _send_result_and_unregister(r);
-      }
-      else {
-	_step = chan_open;
-	on_available(*_session);
+      } else {
+        _step = chan_open;
+        on_available(*_session);
       }
     }
   }
   // Attempt to close a closed channel.
   else
-    throw (basic_error()
-             << "channel requested to close whereas it wasn't opened");
+    throw(
+        basic_error() << "channel requested to close whereas it wasn't opened");
 
-  return (retval);
+  return retval;
 }
 
 /**
@@ -350,16 +323,12 @@ bool check::_exec() {
   // Check that we can try again later.
   if (ret && (ret != LIBSSH2_ERROR_EAGAIN)) {
     char* msg;
-    libssh2_session_last_error(
-      _session->get_libssh2_session(),
-      &msg,
-      NULL,
-      0);
+    libssh2_session_last_error(_session->get_libssh2_session(), &msg, nullptr,
+                               0);
     if (ret == LIBSSH2_ERROR_SOCKET_SEND)
       _session->error();
-    throw (basic_error()
-             << "could not execute command on SSH channel: "
-             << msg << " (error " << ret << ")");
+    throw(basic_error() << "could not execute command on SSH channel: " << msg
+                        << " (error " << ret << ")");
   }
 
   // Check whether command succeeded or if we can try again later.
@@ -370,7 +339,7 @@ bool check::_exec() {
     retval = false;
     _cmds.pop_front();
   }
-  return (retval);
+  return retval;
 }
 
 /**
@@ -380,7 +349,7 @@ bool check::_exec() {
  */
 bool check::_open() {
   _channel = _session->new_channel();
-  return (!_channel);
+  return !_channel;
 }
 
 /**
@@ -398,14 +367,11 @@ bool check::_read() {
     // Only throw is error is fatal.
     if (orb != LIBSSH2_ERROR_EAGAIN) {
       char* msg;
-      libssh2_session_last_error(
-        _session->get_libssh2_session(),
-        &msg,
-        NULL,
-        0);
+      libssh2_session_last_error(_session->get_libssh2_session(), &msg, nullptr,
+                                 0);
       if (orb == LIBSSH2_ERROR_SOCKET_SEND)
         _session->error();
-      throw (basic_error() << "failed to read command output: " << msg);
+      throw(basic_error() << "failed to read command output: " << msg);
     }
   }
   // Append data.
@@ -418,11 +384,9 @@ bool check::_read() {
     _stderr.append(buffer, erb);
 
   // Should we read again ?
-  return (((orb > 0)
-           || (LIBSSH2_ERROR_EAGAIN == orb)
-           || (erb > 0)
-           || (LIBSSH2_ERROR_EAGAIN == erb))
-          && !libssh2_channel_eof(_channel));
+  return (((orb > 0) || (LIBSSH2_ERROR_EAGAIN == orb) || (erb > 0) ||
+           (LIBSSH2_ERROR_EAGAIN == erb)) &&
+          !libssh2_channel_eof(_channel));
 }
 
 /**
@@ -434,22 +398,21 @@ void check::_send_result_and_unregister(result const& r) {
   // Remove timeout task.
   if (_timeout) {
     try {
-      multiplexer::instance().com::centreon::task_manager::remove(
-        _timeout);
+      multiplexer::instance().com::centreon::task_manager::remove(_timeout);
+    } catch (...) {
     }
-    catch (...) {}
     _timeout = 0;
   }
 
   // Check that session is valid.
   if (_session) {
     // Unregister from session.
-    log_debug(logging::high) << "check " << this
-      << " is unregistering from session " << _session;
+    log_debug(logging::high)
+        << "check " << this << " is unregistering from session " << _session;
 
     // Unregister from session.
     _session->unlisten(this);
-    _session = NULL;
+    _session = nullptr;
   }
 
   // Check that we haven't already send a check result.
@@ -461,8 +424,6 @@ void check::_send_result_and_unregister(result const& r) {
     if (_listnr)
       _listnr->on_result(r);
   }
-
-  return ;
 }
 
 /**
@@ -475,7 +436,7 @@ void check::_send_result_and_unregister(result const& r) {
  */
 std::string& check::_skip_data(std::string& data, int nb_line) {
   if (nb_line < 0)
-    return (data);
+    return data;
   if (!nb_line)
     data.clear();
   else {
@@ -485,5 +446,5 @@ std::string& check::_skip_data(std::string& data, int nb_line) {
     if (pos != std::string::npos)
       data.resize(pos);
   }
-  return (data);
+  return data;
 }

@@ -16,59 +16,35 @@
 ** For more information : contact@centreon.com
 */
 
+#include <chrono>
 #include <cstring>
 #include <ctime>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include "com/centreon/clib.hh"
-#include "com/centreon/concurrency/thread.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
 using namespace com::centreon;
 
-#define CMD1 "2\0" \
-             "4242\0" \
-             "3\0" \
-             "123456789\0" \
-             "check_by_ssh " \
-             "-H localhost " \
-             " -C 'sleep 30'\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "0\0" \
-               "-1\0" \
-               " \0" \
-               " \0\0\0\0"
-
-/**
- *  The process killing task.
- */
-class      kill_connector : public concurrency::thread {
-public:
-  /**
-   *  Constructor.
-   */
-           kill_connector(process* p, time_t when)
-    : _p(p), _when(when) {}
-
-  /**
-   *  Run thread.
-   */
-  void     _run() {
-    time_t now(time(NULL));
-    if (now < _when)
-      sleep(_when - now);
-    _p->terminate();
-    return ;
-  }
-
-private:
-  process* _p;
-  time_t   _when;
-};
+#define CMD1      \
+  "2\0"           \
+  "4242\0"        \
+  "3\0"           \
+  "123456789\0"   \
+  "check_by_ssh " \
+  "-H localhost " \
+  " -C 'sleep 30'\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "0\0"        \
+  "-1\0"       \
+  " \0"        \
+  " \0\0\0\0"
 
 /**
  *  Check that connector set timeout on commands.
@@ -97,8 +73,10 @@ int main() {
   p.enable_stream(process::in, false);
 
   // Schedule process termination.
-  kill_connector killer(&p, time(NULL) + 4);
-  killer.exec();
+  std::thread killer([&p](){
+    std::this_thread::sleep_for(std::chrono::seconds(4));
+    p.terminate();
+  });
 
   // Read reply.
   std::string output;
@@ -118,17 +96,16 @@ int main() {
 
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1)
-        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << output);
-  }
-  catch (std::exception const& e) {
+      throw(basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1) ||
+        memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw(basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << output);
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
+  killer.join();
 
-  return (retval);
+  return retval;
 }

@@ -38,9 +38,9 @@ namespace    checks {
   class      timeout : public com::centreon::task {
   public:
              timeout(check* chk = NULL);
-             timeout(timeout const& t);
+             timeout(timeout const& t) = delete;
              ~timeout() throw ();
-    timeout& operator=(timeout const& t);
+    timeout& operator=(timeout const& t) = delete;
     check*   get_check() const throw ();
     void     run();
     void     set_check(check* chk) throw ();

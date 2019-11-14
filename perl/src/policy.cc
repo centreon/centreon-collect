@@ -22,8 +22,6 @@
 #include <cstring>
 #include <memory>
 #include <sys/wait.h>
-#include "com/centreon/concurrency/locker.hh"
-#include "com/centreon/concurrency/mutex.hh"
 #include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/connector/perl/policy.hh"
@@ -88,7 +86,6 @@ policy::~policy() throw () {
 void policy::on_eof() {
   log_info(logging::low) << "stdin is closed";
   on_quit();
-  return ;
 }
 
 /**
@@ -99,7 +96,6 @@ void policy::on_error() {
     << "error occurred while parsing stdin";
   _error = true;
   on_quit();
-  return ;
 }
 
 /**
@@ -113,7 +109,7 @@ void policy::on_execute(
                unsigned long long cmd_id,
                time_t timeout,
                std::string const& cmd) {
-  std::auto_ptr<checks::check> chk(new checks::check);
+  std::unique_ptr<checks::check> chk(new checks::check);
   chk->listen(this);
   try {
     pid_t child(chk->execute(cmd_id, cmd, timeout));
@@ -127,7 +123,6 @@ void policy::on_execute(
     r.set_command_id(cmd_id);
     on_result(r);
   }
-  return ;
 }
 
 /**
@@ -139,7 +134,6 @@ void policy::on_quit() {
     << "quit request received";
   should_exit = true;
   multiplexer::instance().handle_manager::remove(&_sin);
-  return ;
 }
 
 /**
@@ -149,13 +143,11 @@ void policy::on_quit() {
  */
 void policy::on_result(checks::result const& r) {
   // Lock mutex.
-  static concurrency::mutex processing_mutex;
-  concurrency::locker lock(&processing_mutex);
+  static std::mutex processing_mutex;
+  std::lock_guard<std::mutex> lock(processing_mutex);
 
   // Send check result back to monitoring engine.
   _reporter.send_result(r);
-
-  return ;
 }
 
 /**
@@ -166,7 +158,6 @@ void policy::on_version() {
   log_info(logging::medium)
     << "monitoring engine requested protocol version, sending 1.0";
   _reporter.send_version(1, 0);
-  return ;
 }
 
 /**
@@ -198,7 +189,7 @@ bool policy::run() {
       std::map<pid_t, checks::check*>::iterator it;
       it = _checks.find(child);
       if (it != _checks.end()) {
-        std::auto_ptr<checks::check> chk(it->second);
+        std::unique_ptr<checks::check> chk(it->second);
         _checks.erase(it);
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
       }
@@ -216,5 +207,5 @@ bool policy::run() {
   while (_reporter.can_report() && _reporter.want_write(_sout))
     multiplexer::instance().multiplex();
 
-  return (!_error);
+  return !_error;
 }

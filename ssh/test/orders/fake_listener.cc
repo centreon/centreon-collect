@@ -87,7 +87,7 @@ void fake_listener::on_eof() {
  *  @param[in] msg    Error message.
  */
 void fake_listener::on_error(
-                      unsigned long long cmd_id,
+                      uint64_t cmd_id,
                       char const* msg) {
   (void)cmd_id;
   (void)msg;
@@ -113,7 +113,7 @@ void fake_listener::on_error(
  *  @param[in] is_ipv6     Work with IPv6.
  */
 void fake_listener::on_execute(
-                      unsigned long long cmd_id,
+                      uint64_t cmd_id,
                       time_t timeout,
                       std::string const& host,
                       unsigned short port,

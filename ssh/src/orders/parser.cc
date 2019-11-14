@@ -49,7 +49,7 @@ parser::parser(parser const& p) : handle_listener(p) {
 /**
  *  Destructor.
  */
-parser::~parser() throw () {}
+parser::~parser() noexcept {}
 
 /**
  *  Assignment operator.
@@ -63,7 +63,7 @@ parser& parser::operator=(parser const& p) {
     handle_listener::operator=(p);
     _copy(p);
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -75,7 +75,6 @@ void parser::error(handle& h) {
   (void)h;
   if (_listnr)
     _listnr->on_error(0, "error on handle");
-  return ;
 }
 
 /**
@@ -83,8 +82,8 @@ void parser::error(handle& h) {
  *
  *  @return Unparsed buffer.
  */
-std::string const& parser::get_buffer() const throw () {
-  return (_buffer);
+std::string const& parser::get_buffer() const noexcept {
+  return _buffer;
 }
 
 /**
@@ -92,8 +91,8 @@ std::string const& parser::get_buffer() const throw () {
  *
  *  @return Listener if object has one, NULL otherwise.
  */
-listener* parser::get_listener() const throw () {
-  return (_listnr);
+listener* parser::get_listener() const noexcept {
+  return _listnr;
 }
 
 /**
@@ -101,9 +100,8 @@ listener* parser::get_listener() const throw () {
  *
  *  @param[in] l Listener.
  */
-void parser::listen(listener* l) throw () {
+void parser::listen(listener* l) noexcept {
   _listnr = l;
-  return ;
 }
 
 /**
@@ -162,7 +160,6 @@ void parser::read(handle& h) {
       bound = _buffer.find(boundary, 0, sizeof(boundary));
     }
   }
-  return ;
 }
 
 /**
@@ -172,7 +169,7 @@ void parser::read(handle& h) {
  */
 bool parser::want_read(handle& h) {
   (void)h;
-  return (true);
+  return true;
 }
 
 /**
@@ -182,7 +179,7 @@ bool parser::want_read(handle& h) {
  */
 bool parser::want_write(handle& h) {
   (void)h;
-  return (false);
+  return false;
 }
 
 /**************************************
@@ -199,7 +196,6 @@ bool parser::want_write(handle& h) {
 void parser::_copy(parser const& p) {
   _buffer = p._buffer;
   _listnr = p._listnr;
-  return ;
 }
 
 /**
@@ -307,5 +303,4 @@ void parser::_parse(std::string const& cmd) {
     throw (basic_error() << "invalid command received (ID "
              << id << ")");
   };
-  return ;
 }
