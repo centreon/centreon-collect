@@ -19,6 +19,8 @@
 # Global options.
 cmake_minimum_required(VERSION 2.8)
 project("Centreon SSH Connector" CXX)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/..")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/connector/ssh")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
