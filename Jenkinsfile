@@ -48,12 +48,6 @@ try {
         sh "./centreon-build/jobs/clib/${serie}/mon-clib-package.sh centos7"
       }
     },
-    'centos8': {
-      node {
-        sh 'setup_centreon_build.sh'
-        sh "./centreon-build/jobs/clib/${serie}/mon-clib-package.sh centos8"
-      }
-    },
     'debian10': {
       node {
         sh 'setup_centreon_build.sh'
