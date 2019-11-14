@@ -20,7 +20,7 @@ RUN /tmp/install.sh
 COPY $MODULEPATH/locale /usr/share/centreon/www/modules/centreon-bam-server/locale
 COPY $MODULEPATH/php /usr/share/centreon/www/modules/centreon-bam-server/php
 COPY $MODULEPATH/checklist /usr/share/centreon/www/modules/checklist
-COPY $MODULEPATH/UPGRADE /usr/share/centreon/www/modules/centreon-bam-server/UPGRADE
+COPY $MODULEPATH/upgrade /usr/share/centreon/www/modules/centreon-bam-server/upgrade
 COPY $MODULEPATH/tools /usr/share/centreon/www/modules/centreon-bam-server/tools
 COPY $MODULEPATH/engine /usr/share/centreon/www/modules/centreon-bam-server/engine
 COPY $MODULEPATH/webServices /usr/share/centreon/www/modules/centreon-bam-server/webServices
