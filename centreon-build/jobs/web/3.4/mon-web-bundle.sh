@@ -28,11 +28,11 @@ fi
 REGISTRY="registry.centreon.com"
 BASE_IMG="$REGISTRY/mon-dependencies-3.4:$DISTRIB"
 FRESH_IMG="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
-FRESH_WIP_IMG="$REGISTRY/mon-web-fresh-$BRANCH_NAME:$DISTRIB"
+FRESH_WIP_IMG=$(echo "$REGISTRY/mon-web-fresh-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 STANDARD_IMG="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
-STANDARD_WIP_IMG="$REGISTRY/mon-web-$BRANCH_NAME:$DISTRIB"
+STANDARD_WIP_IMG=$(echo "$REGISTRY/mon-web-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 WIDGETS_IMG="$REGISTRY/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
-WIDGETS_WIP_IMG="$REGISTRY/mon-web-widgets-$BRANCH_NAME:$DISTRIB"
+WIDGETS_WIP_IMG=$(echo "$REGISTRY/mon-web-widgets-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 
 # Pull base image.
 docker pull "$BASE_IMG"
