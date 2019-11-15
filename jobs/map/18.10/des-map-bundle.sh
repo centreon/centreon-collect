@@ -19,9 +19,9 @@ REGISTRY="registry.centreon.com"
 DEP_IMAGE="$REGISTRY/mon-dependencies-18.10:$DISTRIB"
 BASE_IMAGE="$REGISTRY/mon-web-18.10:$DISTRIB"
 SERVER_IMAGE="$REGISTRY/des-map-server-$VERSION-$RELEASE:$DISTRIB"
-SERVER_WIP_IMAGE="$REGISTRY/des-map-server-$BRANCH_NAME:$DISTRIB"
+SERVER_WIP_IMAGE=$(echo "$REGISTRY/des-map-server-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 WEB_IMAGE="$REGISTRY/des-map-web-$VERSION-$RELEASE:$DISTRIB"
-WEB_WIP_IMAGE="$REGISTRY/des-map-web-$BRANCH_NAME:$DISTRIB"
+WEB_WIP_IMAGE=$(echo "$REGISTRY/des-map-web-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 docker pull $DEP_IMAGE
 docker pull $BASE_IMAGE
 
