@@ -25,11 +25,6 @@ done
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
 
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bam -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bam -V latest -p'"
-
 # Synchronize RPMs.
 $SSH_REPO /srv/scripts/sync-bam.sh --confirm
 

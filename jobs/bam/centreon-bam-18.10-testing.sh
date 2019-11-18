@@ -54,8 +54,3 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 # Copy files to server.
 put_testing_source "bam" "bam" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION-php71.tar.gz"
 put_testing_rpms "bam" "18.10" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-
-# Generate testing documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bam -V latest -p'"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bam -V latest -p'"
