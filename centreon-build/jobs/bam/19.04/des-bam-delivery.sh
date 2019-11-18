@@ -20,9 +20,6 @@ fi
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_source_to_testing "bam" "bam" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "bam" "19.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
-  SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-  $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bam -V latest -p'"
-  $SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bam -V latest -p'"
   TARGETVERSION="$VERSION"
 
 #
