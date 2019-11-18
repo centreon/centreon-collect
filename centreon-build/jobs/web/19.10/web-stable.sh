@@ -25,8 +25,3 @@ curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&p
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "19.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon -V latest -p'"
