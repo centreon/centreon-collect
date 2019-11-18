@@ -36,6 +36,6 @@ for image in mon-web-fresh mon-web mon-web-widgets ; do
   for distrib in centos7 ; do
     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
-    docker push "$REGISTRY/$image-19.04:$distrib"
+    docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
   done
 done
