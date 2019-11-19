@@ -85,7 +85,7 @@ if (isset($opts['v'])) {
     array_shift($argv);
     array_shift($argv);
 } else {
-    $version = '19.04';
+    $version = '20.04';
 }
 
 if (isset($opts['c'])) {
