@@ -20,7 +20,7 @@ $SSH_REPO mv "/srv/sources/bam/testing/bam/$PROJECT-$VERSION-$RELEASE" "/srv/sou
 
 # Put sources online.
 SRCHASH=`$SSH_REPO "cat /srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz | md5sum | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-20.04/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php$phpversion.tar.gz"
+$SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-20.04/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php72.tar.gz"
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "bam" "20.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
