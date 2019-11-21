@@ -51,6 +51,31 @@ copy_internal_source_to_testing () {
   ssh "$REPO_CREDS" cp -r "$SRCDIR" "$DESTDIR"
 }
 
+# Expect arguments in the following order:
+#   1. project as in centreon-download (centreon-web)
+#   2. serie (20.04)
+#   3. version (20.04.3)
+#   4. extension (tar.gz)
+#   5. ddos protection enabled (0 or 1)
+#   6. source file on srvi-repo
+#   7. destination file on S3
+upload_artifact_for_download () {
+  SRCHASH=`ssh $REPO_CREDS "md5sum $6 | cut -d ' ' -f 1"`
+  SRCSIZE=`ssh $REPO_CREDS "stat -c '%s' $6"`
+  ssh $REPO_CREDS aws s3 cp --acl public-read "$6" "$7"
+  curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$1&release=$2&version=$3&extension=$4&md5=$SRCHASH&size=$SRCSIZE&ddos=$5&dryrun=0"
+}
+
+# More concise version of the above, specialy made for source tarballs.
+#   1. project
+#   2. version
+#   3. source file
+#   4. destination file
+upload_tarball_for_download () {
+  SERIE=`echo $2 | cut -d . -f 1-2`
+  upload_artifact_for_download "$1" "$SERIE" "$2" tar.gz 0 "$3" "$4"
+}
+
 # Packages.
 
 put_internal_rpms () {
