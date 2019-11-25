@@ -17,7 +17,7 @@ mysql -e "UPDATE contact SET reach_api=1 WHERE contact_alias='admin'" centreon
 
 # Create Centreon Broker output (extracted from configure.sh).
 CONFIG_GROUP_ID=`mysql -e "SELECT MAX(config_group_id)+1 as config_group_id FROM cfg_centreonbroker_info" centreon | tail -1`
-CONFIG_ID=`mysql -e "SELECT min(config_id) FROM cfg_centreonbroker WHERE config_filename LIKE 'central-broker.xml'" centreon | tail -1`
+CONFIG_ID=`mysql -e "SELECT min(config_id) FROM cfg_centreonbroker WHERE config_filename LIKE 'central-broker.json'" centreon | tail -1`
 mysql -e "INSERT INTO cfg_centreonbroker_info (config_id, config_key, config_value, config_group, config_group_id, grp_level, subgrp_id, parent_grp_id) VALUES \
           ($CONFIG_ID, 'name', 'Centreon-Studio', 'output', $CONFIG_GROUP_ID, 0, NULL, NULL), \
           ($CONFIG_ID, 'port', '5758', 'output', $CONFIG_GROUP_ID, 0, NULL, NULL), \
