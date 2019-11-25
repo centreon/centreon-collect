@@ -31,8 +31,21 @@ fi
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 # Prepare base source tarball.
-git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
+rm -rf "../$PROJECT-$VERSION"
+mkdir "../$PROJECT-$VERSION"
+git archive HEAD | tar -C "../$PROJECT-$VERSION" -x
+cd "../$PROJECT-$VERSION"
+
+# Install npm dependencies and build widget.
+if [ -f "package.json" ]; then
+  npm ci
+  npm run build
+  rm -rf node_modules
+fi
+
+# Generate source tarball.
 cd ..
+tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Send it to srvi-repo.
 put_internal_source "widgets" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
