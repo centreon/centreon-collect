@@ -1,2 +1,4 @@
 FROM registry.centreon.com/centos:7
+RUN echo 'http_caching=none' >> /etc/yum.conf \
+    echo 'assumeyes=1' >> /etc/yum.conf
 RUN yum install java-11-openjdk maven
