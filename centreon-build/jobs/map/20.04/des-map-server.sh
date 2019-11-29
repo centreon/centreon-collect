@@ -29,16 +29,16 @@ docker cp "$PROJECT-server-$VERSIONSERVER.tar.gz" "$containerid:/usr/local/src/"
 docker start -a "$containerid"
 
 # Copy artifacts.
-rm -rf noarch
-docker cp "$containerid:/usr/local/src/$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch" noarch
+rm -rf "$PROJECT-server-$VERSIONSERVER"
+docker cp "$containerid:/usr/local/src/$PROJECT-server-$VERSIONSERVER" "$PROJECT-server-$VERSIONSERVER"
 
 # Stop container.
 docker stop "$containerid"
 docker rm "$containerid"
 
 # Upload artifacts.
-FILES_TOMCAT7="noarch/"'*.rpm'
-put_internal_rpms "20.04" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" noarch/*.rpm
+FILES_TOMCAT7="$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
+put_internal_rpms "20.04" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" $FILES_TOMCAT7
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/20.04/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/*.rpm"
 $SSH_REPO createrepo "/srv/yum/internal/20.04/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE"
