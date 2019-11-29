@@ -1,10 +1,2 @@
-FROM registry.centreon.com/centos:7
-RUN echo 'http_caching=none' >> /etc/yum.conf && \
-    echo 'assumeyes=1' >> /etc/yum.conf
-RUN yum install centos-release-scl java-11-openjdk
-RUN yum install rh-maven35
-ENV PATH=$PATH:/opt/rh/rh-php72/root/usr/bin:/opt/rh/rh-maven35/root/usr/bin
-ENV PYTHONPATH="/opt/rh/rh-maven35/root/usr/lib/python2.7/site-packages${PYTHONPATH:+:}${PYTHONPATH:-}"
-ENV JAVACONFDIRS="/opt/rh/rh-maven35/root/etc/java${JAVACONFDIRS:+:}${JAVACONFDIRS:-}"
-ENV XDG_CONFIG_DIRS="/opt/rh/rh-maven35/root/etc/xdg:${XDG_CONFIG_DIRS:-/etc/xdg}"
-ENV XDG_DATA_DIRS="/opt/rh/rh-maven35/root/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+FROM @BASE_IMAGE@
+RUN apt-get update && apt-get install rpm && apt-cache clean

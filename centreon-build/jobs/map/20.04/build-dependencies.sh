@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Base image.
-BASE_IMAGE="registry.centreon.com/centos:7"
+BASE_IMAGE="maven:3-jdk-11"
 docker pull "$BASE_IMAGE"
 
 # Prepare context.
