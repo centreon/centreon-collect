@@ -1,0 +1,2 @@
+FROM registry.centreon.com/centos:7
+RUN yum install java-11-openjdk maven
