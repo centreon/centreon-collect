@@ -19,7 +19,7 @@ rm -rf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
 get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
 
 # Create and populate container.
-BUILD_IMAGE="registry.centreon.com/map-build-dependencies-20.04:centos7"
+BUILD_IMAGE="registry.centreon.com/maven:3-jdk-11"
 docker pull "$BUILD_IMAGE"
 containerid=`docker create -e "VERSION=$VERSIONSERVER" $BUILD_IMAGE /usr/local/bin/server.sh`
 docker cp `dirname $0`/des-map-server.container.sh "$containerid:/usr/local/bin/server.sh"
