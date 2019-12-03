@@ -163,7 +163,7 @@ Summary:     Centreon Perl libraries
 Group:       Development/Libraries
 Requires:    centreon-common = %{version}-%{release}
 Requires:    perl perl(DBI) perl(FindBin) perl(Getopt::Long) perl(IO::Handle) perl(POSIX) perl(Pod::Usage) perl(Sys::Syslog)
-Provides:    perl(centreon::common::db) perl(centreon::common::lock) perl(centreon::common::lock::file) perl(centreon::common::lock::sql) perl(centreon::common::logger) perl(centreon::common::misc) perl(centreon::script) perl(centreon::script::centreontrapd) perl(centreon::script::centreontrapdforward) perl(centreon::script::centFillTrapDB) perl(centreon::script::centcore) perl(centreon::script::centreonSyncArchives) perl(centreon::script::centreonSyncPlugins) perl(centreon::script::centreon_check_perfdata) perl(centreon::script::centreon_trap_send) perl(centreon::script::dashboardBuilder) perl(centreon::script::eventReportBuilder) perl(centreon::script::logAnalyser) perl(centreon::script::logAnalyserBroker) perl(centreon::script::nagiosPerfTrace) perl(centreon::script::centreon_health)
+Provides:    perl(centreon::common::db) perl(centreon::common::lock) perl(centreon::common::lock::file) perl(centreon::common::lock::sql) perl(centreon::common::logger) perl(centreon::common::misc) perl(centreon::script) perl(centreon::script::centreontrapd) perl(centreon::script::centreontrapdforward) perl(centreon::script::centFillTrapDB) perl(centreon::script::centcore) perl(centreon::script::centreonSyncArchives) perl(centreon::script::centreonSyncPlugins) perl(centreon::script::centreon_trap_send) perl(centreon::script::dashboardBuilder) perl(centreon::script::eventReportBuilder) perl(centreon::script::logAnalyser) perl(centreon::script::logAnalyserBroker) perl(centreon::script::nagiosPerfTrace) perl(centreon::script::centreon_health)
 Obsoletes:  perl-centreon-base
 Provides:   perl-centreon-base
 AutoReqProv: no
@@ -321,8 +321,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__ln_s} %{_bindir}/centFillTrapDB %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon_trap_send %buildroot%{_bindir}
 %{__ln_s} %{_bindir}/centreon_trap_send %buildroot%{_datadir}/centreon/bin/
-%{__install} -m 0755 bin/centreon_check_perfdata %buildroot%{_bindir}
-%{__ln_s} %{_bindir}/centreon_check_perfdata %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreonSyncPlugins %buildroot%{_bindir}
 %{__ln_s} %{_bindir}/centreonSyncPlugins %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreonSyncArchives %buildroot%{_bindir}
@@ -345,7 +343,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/centcore %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centFillTrapDB %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon_trap_send %buildroot%{_datadir}/centreon/bin/
-%{__install} -m 0755 bin/centreon_check_perfdata %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon_health %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreonSyncPlugins %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreonSyncArchives %buildroot%{_datadir}/centreon/bin/
@@ -516,7 +513,6 @@ fi
 %{_datadir}/centreon/bin/centFillTrapDB
 %{_datadir}/centreon/bin/centreon_health
 %{_datadir}/centreon/bin/centreon_trap_send
-%{_datadir}/centreon/bin/centreon_check_perfdata
 %{_datadir}/centreon/bin/centreonSyncPlugins
 %{_datadir}/centreon/bin/centreonSyncArchives
 %{_datadir}/centreon/bin/generateSqlLite
@@ -526,7 +522,6 @@ fi
 %{_datadir}/centreon/bin/logAnalyserBroker
 %{_bindir}/centFillTrapDB
 %{_bindir}/centreon_trap_send
-%{_bindir}/centreon_check_perfdata
 %{_bindir}/centreonSyncPlugins
 %{_bindir}/centreonSyncArchives
 %{_bindir}/generateSqlLite
