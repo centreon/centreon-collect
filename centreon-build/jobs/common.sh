@@ -4,6 +4,7 @@ set -e
 set -x
 
 # Machine credentials.
+REGISTRY="registry.centreon.com"
 REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 DLDEV_URL='http://download-dev.int.centreon.com'
 DL_URL='https://download.centreon.com'
