@@ -8,10 +8,10 @@ services:
     links:
     - influxdb
   influxdb:
-   image: influxdb:latest
-   ports:
-   - "8083"
-   - "8086"
+    image: registry.centreon.com/influxdb:latest
+    ports:
+    - "8083"
+    - "8086"
   webdriver:
     image: selenium/standalone-chrome-debug:3.141.59-oxygen
     environment:
