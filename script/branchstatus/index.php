@@ -124,10 +124,18 @@ $projects = array(
     '20.04.x' => 'master'
   ),
   'centreon-hub' => array(
-    '20.04.x' => 'master'
+    '20.04.x' => 'master',
+    '19.10.x' => 'master',
+    '19.04.x' => 'master',
+    '18.10.x' => 'master',
+    '3.4.x' => 'master'
   ),
   'centreon-imp-portal-api' => array(
-    '20.04.x' => 'master'
+    '20.04.x' => 'master',
+    '19.10.x' => 'master',
+    '19.04.x' => 'master',
+    '18.10.x' => 'master',
+    '3.4.x' => 'master'
   ),
   'centreon-license-manager' => array(
     '20.04.x' => 'master',
@@ -151,10 +159,18 @@ $projects = array(
     '3.4.x' => '1.2.x'
   ),
   'centreon-plugins' => array(
-    '20.04.x' => 'master'
+    '20.04.x' => 'master',
+    '19.10.x' => 'master',
+    '19.04.x' => 'master',
+    '18.10.x' => 'master',
+    '3.4.x' => 'master'
   ),
   'centreon-plugin-packs' => array(
-    '20.04.x' => 'master'
+    '20.04.x' => 'master',
+    '19.10.x' => 'master',
+    '19.04.x' => 'master',
+    '18.10.x' => 'master',
+    '3.4.x' => 'master'
   ),
   'centreon-poller-display' => array(
     '3.4.x' => 'master'
@@ -172,7 +188,11 @@ $projects = array(
     '19.04.x' => '19.04.x'
   ),
   'centreon-vmware' => array(
-    '20.04.x' => 'master'
+    '20.04.x' => 'master',
+    '19.10.x' => 'master',
+    '19.04.x' => 'master',
+    '18.10.x' => 'master',
+    '3.4.x' => 'master'
   ),
   'centreon-web' => array(
     '20.04.x' => 'master',
