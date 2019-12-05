@@ -19,7 +19,7 @@ curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/ce
 
 # Get version.
 cd "$PROJECT"
-VERSION=`grep mod_release www/modules/$PROJECT/conf.php | cut -d '"' -f 4`
+VERSION=`grep mod_release www/modules/$PROJECT/conf.php | head -n 1 | cut -d '"' -f 4`
 export VERSION="$VERSION"
 
 # Get release.
