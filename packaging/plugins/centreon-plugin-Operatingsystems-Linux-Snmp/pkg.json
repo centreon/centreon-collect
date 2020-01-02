@@ -5,6 +5,7 @@
     "files": [
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
+        "snmp_standard/mode/arp.pm",
         "snmp_standard/mode/cpu.pm",
         "snmp_standard/mode/cpudetailed.pm",
         "snmp_standard/mode/diskio.pm",
@@ -22,6 +23,7 @@
         "snmp_standard/mode/swap.pm",
         "snmp_standard/mode/ntp.pm",
         "snmp_standard/mode/tcpcon.pm",
+        "snmp_standard/mode/udpcon.pm",
         "snmp_standard/mode/uptime.pm",
         "os/linux/snmp/"
     ]
