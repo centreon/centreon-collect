@@ -31,7 +31,6 @@ using namespace com::centreon;
  */
 int main() {
   int ret(EXIT_SUCCESS);
-  clib::load();
   try {
     process p;
     char* env[] = {(char*)"key1=value1", (char*)"key2=value2",
@@ -48,6 +47,5 @@ int main() {
     ret = EXIT_FAILURE;
     std::cerr << "error: " << e.what() << std::endl;
   }
-  clib::unload();
-  return (ret);
+  return ret;
 }

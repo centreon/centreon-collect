@@ -293,7 +293,7 @@ unsigned long file_stream::size() {
 char* file_stream::temp_path() {
   char* ret(::tmpnam(static_cast<char*>(NULL)));
   if (!ret)
-    throw(basic_error() << "could not generate temporary file name");
+    throw basic_error() << "could not generate temporary file name";
   return ret;
 }
 

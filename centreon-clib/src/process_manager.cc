@@ -35,10 +35,6 @@ using namespace com::centreon;
 // Default varibale.
 static int const DEFAULT_TIMEOUT = 200;
 
-// Class instance.
-static process_manager* _instance = nullptr;
-static std::mutex _instance_m;
-
 /**************************************
 *                                     *
 *           Public Methods            *
@@ -84,24 +80,9 @@ void process_manager::add(process* p) {
  *
  *  @return the process manager.
  */
-process_manager& process_manager::instance() { return *_instance; }
-
-/**
- *  Load the process manager.
- */
-void process_manager::load() {
-  std::lock_guard<std::mutex> lock(_instance_m);
-  if (!_instance)
-    _instance = new process_manager;
-}
-
-/**
- *  Unload the process manager.
- */
-void process_manager::unload() {
-  std::lock_guard<std::mutex> lock(_instance_m);
-  delete _instance;
-  _instance = nullptr;
+process_manager& process_manager::instance() {
+  static process_manager instance;
+  return instance;
 }
 
 /**************************************

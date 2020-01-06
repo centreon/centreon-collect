@@ -36,7 +36,6 @@ int main() {
   static uint32_t const nb_write(10);
   int retval;
 
-  engine::load();
   try {
     engine& e(engine::instance());
 
@@ -71,6 +70,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
   return retval;
 }

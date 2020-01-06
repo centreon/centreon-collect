@@ -26,8 +26,15 @@
 
 using namespace com::centreon::logging;
 
-// Class instance.
-engine* engine::_instance = NULL;
+/**
+ *  Get the logger engine singleton.
+ *
+ *  @return The unique instance of logger engine.
+ */
+engine& engine::instance() noexcept {
+  static engine instance;
+  return instance;
+}
 
 /**
  *  Add backend into the logging engine.
@@ -61,15 +68,6 @@ unsigned long engine::add(backend* obj,
 
   _backends.push_back(info.get());
   return (info.release()->id);
-}
-
-/**
- *  Create a new instance of the logging engine if no instance exist.
- */
-void engine::load() {
-  if (!_instance)
-    _instance = new engine;
-  return;
 }
 
 /**
@@ -160,15 +158,6 @@ void engine::reopen() {
        it != end;
        ++it)
     (*it)->obj->reopen();
-}
-
-/**
- *  Destroy the logging engine.
- */
-void engine::unload() {
-  delete _instance;
-  _instance = NULL;
-  return;
 }
 
 /**

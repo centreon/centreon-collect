@@ -54,7 +54,6 @@ int main() {
   static char msg[] = "Centreon Clib test";
   int retval;
 
-  engine::load();
   try {
     engine& e(engine::instance());
 
@@ -86,6 +85,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
-  return (retval);
+  return retval;
 }

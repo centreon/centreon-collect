@@ -32,7 +32,6 @@ using namespace com::centreon;
  */
 int main() {
   int ret(EXIT_SUCCESS);
-  clib::load();
   try {
     process p;
     p.exec("./bin_test_process_output check_sleep 1");
@@ -47,6 +46,5 @@ int main() {
     ret = EXIT_FAILURE;
     std::cerr << "error: " << e.what() << std::endl;
   }
-  clib::unload();
-  return (ret);
+  return ret;
 }
