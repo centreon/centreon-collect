@@ -46,7 +46,7 @@ class engine {
    *
    *  @return The unique instance of logger engine.
    */
-  static engine& instance() throw() { return (*_instance); }
+  static engine& instance() noexcept;
 
   /**
    *  Check if at least one backend can log with this parameter.
@@ -62,7 +62,6 @@ class engine {
       return (false);
     return (_list_types[verbose] & types);
   }
-  static void load();
   void log(unsigned long long types,
            unsigned int verbose,
            char const* msg,
@@ -70,7 +69,6 @@ class engine {
   bool remove(unsigned long id);
   unsigned int remove(backend* obj);
   void reopen();
-  static void unload();
 
  private:
   struct backend_info {
@@ -88,7 +86,6 @@ class engine {
 
   std::vector<backend_info*> _backends;
   unsigned long _id;
-  static engine* _instance;
   unsigned long long _list_types[sizeof(unsigned int) * CHAR_BIT];
   mutable std::mutex _mtx;
 };

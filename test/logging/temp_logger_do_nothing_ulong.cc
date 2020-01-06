@@ -33,7 +33,6 @@ using namespace com::centreon::logging;
 int main() {
   int retval;
 
-  engine::load();
   try {
     engine& e(engine::instance());
     std::unique_ptr<backend_test> obj(new backend_test);
@@ -49,6 +48,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
-  return (retval);
+  return retval;
 }

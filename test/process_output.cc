@@ -33,7 +33,6 @@ using namespace com::centreon;
  */
 int main(int argc, char** argv) {
   int ret(EXIT_SUCCESS);
-  clib::load();
   try {
     if (argc != 2 || (strcmp(argv[1], "err") && strcmp(argv[1], "out"))) {
       std::cerr << "usage: " << argv[0] << " err|out" << std::endl;
@@ -74,6 +73,5 @@ int main(int argc, char** argv) {
     ret = EXIT_FAILURE;
     std::cerr << "error: " << e.what() << std::endl;
   }
-  clib::unload();
-  return (ret);
+  return ret;
 }

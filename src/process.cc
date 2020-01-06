@@ -111,7 +111,7 @@ timestamp const& process::end_time() const noexcept {
  *  @param[in] cmd     Command line.
  *  @param[in] env     Array of strings (on form key=value), which are
  *                     passed as environment to the new process. If env
- *                     is NULL, the current environement are passed of
+ *                     is NULL, the current environement are passed to
  *                     the new process.
  *  @param[in] timeout Maximum time in seconds to execute process. After
  *                     this time the process will be kill.

@@ -51,7 +51,6 @@ int main() {
   static char msg[] = "Centreon_Clib_test";
   int retval;
 
-  engine::load();
   try {
     engine& e(engine::instance());
     std::unique_ptr<backend_test> obj(
@@ -66,6 +65,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
-  return (retval);
+  return retval;
 }

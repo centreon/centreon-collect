@@ -37,7 +37,7 @@ library::library(std::string const& filename)
 /**
  *  Destructor.
  */
-library::~library() throw() {
+library::~library() noexcept {
   try {
     unload();
   }
@@ -50,14 +50,14 @@ library::~library() throw() {
  *
  *  @return The filename.
  */
-std::string const& library::filename() const throw() { return (_filename); }
+std::string const& library::filename() const noexcept { return _filename; }
 
 /**
  *  Check if the library has loaded.
  *
  *  @return True if the library is loaded, otherwise false.
  */
-bool library::is_loaded() const throw() { return (_handle); }
+bool library::is_loaded() const noexcept { return _handle; }
 
 /**
  *  Load the library.
@@ -66,7 +66,7 @@ void library::load() {
   if (_handle)
     return;
   if (!(_handle = dlopen(_filename.c_str(), RTLD_NOW | RTLD_GLOBAL)))
-    throw(basic_error() << "load library failed: " << dlerror());
+    throw basic_error() << "load library failed: " << dlerror();
 }
 
 /**
@@ -78,16 +78,16 @@ void library::load() {
  */
 void* library::resolve(char const* symbol) {
   if (!_handle)
-    throw(basic_error() << "could not find symbol '" << symbol
-                        << "': library not loaded");
+    throw basic_error() << "could not find symbol '" << symbol
+                        << "': library not loaded";
   dlerror();
   void* sym(dlsym(_handle, symbol));
   if (!sym) {
     char const* msg(dlerror());
-    throw(basic_error() << "could not find symbol '" << symbol
-                        << "': " << (msg ? msg : "unknown error"));
+    throw basic_error() << "could not find symbol '" << symbol
+                        << "': " << (msg ? msg : "unknown error");
   }
-  return (sym);
+  return sym;
 }
 
 /**
@@ -96,7 +96,7 @@ void* library::resolve(char const* symbol) {
  *  @see resolve
  */
 void* library::resolve(std::string const& symbol) {
-  return (resolve(symbol.c_str()));
+  return resolve(symbol.c_str());
 }
 
 /**
@@ -131,6 +131,6 @@ void library::unload() {
   if (!_handle)
     return;
   if (dlclose(_handle))
-    throw(basic_error() << "unload library failed: " << dlerror());
+    throw basic_error() << "unload library failed: " << dlerror();
   _handle = NULL;
 }

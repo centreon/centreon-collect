@@ -33,8 +33,6 @@ int main() {
   // Return value.
   int retval;
 
-  engine::load();
-
   try {
     engine& e(engine::instance());
     if (e.remove(1) || e.remove(42))
@@ -55,6 +53,5 @@ int main() {
     std::cerr << "unknown error" << std::endl;
     retval = 1;
   }
-  engine::unload();
-  return (retval);
+  return retval;
 }

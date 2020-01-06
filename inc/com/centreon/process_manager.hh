@@ -73,8 +73,6 @@ class process_manager {
  public:
   void add(process* p);
   static process_manager& instance();
-  static void load();
-  static void unload();
   process_manager& operator=(process_manager const& p) = delete;
   process_manager(process_manager const& p) = delete;
 };

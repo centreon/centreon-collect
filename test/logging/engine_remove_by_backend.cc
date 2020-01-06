@@ -49,7 +49,6 @@ static bool null_pointer() {
 int main() {
   int retval;
 
-  engine::load();
   try {
     engine& e(engine::instance());
     if (!null_pointer())
@@ -72,6 +71,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
-  return (retval);
+  return retval;
 }

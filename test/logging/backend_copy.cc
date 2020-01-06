@@ -50,7 +50,6 @@ static bool is_same(backend const& b1, backend const& b2) {
 int main() {
   int retval(0);
 
-  engine::load();
   try {
     backend_test ref(false, true, none, false);
 
@@ -66,6 +65,5 @@ int main() {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
-  engine::unload();
-  return (retval);
+  return retval;
 }
