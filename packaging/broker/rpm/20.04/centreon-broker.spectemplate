@@ -36,10 +36,8 @@ Requires:       coreutils
 
 %if 0%{?suse_version}
 BuildRequires:  libgnutls-devel >= 2.0
-BuildRequires:  lsb
 %else
 BuildRequires:  gnutls-devel >= 2.0
-BuildRequires:  redhat-lsb
 %endif
 
 %description
