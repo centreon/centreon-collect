@@ -5,6 +5,5 @@ git
 make
 libgnutls-devel
 libgcrypt-devel
-libqt4-devel
 lsb
 rrdtool-devel
