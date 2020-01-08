@@ -36,8 +36,6 @@ rh-php72-php-pecl-gnupg
 rh-php72-php-snmp
 rh-php72-php-xml
 rh-php72-php-zip
-qt4
-qt4-mysql
 rrdtool
 rrdtool-perl
 rsync
