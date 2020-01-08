@@ -2,7 +2,7 @@ Source: centreon-broker
 Section: net
 Priority: optional
 Maintainer: Matthieu Kermagoret <mkermagoret@centreon.com>
-Build-Depends: debhelper (>=10), cmake, libgnutls28-dev, libqt4-dev, librrd-dev, lsb-base, make (>=3), zlib1g-dev
+Build-Depends: debhelper (>=10), cmake, libgnutls28-dev, librrd-dev, lsb-base, make (>=3), zlib1g-dev
 Standards-Version: 3.9.8
 Homepage: https://github.com/centreon/centreon-broker
 
