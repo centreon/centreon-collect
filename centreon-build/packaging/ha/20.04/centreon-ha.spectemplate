@@ -33,7 +33,6 @@ This add-on is built to manage a failover solution for Centreon.
 %install
 %{__install} -d $RPM_BUILD_ROOT%{_prefix}/lib/ocf/resource.d/heartbeat
 %{__cp} -r ocf-scripts/* $RPM_BUILD_ROOT%{_prefix}/lib/ocf/resource.d/heartbeat/
-%{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/spool/%{name}
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-ha/bin
 %{__cp} misc-scripts/* $RPM_BUILD_ROOT%{_datadir}/centreon-ha/bin/
 %{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/sudoers.d
@@ -47,7 +46,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %defattr(0755, root, root, -)
 %{_prefix}/lib/ocf/resource.d/heartbeat/*
-%{_localstatedir}/spool/%{name}
 %{_datadir}/centreon-ha/bin/*
 
 %defattr(-, root, root, -)
