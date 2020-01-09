@@ -18,7 +18,6 @@
 
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/timeout.hh"
-#include "com/centreon/connector/ssh/multiplexer.hh"
 
 using namespace com::centreon::connector::ssh;
 
@@ -28,9 +27,6 @@ using namespace com::centreon::connector::ssh;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  multiplexer::load();
-
   // Return value.
   int retval(0);
 
@@ -43,9 +39,6 @@ int main() {
   checks::timeout t2(&c1);
   retval |= (t2.get_check() != &c1);
 
-  // Unload.
-  multiplexer::unload();
-
   // Return check result.
-  return (static_cast<bool>(retval));
+  return static_cast<bool>(retval);
 }

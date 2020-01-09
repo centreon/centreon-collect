@@ -28,21 +28,13 @@ using namespace com::centreon::connector::ssh::orders;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   // Object.
   parser p;
 
   // Check.
   buffer_handle bh;
-  int retval (!p.get_buffer().empty()
-              || p.get_listener()
-              || !p.want_read(bh)
-              || p.want_write(bh));
-
-  // Unload.
-  com::centreon::logging::engine::unload();
+  int retval(!p.get_buffer().empty() || p.get_listener() || !p.want_read(bh) ||
+             p.want_write(bh));
 
   return (retval);
 }

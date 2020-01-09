@@ -30,25 +30,25 @@ using namespace com::centreon::connector::ssh;
 int main() {
   // Initialization.
   return 0;
-//  multiplexer::load();
-//
-//  // Base object.
-//  checks::check c1;
-//  checks::timeout t1(&c1);
-//
-//  // Copy object.
-//  checks::check c2;
-//  checks::timeout t2(&c2);
-//
-//  // Assignment.
-//  t2 = t1;
-//
-//  // Return check result.
-//  int retval ((t1.get_check() != &c1)
-//              || (t2.get_check() != &c1));
-//
-//  // Unload.
-//  multiplexer::unload();
-//
-//  return (retval);
+  //  multiplexer::load();
+  //
+  //  // Base object.
+  //  checks::check c1;
+  //  checks::timeout t1(&c1);
+  //
+  //  // Copy object.
+  //  checks::check c2;
+  //  checks::timeout t2(&c2);
+  //
+  //  // Assignment.
+  //  t2 = t1;
+  //
+  //  // Return check result.
+  //  int retval ((t1.get_check() != &c1)
+  //              || (t2.get_check() != &c1));
+  //
+  //  // Unload.
+  //  multiplexer::unload();
+  //
+  //  return (retval);
 }

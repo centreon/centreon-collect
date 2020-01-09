@@ -30,11 +30,8 @@ int main() {
   credentials creds;
 
   // Check.
-  return (!creds.get_host().empty()
-          || !creds.get_key().empty()
-          || !creds.get_password().empty()
-          || (creds.get_port() != 22)
-          || !creds.get_user().empty()
-          || !(creds == credentials())
-          || (creds != credentials()));
+  return (!creds.get_host().empty() || !creds.get_key().empty() ||
+          !creds.get_password().empty() || (creds.get_port() != 22) ||
+          !creds.get_user().empty() || !(creds == credentials()) ||
+          (creds != credentials()));
 }

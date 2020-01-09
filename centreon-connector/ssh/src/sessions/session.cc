@@ -84,11 +84,8 @@ void session::close() {
 
   // Notify listeners.
   {
-    _listnrs_it = _listnrs.begin();
-    while (_listnrs_it != _listnrs.end()) {
-      std::set<listener*>::iterator it(_listnrs_it++);
-      (*it)->on_close(*this);
-    }
+    for (auto& l : _listnrs)
+      l->on_close(*this);
   }
 
   // Close socket.
@@ -249,9 +246,7 @@ void session::error(handle& h) {
  *
  *  @return Credentials associated to this session.
  */
-credentials const& session::get_credentials() const noexcept {
-  return _creds;
-}
+credentials const& session::get_credentials() const noexcept { return _creds; }
 
 /**
  *  Get the libssh2 session object.
@@ -320,28 +315,15 @@ LIBSSH2_CHANNEL* session::new_channel() {
 }
 
 /**
- *  Read data is available.
+ *  Read available data.
  *
  *  @param[in] h Handle.
  */
 void session::read(handle& h) {
   (void)h;
   static void (session::*const redirector[])() = {
-      &session::_startup, &session::_passwd, &session::_key,
-      &session::_available};
-
-  switch (_step)  {
-    case 0:
-      break;
-    case 1:
-      break;
-    case 2:
-      break;
-    case 3:
-      break;
-    default:
-      break;
-  }
+      &session::_startup, &session::_passwd,
+      &session::_key,     &session::_available};
 
   try {
     (this->*redirector[_step])();
@@ -426,11 +408,8 @@ void session::write(handle& h) {
 void session::_available() {
   log_debug(logging::high) << "session " << this << " is available and has "
                            << _listnrs.size() << " listeners";
-  _listnrs_it = _listnrs.begin();
-  while (_listnrs_it != _listnrs.end()) {
-    std::set<listener*>::iterator it(_listnrs_it++);
-    (*it)->on_available(*this);
-  }
+  for (auto& l : _listnrs)
+    l->on_available(*this);
 }
 
 /**
@@ -483,11 +462,8 @@ void session::_key() {
     _step = session_keepalive;
     _step_string = "keep-alive";
     {
-      _listnrs_it = _listnrs.begin();
-      while (_listnrs_it != _listnrs.end()) {
-        std::set<listener*>::iterator it(_listnrs_it++);
-        (*it)->on_connected(*this);
-      }
+      for (auto& l : _listnrs)
+        l->on_connected(*this);
     }
   }
 }
@@ -503,8 +479,8 @@ void session::_passwd() {
       << _creds.get_port();
 
   // Try password.
-  int retval(libssh2_userauth_password(_session, _creds.get_user().c_str(),
-                                       _creds.get_password().c_str()));
+  int retval(libssh2_userauth_password(
+      _session, _creds.get_user().c_str(), _creds.get_password().c_str()));
   if (retval != 0) {
 #if LIBSSH2_VERSION_NUM >= 0x010203
     if (retval == LIBSSH2_ERROR_AUTHENTICATION_FAILED) {
@@ -535,11 +511,8 @@ void session::_passwd() {
     _step = session_keepalive;
     _step_string = "keep-alive";
     {
-      _listnrs_it = _listnrs.begin();
-      while (_listnrs_it != _listnrs.end()) {
-        std::set<listener*>::iterator it(_listnrs_it++);
-        (*it)->on_connected(*this);
-      }
+      for (auto& l : _listnrs)
+        l->on_connected(*this);
     }
   }
 }
@@ -595,8 +568,8 @@ void session::_startup() {
       known_hosts_file.append("/.ssh/");
     }
     known_hosts_file.append("known_hosts");
-    int rh(libssh2_knownhost_readfile(known_hosts, known_hosts_file.c_str(),
-                                      LIBSSH2_KNOWNHOST_FILE_OPENSSH));
+    int rh(libssh2_knownhost_readfile(
+        known_hosts, known_hosts_file.c_str(), LIBSSH2_KNOWNHOST_FILE_OPENSSH));
     if (rh < 0)
       throw basic_error() << "parsing of known_hosts file " << known_hosts_file
                           << " failed: error " << -rh;

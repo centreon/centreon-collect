@@ -17,33 +17,34 @@
 */
 
 #ifndef CCB_CONNECTOR_BASIC_EXCEPTION
-#  define CCB_CONNECTOR_BASIC_EXCEPTION
+#define CCB_CONNECTOR_BASIC_EXCEPTION
 
-#  include <exception>
-#  include "com/centreon/benchmark/connector/namespace.hh"
+#include <exception>
+#include "com/centreon/benchmark/connector/namespace.hh"
 
 CCB_CONNECTOR_BEGIN()
 
 /**
- *  @class basic_exception basic_exception.hh "com/centreon/benchmark/connector/basic_exception.hh"
+ *  @class basic_exception basic_exception.hh
+ *"com/centreon/benchmark/connector/basic_exception.hh"
  *  @brief Base exception class.
  *
  *  Simple exception class containing an basic error message.
  */
-class              basic_exception : public std::exception {
-public:
-                   basic_exception(char const* message = "");
-                   basic_exception(basic_exception const& right);
-                   ~basic_exception() throw ();
+class basic_exception : public std::exception {
+ public:
+  basic_exception(char const* message = "");
+  basic_exception(basic_exception const& right);
+  ~basic_exception() throw();
   basic_exception& operator=(basic_exception const& right);
-  char const*      what() const throw ();
+  char const* what() const throw();
 
-private:
+ private:
   basic_exception& _internal_copy(basic_exception const& right);
 
-  char const*      _message;
+  char const* _message;
 };
 
 CCB_CONNECTOR_END()
 
-#endif // !CCB_CONNECTOR_BASIC_EXCEPTION
+#endif  // !CCB_CONNECTOR_BASIC_EXCEPTION

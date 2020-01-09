@@ -17,10 +17,10 @@
 */
 
 #ifndef CCCS_OPTIONS_HH
-#  define CCCS_OPTIONS_HH
+#define CCCS_OPTIONS_HH
 
-#  include "com/centreon/connector/ssh/namespace.hh"
-#  include "com/centreon/misc/get_options.hh"
+#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/misc/get_options.hh"
 
 CCCS_BEGIN()
 
@@ -30,20 +30,20 @@ CCCS_BEGIN()
  *
  *  Parse and expose command line arguments.
  */
-class         options : public com::centreon::misc::get_options {
-public:
-              options();
-              options(options const& opts);
-              ~options() throw ();
-  options&    operator=(options const& opts);
+class options : public com::centreon::misc::get_options {
+ public:
+  options();
+  options(options const& opts);
+  ~options() throw();
+  options& operator=(options const& opts);
   std::string help() const;
-  void        parse(int argc, char* argv[]);
+  void parse(int argc, char* argv[]);
   std::string usage() const;
 
-private:
-  void        _init();
+ private:
+  void _init();
 };
 
 CCCS_END()
 
-#endif // !CCCS_OPTIONS_HH
+#endif  // !CCCS_OPTIONS_HH

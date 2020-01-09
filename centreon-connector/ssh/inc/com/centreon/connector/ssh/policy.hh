@@ -72,8 +72,7 @@ class policy : public orders::listener, public checks::listener {
   policy(policy const& p);
   policy& operator=(policy const& p);
 
-  std::map<uint64_t, std::pair<checks::check*, sessions::session*> >
-      _checks;
+  std::map<uint64_t, std::pair<checks::check*, sessions::session*> > _checks;
   bool _error;
   std::mutex _mutex;
   orders::parser _parser;

@@ -30,19 +30,20 @@
 using namespace com::centreon;
 
 #define CMD1 "2\0"
-#define CMD2 "\0" \
-             "5\0" \
-             "123456789\0"
+#define CMD2 \
+  "\0"       \
+  "5\0"      \
+  "123456789\0"
 #define CMD3 "\0\0\0\0"
 #define RESULT "Merethis is wonderful\n"
 
 #define COUNT 300
 
-#define SCRIPT "#!/usr/bin/perl\n" \
-               "\n" \
-               "print \"Merethis is wonderful\\n\";\n" \
-               "exit 2;\n"
-
+#define SCRIPT                            \
+  "#!/usr/bin/perl\n"                     \
+  "\n"                                    \
+  "print \"Merethis is wonderful\\n\";\n" \
+  "exit 2;\n"
 
 /**
  *  Check that connector can execute multiple scripts.
@@ -50,17 +51,12 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
-  clib::load();
   // Write Perl scripts.
   std::string script_paths[10];
-  for (unsigned int i = 0;
-       i < sizeof(script_paths) / sizeof(*script_paths);
+  for (unsigned int i = 0; i < sizeof(script_paths) / sizeof(*script_paths);
        ++i) {
     script_paths[i] = io::file_stream::temp_path();
-    write_file(
-      script_paths[i].c_str(),
-      SCRIPT,
-      sizeof(SCRIPT) - 1);
+    write_file(script_paths[i].c_str(), SCRIPT, sizeof(SCRIPT) - 1);
   }
 
   // Process.
@@ -73,14 +69,11 @@ int main() {
   std::string cmd;
   {
     std::ostringstream oss;
-    for (unsigned int i = 0;
-         i < COUNT;
-         ++i) {
+    for (unsigned int i = 0; i < COUNT; ++i) {
       oss.write(CMD1, sizeof(CMD1) - 1);
       oss << i + 1;
       oss.write(CMD2, sizeof(CMD2) - 1);
-      oss << script_paths
-        [i % (sizeof(script_paths) / sizeof(*script_paths))];
+      oss << script_paths[i % (sizeof(script_paths) / sizeof(*script_paths))];
       oss.write(CMD3, sizeof(CMD3) - 1);
     }
     cmd = oss.str();
@@ -109,34 +102,28 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
 
   // Remove temporary files.
-  for (unsigned int i = 0;
-       i < sizeof(script_paths) / sizeof(*script_paths);
+  for (unsigned int i = 0; i < sizeof(script_paths) / sizeof(*script_paths);
        ++i)
     remove(script_paths[i].c_str());
 
   unsigned int nb_right_output(0);
-  for (size_t pos(0);
-       (pos = output.find(RESULT, pos)) != std::string::npos;
+  for (size_t pos(0); (pos = output.find(RESULT, pos)) != std::string::npos;
        ++nb_right_output, ++pos)
     ;
 
   try {
     if (nb_right_output != COUNT)
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
-  }
-  catch (std::exception const& e) {
+      throw(basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output));
+  } catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     retval = 1;
   }
 
-  clib::unload();
   // Return check result.
-  return (retval);
+  return retval;
 }

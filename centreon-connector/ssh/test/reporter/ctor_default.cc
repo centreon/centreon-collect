@@ -27,9 +27,6 @@ using namespace com::centreon::connector::ssh;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   int retval;
   {
     // Object.
@@ -38,9 +35,6 @@ int main() {
     // Check.
     retval = (!r.can_report() || !r.get_buffer().empty());
   }
-
-  // Unload.
-  com::centreon::logging::engine::unload();
 
   return (retval);
 }

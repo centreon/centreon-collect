@@ -17,12 +17,12 @@
 */
 
 #ifndef TEST_CONNECTOR_MISC_HH
-#  define TEST_CONNECTOR_MISC_HH
+#define TEST_CONNECTOR_MISC_HH
+#include <string>
 
 std::string& replace_null(std::string& str);
-void         write_file(
-               char const* filename,
-               char const* content,
-               unsigned int size = 0);
+void write_file(char const* filename,
+                char const* content,
+                unsigned int size = 0);
 
-#endif //! TEST_CONNECTOR_MISC_HH
+#endif  //! TEST_CONNECTOR_MISC_HH

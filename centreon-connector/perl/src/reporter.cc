@@ -16,19 +16,19 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/perl/reporter.hh"
 #include <sstream>
 #include "com/centreon/connector/perl/checks/result.hh"
-#include "com/centreon/connector/perl/reporter.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon::connector::perl;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
@@ -36,35 +36,11 @@ using namespace com::centreon::connector::perl;
 reporter::reporter() : _can_report(true), _reported(0) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] r Object to copy.
- */
-reporter::reporter(reporter const& r) : com::centreon::handle_listener(r) {
-  _copy(r);
-}
-
-/**
  *  Destructor.
  */
-reporter::~reporter() throw () {
+reporter::~reporter() noexcept {
   log_info(logging::medium) << "connector reporter " << _reported
-    << " check results to monitoring engine";
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] r Object to copy.
- *
- *  @return This object.
- */
-reporter& reporter::operator=(reporter const& r) {
-  if (this != &r) {
-    com::centreon::handle_listener::operator=(r);
-    _copy(r);
-  }
-  return (*this);
+                            << " check results to monitoring engine";
 }
 
 /**
@@ -72,9 +48,7 @@ reporter& reporter::operator=(reporter const& r) {
  *
  *  @return true if reporter can report.
  */
-bool reporter::can_report() const throw () {
-  return (_can_report);
-}
+bool reporter::can_report() const noexcept { return _can_report; }
 
 /**
  *  Error event on the handle.
@@ -84,9 +58,8 @@ bool reporter::can_report() const throw () {
 void reporter::error(handle& h) {
   (void)h;
   _can_report = false;
-  throw (basic_error() << "error detected on the handle used" \
-              " to report to the monitoring engine");
-  return ;
+  throw(basic_error() << "error detected on the handle used"
+                         " to report to the monitoring engine");
 }
 
 /**
@@ -94,9 +67,7 @@ void reporter::error(handle& h) {
  *
  *  @return Internal buffer.
  */
-std::string const& reporter::get_buffer() const throw () {
-  return (_buffer);
-}
+std::string const& reporter::get_buffer() const noexcept { return _buffer; }
 
 /**
  *  Report check result.
@@ -106,9 +77,8 @@ std::string const& reporter::get_buffer() const throw () {
 void reporter::send_result(checks::result const& r) {
   // Update statistics.
   ++_reported;
-  log_debug(logging::high)
-    << "reporting check result #" << _reported << " (check "
-    << r.get_command_id() << ")";
+  log_debug(logging::high) << "reporting check result #" << _reported
+                           << " (check " << r.get_command_id() << ")";
 
   // Build packet.
   std::ostringstream oss;
@@ -140,7 +110,6 @@ void reporter::send_result(checks::result const& r) {
     oss.put('\0');
   // Append packet to write buffer.
   _buffer.append(oss.str());
-  return ;
 }
 
 /**
@@ -151,8 +120,8 @@ void reporter::send_result(checks::result const& r) {
  */
 void reporter::send_version(unsigned int major, unsigned int minor) {
   // Build packet.
-  log_debug(logging::medium) << "sending protocol version "
-    << major << "." << minor << " to monitoring engine";
+  log_debug(logging::medium) << "sending protocol version " << major << "."
+                             << minor << " to monitoring engine";
   std::ostringstream oss;
   oss << "1";
   oss.put('\0');
@@ -166,8 +135,6 @@ void reporter::send_version(unsigned int major, unsigned int minor) {
 
   // Send packet back to monitoring engine.
   _buffer.append(oss.str());
-
-  return ;
 }
 
 /**
@@ -177,7 +144,7 @@ void reporter::send_version(unsigned int major, unsigned int minor) {
  */
 bool reporter::want_write(handle& h) {
   (void)h;
-  return (can_report() && !_buffer.empty());
+  return can_report() && !_buffer.empty();
 }
 
 /**
@@ -188,23 +155,4 @@ bool reporter::want_write(handle& h) {
 void reporter::write(handle& h) {
   unsigned long wb(h.write(_buffer.c_str(), _buffer.size()));
   _buffer.erase(0, wb);
-  return ;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] r Object to copy.
- */
-void reporter::_copy(reporter const& r) {
-  _buffer = r._buffer;
-  _can_report = r._can_report;
-  _reported = r._reported;
-  return ;
 }

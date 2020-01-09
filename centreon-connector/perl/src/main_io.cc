@@ -16,23 +16,23 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/perl/main_io.hh"
+#include <unistd.h>
 #include <cerrno>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <sstream>
-#include <unistd.h>
 #include "com/centreon/connector/perl/embedded.hh"
-#include "com/centreon/connector/perl/main_io.hh"
 
 using namespace com::centreon::connector::perl;
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
@@ -58,26 +58,26 @@ int main_io::_parse(std::string const& cmd) {
 
   // Process each command as necessary.
   switch (cmd_id) {
-   case 0: // Version query.
-    // Send version response.
-    {
-      // Packet ID.
-      std::ostringstream packet;
-      packet << "1";
-      packet.put('\0');
-      // Major.
-      packet << "0";
-      packet.put('\0');
-      // Minor.
-      packet << "0";
-      for (unsigned int i = 0; i < 4; ++i)
+    case 0:  // Version query.
+      // Send version response.
+      {
+        // Packet ID.
+        std::ostringstream packet;
+        packet << "1";
         packet.put('\0');
+        // Major.
+        packet << "0";
+        packet.put('\0');
+        // Minor.
+        packet << "0";
+        for (unsigned int i = 0; i < 4; ++i)
+          packet.put('\0');
 
-      // Send packet back to monitoring engine.
-      main_io::instance().write(packet.str());
-    }
-    break ;
-   case 2: // Execute query.
+        // Send packet back to monitoring engine.
+        main_io::instance().write(packet.str());
+      }
+      break;
+    case 2:  // Execute query.
     {
       // Find command ID.
       size_t end(cmd.find('\0', pos));
@@ -112,21 +112,20 @@ int main_io::_parse(std::string const& cmd) {
 
       // Run command.
       embedded::run_command(cmdline, id, timeout);
-    }
-    break ;
-   case 4: // Quit query.
-    return (1);
-    break ;
+    } break;
+    case 4:  // Quit query.
+      return (1);
+      break;
   }
 
   return (0);
 }
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Destructor.
@@ -157,11 +156,10 @@ int main_io::read() {
   ssize_t rb(::read(STDIN_FILENO, buffer, sizeof(buffer)));
   if (rb < 0) {
     char const* msg(strerror(errno));
-    std::cerr << "could not read commands from monitoring engine: "
-              << msg << std::endl;
+    std::cerr << "could not read commands from monitoring engine: " << msg
+              << std::endl;
     retval = 1;
-  }
-  else if (!rb)
+  } else if (!rb)
     retval = 1;
   else {
     // Append data to buffer.
@@ -194,14 +192,12 @@ int main_io::write() {
   int retval;
   if (wb < 0) {
     char const* msg(strerror(errno));
-    std::cerr << "could not write data to monitoring engine: "
-              << msg << std::endl;
+    std::cerr << "could not write data to monitoring engine: " << msg
+              << std::endl;
     retval = 1;
-  }
-  else if (!wb) {
+  } else if (!wb) {
     retval = 1;
-  }
-  else {
+  } else {
     _wbuffer.erase(0, wb);
     retval = 0;
   }
@@ -215,7 +211,7 @@ int main_io::write() {
  */
 void main_io::write(std::string const& data) {
   _wbuffer.append(data);
-  return ;
+  return;
 }
 
 /**

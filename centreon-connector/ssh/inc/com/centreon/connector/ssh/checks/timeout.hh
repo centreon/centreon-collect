@@ -17,41 +17,37 @@
 */
 
 #ifndef CCCS_CHECKS_TIMEOUT_HH
-#  define CCCS_CHECKS_TIMEOUT_HH
+#define CCCS_CHECKS_TIMEOUT_HH
 
-#  include <cstddef>
-#  include "com/centreon/connector/ssh/namespace.hh"
-#  include "com/centreon/task.hh"
+#include <cstddef>
+#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/task.hh"
 
 CCCS_BEGIN()
 
-namespace    checks {
-  // Forward declaration.
-  class      check;
+namespace checks {
+// Forward declaration.
+class check;
 
-  /**
-   *  @class timeout timeout.hh "com/centreon/connector/ssh/checks/timeout.hh"
-   *  @brief Check timeout.
-   *
-   *  Task executed when a check timeouts.
-   */
-  class      timeout : public com::centreon::task {
-  public:
-             timeout(check* chk = NULL);
-             timeout(timeout const& t) = delete;
-             ~timeout() throw ();
-    timeout& operator=(timeout const& t) = delete;
-    check*   get_check() const throw ();
-    void     run();
-    void     set_check(check* chk) throw ();
+/**
+ *  @class timeout timeout.hh "com/centreon/connector/ssh/checks/timeout.hh"
+ *  @brief Check timeout.
+ *
+ *  Task executed when a check timeouts.
+ */
+class timeout : public com::centreon::task {
+  check* _check;
 
-  private:
-    void     _internal_copy(timeout const& t);
-
-    check*   _check;
-  };
-}
+ public:
+  timeout(check* chk = NULL);
+  ~timeout() noexcept;
+  timeout(timeout const& t) = delete;
+  timeout& operator=(timeout const& t) = delete;
+  check* get_check() const noexcept;
+  void run();
+};
+}  // namespace checks
 
 CCCS_END()
 
-#endif // !CCCS_CHECKS_TIMEOUT_HH
+#endif  // !CCCS_CHECKS_TIMEOUT_HH

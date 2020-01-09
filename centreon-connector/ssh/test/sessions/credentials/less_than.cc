@@ -34,9 +34,6 @@ int main() {
   credentials creds5(creds1);
 
   // Checks.
-  return (!(creds1 < creds2)
-          || !(creds1 < creds3)
-          || !(creds1 < creds4)
-          || (creds1 < creds5)
-          || (creds5 < creds1));
+  return (!(creds1 < creds2) || !(creds1 < creds3) || !(creds1 < creds4) ||
+          (creds1 < creds5) || (creds5 < creds1));
 }

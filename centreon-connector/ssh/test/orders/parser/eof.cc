@@ -29,9 +29,6 @@ using namespace com::centreon::connector::ssh::orders;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   // Listener.
   fake_listener listnr;
 
@@ -50,11 +47,8 @@ int main() {
   if (listnr.get_callbacks().size() != 1)
     retval = 1;
   else
-    retval |= (listnr.get_callbacks().begin()->callback
-               != fake_listener::cb_eof);
-
-  // Unload.
-  com::centreon::logging::engine::unload();
+    retval |=
+        (listnr.get_callbacks().begin()->callback != fake_listener::cb_eof);
 
   return (retval);
 }

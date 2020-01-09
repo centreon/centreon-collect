@@ -17,47 +17,46 @@
 */
 
 #ifndef CCCP_ORDERS_PARSER_HH
-#  define CCCP_ORDERS_PARSER_HH
+#define CCCP_ORDERS_PARSER_HH
 
-#  include <string>
-#  include "com/centreon/connector/perl/namespace.hh"
-#  include "com/centreon/connector/perl/orders/listener.hh"
-#  include "com/centreon/handle_listener.hh"
+#include <string>
+#include "com/centreon/connector/perl/namespace.hh"
+#include "com/centreon/connector/perl/orders/listener.hh"
+#include "com/centreon/handle_listener.hh"
 
 CCCP_BEGIN()
 
-namespace              orders {
-  /**
-   *  @class parser parser.hh "com/centreon/connector/perl/orders/parser.hh"
-   *  @brief Parse orders.
-   *
-   *  Parse orders, generally issued by the monitoring engine. The
-   *  parser class can handle be registered with one handle at a time
-   *  and one listener.
-   */
-  class                parser : public handle_listener {
-  public:
-                       parser();
-                       parser(parser const& p);
-                       ~parser() throw ();
-    parser&            operator=(parser const& p);
-    void               error(handle& h);
-    std::string const& get_buffer() const throw ();
-    listener*          get_listener() const throw ();
-    void               listen(listener* l = NULL) throw ();
-    void               read(handle& h);
-    bool               want_read(handle& h);
-    bool               want_write(handle& h);
+namespace orders {
+/**
+ *  @class parser parser.hh "com/centreon/connector/perl/orders/parser.hh"
+ *  @brief Parse orders.
+ *
+ *  Parse orders, generally issued by the monitoring engine. The
+ *  parser class can handle be registered with one handle at a time
+ *  and one listener.
+ */
+class parser : public handle_listener {
+ public:
+  parser();
+  ~parser() noexcept;
+  parser(parser const& p) = delete;
+  parser& operator=(parser const& p) = delete;
+  void error(handle& h);
+  std::string const& get_buffer() const noexcept;
+  listener* get_listener() const noexcept;
+  void listen(listener* l = nullptr) noexcept;
+  void read(handle& h);
+  bool want_read(handle& h);
+  bool want_write(handle& h);
 
-  private:
-    void               _copy(parser const& p);
-    void               _parse(std::string const& cmd);
+ private:
+  void _parse(std::string const& cmd);
 
-    std::string        _buffer;
-    listener*          _listnr;
-  };
-}
+  std::string _buffer;
+  listener* _listnr;
+};
+}  // namespace orders
 
 CCCP_END()
 
-#endif // !CCCP_ORDERS_PARSER_HH
+#endif  // !CCCP_ORDERS_PARSER_HH

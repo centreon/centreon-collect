@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <cassert>
 #include "com/centreon/connector/ssh/multiplexer.hh"
-#include <cstdlib>
 
 using namespace com::centreon::connector::ssh;
 
@@ -31,21 +31,17 @@ static multiplexer* _instance = nullptr;
  **************************************/
 
 /**
- *  Destructor.
- */
-multiplexer::~multiplexer() noexcept {}
-
-/**
  *  Get class instance.
  *
  *  @return multiplexer instance.
  */
 multiplexer& multiplexer::instance() noexcept {
+  assert(_instance);
   return *_instance;
 }
 
 /**
- *  Load singleton.
+ * Load singleton.
  */
 void multiplexer::load() {
   if (!_instance)
@@ -53,7 +49,7 @@ void multiplexer::load() {
 }
 
 /**
- *  Unload singleton.
+ * Unload singleton.
  */
 void multiplexer::unload() {
   delete _instance;

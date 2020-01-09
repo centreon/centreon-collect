@@ -28,9 +28,7 @@ int main() {
   com::centreon::connector::ssh::checks::result r;
 
   // Check.
-  return ((r.get_command_id() != 0)
-          || !r.get_error().empty()
-          || r.get_executed()
-          || (r.get_exit_code() != -1)
-          || !r.get_output().empty());
+  return ((r.get_command_id() != 0) || !r.get_error().empty() ||
+          r.get_executed() || (r.get_exit_code() != -1) ||
+          !r.get_output().empty());
 }

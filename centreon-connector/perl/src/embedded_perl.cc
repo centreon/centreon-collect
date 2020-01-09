@@ -16,13 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/perl/embedded_perl.hh"
+#include <EXTERN.h>
+#include <perl.h>
+#include <unistd.h>
 #include <cstdlib>
 #include <iostream>
 #include <list>
-#include <unistd.h>
-#include <EXTERN.h>
-#include <perl.h>
-#include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
@@ -42,10 +42,10 @@ PerlInterpreter* my_perl(NULL);
 EXTERN_C void xs_init(pTHX);
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Embedded Perl destructor.
@@ -62,7 +62,6 @@ embedded_perl::~embedded_perl() {
       PERL_SYS_TERM();
     }
   }
-  return ;
 }
 
 /**
@@ -71,7 +70,7 @@ embedded_perl::~embedded_perl() {
  *  @return Embedded Perl instance.
  */
 embedded_perl& embedded_perl::instance() {
-  return (*_instance);
+  return *_instance;
 }
 
 /**
@@ -82,14 +81,12 @@ embedded_perl& embedded_perl::instance() {
  *  @param[in] env  Program environment.
  *  @param[in] code Additional code to run by interpreter.
  */
-void embedded_perl::load(
-                      int* argc,
-                      char*** argv,
-                      char*** env,
-                      char const* code) {
+void embedded_perl::load(int* argc,
+                         char*** argv,
+                         char*** env,
+                         char const* code) {
   if (!_instance)
     _instance = new embedded_perl(argc, argv, env, code);
-  return ;
 }
 
 /**
@@ -103,8 +100,8 @@ void embedded_perl::load(
 pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   // Check arguments.
   if (!fds)
-    throw (basic_error() << "cannot run Perl script without " \
-             "fetching process' descriptors");
+    throw(basic_error() << "cannot run Perl script without "
+                           "fetching process' descriptors");
 
   // Extract arguments.
   size_t pos(cmd.find(' '));
@@ -113,13 +110,11 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   if (pos != std::string::npos) {
     file = cmd.substr(0, pos);
     args = cmd.substr(pos + 1);
-  }
-  else
+  } else
     file = cmd;
-  log_debug(logging::medium)
-    << "command " << cmd << "\n"
-    << "  - file " << file << "\n"
-    << "  - args " << args;
+  log_debug(logging::medium) << "command " << cmd << "\n"
+                             << "  - file " << file << "\n"
+                             << "  - args " << args;
 
   // Check if file has already been compiled.
   SV* handle;
@@ -133,18 +128,14 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
       argv[0] = file.c_str();
       argv[1] = "0";
       argv[2] = NULL;
-      if (call_argv(
-            "Embed::Persistent::eval_file",
-	    G_EVAL | G_SCALAR,
-	    (char**)argv)
-	  != 1)
-	throw (basic_error() << "could not compile Perl script " << file);
+      if (call_argv("Embed::Persistent::eval_file", G_EVAL | G_SCALAR,
+                    (char**)argv) != 1)
+        throw(basic_error() << "could not compile Perl script " << file);
     }
     SPAGAIN;
     handle = POPs;
     if (SvTRUE(ERRSV))
-      throw (basic_error() << "Embedded Perl error: "
-	     << SvPV_nolen(ERRSV));
+      throw(basic_error() << "Embedded Perl error: " << SvPV_nolen(ERRSV));
 
     // Insert in parsed file list.
     _parsed.insert(std::make_pair(file, handle));
@@ -159,13 +150,12 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   int out_pipe[2];
   if (pipe(in_pipe)) {
     char const* msg(strerror(errno));
-    throw (basic_error() << msg);
-  }
-  else if (pipe(err_pipe)) {
+    throw(basic_error() << msg);
+  } else if (pipe(err_pipe)) {
     char const* msg(strerror(errno));
     close(in_pipe[0]);
     close(in_pipe[1]);
-    throw (basic_error() << msg);
+    throw(basic_error() << msg);
   }
   if (pipe(out_pipe)) {
     char const* msg(strerror(errno));
@@ -173,30 +163,27 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     close(in_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw (basic_error() << msg);
+    throw(basic_error() << msg);
   }
 
   // Execute Perl file.
   pid_t child(fork());
-  if (child > 0) { // Parent
+  if (child > 0) {  // Parent
     close(in_pipe[0]);
     close(err_pipe[1]);
     close(out_pipe[1]);
     fds[0] = in_pipe[1];
     fds[1] = out_pipe[0];
     fds[2] = err_pipe[0];
-  }
-  else if (!child) { // Child
+  } else if (!child) {  // Child
     // Close existing file descriptors.
     try {
       pipe_handle::close_all_handles();
-    }
-    catch (std::exception const& e) {
-      std::cerr << "could not close all inherited FDs: "
-                << e.what() << std::endl;
+    } catch (std::exception const& e) {
+      std::cerr << "could not close all inherited FDs: " << e.what()
+                << std::endl;
       exit(3);
-    }
-    catch (...) {
+    } catch (...) {
       std::cerr << "could not close all inherited FDs" << std::endl;
       exit(3);
     }
@@ -239,12 +226,11 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     XPUSHs(sv_2mortal(newSVpv(args.c_str(), 0)));
     PUTBACK;
     call_pv("Embed::Persistent::run_file", G_DISCARD);
-    std::cerr << "error while executing Perl script '" << file << "': "
-              << SvPV_nolen(ERRSV) << std::endl;
+    std::cerr << "error while executing Perl script '" << file
+              << "': " << SvPV_nolen(ERRSV) << std::endl;
     exit(3);
     abort();
-  }
-  else if (child < 0) { // Error
+  } else if (child < 0) {  // Error
     char const* msg(strerror(errno));
     close(in_pipe[0]);
     close(in_pipe[1]);
@@ -252,10 +238,10 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     close(out_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw (basic_error() << msg);
+    throw(basic_error() << msg);
   }
 
-  return (child);
+  return child;
 }
 
 /**
@@ -264,14 +250,13 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
 void embedded_perl::unload() {
   delete _instance;
   _instance = NULL;
-  return ;
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Constructor.
@@ -281,11 +266,10 @@ void embedded_perl::unload() {
  *  @param[in] env  Program environment.
  *  @param[in] code Additional code to run by interpreter.
  */
-embedded_perl::embedded_perl(
-                 int* argc,
-                 char*** argv,
-                 char*** env,
-                 char const* code) {
+embedded_perl::embedded_perl(int* argc,
+                             char*** argv,
+                             char*** env,
+                             char const* code) {
   // Do not warn if unused by PERL_SYS_INIT3 macro.
   (void)argc;
   (void)argv;
@@ -302,11 +286,9 @@ embedded_perl::embedded_perl(
     int script_fd(mkstemp(script_path));
     if (script_fd < 0) {
       char const* msg(strerror(errno));
-      throw (basic_error()
-             << "could not create temporary file: " << msg);
+      throw(basic_error() << "could not create temporary file: " << msg);
     }
-    log_info(logging::high)
-      << "temporary script path is " << script_path;
+    log_info(logging::high) << "temporary script path is " << script_path;
 
     // Write embedded script.
     std::list<char const*> l;
@@ -315,10 +297,8 @@ embedded_perl::embedded_perl(
       l.push_back(code);
       l.push_back("\n");
     }
-    for (std::list<char const*>::const_iterator
-           it(l.begin()), end(l.end());
-         it != end;
-         ++it) {
+    for (std::list<char const*>::const_iterator it(l.begin()), end(l.end());
+         it != end; ++it) {
       char const* data(*it);
       size_t len(strlen(data));
       while (len > 0) {
@@ -327,8 +307,7 @@ embedded_perl::embedded_perl(
           char const* msg(strerror(errno));
           close(script_fd);
           unlink(script_path);
-          throw (basic_error()
-                 << "could not write embedded script: " << msg);
+          throw(basic_error() << "could not write embedded script: " << msg);
         }
         len -= wb;
         data += wb;
@@ -342,7 +321,7 @@ embedded_perl::embedded_perl(
   log_info(logging::low) << "loading Embedded Perl interpreter";
   PERL_SYS_INIT3(argc, argv, env);
   if (!(my_perl = perl_alloc()))
-    throw (basic_error() << "could not allocate Perl interpreter");
+    throw(basic_error() << "could not allocate Perl interpreter");
   perl_construct(my_perl);
   PL_origalen = 1;
   PL_perl_destruct_level = 1;
@@ -351,13 +330,9 @@ embedded_perl::embedded_perl(
   char const* embedding[2];
   embedding[0] = "";
   embedding[1] = script_path;
-  if (perl_parse(
-        my_perl,
-        &xs_init,
-        sizeof(embedding) / sizeof(*embedding),
-        (char**)embedding,
-        NULL))
-    throw (basic_error() << "could not parse embedded Perl script");
+  if (perl_parse(my_perl, &xs_init, sizeof(embedding) / sizeof(*embedding),
+                 (char**)embedding, NULL))
+    throw(basic_error() << "could not parse embedded Perl script");
   PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
   perl_run(my_perl);
 }

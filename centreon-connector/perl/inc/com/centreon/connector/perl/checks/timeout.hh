@@ -17,44 +17,40 @@
 */
 
 #ifndef CCCP_CHECKS_TIMEOUT_HH
-#  define CCCP_CHECKS_TIMEOUT_HH
+#define CCCP_CHECKS_TIMEOUT_HH
 
-#  include <cstddef>
-#  include "com/centreon/connector/perl/namespace.hh"
-#  include "com/centreon/task.hh"
+#include <cstddef>
+#include "com/centreon/connector/perl/namespace.hh"
+#include "com/centreon/task.hh"
 
 CCCP_BEGIN()
 
-namespace    checks {
-  // Forward declaration.
-  class      check;
+namespace checks {
+// Forward declaration.
+class check;
 
-  /**
-   *  @class timeout timeout.hh "com/centreon/connector/perl/checks/timeout.hh"
-   *  @brief Check timeout.
-   *
-   *  Task executed when a check timeouts.
-   */
-  class      timeout : public com::centreon::task {
-  public:
-             timeout(check* chk = NULL, bool final = false);
-             timeout(timeout const& t);
-             ~timeout() throw ();
-    timeout& operator=(timeout const& t);
-    check*   get_check() const throw ();
-    bool     is_final() const throw ();
-    void     run();
-    void     set_check(check* chk) throw ();
-    void     set_final(bool final) throw ();
+/**
+ *  @class timeout timeout.hh "com/centreon/connector/perl/checks/timeout.hh"
+ *  @brief Check timeout.
+ *
+ *  Task executed when a check timeouts.
+ */
+class timeout : public com::centreon::task {
+  check* _check;
+  bool _final;
 
-  private:
-    void     _internal_copy(timeout const& t);
-
-    check*   _check;
-    bool     _final;
-  };
-}
+ public:
+  timeout(check* chk = NULL, bool final = false);
+  timeout(timeout const& t) = delete;
+  timeout& operator=(timeout const& t) = delete;
+  check* get_check() const throw();
+  bool is_final() const throw();
+  void run();
+  void set_check(check* chk) throw();
+  void set_final(bool final) throw();
+};
+}  // namespace checks
 
 CCCP_END()
 
-#endif // !CCCP_CHECKS_TIMEOUT_HH
+#endif  // !CCCP_CHECKS_TIMEOUT_HH

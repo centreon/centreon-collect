@@ -42,10 +42,9 @@ int main() {
   creds1.set_password("please let me in");
 
   // Check.
-  return ((creds1.get_host() != "centreon.com")
-          || (creds1.get_user() != "daemon")
-          || (creds1.get_password() != "please let me in")
-          || (creds2.get_host() != "localhost")
-          || (creds2.get_user() != "root")
-          || (creds2.get_password() != "random words"));
+  return ((creds1.get_host() != "centreon.com") ||
+          (creds1.get_user() != "daemon") ||
+          (creds1.get_password() != "please let me in") ||
+          (creds2.get_host() != "localhost") || (creds2.get_user() != "root") ||
+          (creds2.get_password() != "random words"));
 }

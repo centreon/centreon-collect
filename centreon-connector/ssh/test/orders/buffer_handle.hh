@@ -17,10 +17,10 @@
 */
 
 #ifndef TEST_ORDERS_BUFFER_HANDLE_HH
-#  define TEST_ORDERS_BUFFER_HANDLE_HH
+#define TEST_ORDERS_BUFFER_HANDLE_HH
 
-#  include <string>
-#  include "com/centreon/handle.hh"
+#include <string>
+#include "com/centreon/handle.hh"
 
 /**
  *  @class buffer_handle buffer_handle.hh "test/orders/buffer_handle.hh"
@@ -28,23 +28,15 @@
  *
  *  Bufferize data and make it available through read.
  */
-class            buffer_handle : public com::centreon::handle {
-public:
-                 buffer_handle();
-                 buffer_handle(buffer_handle const& bh);
-                 ~buffer_handle() throw ();
-  buffer_handle& operator=(buffer_handle const& bh);
-  void           close();
-  bool           empty() const;
-  com::centreon::native_handle
-                 get_native_handle();
-  unsigned long  read(void* data, unsigned long size);
-  unsigned long  write(void const* data, unsigned long size);
+class buffer_handle : public com::centreon::handle {
+  std::string _buffer;
 
-private:
-  void           _copy(buffer_handle const& bh);
-
-  std::string    _buffer;
+ public:
+  void close();
+  bool empty() const;
+  com::centreon::native_handle get_native_handle();
+  unsigned long read(void* data, unsigned long size);
+  unsigned long write(void const* data, unsigned long size);
 };
 
-#endif // !TEST_ORDERS_BUFFER_HANDLE
+#endif  // !TEST_ORDERS_BUFFER_HANDLE

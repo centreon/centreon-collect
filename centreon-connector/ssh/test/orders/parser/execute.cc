@@ -32,21 +32,20 @@ using namespace com::centreon::connector::ssh::orders;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   // Create execution order packet.
   buffer_handle bh;
   char const* str;
-  str = "2"; // Order ID.
+  str = "2";  // Order ID.
   bh.write(str, strlen(str) + 1);
   str = "1478523697531598258";
   bh.write(str, strlen(str) + 1);
-  str = "4242"; // Timeout.
+  str = "4242";  // Timeout.
   bh.write(str, strlen(str) + 1);
-  str = "4241"; // Start time.
+  str = "4241";  // Start time.
   bh.write(str, strlen(str) + 1);
-  str = "check_by_ssh -H localhost -l root -a myverysecretpassword -C \"mycheck to execute with some args\"";
+  str =
+      "check_by_ssh -H localhost -l root -a myverysecretpassword -C \"mycheck "
+      "to execute with some args\"";
   bh.write(str, strlen(str));
   bh.write("\0\0\0\0", 4);
 
@@ -71,39 +70,32 @@ int main() {
     time_t comparison_timeout(time(NULL) + 4242);
     info1 = *listnr.get_callbacks().begin();
     info2 = *++listnr.get_callbacks().begin();
-    std::cout << "order ID:   " << fake_listener::cb_execute
-              << std::endl
+    std::cout << "order ID:   " << fake_listener::cb_execute << std::endl
               << "            " << info1.callback << std::endl
               << "command ID: " << 1478523697531598258ull << std::endl
               << "            " << info1.cmd_id << std::endl
               << "timeout:    " << comparison_timeout << std::endl
-              << "            " << info1.timeout << std::endl
-              << "host:       " << "localhost" << std::endl
-              << "            " << info1.host << std::endl
-              << "user:       " << "root" << std::endl
-              << "            " << info1.user << std::endl
-              << "password:   " << "myverysecretpassword" << std::endl
-              << "            " << info1.password << std::endl
-              << "command:    " << "mycheck to execute with some args"
-              << std::endl
+              << "            " << info1.timeout << std::endl << "host:       "
+              << "localhost" << std::endl << "            " << info1.host
+              << std::endl << "user:       "
+              << "root" << std::endl << "            " << info1.user
+              << std::endl << "password:   "
+              << "myverysecretpassword" << std::endl << "            "
+              << info1.password << std::endl << "command:    "
+              << "mycheck to execute with some args" << std::endl
               << "            " << info1.cmds.front() << std::endl;
-    retval |= ((info1.callback != fake_listener::cb_execute)
-               || (info1.cmd_id != 1478523697531598258ull)
-               || ((comparison_timeout - info1.timeout) > 1)
-               || (info1.host != "localhost")
-               || (info1.user != "root")
-               || (info1.password != "myverysecretpassword")
-               || (info1.cmds.size() != 1)
-               || (info1.cmds.front()
-                   != "mycheck to execute with some args")
-               || (info2.callback != fake_listener::cb_eof));
+    retval |= ((info1.callback != fake_listener::cb_execute) ||
+               (info1.cmd_id != 1478523697531598258ull) ||
+               ((comparison_timeout - info1.timeout) > 1) ||
+               (info1.host != "localhost") || (info1.user != "root") ||
+               (info1.password != "myverysecretpassword") ||
+               (info1.cmds.size() != 1) ||
+               (info1.cmds.front() != "mycheck to execute with some args") ||
+               (info2.callback != fake_listener::cb_eof));
   }
 
   // Parser must be empty.
   retval |= !p.get_buffer().empty();
-
-  // Unload.
-  com::centreon::logging::engine::unload();
 
   return (retval);
 }

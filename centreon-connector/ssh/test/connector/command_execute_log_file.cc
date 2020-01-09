@@ -17,11 +17,10 @@
 */
 
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 #include <string>
-#include "com/centreon/clib.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
@@ -30,19 +29,21 @@
 
 using namespace com::centreon;
 
-#define CMD1 "2\0" \
-             "4242\0" \
-             "5\0" \
-             "123456789\0" \
-             "check_by_ssh " \
-             "-H localhost " \
-             " -C 'echo Bonjour'\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "1\0" \
-               "0\0" \
-               " \0" \
-               "Bonjour\n\0\0\0\0"
+#define CMD1      \
+  "2\0"           \
+  "4242\0"        \
+  "5\0"           \
+  "123456789\0"   \
+  "check_by_ssh " \
+  "-H localhost " \
+  " -C 'echo Bonjour'\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "1\0"        \
+  "0\0"        \
+  " \0"        \
+  "Bonjour\n\0\0\0\0"
 
 /**
  *  Replace null char by string "\0".
@@ -70,7 +71,6 @@ int main() {
     remove(LOG_FILE);
   }
 
-  clib::load();
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -105,36 +105,32 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
-
-  clib::unload();
 
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1)
-        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
+      throw(basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1) ||
+        memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw(basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output));
 
     std::string line;
     std::ifstream file(LOG_FILE);
     if (file.is_open()) {
       getline(file, line);
-      if (line.find("[info] Centreon SSH Connector " CENTREON_CONNECTOR_SSH_VERSION " starting") == std::string::npos)
-        throw (basic_error()
-               << "bad content: the first line does not start with 'Centreon SSH Connector " CENTREON_CONNECTOR_SSH_VERSION " starting'");
+      if (line.find(
+              "[info] Centreon SSH Connector " CENTREON_CONNECTOR_SSH_VERSION
+              " starting") == std::string::npos)
+        throw(basic_error()
+              << "bad content: the first line does not start with 'Centreon "
+                 "SSH Connector " CENTREON_CONNECTOR_SSH_VERSION " starting'");
       file.close();
+    } else {
+      throw(basic_error() << "the file " LOG_FILE " has not been created.");
     }
-    else {
-      throw (basic_error()
-             << "the file " LOG_FILE " has not been created.");
-    }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }

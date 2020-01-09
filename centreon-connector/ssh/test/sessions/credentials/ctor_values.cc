@@ -27,13 +27,9 @@ using namespace com::centreon::connector::ssh::sessions;
  */
 int main() {
   // Base object.
-  credentials creds(
-    "localhost",
-    "root",
-    "random words");
+  credentials creds("localhost", "root", "random words");
 
   // Check.
-  return ((creds.get_host() != "localhost")
-          || (creds.get_user() != "root")
-          || (creds.get_password() != "random words"));
+  return ((creds.get_host() != "localhost") || (creds.get_user() != "root") ||
+          (creds.get_password() != "random words"));
 }

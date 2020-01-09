@@ -16,12 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/perl/pipe_handle.hh"
+#include <unistd.h>
 #include <cerrno>
 #include <cstring>
-#include <set>
 #include <mutex>
-#include <unistd.h>
-#include "com/centreon/connector/perl/pipe_handle.hh"
+#include <set>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 
@@ -29,19 +29,19 @@ using namespace com::centreon;
 using namespace com::centreon::connector::perl;
 
 /**************************************
-*                                     *
-*           Local Objects             *
-*                                     *
-**************************************/
+ *                                     *
+ *           Local Objects             *
+ *                                     *
+ **************************************/
 
 static std::multiset<int> gl_fds;
 static std::mutex gl_fdsm;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Constructor.
@@ -53,41 +53,16 @@ pipe_handle::pipe_handle(int fd) : _fd(-1) {
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] ph Object to copy.
- */
-pipe_handle::pipe_handle(pipe_handle const& ph) : handle(ph) {
-  _internal_copy(ph);
-}
-
-/**
  *  Destructor.
  */
-pipe_handle::~pipe_handle() throw () {
+pipe_handle::~pipe_handle() noexcept {
   close();
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] ph Object to copy.
- *
- *  @return This object.
- */
-pipe_handle& pipe_handle::operator=(pipe_handle const& ph) {
-  if (this != &ph) {
-    handle::operator=(ph);
-    close();
-    _internal_copy(ph);
-  }
-  return *this;
 }
 
 /**
  *  Close the file descriptor.
  */
-void pipe_handle::close() throw () {
+void pipe_handle::close() noexcept {
   if (_fd >= 0) {
     {
       std::lock_guard<std::mutex> lock(gl_fdsm);
@@ -108,11 +83,8 @@ void pipe_handle::close() throw () {
  */
 void pipe_handle::close_all_handles() {
   std::lock_guard<std::mutex> lock(gl_fdsm);
-  for (std::multiset<int>::const_iterator
-         it(gl_fds.begin()),
-         end(gl_fds.end());
-       it != end;
-       ++it) {
+  for (std::multiset<int>::const_iterator it(gl_fds.begin()), end(gl_fds.end());
+       it != end; ++it) {
     int retval;
     do {
       retval = ::close(*it);
@@ -120,7 +92,7 @@ void pipe_handle::close_all_handles() {
     if (retval != 0) {
       char const* msg(strerror(errno));
       gl_fds.erase(gl_fds.begin(), it);
-      throw (basic_error() << msg);
+      throw basic_error() << msg;
     }
   }
   gl_fds.clear();
@@ -131,14 +103,9 @@ void pipe_handle::close_all_handles() {
  *
  *  @return Pipe FD.
  */
-int pipe_handle::get_native_handle() throw () {
+int pipe_handle::get_native_handle() noexcept {
   return _fd;
 }
-
-/**
- *  Initialize static members of the pipe_handle class.
- */
-void pipe_handle::load() {}
 
 /**
  *  Read data from the file descriptor.
@@ -152,7 +119,7 @@ unsigned long pipe_handle::read(void* data, unsigned long size) {
   ssize_t rb(::read(_fd, data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "could not read from pipe: " << msg);
+    throw basic_error() << "could not read from pipe: " << msg;
   }
   return rb;
 }
@@ -172,11 +139,6 @@ void pipe_handle::set_fd(int fd) {
 }
 
 /**
- *  Cleanup static ressources used by the pipe_handle class.
- */
-void pipe_handle::unload() {}
-
-/**
  *  Write data to the pipe.
  *
  *  @param[in] data Source buffer.
@@ -188,34 +150,7 @@ unsigned long pipe_handle::write(void const* data, unsigned long size) {
   ssize_t wb(::write(_fd, data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "could not write to pipe: " << msg);
+    throw basic_error() << "could not write to pipe: " << msg;
   }
   return wb;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] ph Object to copy.
- */
-void pipe_handle::_internal_copy(pipe_handle const& ph) {
-  if (ph._fd >= 0) {
-    _fd = dup(ph._fd);
-    if (_fd < 0) {
-      char const* msg(strerror(errno));
-      throw (basic_error() << "could not duplicate pipe: " << msg);
-    }
-    {
-    std::lock_guard<std::mutex> lock(gl_fdsm);
-      gl_fds.insert(_fd);
-    }
-  }
-  else
-    _fd = -1;
 }

@@ -23,7 +23,6 @@
 #include <sstream>
 #include <string>
 #include <thread>
-#include "com/centreon/clib.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
@@ -52,7 +51,6 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
-  clib::load();
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -73,7 +71,7 @@ int main() {
   p.enable_stream(process::in, false);
 
   // Schedule process termination.
-  std::thread killer([&p](){
+  std::thread killer([&p]() {
     std::this_thread::sleep_for(std::chrono::seconds(4));
     p.terminate();
   });
@@ -91,8 +89,6 @@ int main() {
   // Wait for process termination.
   p.wait();
   int retval(p.exit_code() != 0);
-
-  clib::unload();
 
   try {
     if (retval)

@@ -35,16 +35,14 @@ CCCS_BEGIN()
  */
 class multiplexer : public com::centreon::task_manager,
                     public com::centreon::handle_manager {
+  multiplexer();
+
  public:
   static multiplexer& instance() noexcept;
-  static void load();
-  static void unload();
-
- private:
-  multiplexer();
-  ~multiplexer() noexcept;
   multiplexer(multiplexer const& m) = delete;
   multiplexer& operator=(multiplexer const& m) = delete;
+  static void load();
+  static void unload();
 };
 
 CCCS_END()

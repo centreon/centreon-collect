@@ -32,17 +32,19 @@
 
 using namespace com::centreon;
 
-#define CMD1 "2\0" \
-             "4242\0" \
-             "5\0" \
-             "123456789\0"
+#define CMD1 \
+  "2\0"      \
+  "4242\0"   \
+  "5\0"      \
+  "123456789\0"
 #define CMD2 "\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "1\0" \
-               "0\0" \
-               " \0" \
-               "Centreon is wonderful\n\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "1\0"        \
+  "0\0"        \
+  " \0"        \
+  "Centreon is wonderful\n\0\0\0\0"
 
 /**
  *  Check that connector can execute a script with a log file.
@@ -58,15 +60,13 @@ int main() {
     remove(LOG_FILE);
   }
 
-  clib::load();
   // Write Perl script.
   std::string script_path(io::file_stream::temp_path());
-  write_file(
-    script_path.c_str(),
-    "#!/usr/bin/perl\n" \
-    "\n" \
-    "print \"Centreon is wonderful\\n\";\n" \
-    "exit 0;\n");
+  write_file(script_path.c_str(),
+             "#!/usr/bin/perl\n"
+             "\n"
+             "print \"Centreon is wonderful\\n\";\n"
+             "exit 0;\n");
 
   // Process.
   process p;
@@ -104,39 +104,36 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
 
   // Remove temporary files.
   remove(script_path.c_str());
 
-  clib::unload();
-
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1)
-        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
+      throw(basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1) ||
+        memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw(basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output));
 
     std::string line;
     std::ifstream file(LOG_FILE);
     if (file.is_open()) {
       getline(file, line);
-      if (line.find("[info] Centreon Perl Connector " CENTREON_CONNECTOR_PERL_VERSION " starting") == std::string::npos)
-        throw (basic_error()
-               << "bad content: the first line does not start with 'Centreon Perl Connector " CENTREON_CONNECTOR_PERL_VERSION " starting'");
+      if (line.find(
+              "[info] Centreon Perl Connector " CENTREON_CONNECTOR_PERL_VERSION
+              " starting") == std::string::npos)
+        throw basic_error()
+              << "bad content: the first line does not start with 'Centreon "
+                 "Perl Connector " CENTREON_CONNECTOR_PERL_VERSION
+                 " starting'";
       file.close();
+    } else {
+      throw(basic_error() << "the file " LOG_FILE " has not been created.");
     }
-    else {
-      throw (basic_error()
-             << "the file " LOG_FILE " has not been created.");
-    }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
