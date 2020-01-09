@@ -33,7 +33,6 @@ using namespace com::centreon::logging;
  */
 int main() {
   static uint32_t const nb_writter(10);
-  static uint32_t const nb_write(10);
   int retval;
 
   try {

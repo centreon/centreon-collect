@@ -43,6 +43,13 @@ if (WITH_TESTING)
   include(CTest)
 endif ()
 
+# Code coverage on unit tests
+option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
+if (WITH_TESTING AND WITH_COVERAGE)
+  set(CMAKE_BUILD_TYPE "Debug")
+  include(cmake/CodeCoverage.cmake)
+  APPEND_COVERAGE_COMPILER_FLAGS()
+endif ()
 
 set(CMAKE_THREAD_PREFER_PTHREAD)
 include(FindThreads)
@@ -198,10 +205,7 @@ set(
   "${SRC_DIR}/process_manager.cc"
   "${SRC_DIR}/process.cc"
   "${SRC_DIR}/handle_manager.cc"
-  "${SRC_DIR}/handle.cc"
   "${SRC_DIR}/handle_action.cc"
-  "${SRC_DIR}/handle_listener.cc"
-  "${SRC_DIR}/task.cc"
   "${SRC_DIR}/task_manager.cc"
   "${SRC_DIR}/timestamp.cc"
 )

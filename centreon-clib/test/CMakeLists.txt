@@ -30,63 +30,31 @@ add_subdirectory("misc")
 set(TEST_NAME "bin_test_process_output")
 add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 
-# handle_manager_add
-set(TEST_NAME "handle_manager_add")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_constructor
-set(TEST_NAME "handle_manager_constructor")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_remove_by_handle
-set(TEST_NAME "handle_manager_remove_by_handle")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_remove_by_handle_listener
-set(TEST_NAME "handle_manager_remove_by_handle_listener")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# handle_manager_multiplex
-set(TEST_NAME "handle_manager_multiplex")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# library_resolve
-set(TEST_NAME "library_resolve")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# library_resolve
-set(TEST_NAME "library_load")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
 # shared_testing_library
 set(LIB_NAME "shared_testing_library")
 add_library("${LIB_NAME}" SHARED "${TEST_DIR}/${LIB_NAME}.cc")
 
-# process_env
-set(TEST_NAME "process_env")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+set(CLIB_TESTS
+    handle_manager_add
+    handle_manager_constructor
+    handle_manager_remove_by_handle
+    handle_manager_remove_by_handle_listener
+    handle_manager_multiplex
+    library_resolve
+    library_load
+    process_env
+    process_kill
+    process_return
+    process_terminate
+    process_timeout
+    process_wait_timeout
+   )
 
-# process_kill
-set(TEST_NAME "process_kill")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+foreach (TEST_NAME ${CLIB_TESTS})
+  add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
+  target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
+  add_test("${TEST_NAME}" "${TEST_NAME}")
+endforeach ()
 
 # process_output
 set(TEST_NAME "process_output")
@@ -94,30 +62,6 @@ add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
 target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
 add_test("${TEST_NAME}_stderr" "${TEST_NAME}" "err")
 add_test("${TEST_NAME}_stdout" "${TEST_NAME}" "out")
-
-# process_return
-set(TEST_NAME "process_return")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# process_terminate
-set(TEST_NAME "process_terminate")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# process_timeout
-set(TEST_NAME "process_timeout")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# process_wait_timeout
-set(TEST_NAME "process_wait_timeout")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
 
 # task_manager tests
 set(TASK_MANAGER_LIST
@@ -132,128 +76,51 @@ set(TASK_MANAGER_LIST
    )
 
 foreach(name ${TASK_MANAGER_LIST})
-  message(STATUS "toto => ${name}")
   add_executable("${name}" "${TEST_DIR}/${name}.cc")
   target_link_libraries("${name}" "${DEFAULT_LINK_NAME}")
   add_test("${name}" "${name}")
 endforeach(name)
 
-# timestamp_add
-set(TEST_NAME "timestamp_add")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+# task_manager tests
+set(TIMESTAMP_LIST
+    timestamp_add
+    timestamp_add_mseconds
+    timestamp_add_seconds
+    timestamp_add_useconds
+    timestamp_clear
+    timestamp_constructor
+    timestamp_equal
+    timestamp_not_equal
+    timestamp_copy
+    timestamp_greater
+    timestamp_greater_or_equal
+    timestamp_less_or_equal
+    timestamp_less
+    timestamp_sub
+    timestamp_sub_mseconds
+    timestamp_sub_seconds
+    timestamp_sub_useconds
+    timestamp_to_mseconds
+    timestamp_to_seconds
+    timestamp_to_useconds
+   )
 
-# timestamp_add_mseconds
-set(TEST_NAME "timestamp_add_mseconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+foreach(name ${TIMESTAMP_LIST})
+  add_executable("${name}" "${TEST_DIR}/${name}.cc")
+  target_link_libraries("${name}" "${DEFAULT_LINK_NAME}")
+  add_test("${name}" "${name}")
+endforeach(name)
 
-# timestamp_add_seconds
-set(TEST_NAME "timestamp_add_seconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_add_useconds
-set(TEST_NAME "timestamp_add_useconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_clear
-set(TEST_NAME "timestamp_clear")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_constructor
-set(TEST_NAME "timestamp_constructor")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_equal
-set(TEST_NAME "timestamp_equal")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_not_equal
-set(TEST_NAME "timestamp_not_equal")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_copy
-set(TEST_NAME "timestamp_copy")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_greater
-set(TEST_NAME "timestamp_greater")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_greater_or_equal
-set(TEST_NAME "timestamp_greater_or_equal")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_less_or_equal
-set(TEST_NAME "timestamp_less_or_equal")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_less
-set(TEST_NAME "timestamp_less")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_sub
-set(TEST_NAME "timestamp_sub")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_sub_mseconds
-set(TEST_NAME "timestamp_sub_mseconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_sub_seconds
-set(TEST_NAME "timestamp_sub_seconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_sub_useconds
-set(TEST_NAME "timestamp_sub_useconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_to_mseconds
-set(TEST_NAME "timestamp_to_mseconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_to_seconds
-set(TEST_NAME "timestamp_to_seconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
-
-# timestamp_to_useconds
-set(TEST_NAME "timestamp_to_useconds")
-add_executable("${TEST_NAME}" "${TEST_DIR}/${TEST_NAME}.cc")
-target_link_libraries("${TEST_NAME}" "${DEFAULT_LINK_NAME}")
-add_test("${TEST_NAME}" "${TEST_NAME}")
+if (WITH_COVERAGE)
+  include("${PROJECT_SOURCE_DIR}/cmake/CodeCoverage.cmake")
+  APPEND_COVERAGE_COMPILER_FLAGS()
+  set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/test/*' '/usr/include/*')
+  SETUP_TARGET_FOR_COVERAGE(
+      NAME test-coverage
+      EXECUTABLE ctest # Executable in PROJECT_BINARY_DIR
+      DEPENDENCIES
+      ${CLIB_TESTS}
+      ${TASK_MANAGER_LIST}
+      ${TIMESTAMP_LIST}
+      )
+endif ()

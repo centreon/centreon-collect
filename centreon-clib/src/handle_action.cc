@@ -40,33 +40,9 @@ handle_action::handle_action(handle* h, handle_listener* hl, bool is_threadable)
     : _action(none), _h(h), _hl(hl), _is_threadable(is_threadable) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-handle_action::handle_action(handle_action const& right) : task(right) {
-  _internal_copy(right);
-}
-
-/**
  *  Destructor.
  */
 handle_action::~handle_action() noexcept {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-handle_action& handle_action::operator=(handle_action const& right) {
-  if (this != &right) {
-    task::operator=(right);
-    _internal_copy(right);
-  }
-  return *this;
-}
 
 /**
  *  Is this task threadable ?
@@ -123,22 +99,4 @@ void handle_action::run() {
  */
 void handle_action::set_action(action a) noexcept {
   _action = a;
-}
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void handle_action::_internal_copy(handle_action const& right) {
-  _action = right._action;
-  _h = right._h;
-  _hl = right._hl;
-  _is_threadable = right._is_threadable;
 }

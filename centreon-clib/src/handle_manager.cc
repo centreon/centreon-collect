@@ -33,7 +33,7 @@ using namespace com::centreon;
  *  @param[in] tm Task manager.
  */
 handle_manager::handle_manager(task_manager* tm)
-    : _array(nullptr), _recreate_array(false), _task_manager(tm) {}
+    : _array(nullptr), _recreate_array{false}, _task_manager(tm) {}
 
 /**
  *  Destructor.
@@ -248,8 +248,7 @@ void handle_manager::_setup_array() {
 
   // Update the pollfd.
   nfds_t nfds(0);
-  for (auto it = _handles.begin(), end = _handles.end();
-       it != end; ++it) {
+  for (auto it = _handles.begin(), end = _handles.end(); it != end; ++it) {
     _array[nfds].fd = it->first;
     _array[nfds].events = 0;
     _array[nfds].revents = 0;
