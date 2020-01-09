@@ -16,7 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
@@ -28,7 +27,6 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
-  clib::load();
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -40,11 +38,8 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
 
-  clib::unload();
-
-  return (retval);
+  return retval;
 }

@@ -18,7 +18,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
@@ -32,9 +31,6 @@ using namespace com::centreon;
  *  @return EXIT_SUCESS on success.
  */
 int main() {
-  // Initialization.
-  clib::load();
-
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -65,15 +61,11 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else {
+  } else {
     int exit_code(p.exit_code());
     retval = (exit_code == 0);
     std::cout << "exit code: " << exit_code << std::endl;
   }
 
-  // Cleanup.
-  clib::unload();
-
-  return (retval ? EXIT_FAILURE : EXIT_SUCCESS);
+  return retval ? EXIT_FAILURE : EXIT_SUCCESS;
 }

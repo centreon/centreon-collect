@@ -196,18 +196,15 @@ set(CONNECTORLIB "centreonconnectorssh")
 add_library("${CONNECTORLIB}"
   # Sources.
   "${SRC_DIR}/checks/check.cc"
-  "${SRC_DIR}/checks/listener.cc"
   "${SRC_DIR}/checks/result.cc"
   "${SRC_DIR}/checks/timeout.cc"
   "${SRC_DIR}/multiplexer.cc"
   "${SRC_DIR}/options.cc"
-  "${SRC_DIR}/orders/listener.cc"
   "${SRC_DIR}/orders/parser.cc"
   "${SRC_DIR}/orders/options.cc"
   "${SRC_DIR}/policy.cc"
   "${SRC_DIR}/reporter.cc"
   "${SRC_DIR}/sessions/credentials.cc"
-  "${SRC_DIR}/sessions/listener.cc"
   "${SRC_DIR}/sessions/session.cc"
   "${SRC_DIR}/sessions/socket_handle.cc"
   # Headers.
@@ -261,6 +258,15 @@ install(TARGETS "${CONNECTOR}"
 # Packaging.
 include("package.cmake")
 
+# Code coverage on unit tests
+option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
+if (WITH_COVERAGE)
+  set(WITH_TESTING ON)
+  set(CMAKE_BUILD_TYPE "Debug")
+  include(CodeCoverage.cmake)
+  APPEND_COVERAGE_COMPILER_FLAGS()
+endif ()
+
 # Testing.
 option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
@@ -274,76 +280,39 @@ if (WITH_TESTING)
     "${TEST_DIR}/connector/binary.hh.in"
     "${TEST_DIR}/connector/binary.hh")
 
-  # checks namespace tests.
-  # result tests.
-  #   Default constructor.
-  set(TEST_NAME "checks_result_ctor_default")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/ctor_default.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Command ID property.
-  set(TEST_NAME "checks_result_command_id")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/command_id.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Error property.
-  set(TEST_NAME "checks_result_error")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/error.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Executed
-  set(TEST_NAME "checks_result_executed")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/executed.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Exit code property.
-  set(TEST_NAME "checks_result_exit_code")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/exit_code.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Output property.
-  set(TEST_NAME "checks_result_output")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/output.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Copy constructor.
-  set(TEST_NAME "checks_result_ctor_copy")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/ctor_copy.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Assignment operator.
-  set(TEST_NAME "checks_result_assignment")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/result/assignment.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # timeout tests.
-  #   Constructor.
-  set(TEST_NAME "checks_timeout_ctor")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/timeout/ctor.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Assignment operator.
-  set(TEST_NAME "checks_timeout_assignment")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/timeout/assignment.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Set target check object.
-  set(TEST_NAME "checks_timeout_set_check")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/checks/timeout/set_check.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
+set(CONNECTOR_TEST_LIST
+    ${TEST_DIR}/checks/result/ctor_default.cc
+    ${TEST_DIR}/checks/result/command_id.cc
+    ${TEST_DIR}/checks/result/error.cc
+    ${TEST_DIR}/checks/result/executed.cc
+    ${TEST_DIR}/checks/result/exit_code.cc
+    ${TEST_DIR}/checks/result/output.cc
+    ${TEST_DIR}/checks/result/ctor_copy.cc
+    ${TEST_DIR}/checks/result/assignment.cc
+    ${TEST_DIR}/checks/timeout/ctor.cc
+    ${TEST_DIR}/checks/timeout/assignment.cc
+    ${TEST_DIR}/sessions/credentials/ctor_default.cc
+    ${TEST_DIR}/sessions/credentials/host.cc
+    ${TEST_DIR}/sessions/credentials/user.cc
+    ${TEST_DIR}/sessions/credentials/password.cc
+    ${TEST_DIR}/sessions/credentials/ctor_values.cc
+    ${TEST_DIR}/sessions/credentials/ctor_copy.cc
+    ${TEST_DIR}/sessions/credentials/assignment.cc
+    ${TEST_DIR}/sessions/credentials/less_than.cc
+    ${TEST_DIR}/reporter/ctor_default.cc
+   )
 
+  foreach (name ${CONNECTOR_TEST_LIST})
+    # name cc file => bin_name binary name
+    string(REGEX REPLACE "^${TEST_DIR}/" "" bin_name ${name})
+    string(REGEX REPLACE "/" "_" bin_name ${bin_name})
+    string(REGEX REPLACE ".cc$" "" bin_name ${bin_name})
+
+    add_executable("${bin_name}" "${name}")
+    target_link_libraries("${bin_name}" "${CONNECTORLIB}")
+    add_test("${bin_name}" "${bin_name}")
+    list(APPEND TEST_BIN_LIST ${bin_name})
+  endforeach ()
 
   #
   # orders namespace tests.
@@ -357,189 +326,37 @@ if (WITH_TESTING)
     "${TEST_DIR}/orders/buffer_handle.hh"
     "${TEST_DIR}/orders/fake_listener.hh")
   set(ORDERS_LIBRARIES "test_orders" "${CONNECTORLIB}")
-  # parser tests.
-  #   Default constructor.
-  set(TEST_NAME "orders_parser_ctor_default")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/ctor_default.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   EOF detection.
-  set(TEST_NAME "orders_parser_eof")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/eof.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Close detection.
-  set(TEST_NAME "orders_parser_close")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/close.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Error detection.
-  set(TEST_NAME "orders_parser_error")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/error.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Version order.
-  set(TEST_NAME "orders_parser_version")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/version.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Quit order.
-  set(TEST_NAME "orders_parser_quit")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/quit.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Execute order.
-  set(TEST_NAME "orders_parser_execute")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/execute.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Order suite.
-  set(TEST_NAME "orders_parser_suite")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/suite.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Copy constructor.
-  set(TEST_NAME "orders_parser_ctor_copy")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/ctor_copy.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Assignment operator.
-  set(TEST_NAME "orders_parser_assignment")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/assignment.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Invalid command.
-  set(TEST_NAME "orders_parser_invalid_command")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/invalid_command.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Not enough arguments for execution.
-  set(TEST_NAME "orders_parser_execute_not_enough_args")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/execute_not_enough_args.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Invalid command ID in execution order.
-  set(TEST_NAME "orders_parser_execute_invalid_id")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/execute_invalid_id.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Invalid timeout in execution order.
-  set(TEST_NAME "orders_parser_execute_invalid_timeout")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/execute_invalid_timeout.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Invalid start time in execution order.
-  set(TEST_NAME "orders_parser_execute_invalid_start_time")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/orders/parser/execute_invalid_start_time.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
 
+  set(ORDERS_TEST_LIST
+    ${TEST_DIR}/reporter/send_version.cc
+    ${TEST_DIR}/reporter/send_result.cc
+    ${TEST_DIR}/reporter/error.cc
+    ${TEST_DIR}/orders/parser/execute.cc
+    ${TEST_DIR}/orders/parser/close.cc
+    ${TEST_DIR}/orders/parser/ctor_default.cc
+    ${TEST_DIR}/orders/parser/eof.cc
+    ${TEST_DIR}/orders/parser/error.cc
+    ${TEST_DIR}/orders/parser/execute_invalid_id.cc
+    ${TEST_DIR}/orders/parser/execute_invalid_start_time.cc
+    ${TEST_DIR}/orders/parser/execute_invalid_timeout.cc
+    ${TEST_DIR}/orders/parser/execute_not_enough_args.cc
+    ${TEST_DIR}/orders/parser/invalid_command.cc
+    ${TEST_DIR}/orders/parser/quit.cc
+    ${TEST_DIR}/orders/parser/suite.cc
+    ${TEST_DIR}/orders/parser/version.cc
+    )
 
-  #
-  # sessions namespace tests.
-  #
-  # credentials tests.
-  #   Default constructor.
-  set(TEST_NAME "sessions_credentials_ctor_default")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/ctor_default.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Host property.
-  set(TEST_NAME "sessions_credentials_host")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/host.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   User property.
-  set(TEST_NAME "sessions_credentials_user")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/user.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Password property.
-  set(TEST_NAME "sessions_credentials_password")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/password.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Constructor which set values.
-  set(TEST_NAME "sessions_credentials_ctor_values")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/ctor_values.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Copy constructor.
-  set(TEST_NAME "sessions_credentials_ctor_copy")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/ctor_copy.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Assignment operator.
-  set(TEST_NAME "sessions_credentials_assignment")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/assignment.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Less-than operator.
-  set(TEST_NAME "sessions_credentials_less_than")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/sessions/credentials/less_than.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
+  foreach (name ${ORDERS_TEST_LIST})
+    # name cc file => bin_name binary name
+    string(REGEX REPLACE "^${TEST_DIR}/" "" bin_name ${name})
+    string(REGEX REPLACE "/" "_" bin_name ${bin_name})
+    string(REGEX REPLACE ".cc$" "" bin_name ${bin_name})
 
-
-  #
-  # Root namespace tests.
-  #
-  # multiplexer tests.
-  #   Check singleton.
-  set(TEST_NAME "multiplexer_singleton")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/multiplexer/singleton.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # reporter tests.
-  #   Default constructor.
-  set(TEST_NAME "reporter_ctor_default")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/reporter/ctor_default.cc")
-  target_link_libraries("${TEST_NAME}" "${CONNECTORLIB}")
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Report protocol version.
-  set(TEST_NAME "reporter_send_version")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/reporter/send_version.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Report check result.
-  set(TEST_NAME "reporter_send_result")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/reporter/send_result.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  #   Handle has error.
-  set(TEST_NAME "reporter_error")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/reporter/error.cc")
-  target_link_libraries("${TEST_NAME}" ${ORDERS_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-
+    add_executable("${bin_name}" "${name}")
+    target_link_libraries("${bin_name}" "${ORDERS_LIBRARIES}")
+    add_test("${bin_name}" "${bin_name}")
+    list(APPEND TEST_BIN_LIST ${bin_name})
+  endforeach ()
 
   #
   # Process tests.
@@ -553,63 +370,55 @@ if (WITH_TESTING)
   add_test("connector_invalid_flag" "${CONNECTOR}" "--merethis")
   set_tests_properties("connector_invalid_flag"
     PROPERTIES WILL_FAIL TRUE)
-  # Invalid command.
-  set(TEST_NAME "connector_invalid_command")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/invalid_command.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # Invalid command ID.
-  set(TEST_NAME "connector_invalid_command_id")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/invalid_command_id.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # EOF on stdin.
-  set(TEST_NAME "connector_eof_on_stdin")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/eof_on_stdin.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # Quit command.
-  set(TEST_NAME "connector_command_quit")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/command_quit.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # Version command.
-  set(TEST_NAME "connector_command_version")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/command_version.cc")
-  target_link_libraries("${TEST_NAME}" ${CLIB_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
 
-# FIXME DBR: those tests fail
-#  # Execute command.
-#  set(TEST_NAME "connector_command_execute")
-#  add_executable("${TEST_NAME}"
-#    "${TEST_DIR}/connector/command_execute.cc")
-#  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
-#  add_test("${TEST_NAME}" "${TEST_NAME}")
-#  # Execute command with a log file
-#  set(TEST_NAME "connector_command_execute_log_file")
-#  add_executable("${TEST_NAME}"
-#    "${TEST_DIR}/connector/command_execute_log_file.cc")
-#  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
-#  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # Non-existent host.
-  set(TEST_NAME "connector_non_existent_host")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/non_existent_host.cc")
-  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
-  # Single check that timeouts.
-  set(TEST_NAME "connector_single_check_timeout")
-  add_executable("${TEST_NAME}"
-    "${TEST_DIR}/connector/single_check_timeout.cc")
-  target_link_libraries("${TEST_NAME}" ${TEST_LIBRARIES})
-  add_test("${TEST_NAME}" "${TEST_NAME}")
+  set(CLIB_TEST_LIST
+    ${TEST_DIR}/connector/invalid_command.cc
+    ${TEST_DIR}/connector/invalid_command_id.cc
+    ${TEST_DIR}/connector/eof_on_stdin.cc
+    ${TEST_DIR}/connector/command_quit.cc
+    ${TEST_DIR}/connector/command_version.cc
+    )
 
+  foreach (name ${CLIB_TEST_LIST})
+    # name cc file => bin_name binary name
+    string(REGEX REPLACE "^${TEST_DIR}/" "" bin_name ${name})
+    string(REGEX REPLACE "/" "_" bin_name ${bin_name})
+    string(REGEX REPLACE ".cc$" "" bin_name ${bin_name})
+
+    add_executable("${bin_name}" "${name}")
+    target_link_libraries("${bin_name}" "${CLIB_LIBRARIES}")
+    add_test("${bin_name}" "${bin_name}")
+    list(APPEND TEST_BIN_LIST ${bin_name})
+  endforeach ()
+
+  set(TEST_LIST
+    ${TEST_DIR}/connector/command_execute.cc
+    ${TEST_DIR}/connector/command_execute_log_file.cc
+    ${TEST_DIR}/connector/non_existent_host.cc
+    ${TEST_DIR}/connector/single_check_timeout.cc
+    )
+
+  foreach (name ${TEST_LIST})
+    # name cc file => bin_name binary name
+    string(REGEX REPLACE "^${TEST_DIR}/" "" bin_name ${name})
+    string(REGEX REPLACE "/" "_" bin_name ${bin_name})
+    string(REGEX REPLACE ".cc$" "" bin_name ${bin_name})
+
+    add_executable("${bin_name}" "${name}")
+    target_link_libraries("${bin_name}" "${TEST_LIBRARIES}")
+    add_test("${bin_name}" "${bin_name}")
+    list(APPEND TEST_BIN_LIST ${bin_name})
+  endforeach ()
+
+  if (WITH_COVERAGE)
+    set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/test/*' '/usr/include/*')
+    SETUP_TARGET_FOR_COVERAGE(
+      NAME test-coverage
+      EXECUTABLE ctest
+      DEPENDENCIES
+      ${TEST_BIN_LIST}
+      )
+  endif ()
 endif ()
 
 # Summary.

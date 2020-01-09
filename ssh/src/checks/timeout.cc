@@ -16,16 +16,16 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/checks/timeout.hh"
+#include "com/centreon/connector/ssh/checks/check.hh"
 
 using namespace com::centreon::connector::ssh::checks;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Constructor.
@@ -35,41 +35,17 @@ using namespace com::centreon::connector::ssh::checks;
 timeout::timeout(check* chk) : _check(chk) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] t Object to copy.
- */
-//timeout::timeout(timeout const& t) : com::centreon::task(t) {
-//  _internal_copy(t);
-//}
-
-/**
  *  Destructor.
  */
-timeout::~timeout() throw () {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] t Object to copy.
- *
- *  @return This object.
- */
-//timeout& timeout::operator=(timeout const& t) {
-//  if (this != &t) {
-//    com::centreon::task::operator=(t);
-//    _internal_copy(t);
-//  }
-//  return (*this);
-//}
+timeout::~timeout() noexcept {}
 
 /**
  *  Get the check object.
  *
  *  @return Check object.
  */
-check* timeout::get_check() const throw () {
-  return (_check);
+check* timeout::get_check() const noexcept {
+  return _check;
 }
 
 /**
@@ -78,31 +54,4 @@ check* timeout::get_check() const throw () {
 void timeout::run() {
   if (_check)
     _check->on_timeout();
-  return ;
-}
-
-/**
- *  Set target check.
- *
- *  @param[in] chk Target check.
- */
-void timeout::set_check(check* chk) throw () {
-  _check = chk;
-  return ;
-}
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] t Object to copy.
- */
-void timeout::_internal_copy(timeout const& t) {
-  _check = t._check;
-  return ;
 }

@@ -18,19 +18,19 @@
 
 #include <cstdlib>
 #include <iostream>
-#include "com/centreon/clib.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
 using namespace com::centreon;
 
-#define CMD "2\0" \
-            "0\0" \
-            "10\0" \
-            "123456789\0" \
-            "check_by_ssh " \
-            "-H localhost -l user -a password " \
-            "-C 'echo Merethis'\0\0\0\0"
+#define CMD                           \
+  "2\0"                               \
+  "0\0"                               \
+  "10\0"                              \
+  "123456789\0"                       \
+  "check_by_ssh "                     \
+  "-H localhost -l user -a password " \
+  "-C 'echo Merethis'\0\0\0\0"
 
 /**
  *  Check that connector exits when receiving an invalid command ID (0).
@@ -38,9 +38,6 @@ using namespace com::centreon;
  *  @return EXIT_SUCCESS on success.
  */
 int main() {
-  // Initialization.
-  clib::load();
-
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -60,15 +57,11 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else {
+  } else {
     int exit_code(p.exit_code());
     retval = (exit_code == 0);
     std::cout << "exit code: " << exit_code << std::endl;
   }
 
-  // Cleanup.
-  clib::unload();
-
-  return (retval ? EXIT_FAILURE : EXIT_SUCCESS);
+  return retval ? EXIT_FAILURE : EXIT_SUCCESS;
 }

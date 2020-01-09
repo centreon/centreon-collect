@@ -17,12 +17,12 @@
 */
 
 #ifndef CCCP_REPORTER_HH
-#  define CCCP_REPORTER_HH
+#define CCCP_REPORTER_HH
 
-#  include <string>
-#  include "com/centreon/connector/perl/checks/listener.hh"
-#  include "com/centreon/connector/perl/namespace.hh"
-#  include "com/centreon/handle_listener.hh"
+#include <string>
+#include "com/centreon/connector/perl/checks/listener.hh"
+#include "com/centreon/connector/perl/namespace.hh"
+#include "com/centreon/handle_listener.hh"
 
 CCCP_BEGIN()
 
@@ -32,28 +32,25 @@ CCCP_BEGIN()
  *
  *  Send replies to the monitoring engine.
  */
-class                reporter : public com::centreon::handle_listener {
-public:
-                     reporter();
-                     reporter(reporter const& r);
-                     ~reporter() throw ();
-  reporter&          operator=(reporter const& r);
-  bool               can_report() const throw ();
-  void               error(handle& h);
-  std::string const& get_buffer() const throw ();
-  void               send_result(checks::result const& r);
-  void               send_version(unsigned int major, unsigned int minor);
-  bool               want_write(handle& h);
-  void               write(handle& h);
+class reporter : public com::centreon::handle_listener {
+  std::string _buffer;
+  bool _can_report;
+  unsigned int _reported;
 
-private:
-  void               _copy(reporter const& r);
-
-  std::string        _buffer;
-  bool               _can_report;
-  unsigned int       _reported;
+ public:
+  reporter();
+  ~reporter() noexcept;
+  reporter(reporter const& r) = delete;
+  reporter& operator=(reporter const& r) = delete;
+  bool can_report() const noexcept;
+  void error(handle& h);
+  std::string const& get_buffer() const noexcept;
+  void send_result(checks::result const& r);
+  void send_version(unsigned int major, unsigned int minor);
+  bool want_write(handle& h);
+  void write(handle& h);
 };
 
 CCCP_END()
 
-#endif // !CCCP_REPORTER_HH
+#endif  // !CCCP_REPORTER_HH

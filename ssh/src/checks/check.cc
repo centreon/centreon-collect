@@ -102,10 +102,8 @@ void check::execute(sessions::session& sess,
   _session = &sess;
 
   // Register timeout.
-  std::unique_ptr<timeout> t{new timeout(this)};
   _timeout = multiplexer::instance().com::centreon::task_manager::add(
-      t.get(), tmt, false, true);
-  t.release();
+      new timeout(this), tmt, false, true);
 
   // Session-related actions.
   sess.listen(this);
@@ -327,8 +325,8 @@ bool check::_exec() {
                                0);
     if (ret == LIBSSH2_ERROR_SOCKET_SEND)
       _session->error();
-    throw(basic_error() << "could not execute command on SSH channel: " << msg
-                        << " (error " << ret << ")");
+    throw basic_error() << "could not execute command on SSH channel: " << msg
+                        << " (error " << ret << ")";
   }
 
   // Check whether command succeeded or if we can try again later.

@@ -17,15 +17,15 @@
 */
 
 #ifndef CCB_CONNECTOR_PLUGIN
-#  define CCB_CONNECTOR_PLUGIN
+#define CCB_CONNECTOR_PLUGIN
 
-#  include <list>
-#  include <map>
-#  include <string>
-#  include <sys/types.h>
-#  include <vector>
-#  include "com/centreon/benchmark/connector/benchmark.hh"
-#  include "com/centreon/benchmark/connector/namespace.hh"
+#include <list>
+#include <map>
+#include <string>
+#include <sys/types.h>
+#include <vector>
+#include "com/centreon/benchmark/connector/benchmark.hh"
+#include "com/centreon/benchmark/connector/namespace.hh"
 
 CCB_CONNECTOR_BEGIN()
 
@@ -36,31 +36,29 @@ CCB_CONNECTOR_BEGIN()
  *  This class is an implementation of benchmark for testing nagios
  *  plugin.
  */
-class                      plugin : public benchmark {
-public:
-                           plugin(
-                             std::string const& commands_file,
-                             std::list<std::string> const& args);
-                           plugin(plugin const& right);
-                           ~plugin() throw ();
-  plugin&                  operator=(plugin const& right);
+class plugin : public benchmark {
+ public:
+  plugin(std::string const& commands_file, std::list<std::string> const& args);
+  plugin(plugin const& right);
+  ~plugin() throw();
+  plugin& operator=(plugin const& right);
 
-  void                     run();
+  void run();
 
-private:
-  void                     _cleanup();
-  plugin&                  _internal_copy(plugin const& right);
-  void                     _recv_data(int fd);
-  void                     _start_plugin(char** args);
-  void                     _wait_plugin(bool block);
+ private:
+  void _cleanup();
+  plugin& _internal_copy(plugin const& right);
+  void _recv_data(int fd);
+  void _start_plugin(char** args);
+  void _wait_plugin(bool block);
 
-  std::list<std::string>   _args;
+  std::list<std::string> _args;
   std::vector<std::string> _commands;
-  std::string              _commands_file;
-  unsigned int             _current_running;
-  std::map<pid_t, int>     _pid;
+  std::string _commands_file;
+  unsigned int _current_running;
+  std::map<pid_t, int> _pid;
 };
 
 CCB_CONNECTOR_END()
 
-#endif // !CCB_CONNECTOR_PLUGIN
+#endif  // !CCB_CONNECTOR_PLUGIN

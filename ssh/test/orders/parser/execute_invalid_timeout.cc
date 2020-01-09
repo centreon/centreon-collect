@@ -31,9 +31,6 @@ using namespace com::centreon::connector::ssh::orders;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   // Create invalid execute order packet.
   buffer_handle bh;
   bh.write(DATA, sizeof(DATA) - 1);
@@ -60,15 +57,12 @@ int main() {
     it = listnr.get_callbacks().begin();
     info1 = *(it++);
     info2 = *(it++);
-    retval |= ((info1.callback != fake_listener::cb_error)
-               || (info2.callback != fake_listener::cb_eof));
+    retval |= ((info1.callback != fake_listener::cb_error) ||
+               (info2.callback != fake_listener::cb_eof));
   }
 
   // Parser must be empty.
   retval |= !p.get_buffer().empty();
-
-  // Unload.
-  com::centreon::logging::engine::unload();
 
   return (retval);
 }

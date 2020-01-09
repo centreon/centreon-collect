@@ -22,25 +22,27 @@
 #include <sstream>
 #include <string>
 #include "com/centreon/clib.hh"
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
-#include "com/centreon/exceptions/basic.hh"
 #include "test/connector/misc.hh"
 #include "test/connector/paths.hh"
 
 using namespace com::centreon;
 
-#define CMD1 "2\0" \
-             "4242\0" \
-             "5\0" \
-             "123456789\0"
+#define CMD1 \
+  "2\0"      \
+  "4242\0"   \
+  "5\0"      \
+  "123456789\0"
 #define CMD2 "\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "1\0" \
-               "0\0" \
-               " \0" \
-               "Merethis is wonderful\n\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "1\0"        \
+  "0\0"        \
+  " \0"        \
+  "Merethis is wonderful\n\0\0\0\0"
 
 /**
  *  Check that connector can execute a script.
@@ -48,15 +50,13 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
-  clib::load();
   // Write Perl script.
   std::string script_path(io::file_stream::temp_path());
-  write_file(
-    script_path.c_str(),
-    "#!/usr/bin/perl\n" \
-    "\n" \
-    "print \"Merethis is wonderful\\n\";\n" \
-    "exit 0;\n");
+  write_file(script_path.c_str(),
+             "#!/usr/bin/perl\n"
+             "\n"
+             "print \"Merethis is wonderful\\n\";\n"
+             "exit 0;\n");
 
   // Process.
   process p;
@@ -94,28 +94,23 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
 
   // Remove temporary files.
   remove(script_path.c_str());
 
-  clib::unload();
-
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1)
-        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
-  }
-  catch (std::exception const& e) {
+      throw(basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1) ||
+        memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output);
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
 
-  return (retval);
+  return retval;
 }

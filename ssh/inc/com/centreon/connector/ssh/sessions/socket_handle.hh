@@ -17,39 +17,39 @@
 */
 
 #ifndef CCCS_SESSIONS_SOCKET_HANDLE_HH
-#  define CCCS_SESSIONS_SOCKET_HANDLE_HH
+#define CCCS_SESSIONS_SOCKET_HANDLE_HH
 
-#  include "com/centreon/connector/ssh/namespace.hh"
-#  include "com/centreon/handle.hh"
+#include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/handle.hh"
 
 CCCS_BEGIN()
 
-namespace          sessions {
-  /**
-   *  @class socket_handle socket_handle.hh "com/centreon/connector/ssh/socket_handle.hh"
-   *  @brief Socket handle.
-   *
-   *  Wrapper around a socket descriptor.
-   */
-  class            socket_handle : public com::centreon::handle {
-  public:
-                   socket_handle(
-                     native_handle handl = native_handle_null);
-                   ~socket_handle() throw ();
-    void           close();
-    native_handle  get_native_handle();
-    unsigned long  read(void* data, unsigned long size);
-    void           set_native_handle(native_handle handl);
-    unsigned long  write(void const* data, unsigned long size);
+namespace sessions {
+/**
+ *  @class socket_handle socket_handle.hh
+ * "com/centreon/connector/ssh/socket_handle.hh"
+ *  @brief Socket handle.
+ *
+ *  Wrapper around a socket descriptor.
+ */
+class socket_handle : public com::centreon::handle {
+ public:
+  socket_handle(native_handle handl = native_handle_null);
+  ~socket_handle() noexcept;
+  void close();
+  native_handle get_native_handle();
+  unsigned long read(void* data, unsigned long size);
+  void set_native_handle(native_handle handl);
+  unsigned long write(void const* data, unsigned long size);
 
-  private:
-                   socket_handle(socket_handle const& sh);
-    socket_handle& operator=(socket_handle const& sh);
+ private:
+  socket_handle(socket_handle const& sh);
+  socket_handle& operator=(socket_handle const& sh);
 
-    native_handle  _handl;
-  };
-}
+  native_handle _handl;
+};
+}  // namespace sessions
 
 CCCS_END()
 
-#endif // !CCCS_SESSIONS_SOCKET_HANDLE_HH
+#endif  // !CCCS_SESSIONS_SOCKET_HANDLE_HH

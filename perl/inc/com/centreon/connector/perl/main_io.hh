@@ -17,10 +17,10 @@
 */
 
 #ifndef CCC_PERL_MAIN_IO_HH_
-# define CCC_PERL_MAIN_IO_HH_
+#define CCC_PERL_MAIN_IO_HH_
 
-# include <string>
-# include "com/centreon/connector/perl/namespace.hh"
+#include <string>
+#include "com/centreon/connector/perl/namespace.hh"
 
 CCC_PERL_BEGIN()
 
@@ -32,23 +32,23 @@ CCC_PERL_BEGIN()
  *  orders from the monitoring engine) and on standard output
  *  (provide check results).
  */
-class             main_io {
+class main_io {
  public:
-                  ~main_io();
+  ~main_io();
   static main_io& instance();
-  int             read();
-  int             write();
-  void            write(std::string const& data);
-  bool            write_wanted() const;
+  int read();
+  int write();
+  void write(std::string const& data);
+  bool write_wanted() const;
 
  private:
-                  main_io();
-                  main_io(main_io const& mio);
-  main_io&        operator=(main_io const& mio);
-  int             _parse(std::string const& cmd);
+  main_io();
+  main_io(main_io const& mio);
+  main_io& operator=(main_io const& mio);
+  int _parse(std::string const& cmd);
 
-  std::string     _rbuffer;
-  std::string     _wbuffer;
+  std::string _rbuffer;
+  std::string _wbuffer;
 };
 
 CCC_PERL_END()

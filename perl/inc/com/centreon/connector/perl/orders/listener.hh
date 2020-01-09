@@ -17,39 +17,38 @@
 */
 
 #ifndef CCCP_ORDERS_LISTENER_HH
-#  define CCCP_ORDERS_LISTENER_HH
+#define CCCP_ORDERS_LISTENER_HH
 
-#  include <ctime>
-#  include <string>
-#  include "com/centreon/connector/perl/namespace.hh"
+#include <ctime>
+#include <string>
+#include "com/centreon/connector/perl/namespace.hh"
 
 CCCP_BEGIN()
 
-namespace        orders {
-  /**
-   *  @class listener listener.hh "com/centreon/connector/perl/orders/listener.hh"
-   *  @brief Listen orders issued by the monitoring engine.
-   *
-   *  Wait for orders from the monitoring engine and take actions
-   *  accordingly.
-   */
-  class          listener {
-  public:
-                 listener();
-                 listener(listener const& l);
-    virtual      ~listener();
-    listener&    operator=(listener const& l);
-    virtual void on_eof() = 0;
-    virtual void on_error() = 0;
-    virtual void on_execute(
-                   unsigned long long cmd_id,
-                   time_t timeout,
-                   std::string const& cmd) = 0;
-    virtual void on_quit() = 0;
-    virtual void on_version() = 0;
-  };
-}
+namespace orders {
+/**
+ *  @class listener listener.hh "com/centreon/connector/perl/orders/listener.hh"
+ *  @brief Listen orders issued by the monitoring engine.
+ *
+ *  Wait for orders from the monitoring engine and take actions
+ *  accordingly.
+ */
+class listener {
+ public:
+  listener() = default;
+  listener(listener const& l) = delete;
+  virtual ~listener() = default;
+  listener& operator=(listener const& l) = delete;
+  virtual void on_eof() = 0;
+  virtual void on_error() = 0;
+  virtual void on_execute(unsigned long long cmd_id,
+                          time_t timeout,
+                          std::string const& cmd) = 0;
+  virtual void on_quit() = 0;
+  virtual void on_version() = 0;
+};
+}  // namespace orders
 
 CCCP_END()
 
-#endif // !CCCP_ORDERS_LISTENER_HH
+#endif  // !CCCP_ORDERS_LISTENER_HH

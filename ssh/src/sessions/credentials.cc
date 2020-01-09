@@ -21,10 +21,10 @@
 using namespace com::centreon::connector::ssh::sessions;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  @brief Default constructor.
@@ -43,19 +43,12 @@ credentials::credentials() : _port(22) {}
  *  @param[in] key      Identity file.
  *  @param[in] port     Port.
  */
-credentials::credentials(
-               std::string const& host,
-               std::string const& user,
-               std::string const& password,
-               std::string const& key,
-               unsigned short port)
-  : _host(host),
-    _key(key),
-    _password(password),
-    _port(port),
-    _user(user) {
-
-}
+credentials::credentials(std::string const& host,
+                         std::string const& user,
+                         std::string const& password,
+                         std::string const& key,
+                         unsigned short port)
+    : _host(host), _key(key), _password(password), _port(port), _user(user) {}
 
 /**
  *  Copy constructor.
@@ -92,11 +85,8 @@ credentials& credentials::operator=(credentials const& c) {
  *  @return true if both objects are equal.
  */
 bool credentials::operator==(credentials const& c) const {
-  return ((_port == c._port)
-          && (_host == c._host)
-          && (_key == c._key)
-          && (_password == c._password)
-          && (_user == c._user));
+  return ((_port == c._port) && (_host == c._host) && (_key == c._key) &&
+          (_password == c._password) && (_user == c._user));
 }
 
 /**
@@ -187,7 +177,7 @@ std::string const& credentials::get_user() const {
  */
 void credentials::set_key(std::string const& file) {
   _key = file;
-  return ;
+  return;
 }
 
 /**
@@ -197,7 +187,7 @@ void credentials::set_key(std::string const& file) {
  */
 void credentials::set_host(std::string const& host) {
   _host = host;
-  return ;
+  return;
 }
 
 /**
@@ -207,7 +197,7 @@ void credentials::set_host(std::string const& host) {
  */
 void credentials::set_password(std::string const& password) {
   _password = password;
-  return ;
+  return;
 }
 
 /**
@@ -217,7 +207,7 @@ void credentials::set_password(std::string const& password) {
  */
 void credentials::set_port(unsigned short port) {
   _port = port;
-  return ;
+  return;
 }
 
 /**
@@ -227,14 +217,14 @@ void credentials::set_port(unsigned short port) {
  */
 void credentials::set_user(std::string const& user) {
   _user = user;
-  return ;
+  return;
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Copy internal data members.
@@ -247,5 +237,5 @@ void credentials::_copy(credentials const& c) {
   _password = c._password;
   _port = c._port;
   _user = c._user;
-  return ;
+  return;
 }

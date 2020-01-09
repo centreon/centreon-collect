@@ -17,19 +17,24 @@
 */
 
 #ifndef CCCP_NAMESPACE_HH
-#  define CCCP_NAMESPACE_HH
+#define CCCP_NAMESPACE_HH
 
-#  ifdef CCCP_BEGIN
-#    undef CCCP_BEGIN
-#  endif // CCCP_BEGIN
-#  define CCCP_BEGIN() namespace       com { \
-                         namespace     centreon { \
-                           namespace   connector { \
-                             namespace perl {
+#ifdef CCCP_BEGIN
+#undef CCCP_BEGIN
+#endif  // CCCP_BEGIN
+#define CCCP_BEGIN()    \
+  namespace com {       \
+  namespace centreon {  \
+  namespace connector { \
+  namespace perl {
 
-#  ifdef CCCP_END
-#    undef CCCP_END
-#  endif // CCCP_END
-#  define CCCP_END() } } } }
+#ifdef CCCP_END
+#undef CCCP_END
+#endif  // CCCP_END
+#define CCCP_END() \
+  }                \
+  }                \
+  }                \
+  }
 
-#endif // !CCCP_NAMESPACE_HH
+#endif  // !CCCP_NAMESPACE_HH

@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include <atomic>
 #include <sstream>
 #include "com/centreon/connector/ssh/policy.hh"
 #include <cstdio>
@@ -31,7 +32,7 @@
 using namespace com::centreon::connector::ssh;
 
 // Exit flag.
-extern volatile bool should_exit;
+extern std::atomic<bool> should_exit;
 
 /**************************************
  *                                     *
@@ -68,7 +69,8 @@ policy::~policy() noexcept {
   for (auto& c : _checks) {
     try {
       c.second.first->unlisten(this);
-    } catch (...) {}
+    } catch (...) {
+    }
     delete c.second.first;
   }
   _checks.clear();
@@ -165,21 +167,22 @@ void policy::on_execute(uint64_t cmd_id,
           << "creating session for " << user << "@" << host << ":" << port;
       std::unique_ptr<sessions::session> sess{new sessions::session(creds)};
       sess->connect(use_ipv6);
-      _sessions[creds] = sess.get();
-      sess.release();
+      _sessions[creds] = sess.release();
       it = _sessions.find(creds);
     }
+
+    sessions::session* sess = it->second;
 
     // Create check object.
     checks::check* chk_ptr = new checks::check(skip_stdout, skip_stderr);
     chk_ptr->listen(this);
-    _checks[cmd_id] = std::make_pair(chk_ptr, it->second);
+    _checks[cmd_id] = std::make_pair(chk_ptr, sess);
 
     // Release lock and run copied pointer (we might be called in
     // on_result() and mutex must be available).
     lock.unlock();
 
-    chk_ptr->execute(*it->second, cmd_id, cmds, timeout);
+    chk_ptr->execute(*sess, cmd_id, cmds, timeout);
   } catch (std::exception const& e) {
     log_error(logging::low)
         << "could not launch check ID " << cmd_id << " on host " << host
@@ -217,8 +220,8 @@ void policy::on_result(checks::result const& r) {
   std::lock_guard<std::mutex> lock(_mutex);
 
   // Remove check from list.
-  std::map<uint64_t,
-           std::pair<checks::check*, sessions::session*> >::iterator chk;
+  std::map<uint64_t, std::pair<checks::check*, sessions::session*> >::iterator
+      chk;
   chk = _checks.find(r.get_command_id());
   if (chk == _checks.end())
     log_error(logging::medium) << "got result of check " << r.get_command_id()
@@ -306,8 +309,8 @@ bool policy::run() {
   // Run as long as a check remains.
   log_info(logging::low) << "waiting for checks to terminate";
   while (!_checks.empty()) {
-    log_debug(logging::high)
-        << "multiplexing remaining checks (" << _checks.size() << ")";
+    log_debug(logging::high) << "multiplexing remaining checks ("
+                             << _checks.size() << ")";
     multiplexer::instance().multiplex();
   }
 

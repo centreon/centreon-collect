@@ -16,27 +16,26 @@
 ** For more information : contact@centreon.com
 */
 
-#include <sstream>
 #include "com/centreon/connector/ssh/orders/options.hh"
+#include <sstream>
 #include "com/centreon/connector/ssh/options.hh"
 
 using namespace com::centreon::connector::ssh;
 
 // Options descriptions.
-static char const* const debug_description
-  = "If this flag is specified, print all logs messages.";
-static char const* const help_description
-  = "Print help and exit.";
-static char const* const version_description
-  = "Print software version and exit.";
-static char const* const log_file_description
-  = "Specifies the log file (default: stderr).";
+static char const* const debug_description =
+    "If this flag is specified, print all logs messages.";
+static char const* const help_description = "Print help and exit.";
+static char const* const version_description =
+    "Print software version and exit.";
+static char const* const log_file_description =
+    "Specifies the log file (default: stderr).";
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
@@ -57,7 +56,7 @@ options::options(options const& opts) : misc::get_options(opts) {
 /**
  *  Destructor.
  */
-options::~options() throw () {}
+options::~options() throw() {}
 
 /**
  *  Assignment operator.
@@ -67,7 +66,7 @@ options::~options() throw () {}
  *  @return This object.
  */
 options& options::operator=(options const& opts) {
-  if (this != & opts)
+  if (this != &opts)
     misc::get_options::operator=(opts);
   return *this;
 }
@@ -112,10 +111,10 @@ std::string options::usage() const {
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Init argument table.

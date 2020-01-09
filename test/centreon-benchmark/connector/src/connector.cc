@@ -37,14 +37,13 @@ using namespace com::centreon::benchmark::connector;
  *  @param[in] commands_file  The path of the commands file.
  *  @param[in] args           Connector command line argument.
  */
-connector::connector(
-             std::string const& commands_file,
-             std::list<std::string> const& args)
-  : benchmark(),
-    _args(args),
-    _commands_file(commands_file),
-    _current_running(0),
-    _pid(0) {
+connector::connector(std::string const& commands_file,
+                     std::list<std::string> const& args)
+    : benchmark(),
+      _args(args),
+      _commands_file(commands_file),
+      _current_running(0),
+      _pid(0) {
   memset(&_pipe_in, 0, sizeof(_pipe_in));
   memset(&_pipe_out, 0, sizeof(_pipe_out));
   memset(&_pfd, 0, sizeof(_pfd));
@@ -55,17 +54,14 @@ connector::connector(
  *
  *  @param[in] right  The object to copy.
  */
-connector::connector(connector const& right)
-  : benchmark() {
+connector::connector(connector const& right) : benchmark() {
   _internal_copy(right);
 }
 
 /**
  *  Default destructor.
  */
-connector::~connector() throw () {
-  _cleanup();
-}
+connector::~connector() throw() { _cleanup(); }
 
 /**
  *  Default copy constructor.
@@ -113,9 +109,7 @@ void connector::_check_execution() {
 /**
  *  Send and check quit request.
  */
-void connector::_check_quit() {
-  _send_data(_request_quit());
-}
+void connector::_check_quit() { _send_data(_request_quit()); }
 
 /**
  *  Send and check version request.
@@ -168,12 +162,11 @@ std::string connector::_get_next_result() {
   static char boundary[] = "\0\0\0\0";
   std::string result;
   size_t pos(0);
-  if ((pos = _results.find(boundary, 0, sizeof(boundary) - 1))
-         != std::string::npos) {
+  if ((pos = _results.find(boundary, 0, sizeof(boundary) - 1)) !=
+      std::string::npos) {
     result = _results.substr(0, pos + sizeof(boundary) - 1);
     _results.erase(0, pos + sizeof(boundary) - 1);
-  }
-  else {
+  } else {
     _recv_data(-1);
     return (_get_next_result());
   }
@@ -189,17 +182,17 @@ std::string connector::_get_next_result() {
 void connector::_recv_data(int timeout) {
   int ret(poll(&_pfd, 1, timeout));
   if (ret == -1)
-    throw (basic_exception(strerror(errno)));
-  else if (ret
-           && (_pfd.revents & (POLLNVAL | POLLHUP))
-           && !(_pfd.revents & (POLLIN | POLLPRI)))
-    throw (basic_exception("connector communication fd " \
-                           "terminated prematurely"));
+    throw(basic_exception(strerror(errno)));
+  else if (ret && (_pfd.revents & (POLLNVAL | POLLHUP)) &&
+           !(_pfd.revents & (POLLIN | POLLPRI)))
+    throw(basic_exception(
+        "connector communication fd "
+        "terminated prematurely"));
   else if (!ret || !(_pfd.revents & (POLLIN | POLLPRI)))
-    return ;
+    return;
   char buffer[4096];
   if ((ret = read(_pipe_out[0], buffer, sizeof(buffer))) == -1)
-    throw (basic_exception(strerror(errno)));
+    throw(basic_exception(strerror(errno)));
   if (ret)
     _results.append(buffer, ret);
 }
@@ -213,17 +206,20 @@ void connector::_recv_data(int timeout) {
  *
  *  @return The request string.
  */
-std::string connector::_request_execute(
-                         unsigned int id,
-                         std::string const& command,
-                         unsigned int timeout) {
+std::string connector::_request_execute(unsigned int id,
+                                        std::string const& command,
+                                        unsigned int timeout) {
   std::stringstream oss;
 
   oss.write("2\000", 2);
-  oss << id; oss.write("\000", 1);
-  oss << timeout; oss.write("\000", 1);
-  oss << time(NULL); oss.write("\000", 1);
-  oss << command; oss.write("\000\000\000\000", 4);
+  oss << id;
+  oss.write("\000", 1);
+  oss << timeout;
+  oss.write("\000", 1);
+  oss << time(NULL);
+  oss.write("\000", 1);
+  oss << command;
+  oss.write("\000\000\000\000", 4);
   return (oss.str());
 }
 
@@ -253,9 +249,9 @@ std::string connector::_request_version() {
 void connector::_send_data(std::string const& data) {
   int ret(write(_pipe_in[1], data.c_str(), data.size()));
   if (ret < 0)
-    throw (basic_exception(strerror(errno)));
+    throw(basic_exception(strerror(errno)));
   if (static_cast<unsigned int>(ret) != data.size())
-    throw (basic_exception("send data failed"));
+    throw(basic_exception("send data failed"));
   ++_current_running;
 }
 
@@ -264,17 +260,16 @@ void connector::_send_data(std::string const& data) {
  */
 void connector::_start_connector() {
   if (pipe(_pipe_in) == -1 || pipe(_pipe_out) == -1)
-    throw (basic_exception(strerror(errno)));
+    throw(basic_exception(strerror(errno)));
 
   _pid = fork();
   if (_pid == -1)
-    throw (basic_exception(strerror(errno)));
+    throw(basic_exception(strerror(errno)));
 
   if (!_pid) {
     close(_pipe_out[0]);
     close(_pipe_in[1]);
-    if (dup2(_pipe_out[1], 1) != -1
-        && dup2(_pipe_in[0], 0) != -1) {
+    if (dup2(_pipe_out[1], 1) != -1 && dup2(_pipe_in[0], 0) != -1) {
       close(_pipe_in[0]);
       close(_pipe_out[1]);
       char** arg(list_to_tab(_args));
@@ -300,4 +295,3 @@ void connector::_wait_connector() {
     _pid = 0;
   }
 }
-

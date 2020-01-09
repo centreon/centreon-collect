@@ -27,12 +27,14 @@
  *
  *  @return All commands from the commands file.
  */
-std::vector<std::string> com::centreon::benchmark::connector::load_commands_file(std::string const& file) {
+std::vector<std::string>
+com::centreon::benchmark::connector::load_commands_file(
+    std::string const& file) {
   std::vector<std::string> tab;
   std::ifstream is;
   is.open(file.c_str(), std::ios::in);
   if (!is.is_open())
-    throw (basic_exception("open commands file failed"));
+    throw(basic_exception("open commands file failed"));
   while (is.good()) {
     std::string line;
     std::getline(is, line, '\n');
@@ -51,14 +53,13 @@ std::vector<std::string> com::centreon::benchmark::connector::load_commands_file
  *  @return The new string array.
  */
 char** com::centreon::benchmark::connector::list_to_tab(
-         std::list<std::string> const& v,
-         unsigned int size) {
+    std::list<std::string> const& v,
+    unsigned int size) {
   if (!size)
     size = v.size() + 1;
-  char** tab(new char*[size]);
+  char** tab(new char* [size]);
   unsigned int i(0);
-  for (std::list<std::string>::const_iterator
-         it(v.begin()), end(v.end());
+  for (std::list<std::string>::const_iterator it(v.begin()), end(v.end());
        it != end;
        ++it)
     tab[i++] = const_cast<char*>(it->c_str());

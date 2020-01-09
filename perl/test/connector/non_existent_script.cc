@@ -28,17 +28,19 @@
 
 using namespace com::centreon;
 
-#define CMD "2\0" \
-            "4242\0" \
-            "3\0" \
-            "123456789\0" \
-            "/non/existent/script.pl\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "0\0" \
-               "-1\0" \
-               " \0" \
-               " \0\0\0\0"
+#define CMD     \
+  "2\0"         \
+  "4242\0"      \
+  "3\0"         \
+  "123456789\0" \
+  "/non/existent/script.pl\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "0\0"        \
+  "-1\0"       \
+  " \0"        \
+  " \0\0\0\0"
 
 /**
  *  Check that connector respond properly when running a non existent
@@ -47,7 +49,6 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
-  clib::load();
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -82,26 +83,21 @@ int main() {
   if (!p.wait(4000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
-
-  clib::unload();
 
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.find("could not run") == std::string::npos
-        && (output.size() != (sizeof(RESULT) - 1)
-            || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1)))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
-  }
-  catch (std::exception const& e) {
+      throw(basic_error() << "invalid return code: " << retval);
+    if (output.find("could not run") == std::string::npos &&
+        (output.size() != (sizeof(RESULT) - 1) ||
+         memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1)))
+      throw(basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output));
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
 
-  return (retval);
+  return retval;
 }

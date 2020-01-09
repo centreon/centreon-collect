@@ -16,13 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
+#include <sys/wait.h>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <sys/wait.h>
 #include "com/centreon/connector/perl/embedded_perl.hh"
-#include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/logging/engine.hh"
 
@@ -39,9 +38,6 @@ using namespace com::centreon::connector::perl;
  *  @return 0 on success.
  */
 int main(int argc, char* argv[], char* env[]) {
-  // Initialization.
-  logging::engine::load();
-  pipe_handle::load();
   embedded_perl::load(&argc, &argv, &env);
 
   // Return value.
@@ -53,10 +49,10 @@ int main(int argc, char* argv[], char* env[]) {
     com::centreon::io::file_stream fs;
     fs.open(script_path.c_str(), "w");
     char const* data(
-      "my $x;\n"
-      "my $y = 40;\n"
-      "$x = 2;\n"
-      "exit $x + $y;\n");
+        "my $x;\n"
+        "my $y = 40;\n"
+        "$x = 2;\n"
+        "exit $x + $y;\n");
     unsigned int size(strlen(data));
     unsigned int rb(1);
     do {
@@ -79,18 +75,14 @@ int main(int argc, char* argv[], char* env[]) {
 
     // Remove temporary file.
     remove(script_path.c_str());
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     std::cerr << e.what() << std::endl;
-  }
-  catch (...) {
+  } catch (...) {
     std::cerr << "unknown error" << std::endl;
   }
 
   // Unload.
   embedded_perl::unload();
-  pipe_handle::unload();
-  logging::engine::unload();
 
-  return (retval);
+  return retval;
 }

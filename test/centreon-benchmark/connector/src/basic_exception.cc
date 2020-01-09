@@ -23,10 +23,7 @@ using namespace com::centreon::benchmark::connector;
 /**
  *  Default constructor.
  */
-basic_exception::basic_exception(char const* message)
-  : _message(message) {
-
-}
+basic_exception::basic_exception(char const* message) : _message(message) {}
 
 /**
  *  Default copy constructor.
@@ -40,9 +37,7 @@ basic_exception::basic_exception(basic_exception const& right) {
 /**
  *  Default destructor.
  */
-basic_exception::~basic_exception() throw () {
-
-}
+basic_exception::~basic_exception() throw() {}
 
 /**
  *  Default copy operator.
@@ -60,9 +55,7 @@ basic_exception& basic_exception::operator=(basic_exception const& right) {
  *
  *  @return The message.
  */
-char const* basic_exception::what() const throw () {
-  return (_message);
-}
+char const* basic_exception::what() const throw() { return (_message); }
 
 /**
  *  Internal copy.

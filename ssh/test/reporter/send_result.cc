@@ -24,7 +24,9 @@
 
 using namespace com::centreon::connector::ssh;
 
-#define EXPECTED "3\00042\0001\0003\0some error might have occurred\0this is my output\0\0\0\0"
+#define EXPECTED                                                   \
+  "3\00042\0001\0003\0some error might have occurred\0this is my " \
+  "output\0\0\0\0"
 
 /**
  *  Check that the reporter properly reports check results.
@@ -32,9 +34,6 @@ using namespace com::centreon::connector::ssh;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   bool retval;
   {
     // Check result.
@@ -61,9 +60,6 @@ int main() {
     else
       retval = memcmp(buffer, EXPECTED, sizeof(buffer));
   }
-
-  // Unload.
-  com::centreon::logging::engine::unload();
 
   return (retval);
 }

@@ -24,11 +24,15 @@
 
 using namespace com::centreon::connector::ssh::orders;
 
-#define CMD "0\0\0\0\0" \
-            "2\000147852\0007849\000147852369\0check_by_ssh -H localhost -l root -a password -6 -C ls\0\0\0\0" \
-            "2\00036525825445548787\0002258\00001\0check_by_ssh -H www.merethis.com -l centreon -a iswonderful -C \"rm -rf /\"\0\0\0\0" \
-            "2\00063\0000\00099999999999999999\000check_by_ssh -H www.centreon.com -p 2222 -l merethis -a rocks -C \"./check_for_updates on website\"\0\0\0\0" \
-            "4\0\0\0\0"
+#define CMD                                                                    \
+  "0\0\0\0\0"                                                                  \
+  "2\000147852\0007849\000147852369\0check_by_ssh -H localhost -l root -a "    \
+  "password -6 -C ls\0\0\0\0"                                                  \
+  "2\00036525825445548787\0002258\00001\0check_by_ssh -H www.merethis.com -l " \
+  "centreon -a iswonderful -C \"rm -rf /\"\0\0\0\0"                            \
+  "2\00063\0000\00099999999999999999\000check_by_ssh -H www.centreon.com -p "  \
+  "2222 -l merethis -a rocks -C \"./check_for_updates on website\"\0\0\0\0"    \
+  "4\0\0\0\0"
 
 /**
  *  Classic orders suite: version, executions, quit.
@@ -36,9 +40,6 @@ using namespace com::centreon::connector::ssh::orders;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   // Listener.
   fake_listener listnr;
 
@@ -55,12 +56,12 @@ int main() {
 
   // Checks.
   std::list<fake_listener::callback_info> expected;
-  { // Version.
+  {  // Version.
     fake_listener::callback_info version;
     version.callback = fake_listener::cb_version;
     expected.push_back(version);
   }
-  { // First execution order.
+  {  // First execution order.
     fake_listener::callback_info execute;
     execute.callback = fake_listener::cb_execute;
     execute.cmd_id = 147852;
@@ -75,7 +76,7 @@ int main() {
     execute.is_ipv6 = true;
     expected.push_back(execute);
   }
-  { // Second execution order.
+  {  // Second execution order.
     fake_listener::callback_info execute;
     execute.callback = fake_listener::cb_execute;
     execute.cmd_id = 36525825445548787ull;
@@ -90,7 +91,7 @@ int main() {
     execute.is_ipv6 = false;
     expected.push_back(execute);
   }
-  { // Third execution order.
+  {  // Third execution order.
     fake_listener::callback_info execute;
     execute.callback = fake_listener::cb_execute;
     execute.cmd_id = 63;
@@ -105,23 +106,19 @@ int main() {
     execute.is_ipv6 = false;
     expected.push_back(execute);
   }
-  { // Quit.
+  {  // Quit.
     fake_listener::callback_info quit;
     quit.callback = fake_listener::cb_quit;
     expected.push_back(quit);
   }
-  { // EOF.
+  {  // EOF.
     fake_listener::callback_info eof;
     eof.callback = fake_listener::cb_eof;
     expected.push_back(eof);
   }
 
   // Compare parsed result with expected result.
-  int retval((expected != listnr.get_callbacks())
-             || (!p.get_buffer().empty()));
-
-  // Unload.
-  com::centreon::logging::engine::unload();
+  int retval((expected != listnr.get_callbacks()) || (!p.get_buffer().empty()));
 
   return (retval);
 }

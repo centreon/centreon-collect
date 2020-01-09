@@ -17,20 +17,18 @@
 */
 
 #ifndef CCB_CONNECTOR_MISC
-#  define CCB_CONNECTOR_MISC
+#define CCB_CONNECTOR_MISC
 
-#  include <list>
-#  include <string>
-#  include <vector>
-#  include "com/centreon/benchmark/connector/namespace.hh"
+#include <list>
+#include <string>
+#include <vector>
+#include "com/centreon/benchmark/connector/namespace.hh"
 
 CCB_CONNECTOR_BEGIN()
 
 std::vector<std::string> load_commands_file(std::string const& file);
-char**                   list_to_tab(
-                           std::list<std::string> const& v,
-                           unsigned int size = 0);
+char** list_to_tab(std::list<std::string> const& v, unsigned int size = 0);
 
 CCB_CONNECTOR_END()
 
-#endif // !CCB_CONNECTOR_MISC
+#endif  // !CCB_CONNECTOR_MISC

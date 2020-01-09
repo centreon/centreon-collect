@@ -31,9 +31,6 @@ using namespace com::centreon::connector::ssh;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   bool retval;
   {
     // Reporter.
@@ -52,9 +49,6 @@ int main() {
     else
       retval = memcmp(buffer, EXPECTED, sizeof(buffer));
   }
-
-  // Unload.
-  com::centreon::logging::engine::unload();
 
   return (retval);
 }

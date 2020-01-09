@@ -17,19 +17,24 @@
 */
 
 #ifndef CCCS_NAMESPACE_HH
-#  define CCCS_NAMESPACE_HH
+#define CCCS_NAMESPACE_HH
 
-#  ifdef CCCS_BEGIN
-#    undef CCCS_BEGIN
-#  endif // CCCS_BEGIN
-#  define CCCS_BEGIN() namespace       com { \
-                         namespace     centreon { \
-                           namespace   connector { \
-                             namespace ssh {
+#ifdef CCCS_BEGIN
+#undef CCCS_BEGIN
+#endif  // CCCS_BEGIN
+#define CCCS_BEGIN()    \
+  namespace com {       \
+  namespace centreon {  \
+  namespace connector { \
+  namespace ssh {
 
-#  ifdef CCCS_END
-#    undef CCCS_END
-#  endif // CCCS_END
-#  define CCCS_END() } } } }
+#ifdef CCCS_END
+#undef CCCS_END
+#endif  // CCCS_END
+#define CCCS_END() \
+  }                \
+  }                \
+  }                \
+  }
 
-#endif // !CCCS_NAMESPACE_HH
+#endif  // !CCCS_NAMESPACE_HH

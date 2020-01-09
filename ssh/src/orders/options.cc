@@ -17,64 +17,63 @@
 */
 
 #ifdef _WIN32
-#  include <windows.h>
+#include <windows.h>
 #else
-#  include <cerrno>
-#  include <cstring>
-#  include <pwd.h>
-#  include <unistd.h>
-#endif // Windows or POSIX.
-#include <cstdlib>
+#include <pwd.h>
+#include <unistd.h>
+#include <cerrno>
+#include <cstring>
+#endif  // Windows or POSIX.
 #include <getopt.h>
+#include <cstdlib>
+#include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
-#include "com/centreon/connector/ssh/orders/options.hh"
 
 using namespace com::centreon::connector::ssh::orders;
 
 static char const* optstr = "1246a:C:E:fhH:i:l:n:o:O:p:qs:S:t:vV";
 static struct option optlong[] = {
-  { "authentication", required_argument, NULL, 'a' },
-  { "command",        required_argument, NULL, 'C' },
-  { "fork",           no_argument,       NULL, 'f' },
-  { "help",           no_argument,       NULL, 'h' },
-  { "hostname",       required_argument, NULL, 'H' },
-  { "identity",       required_argument, NULL, 'i' },
-  { "logname",        required_argument, NULL, 'l' },
-  { "name",           required_argument, NULL, 'n' },
-  { "output",         required_argument, NULL, 'O' },
-  { "port",           required_argument, NULL, 'p' },
-  { "proto1",         no_argument,       NULL, '1' },
-  { "proto2",         no_argument,       NULL, '2' },
-  { "quiet",          no_argument,       NULL, 'q' },
-  { "services",       required_argument, NULL, 's' },
-  { "skip",           optional_argument, NULL, 'S' },
-  { "skip-stderr",    optional_argument, NULL, 'E' },
-  { "skip-stdout",    optional_argument, NULL, 'S' },
-  { "ssh-option",     required_argument, NULL, 'o' },
-  { "timeout",        required_argument, NULL, 't' },
-  { "use-ipv4",       no_argument,       NULL, '4' },
-  { "use-ipv6",       no_argument,       NULL, '6' },
-  { "verbose",        no_argument,       NULL, 'v' },
-  { "version",        no_argument,       NULL, 'V' },
-  { NULL,             no_argument,       NULL, 0   }
-};
+    {"authentication", required_argument, NULL, 'a'},
+    {"command", required_argument, NULL, 'C'},
+    {"fork", no_argument, NULL, 'f'},
+    {"help", no_argument, NULL, 'h'},
+    {"hostname", required_argument, NULL, 'H'},
+    {"identity", required_argument, NULL, 'i'},
+    {"logname", required_argument, NULL, 'l'},
+    {"name", required_argument, NULL, 'n'},
+    {"output", required_argument, NULL, 'O'},
+    {"port", required_argument, NULL, 'p'},
+    {"proto1", no_argument, NULL, '1'},
+    {"proto2", no_argument, NULL, '2'},
+    {"quiet", no_argument, NULL, 'q'},
+    {"services", required_argument, NULL, 's'},
+    {"skip", optional_argument, NULL, 'S'},
+    {"skip-stderr", optional_argument, NULL, 'E'},
+    {"skip-stdout", optional_argument, NULL, 'S'},
+    {"ssh-option", required_argument, NULL, 'o'},
+    {"timeout", required_argument, NULL, 't'},
+    {"use-ipv4", no_argument, NULL, '4'},
+    {"use-ipv6", no_argument, NULL, '6'},
+    {"verbose", no_argument, NULL, 'v'},
+    {"version", no_argument, NULL, 'V'},
+    {NULL, no_argument, NULL, 0}};
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
  */
 options::options(std::string const& cmdline)
-  : _ip_protocol(ip_v4),
-    _port(22),
-    _skip_stderr(-1),
-    _skip_stdout(-1),
-    _timeout(0) {
+    : _ip_protocol(ip_v4),
+      _port(22),
+      _skip_stderr(-1),
+      _skip_stdout(-1),
+      _timeout(0) {
   if (!cmdline.empty())
     parse(cmdline);
 }
@@ -91,9 +90,7 @@ options::options(options const& right) {
 /**
  *  Destructor.
  */
-options::~options() throw () {
-
-}
+options::~options() throw() {}
 
 /**
  *  Assignment operator.
@@ -113,7 +110,7 @@ options& options::operator=(options const& right) {
  *
  *  @return The password.
  */
-std::string const& options::get_authentication() const throw () {
+std::string const& options::get_authentication() const throw() {
   return (_authentication);
 }
 
@@ -122,7 +119,7 @@ std::string const& options::get_authentication() const throw () {
  *
  *  @return The command to execute.
  */
-std::list<std::string> const& options::get_commands() const throw () {
+std::list<std::string> const& options::get_commands() const throw() {
   return (_commands);
 }
 
@@ -131,7 +128,7 @@ std::list<std::string> const& options::get_commands() const throw () {
  *
  *  @return A string.
  */
-std::string const& options::get_host() const throw () {
+std::string const& options::get_host() const throw() {
   return (_host);
 }
 
@@ -140,7 +137,7 @@ std::string const& options::get_host() const throw () {
  *
  *  @return A file path.
  */
-std::string const& options::get_identity_file() const throw () {
+std::string const& options::get_identity_file() const throw() {
   return (_identity_file);
 }
 
@@ -149,7 +146,7 @@ std::string const& options::get_identity_file() const throw () {
  *
  *  @return The version (v4 or v6).
  */
-options::ip_protocol options::get_ip_protocol() const throw () {
+options::ip_protocol options::get_ip_protocol() const throw() {
   return (_ip_protocol);
 }
 
@@ -158,7 +155,7 @@ options::ip_protocol options::get_ip_protocol() const throw () {
  *
  *  @return The port number.
  */
-unsigned short options::get_port() const throw () {
+unsigned short options::get_port() const throw() {
   return (_port);
 }
 
@@ -167,7 +164,7 @@ unsigned short options::get_port() const throw () {
  *
  *  @return The timeout.
  */
-unsigned int options::get_timeout() const throw () {
+unsigned int options::get_timeout() const throw() {
   return (_timeout);
 }
 
@@ -176,7 +173,7 @@ unsigned int options::get_timeout() const throw () {
  *
  *  @return The user name.
  */
-std::string const& options::get_user() const throw () {
+std::string const& options::get_user() const throw() {
   return (_user);
 }
 
@@ -188,28 +185,29 @@ std::string const& options::get_user() const throw () {
 std::string options::help() {
   std::string help;
   help =
-    "  -1, --proto1:         This option is not supported.\n"           \
-    "  -2, --proto2:         Tell ssh to use Protocol 2.\n"             \
-    "  -4, --use-ipv4:       Enable IPv4 connection.\n"                 \
-    "  -6, --use-ipv6:       Enable IPv6 connection.\n"                 \
-    "  -a, --authentication: Authentication password.\n"                \
-    "  -C, --command:        Command to execute on the remote machine.\n" \
-    "  -E, --skip-stderr:    Ignore all or first n lines on STDERR.\n"  \
-    "  -f, --fork:           This option is not supported.\n"           \
-    "  -h, --help:           Not used.\n"                               \
-    "  -H, --hostname:       Host name, IP Address.\n"                  \
-    "  -i, --identity:       Identity of an authorized key.\n"          \
-    "  -l, --logname:        SSH user name on remote host.\n"           \
-    "  -n, --name:           This option is not supported.\n"           \
-    "  -o, --ssh-option:     This option is not supported.\n"           \
-    "  -O, --output:         This option is not supported.\n"           \
-    "  -p, --port:           Port number (default: 22).\n"              \
-    "  -q, --quiet:          Not used.\n"                               \
-    "  -s, --services:       This option is not supported.\n"           \
-    "  -S, --skip-stdout:    Ignore all or first n lines on STDOUT.\n"  \
-    "  -t, --timeout:        Seconds before connection times out (default: 10).\n" \
-    "  -v, --verbose:        Not used.\n"                               \
-    "  -V, --version:        Not used.\n";
+      "  -1, --proto1:         This option is not supported.\n"
+      "  -2, --proto2:         Tell ssh to use Protocol 2.\n"
+      "  -4, --use-ipv4:       Enable IPv4 connection.\n"
+      "  -6, --use-ipv6:       Enable IPv6 connection.\n"
+      "  -a, --authentication: Authentication password.\n"
+      "  -C, --command:        Command to execute on the remote machine.\n"
+      "  -E, --skip-stderr:    Ignore all or first n lines on STDERR.\n"
+      "  -f, --fork:           This option is not supported.\n"
+      "  -h, --help:           Not used.\n"
+      "  -H, --hostname:       Host name, IP Address.\n"
+      "  -i, --identity:       Identity of an authorized key.\n"
+      "  -l, --logname:        SSH user name on remote host.\n"
+      "  -n, --name:           This option is not supported.\n"
+      "  -o, --ssh-option:     This option is not supported.\n"
+      "  -O, --output:         This option is not supported.\n"
+      "  -p, --port:           Port number (default: 22).\n"
+      "  -q, --quiet:          Not used.\n"
+      "  -s, --services:       This option is not supported.\n"
+      "  -S, --skip-stdout:    Ignore all or first n lines on STDOUT.\n"
+      "  -t, --timeout:        Seconds before connection times out (default: "
+      "10).\n"
+      "  -v, --verbose:        Not used.\n"
+      "  -V, --version:        Not used.\n";
   return (help);
 }
 
@@ -223,103 +221,96 @@ void options::parse(std::string const& cmdline) {
   int ac(cmd.get_argc());
   char** av(cmd.get_argv());
 
-  optind = 0; // Reset optind to parse arguments.
-  opterr = 0; // Disable output messages.
+  optind = 0;  // Reset optind to parse arguments.
+  opterr = 0;  // Disable output messages.
 
   char c;
   while ((c = getopt_long(ac, av, optstr, optlong, NULL)) > 0) {
     switch (c) {
-    case 'H': // Set host name or IP address.
-      _host = optarg;
-      break;
+      case 'H':  // Set host name or IP address.
+        _host = optarg;
+        break;
 
-    case 'C': // Set command line to execute.
-      _commands.push_back(optarg);
-      break;
+      case 'C':  // Set command line to execute.
+        _commands.push_back(optarg);
+        break;
 
-    case 'a': // Set user.
-      _authentication = optarg;
-      break;
+      case 'a':  // Set user.
+        _authentication = optarg;
+        break;
 
-    case 'l': // Set logging name.
-      _user = optarg;
-      break;
+      case 'l':  // Set logging name.
+        _user = optarg;
+        break;
 
-    case 'p': // Set port.
-      _port = atoi(optarg);
-      break;
+      case 'p':  // Set port.
+        _port = atoi(optarg);
+        break;
 
-    case '4': // Enable IPv4.
-      _ip_protocol = ip_v4;
-      break;
+      case '4':  // Enable IPv4.
+        _ip_protocol = ip_v4;
+        break;
 
-    case '6': // Enalbe IPv6.
-      _ip_protocol = ip_v6;
-      break;
+      case '6':  // Enalbe IPv6.
+        _ip_protocol = ip_v6;
+        break;
 
-    case '1': // Enable SSH v1.
-      throw (basic_error() << "'" << c
-             << "' option is not supported");
-      break;
+      case '1':  // Enable SSH v1.
+        throw(basic_error() << "'" << c << "' option is not supported");
+        break;
 
-    case '2': // Enable SSH v2.
-      // Enabled by default.
-      break;
+      case '2':  // Enable SSH v2.
+        // Enabled by default.
+        break;
 
-    case 'E': // Skip stderr.
-      _skip_stderr = (optarg ? atoi(optarg) : 0);
-      break;
+      case 'E':  // Skip stderr.
+        _skip_stderr = (optarg ? atoi(optarg) : 0);
+        break;
 
-    case 'f': // Fork ssh.
-      throw (basic_error() << "'" << c
-             << "' option is not supported");
-      break;
+      case 'f':  // Fork ssh.
+        throw(basic_error() << "'" << c << "' option is not supported");
+        break;
 
-    case 'i': // Set Identity file.
-      _identity_file = optarg;
-      break;
+      case 'i':  // Set Identity file.
+        _identity_file = optarg;
+        break;
 
-    case 'n': // Host name for monitoring engine.
-      throw (basic_error() << "'" << c
-             << "' option is not supported");
-      break;
+      case 'n':  // Host name for monitoring engine.
+        throw(basic_error() << "'" << c << "' option is not supported");
+        break;
 
-    case 'o': // Set ssh-option.
-      throw (basic_error() << "'" << c
-             << "' option is not supported");
-      break;
+      case 'o':  // Set ssh-option.
+        throw(basic_error() << "'" << c << "' option is not supported");
+        break;
 
-    case 'O': // Set output file.
-      throw (basic_error() << "'" << c
-             << "' option is not supported");
-      break;
+      case 'O':  // Set output file.
+        throw(basic_error() << "'" << c << "' option is not supported");
+        break;
 
-    case 's': // Services.
-      throw (basic_error() << "'" << c
-             << "' option is not supported");
-      break;
+      case 's':  // Services.
+        throw(basic_error() << "'" << c << "' option is not supported");
+        break;
 
-    case 'S': // Skip stdout.
-      _skip_stdout = (optarg ? atoi(optarg) : 0);
-      break;
+      case 'S':  // Skip stdout.
+        _skip_stdout = (optarg ? atoi(optarg) : 0);
+        break;
 
-    case 't': // Set timeout.
-      _timeout = atoi(optarg);
-      break;
+      case 't':  // Set timeout.
+        _timeout = atoi(optarg);
+        break;
 
-    case 'h': // Help.
-    case 'q': // Quiet.
-    case 'v': // Verbose.
-    case 'V': // Version.
-      // These options are ignored.
-      break;
+      case 'h':  // Help.
+      case 'q':  // Quiet.
+      case 'v':  // Verbose.
+      case 'V':  // Version.
+        // These options are ignored.
+        break;
 
-    case '?': // Missing argument.
-      throw (basic_error() << "option '" << c
-             << "' requires an argument");
+      case '?':  // Missing argument.
+        throw(basic_error() << "option '" << c << "' requires an argument");
 
-    default:  // Unknown argument.
-      throw (basic_error() << "unrecognized option '" << c << "'");
+      default:  // Unknown argument.
+        throw(basic_error() << "unrecognized option '" << c << "'");
     }
   }
   if (_user.empty())
@@ -331,7 +322,7 @@ void options::parse(std::string const& cmdline) {
  *
  *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-int options::skip_stderr() const throw () {
+int options::skip_stderr() const throw() {
   return (_skip_stderr);
 }
 
@@ -340,15 +331,15 @@ int options::skip_stderr() const throw () {
  *
  *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-int options::skip_stdout() const throw () {
+int options::skip_stdout() const throw() {
   return (_skip_stdout);
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Copy internal data members.
@@ -378,8 +369,8 @@ std::string options::_get_user_name() {
   char buffer[32665];
   if (!GetUserName(buffer, sizeof(buffer) - 1)) {
     int errcode(GetLastError());
-    throw (basic_error() << "cannot get current user name (error "
-           << errcode << ")");
+    throw(basic_error() << "cannot get current user name (error " << errcode
+                        << ")");
   }
   return (buffer);
 #else
@@ -387,8 +378,8 @@ std::string options::_get_user_name() {
   passwd* pwd(getpwuid(getuid()));
   if (!pwd || !pwd->pw_name) {
     char const* msg(strerror(errno));
-    throw (basic_error() << "cannot get current user name: " << msg);
+    throw(basic_error() << "cannot get current user name: " << msg);
   }
   return (pwd->pw_name);
-#endif // Windows or POSIX.
+#endif  // Windows or POSIX.
 }

@@ -16,10 +16,10 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/perl/checks/check.hh"
 #include <csignal>
 #include <cstdlib>
 #include <memory>
-#include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/connector/perl/checks/listener.hh"
 #include "com/centreon/connector/perl/checks/result.hh"
 #include "com/centreon/connector/perl/checks/timeout.hh"
@@ -31,28 +31,27 @@ using namespace com::centreon;
 using namespace com::centreon::connector::perl::checks;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
  */
-check::check()
-  : _child((pid_t)-1), _cmd_id(0), _listnr(NULL), _timeout(0) {}
+check::check() : _child((pid_t)-1), _cmd_id(0), _listnr(NULL), _timeout(0) {}
 
 /**
  *  Destructor.
  */
-check::~check() throw () {
+check::~check() throw() {
   try {
     // Send result if we haven't already done so.
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
+  } catch (...) {
   }
-  catch (...) {}
 }
 
 /**
@@ -65,7 +64,6 @@ void check::error(handle& h) {
   result r;
   r.set_command_id(_cmd_id);
   _send_result_and_unregister(r);
-  return ;
 }
 
 /**
@@ -77,10 +75,9 @@ void check::error(handle& h) {
  *
  *  @return Process ID.
  */
-pid_t check::execute(
-               unsigned long long cmd_id,
-               std::string const& cmd,
-               time_t tmt) {
+pid_t check::execute(unsigned long long cmd_id,
+                     std::string const& cmd,
+                     time_t tmt) {
   // Run process.
   int fds[3];
   _child = embedded_perl::instance().run(cmd, fds);
@@ -89,25 +86,17 @@ pid_t check::execute(
   _err.set_fd(fds[2]);
 
   // Store command ID.
-  log_debug(logging::low) << "check " << this
-    << " has ID " << cmd_id;
+  log_debug(logging::low) << "check " << this << " has ID " << cmd_id;
   _cmd_id = cmd_id;
 
   // Register with multiplexer.
-  multiplexer::instance().handle_manager::add(
-    &_err,
-    this);
-  multiplexer::instance().handle_manager::add(
-    &_out,
-    this);
+  multiplexer::instance().handle_manager::add(&_err, this);
+  multiplexer::instance().handle_manager::add(&_out, this);
 
   // Register timeout.
   std::unique_ptr<timeout> t(new timeout(this, false));
   _timeout = multiplexer::instance().com::centreon::task_manager::add(
-    t.get(),
-    tmt - 1,
-    false,
-    true);
+      t.get(), tmt - 1, false, true);
   t.release();
 
   return (_child);
@@ -119,10 +108,9 @@ pid_t check::execute(
  *  @param[in] listnr New listener.
  */
 void check::listen(listener* listnr) {
-  log_debug(logging::medium) << "check " << this
-    << " is listened by " << listnr;
+  log_debug(logging::medium)
+      << "check " << this << " is listened by " << listnr;
   _listnr = listnr;
-  return ;
 }
 
 /**
@@ -132,34 +120,29 @@ void check::listen(listener* listnr) {
  */
 void check::on_timeout(bool final) {
   // Log message.
-  log_error(logging::low) << "check " << _cmd_id
-    << " (pid=" << _child << ") reached timeout";
+  log_error(logging::low) << "check " << _cmd_id << " (pid=" << _child
+                          << ") reached timeout";
 
   // Reset timeout task ID.
   _timeout = 0;
 
   if (_child <= 0)
-    return ;
+    return;
 
   if (final) {
     // Send SIGKILL (not catchable, not ignorable).
     kill(_child, SIGKILL);
     _child = (pid_t)-1;
-  }
-  else {
+  } else {
     // Try graceful shutdown.
     kill(_child, SIGTERM);
 
     // Schedule a final timeout.
     std::unique_ptr<timeout> t(new timeout(this, true));
     _timeout = multiplexer::instance().com::centreon::task_manager::add(
-      t.get(),
-      time(NULL) + 1,
-      false,
-      true);
+        t.get(), time(NULL) + 1, false, true);
     t.release();
   }
-  return ;
 }
 
 /**
@@ -171,16 +154,13 @@ void check::read(handle& h) {
   char buffer[1024];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
   if (&h == &_err) {
-    log_debug(logging::high) << "reading from process "
-      << _child << "'s stdout";
+    log_debug(logging::high)
+        << "reading from process " << _child << "'s stdout";
     _stderr.append(buffer, rb);
-  }
-  else {
-    log_debug(logging::high) << "reading from process "
-      << _child << "' stderr";
+  } else {
+    log_debug(logging::high) << "reading from process " << _child << "' stderr";
     _stdout.append(buffer, rb);
   }
-  return ;
 }
 
 /**
@@ -191,7 +171,7 @@ void check::read(handle& h) {
 void check::terminated(int exit_code) {
   // Read possibly remaining data.
   log_debug(logging::medium)
-    << "reading remaining data from process " << _child;
+      << "reading remaining data from process " << _child;
   try {
     char buffer[1024];
     unsigned long rb(_out.read(buffer, sizeof(buffer)));
@@ -199,8 +179,8 @@ void check::terminated(int exit_code) {
       _stdout.append(buffer, rb);
       rb = _out.read(buffer, rb);
     }
+  } catch (...) {
   }
-  catch (...) {}
   try {
     char buffer[1024];
     unsigned long rb(_err.read(buffer, sizeof(buffer)));
@@ -208,8 +188,8 @@ void check::terminated(int exit_code) {
       _stderr.append(buffer, rb);
       rb = _err.read(buffer, sizeof(buffer));
     }
+  } catch (...) {
   }
-  catch (...) {}
 
   // Reset PID.
   _child = (pid_t)-1;
@@ -222,8 +202,6 @@ void check::terminated(int exit_code) {
   r.set_error(_stderr);
   r.set_output(_stdout);
   _send_result_and_unregister(r);
-
-  return ;
 }
 
 /**
@@ -232,10 +210,9 @@ void check::terminated(int exit_code) {
  *  @param[in] listnr Old listener.
  */
 void check::unlisten(listener* listnr) {
-  log_debug(logging::medium) << "listener " << listnr
-    << " stops listening check " << this;
+  log_debug(logging::medium)
+      << "listener " << listnr << " stops listening check " << this;
   _listnr = NULL;
-  return ;
 }
 
 /**
@@ -259,14 +236,13 @@ void check::write(handle& h) {
   result r;
   r.set_command_id(_cmd_id);
   _send_result_and_unregister(r);
-  return ;
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Send check result and unregister.
@@ -283,10 +259,9 @@ void check::_send_result_and_unregister(result const& r) {
   // Remove timeout task.
   if (_timeout) {
     try {
-      multiplexer::instance().com::centreon::task_manager::remove(
-        _timeout);
+      multiplexer::instance().com::centreon::task_manager::remove(_timeout);
+    } catch (...) {
     }
-    catch (...) {}
     _timeout = 0;
   }
 
@@ -302,6 +277,4 @@ void check::_send_result_and_unregister(result const& r) {
     if (_listnr)
       _listnr->on_result(r);
   }
-
-  return ;
 }

@@ -17,30 +17,30 @@
 */
 
 #ifndef CCCP_CHECKS_LISTENER_HH
-#  define CCCP_CHECKS_LISTENER_HH
+#define CCCP_CHECKS_LISTENER_HH
 
-#  include "com/centreon/connector/perl/checks/result.hh"
-#  include "com/centreon/connector/perl/namespace.hh"
+#include "com/centreon/connector/perl/checks/result.hh"
+#include "com/centreon/connector/perl/namespace.hh"
 
 CCCP_BEGIN()
 
-namespace        checks {
-  /**
-   *  @class listener listener.hh "com/centreon/connector/perl/checks/listener.hh"
-   *  @brief Check listener.
-   *
-   *  Listen check events.
-   */
-  class          listener {
-  public:
-                 listener();
-                 listener(listener const& l);
-    virtual      ~listener();
-    listener&    operator=(listener const& l);
-    virtual void on_result(result const& result) = 0;
-  };
-}
+namespace checks {
+/**
+ *  @class listener listener.hh "com/centreon/connector/perl/checks/listener.hh"
+ *  @brief Check listener.
+ *
+ *  Listen check events.
+ */
+class listener {
+ public:
+  listener() = default;
+  listener(listener const& l) = delete;
+  virtual ~listener() = default;
+  listener& operator=(listener const& l) = delete;
+  virtual void on_result(result const& result) = 0;
+};
+}  // namespace checks
 
 CCCP_END()
 
-#endif // !CCCP_CHECKS_LISTENER_HH
+#endif  // !CCCP_CHECKS_LISTENER_HH

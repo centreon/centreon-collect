@@ -16,11 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
+#include "test/connector/misc.hh"
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include "com/centreon/exceptions/basic.hh"
-#include "test/connector/misc.hh"
 
 using namespace com::centreon;
 
@@ -45,10 +45,7 @@ std::string& replace_null(std::string& str) {
  *  @param[in] content  File content
  *  @param[in] size     Content size.
  */
-void write_file(
-       char const* filename,
-       char const* content,
-       unsigned int size) {
+void write_file(char const* filename, char const* content, unsigned int size) {
   // Check size.
   if (!size)
     size = strlen(content);
@@ -56,14 +53,14 @@ void write_file(
   // Open file.
   FILE* f(fopen(filename, "w"));
   if (!f)
-    throw (basic_error() << "could not open file " << filename);
+    throw(basic_error() << "could not open file " << filename);
 
   // Write content.
   while (size > 0) {
     size_t wb(fwrite(content, sizeof(*content), size, f));
     if (ferror(f)) {
       fclose(f);
-      throw (basic_error() << "error while writing file " << filename);
+      throw(basic_error() << "error while writing file " << filename);
     }
     size -= wb;
   }
@@ -71,5 +68,5 @@ void write_file(
   // Close handle.
   fclose(f);
 
-  return ;
+  return;
 }

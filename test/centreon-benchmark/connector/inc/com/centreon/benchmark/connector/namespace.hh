@@ -17,17 +17,22 @@
 */
 
 #ifndef CCB_CONNECTOR_NAMESPACE_HH
-#  define CCB_CONNECTOR_NAMESPACE_HH
+#define CCB_CONNECTOR_NAMESPACE_HH
 
-#  ifndef CCB_CONNECTOR_BEGIN
-#    define CCB_CONNECTOR_BEGIN() namespace       com {        \
-                                    namespace     centreon {   \
-                                      namespace   benchmark {  \
-                                        namespace connector {
-#  endif // !CCB_CONNECTOR_BEGIN
+#ifndef CCB_CONNECTOR_BEGIN
+#define CCB_CONNECTOR_BEGIN() \
+  namespace com {             \
+  namespace centreon {        \
+  namespace benchmark {       \
+  namespace connector {
+#endif  // !CCB_CONNECTOR_BEGIN
 
-#  ifndef CCB_CONNECTOR_END
-#    define CCB_CONNECTOR_END() } } } }
-#  endif // !CCB_CONNECTOR_END
+#ifndef CCB_CONNECTOR_END
+#define CCB_CONNECTOR_END() \
+  }                         \
+  }                         \
+  }                         \
+  }
+#endif  // !CCB_CONNECTOR_END
 
-#endif // !CCB_CONNECTOR_NAMESPACE_HH
+#endif  // !CCB_CONNECTOR_NAMESPACE_HH

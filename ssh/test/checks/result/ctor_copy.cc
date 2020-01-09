@@ -45,15 +45,12 @@ int main() {
   r1.set_output("baz qux");
 
   // Check content.
-  return ((r1.get_command_id() != 42)
-          || (r1.get_error() != "foo bar")
-          || r1.get_executed()
-          || (r1.get_exit_code() != 7536)
-          || (r1.get_output() != "baz qux")
-          || (r2.get_command_id() != 14598753ull)
-          || (r2.get_error() != "a random error string")
-          || !r2.get_executed()
-          || (r2.get_exit_code() != -46582)
-          || (r2.get_output()
-              != "another random string, but for the output property"));
+  return ((r1.get_command_id() != 42) || (r1.get_error() != "foo bar") ||
+          r1.get_executed() || (r1.get_exit_code() != 7536) ||
+          (r1.get_output() != "baz qux") ||
+          (r2.get_command_id() != 14598753ull) ||
+          (r2.get_error() != "a random error string") || !r2.get_executed() ||
+          (r2.get_exit_code() != -46582) ||
+          (r2.get_output() !=
+           "another random string, but for the output property"));
 }

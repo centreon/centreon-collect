@@ -28,17 +28,18 @@
 
 using namespace com::centreon;
 
-#define CMD "2\0" \
-            "4242\0" \
-            "3\0" \
-            "123456789\0" \
-            CONNECTOR_TEST_DIR "/timeout_term.pl\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "1\0" \
-               "-1\0" \
-               " \0" \
-               " \0\0\0\0"
+#define CMD \
+  "2\0"     \
+  "4242\0"  \
+  "3\0"     \
+  "123456789\0" CONNECTOR_TEST_DIR "/timeout_term.pl\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "1\0"        \
+  "-1\0"       \
+  " \0"        \
+  " \0\0\0\0"
 
 /**
  *  Check that connector properly kills timeouting processes.
@@ -46,9 +47,6 @@ using namespace com::centreon;
  *  @return 0 on success.
  */
 int main() {
-  // Initialization.
-  clib::load();
-
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -75,7 +73,7 @@ int main() {
     std::string buffer;
     p.read(buffer);
     if (buffer.empty())
-      break ;
+      break;
     output.append(buffer);
   }
 
@@ -84,26 +82,20 @@ int main() {
   if (!p.wait(1000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
-
-  // Cleanup.
-  clib::unload();
 
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1)
-        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
-  }
-  catch (std::exception const& e) {
+      throw(basic_error() << "invalid return code: " << retval);
+    if (output.size() != (sizeof(RESULT) - 1) ||
+        memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw(basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output));
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
 
-  return (retval);
+  return retval;
 }

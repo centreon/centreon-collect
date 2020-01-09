@@ -30,11 +30,16 @@ using namespace com::centreon::connector::ssh::orders;
 #define DATA05 "2\00042\00010\0000\0check_by_ssh\0\0\0\0"
 #define DATA06 "2\00042\00010\0000\0check_by_ssh -C 'true'\0\0\0\0"
 #define DATA07 "2\00042\00010\0000\0check_by_ssh -C 'true' -H\0\0\0\0"
-#define DATA08 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -i\0\0\0\0"
-#define DATA09 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -l\0\0\0\0"
-#define DATA10 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -p\0\0\0\0"
-#define DATA11 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -a\0\0\0\0"
-#define DATA12 "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -t\0\0\0\0"
+#define DATA08 \
+  "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -i\0\0\0\0"
+#define DATA09 \
+  "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -l\0\0\0\0"
+#define DATA10 \
+  "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -p\0\0\0\0"
+#define DATA11 \
+  "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -a\0\0\0\0"
+#define DATA12 \
+  "2\00042\00010\0000\0check_by_ssh -C 'true' -H localhost -t\0\0\0\0"
 #define DATA13 "2\00042\00010\0000\0check_by_ssh -C '' -H localhost\0\0\0\0"
 
 /**
@@ -44,9 +49,6 @@ using namespace com::centreon::connector::ssh::orders;
  */
 #include <iostream>
 int main() {
-  // Initialization.
-  com::centreon::logging::engine::load();
-
   // Create invalid execute order packet.
   buffer_handle bh;
   bh.write(DATA01, sizeof(DATA01) - 1);
@@ -85,16 +87,14 @@ int main() {
     for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i)
       info[i] = *(it++);
     for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i) {
-      std::cout << fake_listener::cb_error << ": " << info[i].callback << std::endl;
+      std::cout << fake_listener::cb_error << ": " << info[i].callback
+                << std::endl;
       retval |= (info[i].callback != fake_listener::cb_error);
     }
   }
 
   // Parser must be empty.
   retval |= !p.get_buffer().empty();
-
-  // Unload.
-  com::centreon::logging::engine::unload();
 
   return (retval);
 }

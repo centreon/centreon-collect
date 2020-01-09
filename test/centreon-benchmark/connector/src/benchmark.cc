@@ -26,29 +26,22 @@ using namespace com::centreon::benchmark::connector;
  *  Default constructor.
  */
 benchmark::benchmark()
-  : _limit_running(1),
-    _total_request(1024),
-    _buffer(NULL),
-    _memory_usage(0) {
-
-
-}
+    : _limit_running(1),
+      _total_request(1024),
+      _buffer(NULL),
+      _memory_usage(0) {}
 
 /**
  *  Default copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
-benchmark::benchmark(benchmark const& right) {
-  _internal_copy(right);
-}
+benchmark::benchmark(benchmark const& right) { _internal_copy(right); }
 
 /**
  *  Default destructor.
  */
-benchmark::~benchmark() throw () {
-
-}
+benchmark::~benchmark() throw() {}
 
 /**
  *  Default copy operator.
@@ -75,7 +68,7 @@ unsigned int benchmark::get_limit_running() const throw() {
  *
  *  @return Size of memory usage.
  */
-unsigned int benchmark::get_memory_usage() const throw () {
+unsigned int benchmark::get_memory_usage() const throw() {
   return (_memory_usage / 1024 / 1024);
 }
 
@@ -102,7 +95,7 @@ unsigned int benchmark::get_total_request() const throw() {
  *
  *  @param[in] limit  The limit of simultaneous request.
  */
-void benchmark::set_limit_running(unsigned int limit) throw () {
+void benchmark::set_limit_running(unsigned int limit) throw() {
   _limit_running = limit;
 }
 
@@ -111,14 +104,13 @@ void benchmark::set_limit_running(unsigned int limit) throw () {
  *
  *  @param[in] size  The memory size.
  */
-void benchmark::set_memory_usage(unsigned int size) throw () {
+void benchmark::set_memory_usage(unsigned int size) throw() {
   _memory_usage = size * 1024 * 1024;
   delete[] _buffer;
   if (_memory_usage) {
     _buffer = new char[_memory_usage];
     memset(_buffer, 0, _memory_usage);
-  }
-  else
+  } else
     _buffer = NULL;
 }
 
@@ -129,11 +121,10 @@ void benchmark::set_memory_usage(unsigned int size) throw () {
  */
 void benchmark::set_output_file(std::string const& file) {
   _output_file = file;
-  _output.open(
-            _output_file.c_str(),
-            std::ofstream::binary | std::ofstream::trunc);
+  _output.open(_output_file.c_str(),
+               std::ofstream::binary | std::ofstream::trunc);
   if (!_output.is_open())
-    throw (basic_exception("failed to open output file"));
+    throw(basic_exception("failed to open output file"));
 }
 
 /**
@@ -141,7 +132,7 @@ void benchmark::set_output_file(std::string const& file) {
  *
  *  @param[in] total  The total request.
  */
-void benchmark::set_total_request(unsigned int total) throw () {
+void benchmark::set_total_request(unsigned int total) throw() {
   _total_request = total;
 }
 

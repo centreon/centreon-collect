@@ -20,26 +20,27 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "com/centreon/clib.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
 using namespace com::centreon;
 
-#define CMD1 "2\0" \
-             "4242\0" \
-             "5\0" \
-             "123456789\0" \
-             "check_by_ssh " \
-             "-H localhost " \
-             " -C 'echo Centreon is wonderful'\0\0\0\0"
-#define RESULT "3\0" \
-               "4242\0" \
-               "1\0" \
-               "0\0" \
-               " \0" \
-               "Centreon is wonderful\n\0\0\0\0"
+#define CMD1      \
+  "2\0"           \
+  "4242\0"        \
+  "5\0"           \
+  "123456789\0"   \
+  "check_by_ssh " \
+  "-H localhost " \
+  " -C 'echo Centreon is wonderful'\0\0\0\0"
+#define RESULT \
+  "3\0"        \
+  "4242\0"     \
+  "1\0"        \
+  "0\0"        \
+  " \0"        \
+  "Centreon is wonderful\n\0\0\0\0"
 
 /**
  *  Replace null char by string "\0".
@@ -61,7 +62,6 @@ std::string& replace_null(std::string& str) {
  *  @return 0 on success.
  */
 int main() {
-  clib::load();
   // Process.
   process p;
   p.enable_stream(process::in, true);
@@ -69,11 +69,8 @@ int main() {
   p.exec(CONNECTOR_SSH_BINARY);
 
   // Write command.
-  std::ostringstream oss;
-  oss.write(CMD1, sizeof(CMD1) - 1);
-  std::string cmd(oss.str());
-  char const* ptr(cmd.c_str());
-  unsigned int size(cmd.size());
+  const char* ptr(CMD1);
+  size_t size(sizeof(CMD1) - 1);
   while (size > 0) {
     unsigned int rb(p.write(ptr, size));
     size -= rb;
@@ -83,7 +80,7 @@ int main() {
 
   // Read reply.
   std::string output;
-  while (true) {
+  for (;;) {
     std::string buffer;
     p.read(buffer);
     if (buffer.empty())
@@ -96,22 +93,17 @@ int main() {
   if (!p.wait(5000)) {
     p.terminate();
     p.wait();
-  }
-  else
+  } else
     retval = (p.exit_code() != 0);
-
-  clib::unload();
 
   try {
     if (retval)
-      throw (basic_error() << "invalid return code: " << retval);
-    if (output.size() != (sizeof(RESULT) - 1)
-        || memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw (basic_error()
-             << "invalid output: size=" << output.size()
-             << ", output=" << replace_null(output));
-  }
-  catch (std::exception const& e) {
+      throw basic_error() << "invalid return code: " << retval;
+    if (output.size() != sizeof(RESULT) - 1 ||
+        memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
+      throw basic_error() << "invalid output: size=" << output.size()
+                          << ", output=" << replace_null(output);
+  } catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
