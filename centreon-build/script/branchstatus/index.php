@@ -225,7 +225,7 @@ foreach ($projects as $project => $branches) {
       // Print project/version cell.
       if (empty($job['result'])) {
         $cellStyle = 'alert-warning';
-        $jobResult = 'UNKNOWN';
+        $jobResult = 'RUNNING';
       } else if ($job['result'] === 'SUCCESS') {
         $cellStyle = 'alert-success';
         $jobResult = 'SUCCESS';
