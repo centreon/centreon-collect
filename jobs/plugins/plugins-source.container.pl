@@ -51,6 +51,7 @@ foreach $plugin (@plugins) {
         my @common_files = (
             'centreon/plugins/misc.pm',
             'centreon/plugins/mode.pm',
+            'centreon/plugins/multi.pm',
             'centreon/plugins/options.pm',
             'centreon/plugins/output.pm',
             'centreon/plugins/perfdata.pm',

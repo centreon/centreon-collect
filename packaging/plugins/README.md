@@ -121,6 +121,7 @@ The following files are included by default:
 * centreon/plugins/alternative/FatPackerOptions.pm,
 * centreon/plugins/misc.pm,
 * centreon/plugins/mode.pm,
+* centreon/plugins/multi.pm,
 * centreon/plugins/options.pm,
 * centreon/plugins/output.pm,
 * centreon/plugins/perfdata.pm,
