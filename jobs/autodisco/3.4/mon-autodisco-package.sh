@@ -48,4 +48,4 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "3.4" "$DISTRIB" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+put_internal_rpms "3.4" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
