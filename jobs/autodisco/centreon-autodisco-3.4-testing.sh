@@ -41,5 +41,5 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-3.4:centos7 input output-centos7
 
 # Copy files to server.
-put_testing_rpms "plugin-packs" "3.4" "el6" "noarch" "$PROJECT-$VERSION-$RELEASE" output-centos6/noarch/*.rpm
-put_testing_rpms "plugin-packs" "3.4" "el7" "noarch" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+put_testing_rpms "plugin-packs" "3.4" "el6" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" output-centos6/noarch/*.rpm
+put_testing_rpms "plugin-packs" "3.4" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
