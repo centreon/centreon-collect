@@ -6,6 +6,8 @@ set -x
 # Base yum configuration.
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
+dnf install dnf-plugins-core
+dnf config-manager --set-enabled 'PowerTools'
 
 # Install base tools.
 yum install curl nc
