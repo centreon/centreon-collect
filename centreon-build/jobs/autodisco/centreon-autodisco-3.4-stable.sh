@@ -15,5 +15,5 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "plugin-packs" "3.4" "el6" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "plugin-packs" "3.4" "el7" "x86_64" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "plugin-packs" "3.4" "el6" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "plugin-packs" "3.4" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
