@@ -3,9 +3,8 @@ httpd
 libgcrypt
 libssh2
 lua
-MariaDB-client
-MariaDB-server
-MariaDB-shared
+mariadb
+mariadb-server
 php
 php-cli
 php-curl
