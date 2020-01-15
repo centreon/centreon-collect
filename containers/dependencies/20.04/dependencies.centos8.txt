@@ -1,3 +1,5 @@
+centreon-clib
+centreon-clib-devel
 gnutls
 httpd
 libgcrypt
