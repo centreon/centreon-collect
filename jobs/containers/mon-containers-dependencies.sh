@@ -14,6 +14,9 @@ case "$2" in
   centos7)
     BASE_IMAGE="centos:7"
     ;;
+  centos8)
+    BASE_IMAGE="registry.centreon.com/centos:8"
+    ;;
   debian10)
     BASE_IMAGE="debian:buster"
     ;;
