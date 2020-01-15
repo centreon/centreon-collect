@@ -1,7 +1,6 @@
 gnutls
 httpd
 libgcrypt
-libssh2
 lua
 mariadb
 mariadb-server
