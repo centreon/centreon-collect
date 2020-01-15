@@ -6,11 +6,11 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Generate .repo and .spec.
-rm -rf el7
+rm -rf el7 el8
 php `dirname $0`/../../../packaging/repo/20.04/genrepo.php
 
 # Build all release RPMs.
-for distrib in el7 ; do
+for distrib in el7 el8 ; do
   for project in centreon centreon-bam centreon-map centreon-mbi centreon-plugin-packs ; do
     # Create temporary directories.
     rm -rf input output
@@ -25,6 +25,8 @@ for distrib in el7 ; do
     # Build RPM.
     if [ "$distrib" = 'el7' ] ; then
       tag='centos7';
+    elif [ "$distrib" = 'el8' ] ; then
+      tag='centos8'
     else
       echo "Unsupported distribution $distrib"
       exit 1
