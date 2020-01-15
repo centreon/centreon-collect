@@ -24,6 +24,7 @@ promote_unstable_rpms_to_testing "standard" "3.4" "el7" "noarch" "plugins" "$PRO
 promote_unstable_rpms_to_testing "standard" "18.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
+promote_unstable_rpms_to_testing "standard" "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 
 # Move cache files to the testing directory.
 ssh "$REPO_CREDS" mv "/srv/cache/plugins/unstable/cache-$VERSION-$RELEASE" "/srv/cache/plugins/testing/"
