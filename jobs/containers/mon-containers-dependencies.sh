@@ -35,7 +35,7 @@ cp dependencies/Dockerfile.in dependencies/Dockerfile
 if [ -e "dependencies/$VERSION/Dockerfile.post.$DISTRIB.in" ] ; then
   cat "dependencies/$VERSION/Dockerfile.post.$DISTRIB.in" >> dependencies/Dockerfile
 fi
-sed -i -e "s/@VERSION@/$VERSION/g" -e "s/@DISTRIB@/$DISTRIB/g" -e "s/@BASE_IMAGE@/$BASE_IMAGE/g" dependencies/Dockerfile
+sed -i -e "s#@VERSION@#$VERSION#g" -e "s#@DISTRIB@#$DISTRIB#g" -e "s#@BASE_IMAGE@#$BASE_IMAGE#g" dependencies/Dockerfile
 
 # Build image.
 DEP_IMG="registry.centreon.com/mon-dependencies-$VERSION:$DISTRIB"
