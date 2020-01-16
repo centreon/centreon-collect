@@ -12,7 +12,7 @@ chmod +x /usr/local/bin/phpunit
 
 # Install Xdebug PHP extension (for PHPUnit code coverage).
 dnf install make php-devel
-pecl install debug
+pecl install xdebug
 echo 'zend_extension=/usr/lib64/php/modules/xdebug.so' >> /etc/php.d/10-xdebug.ini
 
 # Install Composer.
