@@ -6,6 +6,7 @@ set -x
 # Base dnf configuration.
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
+sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 dnf install dnf-plugins-core
 dnf config-manager --set-enabled 'PowerTools'
 
