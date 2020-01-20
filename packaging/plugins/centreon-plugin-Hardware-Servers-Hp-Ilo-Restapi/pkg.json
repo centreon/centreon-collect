@@ -1,7 +1,7 @@
 {
     "pkg_name": "centreon-plugin-Hardware-Servers-Hp-Ilo-Restapi",
     "pkg_summary": "Centreon Plugin",
-    "plugin_name": "centreon_hp_ilo_xmlapi.pl",
+    "plugin_name": "centreon_hp_ilo_restapi.pl",
     "files": [
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
