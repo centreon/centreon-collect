@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../common.sh
 
 # Project.
-PROJECT=centreon-react-components
+PROJECT=centreon-ui
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -16,7 +16,7 @@ fi
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-get_internal_source "react-components/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+get_internal_source "ui/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 cd "$PROJECT-$VERSION"
@@ -33,15 +33,15 @@ if [ "$BRANCH_NAME" == "19.04.x" -o "$BRANCH_NAME" == "master" ] ; then
 
   # push stable docker container
   REGISTRY='registry.centreon.com'
-  docker pull "$REGISTRY/react-components-$VERSION-$RELEASE:latest"
-  docker tag "$REGISTRY/react-components-$VERSION-$RELEASE:latest" "$REGISTRY/react-components:latest"
-  docker push "$REGISTRY/react-components:latest"
+  docker pull "$REGISTRY/ui-$VERSION-$RELEASE:latest"
+  docker tag "$REGISTRY/ui-$VERSION-$RELEASE:latest" "$REGISTRY/ui:latest"
+  docker push "$REGISTRY/ui:latest"
 else
   # if job is run from another branch, publish the branch as version 0.0.0 and with tag unstable
   BRANCH_NAME=`echo "$BRANCH_NAME" | sed 's/\./-/g'`
   npm version 0.0.0-$BRANCH_NAME.$BUILD_NUMBER
   if [ "$BUILD_NUMBER" -gt "1" ] ; then
-    npm deprecate @centreon/react-components@"0.0.0-$BRANCH_NAME.0 - 0.0.0-$BRANCH_NAME.$(($BUILD_NUMBER-1))" "deprecate previous versions of branch $BRANCH_NAME"
+    npm deprecate @centreon/ui@"0.0.0-$BRANCH_NAME.0 - 0.0.0-$BRANCH_NAME.$(($BUILD_NUMBER-1))" "deprecate previous versions of branch $BRANCH_NAME"
   fi
   npm publish --access=public --tag=unstable ./
 fi

@@ -1,0 +1,11 @@
+# Base information.
+FROM @BASE_IMAGE@
+LABEL maintainer="Kevin Duret <kduret@centreon.com>"
+
+# Install repository.
+COPY centreon-ui /tmp/centreon-ui
+WORKDIR /tmp/centreon-ui
+
+# Run storybook.
+RUN npm ci
+ENTRYPOINT ["npm", "run", "storybook"]
