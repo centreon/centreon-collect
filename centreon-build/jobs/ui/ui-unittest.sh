@@ -13,11 +13,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
-  exit 1
-fi
-DISTRIB="$1"
+DISTRIB=centos7
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
