@@ -17,7 +17,7 @@ npm ci
 
 # Run frontend unit tests and code style.
 npm t -- --reporters=jest-junit
-npm run tslint -- -o checkstyle-fe.xml -t checkstyle
+npm run eslint -- -o checkstyle-fe.xml -t checkstyle
 
 # Move reports to expected places.
 mv junit.xml /tmp/ut.xml
