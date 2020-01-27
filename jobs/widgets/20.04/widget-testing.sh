@@ -13,12 +13,15 @@ fi
 
 # Pull mon-build-dependencies containers.
 docker pull registry.centreon.com/mon-build-dependencies-20.04:centos7
+docker pull registry.centreon.com/mon-build-dependencies-20.04:centos8
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
 rm -rf output-centos7
 mkdir output-centos7
+rm -rf output-centos8
+mkdir output-centos8
 
 # Create source tarballs.
 export PROJECT="centreon-widget-$WIDGET"
@@ -49,9 +52,11 @@ cp `dirname $0`/../../../packaging/widget/20.04/centreon-widget.spectemplate inp
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-20.04:centos7 input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-20.04:centos8 input output-centos8
 export VERSION="$OLDVERSION"
 export RELEASE="$OLDRELEASE"
 
 # Copy files to server.
 put_testing_source "standard" "widget" "$PROJECT-$VERSION-$RELEASE" "input/$PROJECT-$VERSION.tar.gz"
 put_testing_rpms "standard" "20.04" "el7" "noarch" "widget" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+put_testing_rpms "standard" "20.04" "el8" "noarch" "widget" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
