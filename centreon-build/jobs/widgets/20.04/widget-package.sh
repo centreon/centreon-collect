@@ -16,6 +16,17 @@ if [ "$#" -lt 2 ] ; then
 fi
 WIDGET="$1"
 DISTRIB="$2"
+case "$DISTRIB" in
+  centos7)
+    DISTRIBCODENAME=el7
+    ;;
+  centos8)
+    DISTRIBCODENAME=el8
+    ;;
+  *)
+    echo "Unsupported distribution $DISTRIB"
+    exit 1
+esac
 
 # Project.
 PROJECT=centreon-widget-$WIDGET
@@ -41,7 +52,7 @@ docker pull registry.centreon.com/mon-build-dependencies-20.04:$DISTRIB
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-20.04:$DISTRIB input output
 
 # Publish RPMs.
-put_internal_rpms "20.04" "el7" "noarch" "widgets" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "20.04" "$DISTRIBCODENAME" "noarch" "widgets" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "20.04" "el7" "noarch" "widgets" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "standard" "20.04" "$DISTRIBCODENAME" "noarch" "widgets" "$PROJECT-$VERSION-$RELEASE"
 fi
