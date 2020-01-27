@@ -43,7 +43,9 @@ mysql -e "INSERT INTO cfg_centreonbroker_info (config_id, config_key, config_val
 centreon -d -u admin -p centreon -a POLLERGENERATE -v 1
 centreon -d -u admin -p centreon -a CFGMOVE -v 1
 
-# Install Centreon Map web client.
+# Install Centreon modules.
+/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-license-manager
+/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-bam-server
 /tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-map4-web-client
 mysql -e "UPDATE options SET value='http://map:8080' WHERE \`key\`='map_light_server_address'" centreon
 
