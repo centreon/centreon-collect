@@ -19,7 +19,7 @@ curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/ce
 
 # Get version.
 cd "$PROJECT/server"
-VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
+VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
 export VERSIONSERVER="$VERSIONSERVER"
 cd ../web
 VERSIONWEB=`echo 'echo $module_conf["centreon-map4-web-client"]["mod_release"];' | cat app/module/conf.php - | php`
@@ -76,7 +76,7 @@ tar czf "$PROJECT-desktop-$VERSION.tar.gz" "$PROJECT-desktop-$VERSION"
 # Generate Centreon Map server source tarball.
 rm -rf "$PROJECT-server-$VERSIONSERVER" "$PROJECT-server-$VERSIONSERVER.tar.gz"
 cp -r "$PROJECT/server" "$PROJECT-server-$VERSIONSERVER"
-sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/pom.xml"
+sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/pom.xml"
 tar czf "$PROJECT-server-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
 
 # Send it to srvi-repo.
