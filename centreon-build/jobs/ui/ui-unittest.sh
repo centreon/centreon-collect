@@ -13,7 +13,6 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-DISTRIB=centos7
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
@@ -21,7 +20,7 @@ get_internal_source "ui/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Launch mon-unittest container.
-UT_IMAGE=registry.centreon.com/mon-unittest-20.04:$DISTRIB
+UT_IMAGE=registry.centreon.com/puppeteer:latest
 docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh $PROJECT`
 
