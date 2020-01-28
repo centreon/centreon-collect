@@ -182,7 +182,7 @@ $projects = array(
     '18.10.x' => '18.10.x',
     '3.4.x' => '2.4.x'
   ),
-  'centreon-react-components' => array(
+  'centreon-ui' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x'
