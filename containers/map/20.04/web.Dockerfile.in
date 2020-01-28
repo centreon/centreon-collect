@@ -18,6 +18,7 @@ RUN chmod +x /tmp/install-centreon-module.php
 
 # Install license file.
 COPY bam/bam.license /etc/centreon/license.d/bam.license
+COPY map/licence.json.asc /etc/centreon/license.d/map.license
 
 # Install script.
 COPY map/20.04/install-web.sh /tmp/install.sh
