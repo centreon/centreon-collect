@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration>
+
+<configuration scan="true">
+    <property name="LOG_FILE" value="/var/log/centreon-studio/centreon-studio.log"/>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+   
+   	<!-- Use "FILE" for logging to file, while "CONSOLE" for logging to console -->
+    <root level="ERROR">
+    	<appender-ref ref="FILE"/>
+    </root>
+
+    <logger name="org.springframework" level="ERROR"/>
+    <logger name="org.springframework.web" level="ERROR"/>
+    <logger name="org.apache" level="ERROR"/>
+    <logger name="org.hibernate" level="ERROR"/>
+    <logger name="com.zaxxer" level="ERROR"/>
+    <logger name="liquibase" level="ERROR"/>
+    <logger name="LiquibaseSchemaResolver" level="ERROR"/>
+    <logger name="springfox" level="ERROR"/>
+    <logger name="springfox.documentation" level="ERROR"/>
+
+</configuration>
+
