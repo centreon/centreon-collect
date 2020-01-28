@@ -19,10 +19,10 @@ RUN /tmp/install.sh
 COPY map/centreon-database.properties /etc/centreon-studio/centreon-database.properties
 COPY map/studio-config.properties /etc/centreon-studio/studio-config.properties
 COPY map/studio-database.properties /etc/centreon-studio/studio-database.properties
-COPY map/studio-log4j.xml /etc/centreon-studio/studio-log4j.xml
-RUN mkdir /var/log/centreon-studio && chown tomcat:tomcat /var/log/centreon-studio
+COPY map/20.04/studio-log.xml /etc/centreon-studio/studio-log.xml
+RUN mkdir /var/log/centreon-studio && chown centreon-studio:centreon-studio /var/log/centreon-studio
 
 # Main script.
-COPY map/run.sh /usr/local/bin/container.sh
+COPY map/20.04/run.sh /usr/local/bin/container.sh
 RUN chmod +x /usr/local/bin/container.sh
 ENTRYPOINT ["/usr/local/bin/container.sh"]
