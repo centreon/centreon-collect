@@ -19,7 +19,7 @@ curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/ce
 
 # Get version.
 cd "$PROJECT/server"
-VERSIONSERVER=`grep '<version>' map-server-parent/map-server-packaging/pom.xml | cut -d '>' -f 2 | cut -d - -f 1`
+VERSIONSERVER=`grep -A 3 -E '<groupId>com.centreon.map</groupId>' map-server-parent/map-server-packaging/pom.xml | grep -Po '<version>.*</version>' | cut -d '>' -f 2 | cut -d - -f 1`
 export VERSIONSERVER="$VERSIONSERVER"
 cd ../web
 VERSIONWEB=`echo 'echo $module_conf["centreon-map4-web-client"]["mod_release"];' | cat app/module/conf.php - | php`
