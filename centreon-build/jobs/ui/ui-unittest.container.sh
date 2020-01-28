@@ -19,7 +19,7 @@ npm ci
 npm run bundle
 npm run build:storybook
 npm t -- --reporters=jest-junit
-npm run eslint -- -o checkstyle-fe.xml -t checkstyle
+npm run eslint -- -o checkstyle-fe.xml -f checkstyle
 
 # Move reports to expected places.
 mv junit.xml /tmp/ut.xml
