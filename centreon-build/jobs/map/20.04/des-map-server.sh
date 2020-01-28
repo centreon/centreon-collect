@@ -37,8 +37,8 @@ docker stop "$containerid"
 docker rm "$containerid"
 
 # Upload artifacts.
-FILES_TOMCAT7="$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/map-server-packaging-tomcat7/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
-put_internal_rpms "20.04" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" $FILES_TOMCAT7
+FILES_MAP_SERVER="$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
+put_internal_rpms "20.04" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" $FILES_MAP_SERVER
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/20.04/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/*.rpm"
 $SSH_REPO createrepo "/srv/yum/internal/20.04/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE"
