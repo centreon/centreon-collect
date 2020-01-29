@@ -4,7 +4,7 @@ pidfile='/var/run/mariadb/mariadb.pid'
 
 service_start() {
     echo "mysqldevscript: starting mysql"
-    su - mysql -s /bin/sh -c "/usr/libexec/mysqld --basedir=/usr"
+    su - mysql -s /bin/sh -c "/usr/libexec/mysqld --basedir=/usr" &
     echo "mysqldevscript: mysql started"
 }
 
