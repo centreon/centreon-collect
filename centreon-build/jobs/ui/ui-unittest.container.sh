@@ -23,5 +23,5 @@ npm run eslint -- -o checkstyle-fe.xml -f checkstyle
 
 # Move reports to expected places.
 mv junit.xml /tmp/ut.xml
-mv coverage.xml /tmp/coverage.xml
+#mv coverage.xml /tmp/coverage.xml
 mv checkstyle.xml /tmp/codestyle.xml
