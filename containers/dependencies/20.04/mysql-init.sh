@@ -25,10 +25,11 @@ service_start() {
 
 service_stop() {
     echo "mysqldevscript: stopping mysql"
+    kill -TERM `cat "$pidfile"`
     while [ "$?" -eq 0 ] ; do
         kill -0 `cat "$pidfile"`
-        rm -f "$pidfile"
     done
+    rm -f "$pidfile"
     echo "mysqldevscript: mysql stopped"
 }
 
