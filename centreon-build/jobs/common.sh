@@ -32,7 +32,7 @@ put_internal_source () {
   ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
   shift
   shift
-  scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+  scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
   clean_directory "$DIR"
 }
 
@@ -43,7 +43,7 @@ put_testing_source () {
   shift
   shift
   shift
-  scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+  scp -r "$@" "$REPO_CREDS:$DIR/$NEWDIR"
 }
 
 copy_internal_source_to_testing () {
