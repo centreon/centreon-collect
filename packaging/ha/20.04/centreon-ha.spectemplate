@@ -12,6 +12,8 @@ URL:            https://github.com/centreon/centreon-ha
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
+%{?systemd_requires}
+BuildRequires:  systemd
 Requires:       centreon-web >= %{thismajor}
 Requires:       centreon-web < %{nextmajor}
 Requires:       corosync
@@ -31,24 +33,56 @@ This add-on is built to manage a failover solution for Centreon.
 %setup -q
 
 %install
-%{__install} -d $RPM_BUILD_ROOT%{_prefix}/lib/ocf/resource.d/heartbeat
-%{__cp} -r ocf-scripts/* $RPM_BUILD_ROOT%{_prefix}/lib/ocf/resource.d/heartbeat/
-%{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-ha/bin
-%{__cp} misc-scripts/* $RPM_BUILD_ROOT%{_datadir}/centreon-ha/bin/
-%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/sudoers.d
-%{__cp} resources/centreon-cluster $RPM_BUILD_ROOT%{_sysconfdir}/sudoers.d/
-%{__cp} resources/centreon-cluster-db $RPM_BUILD_ROOT%{_sysconfdir}/sudoers.d/
+
+# bin
+%{__install} -d %buildroot%{_datadir}/centreon-ha
+%{__cp} -r bin %buildroot%{_datadir}/centreon-ha/
+
+# etc
+%{__install} -d %buildroot%{_sysconfdir}
+%{__cp} -r etc/* %buildroot%{_sysconfdir}/
+%{__rm} -rf %buildroot%{_sysconfdir}/centreon
+
+# lib
+%{__cp} -r lib %buildroot%{_datadir}/centreon-ha/
+
+# ocf-scripts
+%{__install} -d %buildroot%{_prefix}/lib/ocf/resource.d/heartbeat
+%{__cp} -r ocf-scripts/* %buildroot%{_prefix}/lib/ocf/resource.d/heartbeat/
+
+# systemd
+%{__install} -d %buildroot%{_unitdir}
+%{__cp} systemd/* %buildroot%{_unitdir}/
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %buildroot
 
 %files
 
+# bin
 %defattr(0755, root, root, -)
-%{_prefix}/lib/ocf/resource.d/heartbeat/*
-%{_datadir}/centreon-ha/bin/*
+%{_datadir}/centreon-ha/bin
 
+# etc
 %defattr(-, root, root, -)
-%{_sysconfdir}/sudoers.d/*
+%{_sysconfdir}/centreon-ha
+%{_sysconfdir}/logrotate.d/centreon-ha
+%{_sysconfdir}/sudoers.d/centreon-cluster
+%{_sysconfdir}/sudoers.d/centreon-cluster-db
+%{_sysconfdir}/sysconfig/cbd_sql
+%{_sysconfdir}/sysconfig/centreon_central_sync
+
+# lib
+%defattr(-, root, root, -)
+%{_datadir}/centreon-ha/lib
+
+# ocf-scripts
+%defattr(0755, root, root, -)
+%{_prefix}/lib/ocf/resource.d/heartbeat/mysql-centreon
+
+# systemd
+%defattr(-, root, root, -)
+%{_unitdir}/cbd-sql.service
+%{_unitdir}/centreon-central-sync.service
 
 %changelog
