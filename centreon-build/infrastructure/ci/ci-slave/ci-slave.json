@@ -7,7 +7,7 @@
     "builders": [
         {
             "access_key": "{{user `aws_access_key`}}",
-            "ami_name": "jenkins-ci-slave-{{timestamp}}",
+            "ami_name": "centreon-jenkins-slave-{{timestamp}}",
             "instance_type": "m5.large",
             "launch_block_device_mappings": [
                 {
@@ -35,6 +35,11 @@
     "provisioners": [
         {
             "type": "file",
+            "source": "./setup_centreon_build.sh",
+            "destination": "/home/ubuntu/setup_centreon_build.sh"
+        },
+        {
+            "type": "file",
             "source": "./id_rsa.pub",
             "destination": "/home/ubuntu/.ssh/id_rsa.pub"
         },
@@ -56,12 +61,16 @@
         {
             "type": "shell",
             "inline":[
+                "sudo mv /home/ubuntu/setup_centreon_build.sh /usr/local/bin/",
                 "sudo apt-get --assume-yes update",
                 "sudo apt-get --assume-yes dist-upgrade",
                 "sudo apt-get --assume-yes install apt-transport-https ca-certificates curl gnupg-agent software-properties-common",
                 "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
                 "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
                 "sudo apt-get --assume-yes install default-jre docker-ce docker-ce-cli containerd.io git php-cli",
+                "echo 'date.timezone = Europe/Paris' > /tmp/centreon.ini",
+                "sudo mv /tmp/centreon.ini /etc/php/7.2/mods-available/centreon.ini",
+                "sudo ln -s /etc/php/7.2/mods-available/centreon.ini /etc/php/7.2/cli/conf.d/50-centreon.ini",
                 "ssh-keyscan -t rsa github.com >> /home/ubuntu/.ssh/known_hosts",
                 "cd /home/ubuntu && git clone ssh://git@github.com/centreon/centreon-build",
                 "sudo mv /home/ubuntu/centreon-build /opt/centreon-build",
