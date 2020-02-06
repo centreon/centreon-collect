@@ -6,44 +6,23 @@ Summary:        Centreon Open Tickets add-on for Centreon
 %define thismajor 20.04.0
 %define nextmajor 20.05.0
 
-Group:          System Environment/Base
+Group:          Networking/Other
 License:        Apache-2.0
 URL:            https://github.com/centreon/centreon-open-tickets
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  centreon-devel
-Requires:       centreon-open-tickets-module = %{version}-%{release}
-Requires:       centreon-open-tickets-widget = %{version}-%{release}
+Requires:	centreon-web >= %{thismajor}
+Requires:       centreon-web < %{nextmajor}
+Obsoletes:      centreon-open-tickets-module
+Obsoletes:      centreon-open-tickets-widget
+Provides:       centreon-open-tickets-module = %{version}-%{release}
+Provides:       centreon-open-tickets-widget = %{version}-%{release}
 
 %description
-This add-on is built to manage passive alerts into slots of alerts. Alerts are not defined
-into the configuration. This module give possibility to collect all alerts into a tray of
-events.
-
-%package module
-Summary:        Centreon Open Tickets module
-Group:          Networking/Other
-Requires:	centreon-web >= %{thismajor}
-Requires:       centreon-web < %{nextmajor}
-AutoReqProv: no
-
-%description module
-The configuration module for Centreon Open Tickets.
 The module allows to open tickets on ITSM providers.
 
-%package widget
-Summary:	Centreon Open Tickets widget
-Group:		Networking/Other
-Requires:	centreon-web >= %{thismajor}
-Requires:       centreon-web < %{nextmajor}
-
-%description widget
-Centreon Open Tickets widget for open tickets on ITSM providers.
-
-######################################################
-# Prepare the build
-######################################################
 %prep
 %setup -q
 
@@ -65,29 +44,13 @@ find .          \
 %{__install} -d $RPM_BUILD_ROOT%{centreon_www}/widgets/open-tickets
 %{__cp} -rp widgets/open-tickets $RPM_BUILD_ROOT%{centreon_www}/widgets/
 
-
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-######################################################
-# Package centreon-open-tickets
-######################################################
 %files
-
-######################################################
-# Package centreon-open-tickets-module
-######################################################
-%files module
 
 %defattr(-,apache,apache,-)
 %{centreon_www}/modules/%{name}
-
-######################################################
-# Package centreon-open-tickets-widget
-######################################################
-%files widget
-
-%defattr(-,apache,apache,-)
 %{centreon_www}/widgets/open-tickets
 
 %changelog
