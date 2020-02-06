@@ -46,7 +46,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %defattr(-,apache,apache,-)
 %{centreon_www}/modules/%{name}
-%{centreon_www}/widgets/anomaly-detection
+%{centreon_www}/widgets/anomaly-detection-graph
 %{_datadir}/centreon-broker/lua/centreon-anomaly-detection.lua
 
 %changelog
