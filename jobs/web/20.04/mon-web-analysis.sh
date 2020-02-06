@@ -17,9 +17,9 @@ tar xzf centreon-web-git.tar.gz
 
 # Copy reports and run analysis.
 cd centreon-web
-cp ../ut.xml .
-cp ../coverage.xml .
-sed -i -e 's#/usr/local/src/centreon-web/##g' coverage.xml
+cp ../ut-be.xml .
+cp ../coverage-be.xml .
+sed -i -e 's#/usr/local/src/centreon-web/##g' coverage-be.xml
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/centreon-web-20.04/centreon-web-20.04-release/g' sonar-project.properties
   sed -i -e 's/Centreon Web 20.04/Centreon Web 20.04 (release)/g' sonar-project.properties
