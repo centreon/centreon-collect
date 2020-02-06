@@ -14,6 +14,6 @@ if [ "$ENGLISH" '=' true ] ; then
 fi
 
 # French doc.
-if [ -n "$FRENCH" '=' true ] ; then
+if [ "$FRENCH" '=' true ] ; then
   $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos $PROJECT -V $TAG -p'"
 fi
