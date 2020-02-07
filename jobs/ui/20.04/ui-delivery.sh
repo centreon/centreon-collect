@@ -18,7 +18,7 @@ fi
 # Release delivery.
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  TARGETDIR="s3://centreon-documentation/$PROJECT/staging/20.04"
+  TARGETDIR="s3://centreon-documentation/$PROJECT/20.04/staging"
   ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
   ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/ui/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
 
@@ -26,7 +26,7 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 # CI delivery.
 #
 elif [ "$BUILD" '=' 'REFERENCE' ] ; then
-  TARGETDIR="s3://centreon-documentation/$PROJECT/unstable/20.04"
+  TARGETDIR="s3://centreon-documentation/$PROJECT/20.04/unstable"
   ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
   ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/ui/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
 fi
