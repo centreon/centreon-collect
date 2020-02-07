@@ -18,7 +18,7 @@ fi
 # Release delivery.
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  TARGETDIR="s3://centreon-documentation/$PROJECT/20.04/staging"
+  TARGETDIR="s3://centreon-documentation/$PROJECT/20.04/testing"
   ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
   ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/ui/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
 
