@@ -21,7 +21,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Target images.
 REGISTRY="registry.centreon.com"
-BASE_IMG="node:8-slim"
+BASE_IMG="httpd:latest"
 BUILT_IMG="$REGISTRY/ui-$VERSION-$RELEASE:latest"
 
 # Pull base image.
@@ -30,10 +30,10 @@ docker pull "$BASE_IMG"
 # Prepare Dockerfiles.
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../containers centreon-build-containers
+cp -r storybook centreon-build/containers/
 cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$BASE_IMG#g" < ui/Dockerfile.in > ui/Dockerfile
-cp -R ../$PROJECT-$VERSION ./$PROJECT
 
 # Build 'fresh' image.
-docker build --no-cache -t "$BUILT_IMG" -f ui/Dockerfile .
+docker build -t "$BUILT_IMG" -f ui/Dockerfile .
 docker push "$BUILT_IMG"
