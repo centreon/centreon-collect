@@ -30,7 +30,7 @@ docker pull "$BASE_IMG"
 # Prepare Dockerfiles.
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../containers centreon-build-containers
-cp -r storybook centreon-build/containers/
+cp -r storybook centreon-build-containers/
 cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$BASE_IMG#g" < ui/Dockerfile.in > ui/Dockerfile
 
