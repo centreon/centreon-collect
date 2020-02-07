@@ -29,12 +29,13 @@ docker cp `dirname $0`/ui-unittest.container.sh "$containerid:/usr/local/bin/uni
 docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
-rm -rf ut.xml codestyle.xml snapshots
+rm -rf ut.xml codestyle.xml snapshots storybook
 docker start -a "$containerid"
 docker cp "$containerid:/tmp/ut.xml" ut.xml
 #docker cp "$containerid:/tmp/coverage.xml" coverage.xml
 docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
 docker cp "$containerid:/usr/local/src/centreon-ui/src/__image_snapshots__/__diff_output__" snapshots || true
+docker cp "$containerid:/usr/local/src/centreon-ui/.out" storybook
 
 # Stop container.
 docker stop "$containerid"
