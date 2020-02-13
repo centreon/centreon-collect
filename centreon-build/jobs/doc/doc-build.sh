@@ -27,7 +27,7 @@ for lang in en fr ; do
   cp -r "../build/vanilla/$lang" "../build/testing/$lang"
   find "../build/testing/$lang" -type f | xargs sed -i -e "s#@BASEURL@#centreon-documentation/testing/$VERSION/$lang#g"
   cp -r "../build/vanilla/$lang" "../build/unstable/$lang"
-  find "../build/unstable/$lang" -type f | xargs sed -i -e "s#@BASEURL@#sources/internal/doc/$PROJECT-$VERSION-$RELEASE/build/testing/$lang#g"
+  find "../build/unstable/$lang" -type f | xargs sed -i -e "s#@BASEURL@#sources/internal/doc/$PROJECT-$VERSION-$RELEASE/build/unstable/$lang#g"
 done
 cd ..
 
