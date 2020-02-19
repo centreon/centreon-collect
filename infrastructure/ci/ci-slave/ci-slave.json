@@ -61,6 +61,7 @@
         {
             "type": "shell",
             "inline":[
+                "chmod 600 /home/ubuntu/.ssh/id_rsa",
                 "sudo mv /home/ubuntu/setup_centreon_build.sh /usr/local/bin/",
                 "sudo apt-get --assume-yes update",
                 "sudo apt-get --assume-yes dist-upgrade",
