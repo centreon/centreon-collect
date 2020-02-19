@@ -27,9 +27,10 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 # Launch mon-unittest container.
 UT_IMAGE=registry.centreon.com/mon-unittest-20.04:$DISTRIB
 docker pull $UT_IMAGE
-containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh $PROJECT`
 
 # Copy sources to container.
+docker cp `dirname $0`/mon-lm-unittest.container.sh "$containerid:/usr/local/bin/unittest.sh"
 docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
 
 # Run unit tests.
