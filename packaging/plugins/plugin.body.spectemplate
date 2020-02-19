@@ -1,6 +1,7 @@
 %package @NAME@
 Summary:        @SUMMARY@
 AutoReqProv:    no
+Requires:       perl(Pod::Find)
 Requires:       @REQUIRES@
 @CUSTOM_PKG_DATA@
 
