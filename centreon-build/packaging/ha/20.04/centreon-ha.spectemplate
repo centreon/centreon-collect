@@ -66,6 +66,8 @@ rm -rf %buildroot
 # etc
 %defattr(-, root, root, -)
 %{_sysconfdir}/centreon-ha
+%config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
+%config(noreplace) %{_sysconfdir}/centreon-ha/mysql-resources.sh
 %{_sysconfdir}/logrotate.d/centreon-ha
 %{_sysconfdir}/sudoers.d/centreon-cluster
 %{_sysconfdir}/sudoers.d/centreon-cluster-db
