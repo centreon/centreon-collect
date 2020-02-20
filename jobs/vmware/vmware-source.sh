@@ -17,7 +17,7 @@ PROJECT=centreon-vmware
 
 # Get version.
 cd "$PROJECT"
-export VERSION=`grep VERSION centreon/script/centreon_vmware.pm | cut -d '"' -f 2`
+export VERSION=`grep VERSION centreon/script/centreon_vmware.pm | cut -d "'" -f 2`
 
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
