@@ -46,6 +46,9 @@ This add-on is built to manage a failover solution for Centreon.
 # lib
 %{__cp} -r lib %buildroot%{_datadir}/centreon-ha/
 
+# log
+%{__install} -d %buildroot%{_localstatedir}/log/centreon-ha
+
 # ocf-scripts
 %{__install} -d %buildroot%{_prefix}/lib/ocf/resource.d/heartbeat
 %{__cp} -r ocf-scripts/* %buildroot%{_prefix}/lib/ocf/resource.d/heartbeat/
@@ -77,6 +80,10 @@ rm -rf %buildroot
 # lib
 %defattr(-, root, root, -)
 %{_datadir}/centreon-ha/lib
+
+# log
+%defattr(-, centreon, centreon, 0755)
+%{_localstatedir}/log/centreon-ha
 
 # ocf-scripts
 %defattr(0755, root, root, -)
