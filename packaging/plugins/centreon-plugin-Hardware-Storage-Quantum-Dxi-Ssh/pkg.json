@@ -3,7 +3,9 @@
     "pkg_summary": "Centreon Plugin to monitor Quantum DXi series appliances through SSH",
     "plugin_name": "centreon_quantum_dxi.pl",
     "files": [
-        "centreon/plugins/script_simple.pm",
+	"centreon/plugins/script_custom.pm",
+	"centreon/plugins/backend/ssh/",
+	"centreon/plugins/ssh.pm",
         "storage/quantum/dxi/ssh/"
     ]
 }
