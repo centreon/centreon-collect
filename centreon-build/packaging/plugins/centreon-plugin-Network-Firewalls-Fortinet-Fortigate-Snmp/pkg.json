@@ -7,7 +7,7 @@
         "centreon/plugins/snmp.pm",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
-        "centreon/common/fortinet/fortigate/",
-        "network/fortinet/fortigate/"
+        "centreon/common/fortinet/fortigate/snmp/",
+        "network/fortinet/fortigate/snmp/"
     ]
 }
