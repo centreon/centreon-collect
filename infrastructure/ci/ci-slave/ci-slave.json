@@ -63,6 +63,9 @@
             "inline":[
                 "chmod 600 /home/ubuntu/.ssh/id_rsa",
                 "sudo mv /home/ubuntu/setup_centreon_build.sh /usr/local/bin/",
+                "echo 'DNS=10.50.1.1' | sudo tee -a /etc/systemd/resolved.conf",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl restart systemd-resolved",
                 "sudo apt-get --assume-yes update",
                 "sudo apt-get --assume-yes dist-upgrade",
                 "sudo apt-get --assume-yes install apt-transport-https ca-certificates curl gnupg-agent software-properties-common",
@@ -73,6 +76,7 @@
                 "sudo mv /tmp/centreon.ini /etc/php/7.2/mods-available/centreon.ini",
                 "sudo ln -s /etc/php/7.2/mods-available/centreon.ini /etc/php/7.2/cli/conf.d/50-centreon.ini",
                 "ssh-keyscan -t rsa github.com >> /home/ubuntu/.ssh/known_hosts",
+                "ssh-keyscan -t rsa srvi-repo.int.centreon.com >> /home/ubuntu/.ssh/known_hosts",
                 "cd /home/ubuntu && git clone ssh://git@github.com/centreon/centreon-build",
                 "sudo mv /home/ubuntu/centreon-build /opt/centreon-build",
                 "sudo usermod -aG docker ubuntu",
