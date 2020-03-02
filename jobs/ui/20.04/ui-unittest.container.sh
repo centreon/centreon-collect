@@ -16,10 +16,10 @@ cd "/usr/local/src/$PROJECT"
 npm ci
 
 # Run frontend unit tests and code style.
+npm run eslint -- -o checkstyle.xml -f checkstyle
 npm run bundle
 npm run build:storybook
 npm t -- --reporters=jest-junit
-npm run eslint -- -o checkstyle.xml -f checkstyle
 
 # Move reports to expected places.
 mv junit.xml /tmp/ut.xml
