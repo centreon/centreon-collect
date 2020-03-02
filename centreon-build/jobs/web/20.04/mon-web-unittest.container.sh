@@ -24,8 +24,8 @@ npm ci
 ./vendor/bin/phing codestyle
 
 # Run frontend unit tests and code style.
-npm t -- --reporters=jest-junit
 npm run eslint -- -o checkstyle-fe.xml -f checkstyle
+npm t -- --reporters=jest-junit
 
 # Move reports to expected places.
 mv build/phpunit.xml /tmp/ut-be.xml
