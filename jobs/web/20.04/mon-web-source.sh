@@ -81,6 +81,7 @@ docker start -a "$containerid"
 rm -f "$PROJECT-$VERSION.tar.gz" "vendor.tar.gz"
 docker cp "$containerid:/usr/local/src/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
 docker cp "$containerid:/usr/local/src/vendor.tar.gz" "vendor.tar.gz"
+docker cp "$containerid:/usr/local/src/centreon-api-v2.html" centreon-api-v2.html
 
 # Stop container.
 docker stop "$containerid"
@@ -89,6 +90,7 @@ docker rm "$containerid"
 # Send it to srvi-repo.
 put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "vendor.tar.gz"
+put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v2.html
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
