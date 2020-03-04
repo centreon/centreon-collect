@@ -45,6 +45,9 @@ for i in lang/* ; do
 done
 rm -rf lang
 
+# Generate API documentation.
+redoc-cli bundle --options.hideDownloadButton=true doc/API/centreon-api-v2.yaml -o ../centreon-api-v2.html
+
 # Install Composer dependencies.
 composer install --no-dev --optimize-autoloader
 
