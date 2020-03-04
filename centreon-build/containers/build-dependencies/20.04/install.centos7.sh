@@ -28,6 +28,7 @@ head -n 8 /etc/yum.repos.d/nodesource-el7.repo > /etc/yum.repos.d/nodesource-el7
 mv /etc/yum.repos.d/nodesource-el7.repo{.new,}
 yum install --nogpgcheck -y nodejs
 npm install -g gulp
+npm install -g redoc-cli
 
 # Install Composer.
 yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring

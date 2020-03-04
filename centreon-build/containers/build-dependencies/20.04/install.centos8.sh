@@ -23,6 +23,7 @@ xargs dnf install < /tmp/build-dependencies.txt
 curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
 dnf install --nogpgcheck -y nodejs
 npm install -g gulp
+npm install -g redoc-cli
 
 # Install Composer.
 dnf install php php-cli php-dom php-json php-mbstring
