@@ -29,7 +29,7 @@ cd ../../../..
 # Run frontend unit tests and code style.
 cd "$FEDIR"
 npm run eslint -- -o checkstyle-fe.xml -f checkstyle
-npm t -- --reporters=jest-junit
+npm t -- --ci --reporters=jest-junit
 cd ../../../..
 
 # Move reports to expected places.
