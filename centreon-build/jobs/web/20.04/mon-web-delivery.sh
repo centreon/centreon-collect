@@ -27,6 +27,9 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 #
 else
   promote_canary_rpms_to_unstable "standard" "20.04" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
+  SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
+  $SSH_REPO aws s3 cp --acl public-read "/srv/sources/internal/web/$PROJECT-$VERSION-$RELEASE/centreon-api-v2.html" s3://centreon-documentation/centreon-web/centreon-api-v2.html
+  $SSH_REPO aws cloudfront create-invalidation --distribution-id E1W5L9V83QVVLX --paths /centreon-web/centreon-api-v2.html
   TARGETVERSION='20.04'
 fi
 
