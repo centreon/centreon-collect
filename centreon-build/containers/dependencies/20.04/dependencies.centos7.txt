@@ -40,3 +40,4 @@ rrdtool
 rrdtool-perl
 rsync
 sudo
+which
