@@ -67,15 +67,16 @@ int main() {
     retval = 1;
   else {
     fake_listener::callback_info info1, info2;
-    time_t comparison_timeout(time(NULL) + 4242);
+    timestamp comparison_timeout(timestamp::now() + 4242);
     info1 = *listnr.get_callbacks().begin();
     info2 = *++listnr.get_callbacks().begin();
     std::cout << "order ID:   " << fake_listener::cb_execute << std::endl
               << "            " << info1.callback << std::endl
               << "command ID: " << 1478523697531598258ull << std::endl
               << "            " << info1.cmd_id << std::endl
-              << "timeout:    " << comparison_timeout << std::endl
-              << "            " << info1.timeout << std::endl << "host:       "
+              << "timeout:    " << comparison_timeout.to_seconds() << std::endl
+              << "            " << info1.timeout.to_seconds() << std::endl
+              << "host:       "
               << "localhost" << std::endl << "            " << info1.host
               << std::endl << "user:       "
               << "root" << std::endl << "            " << info1.user
@@ -86,7 +87,8 @@ int main() {
               << "            " << info1.cmds.front() << std::endl;
     retval |= ((info1.callback != fake_listener::cb_execute) ||
                (info1.cmd_id != 1478523697531598258ull) ||
-               ((comparison_timeout - info1.timeout) > 1) ||
+               ((comparison_timeout.to_mseconds() -
+                 info1.timeout.to_mseconds()) > 1) ||
                (info1.host != "localhost") || (info1.user != "root") ||
                (info1.password != "myverysecretpassword") ||
                (info1.cmds.size() != 1) ||

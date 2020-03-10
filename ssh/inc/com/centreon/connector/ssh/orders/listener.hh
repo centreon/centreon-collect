@@ -23,6 +23,7 @@
 #include <list>
 #include <string>
 #include "com/centreon/connector/ssh/namespace.hh"
+#include "com/centreon/timestamp.hh"
 
 CCCS_BEGIN()
 
@@ -43,7 +44,7 @@ class listener {
   virtual void on_eof() = 0;
   virtual void on_error(uint64_t cmd_id, char const* msg) = 0;
   virtual void on_execute(uint64_t cmd_id,
-                          time_t timeout,
+                          const timestamp& timeout,
                           std::string const& host,
                           unsigned short port,
                           std::string const& user,

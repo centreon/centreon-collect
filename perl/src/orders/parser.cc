@@ -22,6 +22,7 @@
 #include <string>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
+#include "com/centreon/timestamp.hh"
 
 using namespace com::centreon::connector::perl::orders;
 
@@ -191,13 +192,15 @@ void parser::_parse(std::string const& cmd) {
       pos = end + 1;
       // Find timeout value.
       end = cmd.find('\0', pos);
-      time_t timeout(
-          static_cast<time_t>(strtoull(cmd.c_str() + pos, &ptr, 10)));
+      time_t timeout =
+          static_cast<time_t>(strtoull(cmd.c_str() + pos, &ptr, 10));
+      timestamp ts_timeout = timestamp::now();
+
       if (*ptr)
         throw(basic_error() << "invalid execution request received:"
                                " bad timeout ("
                             << cmd.c_str() + pos << ")");
-      timeout += time(NULL);
+      ts_timeout += timeout;
       pos = end + 1;
       // Find start time.
       end = cmd.find('\0', pos);
@@ -213,7 +216,7 @@ void parser::_parse(std::string const& cmd) {
 
       // Notify listener.
       if (_listnr)
-        _listnr->on_execute(cmd_id, timeout, cmdline);
+        _listnr->on_execute(cmd_id, ts_timeout, cmdline);
     } break;
     case 4:  // Quit query.
       if (_listnr)

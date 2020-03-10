@@ -21,6 +21,9 @@
 
 #include <list>
 #include "com/centreon/connector/ssh/orders/listener.hh"
+#include "com/centreon/timestamp.hh"
+
+using namespace com::centreon;
 
 /**
  *  @class fake_listener fake_listener.hh "test/orders/fake_listener.hh"
@@ -40,7 +43,7 @@ class fake_listener : public com::centreon::connector::ssh::orders::listener {
   struct callback_info {
     e_callback callback;
     uint64_t cmd_id;
-    time_t timeout;
+    timestamp timeout;
     std::string host;
     unsigned short port;
     std::string user;
@@ -60,7 +63,7 @@ class fake_listener : public com::centreon::connector::ssh::orders::listener {
   void on_eof();
   void on_error(uint64_t cmd_id, char const* msg);
   void on_execute(uint64_t cmd_id,
-                  time_t timeout,
+                  const timestamp& timeout,
                   std::string const& host,
                   unsigned short port,
                   std::string const& user,

@@ -77,7 +77,7 @@ void check::error(handle& h) {
  */
 pid_t check::execute(unsigned long long cmd_id,
                      std::string const& cmd,
-                     time_t tmt) {
+                     const timestamp& tmt) {
   // Run process.
   int fds[3];
   _child = embedded_perl::instance().run(cmd, fds);
@@ -96,10 +96,10 @@ pid_t check::execute(unsigned long long cmd_id,
   // Register timeout.
   std::unique_ptr<timeout> t(new timeout(this, false));
   _timeout = multiplexer::instance().com::centreon::task_manager::add(
-      t.get(), tmt - 1, false, true);
+      t.get(), tmt, false, true);
   t.release();
 
-  return (_child);
+  return _child;
 }
 
 /**
@@ -222,7 +222,7 @@ void check::unlisten(listener* listnr) {
  */
 bool check::want_read(handle& h) {
   (void)h;
-  return (true);
+  return true;
 }
 
 /**

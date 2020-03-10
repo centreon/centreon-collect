@@ -27,6 +27,7 @@
 #include "com/centreon/connector/perl/orders/parser.hh"
 #include "com/centreon/connector/perl/reporter.hh"
 #include "com/centreon/io/file_stream.hh"
+#include "com/centreon/timestamp.hh"
 
 CCCP_BEGIN()
 
@@ -59,7 +60,7 @@ class policy : public orders::listener, public checks::listener {
   void on_eof();
   void on_error();
   void on_execute(unsigned long long cmd_id,
-                  time_t timeout,
+                  const timestamp& timeout,
                   std::string const& cmd);
   void on_quit();
   void on_result(checks::result const& r);

@@ -132,7 +132,7 @@ void policy::on_error(uint64_t cmd_id, char const* msg) {
  *  @param[in] use_ipv6    Version of ip protocol to use.
  */
 void policy::on_execute(uint64_t cmd_id,
-                        time_t timeout,
+                        const timestamp& timeout,
                         std::string const& host,
                         unsigned short port,
                         std::string const& user,
@@ -144,10 +144,10 @@ void policy::on_execute(uint64_t cmd_id,
                         bool use_ipv6) {
   try {
     // Log message.
-    log_info(logging::medium)
-        << "got request to execute check " << cmd_id << " on session " << user
-        << "@" << host << " (timeout " << timeout << ", first command \""
-        << cmds.front() << "\")";
+    log_info(logging::medium) << "got request to execute check " << cmd_id
+                              << " on session " << user << "@" << host
+                              << " (timeout " << timeout.to_seconds()
+                              << ", first command \"" << cmds.front() << "\")";
 
     // Credentials.
     sessions::credentials creds;
