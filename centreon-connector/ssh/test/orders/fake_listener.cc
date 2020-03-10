@@ -28,47 +28,13 @@ using namespace com::centreon::connector::ssh::orders;
 **************************************/
 
 /**
- *  Default constructor.
- */
-//fake_listener::fake_listener() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] fl Object to copy.
- */
-//fake_listener::fake_listener(fake_listener const& fl) : listener(fl) {
-//  _copy(fl);
-//}
-
-/**
- *  Destructor.
- */
-//fake_listener::~fake_listener() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] fl Object to copy.
- *
- *  @return This object.
- */
-//fake_listener& fake_listener::operator=(fake_listener const& fl) {
-//  if (this != &fl) {
-//    listener::operator=(fl);
-//    _copy(fl);
-//  }
-//  return (*this);
-//}
-
-/**
  *  Get the callbacks information.
  *
  *  @return Callbacks information.
  */
 std::list<fake_listener::callback_info> const& fake_listener::get_callbacks()
     const throw() {
-  return (_callbacks);
+  return _callbacks;
 }
 
 /**
@@ -78,7 +44,6 @@ void fake_listener::on_eof() {
   callback_info ci;
   ci.callback = cb_eof;
   _callbacks.push_back(ci);
-  return;
 }
 
 /**
@@ -93,7 +58,6 @@ void fake_listener::on_error(uint64_t cmd_id, char const* msg) {
   callback_info ci;
   ci.callback = cb_error;
   _callbacks.push_back(ci);
-  return;
 }
 
 /**
@@ -112,7 +76,7 @@ void fake_listener::on_error(uint64_t cmd_id, char const* msg) {
  *  @param[in] is_ipv6     Work with IPv6.
  */
 void fake_listener::on_execute(uint64_t cmd_id,
-                               time_t timeout,
+                               const timestamp& timeout,
                                std::string const& host,
                                unsigned short port,
                                std::string const& user,
@@ -136,7 +100,6 @@ void fake_listener::on_execute(uint64_t cmd_id,
   ci.skip_stderr = skip_stderr;
   ci.is_ipv6 = is_ipv6;
   _callbacks.push_back(ci);
-  return;
 }
 
 /**
@@ -146,7 +109,6 @@ void fake_listener::on_quit() {
   callback_info ci;
   ci.callback = cb_quit;
   _callbacks.push_back(ci);
-  return;
 }
 
 /**
@@ -156,7 +118,6 @@ void fake_listener::on_version() {
   callback_info ci;
   ci.callback = cb_version;
   _callbacks.push_back(ci);
-  return;
 }
 
 /**************************************
@@ -172,7 +133,6 @@ void fake_listener::on_version() {
  */
 void fake_listener::_copy(fake_listener const& fl) {
   _callbacks = fl._callbacks;
-  return;
 }
 
 /**************************************
@@ -204,7 +164,8 @@ bool operator==(std::list<fake_listener::callback_info> const& left,
       if ((it1->callback != it2->callback) ||
           ((it1->callback == fake_listener::cb_execute) &&
            ((it1->cmd_id != it2->cmd_id) ||
-            (fabs(it1->timeout - it2->timeout) >= 1.0) ||
+            (fabs(it1->timeout.to_seconds() - it2->timeout.to_seconds()) >=
+             1.0) ||
             (it1->host != it2->host) || (it1->port != it2->port) ||
             (it1->user != it2->user) || (it1->password != it2->password) ||
             (it1->identity != it2->identity) ||
@@ -213,7 +174,7 @@ bool operator==(std::list<fake_listener::callback_info> const& left,
             (it1->is_ipv6 != it2->is_ipv6) || (it1->cmds != it2->cmds))))
         retval = false;
   }
-  return (retval);
+  return retval;
 }
 
 /**
@@ -226,5 +187,5 @@ bool operator==(std::list<fake_listener::callback_info> const& left,
  */
 bool operator!=(std::list<fake_listener::callback_info> const& left,
                 std::list<fake_listener::callback_info> const& right) {
-  return (!operator==(left, right));
+  return !operator==(left, right);
 }
