@@ -10,6 +10,7 @@ make
 mariadb-connector-c
 mariadb-devel
 maven
+python3-pip
 redhat-lsb
 rpm-build
 rpm-sign

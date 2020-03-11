@@ -42,5 +42,10 @@ yum install -y perl perl-App-cpanminus perl-ExtUtils-Embed gcc openssl openssl-d
 cpanm PAR::Packer
 cpanm PAR::Filter::Crypto
 
+# Install Conan, a C++ package manager.
+pip3 install conan
+conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon
+conan remote remove conan-center
+
 # Workaround, yum does not seem to exit correctly.
 rm -f /var/run/yum.pid
