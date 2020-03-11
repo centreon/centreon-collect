@@ -20,3 +20,8 @@ dnf install -y php php-cli php-dom php-json php-mbstring
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
+
+# Install Conan, a C++ package manager.
+pip3 install conan
+conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon
+conan remote remove conan-center
