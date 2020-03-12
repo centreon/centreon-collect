@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2015,2017-2019 Centreon
+## Copyright 2011-2015,2017-2020 Centreon
 ##
 
 %if 0%{?suse_version}
@@ -71,32 +71,14 @@ Centreon Connector SSH provide persistante connection between checks.
 %setup
 
 %build
-cd perl/build
 CXXFLAGS="-DNDEBUG -g -O2 -std=c++11 -Wno-long-long" %{cmake} \
 	-DWITH_PREFIX=%{_prefix} \
 	-DWITH_PREFIX_BINARY=%{_libdir}/centreon-connector \
 	-DWITH_TESTING=0 .
-
 %{__make} %{?jobs:-j%jobs} %{?_smp_mflags} VERBOSE="1"
-cd -
-
-cd ssh/build
-CXXFLAGS="-DNDEBUG -g -O2 -std=c++11 -Wno-long-long" %{cmake} \
-	-DWITH_PREFIX=%{_prefix} \
-	-DWITH_PREFIX_BINARY=%{_libdir}/centreon-connector \
-	-DWITH_TESTING=0 .
-
-%{__make} %{?jobs:-j%jobs} %{?_smp_mflags} VERBOSE="1"
-cd -
 
 %install
-%{__rm} -rf $RPM_BUILD_ROOT
-cd perl/build
 %{__make} install DESTDIR="$RPM_BUILD_ROOT"
-cd -
-cd ssh/build
-%{__make} install DESTDIR="$RPM_BUILD_ROOT"
-cd -
 
 %clean
 %{__rm} -rf %{buildroot}
