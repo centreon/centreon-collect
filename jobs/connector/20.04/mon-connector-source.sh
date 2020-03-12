@@ -19,7 +19,7 @@ tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd $PROJECT
-cmakelists=perl/build/CMakeLists.txt
+cmakelists=perl/CMakeLists.txt
 major=`grep 'set(CONNECTOR_PERL_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(CONNECTOR_PERL_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 patch=`grep 'set(CONNECTOR_PERL_PATCH' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
