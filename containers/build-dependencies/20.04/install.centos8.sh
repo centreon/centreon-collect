@@ -32,7 +32,7 @@ mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
 # Install Conan, a C++ package manager.
-pip3 install conan
+pip3 install --prefix=/usr conan
 conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon
 conan remote remove conan-center
 
