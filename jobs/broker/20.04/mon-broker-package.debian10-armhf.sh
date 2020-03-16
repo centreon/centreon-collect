@@ -9,7 +9,7 @@ cp -r `dirname $0`"/../../../packaging/broker/debian" "debuildir/${PROJECT}-${VE
 sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian10/g" < "debuildir/${PROJECT}-${VERSION}/debian/changelog.in" > "debuildir/${PROJECT}-${VERSION}/debian/changelog"
 
 # Launch debuild.
-containerid=`docker create registry.centreon.com/mon-build-dependencies-20.04:debian10-armhf sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && export CC=arm-linux-gnueabihf-gcc && export CXX=arm-linux-gnueabihf-g++ && dpkg-buildpackage -us -uc -d -aarmhf"`
+containerid=`docker create registry.centreon.com/mon-build-dependencies-20.04:debian10-armhf sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && export CC=arm-linux-gnueabihf-gcc && export CXX=arm-linux-gnueabihf-g++ && export ARCH=armv7hf && dpkg-buildpackage -us -uc -d -aarmhf"`
 docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start -a "$containerid"
 
