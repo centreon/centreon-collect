@@ -20,6 +20,7 @@
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Clib" C CXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0")
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
