@@ -37,9 +37,9 @@ using namespace com::centreon;
 using namespace com::centreon::connector::ssh;
 
 // Should be defined by build tools.
-#ifndef CENTREON_CONNECTOR_SSH_VERSION
-#define CENTREON_CONNECTOR_SSH_VERSION "(development version)"
-#endif  // !CENTREON_CONNECTOR_SSH_VERSION
+#ifndef CENTREON_CONNECTOR_VERSION
+#define CENTREON_CONNECTOR_VERSION "(development version)"
+#endif  // !CENTREON_CONNECTOR_VERSION
 
 // Termination flag.
 std::atomic<bool> should_exit(false);
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
       std::cout << opts.help() << std::endl;
       retval = EXIT_SUCCESS;
     } else if (opts.get_argument("version").get_is_set()) {
-      std::cout << "Centreon SSH Connector " << CENTREON_CONNECTOR_SSH_VERSION
+      std::cout << "Centreon SSH Connector " << CENTREON_CONNECTOR_VERSION
                 << std::endl;
       retval = EXIT_SUCCESS;
     } else {
@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
             log_file, logging::type_info | logging::type_error, logging::low);
       }
       log_info(logging::low) << "Centreon SSH Connector "
-                             << CENTREON_CONNECTOR_SSH_VERSION << " starting";
+                             << CENTREON_CONNECTOR_VERSION << " starting";
 #if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.
       log_debug(logging::medium) << "initializing libssh2";

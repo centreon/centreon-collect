@@ -43,11 +43,7 @@ class timeout : public com::centreon::task {
   timeout(check* chk = NULL, bool final = false);
   timeout(timeout const& t) = delete;
   timeout& operator=(timeout const& t) = delete;
-  check* get_check() const throw();
-  bool is_final() const throw();
   void run();
-  void set_check(check* chk) throw();
-  void set_final(bool final) throw();
 };
 }  // namespace checks
 

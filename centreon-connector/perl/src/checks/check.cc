@@ -17,15 +17,17 @@
 */
 
 #include "com/centreon/connector/perl/checks/check.hh"
+
 #include <csignal>
 #include <cstdlib>
 #include <memory>
+
 #include "com/centreon/connector/perl/checks/listener.hh"
 #include "com/centreon/connector/perl/checks/result.hh"
 #include "com/centreon/connector/perl/checks/timeout.hh"
+#include "com/centreon/connector/perl/log_v2.h"
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
-#include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl::checks;
@@ -86,7 +88,8 @@ pid_t check::execute(unsigned long long cmd_id,
   _err.set_fd(fds[2]);
 
   // Store command ID.
-  log_debug(logging::low) << "check " << this << " has ID " << cmd_id;
+  log_v2::core()->debug("check {0} has ID {1}", static_cast<void*>(this),
+                        cmd_id);
   _cmd_id = cmd_id;
 
   // Register with multiplexer.
@@ -108,8 +111,8 @@ pid_t check::execute(unsigned long long cmd_id,
  *  @param[in] listnr New listener.
  */
 void check::listen(listener* listnr) {
-  log_debug(logging::medium)
-      << "check " << this << " is listened by " << listnr;
+  log_v2::core()->debug("check {0} is listened by {1}",
+                        static_cast<void*>(this), static_cast<void*>(listnr));
   _listnr = listnr;
 }
 
@@ -120,8 +123,7 @@ void check::listen(listener* listnr) {
  */
 void check::on_timeout(bool final) {
   // Log message.
-  log_error(logging::low) << "check " << _cmd_id << " (pid=" << _child
-                          << ") reached timeout";
+  log_v2::core()->error("check {0} (pid={1}) reached timeout", _cmd_id, _child);
 
   // Reset timeout task ID.
   _timeout = 0;
@@ -154,11 +156,10 @@ void check::read(handle& h) {
   char buffer[1024];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
   if (&h == &_err) {
-    log_debug(logging::high)
-        << "reading from process " << _child << "'s stdout";
+    log_v2::core()->debug("reading from process {}'s stdout", _child);
     _stderr.append(buffer, rb);
   } else {
-    log_debug(logging::high) << "reading from process " << _child << "' stderr";
+    log_v2::core()->debug("reading from process {}'s stderr", _child);
     _stdout.append(buffer, rb);
   }
 }
@@ -170,8 +171,7 @@ void check::read(handle& h) {
  */
 void check::terminated(int exit_code) {
   // Read possibly remaining data.
-  log_debug(logging::medium)
-      << "reading remaining data from process " << _child;
+  log_v2::core()->debug("reading remaining data from process {}", _child);
   try {
     char buffer[1024];
     unsigned long rb(_out.read(buffer, sizeof(buffer)));
@@ -210,8 +210,8 @@ void check::terminated(int exit_code) {
  *  @param[in] listnr Old listener.
  */
 void check::unlisten(listener* listnr) {
-  log_debug(logging::medium)
-      << "listener " << listnr << " stops listening check " << this;
+  log_v2::core()->debug("listener {0} stops listening check {1}",
+                        static_cast<void*>(_listnr), static_cast<void*>(this));
   _listnr = NULL;
 }
 

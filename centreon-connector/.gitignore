@@ -4,3 +4,4 @@ perl/test/connector/paths.hh
 ssh/test/connector/binary.hh
 build/*
 .idea/*
+cmake-build-debug/*

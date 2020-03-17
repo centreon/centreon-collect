@@ -53,7 +53,6 @@ class embedded_perl {
   embedded_perl(int* argc, char*** argv, char*** env, char const* code = NULL);
   embedded_perl(embedded_perl const& ep);
   embedded_perl& operator=(embedded_perl const& ep);
-  void _write(char const* data, size_t len);
 
   umap<std::string, SV*> _parsed;
   static char const* const _script;
