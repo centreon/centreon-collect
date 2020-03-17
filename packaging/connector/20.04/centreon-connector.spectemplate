@@ -71,6 +71,7 @@ Centreon Connector SSH provide persistante connection between checks.
 %setup
 
 %build
+conan install .
 CXXFLAGS="-DNDEBUG -g -O2 -std=c++11 -Wno-long-long" %{cmake} \
 	-DWITH_PREFIX=%{_prefix} \
 	-DWITH_PREFIX_BINARY=%{_libdir}/centreon-connector \
