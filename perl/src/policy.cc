@@ -24,9 +24,9 @@
 #include <cstring>
 #include <memory>
 #include "com/centreon/connector/perl/checks/check.hh"
+#include "com/centreon/connector/perl/log_v2.h"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
@@ -82,7 +82,7 @@ policy::~policy() throw() {
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  log_info(logging::low) << "stdin is closed";
+  log_v2::core()->info("stdin is closed");
   on_quit();
 }
 
@@ -90,7 +90,7 @@ void policy::on_eof() {
  *  Called if an error occured on stdin.
  */
 void policy::on_error() {
-  log_info(logging::low) << "error occurred while parsing stdin";
+  log_v2::core()->info("error occured while parsing stdin");
   _error = true;
   on_quit();
 }
@@ -111,8 +111,7 @@ void policy::on_execute(unsigned long long cmd_id,
     pid_t child(chk->execute(cmd_id, cmd, timeout));
     _checks[child] = chk.release();
   } catch (std::exception const& e) {
-    log_info(logging::low) << "execution of check " << cmd_id
-                           << " failed: " << e.what();
+    log_v2::core()->info("execution of check {0} failed {1}", cmd_id, e.what());
     checks::result r;
     r.set_command_id(cmd_id);
     on_result(r);
@@ -124,7 +123,7 @@ void policy::on_execute(unsigned long long cmd_id,
  */
 void policy::on_quit() {
   // Exiting.
-  log_info(logging::low) << "quit request received";
+  log_v2::core()->info("quit request received");
   should_exit = true;
   multiplexer::instance().handle_manager::remove(&_sin);
 }
@@ -148,8 +147,7 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  log_info(logging::medium)
-      << "monitoring engine requested protocol version, sending 1.0";
+  log_v2::core()->info("monitoring engine requested protocol version, sending 1.0");
   _reporter.send_version(1, 0);
 }
 
@@ -171,21 +169,19 @@ bool policy::run() {
     pid_t child(waitpid(0, &status, WNOHANG));
     while (child != 0 && child != (pid_t)-1) {
       // Handle process termination.
-      log_info(logging::medium)
-          << "process " << child << " exited with status " << status;
+      log_v2::core()->info("process {0} exited with status {1}", status);
       std::map<pid_t, checks::check*>::iterator it;
       it = _checks.find(child);
       if (it != _checks.end()) {
         std::unique_ptr<checks::check> chk(it->second);
         _checks.erase(it);
-        if (WIFSIGNALED(status))
-          log_error(logging::medium)
-              << "process " << child << " exited because of a signal "
-              << WTERMSIG(status) << "\n";
+        if (WIFSIGNALED(status)) {
+          log_v2::core()->error("process {0} exited because of a signal {1}", child, WTERMSIG(status));
+        }
 
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
       }
-      log_debug(logging::medium) << _checks.size() << " checks still running";
+      log_v2::core()->debug("{} checks still running", _checks.size());
 
       // Is there any other terminated child ?
       child = waitpid(0, &status, WNOHANG);
@@ -199,7 +195,7 @@ bool policy::run() {
   }
 
   // Run as long as some data remains.
-  log_info(logging::low) << "reporting last data to monitoring engine";
+  log_v2::core()->info("reporting last data to monitoring engine");
   while (_reporter.can_report() && _reporter.want_write(_sout))
     multiplexer::instance().multiplex();
 

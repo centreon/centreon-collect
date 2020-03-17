@@ -121,11 +121,11 @@ int main() {
     if (file.is_open()) {
       getline(file, line);
       if (line.find(
-              "[info] Centreon SSH Connector " CENTREON_CONNECTOR_SSH_VERSION
+              "[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
               " starting") == std::string::npos)
         throw(basic_error()
               << "bad content: the first line does not start with 'Centreon "
-                 "SSH Connector " CENTREON_CONNECTOR_SSH_VERSION " starting'");
+                 "SSH Connector " CENTREON_CONNECTOR_VERSION " starting'");
       file.close();
     } else {
       throw(basic_error() << "the file " LOG_FILE " has not been created.");

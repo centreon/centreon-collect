@@ -17,7 +17,7 @@
 */
 
 #include <cstring>
-#include "test/orders/buffer_handle.hh"
+#include "buffer_handle.hh"
 
 using namespace com::centreon;
 

@@ -21,8 +21,8 @@
 #include <cstring>
 #include <string>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/logger.hh"
 #include "com/centreon/timestamp.hh"
+#include "com/centreon/connector/perl/log_v2.h"
 
 using namespace com::centreon::connector::perl::orders;
 
@@ -87,14 +87,14 @@ void parser::listen(listener* l) noexcept {
  */
 void parser::read(handle& h) {
   // Read data.
-  log_debug(logging::medium) << "reading data for parsing";
+  log_v2::core()->debug("reading data for parsing");
   char buffer[4096];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
-  log_debug(logging::medium) << "read " << rb << " bytes from handle";
+  log_v2::core()->debug("read {} bytes from handle", rb);
 
   // stdin's eof is reached.
   if (!rb) {
-    log_debug(logging::high) << "got eof on read handle";
+    log_v2::core()->debug("got eof on read handle");
     if (_listnr)
       _listnr->on_eof();
   }
@@ -109,7 +109,7 @@ void parser::read(handle& h) {
 
     // Parse command.
     while (bound != std::string::npos) {
-      log_debug(logging::high) << "got command boundary at offset " << bound;
+      log_v2::core()->debug("got command boundary at offset {}", bound);
       bound += sizeof(boundary);
       std::string cmd(_buffer.substr(0, bound));
       _buffer.erase(0, bound);
@@ -117,10 +117,10 @@ void parser::read(handle& h) {
       try {
         _parse(cmd);
       } catch (std::exception const& e) {
-        log_error(logging::low) << "orders parsing error: " << e.what();
+        log_v2::core()->error("orders parsing error: {}", e.what());
         error = true;
       } catch (...) {
-        log_error(logging::low) << "unknown orders parsing error";
+        log_v2::core()->error("unknown orders parsing error");
         error = true;
       }
       if (error && _listnr)

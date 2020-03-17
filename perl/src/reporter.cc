@@ -17,10 +17,12 @@
 */
 
 #include "com/centreon/connector/perl/reporter.hh"
+
 #include <sstream>
+
 #include "com/centreon/connector/perl/checks/result.hh"
+#include "com/centreon/connector/perl/log_v2.h"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon::connector::perl;
 
@@ -39,8 +41,8 @@ reporter::reporter() : _can_report(true), _reported(0) {}
  *  Destructor.
  */
 reporter::~reporter() noexcept {
-  log_info(logging::medium) << "connector reporter " << _reported
-                            << " check results to monitoring engine";
+  log_v2::core()->info(
+      "connector reporter {} check results to monitoring engine", _reported);
 }
 
 /**
@@ -48,7 +50,9 @@ reporter::~reporter() noexcept {
  *
  *  @return true if reporter can report.
  */
-bool reporter::can_report() const noexcept { return _can_report; }
+bool reporter::can_report() const noexcept {
+  return _can_report;
+}
 
 /**
  *  Error event on the handle.
@@ -67,7 +71,9 @@ void reporter::error(handle& h) {
  *
  *  @return Internal buffer.
  */
-std::string const& reporter::get_buffer() const noexcept { return _buffer; }
+std::string const& reporter::get_buffer() const noexcept {
+  return _buffer;
+}
 
 /**
  *  Report check result.
@@ -77,8 +83,8 @@ std::string const& reporter::get_buffer() const noexcept { return _buffer; }
 void reporter::send_result(checks::result const& r) {
   // Update statistics.
   ++_reported;
-  log_debug(logging::high) << "reporting check result #" << _reported
-                           << " (check " << r.get_command_id() << ")";
+  log_v2::core()->debug("reporting check result #{0} (check {1})", _reported,
+                        r.get_command_id());
 
   // Build packet.
   std::ostringstream oss;
@@ -120,8 +126,7 @@ void reporter::send_result(checks::result const& r) {
  */
 void reporter::send_version(unsigned int major, unsigned int minor) {
   // Build packet.
-  log_debug(logging::medium) << "sending protocol version " << major << "."
-                             << minor << " to monitoring engine";
+  log_v2::core()->debug("sending protocol version {0}.{1} to monitoring engine", major, minor);
   std::ostringstream oss;
   oss << "1";
   oss.put('\0');

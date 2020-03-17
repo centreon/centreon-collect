@@ -36,45 +36,9 @@ using namespace com::centreon::connector::perl::checks;
 timeout::timeout(check* chk, bool final) : _check(chk), _final(final) {}
 
 /**
- *  Get the check object.
- *
- *  @return Check object.
- */
-check* timeout::get_check() const throw() {
-  return _check;
-}
-
-/**
- *  Is this a final timeout ?
- *
- *  @return true if the timeout is final.
- */
-bool timeout::is_final() const throw() {
-  return _final;
-}
-
-/**
  *  Notify check of timeout.
  */
 void timeout::run() {
   if (_check)
     _check->on_timeout(_final);
-}
-
-/**
- *  Set target check.
- *
- *  @param[in] chk Target check.
- */
-void timeout::set_check(check* chk) throw() {
-  _check = chk;
-}
-
-/**
- *  Set whether this timeout is final.
- *
- *  @param[in] final New final parameter.
- */
-void timeout::set_final(bool final) throw() {
-  _final = final;
 }
