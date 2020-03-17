@@ -87,7 +87,7 @@ Some Centreon Engine benchmarking tools.
 %setup
 
 %build
-
+conan install .
 CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
     -DWITH_BENCH=1 \
     -DWITH_CREATE_FILES=0 \
