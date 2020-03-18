@@ -18,17 +18,16 @@ Source0:    centreon-%{version}.tar.gz
 # directory in the %prep step to be properly macro-replaced.
 #
 Source1:    centreon-macroreplacement.txt
-Source2:    instCentCore.conf
-Source3:    instCentPlugins.conf
-Source4:    instCentWeb.conf
-Source5:    centreontrapd.pm
-Source6:    php-fpm.conf
-Source7:    install.conf.php
-Source8:    centreon-apache.conf
-Source9:    centreon-mysql.cnf
-Source10:   php.ini
-Source11:   mariadb-systemd.conf
-Source12:   php-fpm-systemd.conf
+Source2:    instCentPlugins.conf
+Source3:    instCentWeb.conf
+Source4:    centreontrapd.pm
+Source5:    php-fpm.conf
+Source6:    install.conf.php
+Source7:    centreon-apache.conf
+Source8:    centreon-mysql.cnf
+Source9:    php.ini
+Source10:   mariadb-systemd.conf
+Source11:   php-fpm-systemd.conf
 
 License:    GPLv2
 Group:      Applications/System
@@ -163,7 +162,7 @@ Summary:     Centreon Perl libraries
 Group:       Development/Libraries
 Requires:    centreon-common = %{version}-%{release}
 Requires:    perl perl(DBI) perl(FindBin) perl(Getopt::Long) perl(IO::Handle) perl(POSIX) perl(Pod::Usage) perl(Sys::Syslog)
-Provides:    perl(centreon::common::db) perl(centreon::common::lock) perl(centreon::common::lock::file) perl(centreon::common::lock::sql) perl(centreon::common::logger) perl(centreon::common::misc) perl(centreon::script) perl(centreon::script::centreontrapd) perl(centreon::script::centreontrapdforward) perl(centreon::script::centFillTrapDB) perl(centreon::script::centcore) perl(centreon::script::centreonSyncArchives) perl(centreon::script::centreonSyncPlugins) perl(centreon::script::centreon_trap_send) perl(centreon::script::dashboardBuilder) perl(centreon::script::eventReportBuilder) perl(centreon::script::logAnalyser) perl(centreon::script::logAnalyserBroker) perl(centreon::script::nagiosPerfTrace) perl(centreon::script::centreon_health)
+Provides:    perl(centreon::common::db) perl(centreon::common::lock) perl(centreon::common::lock::file) perl(centreon::common::lock::sql) perl(centreon::common::logger) perl(centreon::common::misc) perl(centreon::script) perl(centreon::script::centreontrapd) perl(centreon::script::centreontrapdforward) perl(centreon::script::centFillTrapDB) perl(centreon::script::centreonSyncArchives) perl(centreon::script::centreonSyncPlugins) perl(centreon::script::centreon_trap_send) perl(centreon::script::dashboardBuilder) perl(centreon::script::eventReportBuilder) perl(centreon::script::logAnalyser) perl(centreon::script::logAnalyserBroker) perl(centreon::script::nagiosPerfTrace) perl(centreon::script::centreon_health)
 Obsoletes:  perl-centreon-base
 Provides:   perl-centreon-base
 AutoReqProv: no
@@ -188,12 +187,8 @@ This package contains Centreon Trap engine
 %package base-config-centreon-engine
 Summary:    Configuration for Centeon with Centreon Engine and Centreon Broker
 Group:      Networking/Other
-Requires:   centreon-broker >= %{thismajor}
-Requires:   centreon-broker < %{nextmajor}
 Requires:   centreon-broker-cbd >= %{thismajor}
-Requires:   centreon-broker < %{nextmajor}
-Requires:   centreon-broker-storage >= %{thismajor}
-Requires:   centreon-broker-storage < %{nextmajor}
+Requires:   centreon-broker-cbd < %{nextmajor}
 Requires:   centreon-web = %{version}-%{release}
 Requires:   centreon-poller-centreon-engine = %{version}-%{release}
 Requires:   centreon-pp-manager >= %{thismajor}
@@ -228,6 +223,8 @@ Requires:   centreon-broker-storage >= %{thismajor}
 Requires:   centreon-broker-storage < %{nextmajor}
 Requires:   centreon-connector >= %{thismajor}
 Requires:   centreon-connector < %{nextmajor}
+Requires:   centreon-gorgone-centreon-config >= %{thismajor}
+Requires:   centreon-gorgone-centreon-config < %{nextmajor}
 Requires:   perl-DBD-MySQL
 Requires:   perl-DBD-SQLite
 Requires:   centreon-plugin-Applications-Databases-Mysql
@@ -259,7 +256,7 @@ managed by Centreon. This includes the default central poller.
 %prep
 %setup -q %{SOURCE0}
 %{__mkdir} additional
-%{__cp} %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE7} %{SOURCE8} %{SOURCE9} %{SOURCE10} %{SOURCE11} %{SOURCE12} additional/
+%{__cp} %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE7} %{SOURCE8} %{SOURCE9} %{SOURCE10} %{SOURCE11} additional/
 %{__sed} -i -e "s|@@LIB_ARCH@@|%{_lib}|g" additional/centreon-macroreplacement.txt
 echo "s:@@LIB_ARCH@@:%{_lib}:g" >> additional/centreon-macroreplacement.txt
 
@@ -273,7 +270,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 
 # Install configuration files
 %{__install} -d -m 0775 %buildroot%{_sysconfdir}/centreon
-%{__install} -m 0644 additional/instCentCore.conf %buildroot%{_sysconfdir}/centreon
+%{__install} -d -m 0775 %buildroot%{_sysconfdir}/centreon/config.d
 %{__install} -m 0644 additional/instCentPlugins.conf %buildroot%{_sysconfdir}/centreon
 %{__install} -m 0644 additional/instCentWeb.conf %buildroot%{_sysconfdir}/centreon
 %{__install} -m 0644 additional/centreontrapd.pm %buildroot%{_sysconfdir}/centreon
@@ -295,13 +292,11 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 
 # Install systemd configuration files
 %{__install} -d -m 0755 %buildroot%{_unitdir}
-%{__install} -m 0644 tmpl/install/redhat/centcore.systemd %buildroot%{_unitdir}/centcore.service
 %{__install} -m 0644 tmpl/install/redhat/centreontrapd.systemd %buildroot%{_unitdir}/centreontrapd.service
 %{__install} -m 0644 tmpl/install/redhat/centreon.systemd %buildroot%{_unitdir}/centreon.service
 
-# Install centcore and centreontrapd sysconfig files
+# Install centreontrapd sysconfig files
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/sysconfig
-%{__install} -m 0755 tmpl/install/redhat/centcore.sysconfig %buildroot%{_sysconfdir}/sysconfig/centcore
 %{__install} -m 0755 tmpl/install/redhat/centreontrapd.sysconfig %buildroot%{_sysconfdir}/sysconfig/centreontrapd
 
 # Install perl lib
@@ -315,8 +310,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -d -m 0755 %buildroot%{_datadir}/centreon
 %{__install} -d -m 0755 %buildroot%{_datadir}/centreon/bin
 %{__install} -d -m 0755 %buildroot%{_bindir}
-%{__install} -m 0755 bin/centcore %buildroot%{_bindir}
-%{__ln_s} %{_bindir}/centcore %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centFillTrapDB %buildroot%{_bindir}
 %{__ln_s} %{_bindir}/centFillTrapDB %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon_trap_send %buildroot%{_bindir}
@@ -340,7 +333,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0775 cron/* %buildroot%{_datadir}/centreon/cron
 
 # Install bin
-%{__install} -m 0755 bin/centcore %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centFillTrapDB %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon_trap_send %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon_health %buildroot%{_datadir}/centreon/bin/
@@ -375,7 +367,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -d -m 0775 %buildroot%{_datadir}/centreon/doc/en/
 %{__cp} -r doc/en/release_notes %buildroot%{_datadir}/centreon/doc/en
 %{__install} -d -m 0775 %buildroot%{_datadir}/centreon/examples
-%{__cp} tmpl/install/redhat/centcore.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} tmpl/install/redhat/centreontrapd.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} additional/centreon-apache.conf %buildroot%{_datadir}/centreon/examples/centreon.apache.conf
 
@@ -384,6 +375,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 
 # Install configuration files.
 %{__mv} %buildroot%{_datadir}/centreon/config/centreon.config.php.template %buildroot%{_datadir}/centreon/config/centreon.config.php
+%{__mv} %buildroot%{_datadir}/centreon/www/install/var/config.yaml %buildroot%{_sysconfdir}/centreon/
 
 # Directory for modules
 %{__install} -d -m 0755 %buildroot%{_datadir}/centreon/www/modules
@@ -452,7 +444,18 @@ REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/%{php_scl}/root/
 # Package centreon-common
 ######################################################
 %files common
+# Configuration
+%defattr(0664, centreon, centreon, 0775)
+%dir %{_sysconfdir}/centreon
+%dir %{_sysconfdir}/centreon/config.d
+%{_sysconfdir}/centreon/config.yaml
+%{_localstatedir}/cache/centreon
 
+# Directory for files generation
+%defattr(-, centreon, centreon, 2775)
+%{_localstatedir}/cache/centreon/config
+
+# centreon service
 %defattr(-, root, root, -)
 %{_unitdir}/centreon.service
 
@@ -479,8 +482,6 @@ fi
 %files web
 # Configuration
 %defattr(0664, centreon, centreon, 0775)
-%dir %{_sysconfdir}/centreon
-%config(noreplace) %{_sysconfdir}/centreon/instCentCore.conf
 %ghost %{_sysconfdir}/centreon/centreon.conf.php
 
 # Cron
@@ -490,7 +491,6 @@ fi
 
 # Logrotate
 %defattr(-, root, root, -)
-%config(noreplace) %{_sysconfdir}/logrotate.d/centcore
 %config(noreplace) %{_sysconfdir}/logrotate.d/centreon
 
 # httpd and PHP configuration
@@ -499,14 +499,6 @@ fi
 %config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php.d/50-centreon.ini
 %config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
 %config(noreplace) %{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
-
-# Init daemon
-%defattr(-, root, root, -)
-%{_unitdir}/centcore.service
-
-# Sysconfig files
-%defattr(-, root, root, -)
-%{_sysconfdir}/sysconfig/centcore
 
 # Binaries
 %defattr(-, root, root, -)
@@ -527,18 +519,12 @@ fi
 %{_bindir}/generateSqlLite
 
 %defattr(-, centreon, centreon,-)
-%{_datadir}/centreon/bin/centcore
 %{_datadir}/centreon/bin/import-mysql-indexes
 %{_datadir}/centreon/bin/export-mysql-indexes
 %{_datadir}/centreon/bin/centreon
 %{_datadir}/centreon/bin/console
-%{_bindir}/centcore
 %{_bindir}/centreon
 %{_localstatedir}/lib/centreon/installs
-
-# Directory for files generation
-%defattr(-, centreon, centreon, 2775)
-%{_localstatedir}/cache/centreon/config
 
 # Contents
 %defattr(-, root, root, -)
@@ -572,23 +558,14 @@ fi
 %{_localstatedir}/lib/centreon/nagios-perf
 %{_localstatedir}/lib/centreon/perfdata
 %{_localstatedir}/run/centreon
-%{_localstatedir}/cache/centreon
 
 %defattr(-, root, root, -)
 
 %exclude %{_datadir}/centreon/www/install/install.conf.php
 
 %post web
-
-%systemd_post centcore.service || :
 systemctl try-restart %{php_scl}-php-fpm || :
 systemctl try-restart httpd24-httpd || :
-
-%preun web
-%systemd_preun centcore.service || :
-
-%postun web
-%systemd_postun_with_restart centcore.service || :
 
 #
 # centreon-perl-libs files
@@ -672,7 +649,6 @@ fi
 %{_sbindir}/usermod -a -G apache centreon
 
 sed -i -e "s/\$instance_mode = \"poller\";/\$instance_mode = \"central\";/g" /etc/centreon/conf.pm
-sed -i -e "s/\$cmdFile = \"\/var\/lib\/centreon-engine\/rw\/centengine\.cmd\";/\$cmdFile = \"\/var\/lib\/centreon\/centcore\.cmd\"\;/g" /etc/centreon/conf.pm
 sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 
 ######################################################
