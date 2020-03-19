@@ -73,6 +73,7 @@ void process_manager::add(process* p) {
 
   // Need to update file descriptor list.
   _update = true;
+  write(_fds_exit[1], "up", 2);
 }
 
 /**
@@ -306,10 +307,17 @@ void process_manager::_run() {
         // The process manager destructor was called,
         // it's time to quit the loop.
         if (_fds[i].fd == _fds_exit[0]) {
-          _processes_fd.erase(_fds[i].fd);
-          _update = true;
-          quit = true;
-          continue;
+          if (_fds[i].revents & POLLIN) {
+            char buf[3];
+            buf[3] = 0;
+            read(_fds_exit[0], buf, 2);
+            continue;
+          } else {
+            _processes_fd.erase(_fds[i].fd);
+            _update = true;
+            quit = true;
+            continue;
+          }
         }
 
         // Data are available.
@@ -351,23 +359,7 @@ void process_manager::_update_ending_process(process* p, int status) noexcept {
     return;
 
   p->update_ending_process(status);
-  // Update process informations.
-//  std::lock_guard<std::mutex> lock(p->_lock_process);
-//  p->_end_time = timestamp::now();
-//  p->_status = status;
-//  p->_process = static_cast<pid_t>(-1);
-//  p->_close(p->_stream[process::in]);
   _erase_timeout(p);
-//  if (!p->_is_running()) {
-//    // Notify listener if necessary.
-//    if (p->_listener)
-//      (p->_listener->finished)(*p);
-//
-//    // Release condition variable.
-//    p->_cv_buffer_err.notify_one();
-//    p->_cv_buffer_out.notify_one();
-//    p->_cv_process_running.notify_one();
-//  }
 }
 
 /**
@@ -390,7 +382,7 @@ void process_manager::_update_list() {
   for (auto it = _processes_fd.begin(), end = _processes_fd.end();
        it != end; ++it) {
     _fds[_fds_size].fd = it->first;
-    _fds[_fds_size].events = POLLIN | POLLPRI;
+    _fds[_fds_size].events = POLLIN | POLLPRI | POLL_HUP;
     _fds[_fds_size].revents = 0;
     ++_fds_size;
   }
