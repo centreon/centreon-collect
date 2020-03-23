@@ -17,12 +17,14 @@
 */
 
 #include "com/centreon/connector/perl/orders/parser.hh"
+
 #include <cstdlib>
 #include <cstring>
 #include <string>
+
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/timestamp.hh"
-#include "com/centreon/connector/perl/log_v2.h"
 
 using namespace com::centreon::connector::perl::orders;
 
@@ -38,37 +40,13 @@ using namespace com::centreon::connector::perl::orders;
 parser::parser() : _listnr(nullptr) {}
 
 /**
- *  Destructor.
- */
-parser::~parser() noexcept {}
-
-/**
  *  Got error event on handle.
  *
  *  @param[in] h Handle.
  */
-void parser::error(handle& h) {
-  (void)h;
+void parser::error([[maybe_unused]] handle& h) {
   if (_listnr)
     _listnr->on_error();
-}
-
-/**
- *  Get unparsed buffer.
- *
- *  @return Unparsed buffer.
- */
-std::string const& parser::get_buffer() const noexcept {
-  return _buffer;
-}
-
-/**
- *  Get associated listener.
- *
- *  @return Listener if object has one, NULL otherwise.
- */
-listener* parser::get_listener() const noexcept {
-  return _listnr;
 }
 
 /**
@@ -87,14 +65,14 @@ void parser::listen(listener* l) noexcept {
  */
 void parser::read(handle& h) {
   // Read data.
-  log_v2::core()->debug("reading data for parsing");
+  log::core()->debug("reading data for parsing");
   char buffer[4096];
   unsigned long rb(h.read(buffer, sizeof(buffer)));
-  log_v2::core()->debug("read {} bytes from handle", rb);
+  log::core()->debug("read {} bytes from handle", rb);
 
   // stdin's eof is reached.
   if (!rb) {
-    log_v2::core()->debug("got eof on read handle");
+    log::core()->debug("got eof on read handle");
     if (_listnr)
       _listnr->on_eof();
   }
@@ -109,7 +87,7 @@ void parser::read(handle& h) {
 
     // Parse command.
     while (bound != std::string::npos) {
-      log_v2::core()->debug("got command boundary at offset {}", bound);
+      log::core()->debug("got command boundary at offset {}", bound);
       bound += sizeof(boundary);
       std::string cmd(_buffer.substr(0, bound));
       _buffer.erase(0, bound);
@@ -117,10 +95,10 @@ void parser::read(handle& h) {
       try {
         _parse(cmd);
       } catch (std::exception const& e) {
-        log_v2::core()->error("orders parsing error: {}", e.what());
+        log::core()->error("orders parsing error: {}", e.what());
         error = true;
       } catch (...) {
-        log_v2::core()->error("unknown orders parsing error");
+        log::core()->error("unknown orders parsing error");
         error = true;
       }
       if (error && _listnr)
@@ -135,8 +113,7 @@ void parser::read(handle& h) {
  *
  *  @return Always true.
  */
-bool parser::want_read(handle& h) {
-  (void)h;
+bool parser::want_read([[maybe_unused]] handle& h) {
   return true;
 }
 
@@ -145,8 +122,7 @@ bool parser::want_read(handle& h) {
  *
  *  @return Always false (class just parse).
  */
-bool parser::want_write(handle& h) {
-  (void)h;
+bool parser::want_write([[maybe_unused]] handle& h) {
   return false;
 }
 
@@ -183,12 +159,12 @@ void parser::_parse(std::string const& cmd) {
 
       // Find command ID.
       size_t end(cmd.find('\0', pos));
-      char* ptr(NULL);
+      char* ptr(nullptr);
       unsigned long long cmd_id(strtoull(cmd.c_str() + pos, &ptr, 10));
       if (!cmd_id || *ptr)
-        throw(basic_error() << "invalid execution request received:"
+        throw basic_error() << "invalid execution request received:"
                                " bad command ID ("
-                            << cmd.c_str() + pos << ")");
+                            << cmd.c_str() + pos << ")";
       pos = end + 1;
       // Find timeout value.
       end = cmd.find('\0', pos);
@@ -197,18 +173,18 @@ void parser::_parse(std::string const& cmd) {
       timestamp ts_timeout = timestamp::now();
 
       if (*ptr)
-        throw(basic_error() << "invalid execution request received:"
+        throw basic_error() << "invalid execution request received:"
                                " bad timeout ("
-                            << cmd.c_str() + pos << ")");
+                            << cmd.c_str() + pos << ")";
       ts_timeout += timeout;
       pos = end + 1;
       // Find start time.
       end = cmd.find('\0', pos);
       strtoull(cmd.c_str() + pos, &ptr, 10);
       if (*ptr)
-        throw(basic_error() << "invalid execution request received:"
+        throw basic_error() << "invalid execution request received:"
                                " bad start time ("
-                            << cmd.c_str() + pos << ")");
+                            << cmd.c_str() + pos << ")";
       pos = end + 1;
       // Find command to execute.
       end = cmd.find('\0', pos);

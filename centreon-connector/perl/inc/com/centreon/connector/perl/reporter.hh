@@ -20,6 +20,7 @@
 #define CCCP_REPORTER_HH
 
 #include <string>
+
 #include "com/centreon/connector/perl/checks/listener.hh"
 #include "com/centreon/connector/perl/namespace.hh"
 #include "com/centreon/handle_listener.hh"
@@ -39,16 +40,15 @@ class reporter : public com::centreon::handle_listener {
 
  public:
   reporter();
-  ~reporter() noexcept;
+  ~reporter() noexcept override;
   reporter(reporter const& r) = delete;
   reporter& operator=(reporter const& r) = delete;
   bool can_report() const noexcept;
-  void error(handle& h);
-  std::string const& get_buffer() const noexcept;
+  void error(handle& h) override;
   void send_result(checks::result const& r);
   void send_version(unsigned int major, unsigned int minor);
-  bool want_write(handle& h);
-  void write(handle& h);
+  bool want_write(handle& h) override;
+  void write(handle& h) override;
 };
 
 CCCP_END()

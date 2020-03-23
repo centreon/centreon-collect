@@ -60,11 +60,6 @@ credentials::credentials(credentials const& c) {
 }
 
 /**
- *  Destructor.
- */
-credentials::~credentials() {}
-
-/**
  *  Assignment operator.
  *
  *  @param[in] c Object to copy.
@@ -177,7 +172,6 @@ std::string const& credentials::get_user() const {
  */
 void credentials::set_key(std::string const& file) {
   _key = file;
-  return;
 }
 
 /**
@@ -187,7 +181,6 @@ void credentials::set_key(std::string const& file) {
  */
 void credentials::set_host(std::string const& host) {
   _host = host;
-  return;
 }
 
 /**
@@ -197,7 +190,6 @@ void credentials::set_host(std::string const& host) {
  */
 void credentials::set_password(std::string const& password) {
   _password = password;
-  return;
 }
 
 /**
@@ -207,7 +199,6 @@ void credentials::set_password(std::string const& password) {
  */
 void credentials::set_port(unsigned short port) {
   _port = port;
-  return;
 }
 
 /**
@@ -217,7 +208,6 @@ void credentials::set_port(unsigned short port) {
  */
 void credentials::set_user(std::string const& user) {
   _user = user;
-  return;
 }
 
 /**************************************
@@ -237,5 +227,4 @@ void credentials::_copy(credentials const& c) {
   _password = c._password;
   _port = c._port;
   _user = c._user;
-  return;
 }

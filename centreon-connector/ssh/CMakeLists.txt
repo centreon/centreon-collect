@@ -26,6 +26,7 @@ include_directories(${CMAKE_SOURCE_DIR}/ssh/inc)
 # SSH connector.
 add_executable(centreon_connector_ssh
   # Sources.
+  ${CMAKE_SOURCE_DIR}/common/src/log.cc
   ${CMAKE_SOURCE_DIR}/ssh/src/main.cc
   ${CMAKE_SOURCE_DIR}/ssh/src/checks/check.cc
   ${CMAKE_SOURCE_DIR}/ssh/src/checks/result.cc
@@ -58,7 +59,7 @@ add_executable(centreon_connector_ssh
   ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/socket_handle.hh
 )
 target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
-  ${CLIB_LIBRARIES} ${LIBGCRYPT_LIBRARIES} pthread)
+  ${CLIB_LIBRARIES} ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
 
 # Installation path.
 if (WITH_PREFIX)

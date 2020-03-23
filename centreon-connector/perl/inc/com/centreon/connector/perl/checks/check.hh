@@ -42,26 +42,27 @@ class result;
 class check : public handle_listener {
  public:
   check();
-  ~check() throw();
-  void error(handle& h);
-  pid_t execute(unsigned long long cmd_id,
+  ~check() noexcept;
+  check(check const& c) = delete;
+  check& operator=(check const& c) = delete;
+  void error(handle& h) override;
+  pid_t execute(uint64_t cmd_id,
                 std::string const& cmd,
                 const timestamp& tmt);
   void listen(listener* listnr);
   void on_timeout(bool final = true);
-  void read(handle& h);
+  void read(handle& h) override;
   void terminated(int exit_code);
   void unlisten(listener* listnr);
-  bool want_read(handle& h);
-  void write(handle& h);
+  bool want_read(handle& h) override;
+  void write(handle& h) override;
 
  private:
-  check(check const& c);
-  check& operator=(check const& c);
+
   void _send_result_and_unregister(result const& r);
 
   pid_t _child;
-  unsigned long long _cmd_id;
+  uint64_t _cmd_id;
   pipe_handle _err;
   listener* _listnr;
   pipe_handle _out;

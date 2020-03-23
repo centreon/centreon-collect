@@ -40,15 +40,15 @@ class reporter : public com::centreon::handle_listener {
  public:
   reporter();
   reporter(reporter const& r) = delete;
-  ~reporter() noexcept;
+  ~reporter() noexcept override;
   reporter& operator=(reporter const& r) = delete;
   bool can_report() const noexcept;
-  void error(handle& h);
+  void error(handle& h) override;
   std::string const& get_buffer() const noexcept;
   void send_result(checks::result const& r);
   void send_version(unsigned int major, unsigned int minor);
-  bool want_write(handle& h);
-  void write(handle& h);
+  bool want_write(handle& h) override;
+  void write(handle& h) override;
 };
 
 CCCS_END()

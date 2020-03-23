@@ -20,10 +20,11 @@
 
 #include <sstream>
 
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/checks/result.hh"
-#include "com/centreon/connector/perl/log_v2.h"
 #include "com/centreon/exceptions/basic.hh"
 
+using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
 /**************************************
@@ -41,7 +42,7 @@ reporter::reporter() : _can_report(true), _reported(0) {}
  *  Destructor.
  */
 reporter::~reporter() noexcept {
-  log_v2::core()->info(
+  log::core()->info(
       "connector reporter {} check results to monitoring engine", _reported);
 }
 
@@ -59,20 +60,10 @@ bool reporter::can_report() const noexcept {
  *
  *  @param[in] h Unused.
  */
-void reporter::error(handle& h) {
-  (void)h;
+void reporter::error([[maybe_unused]] handle& h) {
   _can_report = false;
-  throw(basic_error() << "error detected on the handle used"
-                         " to report to the monitoring engine");
-}
-
-/**
- *  Get reporter's internal buffer.
- *
- *  @return Internal buffer.
- */
-std::string const& reporter::get_buffer() const noexcept {
-  return _buffer;
+  throw basic_error() << "error detected on the handle used"
+                         " to report to the monitoring engine";
 }
 
 /**
@@ -83,7 +74,7 @@ std::string const& reporter::get_buffer() const noexcept {
 void reporter::send_result(checks::result const& r) {
   // Update statistics.
   ++_reported;
-  log_v2::core()->debug("reporting check result #{0} (check {1})", _reported,
+  log::core()->debug("reporting check result #{0} (check {1})", _reported,
                         r.get_command_id());
 
   // Build packet.
@@ -126,7 +117,7 @@ void reporter::send_result(checks::result const& r) {
  */
 void reporter::send_version(unsigned int major, unsigned int minor) {
   // Build packet.
-  log_v2::core()->debug("sending protocol version {0}.{1} to monitoring engine", major, minor);
+  log::core()->debug("sending protocol version {0}.{1} to monitoring engine", major, minor);
   std::ostringstream oss;
   oss << "1";
   oss.put('\0');

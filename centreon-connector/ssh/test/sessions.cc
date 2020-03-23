@@ -101,7 +101,6 @@ TEST(SSHSession, Host) {
   com::centreon::connector::ssh::sessions::credentials creds;
 
   // Checks.
-  int retval(0);
   creds.set_host("localhost");
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(creds.get_host(), "localhost");
@@ -133,7 +132,6 @@ TEST(SSHSession, Password) {
   com::centreon::connector::ssh::sessions::credentials creds;
 
   // Checks.
-  int retval(0);
   creds.set_password("mysimplepassword");
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(creds.get_password(), "mysimplepassword");
@@ -149,7 +147,6 @@ TEST(SSHSession, User) {
   com::centreon::connector::ssh::sessions::credentials creds;
 
   // Checks.
-  int retval(0);
   creds.set_user("root");
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(creds.get_user(), "root");

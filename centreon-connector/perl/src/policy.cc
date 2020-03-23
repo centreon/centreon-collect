@@ -17,18 +17,22 @@
 */
 
 #include "com/centreon/connector/perl/policy.hh"
+
 #include <sys/wait.h>
+
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/checks/check.hh"
-#include "com/centreon/connector/perl/log_v2.h"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
 // Exit flag.
@@ -66,13 +70,10 @@ policy::~policy() throw() {
   }
 
   // Close checks.
-  for (std::map<pid_t, checks::check*>::iterator it = _checks.begin(),
-                                                 end = _checks.end();
-       it != end; ++it) {
+  for (auto it = _checks.begin(), end = _checks.end(); it != end; ++it) {
     try {
       it->second->unlisten(this);
-    } catch (...) {
-    }
+    } catch (...) { }
     delete it->second;
   }
   _checks.clear();
@@ -82,7 +83,7 @@ policy::~policy() throw() {
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  log_v2::core()->info("stdin is closed");
+  log::core()->info("stdin is closed");
   on_quit();
 }
 
@@ -90,7 +91,7 @@ void policy::on_eof() {
  *  Called if an error occured on stdin.
  */
 void policy::on_error() {
-  log_v2::core()->info("error occured while parsing stdin");
+  log::core()->info("error occured while parsing stdin");
   _error = true;
   on_quit();
 }
@@ -111,7 +112,7 @@ void policy::on_execute(unsigned long long cmd_id,
     pid_t child(chk->execute(cmd_id, cmd, timeout));
     _checks[child] = chk.release();
   } catch (std::exception const& e) {
-    log_v2::core()->info("execution of check {0} failed {1}", cmd_id, e.what());
+    log::core()->info("execution of check {0} failed {1}", cmd_id, e.what());
     checks::result r;
     r.set_command_id(cmd_id);
     on_result(r);
@@ -123,7 +124,7 @@ void policy::on_execute(unsigned long long cmd_id,
  */
 void policy::on_quit() {
   // Exiting.
-  log_v2::core()->info("quit request received");
+  log::core()->info("quit request received");
   should_exit = true;
   multiplexer::instance().handle_manager::remove(&_sin);
 }
@@ -147,7 +148,7 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  log_v2::core()->info("monitoring engine requested protocol version, sending 1.0");
+  log::core()->info("monitoring engine requested protocol version, sending 1.0");
   _reporter.send_version(1, 0);
 }
 
@@ -169,19 +170,19 @@ bool policy::run() {
     pid_t child(waitpid(0, &status, WNOHANG));
     while (child != 0 && child != (pid_t)-1) {
       // Handle process termination.
-      log_v2::core()->info("process {0} exited with status {1}", status);
+      log::core()->info("process {0} exited with status {1}", status);
       std::map<pid_t, checks::check*>::iterator it;
       it = _checks.find(child);
       if (it != _checks.end()) {
         std::unique_ptr<checks::check> chk(it->second);
         _checks.erase(it);
         if (WIFSIGNALED(status)) {
-          log_v2::core()->error("process {0} exited because of a signal {1}", child, WTERMSIG(status));
+          log::core()->error("process {0} exited because of a signal {1}", child, WTERMSIG(status));
         }
 
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
       }
-      log_v2::core()->debug("{} checks still running", _checks.size());
+      log::core()->debug("{} checks still running", _checks.size());
 
       // Is there any other terminated child ?
       child = waitpid(0, &status, WNOHANG);
@@ -195,7 +196,7 @@ bool policy::run() {
   }
 
   // Run as long as some data remains.
-  log_v2::core()->info("reporting last data to monitoring engine");
+  log::core()->info("reporting last data to monitoring engine");
   while (_reporter.can_report() && _reporter.want_write(_sout))
     multiplexer::instance().multiplex();
 

@@ -50,9 +50,9 @@ class session;
 class policy : public orders::listener, public checks::listener {
  public:
   policy();
-  ~policy() throw();
-  void on_eof();
-  void on_error(uint64_t cmd_id, char const* msg);
+  ~policy() noexcept override;
+  void on_eof() override;
+  void on_error(uint64_t cmd_id, char const* msg) override;
   void on_execute(uint64_t cmd_id,
                   const timestamp& timeout,
                   std::string const& host,
@@ -63,10 +63,10 @@ class policy : public orders::listener, public checks::listener {
                   std::list<std::string> const& cmds,
                   int skip_output,
                   int skip_error,
-                  bool is_ipv6);
-  void on_quit();
-  void on_result(checks::result const& r);
-  void on_version();
+                  bool is_ipv6) override;
+  void on_quit() override;
+  void on_result(checks::result const& r) override;
+  void on_version() override;
   bool run();
 
  private:

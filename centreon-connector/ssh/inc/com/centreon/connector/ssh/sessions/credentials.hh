@@ -42,7 +42,7 @@ class credentials {
               std::string const& key = "",
               unsigned short port = 22);
   credentials(credentials const& c);
-  ~credentials();
+  ~credentials() = default;
   credentials& operator=(credentials const& c);
   bool operator==(credentials const& c) const;
   bool operator!=(credentials const& c) const;

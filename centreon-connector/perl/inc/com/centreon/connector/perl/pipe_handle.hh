@@ -36,15 +36,15 @@ class pipe_handle : public handle {
 
  public:
   pipe_handle(int fd = -1);
-  ~pipe_handle() noexcept;
+  ~pipe_handle() noexcept override;
   pipe_handle(pipe_handle const& ph) = delete;
   pipe_handle& operator=(pipe_handle const& ph) = delete;
-  void close() noexcept;
+  void close() noexcept override;
   static void close_all_handles();
-  native_handle get_native_handle() noexcept;
-  unsigned long read(void* data, unsigned long size);
+  native_handle get_native_handle() noexcept override;
+  unsigned long read(void* data, unsigned long size) override;
   void set_fd(int fd);
-  unsigned long write(void const* data, unsigned long size);
+  unsigned long write(void const* data, unsigned long size) override;
 };
 
 CCCP_END()

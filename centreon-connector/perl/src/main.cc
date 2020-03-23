@@ -16,21 +16,19 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/connector/perl/log_v2.h"
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
-#include <EXTERN.h>
-#include <perl.h>
 
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/multiplexer.hh"
 #include "com/centreon/connector/perl/options.hh"
 #include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/file.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
 // Should be defined by build tools.
@@ -46,8 +44,7 @@ volatile bool should_exit(false);
  *
  *  @param[in] signum Unused.
  */
-static void term_handler(int signum) {
-  (void)signum;
+static void term_handler([[maybe_unused]] int signum) {
   int old_errno(errno);
   should_exit = true;
   signal(SIGTERM, SIG_DFL);
@@ -93,20 +90,20 @@ int main(int argc, char** argv, char** env) {
       // Set logging object.
       if (opts.get_argument("log-file").get_is_set()) {
         std::string filename(opts.get_argument("log-file").get_value());
-        log_v2::instance().switch_to_file(filename);
+        log::instance().switch_to_file(filename);
       } else
-        log_v2::instance().switch_to_stdout();
+        log::instance().switch_to_stdout();
 
       if (opts.get_argument("debug").get_is_set()) {
-        log_v2::instance().set_level(spdlog::level::trace);
+        log::instance().set_level(spdlog::level::trace);
       } else {
-        log_v2::instance().set_level(spdlog::level::info);
+        log::instance().set_level(spdlog::level::info);
       }
-      log_v2::core()->info("Centreon Perl Connector {} starting",
+      log::core()->info("Centreon Perl Connector {} starting",
                            CENTREON_CONNECTOR_VERSION);
 
       // Set termination handler.
-      log_v2::core()->debug("installing termination handler");
+      log::core()->debug("installing termination handler");
 
       signal(SIGTERM, term_handler);
 
@@ -114,14 +111,14 @@ int main(int argc, char** argv, char** env) {
       embedded_perl::load(&argc, &argv, &env,
                           (opts.get_argument("code").get_is_set()
                                ? opts.get_argument("code").get_value().c_str()
-                               : NULL));
+                               : nullptr));
 
       // Program policy.
       policy p;
       retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
   } catch (std::exception const& e) {
-    log_v2::core()->error(e.what());
+    log::core()->error(e.what());
   }
 
   // Deinitializations.

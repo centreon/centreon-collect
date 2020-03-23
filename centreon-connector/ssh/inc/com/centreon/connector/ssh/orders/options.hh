@@ -37,21 +37,21 @@ class options {
   enum ip_protocol { ip_v4 = 0, ip_v6 = 1 };
 
   options(std::string const& cmdline = "");
-  options(options const& p);
-  ~options() throw();
-  options& operator=(options const& p);
-  std::string const& get_authentication() const throw();
-  std::list<std::string> const& get_commands() const throw();
-  std::string const& get_host() const throw();
-  std::string const& get_identity_file() const throw();
-  ip_protocol get_ip_protocol() const throw();
-  unsigned short get_port() const throw();
-  unsigned int get_timeout() const throw();
-  std::string const& get_user() const throw();
+  options(options const& p) = delete;
+  ~options() noexcept = default;
+  options& operator=(options const& p) = delete;
+  std::string const& get_authentication() const noexcept;
+  std::list<std::string> const& get_commands() const noexcept;
+  std::string const& get_host() const noexcept;
+  std::string const& get_identity_file() const noexcept;
+  ip_protocol get_ip_protocol() const noexcept;
+  unsigned short get_port() const noexcept;
+  unsigned int get_timeout() const noexcept;
+  std::string const& get_user() const noexcept;
   static std::string help();
   void parse(std::string const& cmdline);
-  int skip_stderr() const throw();
-  int skip_stdout() const throw();
+  int skip_stderr() const noexcept;
+  int skip_stdout() const noexcept;
 
  private:
   void _copy(options const& p);

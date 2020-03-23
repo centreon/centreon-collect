@@ -40,24 +40,24 @@ namespace sessions {
 class session : public com::centreon::handle_listener {
  public:
   session(credentials const& creds);
-  ~session() noexcept;
+  ~session() noexcept override;
   session(session const& s) = delete;
   session& operator=(session const& s) = delete;
   void close();
   void connect(bool use_ipv6 = false);
   void error();
-  void error(handle& h);
+  void error(handle& h) override;
   credentials const& get_credentials() const noexcept;
   LIBSSH2_SESSION* get_libssh2_session() const noexcept;
   socket_handle* get_socket_handle() noexcept;
   bool is_connected() const noexcept;
   void listen(listener* listnr);
   LIBSSH2_CHANNEL* new_channel();
-  void read(handle& h);
+  void read(handle& h) override;
   void unlisten(listener* listnr);
-  bool want_read(handle& h);
-  bool want_write(handle& h);
-  void write(handle& h);
+  bool want_read(handle& h) override;
+  bool want_write(handle& h) override;
+  void write(handle& h) override;
 
  private:
   enum e_step {

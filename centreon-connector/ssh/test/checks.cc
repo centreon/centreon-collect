@@ -64,7 +64,6 @@ TEST(SSHChecks, CommandId) {
   com::centreon::connector::ssh::checks::result r;
 
   // Checks.
-  int retval(0);
   r.set_command_id(71184);
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(r.get_command_id(), 71184);
@@ -125,7 +124,6 @@ TEST(SSHChecks, Error) {
   com::centreon::connector::ssh::checks::result r;
 
   // Checks.
-  int retval(0);
   r.set_error("this is the first string");
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(r.get_error(), "this is the first string");
@@ -144,7 +142,6 @@ TEST(SSHChecks, Executed) {
   com::centreon::connector::ssh::checks::result r;
 
   // Checks.
-  int retval(0);
   r.set_executed(false);
   ASSERT_EQ(r.get_executed(), false);
   r.set_executed(true);
@@ -160,7 +157,6 @@ TEST(SSHChecks, ExitCode) {
   com::centreon::connector::ssh::checks::result r;
 
   // Checks.
-  int retval(0);
   r.set_exit_code(71184);
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(r.get_exit_code(), 71184);
@@ -176,7 +172,6 @@ TEST(SSHChecks, Output) {
   com::centreon::connector::ssh::checks::result r;
 
   // Checks.
-  int retval(0);
   r.set_output("this is the first string");
   for (unsigned int i = 0; i < 100; ++i)
     ASSERT_EQ(r.get_output(), "this is the first string");

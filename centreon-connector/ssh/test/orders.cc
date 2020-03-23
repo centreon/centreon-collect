@@ -318,12 +318,12 @@ TEST(SSHOrders, ExecuteNotEnoughArgs) {
   fake_listener::callback_info info[13];
   std::list<fake_listener::callback_info>::const_iterator it;
   it = listnr.get_callbacks().begin();
-  for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i)
-    info[i] = *(it++);
-  for (unsigned int i = 0; i < sizeof(info) / sizeof(*info); ++i) {
-    std::cout << fake_listener::cb_error << ": " << info[i].callback
+  for (auto & i : info)
+    i = *(it++);
+  for (auto & i : info) {
+    std::cout << fake_listener::cb_error << ": " << i.callback
               << std::endl;
-    ASSERT_EQ(info[i].callback, fake_listener::cb_error);
+    ASSERT_EQ(i.callback, fake_listener::cb_error);
   }
 
   // Parser must be empty.
@@ -430,7 +430,7 @@ TEST(SSHOrders, Suite) {
     execute.port = 22;
     execute.user = "root";
     execute.password = "password";
-    execute.cmds.push_back("ls");
+    execute.cmds.emplace_back("ls");
     execute.skip_stdout = -1;
     execute.skip_stderr = -1;
     execute.is_ipv6 = true;
@@ -445,7 +445,7 @@ TEST(SSHOrders, Suite) {
     execute.port = 22;
     execute.user = "centreon";
     execute.password = "iswonderful";
-    execute.cmds.push_back("rm -rf /");
+    execute.cmds.emplace_back("rm -rf /");
     execute.skip_stdout = -1;
     execute.skip_stderr = -1;
     execute.is_ipv6 = false;
@@ -460,7 +460,7 @@ TEST(SSHOrders, Suite) {
     execute.port = 2222;
     execute.user = "merethis";
     execute.password = "rocks";
-    execute.cmds.push_back("./check_for_updates on website");
+    execute.cmds.emplace_back("./check_for_updates on website");
     execute.skip_stdout = -1;
     execute.skip_stderr = -1;
     execute.is_ipv6 = false;

@@ -34,11 +34,11 @@ class options : public com::centreon::misc::get_options {
  public:
   options();
   options(options const& opts);
-  ~options() throw();
+  ~options() noexcept override;
   options& operator=(options const& opts);
-  std::string help() const;
+  std::string help() const override;
   void parse(int argc, char* argv[]);
-  std::string usage() const;
+  std::string usage() const override;
 
  private:
   void _init();

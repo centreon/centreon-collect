@@ -39,10 +39,10 @@ if (EMBEDDED_PERL_CXXFLAGS)
 endif ()
 
 # We will use pkg-config if available.
+include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
 add_subdirectory(perl)
 add_subdirectory(ssh)
-
 
 # Testing.
 option(WITH_TESTING "Build unit tests." OFF)
@@ -61,7 +61,7 @@ if (WITH_TESTING)
   add_executable(ut
     # Core sources
     ${CMAKE_SOURCE_DIR}/perl/src/embedded_perl.cc
-    ${CMAKE_SOURCE_DIR}/perl/src/log_v2.cc
+    ${CMAKE_SOURCE_DIR}/common/src/log.cc
     ${CMAKE_SOURCE_DIR}/perl/src/pipe_handle.cc
     ${CMAKE_SOURCE_DIR}/perl/src/script.cc
     ${CMAKE_SOURCE_DIR}/perl/src/xs_init.cc

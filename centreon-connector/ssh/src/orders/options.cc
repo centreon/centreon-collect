@@ -34,30 +34,30 @@ using namespace com::centreon::connector::ssh::orders;
 
 static char const* optstr = "1246a:C:E:fhH:i:l:n:o:O:p:qs:S:t:vV";
 static struct option optlong[] = {
-    {"authentication", required_argument, NULL, 'a'},
-    {"command", required_argument, NULL, 'C'},
-    {"fork", no_argument, NULL, 'f'},
-    {"help", no_argument, NULL, 'h'},
-    {"hostname", required_argument, NULL, 'H'},
-    {"identity", required_argument, NULL, 'i'},
-    {"logname", required_argument, NULL, 'l'},
-    {"name", required_argument, NULL, 'n'},
-    {"output", required_argument, NULL, 'O'},
-    {"port", required_argument, NULL, 'p'},
-    {"proto1", no_argument, NULL, '1'},
-    {"proto2", no_argument, NULL, '2'},
-    {"quiet", no_argument, NULL, 'q'},
-    {"services", required_argument, NULL, 's'},
-    {"skip", optional_argument, NULL, 'S'},
-    {"skip-stderr", optional_argument, NULL, 'E'},
-    {"skip-stdout", optional_argument, NULL, 'S'},
-    {"ssh-option", required_argument, NULL, 'o'},
-    {"timeout", required_argument, NULL, 't'},
-    {"use-ipv4", no_argument, NULL, '4'},
-    {"use-ipv6", no_argument, NULL, '6'},
-    {"verbose", no_argument, NULL, 'v'},
-    {"version", no_argument, NULL, 'V'},
-    {NULL, no_argument, NULL, 0}};
+    {"authentication", required_argument, nullptr, 'a'},
+    {"command", required_argument, nullptr, 'C'},
+    {"fork", no_argument, nullptr, 'f'},
+    {"help", no_argument, nullptr, 'h'},
+    {"hostname", required_argument, nullptr, 'H'},
+    {"identity", required_argument, nullptr, 'i'},
+    {"logname", required_argument, nullptr, 'l'},
+    {"name", required_argument, nullptr, 'n'},
+    {"output", required_argument, nullptr, 'O'},
+    {"port", required_argument, nullptr, 'p'},
+    {"proto1", no_argument, nullptr, '1'},
+    {"proto2", no_argument, nullptr, '2'},
+    {"quiet", no_argument, nullptr, 'q'},
+    {"services", required_argument, nullptr, 's'},
+    {"skip", optional_argument, nullptr, 'S'},
+    {"skip-stderr", optional_argument, nullptr, 'E'},
+    {"skip-stdout", optional_argument, nullptr, 'S'},
+    {"ssh-option", required_argument, nullptr, 'o'},
+    {"timeout", required_argument, nullptr, 't'},
+    {"use-ipv4", no_argument, nullptr, '4'},
+    {"use-ipv6", no_argument, nullptr, '6'},
+    {"verbose", no_argument, nullptr, 'v'},
+    {"version", no_argument, nullptr, 'V'},
+    {nullptr, no_argument, nullptr, 0}};
 
 /**************************************
  *                                     *
@@ -79,38 +79,11 @@ options::options(std::string const& cmdline)
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] p Object to copy.
- */
-options::options(options const& right) {
-  _copy(right);
-}
-
-/**
- *  Destructor.
- */
-options::~options() throw() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-options& options::operator=(options const& right) {
-  if (this != &right)
-    _copy(right);
-  return (*this);
-}
-
-/**
  *  Get the authentication password.
  *
  *  @return The password.
  */
-std::string const& options::get_authentication() const throw() {
+std::string const& options::get_authentication() const noexcept {
   return (_authentication);
 }
 
@@ -119,7 +92,7 @@ std::string const& options::get_authentication() const throw() {
  *
  *  @return The command to execute.
  */
-std::list<std::string> const& options::get_commands() const throw() {
+std::list<std::string> const& options::get_commands() const noexcept {
   return (_commands);
 }
 
@@ -128,7 +101,7 @@ std::list<std::string> const& options::get_commands() const throw() {
  *
  *  @return A string.
  */
-std::string const& options::get_host() const throw() {
+std::string const& options::get_host() const noexcept {
   return (_host);
 }
 
@@ -137,7 +110,7 @@ std::string const& options::get_host() const throw() {
  *
  *  @return A file path.
  */
-std::string const& options::get_identity_file() const throw() {
+std::string const& options::get_identity_file() const noexcept {
   return (_identity_file);
 }
 
@@ -146,7 +119,7 @@ std::string const& options::get_identity_file() const throw() {
  *
  *  @return The version (v4 or v6).
  */
-options::ip_protocol options::get_ip_protocol() const throw() {
+options::ip_protocol options::get_ip_protocol() const noexcept {
   return (_ip_protocol);
 }
 
@@ -155,7 +128,7 @@ options::ip_protocol options::get_ip_protocol() const throw() {
  *
  *  @return The port number.
  */
-unsigned short options::get_port() const throw() {
+unsigned short options::get_port() const noexcept {
   return (_port);
 }
 
@@ -164,7 +137,7 @@ unsigned short options::get_port() const throw() {
  *
  *  @return The timeout.
  */
-unsigned int options::get_timeout() const throw() {
+unsigned int options::get_timeout() const noexcept {
   return (_timeout);
 }
 
@@ -173,7 +146,7 @@ unsigned int options::get_timeout() const throw() {
  *
  *  @return The user name.
  */
-std::string const& options::get_user() const throw() {
+std::string const& options::get_user() const noexcept {
   return (_user);
 }
 
@@ -225,14 +198,14 @@ void options::parse(std::string const& cmdline) {
   opterr = 0;  // Disable output messages.
 
   char c;
-  while ((c = getopt_long(ac, av, optstr, optlong, NULL)) > 0) {
+  while ((c = getopt_long(ac, av, optstr, optlong, nullptr)) > 0) {
     switch (c) {
       case 'H':  // Set host name or IP address.
         _host = optarg;
         break;
 
       case 'C':  // Set command line to execute.
-        _commands.push_back(optarg);
+        _commands.emplace_back(optarg);
         break;
 
       case 'a':  // Set user.
@@ -256,7 +229,7 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case '1':  // Enable SSH v1.
-        throw(basic_error() << "'" << c << "' option is not supported");
+        throw basic_error() << "'" << c << "' option is not supported";
         break;
 
       case '2':  // Enable SSH v2.
@@ -268,7 +241,7 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'f':  // Fork ssh.
-        throw(basic_error() << "'" << c << "' option is not supported");
+        throw basic_error() << "'" << c << "' option is not supported";
         break;
 
       case 'i':  // Set Identity file.
@@ -276,19 +249,19 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'n':  // Host name for monitoring engine.
-        throw(basic_error() << "'" << c << "' option is not supported");
+        throw basic_error() << "'" << c << "' option is not supported";
         break;
 
       case 'o':  // Set ssh-option.
-        throw(basic_error() << "'" << c << "' option is not supported");
+        throw basic_error() << "'" << c << "' option is not supported";
         break;
 
       case 'O':  // Set output file.
-        throw(basic_error() << "'" << c << "' option is not supported");
+        throw basic_error() << "'" << c << "' option is not supported";
         break;
 
       case 's':  // Services.
-        throw(basic_error() << "'" << c << "' option is not supported");
+        throw basic_error() << "'" << c << "' option is not supported";
         break;
 
       case 'S':  // Skip stdout.
@@ -307,10 +280,10 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case '?':  // Missing argument.
-        throw(basic_error() << "option '" << c << "' requires an argument");
+        throw basic_error() << "option '" << c << "' requires an argument";
 
       default:  // Unknown argument.
-        throw(basic_error() << "unrecognized option '" << c << "'");
+        throw basic_error() << "unrecognized option '" << c << "'";
     }
   }
   if (_user.empty())
@@ -322,8 +295,8 @@ void options::parse(std::string const& cmdline) {
  *
  *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-int options::skip_stderr() const throw() {
-  return (_skip_stderr);
+int options::skip_stderr() const noexcept {
+  return _skip_stderr;
 }
 
 /**
@@ -331,32 +304,8 @@ int options::skip_stderr() const throw() {
  *
  *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-int options::skip_stdout() const throw() {
-  return (_skip_stdout);
-}
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void options::_copy(options const& right) {
-  _authentication = right._authentication;
-  _commands = right._commands;
-  _host = right._host;
-  _identity_file = right._identity_file;
-  _ip_protocol = right._ip_protocol;
-  _port = right._port;
-  _skip_stderr = right._skip_stderr;
-  _skip_stdout = right._skip_stdout;
-  _timeout = right._timeout;
-  _user = right._user;
+int options::skip_stdout() const noexcept {
+  return _skip_stdout;
 }
 
 /**
@@ -365,21 +314,11 @@ void options::_copy(options const& right) {
  *  @return The current login name.
  */
 std::string options::_get_user_name() {
-#ifdef _WIN32
-  char buffer[32665];
-  if (!GetUserName(buffer, sizeof(buffer) - 1)) {
-    int errcode(GetLastError());
-    throw(basic_error() << "cannot get current user name (error " << errcode
-                        << ")");
-  }
-  return (buffer);
-#else
   errno = 0;
   passwd* pwd(getpwuid(getuid()));
   if (!pwd || !pwd->pw_name) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot get current user name: " << msg);
+    throw basic_error() << "cannot get current user name: " << msg;
   }
-  return (pwd->pw_name);
-#endif  // Windows or POSIX.
+  return pwd->pw_name;
 }

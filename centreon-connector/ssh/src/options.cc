@@ -56,7 +56,7 @@ options::options(options const& opts) : misc::get_options(opts) {
 /**
  *  Destructor.
  */
-options::~options() throw() {}
+options::~options() noexcept {}
 
 /**
  *  Assignment operator.

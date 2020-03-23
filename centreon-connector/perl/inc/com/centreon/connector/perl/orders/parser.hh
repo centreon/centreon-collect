@@ -38,16 +38,14 @@ namespace orders {
 class parser : public handle_listener {
  public:
   parser();
-  ~parser() noexcept;
+  ~parser() override = default ;
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;
-  void error(handle& h);
-  std::string const& get_buffer() const noexcept;
-  listener* get_listener() const noexcept;
+  void error(handle& h) override;
   void listen(listener* l = nullptr) noexcept;
-  void read(handle& h);
-  bool want_read(handle& h);
-  bool want_write(handle& h);
+  void read(handle& h) override;
+  bool want_read(handle& h) override;
+  bool want_write(handle& h) override;
 
  private:
   void _parse(std::string const& cmd);

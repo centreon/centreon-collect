@@ -35,11 +35,6 @@ using namespace com::centreon::connector::ssh::checks;
 timeout::timeout(check* chk) : _check(chk) {}
 
 /**
- *  Destructor.
- */
-timeout::~timeout() noexcept {}
-
-/**
  *  Get the check object.
  *
  *  @return Check object.
