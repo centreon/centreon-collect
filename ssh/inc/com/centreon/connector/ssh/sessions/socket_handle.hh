@@ -35,12 +35,12 @@ namespace sessions {
 class socket_handle : public com::centreon::handle {
  public:
   socket_handle(native_handle handl = native_handle_null);
-  ~socket_handle() noexcept;
-  void close();
-  native_handle get_native_handle();
-  unsigned long read(void* data, unsigned long size);
+  ~socket_handle() noexcept override;
+  void close() override;
+  native_handle get_native_handle() override;
+  unsigned long read(void* data, unsigned long size) override;
   void set_native_handle(native_handle handl);
-  unsigned long write(void const* data, unsigned long size);
+  unsigned long write(void const* data, unsigned long size) override;
 
  private:
   socket_handle(socket_handle const& sh);

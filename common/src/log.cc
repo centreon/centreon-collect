@@ -16,12 +16,15 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/connector/perl/log_v2.h"
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/null_sink.h>
+#include "com/centreon/connector/log.hh"
 
-log_v2::log_v2() {
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/null_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+using namespace com::centreon::connector;
+
+log::log() {
   auto filesink = std::make_shared<spdlog::sinks::null_sink_mt>();
   _core_log = std::make_shared<spdlog::logger>("core", filesink);
   _core_log->info("log started");
@@ -29,21 +32,21 @@ log_v2::log_v2() {
   _core_log->flush_on(spdlog::level::trace);
 }
 
-log_v2::~log_v2() {
+log::~log() {
 }
 
-log_v2& log_v2::instance() {
-  static log_v2 instance;
+com::centreon::connector::log& log::instance() {
+  static log instance;
 
   return instance;
 }
 
-void log_v2::set_level(spdlog::level::level_enum level) {
+void log::set_level(spdlog::level::level_enum level) {
   _core_log->set_level(level);
   _core_log->flush_on(level);
 }
 
-void log_v2::switch_to_stdout() {
+void log::switch_to_stdout() {
   auto filesink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
   spdlog::level::level_enum lvl = _core_log->level();
   _core_log = std::make_shared<spdlog::logger>("core", filesink);
@@ -52,7 +55,7 @@ void log_v2::switch_to_stdout() {
   _core_log->flush_on(lvl);
 }
 
-void log_v2::switch_to_file(std::string const& filename) {
+void log::switch_to_file(std::string const& filename) {
   auto filesink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename);
   spdlog::level::level_enum lvl = _core_log->level();
   _core_log = std::make_shared<spdlog::logger>("core", filesink);
@@ -61,6 +64,6 @@ void log_v2::switch_to_file(std::string const& filename) {
   _core_log->flush_on(lvl);
 }
 
-std::shared_ptr<spdlog::logger> log_v2::core() {
-  return log_v2::instance()._core_log;
+std::shared_ptr<spdlog::logger> log::core() {
+  return log::instance()._core_log;
 }

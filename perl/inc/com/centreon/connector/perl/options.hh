@@ -35,12 +35,12 @@ class options : public com::centreon::misc::get_options {
   void _init();
  public:
   options();
-  ~options() noexcept;
+  ~options() noexcept override;
   options(options const& opts) = delete;
   options& operator=(options const& opts) = delete;
-  std::string help() const;
+  std::string help() const override;
   void parse(int argc, char* argv[]);
-  std::string usage() const;
+  std::string usage() const override;
 };
 
 CCCP_END()

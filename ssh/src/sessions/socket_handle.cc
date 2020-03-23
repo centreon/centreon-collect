@@ -43,7 +43,7 @@ socket_handle::socket_handle(native_handle handl) : _handl(handl) {}
 /**
  *  Destructor.
  */
-socket_handle::~socket_handle() throw() { this->close(); }
+socket_handle::~socket_handle() noexcept { this->close(); }
 
 /**
  *  Close socket descriptor.

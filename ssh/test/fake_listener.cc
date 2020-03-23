@@ -16,16 +16,17 @@
 ** For more information : contact@centreon.com
 */
 
-#include <cmath>
 #include "fake_listener.hh"
+
+#include <cmath>
 
 using namespace com::centreon::connector::ssh::orders;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Get the callbacks information.
@@ -33,7 +34,7 @@ using namespace com::centreon::connector::ssh::orders;
  *  @return Callbacks information.
  */
 std::list<fake_listener::callback_info> const& fake_listener::get_callbacks()
-    const throw() {
+    const noexcept {
   return _callbacks;
 }
 
@@ -121,25 +122,10 @@ void fake_listener::on_version() {
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] fl Object to copy.
- */
-void fake_listener::_copy(fake_listener const& fl) {
-  _callbacks = fl._callbacks;
-}
-
-/**************************************
-*                                     *
-*           Global Objects.           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Global Objects.           *
+ *                                     *
+ **************************************/
 
 /**
  *  Check callback_info list equality.
@@ -155,12 +141,8 @@ bool operator==(std::list<fake_listener::callback_info> const& left,
   if (left.size() != right.size())
     retval = false;
   else {
-    for (std::list<fake_listener::callback_info>::const_iterator
-             it1 = left.begin(),
-             end1 = left.end(),
-             it2 = right.begin();
-         it1 != end1;
-         ++it1, ++it2)
+    for (auto it1 = left.begin(), end1 = left.end(), it2 = right.begin();
+         it1 != end1; ++it1, ++it2)
       if ((it1->callback != it2->callback) ||
           ((it1->callback == fake_listener::cb_execute) &&
            ((it1->cmd_id != it2->cmd_id) ||

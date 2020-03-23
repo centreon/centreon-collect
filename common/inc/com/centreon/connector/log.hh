@@ -16,22 +16,26 @@
  * For more information : contact@centreon.com
  *
  */
-#ifndef CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_V2_H_
-#define CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_V2_H_
+#ifndef CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_
+#define CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_
 
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
 #include <memory>
 
-class log_v2 {
+#include "com/centreon/connector/namespace.hh"
+
+CCC_BEGIN();
+
+class log {
  private:
   std::shared_ptr<spdlog::logger> _core_log;
-  log_v2();
-  ~log_v2();
+  log();
+  ~log();
 
  public:
-  static log_v2& instance();
+  static log& instance();
 
   void set_level(spdlog::level::level_enum level);
   void switch_to_stdout();
@@ -40,4 +44,5 @@ class log_v2 {
   static std::shared_ptr<spdlog::logger> core();
 };
 
-#endif  // CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_V2_H_
+CCC_END();
+#endif  // CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_

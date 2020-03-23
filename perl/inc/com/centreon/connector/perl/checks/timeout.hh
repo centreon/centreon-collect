@@ -40,10 +40,10 @@ class timeout : public com::centreon::task {
   bool _final;
 
  public:
-  timeout(check* chk = NULL, bool final = false);
+  explicit timeout(check* chk = NULL, bool final = false);
   timeout(timeout const& t) = delete;
   timeout& operator=(timeout const& t) = delete;
-  void run();
+  void run() override;
 };
 }  // namespace checks
 

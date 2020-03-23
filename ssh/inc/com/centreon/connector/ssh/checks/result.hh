@@ -35,17 +35,17 @@ class result {
  public:
   result();
   result(result const& r);
-  ~result();
+  ~result() = default;
   result& operator=(result const& r);
-  unsigned long long get_command_id() const throw();
-  std::string const& get_error() const throw();
-  bool get_executed() const throw();
-  int get_exit_code() const throw();
-  std::string const& get_output() const throw();
-  void set_command_id(unsigned long long cmd_id) throw();
+  unsigned long long get_command_id() const noexcept;
+  std::string const& get_error() const noexcept;
+  bool get_executed() const noexcept;
+  int get_exit_code() const noexcept;
+  std::string const& get_output() const noexcept;
+  void set_command_id(unsigned long long cmd_id) noexcept;
   void set_error(std::string const& error);
-  void set_executed(bool executed) throw();
-  void set_exit_code(int code) throw();
+  void set_executed(bool executed) noexcept;
+  void set_exit_code(int code) noexcept;
   void set_output(std::string const& output);
 
  private:

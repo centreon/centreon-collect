@@ -20,7 +20,9 @@
 #define CCCP_POLICY_HH
 
 #include <sys/types.h>
+
 #include <map>
+
 #include "com/centreon/connector/perl/checks/listener.hh"
 #include "com/centreon/connector/perl/namespace.hh"
 #include "com/centreon/connector/perl/orders/listener.hh"
@@ -53,20 +55,19 @@ class policy : public orders::listener, public checks::listener {
 
  public:
   policy();
-  ~policy() noexcept;
+  ~policy() noexcept override;
   policy(policy const& p) = delete;
   policy& operator=(policy const& p) = delete;
 
-  void on_eof();
-  void on_error();
+  void on_eof() override;
+  void on_error() override;
   void on_execute(unsigned long long cmd_id,
                   const timestamp& timeout,
-                  std::string const& cmd);
-  void on_quit();
-  void on_result(checks::result const& r);
-  void on_version();
+                  std::string const& cmd) override;
+  void on_quit() override;
+  void on_result(checks::result const& r) override;
+  void on_version() override;
   bool run();
-
 };
 
 CCCP_END()

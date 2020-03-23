@@ -39,12 +39,12 @@ class timeout : public com::centreon::task {
   check* _check;
 
  public:
-  timeout(check* chk = NULL);
-  ~timeout() noexcept;
+  timeout(check* chk = nullptr);
+  ~timeout() noexcept override = default;
   timeout(timeout const& t) = delete;
   timeout& operator=(timeout const& t) = delete;
   check* get_check() const noexcept;
-  void run();
+  void run() override;
 };
 }  // namespace checks
 

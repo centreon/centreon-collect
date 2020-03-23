@@ -24,13 +24,12 @@ include_directories(${CMAKE_SOURCE_DIR}/perl/inc/)
 # Perl connector.
 add_executable(centreon_connector_perl
   # Sources.
+  ${CMAKE_SOURCE_DIR}/common/src/log.cc
   ${CMAKE_SOURCE_DIR}/perl/src/main.cc
-  # Sources.
   ${CMAKE_SOURCE_DIR}/perl/src/checks/check.cc
   ${CMAKE_SOURCE_DIR}/perl/src/checks/result.cc
   ${CMAKE_SOURCE_DIR}/perl/src/checks/timeout.cc
   ${CMAKE_SOURCE_DIR}/perl/src/embedded_perl.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/log_v2.cc
   ${CMAKE_SOURCE_DIR}/perl/src/multiplexer.cc
   ${CMAKE_SOURCE_DIR}/perl/src/options.cc
   ${CMAKE_SOURCE_DIR}/perl/src/orders/parser.cc

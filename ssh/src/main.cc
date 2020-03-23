@@ -26,14 +26,14 @@
 #endif  // LIBSSH2_WITH_LIBGCRYPT
 #include <libssh2.h>
 #include <iostream>
+#include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/file.hh"
-#include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::connector;
 using namespace com::centreon::connector::ssh;
 
 // Should be defined by build tools.
@@ -57,9 +57,9 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 static void term_handler(int signum) {
   (void)signum;
   int old_errno(errno);
-  log_info(logging::high) << "termination request received";
+  log::core()->info("termination request received");
   should_exit = true;
-  log_info(logging::high) << "reseting termination handler";
+  log::core()->info("reseting termination handler");
   signal(SIGTERM, SIG_DFL);
   errno = old_errno;
 }
@@ -75,9 +75,6 @@ static void term_handler(int signum) {
 int main(int argc, char* argv[]) {
   // Return value.
   int retval(EXIT_FAILURE);
-
-  // Log object.
-  logging::file* log_file = NULL;
 
   try {
     // Initializations.
@@ -102,28 +99,20 @@ int main(int argc, char* argv[]) {
       // Set logging object.
       if (opts.get_argument("log-file").get_is_set()) {
         std::string filename(opts.get_argument("log-file").get_value());
-        log_file = new logging::file(filename);
+        log::instance().switch_to_file(filename);
       } else
-        log_file = new logging::file(stderr);
+        log::instance().switch_to_stdout();
 
       if (opts.get_argument("debug").get_is_set()) {
-        log_file->show_pid(true);
-        log_file->show_thread_id(true);
-        logging::engine::instance().add(
-            log_file,
-            logging::type_debug | logging::type_info | logging::type_error,
-            logging::high);
+        log::instance().set_level(spdlog::level::trace);
       } else {
-        log_file->show_pid(false);
-        log_file->show_thread_id(false);
-        logging::engine::instance().add(
-            log_file, logging::type_info | logging::type_error, logging::low);
+        log::instance().set_level(spdlog::level::info);
       }
-      log_info(logging::low) << "Centreon SSH Connector "
-                             << CENTREON_CONNECTOR_VERSION << " starting";
+      log::core()->info("Centreon SSH Connector {} starting",
+                        CENTREON_CONNECTOR_VERSION);
 #if LIBSSH2_VERSION_NUM >= 0x010205
       // Initialize libssh2.
-      log_debug(logging::medium) << "initializing libssh2";
+      log::core()->debug("initializing libssh2");
 #ifdef LIBSSH2_WITH_LIBGCRYPT
       // FIXME DBR: needed or not needed ??
       // Version check should be the very first call because it
@@ -139,13 +128,12 @@ int main(int argc, char* argv[]) {
         if (!version)
           throw basic_error() << "libssh2 version is too old (>= "
                               << LIBSSH2_VERSION << " required)";
-        log_info(logging::low) << "libssh2 version " << version
-                               << " successfully loaded";
+        log::core()->info( "libssh2 version {} successfully loaded", version);
       }
 #endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
-      log_debug(logging::medium) << "installing termination handler";
+      log::core()->debug( "installing termination handler");
       signal(SIGTERM, term_handler);
 
       // Program policy.
@@ -153,7 +141,7 @@ int main(int argc, char* argv[]) {
       retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
   } catch (std::exception const& e) {
-    log_error(logging::low) << e.what();
+    log::core()->error( "installing termination handler");
   }
 
 #if LIBSSH2_VERSION_NUM >= 0x010205
@@ -163,8 +151,6 @@ int main(int argc, char* argv[]) {
 
   // Deinitializations.
   multiplexer::unload();
-  if (log_file)
-    delete log_file;
 
   return retval;
 }

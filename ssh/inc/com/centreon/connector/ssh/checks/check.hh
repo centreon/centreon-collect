@@ -43,15 +43,15 @@ class result;
 class check : public sessions::listener {
  public:
   check(int skip_stdout = -1, int skip_stderr = -1);
-  ~check() throw();
+  ~check() noexcept override;
   void execute(sessions::session& sess,
                unsigned long long cmd_id,
                std::list<std::string> const& cmds,
                const timestamp& tmt);
   void listen(checks::listener* listnr);
-  void on_available(sessions::session& sess);
-  void on_close(sessions::session& sess);
-  void on_connected(sessions::session& sess);
+  void on_available(sessions::session& sess) override;
+  void on_close(sessions::session& sess) override;
+  void on_connected(sessions::session& sess) override;
   void on_timeout();
   void unlisten(checks::listener* listnr);
 

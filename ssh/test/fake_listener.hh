@@ -56,12 +56,12 @@ class fake_listener : public com::centreon::connector::ssh::orders::listener {
   };
 
   fake_listener() = default;
-  ~fake_listener() = default;
+  ~fake_listener() override = default;
   fake_listener(fake_listener const& fl) = delete;
   fake_listener& operator=(fake_listener const& fl) = delete;
-  std::list<callback_info> const& get_callbacks() const throw();
-  void on_eof();
-  void on_error(uint64_t cmd_id, char const* msg);
+  std::list<callback_info> const& get_callbacks() const noexcept;
+  void on_eof() override;
+  void on_error(uint64_t cmd_id, char const* msg) override;
   void on_execute(uint64_t cmd_id,
                   const timestamp& timeout,
                   std::string const& host,
@@ -72,13 +72,11 @@ class fake_listener : public com::centreon::connector::ssh::orders::listener {
                   std::list<std::string> const& cmds,
                   int skip_stdout,
                   int skip_stderr,
-                  bool is_ipv6);
-  void on_quit();
-  void on_version();
+                  bool is_ipv6) override;
+  void on_quit() override;
+  void on_version() override;
 
  private:
-  void _copy(fake_listener const& fl);
-
   std::list<callback_info> _callbacks;
 };
 

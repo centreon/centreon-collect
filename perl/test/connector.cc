@@ -139,7 +139,7 @@ class TestConnector : public testing::Test {
     return output;
   }
 
-  void _write_file(char const* filename,
+  static void _write_file(char const* filename,
                    char const* content,
                    unsigned int size = 0) {
     // Check size.
@@ -149,14 +149,14 @@ class TestConnector : public testing::Test {
     // Open file.
     FILE* f(fopen(filename, "w"));
     if (!f)
-      throw(basic_error() << "could not open file " << filename);
+      throw basic_error() << "could not open file " << filename;
 
     // Write content.
     while (size > 0) {
       size_t wb(fwrite(content, sizeof(*content), size, f));
       if (ferror(f)) {
         fclose(f);
-        throw(basic_error() << "error while writing file " << filename);
+        throw basic_error() << "error while writing file " << filename;
       }
       size -= wb;
     }
@@ -214,10 +214,9 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
 TEST_F(TestConnector, ExecuteMultipleScripts) {
   // Write Perl scripts.
   std::string script_paths[10];
-  for (unsigned int i = 0; i < sizeof(script_paths) / sizeof(*script_paths);
-       ++i) {
-    script_paths[i] = io::file_stream::temp_path();
-    _write_file(script_paths[i].c_str(), scripts, sizeof(scripts) - 1);
+  for (auto & script_path : script_paths) {
+    script_path = io::file_stream::temp_path();
+    _write_file(script_path.c_str(), scripts, sizeof(scripts) - 1);
   }
 
   // Process.
@@ -244,9 +243,8 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
   int retval{wait_for_termination()};
 
   // Remove temporary files.
-  for (unsigned int i = 0; i < sizeof(script_paths) / sizeof(*script_paths);
-       ++i)
-    remove(script_paths[i].c_str());
+  for (auto & script_path : script_paths)
+    remove(script_path.c_str());
 
   unsigned int nb_right_output(0);
   for (size_t pos(0); (pos = output.find(result2, pos)) != std::string::npos;

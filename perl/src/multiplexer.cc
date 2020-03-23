@@ -21,7 +21,7 @@
 using namespace com::centreon::connector::perl;
 
 // Class instance pointer.
-static multiplexer* _instance = NULL;
+static multiplexer* _instance = nullptr;
 
 /**************************************
  *                                     *
@@ -49,7 +49,7 @@ void multiplexer::load() {
  */
 void multiplexer::unload() {
   delete _instance;
-  _instance = NULL;
+  _instance = nullptr;
 }
 
 /**************************************
