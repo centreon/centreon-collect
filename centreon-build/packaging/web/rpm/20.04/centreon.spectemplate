@@ -647,6 +647,8 @@ fi
 %{_sbindir}/usermod -a -G centreon,nagios,centreon-engine,centreon-broker apache
 %{_sbindir}/usermod -a -G apache nagios
 %{_sbindir}/usermod -a -G apache centreon
+%{_sbindir}/usermod -a -G apache centreon-gorgone
+%{_sbindir}/usermod -a -G centreon-gorgone apache
 
 sed -i -e "s/\$instance_mode = \"poller\";/\$instance_mode = \"central\";/g" /etc/centreon/conf.pm
 sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
@@ -673,6 +675,8 @@ sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 %{_sbindir}/usermod -a -G centreon,nagios centreon-broker
 %{_sbindir}/usermod -a -G centreon-engine nagios
 %{_sbindir}/usermod -a -G centreon-engine,centreon-broker centreon
+%{_sbindir}/usermod -a -G centreon-engine centreon-gorgone
+%{_sbindir}/usermod -a -G centreon-broker centreon-gorgone
 
 # Change right for Centreon Engine and Centreon Broker
 if [ -d /etc/centreon-broker ]; then
