@@ -5,17 +5,6 @@ set -x
 
 . `dirname $0`/../../common.sh
 
-#
-# This script will generate Centreon Web sources from the local clone
-# of Centreon Web repository (centreon-web directory). These sources
-# will then be pushed to the internal repository (srvi-repo) and used
-# in downstream jobs, thanks to the property file generated at the end
-# of the script.
-#
-
-# Project.
-export PROJECT=centreon-web
-
 # Get version.
 VERSION=
 VERSION_NUM=0
@@ -87,14 +76,8 @@ docker cp "$containerid:/usr/local/src/centreon-api-v2.html" centreon-api-v2.htm
 docker stop "$containerid"
 docker rm "$containerid"
 
-# Send it to srvi-repo.
-put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
-put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" "vendor.tar.gz"
-put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v2.html
-
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
-PROJECT=$PROJECT
 VERSION=$VERSION
 RELEASE=$RELEASE
 COMMIT=$COMMIT

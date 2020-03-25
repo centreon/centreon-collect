@@ -5,9 +5,6 @@ set -x
 
 . `dirname $0`/../../common.sh
 
-# Project.
-PROJECT=centreon-web
-
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -23,8 +20,7 @@ DISTRIB="$1"
 docker pull registry.centreon.com/mon-build-dependencies-20.04:$DISTRIB
 
 # Retrieve sources.
-rm -rf "$PROJECT-$VERSION" "centreon-$VERSION" "centreon-$VERSION.tar.gz"
-get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 export THREEDIGITVERSION=`echo $VERSION | cut -d - -f 1`
 rm -rf "centreon-$THREEDIGITVERSION" "centreon-$THREEDIGITVERSION.tar.gz"
