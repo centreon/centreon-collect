@@ -19,6 +19,7 @@ Obsoletes:      centreon-open-tickets-module
 Obsoletes:      centreon-open-tickets-widget
 Provides:       centreon-open-tickets-module = %{version}-%{release}
 Provides:       centreon-open-tickets-widget = %{version}-%{release}
+AutoReqProv: no
 
 %description
 The module allows to open tickets on ITSM providers.
