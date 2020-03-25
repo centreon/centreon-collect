@@ -5,9 +5,6 @@ set -x
 
 . `dirname $0`/../../common.sh
 
-# Project.
-PROJECT=centreon-web
-
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -18,7 +15,7 @@ fi
 # Release delivery.
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  copy_internal_source_to_testing "standard" "web" "$PROJECT-$VERSION-$RELEASE"
+  put_testing_source "standard" "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz" centreon-api-v2.html
   copy_internal_rpms_to_testing "standard" "20.04" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
   TARGETVERSION="$VERSION"
 
@@ -28,6 +25,7 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 else
   promote_canary_rpms_to_unstable "standard" "20.04" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
   SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
+  put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v2.html
   $SSH_REPO aws s3 cp --acl public-read "/srv/sources/internal/web/$PROJECT-$VERSION-$RELEASE/centreon-api-v2.html" s3://centreon-documentation/centreon-web/centreon-api-v2.html
   $SSH_REPO aws cloudfront create-invalidation --distribution-id E1W5L9V83QVVLX --paths /centreon-web/centreon-api-v2.html
   TARGETVERSION='20.04'

@@ -5,9 +5,6 @@ set -x
 
 . `dirname $0`/../../common.sh
 
-# Project.
-PROJECT=centreon-web
-
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
@@ -38,9 +35,7 @@ docker pull $INFLUXDB_IMAGE
 docker pull $NEWMAN_IMAGE
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION" "$PROJECT-$VERSION.tar.gz" "vendor.tar.gz"
-get_internal_source "web/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-get_internal_source "web/$PROJECT-$VERSION-$RELEASE/vendor.tar.gz"
+rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 rm -rf vendor
