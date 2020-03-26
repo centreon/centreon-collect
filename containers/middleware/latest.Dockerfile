@@ -6,12 +6,12 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \
     apt-get install -y debconf-utils wget lsb-release && \
-    wget -q http://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb && \
+    wget -q http://dev.mysql.com/get/mysql-apt-config_0.3.7-1debian8_all.deb && \
     echo 'mysql-apt-config mysql-apt-config/select-server select mysql-5.6' | debconf-set-selections && \
     echo 'mysql-apt-config mysql-apt-config/select-product select Ok' | debconf-set-selections && \
     echo 'mysql-community-server mysql-community-server/root-pass password centreon' | debconf-set-selections && \
     echo 'mysql-community-server mysql-community-server/re-root-pass password centreon' | debconf-set-selections && \
-    dpkg -i mysql-apt-config_0.8.15-1_all.deb && \
+    dpkg -i mysql-apt-config_0.3.7-1debian8_all.deb && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys 5072E1F5 && \
     gpg --export 5072E1F5 > /etc/apt/trusted.gpg.d/mysql.gpg && \
     apt-get update && \
