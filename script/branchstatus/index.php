@@ -113,13 +113,6 @@ $projects = array(
     '18.10.x' => '18.10.x',
     '3.4.x' => '1.8.x'
   ),
-  'centreon-export' => array(
-    '20.04.x' => 'master',
-    '19.10.x' => '19.10.x',
-    '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
-    '3.4.x' => '2.3.x'
-  ),
   'centreon-gorgone' => array(
     '20.04.x' => 'master'
   ),
