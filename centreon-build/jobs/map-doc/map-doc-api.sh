@@ -8,7 +8,7 @@ PROJECT=centreon-studio-doc
 # Build API documentation.
 cd "$PROJECT/api"
 npm ci
-npm run bundle
+npm run redoc-bundle
 
 # Publish documentation to S3.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
