@@ -98,11 +98,6 @@ module.exports = {
     apiKey: '8e54ec13a4494c269d4a1778fcd8b637-us2',
     listId: '1eeddd2b3a'
   },
-  // Intercom
-  intercom: {
-    region: 'EMEA',
-    queue: 'myqueue'
-  },
   // APM Monitoring
   newrelic: {
     enable: false
