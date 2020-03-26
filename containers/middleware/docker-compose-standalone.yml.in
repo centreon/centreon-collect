@@ -12,3 +12,5 @@ services:
     image: registry.centreon.com/mon-openldap:latest
   redis:
     image: redis:latest
+  sqs:
+    image: roribio16/alpine-sqs:latest

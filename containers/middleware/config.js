@@ -93,6 +93,11 @@ module.exports = {
       IMP_6_MONTH: '01u0Y000001JsteQAC'
     }
   },
+  // Intercom
+  intercom: {
+    region: 'eu-west-1',
+    queue: 'http://sqs:9324/queue/default'
+  },
   // Information for mailchimp
   newsletter: {
     apiKey: '8e54ec13a4494c269d4a1778fcd8b637-us2',
