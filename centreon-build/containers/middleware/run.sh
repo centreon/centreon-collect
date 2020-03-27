@@ -23,7 +23,7 @@ while [ "$started" -ne 0 ] ; do
 done
 started=1
 while [ "$started" -ne 0 ] ; do
-  started=`curl -I http://sqs:9324 | grep 404 ; echo $?`
+  started=`curl -I http://sqs:9324 | grep 400 ; echo $?`
   sleep 1
 done
 set -e
