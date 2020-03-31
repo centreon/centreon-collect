@@ -78,8 +78,8 @@ CFLAGS="$RPM_OPT_FLAGS" CXXFLAGS="$RPM_OPT_FLAGS" LDFLAGS="%{?__global_ldflags}"
 
 %install
 %{__rm} -rf %{buildroot}
-%{__install} -Dp -m0711 src/nrpe %{buildroot}%{_sbindir}/centreon-nrpe3
-%{__install} -Dp -m0711 src/check_nrpe %{buildroot}/usr/lib/nagios/plugins/check_centreon_nrpe3
+%{__install} -Dp -m0755 src/nrpe %{buildroot}%{_sbindir}/centreon-nrpe3
+%{__install} -Dp -m0755 src/check_nrpe %{buildroot}%{_libdir}/nagios/plugins/check_centreon_nrpe3
 %{__install} -Dp -m0644 sample-config/nrpe.cfg %{buildroot}%{_sysconfdir}/nrpe/centreon-nrpe3.cfg
 %{__install} -Dp -m0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/sysconfig/centreon-nrpe3
 %if 0%{?el6}
@@ -133,33 +133,6 @@ fi
 %files -n centreon-nrpe3-plugin
 %defattr(-, root, root, 0755)
 %doc CHANGELOG.md LEGAL README.md README.SSL.md SECURITY.md LICENSE.md
-/usr/lib/nagios/plugins/check_centreon_nrpe3
+%{_libdir}/nagios/plugins/check_centreon_nrpe3
 
 %changelog
-* Fri Sep 14 2018 Laurent Pinsivy <lpinsivy@centreon.com> 3.2.1-3
-- Add temporary cache for plugins
-- Add require to centreon-plugin-Operatingsystems-Linux-Local
-- Update check_centreon_command
-- Set dont_blame_nrpe to 1
-
-* Thu Aug 16 2018 Laurent Pinsivy <lpinsivy@centreon.com> 3.2.1-2
-- Update nrpe3.service to fix PrivateTmp access
-
-* Thu Aug 16 2018 Laurent Pinsivy <lpinsivy@centreon.com> 3.2.1-1
-- Update to NRPE v3.2.1
-
-* Wed Dec 20 2017 Laurent Pinsivy <lpinsivy@centreon.com> 3.2.0-1
-- Update to NRPE v3.2.0
-
-* Fri Jun 02 2017 Laurent Pinsivy <lpinsivy@centreon.com> 3.1.1-7
-- Add centreon-engine user and group
-
-* Thu Jun 01 2017 Laurent Pinsivy <lpinsivy@centreon.com> 3.1.1-1
-- Update sources to NRPE v3.1.1
-- Rename binaries
-
-* Wed Apr 19 2017 Laurent Pinsivy <lpinsivy@centreon.com> 3.1.0-1
-- Update sources to v3.1.0
-
-* Wed Apr 19 2017 Laurent Pinsivy <lpinsivy@centreon.com> 2.15-4
-- Add el7 compatibility
