@@ -16,6 +16,7 @@ BuildRequires:  centreon-devel
 Requires:       centreon-web >= %{thismajor}
 Requires:       centreon-web < %{nextmajor}
 Requires:       lua-curl
+Requires:       bzip2
 AutoReqProv:    no
 
 %description
