@@ -41,7 +41,7 @@ find .          \
 %{__install} -d %{buildroot}/%{perl_vendorlib}/centreon/script
 %{__cp} -p bin/anomaly_detection %{buildroot}/%{perl_vendorlib}/centreon/script
 %{__install} -d %{buildroot}/%{perl_vendorlib}/centreon/anomalydetection
-%{__cp} -rp lib/perl/centreon/anomalydetection %{buildroot}/%{perl_vendorlib}/centreon/anomalydetection
+%{__cp} -rp lib/perl/centreon/anomalydetection %{buildroot}/%{perl_vendorlib}/centreon
 
 %clean
 rm -rf $RPM_BUILD_ROOT
