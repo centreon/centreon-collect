@@ -149,7 +149,6 @@ CXXFLAGS="-O2 -g -std=c++11" %{cmake} \
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/doc/centreon-broker
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
 %{__install} -m 644 script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
-%{__install} -m 664 config/cbmod.cfg $RPM_BUILD_ROOT%{_sysconfdir}/centreon-engine/conf.d/cbmod.cfg
 %{__make} install DESTDIR="$RPM_BUILD_ROOT"
 
 %clean
@@ -223,9 +222,9 @@ fi
 
 %files cbd
 %defattr(664,centreon-broker,centreon-broker,-)
-%config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.xml
-%config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.xml
-%config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.xml
+%config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
+%config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.json
+%config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.json
 %defattr(-,root,root,-)
 %{_sbindir}/cbd
 %{_sbindir}/cbwd
@@ -237,8 +236,7 @@ fi
 
 %files cbmod
 %defattr(664,centreon-broker,centreon-broker,-)
-%config(noreplace) %{_sysconfdir}/centreon-broker/poller-module.xml
-%config(noreplace) %{_sysconfdir}/centreon-engine/conf.d/cbmod.cfg
+%config(noreplace) %{_sysconfdir}/centreon-broker/poller-module.json
 %defattr(-,root,root,-)
 %{_libdir}/nagios/cbmod.so
 
