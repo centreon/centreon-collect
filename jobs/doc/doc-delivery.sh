@@ -7,6 +7,5 @@ set -x
 
 # Project.
 PROJECT=centreon-documentation
-TARGETDIR="s3://centreon-documentation/$PROJECT/testing/$VERSION"
-ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
-ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/doc/$PROJECT-$VERSION-$RELEASE/build/testing" "$TARGETDIR"
+TARGETDIR="s3://centreon-documentation-preprod/$VERSION"
+ssh $REPO_CREDS aws s3 sync --acl public-read --delete "/srv/sources/internal/doc/$PROJECT-$VERSION-$RELEASE/build/testing" "$TARGETDIR"
