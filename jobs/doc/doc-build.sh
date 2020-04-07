@@ -25,9 +25,9 @@ for lang in en fr ; do
   docker start -a "$containerid"
   docker cp "$containerid:/$PROJECT/website/build/centreon-documentation" "../build/vanilla/$lang"
   cp -r "../build/vanilla/$lang" "../build/testing/$lang"
-  find "../build/testing/$lang" -type f | xargs sed -i -e "s#@BASEURL@#$VERSION/$lang#g"
+  find "../build/testing/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#$VERSION/$lang#g"
   cp -r "../build/vanilla/$lang" "../build/unstable/$lang"
-  find "../build/unstable/$lang" -type f | xargs sed -i -e "s#@BASEURL@#job/centreon-documentation/job/$BRANCH_NAME/Centreon_20${lang}_20documentation_20preview#g"
+  find "../build/unstable/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#job/centreon-documentation/job/$BRANCH_NAME/Centreon_20${lang}_20documentation_20preview#g"
 done
 cd ..
 
