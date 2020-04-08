@@ -13,7 +13,7 @@ rm -rf build
 mkdir -p build/vanilla build/testing build/unstable
 BUILDIMG="$REGISTRY/node:lts"
 docker pull "$BUILDIMG"
-containerid=`docker create -w /$PROJECT/website "$BUILDIMG" sh -c 'yarn install && yarn run build'`
+containerid=`docker create -w /$PROJECT/website "$BUILDIMG" sh -c 'npm ci && npm run build'`
 docker cp "$PROJECT" "$containerid:/"
 
 # Build documentation in all languages.
