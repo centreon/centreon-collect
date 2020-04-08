@@ -32,6 +32,9 @@ done
 cd ..
 
 # Upload documentation.
+cp `dirname $0`/redirect.html build/vanilla/index.html
+cp `dirname $0`/redirect.html build/unstable/index.html
+cp `dirname $0`/redirect.html build/testing/index.html
 put_internal_source "doc" "$PROJECT-$VERSION-$RELEASE" "build"
 
 # Cleanup.
