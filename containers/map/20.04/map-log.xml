@@ -2,7 +2,7 @@
 <!DOCTYPE configuration>
 
 <configuration scan="true">
-    <property name="LOG_FILE" value="/var/log/centreon-studio/centreon-studio.log"/>
+    <property name="LOG_FILE" value="/var/log/centreon-map/centreon-map.log"/>
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
