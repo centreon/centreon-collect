@@ -45,7 +45,7 @@ mkdir output
 
 # Retrieve sources.
 cp "$PROJECT-$VERSION-php72.tar.gz" input/"$PROJECT-$VERSION-php72.tar.gz"
-cp "$PROJECT-$VERSION-full/packaging/$PROJECT.spectemplate" input
+cp "$PROJECT-$OLDVERSION-full/packaging/$PROJECT.spectemplate" input
 
 # Pull latest build dependencies.
 BUILD_IMG="registry.centreon.com/mon-build-dependencies-20.04:$DISTRIB"
