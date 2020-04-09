@@ -9,8 +9,8 @@ service mysql start
 service centreon-map.service start
 
 # Wait for log file to be created.
-while [ \! -e /var/log/centreon-studio/centreon-studio.log ] ; do
+while [ \! -e /var/log/centreon-map/centreon-map.log ] ; do
   echo "Waiting for Centreon Studio log file..."
   sleep 2
 done
-tailf /var/log/centreon-studio/centreon-studio.log
+tailf /var/log/centreon-map/centreon-map.log
