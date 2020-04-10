@@ -19,8 +19,8 @@ RUN /tmp/install.sh
 COPY map/centreon-database.properties /etc/centreon-studio/centreon-database.properties
 COPY map/studio-config.properties /etc/centreon-studio/studio-config.properties
 COPY map/studio-database.properties /etc/centreon-studio/studio-database.properties
-COPY map/20.04/studio-log.xml /etc/centreon-studio/studio-log.xml
-RUN mkdir /var/log/centreon-studio && chown centreon-studio:centreon-studio /var/log/centreon-studio
+COPY map/20.04/map-log.xml /etc/centreon-studio/map-log.xml
+RUN mkdir -p /var/log/centreon-map && chown centreon-map:centreon-map /var/log/centreon-map
 
 # Main script.
 COPY map/20.04/run.sh /usr/local/bin/container.sh
