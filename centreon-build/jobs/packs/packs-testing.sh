@@ -44,11 +44,7 @@ promote_unstable_rpms_to_testing "plugin-packs" "3.4" "el7" "noarch" "packs" "$P
 promote_unstable_rpms_to_testing "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "19.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+promote_unstable_rpms_to_testing "plugin-packs" "20.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 
 # Move cache files to the testing directory.
 ssh "$REPO_CREDS" mv "/srv/cache/packs/unstable/cache-$VERSION-$RELEASE" "/srv/cache/packs/testing/"
-
-# Generate doc.
-SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos plugins-packs -V latest -p'"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos plugins-packs -V latest -p'"
