@@ -56,8 +56,11 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,apache,apache,-)
 %{centreon_www}/modules/%{name}
 %{_datadir}/centreon-broker/lua/centreon-anomaly-detection.lua
-%{perl_vendorlib}/centreon/script/anomaly_detection
+%{centreon_www}/bin/anomaly_detection
 %{perl_vendorlib}/centreon/anomalydetection
+%{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
+
+%defattr(-,root,root,-)
 %{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
 
 %changelog

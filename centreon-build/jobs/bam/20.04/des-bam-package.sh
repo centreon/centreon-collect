@@ -26,6 +26,16 @@ tar xzf "$PROJECT-$VERSION-full.tar.gz"
 rm -rf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz"
 tar xzf "$PROJECT-$VERSION-php72.tar.gz"
+OLDVERSION="$VERSION"
+OLDRELEASE="$RELEASE"
+PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
+if [ -n "$PRERELEASE" ] ; then
+  export VERSION=`echo $VERSION | cut -d - -f 1`
+  export RELEASE="$PRERELEASE.$RELEASE"
+  rm -rf "$PROJECT-$VERSION-php72"
+  mv "$PROJECT-$OLDVERSION-php72" "$PROJECT-$VERSION-php72"
+  tar czf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
+fi
 
 # Create input and output directories.
 rm -rf input
@@ -35,7 +45,7 @@ mkdir output
 
 # Retrieve sources.
 cp "$PROJECT-$VERSION-php72.tar.gz" input/"$PROJECT-$VERSION-php72.tar.gz"
-cp "$PROJECT-$VERSION-full/packaging/$PROJECT.spectemplate" input
+cp "$PROJECT-$OLDVERSION-full/packaging/$PROJECT.spectemplate" input
 
 # Pull latest build dependencies.
 BUILD_IMG="registry.centreon.com/mon-build-dependencies-20.04:$DISTRIB"
@@ -51,7 +61,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "20.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "20.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "bam" "20.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "bam" "20.04" "el7" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE"
 fi
