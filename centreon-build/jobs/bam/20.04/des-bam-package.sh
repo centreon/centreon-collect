@@ -61,7 +61,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "20.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "20.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "bam" "20.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "bam" "20.04" "el7" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE"
 fi
