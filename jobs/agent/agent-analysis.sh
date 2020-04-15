@@ -3,7 +3,7 @@
 set -e
 set -x
 
-. `dirname $0`/../../common.sh
+. `dirname $0`/../common.sh
 
 # This job is run directly after agent-source on centos7.
 
