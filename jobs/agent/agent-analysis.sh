@@ -8,7 +8,7 @@ set -x
 # This job is run directly after agent-source on centos7.
 
 # Project.
-PROJECT=centreon-agent-
+PROJECT=centreon-agent
 
 # Copy reports and run analysis.
 cd "$PROJECT"
