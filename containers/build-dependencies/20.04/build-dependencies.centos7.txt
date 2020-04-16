@@ -9,7 +9,6 @@ libgcrypt-devel
 perl-App-FatPacker
 perl-File-Copy-Recursive
 perl-JSON
-python-sphinx
 python3-pip
 rrdtool-devel
 redhat-lsb
