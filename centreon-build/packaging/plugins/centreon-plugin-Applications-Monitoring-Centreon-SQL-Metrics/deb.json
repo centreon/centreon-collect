@@ -1,0 +1,10 @@
+{
+    "dependencies": [
+        "libdbi-perl",
+        "libdbd-mysql-perl",
+        "libdigest-md5-perl",
+        "libdata-dump-perl",
+        "libjson-perl",
+        "libtime-hires-perl"
+    ]
+}
