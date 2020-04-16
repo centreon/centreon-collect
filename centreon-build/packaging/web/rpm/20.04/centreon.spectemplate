@@ -363,9 +363,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 
 # Install indexes template schema
 
-# Install doc
-%{__install} -d -m 0775 %buildroot%{_datadir}/centreon/doc/en/
-%{__cp} -r doc/en/release_notes %buildroot%{_datadir}/centreon/doc/en
+# Install examples.
 %{__install} -d -m 0775 %buildroot%{_datadir}/centreon/examples
 %{__cp} tmpl/install/redhat/centreontrapd.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} additional/centreon-apache.conf %buildroot%{_datadir}/centreon/examples/centreon.apache.conf
@@ -547,7 +545,6 @@ fi
 %attr(0775, centreon, centreon) %{_datadir}/centreon/GPL_LIB/SmartyCache
 
 %defattr(-, root, root, -)
-%{_datadir}/centreon/doc/en
 %{_datadir}/centreon/examples
 
 %defattr(-, centreon, centreon, 0775)
