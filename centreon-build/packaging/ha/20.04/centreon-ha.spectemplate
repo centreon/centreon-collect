@@ -23,7 +23,6 @@ Requires:       pacemaker
 Requires:       pcs
 Requires:       perl-common-sense
 Requires:       perl-Linux-Inotify2
-Requires:       pssh
 Requires:       resource-agents
 
 %description
