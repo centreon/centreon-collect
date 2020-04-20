@@ -203,6 +203,7 @@ class CentreonData(AddonData):
             limit_mariadb_path = os.path.normpath(getSysroot() + '/etc/systemd/system/mariadb.service.d/limits.conf')
             with open(limit_mariadb_path, "w") as fobj:
                 fobj.write("[Service]\nLimitNOFILE=32000\n")
+            execWithRedirect("systemctl", ["enable", "mariadb"], root=getSysroot())
 
         # httpd and PHP.
         if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'pollerdisplay':
