@@ -8,6 +8,7 @@
         "snmp_standard/mode/listinterfaces.pm",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/isdnusage.pm",
+        "centreon/common/cisco/standard/snmp/mode/voicecall.pm",
         "network/cisco/vg/snmp/"
     ]
 }
