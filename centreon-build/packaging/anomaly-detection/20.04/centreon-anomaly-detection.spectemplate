@@ -40,8 +40,8 @@ find .          \
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/
 %{__cp} -rp lua $RPM_BUILD_ROOT%{_datadir}/centreon-broker/
 
-%{__install} -d $RPM_BUILD_ROOT%{centreon_www}/bin
-%{__cp} -p bin/anomaly_detection $RPM_BUILD_ROOT%{centreon_www}/bin
+%{__install} -d %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/anomaly_detection %buildroot%{_datadir}/centreon/bin/
 %{__install} -d %{buildroot}/%{perl_vendorlib}/centreon/anomalydetection
 %{__cp} -rp lib/perl/centreon/anomalydetection %{buildroot}/%{perl_vendorlib}/centreon
 
@@ -53,10 +53,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 
+%defattr(-, centreon, centreon,-)
+%{_datadir}/centreon/bin/anomaly_detection
+
 %defattr(-,apache,apache,-)
 %{centreon_www}/modules/%{name}
 %{_datadir}/centreon-broker/lua/centreon-anomaly-detection.lua
-%{centreon_www}/bin/anomaly_detection
 %{perl_vendorlib}/centreon/anomalydetection
 %{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
 
