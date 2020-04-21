@@ -23,8 +23,3 @@ upload_tarball_for_download centreon-connectors "$VERSION" "/srv/sources/standar
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "20.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-perl-connector -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-ssh-connector -V latest -p'"

@@ -51,11 +51,3 @@ if [ "$PROJECT" = "centreon-bi-server" ] ; then
   # Download link.
   echo 'https://download.centreon.com/?action=product&product=centreon-mbi&version='$VERSION'&secKey='$SRCHASH
 fi
-
-# Generate online documentation.
-if [ "$DOCUMENTATION" '!=' 'false' ] ; then
-  echo "DOCUMENTATION WILL NOT BE GENERATED ON documentation.centreon.com"
-  SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-  $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-bi-2 -V latest -p'"
-  $SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-bi-2 -V latest -p'"
-fi
