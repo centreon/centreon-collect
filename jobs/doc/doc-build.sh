@@ -9,8 +9,8 @@ set -x
 PROJECT=centreon-documentation
 
 # Prepare for documentation build.
-rm -rf build
-mkdir -p build/vanilla build/version build/current build/unstable
+rm -rf build preview
+mkdir -p build/vanilla build/version build/current preview
 BUILDIMG="$REGISTRY/node:lts"
 docker pull "$BUILDIMG"
 
@@ -45,15 +45,19 @@ for lang in en fr ; do
   find "build/version/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#$VERSION/$lang#g"
   cp -r "build/vanilla/$lang" "build/current/$lang"
   find "build/current/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#current/$lang#g"
-  cp -r "build/vanilla/$lang" "build/unstable/$lang"
-  find "build/unstable/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#job/centreon-documentation/job/$BRANCH_NAME/Centreon_20documentation_20preview/${lang}#g"
+  cp -r "build/vanilla/$lang" "preview/$lang"
+  find "preview/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#job/centreon-documentation/job/$BRANCH_NAME/Centreon_20documentation_20preview/${lang}#g"
   docker stop "$containerid"
   docker rm "$containerid"
 done
 
 # Upload documentation.
 cp `dirname $0`/redirect.html build/vanilla/index.html
-cp `dirname $0`/redirect.html build/unstable/index.html
+cd build
+tar czf vanilla.tar.gz vanilla
+rm -rf vanilla
+cd ..
 cp `dirname $0`/redirect.html build/version/index.html
 cp `dirname $0`/redirect.html build/current/index.html
+cp `dirname $0`/redirect.html preview/index.html
 put_internal_source "doc" "$PROJECT-$VERSION-$RELEASE" "build"
