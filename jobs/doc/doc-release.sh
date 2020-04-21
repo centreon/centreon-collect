@@ -7,9 +7,8 @@ set -x
 
 # Project.
 PROJECT=centreon-documentation
-TARGETDIR="s3://centreon-documentation/$VERSION"
+TARGETDIR="s3://centreon-documentation-prod/$VERSION"
 ssh $REPO_CREDS aws s3 sync --acl public-read --delete "/srv/sources/internal/doc/$PROJECT-$VERSION-$RELEASE/build/version" "$TARGETDIR"
-ssh $REPO_CREDS aws cloudfront create-invalidation --distribution-id E3KVGH6VYVX7DP --paths "/$VERSION/"'*'
-TARGETDIR="s3://centreon-documentation/current"
+TARGETDIR="s3://centreon-documentation-prod/current"
 ssh $REPO_CREDS aws s3 sync --acl public-read --delete "/srv/sources/internal/doc/$PROJECT-$VERSION-$RELEASE/build/current" "$TARGETDIR"
-ssh $REPO_CREDS aws cloudfront create-invalidation --distribution-id E3KVGH6VYVX7DP --paths '/current/*'
+ssh $REPO_CREDS aws cloudfront create-invalidation --distribution-id E3KVGH6VYVX7DP --paths "/$VERSION/"'* /current/*'
