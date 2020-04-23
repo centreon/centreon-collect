@@ -15,6 +15,12 @@ dnf install make php-devel
 pecl install xdebug
 echo 'zend_extension=/usr/lib64/php/modules/xdebug.so' >> /etc/php.d/10-xdebug.ini
 
+# Install Node.js and related elements.
+curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
+dnf install --nogpgcheck -y nodejs
+npm install -g gulp
+npm install -g redoc-cli
+
 # Install Composer.
 dnf install -y php php-cli php-dom php-json php-mbstring
 curl -sS https://getcomposer.org/installer | php
