@@ -15,12 +15,16 @@ fi
 # Pull mon-build-dependencies containers.
 BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-19.10:centos7
 docker pull "$BUILD_CENTOS7"
+BUILD_CENTOS8=registry.centreon.com/mon-build-dependencies-20.04:centos8
+docker pull "$BUILD_CENTOS8"
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
 rm -rf output-centos7
 mkdir output-centos7
+rm -rf output-centos8
+mkdir output-centos8
 
 # Get object file.
 rm -rf "$PROJECT.tar.gz" ioncube
@@ -33,9 +37,9 @@ cp `dirname $0`/../../../packaging/ioncube/php72/* input/
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS7" input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS8" input output-centos8
 
 # Copy files to server.
-SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
-FILES_CENTOS7='output-centos7/x86_64/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/19.10/el7/testing/x86_64/RPMS"
-$SSH_REPO createrepo /srv/yum/standard/19.10/el7/testing/x86_64
+put_testing_rpms "standard" "19.10" "el7" "x86_64" "ioncube" "ioncube" output-centos7/x86_64/*.rpm
+put_testing_rpms "standard" "20.04" "el7" "x86_64" "ioncube" "ioncube" output-centos7/x86_64/*.rpm
+put_testing_rpms "standard" "20.04" "el8" "x86_64" "ioncube" "ioncube" output-centos8/x86_64/*.rpm
