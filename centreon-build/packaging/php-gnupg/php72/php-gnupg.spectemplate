@@ -1,8 +1,15 @@
 ##
-## Copyright 2018-2019 Centreon
+## Copyright 2018-2020 Centreon
 ##
 
-Name:           rh-php72-php-pecl-gnupg
+# Define PHP prefix.
+%if 0%{?el7}
+%define php_prefix rh-php72-
+%else
+%define php_prefix %{nil}
+%endif
+
+Name:           %{php_prefix}php-pecl-gnupg
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        This module allows you to interact with gnupg.
@@ -17,10 +24,14 @@ Source0:        gnupg.ini
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
 BuildRequires:  gpgme-devel
-BuildRequires:  rh-php72-php-devel
-BuildRequires:  rh-php72-php-pear
+BuildRequires:  %{php_prefix}php-devel
+BuildRequires:  %{php_prefix}php-pear
 Requires:       gpgme
+%if 0%{?el7}
 Requires:       rh-php72
+%else
+Requires:       php
+%endif
 
 %description
 PHP wrapper around the gpgme library.
@@ -31,17 +42,29 @@ PHP wrapper around the gpgme library.
 pecl install gnupg
 
 %install
+%if 0%{?el7}
 %{__install} -d $RPM_BUILD_ROOT/opt/rh/rh-php72/root/usr/lib64/php/modules/
 %{__cp} /opt/rh/rh-php72/root/usr/lib64/php/modules/gnupg.so $RPM_BUILD_ROOT/opt/rh/rh-php72/root/usr/lib64/php/modules/gnupg.so
 %{__install} -d $RPM_BUILD_ROOT/etc/opt/rh/rh-php72/php.d/
 %{__cp} %SOURCE0 $RPM_BUILD_ROOT/etc/opt/rh/rh-php72/php.d/20-gnupg.ini
+%else
+%{__install} -d $RPM_BUILD_ROOT%{_libdir}/php/modules/
+%{__cp} %{_libdir}/php/modules/gnupg.so $RPM_BUILD_ROOT%{_libdir}/php/modules/gnupg.so
+%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/php.d/
+%{__cp} %SOURCE0 $RPM_BUILD_ROOT%{_sysconfdir}/php.d/20-gnupg.ini
+%endif
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
+%if 0%{?el7}
 /opt/rh/rh-php72/root/usr/lib64/php/modules/gnupg.so
 /etc/opt/rh/rh-php72/php.d/20-gnupg.ini
+%else
+%{_libdir}/php/modules/gnupg.so
+%{_sysconfdir}/php.d/20-gnupg.ini
+%endif
 
 %changelog
