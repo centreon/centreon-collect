@@ -1,15 +1,22 @@
 ##
-## Copyright 2018-2019 Centreon
+## Copyright 2018-2020 Centreon
 ##
 
-Name:           rh-php72-ioncube-loader
+# Define PHP prefix.
+%if 0%{?el7}
+%define php_prefix rh-php72-
+%else
+%define php_prefix %{nil}
+%endif
+
+Name:           %{php_prefix}ioncube-loader
 Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
-Summary:        ionCube module packaged for rh-php.
+Summary:        ionCube module packaged for Centreon.
 
 Group:          Applications/System
 License:        GPLv2
-URL:            https://github.com/centreon/centreon-engine
+URL:            https://www.centreon.com
 Packager:       Matthieu Kermagoret <mkermagoret@centreon.com>
 Vendor:         Centreon Entreprise Server (CES) Repository, http://yum.centreon.com/standard/
 
@@ -17,7 +24,11 @@ Source0:        ioncube_loader_lin_7.2.so
 Source1:        ioncube_loader.ini
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
+%if 0%{?el7}
 Requires:       rh-php72
+%else
+Requires:       php
+%endif
 
 %description
 ionCube loader packaged for use within the Centreon software suite.
@@ -27,17 +38,29 @@ ionCube loader packaged for use within the Centreon software suite.
 %build
 
 %install
+%if 0%{?el7}
 %{__install} -d $RPM_BUILD_ROOT/opt/rh/rh-php72/root/usr/lib64/php/modules/
 %{__cp} %SOURCE0 $RPM_BUILD_ROOT/opt/rh/rh-php72/root/usr/lib64/php/modules/ioncube_loader_lin_7.2.so
 %{__install} -d $RPM_BUILD_ROOT/etc/opt/rh/rh-php72/php.d/
 %{__cp} %SOURCE1 $RPM_BUILD_ROOT/etc/opt/rh/rh-php72/php.d/10-ioncube_loader.ini
+%else
+%{__install} -d $RPM_BUILD_ROOT%{_libdir}/php/modules/
+%{__cp} %SOURCE0 $RPM_BUILD_ROOT%{_libdir}/php/modules/ioncube_loader_lin_7.2.so
+%{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/php.d/
+%{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_sysconfdir}/php.d/10-ioncube_loader.ini
+%endif
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
+%if 0%{?el7}
 /opt/rh/rh-php72/root/usr/lib64/php/modules/ioncube_loader_lin_7.2.so
 /etc/opt/rh/rh-php72/php.d/10-ioncube_loader.ini
+%else
+%{_libdir}/php/modules/ioncube_loader_lin_7.2.so
+%{_sysconfdir}/php.d/10-ioncube_loader.ini
+%endif
 
 %changelog
