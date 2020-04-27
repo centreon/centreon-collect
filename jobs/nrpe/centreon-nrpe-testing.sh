@@ -17,7 +17,7 @@ fi
 
 # Pull build image.
 BUILD_CENTOS6=registry.centreon.com/mon-build-dependencies-3.4:centos6
-BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-18.10:centos7
+BUILD_CENTOS7=registry.centreon.com/mon-build-dependencies-19.04:centos7
 docker pull "$BUILD_CENTOS6"
 docker pull "$BUILD_CENTOS7"
 
@@ -42,4 +42,3 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" inpu
 # Copy files to server.
 put_testing_rpms "standard" "3.4" "el6" "x86_64" "nrpe" "$PROJECT-$VERSION-$RELEASE" output-centos6/x86_64/*.rpm
 put_testing_rpms "standard" "3.4" "el7" "x86_64" "nrpe" "$PROJECT-$VERSION-$RELEASE" output-centos7/x86_64/*.rpm
-put_testing_rpms "standard" "18.10" "el7" "x86_64" "nrpe" "$PROJECT-$VERSION-$RELEASE" output-centos7/x86_64/*.rpm

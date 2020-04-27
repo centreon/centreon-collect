@@ -22,6 +22,10 @@ COPY map/studio-database.properties /etc/centreon-studio/studio-database.propert
 COPY map/20.04/map-log.xml /etc/centreon-studio/map-log.xml
 RUN mkdir -p /var/log/centreon-map && chown centreon-map:centreon-map /var/log/centreon-map
 
+# Change startup script.
+RUN rm -f /usr/lib/systemd/systemd/centreon-map.service
+COPY map/20.04/centreon-map.sh /etc/init.d/centreon-map
+
 # Main script.
 COPY map/20.04/run.sh /usr/local/bin/container.sh
 RUN chmod +x /usr/local/bin/container.sh

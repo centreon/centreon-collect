@@ -19,7 +19,7 @@
           <th scope="col">Project</th>
 <?php
 
-$versions = array('20.04.x', '19.10.x', '19.04.x', '18.10.x', '3.4.x');
+$versions = array('20.04.x', '19.10.x', '19.04.x', '3.4.x');
 foreach ($versions as $version) {
   echo '<th scope="col">' . $version . '</th>';
 }
@@ -34,72 +34,61 @@ $projects = array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '2.4.x'
   ),
   'centreon-awie' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '1.0.x'
   ),
   'centreon-bam' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '3.6.x'
   ),
   'centreon-bi-engine' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x'
   ),
   'centreon-bi-etl' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x'
   ),
   'centreon-bi-report' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x'
   ),
   'centreon-bi-reporting-server' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x'
   ),
   'centreon-bi-server' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x'
   ),
   'centreon-broker' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '3.0.x'
   ),
   'centreon-clib' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04',
-    '18.10.x' => '18.10',
     '3.4.x' => '1.4'
   ),
   'centreon-connector' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x'
   ),
   'centreon-dsm' => array(
     '20.04.x' => 'master',
@@ -110,7 +99,6 @@ $projects = array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '1.8.x'
   ),
   'centreon-gorgone' => array(
@@ -120,49 +108,42 @@ $projects = array(
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
-    '18.10.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-imp-portal-api' => array(
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
-    '18.10.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-license-manager' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '1.2.x'
   ),
   'centreon-map' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '4.4.x'
   ),
   'centreon-open-tickets' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '1.2.x'
   ),
   'centreon-plugins' => array(
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
-    '18.10.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-plugin-packs' => array(
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
-    '18.10.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-poller-display' => array(
@@ -172,7 +153,6 @@ $projects = array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '2.4.x'
   ),
   'centreon-ui' => array(
@@ -184,14 +164,12 @@ $projects = array(
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
-    '18.10.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-web' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
-    '18.10.x' => '18.10.x',
     '3.4.x' => '2.8.x'
   )
 );
