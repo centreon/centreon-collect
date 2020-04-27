@@ -28,7 +28,7 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 cd ..
 
 # Create and populate container.
-IMAGE="registry.centreon.com/mon-build-dependencies-18.10:centos7"
+IMAGE="registry.centreon.com/mon-build-dependencies-19.04:centos7"
 docker pull "$IMAGE"
 containerid=`docker create $IMAGE /usr/local/bin/source.pl "$VERSION ($COMMIT)"`
 docker cp `dirname $0`/plugins-source.container.pl "$containerid:/usr/local/bin/source.pl"

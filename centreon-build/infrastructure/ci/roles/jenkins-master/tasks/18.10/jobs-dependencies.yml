@@ -1,6 +1,0 @@
----
-  - jenkins_job:
-      name: mon-containers-dependencies-18.10-centos7
-      config: "{{ lookup('file', 'mon-containers-dependencies.xml.in') | regex_replace('@SERIE@', '18.10') | regex_replace('@DISTRIB@', 'centos7')}}"
-      user: "{{ jenkins_user }}"
-      password: "{{ jenkins_password }}"
