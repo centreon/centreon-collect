@@ -41,7 +41,6 @@ cd ..
 # Move RPMs to the testing repository.
 promote_unstable_rpms_to_testing "plugin-packs" "3.4" "el6" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
-promote_unstable_rpms_to_testing "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "19.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "20.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
