@@ -24,7 +24,7 @@ DISTRIB="$1"
 if [ "$DISTRIB" '=' 'centos6' ] ; then
   docker pull registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB
 else
-  docker pull registry.centreon.com/mon-build-dependencies-18.10:$DISTRIB
+  docker pull registry.centreon.com/mon-build-dependencies-19.04:$DISTRIB
 fi
 
 # Retrieve sources.

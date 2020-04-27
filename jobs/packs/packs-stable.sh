@@ -21,7 +21,6 @@ $SSH_REPO mv "/srv/sources/plugin-packs/testing/packs/$PROJECT-$VERSION-$RELEASE
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "plugin-packs" "3.4" "el6" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "3.4" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "plugin-packs" "18.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "19.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "20.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
