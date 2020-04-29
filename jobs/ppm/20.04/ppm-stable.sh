@@ -25,3 +25,4 @@ $SSH_REPO mv "/srv/sources/standard/testing/ppm/$PROJECT-$VERSION-$RELEASE" "/sr
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "20.04" "el7" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.04" "el8" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
