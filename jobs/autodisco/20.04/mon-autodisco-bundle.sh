@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -28,7 +28,11 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < autodisco/20.04/Dockerfile.in > autodisco/Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.04/el7/noarch/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+if [ "$DISTRIB" = 'centos7' ] ; then
+  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.04/el7/noarch/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+else
+  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.04/el8/noarch/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+fi
 
 # Build image.
 REGISTRY="registry.centreon.com"
