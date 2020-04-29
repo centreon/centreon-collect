@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -56,11 +56,13 @@ export RELEASE="$OLDRELEASE"
 # Copy files to server.
 if [ "$DISTRIB" = 'centos7' ] ; then
   DISTRIB='el7'
+elif [ "$DISTRIB" = 'centos8' ] ; then
+  DISTRIB='el8'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
 put_internal_rpms "20.04" "$DISTRIB" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "20.04" "el7" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "standard" "20.04" "$DISTRIB" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
 fi

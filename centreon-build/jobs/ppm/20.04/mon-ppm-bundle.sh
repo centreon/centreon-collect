@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -34,7 +34,11 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed -e "s#@BASE_IMAGE@#$WEB_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/20.04/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 sed -e "s#@BASE_IMAGE@#$PPM_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/20.04/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.04/el7/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+if [ "$DISTRIB" '=' centos7 ] ; then
+  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.04/el7/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+else
+  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.04/el8/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+fi
 
 # Build ppm image.
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .
