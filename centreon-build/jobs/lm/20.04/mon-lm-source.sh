@@ -56,6 +56,7 @@ cd "../hooks/administration/extensions/manager/button"
 npm ci
 npm run build
 cd ../../../../..
+tar czf ../../../../../hooks.tar.gz hooks
 rm -rf hooks
 cd ../../../../..
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
@@ -64,6 +65,7 @@ tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php72.tar.gz"
 put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php72.tar.gz"
+put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" hooks.tar.gz
 put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
