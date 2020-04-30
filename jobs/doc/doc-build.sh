@@ -9,8 +9,8 @@ set -x
 PROJECT=centreon-documentation
 
 # Prepare for documentation build.
-rm -rf build preview
-mkdir -p build/vanilla build/version build/current preview
+rm -rf vanilla
+mkdir -p vanilla
 BUILDIMG="$REGISTRY/node:lts"
 docker pull "$BUILDIMG"
 
@@ -40,24 +40,17 @@ for lang in en fr ; do
   containerid=`docker create -w /$PROJECT/website "$BUILDIMG" sh -c 'npm ci && npm run build'`
   docker cp "$lang/." "$containerid:/$PROJECT"
   docker start -a "$containerid"
-  docker cp "$containerid:/$PROJECT/website/build/centreon-documentation" "build/vanilla/$lang"
-  cp -r "build/vanilla/$lang" "build/version/$lang"
-  find "build/version/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#$VERSION/$lang#g"
-  cp -r "build/vanilla/$lang" "build/current/$lang"
-  find "build/current/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#current/$lang#g"
-  cp -r "build/vanilla/$lang" "preview/$lang"
-  find "preview/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#job/centreon-documentation/job/$BRANCH_NAME/Centreon_20documentation_20preview/${lang}#g"
+  docker cp "$containerid:/$PROJECT/website/build/centreon-documentation" "vanilla/$lang"
+  find "vanilla/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#@BASEURL@/${lang}#g"
   docker stop "$containerid"
   docker rm "$containerid"
 done
+cp `dirname $0`/redirect.html vanilla/index.html
 
-# Upload documentation.
-cp `dirname $0`/redirect.html build/vanilla/index.html
-cd build
+# Build preview documentation.
+rm -rf preview
+cp -r vanilla preview
+find preview -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#job/centreon-documentation/job/$BRANCH_NAME/Centreon_20documentation_20preview#g"
+
+# Prepare vanilla tarball for stashing.
 tar czf vanilla.tar.gz vanilla
-rm -rf vanilla
-cd ..
-cp `dirname $0`/redirect.html build/version/index.html
-cp `dirname $0`/redirect.html build/current/index.html
-cp `dirname $0`/redirect.html preview/index.html
-put_internal_source "doc" "$PROJECT-$VERSION-$RELEASE" "build"
