@@ -90,6 +90,9 @@ $projects = array(
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
   ),
+  'centreon-documentation' => array(
+    '20.04.x' => 'master'
+  ),
   'centreon-dsm' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
