@@ -16,34 +16,27 @@
 ** For more information : contact@centreon.com
 */
 
-#include "clib-version.hh"
+#ifndef TEST_ORDERS_BUFFER_HANDLE_HH
+#define TEST_ORDERS_BUFFER_HANDLE_HH
 
-using namespace com::centreon::clib;
-
-/**
- *  Get version major.
- *
- *  @return Centreon Clib version major.
- */
-unsigned int version::get_major() throw() { return (major); }
+#include <string>
+#include "com/centreon/handle.hh"
 
 /**
- *  Get version minor.
+ *  @class buffer_handle buffer_handle.hh "test/orders/buffer_handle.hh"
+ *  @brief Buffer that can serve as handle.
  *
- *  @return Centreon Clib version minor.
+ *  Bufferize data and make it available through read.
  */
-unsigned int version::get_minor() throw() { return (minor); }
+class buffer_handle : public com::centreon::handle {
+  std::string _buffer;
 
-/**
- *  Get version patch.
- *
- *  @return Centreon Clib version patch.
- */
-unsigned int version::get_patch() throw() { return (patch); }
+ public:
+  void close();
+  bool empty() const;
+  com::centreon::native_handle get_native_handle();
+  unsigned long read(void* data, unsigned long size);
+  unsigned long write(void const* data, unsigned long size);
+};
 
-/**
- *  Get version string.
- *
- *  @return Centreon Clib version as string.
- */
-char const* version::get_string() throw() { return (version::string); }
+#endif  // !TEST_ORDERS_BUFFER_HANDLE

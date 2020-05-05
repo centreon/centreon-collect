@@ -1,3 +1,4 @@
+**/.*.swp
 build/*
 inc/com/centreon/clib/version.hh
 cmake-build-debug/*

@@ -1,4 +1,5 @@
 [requires]
+gtest/1.10.0
 spdlog/1.5.0
 
 [options]

@@ -16,34 +16,25 @@
 ** For more information : contact@centreon.com
 */
 
-#include "clib-version.hh"
+#ifndef CCCP_NAMESPACE_HH
+#define CCCP_NAMESPACE_HH
 
-using namespace com::centreon::clib;
+#ifdef CCCP_BEGIN
+#undef CCCP_BEGIN
+#endif  // CCCP_BEGIN
+#define CCCP_BEGIN()    \
+  namespace com {       \
+  namespace centreon {  \
+  namespace connector { \
+  namespace perl {
 
-/**
- *  Get version major.
- *
- *  @return Centreon Clib version major.
- */
-unsigned int version::get_major() throw() { return (major); }
+#ifdef CCCP_END
+#undef CCCP_END
+#endif  // CCCP_END
+#define CCCP_END() \
+  }                \
+  }                \
+  }                \
+  }
 
-/**
- *  Get version minor.
- *
- *  @return Centreon Clib version minor.
- */
-unsigned int version::get_minor() throw() { return (minor); }
-
-/**
- *  Get version patch.
- *
- *  @return Centreon Clib version patch.
- */
-unsigned int version::get_patch() throw() { return (patch); }
-
-/**
- *  Get version string.
- *
- *  @return Centreon Clib version as string.
- */
-char const* version::get_string() throw() { return (version::string); }
+#endif  // !CCCP_NAMESPACE_HH

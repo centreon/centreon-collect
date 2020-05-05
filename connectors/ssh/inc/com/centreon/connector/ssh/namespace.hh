@@ -16,34 +16,25 @@
 ** For more information : contact@centreon.com
 */
 
-#include "clib-version.hh"
+#ifndef CCCS_NAMESPACE_HH
+#define CCCS_NAMESPACE_HH
 
-using namespace com::centreon::clib;
+#ifdef CCCS_BEGIN
+#undef CCCS_BEGIN
+#endif  // CCCS_BEGIN
+#define CCCS_BEGIN()    \
+  namespace com {       \
+  namespace centreon {  \
+  namespace connector { \
+  namespace ssh {
 
-/**
- *  Get version major.
- *
- *  @return Centreon Clib version major.
- */
-unsigned int version::get_major() throw() { return (major); }
+#ifdef CCCS_END
+#undef CCCS_END
+#endif  // CCCS_END
+#define CCCS_END() \
+  }                \
+  }                \
+  }                \
+  }
 
-/**
- *  Get version minor.
- *
- *  @return Centreon Clib version minor.
- */
-unsigned int version::get_minor() throw() { return (minor); }
-
-/**
- *  Get version patch.
- *
- *  @return Centreon Clib version patch.
- */
-unsigned int version::get_patch() throw() { return (patch); }
-
-/**
- *  Get version string.
- *
- *  @return Centreon Clib version as string.
- */
-char const* version::get_string() throw() { return (version::string); }
+#endif  // !CCCS_NAMESPACE_HH

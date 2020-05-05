@@ -17,3 +17,4 @@ else()
 endif()
 
 add_subdirectory(clib)
+add_subdirectory(connectors)

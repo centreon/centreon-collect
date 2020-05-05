@@ -16,34 +16,31 @@
 ** For more information : contact@centreon.com
 */
 
-#include "clib-version.hh"
+#ifndef CCCP_CHECKS_LISTENER_HH
+#define CCCP_CHECKS_LISTENER_HH
 
-using namespace com::centreon::clib;
+#include "com/centreon/connector/perl/checks/result.hh"
+#include "com/centreon/connector/perl/namespace.hh"
 
+CCCP_BEGIN()
+
+namespace checks {
 /**
- *  Get version major.
+ *  @class listener listener.hh "com/centreon/connector/perl/checks/listener.hh"
+ *  @brief Check listener.
  *
- *  @return Centreon Clib version major.
+ *  Listen check events.
  */
-unsigned int version::get_major() throw() { return (major); }
+class listener {
+ public:
+  listener() = default;
+  listener(listener const& l) = delete;
+  virtual ~listener() = default;
+  listener& operator=(listener const& l) = delete;
+  virtual void on_result(result const& result) = 0;
+};
+}  // namespace checks
 
-/**
- *  Get version minor.
- *
- *  @return Centreon Clib version minor.
- */
-unsigned int version::get_minor() throw() { return (minor); }
+CCCP_END()
 
-/**
- *  Get version patch.
- *
- *  @return Centreon Clib version patch.
- */
-unsigned int version::get_patch() throw() { return (patch); }
-
-/**
- *  Get version string.
- *
- *  @return Centreon Clib version as string.
- */
-char const* version::get_string() throw() { return (version::string); }
+#endif  // !CCCP_CHECKS_LISTENER_HH
