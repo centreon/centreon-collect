@@ -1,2 +1,6 @@
 build/*
 inc/com/centreon/clib/version.hh
+cmake-build-debug/*
+cmake-build-release/*
+build/*
+.idea/*
