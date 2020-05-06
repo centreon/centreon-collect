@@ -17,6 +17,6 @@ else()
 endif()
 
 add_subdirectory(broker)
-add_subdirectory(clib)
-add_subdirectory(connectors)
+add_subdirectory(src/clib)
+add_subdirectory(src/connectors)
 add_subdirectory(engine)
