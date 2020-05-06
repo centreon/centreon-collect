@@ -1,5 +1,8 @@
 [requires]
+zlib/1.2.11
+asio/1.16.0
 gtest/1.10.0
+fmt/6.2.0
 spdlog/1.5.0
 grpc/1.25.0@inexorgame/stable
 json11/e2e3a11@centreon/stable

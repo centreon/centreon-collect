@@ -25,4 +25,4 @@ enginerpc/engine.*pb.h
 benchmark/centreon-engine/*
 benchmark/log/*
 benchmark/lib/*
-
+.vscode

@@ -1,0 +1,90 @@
+{
+    "centreonBroker": {
+        "broker_id": 1,
+        "broker_name": "central-broker",
+        "poller_id": 1,
+        "poller_name": "Central",
+        "module_directory": "@PREFIX_MODULES@",
+        "log_timestamp": true,
+        "log_thread_id": false,
+        "event_queue_max_size": 100000,
+        "command_file": "@PREFIX_VAR@/central-broker.cmd",
+        "cache_directory": "@PREFIX_VAR@",
+        "input": [
+            {
+                "name": "central-broker-input",
+                "port": "5669",
+                "buffering_timeout": "0",
+                "retry_interval": "10",
+                "protocol": "bbdo",
+                "tls": "auto",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "auto",
+                "type": "ipv4"
+            }
+        ],
+        "logger": [
+            {
+                "name": "/var/log/centreon-broker/central-broker.log",
+                "config": "yes",
+                "debug": "no",
+                "error": "yes",
+                "info": "yes",
+                "level": "low",
+                "type": "file"
+            }
+        ],
+        "output": [
+            {
+                "name": "central-broker-sql",
+                "db_type": "mysql",
+                "retry_interval": "60",
+                "buffering_timeout": "0",
+                "db_host": "localhost",
+                "db_port": "3306",
+                "db_user": "centreon",
+                "db_password": "centreon",
+                "db_name": "centreon",
+                "type": "sql"
+            },
+            {
+                "name": "centreon-broker-rrd",
+                "port": "5670",
+                "buffering_timeout": "0",
+                "host": "localhost",
+                "retry_interval": "60",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            },
+            {
+                "name": "central-broker-perfdata",
+                "interval": "60",
+                "retry_interval": "60",
+                "buffering_timeout": "0",
+                "length": "15552000",
+                "db_type": "mysql",
+                "db_host": "localhost",
+                "db_port": "3306",
+                "db_user": "centreon",
+                "db_password": "centreon",
+                "db_name": "centreon_storage",
+                "check_replication": "no",
+                "store_in_data_bin": "yes",
+                "insert_in_index_data": "1",
+                "type": "storage"
+            }
+        ],
+        "stats": [
+            {
+                "type": "stats",
+                "name": "central-broker-stats",
+                "json_fifo": "@PREFIX_VAR@/central-broker-stats.json"
+            }
+        ]
+    }
+}

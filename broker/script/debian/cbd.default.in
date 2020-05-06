@@ -1,0 +1,7 @@
+# Configuration for /etc/init.d/cbd
+
+# If run cbd at startup default: YES
+RUN_AT_STARTUP="YES"
+
+# Centreon Broker user : default centreon-broker
+USER="@USER@"
