@@ -1,0 +1,30 @@
+/*
+** Copyright 2012-2013,2015 Merethis
+**
+** This file is part of Centreon Engine.
+**
+** Centreon Engine is free software: you can redistribute it and/or
+** modify it under the terms of the GNU General Public License version 2
+** as published by the Free Software Foundation.
+**
+** Centreon Engine is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+** General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with Centreon Engine. If not, see
+** <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef TEST_PATHS_HH
+#  define TEST_PATHS_HH
+
+#  define CENTENGINE_BINARY "@CENTENGINE_BINARY@"
+#  define CENTENGINESTATS_BINARY "@CENTENGINESTATS_BINARY@"
+#  define CENTENGINEWS_BINARY "@CENTENGINEWS_BINARY@"
+#  define EXTERNALCMD_MODULE "@EXTERNALCMD_MODULE@"
+#  define TEST_DIR "@PROJECT_SOURCE_DIR@/test"
+#  define PROJECT_SOURCE_DIR "@PROJECT_SOURCE_DIR@"
+
+#endif // !TEST_PATHS_HH

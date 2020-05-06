@@ -3,10 +3,10 @@ project("Centreon Collect" C CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 # Version.
-set(CLIB_MAJOR 20)
-set(CLIB_MINOR 04)
-set(CLIB_PATCH 0)
-set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
+set(COLLECT_MAJOR 20)
+set(COLLECT_MINOR 10)
+set(COLLECT_PATCH 0)
+set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 
 
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -18,3 +18,4 @@ endif()
 
 add_subdirectory(clib)
 add_subdirectory(connectors)
+add_subdirectory(engine)

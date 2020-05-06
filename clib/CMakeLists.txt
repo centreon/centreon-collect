@@ -92,4 +92,5 @@ add_library(centreon-clib
 
 target_include_directories(centreon-clib PUBLIC ${CMAKE_SOURCE_DIR}/clib/inc)
 target_include_directories(centreon-clib PUBLIC ${CMAKE_BINARY_DIR}/)
+target_link_libraries(centreon-clib PUBLIC dl pthread)
 target_compile_features(centreon-clib PUBLIC cxx_std_11)
