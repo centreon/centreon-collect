@@ -5,6 +5,7 @@
         "liblwp-useragent-perl",
         "liblwp-protocol-https-perl",
         "libio-socket-ssl-perl",
+        "liburi-encode-perl",
         "liburi-perl",
         "libhttp-proxypac-perl"
     ]

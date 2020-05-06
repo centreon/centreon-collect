@@ -6,6 +6,7 @@
         "perl(LWP::Protocol::https)",
         "perl(IO::Socket::SSL)",
         "perl(URI)",
+        "perl(URI::Encode)",
         "perl(HTTP::ProxyPAC)"
     ]
 }
