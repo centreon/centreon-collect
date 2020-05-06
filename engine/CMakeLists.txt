@@ -29,9 +29,9 @@ add_definitions(-DDEFAULT_COMMAND_FILE="${RW_DIR}/centengine.cmd")
 add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_CONF}/centengine.cfg")
 
 # Configure files.
-configure_file(${CMAKE_SOURCE_DIR}/engine/inc/compatibility/locations.h.in ${CMAKE_BINARY_DIR}/locations.h)
-configure_file(${CMAKE_SOURCE_DIR}/engine/inc/compatibility/common.h.in ${CMAKE_BINARY_DIR}/common.h)
-configure_file(${CMAKE_SOURCE_DIR}/engine/inc/com/centreon/engine/version.hh.in ${CMAKE_BINARY_DIR}/engine-version.hh)
+configure_file(${CMAKE_SOURCE_DIR}/include/compatibility/locations.h.in ${CMAKE_BINARY_DIR}/locations.h)
+configure_file(${CMAKE_SOURCE_DIR}/include/compatibility/common.h.in ${CMAKE_BINARY_DIR}/common.h)
+configure_file(${CMAKE_SOURCE_DIR}/include/com/centreon/engine/version.hh.in ${CMAKE_BINARY_DIR}/engine-version.hh)
 include_directories(${CMAKE_SOURCE_DIR}/engine/inc/)
 include_directories(${CMAKE_SOURCE_DIR}/engine/modules/external_commands/inc/)
 include_directories(${CMAKE_BINARY_DIR}/inc/)

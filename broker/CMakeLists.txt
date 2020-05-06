@@ -20,7 +20,7 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(protoc CONFIG)
 find_package(protobuf CONFIG)
 include_directories(${CMAKE_BINARY_DIR})
-include_directories(${CMAKE_SOURCE_DIR}/broker/core/inc)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 get_filename_component(hw_proto "${CMAKE_SOURCE_DIR}/broker/core/src/broker.proto" ABSOLUTE)
 get_filename_component(hw_proto_path "${hw_proto}" PATH)
@@ -56,12 +56,12 @@ set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 # Version.
 add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 configure_file(
-  ${CMAKE_SOURCE_DIR}/broker/core/inc/com/centreon/broker/version.hh.in
+  ${CMAKE_SOURCE_DIR}/include/com/centreon/broker/version.hh.in
   ${CMAKE_BINARY_DIR}/broker-version.hh
   @ONLY
 )
 configure_file(
-  ${CMAKE_SOURCE_DIR}/broker/core/inc/com/centreon/broker/vars.hh.in
+  ${CMAKE_SOURCE_DIR}/include/com/centreon/broker/vars.hh.in
   ${CMAKE_BINARY_DIR}/vars.hh
   @ONLY
 )
