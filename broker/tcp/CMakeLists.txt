@@ -24,12 +24,7 @@ include_directories("${PROJECT_SOURCE_DIR}/tcp/inc")
 
 # Sources.
 set(SOURCES
-  "${SRC_DIR}/acceptor.cc"
-  "${SRC_DIR}/connector.cc"
-  "${SRC_DIR}/factory.cc"
-  "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/stream.cc"
-  "${SRC_DIR}/tcp_async.cc"
+
 )
 # Headers.
 set(HEADERS

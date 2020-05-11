@@ -46,20 +46,7 @@ set(STORAGE "20-storage")
 set(STORAGE "${STORAGE}" PARENT_SCOPE)
 add_library("${STORAGE}" SHARED
   # Sources.
-  "${SRC_DIR}/connector.cc"
-  "${SRC_DIR}/exceptions/perfdata.cc"
-  "${SRC_DIR}/factory.cc"
-  "${SRC_DIR}/index_mapping.cc"
-  "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/metric.cc"
-  "${SRC_DIR}/metric_mapping.cc"
-  "${SRC_DIR}/parser.cc"
-  "${SRC_DIR}/perfdata.cc"
-  "${SRC_DIR}/rebuild.cc"
-  "${SRC_DIR}/rebuilder.cc"
-  "${SRC_DIR}/remove_graph.cc"
-  "${SRC_DIR}/status.cc"
-  "${SRC_DIR}/stream.cc"
+
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
