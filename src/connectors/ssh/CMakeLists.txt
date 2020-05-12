@@ -16,12 +16,6 @@
 ## For more information : contact@centreon.com
 ##
 
-# Should the connector perform check against known_hosts file ?
-option(WITH_KNOWN_HOSTS_CHECK "Check hosts against user's known_hosts file." OFF)
-if (WITH_KNOWN_HOSTS_CHECK)
-  add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
-endif ()
-
 # SSH connector.
 add_executable(centreon_connector_ssh
   # Sources.
@@ -40,27 +34,4 @@ add_executable(centreon_connector_ssh
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/sessions/session.cc
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/sessions/socket_handle.cc
 )
-target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
-   ${LIBGCRYPT_LIBRARIES} centreon-clib CONAN_PKG::spdlog pthread)
-
-# Installation path.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
-if (WITH_PREFIX_BINARY)
-  set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
-else ()
-  set(PREFIX_BINARY "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
-
-# Install rules.
-install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${PREFIX_BINARY})
-
-# Code coverage on unit tests
-option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_COVERAGE)
-  set(WITH_TESTING ON)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif ()
+target_link_libraries(centreon_connector_ssh CONAN_PKG::libssh2 centreon-clib CONAN_PKG::spdlog pthread)

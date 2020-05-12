@@ -15,9 +15,10 @@
 ##
 ## For more information : contact@centreon.com
 ##
-pkg_check_modules(centreon-clib QUIET centreon-clib)
 
 # Generate code to dynamically load modules.
+include(${CMAKE_SOURCE_DIR}/cmake/Findperl.cmake)
+
 add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/xs_init.cc"
   COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${CMAKE_BINARY_DIR}/xs_init.cc")
 
@@ -40,26 +41,4 @@ add_executable(centreon_connector_perl
   ${CMAKE_BINARY_DIR}/xs_init.cc
   )
 
-target_link_libraries(centreon_connector_perl ${CLIB_LIBRARIES} ${PERL_LIBRARIES} centreon-clib CONAN_PKG::spdlog pthread)
-
-# Installation path.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
-if (WITH_PREFIX_BINARY)
-  set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
-else ()
-  set(PREFIX_BINARY "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
-
-# Install rules.
-install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${PREFIX_BINARY})
-
-# Code coverage on unit tests
-option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-if (WITH_COVERAGE)
-  set(WITH_TESTING ON)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(CodeCoverage.cmake)
-  APPEND_COVERAGE_COMPILER_FLAGS()
-endif ()
+target_link_libraries(centreon_connector_perl ${PERL_LIBRARIES} centreon-clib CONAN_PKG::spdlog pthread)

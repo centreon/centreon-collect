@@ -10,4 +10,4 @@ add_executable(cbd
 
 #Flags needed to include all symbols in binary.
 target_link_libraries(cbd CONAN_PKG::grpc CONAN_PKG::protobuf CONAN_PKG::protoc_installer
-  "-Wl,--whole-archive" ccb_rpc ccb_core ccb_sql "-Wl,--no-whole-archive" CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::fmt )
+  "-Wl,--whole-archive" ccb_rpc ccb_core ccb_sql "-Wl,--no-whole-archive" CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::openssl)

@@ -23,18 +23,25 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
+#include <iterator>
 #include <list>
+#include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
+#include "com/centreon/engine/namespace.hh"
 #include "engine-version.hh"
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/misc/command_line.hh"
 #include "com/centreon/timestamp.hh"
-#include "test/unittest.hh"
 
-using namespace com::centreon;
-using namespace com::centreon::engine;
-using namespace com::centreon::engine::commands;
+#define STATE_OK 0
+#define STATE_WARNING 1
+#define STATE_CRITICAL 2
+#define STATE_UNKNOWN 3
+
+// using namespace com::centreon;
+// using namespace com::centreon::engine;
 
 /**
  *  Simulate a execution process.
@@ -45,20 +52,27 @@ using namespace com::centreon::engine::commands;
  *
  *  @return The raw query.
  */
-static std::string execute_process(char** argv,
+static std::string execute_process(std::vector<std::string> const& argv,
                                    uint32_t timeout,
                                    int* exit_code) {
   std::string output;
-  uint32_t i(0);
-  while (argv[i]) {
+  uint32_t i;
+  for (i = 0; i < argv.size(); i++) {
     output += argv[i];
-    if (argv[++i])
-      output += " ";
+    output += " ";
   }
+
+  size_t l = output.find_last_of(' ');
+  output = output.substr(0, l);
+
+  std::ofstream outfile;
+  outfile.open("/tmp/test.txt", std::ios_base::app);
+  outfile << "execute process " << output << "\n";
+  outfile.close();
 
   if (i != 2) {
     *exit_code = STATE_WARNING;
-    return (output);
+    return output;
   }
 
   std::string const& arg(argv[1]);
@@ -68,18 +82,32 @@ static std::string execute_process(char** argv,
     *exit_code = STATE_OK;
   else if (arg.find("--kill=") == 0) {
     std::string value(arg.substr(7));
-    uint32_t start_time(strtoul(value.c_str(), NULL, 0));
-    uint32_t now(time(NULL));
+    int32_t delay(strtol(value.c_str(), NULL, 0));
 
-    if (now < start_time + 1) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+    if (delay > 0) {
+      std::this_thread::sleep_for(std::chrono::seconds(delay));
+
+      /* Let's force a segfault */
+      std::ofstream outfile;
+      outfile.open("/tmp/test.txt", std::ios_base::app);
+      outfile << "execute process segfault!!!\n";
+      outfile.close();
+
       char* ptr(NULL);
       ptr[0] = 0;
+
     } else
       *exit_code = STATE_OK;
   } else
     *exit_code = STATE_UNKNOWN;
-  return (output);
+  return output;
+}
+
+static std::vector<std::string> split(std::string const& str) {
+  std::istringstream iss(str);
+  std::vector<std::string> retval(std::istream_iterator<std::string>{iss},
+                                  std::istream_iterator<std::string>());
+  return retval;
 }
 
 /**
@@ -89,36 +117,43 @@ static std::string execute_process(char** argv,
  */
 static void query_execute(char const* q) {
   // Get query informations.
+
+  std::ofstream outfile;
+  outfile.open("/tmp/test.txt", std::ios_base::app);
+  outfile << "query execute\n";
+  outfile.close();
+
   char const* startptr(q);
   char* endptr(NULL);
   unsigned long command_id(strtol(startptr, &endptr, 10));
   if (startptr == endptr)
-    throw(basic_error() << "invalid query execute: "
-                           "invalid command_id");
+    throw basic_error() << "invalid query execute: "
+                           "invalid command_id";
   startptr = endptr + 1;
   uint32_t timeout(strtol(startptr, &endptr, 10));
   if (startptr == endptr)
-    throw(basic_error() << "invalid query execute: "
-                           "invalid is_executed");
+    throw basic_error() << "invalid query execute: "
+                           "invalid is_executed";
   startptr = endptr + 1;
   char const* cendptr(startptr);
   while (isdigit(*cendptr))
     ++cendptr;
   if (startptr == cendptr)
-    throw(basic_error() << "invalid query execute: "
-                           "invalid exit_code");
+    throw basic_error() << "invalid query execute: "
+                           "invalid exit_code";
   char const* cmd(cendptr + 1);
 
-  misc::command_line cmdline(cmd);
-  int exit_code(STATE_OK);
-  std::string output(execute_process(cmdline.get_argv(), timeout, &exit_code));
+  std::vector<std::string> cmdline = split(cmd);
+  int exit_code = STATE_OK;
+  std::string output(execute_process(cmdline, timeout, &exit_code));
   std::ostringstream oss;
   oss << "3" << '\0' << command_id << '\0' << "1" << '\0' << exit_code << '\0'
       << "" << '\0' << output << '\0' << std::string(3, '\0');
   std::string data(oss.str());
   if (write(STDOUT_FILENO, data.c_str(), data.size()) !=
-      static_cast<ssize_t>(data.size()))
-    throw(basic_error() << "write query execute failed");
+      static_cast<ssize_t>(data.size())) {
+    throw basic_error() << "write query execute failed";
+  }
 }
 
 /**
@@ -128,12 +163,18 @@ static void query_execute(char const* q) {
  */
 static void query_quit(char const* q) {
   (void)q;
+
+  std::ofstream outfile;
+  outfile.open("/tmp/test.txt", std::ios_base::app);
+  outfile << "query quit\n";
+  outfile.close();
+
   std::ostringstream oss;
   oss << "5" << '\0' << std::string(3, '\0');
   std::string data(oss.str());
   if (write(STDOUT_FILENO, data.c_str(), data.size()) !=
       static_cast<ssize_t>(data.size()))
-    throw(basic_error() << "write query quit failed");
+    throw basic_error() << "write query quit failed";
   exit(EXIT_SUCCESS);
 }
 
@@ -144,13 +185,25 @@ static void query_quit(char const* q) {
  */
 static void query_version(char const* q) {
   (void)q;
+
+  std::ofstream outfile;
+  outfile.open("/tmp/test.txt", std::ios_base::app);
+  outfile << "query version\n";
+  outfile.close();
+
   std::ostringstream oss;
   oss << "1" << '\0' << CENTREON_ENGINE_VERSION_MAJOR << '\0'
       << CENTREON_ENGINE_VERSION_MINOR << '\0' << std::string(3, '\0');
   std::string data(oss.str());
   if (write(STDOUT_FILENO, data.c_str(), data.size()) !=
-      static_cast<ssize_t>(data.size()))
-    throw(basic_error() << "write query version failed");
+      static_cast<ssize_t>(data.size())) {
+    throw basic_error() << "write query version failed";
+
+    std::ofstream outfile;
+    outfile.open("/tmp/test.txt", std::ios_base::app);
+    outfile << "WRITE QUERY VERSION FAILED...\n";
+    outfile.close();
+  }
 }
 
 /**
@@ -165,16 +218,21 @@ static int wait(std::string& query) {
   static std::string ending(4, '\0');
   static std::string data;
 
+  std::ofstream outfile;
+  outfile.open("/tmp/test.txt", std::ios_base::app);
+  outfile << "wait\n";
+  outfile.close();
+
   // Split outpout into queries responses.
   while (responses.empty()) {
     char buffer[4096];
     ssize_t ret(read(STDIN_FILENO, buffer, sizeof(buffer)));
     if (ret < 0) {
       char const* msg(strerror(errno));
-      throw(basic_error() << "invalid read: " << msg);
+      throw basic_error() << "invalid read: " << msg;
     }
     if (!ret)
-      return (-1);
+      return -1;
     data.append(buffer, ret);
     while (data.size() > 0) {
       size_t pos(data.find(ending));
@@ -190,12 +248,12 @@ static int wait(std::string& query) {
   uint32_t id(strtol(query_str, &endptr, 10));
   if (query_str == endptr) {
     responses.pop_front();
-    throw(basic_error() << "invalid query");
+    throw basic_error() << "invalid query";
   }
   query.clear();
   query.append(endptr + 1, response.size() - ((endptr + 1) - query_str));
   responses.pop_front();
-  return (id);
+  return id;
 }
 
 /**
@@ -204,6 +262,12 @@ static int wait(std::string& query) {
  *  @return EXIT_SUCCESS on success.
  */
 int main() {
+  std::ofstream outfile;
+  outfile.open("/tmp/test.txt", std::ios_base::app);
+  outfile << "*****************************************************************"
+             "*******\n";
+  outfile.close();
+
   typedef void (*send_query)(char const*);
   static send_query tab_send_query[] = {
       &query_version, NULL, &query_execute, NULL, &query_quit, NULL,
@@ -218,12 +282,12 @@ int main() {
           static_cast<uint32_t>(id) >=
               sizeof(tab_send_query) / sizeof(*tab_send_query) ||
           !tab_send_query[id])
-        throw(basic_error() << "reveive bad request id: id=" << id);
+        throw basic_error() << "reveive bad request id: id=" << id;
       (*tab_send_query[id])(query.c_str());
     }
   } catch (std::exception const& e) {
     (void)e;
-    return (EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
-  return (EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
