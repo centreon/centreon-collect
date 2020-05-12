@@ -19,6 +19,7 @@
 #include "com/centreon/broker/modules/loader.hh"
 #include <sys/stat.h>
 #include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
@@ -64,8 +65,7 @@ loader::iterator loader::end() {
  */
 void loader::load_dir(std::string const& dirname, void const* arg) {
   // Debug message.
-  logging::debug(logging::medium)
-      << "modules: loading directory '" << dirname << "'";
+  log_v2::module()->debug("modules: loading directory '{}'", dirname);
 
   // Set directory browsing parameters.
   std::list<std::string> list;
@@ -82,8 +82,7 @@ void loader::load_dir(std::string const& dirname, void const* arg) {
   }
 
   // Ending log message.
-  logging::debug(logging::medium)
-      << "modules: finished loading directory '" << dirname << "'";
+  log_v2::module()->debug("modules: finished loading directory '{}'", dirname);
 }
 
 /**
@@ -99,8 +98,8 @@ void loader::load_file(std::string const& filename, void const* arg) {
     handl->open(filename, arg);
     _handles[filename] = handl;
   } else {
-    logging::info(logging::low) << "modules: attempt to load '" << filename
-                                << "' which is already loaded";
+    log_v2::module()->info(
+        "modules: attempt to load '{}' which is already loaded", filename);
     it->second->update(arg);
   }
 }

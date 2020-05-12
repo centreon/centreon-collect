@@ -19,6 +19,7 @@
 #include "com/centreon/broker/modules/handle.hh"
 #include <cstring>
 #include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
 using namespace com::centreon::broker;
@@ -63,11 +64,10 @@ handle::~handle() {
   try {
     close();
   } catch (std::exception const& e) {
-    logging::error(logging::high) << e.what();
+    log_v2::module()->error(e.what());
   } catch (...) {
-    logging::error(logging::high) << "modules: unknown error while "
-                                     "unloading '"
-                                  << _filename << "'";
+    log_v2::module()->error("modules: unknown error while unloading '{}'",
+                            _filename);
   }
 }
 
@@ -94,7 +94,7 @@ handle& handle::operator=(handle const& other) {
 void handle::close() {
   if (is_open()) {
     // Log message.
-    logging::info(logging::medium) << "modules: closing '" << _filename << "'";
+    log_v2::module()->info("modules: closing '{}'", _filename);
 
     // Find deinitialization routine.
     union {
@@ -106,26 +106,25 @@ void handle::close() {
     // Could not find deinitialization routine.
     char const* error_str{dlerror()};
     if (error_str) {
-      logging::info(logging::medium) << "modules: could not find "
-                                        "deinitialization routine in '"
-                                     << _filename << "': " << error_str;
+      log_v2::module()->error(
+          "modules: could not find deinitialization routine in '{}': {}",
+          _filename, error_str);
     }
     // Call deinitialization routine.
     else {
-      logging::debug(logging::low)
-          << "modules: running deinitialization routine of '" << _filename
-          << "'";
+      log_v2::module()->debug(
+          "modules: running deinitialization routine of '{}'", _filename);
       (*(sym.code))();
     }
 
     // Reset library handle.
-    logging::debug(logging::low)
-        << "modules: unloading library '" << _filename << "'";
+    log_v2::module()->debug("modules: unloading library '{}'", _filename);
+
     // Library was not unloaded.
     if (dlclose(_handle)) {
       char const* error_str{dlerror()};
-      logging::info(logging::medium) << "modules: could not unload library '"
-                                     << _filename << "': " << error_str;
+      log_v2::module()->error("modules: could not unload library '{}': {}",
+                              _filename, error_str);
     } else {
       _handle = nullptr;
       _filename.clear();
@@ -153,8 +152,8 @@ void handle::open(std::string const& filename, void const* arg) {
   this->close();
 
   // Load library.
-  logging::debug(logging::medium)
-      << "modules: loading library '" << filename << "'";
+  log_v2::module()->debug("modules: loading library '{}'", filename);
+
   //_handle.setLoadHints(QLibrary::ResolveAllSymbolsHint
   //  | QLibrary::ExportExternalSymbolsHint);
   _filename = filename;
@@ -190,8 +189,9 @@ void handle::update(void const* arg) {
 
   // Found routine.
   if (sym.data) {
-    logging::debug(logging::low)
-        << "modules: running update routine of '" << _filename << "'";
+    log_v2::module()->debug("modules: running update routine of '{}'",
+                            _filename);
+
     (*(void (*)(void const*))(sym.code))(arg);
   }
 }
@@ -207,8 +207,9 @@ void handle::update(void const* arg) {
  */
 void handle::_check_version() {
   // Find version symbol.
-  logging::debug(logging::low) << "modules: checking module version (symbol "
-                               << versionning << ") in '" << _filename << "'";
+  log_v2::module()->debug(
+      "modules: checking module version (symbol {}) in '{}'", versionning,
+      _filename);
 
   char const** version = (char const**)dlsym(_handle, versionning);
 
@@ -253,7 +254,7 @@ void handle::_init(void const* arg) {
   }
 
   // Call initialization routine.
-  logging::debug(logging::medium)
-      << "modules: running initialization routine of '" << _filename << "'";
+  log_v2::module()->debug("modules: running initialization routine of '{}'",
+                          _filename);
   (*(void (*)(void const*))(sym.code))(arg);
 }

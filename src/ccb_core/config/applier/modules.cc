@@ -17,10 +17,9 @@
 */
 
 #include "com/centreon/broker/config/applier/modules.hh"
-#include <cstdlib>
-#include <memory>
+
 #include "com/centreon/broker/logging/logging.hh"
-#include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::config::applier;
 
@@ -37,7 +36,7 @@ static modules* gl_modules = nullptr;
  *  Destructor.
  */
 modules::~modules() {
-  logging::debug(logging::high) << "module applier: destruction";
+  log_v2::module()->trace("module applier: destruction");
 }
 
 /**
@@ -59,16 +58,14 @@ void modules::apply(std::list<std::string> const& module_list,
 
   // Load modules.
   for (std::string const& m : module_list) {
-    logging::config(logging::high)
-        << "module applier: loading module '" << m << "'";
+    log_v2::module()->info("module applier: loading module '{}'", m);
     _loader.load_file(m, arg);
   }
   if (!module_dir.empty()) {
-    logging::config(logging::high)
-        << "module applier: loading directory '" << module_dir << "'";
+    log_v2::module()->info("module applier: loading directory '{}'", module_dir);
     _loader.load_dir(module_dir, arg);
   } else
-    logging::debug(logging::high) << "module applier: no directory defined";
+    log_v2::module()->info("module applier: no directory defined");
 }
 
 /**
