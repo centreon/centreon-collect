@@ -28,7 +28,6 @@ add_library(
   ${hw_proto_hdrs}
   ${hw_grpc_srcs}
   ${hw_grpc_hdrs}
-  ${CONAN_LIB_DIRS_GRPC}/libgrpc++_reflection.a
 )
 target_include_directories(ccb_rpc PUBLIC ${CMAKE_BINARY_DIR})
 target_include_directories(ccb_rpc PUBLIC ${CMAKE_SOURCE_DIR}/include/)
