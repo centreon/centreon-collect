@@ -33,17 +33,17 @@ void remove_file(std::string const& filename) {
 }
 
 TEST(WatchdogTest, Help) {
-  std::string result = com::centreon::broker::misc::exec("watchdog/cbwd -h");
+  std::string result = com::centreon::broker::misc::exec("bin/cbwd -h");
   ASSERT_EQ("USAGE: cbwd configuration_file\n", result);
 }
 
 TEST(WatchdogTest, NoConfig) {
-  std::string result = com::centreon::broker::misc::exec("watchdog/cbwd");
+  std::string result = com::centreon::broker::misc::exec("bin/cbwd");
   ASSERT_EQ("USAGE: cbwd configuration_file\n", result);
 }
 
 TEST(WatchdogTest, NotExistingConfig) {
-  std::string result = com::centreon::broker::misc::exec("watchdog/cbwd foo");
+  std::string result = com::centreon::broker::misc::exec("bin/cbwd foo");
   ASSERT_EQ(
       "ERROR: could not parse the configuration file 'foo': config parser: "
       "cannot read file 'foo': No such file or directory\n",
@@ -52,7 +52,7 @@ TEST(WatchdogTest, NotExistingConfig) {
 
 TEST(WatchdogTest, BadConfig) {
   std::string result = com::centreon::broker::misc::exec(
-      "watchdog/cbwd " CENTREON_BROKER_WD_TEST "/bad-config.json");
+      "bin/cbwd " CENTREON_BROKER_WD_TEST "/bad-config.json");
   char const* str =
       "ERROR: could not parse the configuration file '" CENTREON_BROKER_WD_TEST
       "/bad-config.json': reload field not provided for cbd instance\n";
@@ -85,7 +85,7 @@ TEST(WatchdogTest, SimpleConfig) {
       "  }\n"
       "}"};
   create_conf("/tmp/simple-conf.json", content);
-  char const* arg[]{"watchdog/cbwd", "/tmp/simple-conf.json", nullptr};
+  char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
   com::centreon::broker::misc::exec_process(arg, false);
   std::string r =
       misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
@@ -108,7 +108,7 @@ TEST(WatchdogTest, SimpleConfig) {
 
   // We send a term signal to cbwd
   r = misc::exec(
-      "ps ax | grep watchdog/cbwd | grep -v grep | awk '{print $1}'");
+      "ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   pid = std::stol(r);
   kill(pid, SIGTERM);
   sleep(2);
@@ -118,7 +118,7 @@ TEST(WatchdogTest, SimpleConfig) {
   ASSERT_EQ(r, "");
 
   r = misc::exec(
-      "ps ax | grep watchdog/cbwd | grep -v grep | awk '{print $1}'");
+      "ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   // No cbwd anymore.
   ASSERT_EQ(r, "");
 }
@@ -173,7 +173,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
       "  }\n"
       "}"};
   create_conf("/tmp/simple-conf.json", content1);
-  char const* arg[]{"watchdog/cbwd", "/tmp/simple-conf.json", nullptr};
+  char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
 
   com::centreon::broker::misc::exec_process(arg, false);
   std::string r = misc::exec(
@@ -188,7 +188,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
   create_conf("/tmp/simple-conf.json", content2);
   // We send a sighup signal to cbwd
   r = misc::exec(
-      "ps ax | grep watchdog/cbwd | grep -v grep | awk '{print $1}'");
+      "ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   int pid = std::stol(r);
   kill(pid, SIGHUP);
 
@@ -209,7 +209,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
   do {
     sleep(1);
     r = misc::exec(
-        "ps ax | grep watchdog/cbwd | grep -v grep | grep -v defunc | awk "
+        "ps ax | grep bin/cbwd | grep -v grep | grep -v defunc | awk "
         "'{print $1}'");
   } while (!r.empty());
   ASSERT_GT(timeout, 0);
