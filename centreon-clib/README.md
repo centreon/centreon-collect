@@ -43,7 +43,7 @@ might not work at all.
 
 Stable releases are available as gziped tarballs on [Centreon's download site](https://download.centreon.com).
 
-## Compilation (quickstart) ##
+## Compilation ##
 
 **Warning**: Centreon Clib is a low-level component of the Centreon
 software suite. If this is your first installation you would probably
@@ -53,6 +53,21 @@ This paragraph is only a quickstart guide for the compilation of
 Centreon Clib. For a more in-depth guide with build options you should
 refer to the [online documentation](https://documentation.centreon.com/docs/centreon-clib/en/latest/).
 
+First of all, check if you have these packages installed (Note that packages names come from Centos 7 distribution, so if some packages names don't match on your distribution try to find their equivalent names) :
+
+    git, make, cmake, gcc-c++.
+
+If they are not installed, please intall them.
+
+If you are on Centos 7 distribution, follow these steps:
+    
+    $> git clone https://github.com/centreon/centreon-clib.git
+    $> cd centreon-clib && ./cmake.sh
+    $> cd build
+    $> make & make install
+
+If you are on an other distribution, then follow the steps bellow.
+
 Once the sources of Centreon Clib extracted, create the *./build/*
 directory and launch the CMake command. This will look for required
 dependencies and print a summary of the compilation parameters if
@@ -60,15 +75,15 @@ everything went fine.
 
     $> cd centreon-clib
     $> mkdir build && cd build
-    $> cmake ..
+    $> cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On  .. 
     ...
 
 Now launch the compilation using the *make* command and then install the
 software by running *make install* as priviledged user.
 
-    $> make -j 4
+    $> make 
     ...
-    $# make install
+    $> make install
 
 You're done !
 
