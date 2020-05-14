@@ -1,0 +1,58 @@
+{
+	"centreonBroker": {
+		"poller_id": 1,
+		"poller_name": "poller",
+		"broker_id": 1,
+		"broker_name": "toto",
+		"cache_directory": "/tmp",
+		"module_directory": "/home/user/sourcedir/centreon-collect/module_dir",
+		"grpc": {
+			"rpc_port": 3000
+		},
+	        "logger": [
+			{
+				"name": "/tmp/central-broker.log",
+				"config": "yes",
+				"debug": "no",
+				"error": "yes",
+				"info": "yes",
+				"level": "low",
+				"type": "file"
+			}
+		],
+		"input": [ {
+        	        "name": "central-broker-input",
+        	        "port": "5669",
+        	        "buffering_timeout": "0",
+        	        "retry_interval": "10",
+        	        "protocol": "bbdo",
+        	        "tls": "auto",
+        	        "negotiation": "yes",
+        	        "one_peer_retention_mode": "no",
+        	        "compression": "auto",
+        	        "type": "ipv4"
+        	    }
+	        ],
+		"output": [ {
+                	"name": "centreon-broker-rrd",
+	                "port": "5670",
+	                "buffering_timeout": "0",
+        	        "host": "localhost",
+        	        "retry_interval": "60",
+        	        "protocol": "bbdo",
+        	        "tls": "no",
+        	        "negotiation": "yes",
+        	        "one_peer_retention_mode": "no",
+        	        "compression": "no",
+        	        "type": "ipv4"
+            	}	
+            ],
+            "stats": [
+                {
+                    "type": "stats",
+                    "name": "central-broker-master-stats",
+                    "json_fifo": "/tmp"
+                }
+            ]
+	}
+}
