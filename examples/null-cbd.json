@@ -5,7 +5,7 @@
 		"broker_id": 1,
 		"broker_name": "toto",
 		"cache_directory": "/tmp",
-		"module_directory": "/home/user/sourcedir/centreon-collect/module_dir",
+		"module_directory": "/home/syl/CLionProjects/centreon-collect/cmake-build-debug/module-dir",
 		"grpc": {
 			"rpc_port": 3000
 		},
