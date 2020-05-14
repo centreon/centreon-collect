@@ -278,62 +278,6 @@ uint32_t stringifier::size() const throw() {
 }
 
 /**
- *  Insert data into the current buffer.
- *
- *  @param[in] format  Specifies how the next arguments is converted
- *                     for output.
- *  @param[in] val     The object to convert.
- *
- *  @return This object.
- */
-template <typename T>
-stringifier& stringifier::_insert(char const* format, T val) throw() {
-  int ret(snprintf(_buffer + _current, _size - _current, format, val));
-  if (ret < 0)
-    return (*this);
-
-  uint32_t size(static_cast<uint32_t>(ret + 1));
-  if (size + _current > _size) {
-    if (!_realloc(size + _current))
-      return (*this);
-    if ((ret = snprintf(_buffer + _current, _size - _current, format, val)) < 0)
-      return (*this);
-  }
-  _current += ret;
-  return (*this);
-}
-
-/**
- *  Insert data into the current buffer with size limit.
- *
- *  @param[in] format  Specifies how the next arguments is converted
- *                     for output.
- *  @param[in] limit   The size limit.
- *  @param[in] val     The object to convert.
- *
- *  @return This object.
- */
-template <typename T>
-stringifier& stringifier::_insert(char const* format,
-                                  uint32_t limit,
-                                  T val) throw() {
-  int ret(snprintf(_buffer + _current, _size - _current, format, limit, val));
-  if (ret < 0)
-    return (*this);
-
-  uint32_t size(static_cast<uint32_t>(ret + 1));
-  if (size + _current > _size) {
-    if (!_realloc(size + _current))
-      return (*this);
-    if ((ret = snprintf(_buffer + _current, _size - _current, format, limit,
-                        val)) < 0)
-      return (*this);
-  }
-  _current += ret;
-  return (*this);
-}
-
-/**
  *  Internal copy.
  *
  *  @param[in] right  The object to copy.

@@ -31,5 +31,5 @@ add_library(
 )
 target_include_directories(ccb_rpc PUBLIC ${CMAKE_BINARY_DIR})
 target_include_directories(ccb_rpc PUBLIC ${CMAKE_SOURCE_DIR}/include/)
-target_link_libraries(ccb_rpc PRIVATE CONAN_PKG::protobuf CONAN_PKG::grpc)
+target_link_libraries(ccb_rpc PUBLIC CONAN_PKG::protobuf CONAN_PKG::grpc)
 target_compile_features(ccb_rpc PUBLIC cxx_std_11)

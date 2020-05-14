@@ -1,6 +1,7 @@
 # Version.
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include)
+
 configure_file(
   ${CMAKE_SOURCE_DIR}/include/com/centreon/broker/version.hh.in
   ${CMAKE_BINARY_DIR}/broker-version.hh
@@ -105,8 +106,13 @@ add_library(ccb_core
   ${CMAKE_SOURCE_DIR}/src/ccb_core/time/timeperiod.cc
   ${CMAKE_SOURCE_DIR}/src/ccb_core/time/timerange.cc
   ${CMAKE_SOURCE_DIR}/src/ccb_core/time/timezone_locker.cc
-  ${CMAKE_SOURCE_DIR}/src/ccb_core/time/timezone_manager.cc)
+  ${CMAKE_SOURCE_DIR}/src/ccb_core/time/timezone_manager.cc
+)
 
 # Static libraries.
+set_target_properties(ccb_core PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(ccb_core PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
-target_link_libraries(ccb_core CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::zlib CONAN_PKG::asio ${MYSQL_LIBS})
+
+target_link_libraries(ccb_core PUBLIC
+  CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::zlib CONAN_PKG::asio ${MYSQL_LIBS}
+  )
