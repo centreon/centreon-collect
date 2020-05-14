@@ -16,7 +16,6 @@
 ## along with Centreon Engine. If not, see
 ## <http://www.gnu.org/licenses/>.
 ##
-include_directories(${CMAKE_BINARY_DIR})
 link_directories(${CONAN_LIB_DIRS_GRPC})
 
 add_definitions(-DDEFAULT_LOG_FILE="${VAR_DIR}/centengine.log")
@@ -34,7 +33,7 @@ add_executable(centengine
 find_package(Protobuf MODULE)
 MESSAGE(INFO "pb ${Protobuf_IMPORT_DIRS} gRPC::grpc++_reflection ")
 # Link centengine with required libraries.
-target_link_libraries(centengine centreon-clib  "-Wl,-whole-archive" cce_rpc cce_core grpc++_reflection "-Wl,-no-whole-archive")
+target_link_libraries(centengine "-Wl,-whole-archive" cce_rpc cce_core grpc++_reflection "-Wl,-no-whole-archive")
 
 
 

@@ -15,8 +15,6 @@
 ##
 ## For more information : contact@centreon.com
 ##
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
-
 include(${CMAKE_SOURCE_DIR}/cmake/FindRrd.cmake)
 
 include_directories(${LIBRRD_INCLUDE_DIR})

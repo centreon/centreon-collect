@@ -1,5 +1,3 @@
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
-
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR})
 
@@ -128,13 +126,13 @@ add_executable(ccb_ut
   ${CMAKE_SOURCE_DIR}/test/broker/io.cc
   ${CMAKE_SOURCE_DIR}/test/broker/logging.cc
   ${CMAKE_SOURCE_DIR}/test/broker/main.cc
+  ${CMAKE_SOURCE_DIR}/test/broker/simu.cc
   ${CMAKE_SOURCE_DIR}/test/broker/test_server.cc
   )
 
-
 target_link_libraries(ccb_ut CONAN_PKG::gtest CONAN_PKG::json11 ccb_rpc
                              ccb_core ccb_conflict_manager 10-neb 15-stats
-                             20-storage 20-bam 50-tcp 70-lua 70-rrd
+                             20-storage 20-bam 50-tcp 70-lua 70-rrd 70-simu
                              70-influxdb 70-graphite CONAN_PKG::grpc
                              CONAN_PKG::spdlog)
 set_target_properties(ccb_ut PROPERTIES COMPILE_FLAGS ${MYSQL_CFLAGS})

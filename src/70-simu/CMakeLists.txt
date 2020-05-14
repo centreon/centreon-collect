@@ -1,5 +1,5 @@
 ##
-## Copyright 2009-2020 Centreon
+## Copyright 2013 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -15,35 +15,19 @@
 ##
 ## For more information : contact@centreon.com
 ##
-
-include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CONAN_INCLUDE_DIRS_JSON11})
 
 
-
-
-
-
-
-
-add_library(roker STATIC
+# TLS module.
+add_library(70-simu SHARED
+  # Sources
+  ${CMAKE_SOURCE_DIR}/src/70-simu/connector.cc
+  ${CMAKE_SOURCE_DIR}/src/70-simu/factory.cc
+  ${CMAKE_SOURCE_DIR}/src/70-simu/luabinding.cc
+  ${CMAKE_SOURCE_DIR}/src/70-simu/main.cc
+  ${CMAKE_SOURCE_DIR}/src/70-simu/stream.cc
 )
-target_link_libraries(roker rokerbase)
 
-
-
-
-# Centreon Broker Watchdog
-option(WITH_CBWD "Build centreon broker watchdong." ON)
-if (WITH_CBWD)
-  add_subdirectory(watchdog)
-endif ()
-
-#
-# Unit tests.
-#
-# Enable testing.
-option(WITH_TESTING "Generate unit tests." OFF)
-if (WITH_TESTING)
-  add_subdirectory(test)
-endif ()
+target_link_libraries(70-simu CONAN_PKG::spdlog CONAN_PKG::lua)
+set_target_properties(70-simu PROPERTIES PREFIX "")

@@ -1,7 +1,6 @@
 # Version.
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include)
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 configure_file(
   ${CMAKE_SOURCE_DIR}/include/com/centreon/broker/version.hh.in
   ${CMAKE_BINARY_DIR}/broker-version.hh

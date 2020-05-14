@@ -1,6 +1,5 @@
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(gRPC CONFIG REQUIRED)
-include_directories(${CMAKE_BINARY_DIR})
 
 get_filename_component(hw_proto "${CMAKE_SOURCE_DIR}/src/cce_rpc/engine.proto" ABSOLUTE)
 get_filename_component(hw_proto_path "${hw_proto}" PATH)
@@ -29,7 +28,6 @@ add_library(
   ${hw_grpc_srcs}
   ${hw_grpc_hdrs}
 )
-target_include_directories(cce_rpc PUBLIC ${CMAKE_BINARY_DIR})
-target_include_directories(cce_rpc PUBLIC ${CMAKE_SOURCE_DIR}/include/)
-target_link_libraries(cce_rpc PUBLIC CONAN_PKG::protobuf CONAN_PKG::grpc)
+
+target_link_libraries(cce_rpc PUBLIC CONAN_PKG::protobuf CONAN_PKG::grpc centreon-clib)
 target_compile_features(cce_rpc PUBLIC cxx_std_11)

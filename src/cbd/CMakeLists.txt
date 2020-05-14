@@ -1,4 +1,3 @@
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 link_directories(${CONAN_LIB_DIRS_GRPC})
 
 # Standalone binary.

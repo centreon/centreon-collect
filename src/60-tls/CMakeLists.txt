@@ -15,8 +15,6 @@
 ##
 ## For more information : contact@centreon.com
 ##
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
-
 include(${CMAKE_SOURCE_DIR}/cmake/FindGnuTls.cmake)
 
 include_directories(${GNUTLS_INCLUDE_DIR})

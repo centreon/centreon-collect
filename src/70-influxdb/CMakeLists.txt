@@ -15,7 +15,6 @@
 ##
 ## For more information : contact@centreon.com
 ##
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CONAN_INCLUDE_DIRS_JSON11})
 include_directories(${CONAN_INCLUDE_DIRS_SPDLOG})

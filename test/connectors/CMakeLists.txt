@@ -1,10 +1,11 @@
-add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_BINARY_DIR})
+add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
 
+# Generate code to dynamically load modules.
 include(${CMAKE_SOURCE_DIR}/cmake/Findperl.cmake)
 
-add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/xs_init.cc"
+  COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${CMAKE_BINARY_DIR}/xs_init.cc")
+
 
 add_executable(ccc_ut
   ${CMAKE_SOURCE_DIR}/src/connectors/perl/embedded_perl.cc

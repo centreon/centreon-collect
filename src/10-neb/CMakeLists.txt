@@ -15,9 +15,10 @@
 ##
 ## For more information : contact@centreon.com
 ##
-add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CONAN_INCLUDE_DIRS_JSON11})
+add_definitions(${CONAN_DEFINITIONS_SPDLOG})
+include_directories(${CONAN_INCLUDE_DIRS_SPDLOG})
 
 # TLS module.
 add_library(10-neb
@@ -31,5 +32,5 @@ add_library(10-neb
   ${CMAKE_SOURCE_DIR}/src/10-neb/node_id.cc
 )
 
-target_link_libraries(10-neb CONAN_PKG::spdlog ccb_neb)
+target_link_libraries(10-neb ccb_neb)
 set_target_properties(10-neb PROPERTIES PREFIX "")
