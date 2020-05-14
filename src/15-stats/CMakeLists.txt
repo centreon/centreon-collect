@@ -33,5 +33,5 @@ add_library(15-stats
 )
 
 set_target_properties(15-stats PROPERTIES COMPILE_FLAGS ${MYSQL_CFLAGS})
-target_link_libraries(15-stats CONAN_PKG::spdlog)
+target_link_libraries(15-stats CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(15-stats PROPERTIES PREFIX "")

@@ -109,4 +109,4 @@ add_library(ccb_core
 
 # Static libraries.
 set_target_properties(ccb_core PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
-target_link_libraries(ccb_core CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::zlib ${MYSQL_LIBS})
+target_link_libraries(ccb_core CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::zlib CONAN_PKG::asio ${MYSQL_LIBS})

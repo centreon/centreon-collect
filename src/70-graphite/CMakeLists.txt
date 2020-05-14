@@ -30,3 +30,5 @@ add_library(70-graphite SHARED
   ${CMAKE_SOURCE_DIR}/src/70-graphite/stream.cc
 )
 set_target_properties(70-graphite PROPERTIES PREFIX "")
+target_link_libraries(70-graphite CONAN_PKG::asio)
+

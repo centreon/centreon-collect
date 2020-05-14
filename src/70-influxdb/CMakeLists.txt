@@ -32,3 +32,4 @@ add_library(70-influxdb SHARED
   ${CMAKE_SOURCE_DIR}/src/70-influxdb/stream.cc
 )
 set_target_properties(70-influxdb PROPERTIES PREFIX "")
+target_link_libraries(70-influxdb CONAN_PKG::asio)

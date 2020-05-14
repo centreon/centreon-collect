@@ -29,5 +29,5 @@ add_library(50-tcp SHARED
   ${CMAKE_SOURCE_DIR}/src/50-tcp/tcp_async.cc
 )
 
-target_link_libraries(50-tcp CONAN_PKG::spdlog)
+target_link_libraries(50-tcp CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(50-tcp PROPERTIES PREFIX "")

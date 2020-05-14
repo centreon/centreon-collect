@@ -32,5 +32,5 @@ add_library(70-lua SHARED
   ${CMAKE_SOURCE_DIR}/src/70-lua/stream.cc
 )
 
-target_link_libraries(70-lua CONAN_PKG::lua CONAN_PKG::json11 CONAN_PKG::spdlog)
+target_link_libraries(70-lua CONAN_PKG::lua CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(70-lua PROPERTIES PREFIX "")

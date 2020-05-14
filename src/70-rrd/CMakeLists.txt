@@ -36,5 +36,5 @@ add_library(70-rrd SHARED
   ${CMAKE_SOURCE_DIR}/src/70-rrd/output.cc
 )
 
-target_link_libraries(70-rrd ${LIBRRD_LDFLAGS} CONAN_PKG::spdlog)
+target_link_libraries(70-rrd ${LIBRRD_LDFLAGS} CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(70-rrd PROPERTIES PREFIX "")
