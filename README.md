@@ -1,4 +1,4 @@
-# Centreon Broker #
+# Centreon Collect #
 
 Centreon Collect is an extensible open-source monitoring event
 transmitter (broker). It is a low-level component of the
