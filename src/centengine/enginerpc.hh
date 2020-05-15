@@ -5,7 +5,7 @@
 #include <memory>
 #include <grpcpp/server.h>
 #include "com/centreon/engine/namespace.hh"
-#include "engine_impl.hh"
+#include "com/centreon/engine/engine_impl.hh"
 
 CCE_BEGIN()
 class enginerpc final {
