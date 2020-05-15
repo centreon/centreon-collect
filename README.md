@@ -1,6 +1,6 @@
 # Centreon Broker #
 
-Centreon Broker is an extensible open-source monitoring event
+Centreon Collect is an extensible open-source monitoring event
 transmitter (broker). It is a low-level component of the
 [Centreon software suite](https://www.centreon.com).
 
@@ -37,7 +37,7 @@ quick introduction.
 
 ## Installing from binaries ##
 
-**Warning**: Centreon Broker is a low-level component of the Centreon
+**Warning**: Centreon Collect is a low-level component of the Centreon
 software suite. If this is your first installation you would probably
 want to [install it entirely](https://documentation.centreon.com/docs/centreon/en/2.6.x/installation/index.html).
 
@@ -46,9 +46,10 @@ provides binary packages for RedHat / CentOS. They are available either
 as part of the [Centreon Entreprise Server distribution](https://www.centreon.com/en/products/centreon-enterprise-server/)
 or as individual packages on [our RPM repository](https://documentation.centreon.com/docs/centreon/en/2.6.x/installation/from_packages.html).
 
-Once the repository installed a simple command will be needed to install
-Centreon Broker.
+Once the repository installed simple commands will be needed to install
+Centreon Collect.
 
+    $# yum install centreon-engine
     $# yum install centreon-broker
 
 ## Fetching sources ##
@@ -61,7 +62,7 @@ Stable releases are available as gziped tarballs on [Centreon's download site](h
 
 ## Compilation ##
 
-**Warning**: Centreon Broker is a low-level component of the Centreon
+**Warning**: Centreon Collect is a low-level component of the Centreon
 software suite. If this is your first installation you would probably
 want to [install it entirely](https://documentation.centreon.com/docs/centreon/en/2.6.x/installation/index.html).
 
@@ -77,8 +78,8 @@ If they are not installed, please install them.
 
 If you are on a Centos 7 distribution, follow these steps :
    
-    $> git clone https://github.com/centreon/centreon-broker
-    $> cd centreon-broker && ./cmake.sh
+    $> git clone https://github.com/centreon/centreon-collect
+    $> cd centreon-collect && ./cmake.sh
     $> cd build
     $> make & make install
 
@@ -100,8 +101,8 @@ Now, the *command conan remote list* should list two repositories:
 
 Once the sources of Centreon Broker extracted, execute the following commands:
     
-    $> git clone https://github.com/centreon/centreon-broker 
-    $> cd centreon-broker
+    $> git clone https://github.com/centreon/centreon-collect 
+    $> cd centreon-collect
     $> mkdir build
     $> cd build
     $> conan install --remote centreon --build missing ..
@@ -109,8 +110,7 @@ Once the sources of Centreon Broker extracted, execute the following commands:
 We are adding *--build missing* parameter because you may have Conan complaining about missing binaries like *fmt* or *spdlog*. So with this parameter, Conan will normally install the missing binaries.
 Once those libraries built, always from the *build* directory, enter this command (Note that these cmake parameters are strongly recommended but you can choose your own) :
 
-    $> cmake -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_USER=centreon-broker -DWITH_GROUP=centreon-broker -DWITH_CONFIG_PREFIX=/etc/centreon-broker  \ 
-             -DWITH_TESTING=On -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker -DWITH_PREFIX_CONF=/etc/centreon-broker -DWITH_PREFIX_LIB=/usr/lib64/nagios -DWITH_MODULE_SIMU=On ..
+    $> cmake -DCMAKE_BUILD_TYPE=Release ..
     ...
 
 Now launch the compilation using the *make* command and then install the software by running *make install* as priviledged user.
@@ -119,9 +119,13 @@ Now launch the compilation using the *make* command and then install the softwar
     ...
     $> make install
 
-Normally if all compiles, you have finished installing broker. But if you want, you can also check it. Always from the *build* directory you can execute this command : 
+Normally if all compiles, you have finished installing broker. But if you want, you can also check it. Always from the *build* directory you can execute these commands : 
     
-    $> test/ut
+    $> test/clib-ut
+    $> test/ccc-ut
+    $> test/ccb-ut
+    $> test/cce-ut
+    $> test/cbwd-ut
 
 You're done !
 
@@ -151,4 +155,4 @@ pull-requests on GitHub. If not, patches will do but describe against
 which version/commit they apply.
 
 For any question or remark feel free to send a mail to the project
-maintainer : Matthieu Kermagoret (mkermagoret@centreon.com).
+maintainer : David Boucher (dboucher@centreon.com).
