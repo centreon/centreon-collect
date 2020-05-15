@@ -17,7 +17,7 @@
  *
  */
 
-#include "enginerpc.hh"
+#include "com/centreon/engine/enginerpc.hh"
 
 #include <gtest/gtest.h>
 
