@@ -2,6 +2,16 @@ link_directories(${CONAN_LIB_DIRS_GRPC})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR})
 
+configure_file(${CMAKE_SOURCE_DIR}/config/poller-module.json.in
+  ${CMAKE_BINARY_DIR}/poller-module.json
+  @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/config/central-broker.json.in
+  ${CMAKE_BINARY_DIR}/central-broker.json
+  @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/config/central-rrd.json.in
+  ${CMAKE_BINARY_DIR}/central-rrd.json
+  @ONLY)
+
 # Standalone binary.
 add_executable(cbd
   ${CMAKE_SOURCE_DIR}/src/cbd/main.cc
@@ -9,6 +19,9 @@ add_executable(cbd
   ${CMAKE_SOURCE_DIR}/src/cbd/config/applier/logger.cc
   ${CMAKE_SOURCE_DIR}/src/cbd/broker_impl.cc
   ${CMAKE_SOURCE_DIR}/src/cbd/brokerrpc.cc
+  ${CMAKE_BINARY_DIR}/central-broker.json
+  ${CMAKE_BINARY_DIR}/central-rrd.json
+  ${CMAKE_BINARY_DIR}/poller-module.json
   )
 
 #Flags needed to include all symbols in binary.
@@ -19,3 +32,6 @@ target_link_libraries(cbd
 set_target_properties(cbd PROPERTIES COMPILE_FLAGS "-fPIC")
 
 install(TARGETS cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})
+install(FILES ${CMAKE_BINARY_DIR}/central-broker.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/central-rrd.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/poller-module.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)

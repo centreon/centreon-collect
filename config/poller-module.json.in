@@ -5,15 +5,15 @@
         "poller_id": 1,
         "poller_name": "Central",
 
-        "module_directory": "@PREFIX_MODULES@",
+        "module_directory": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DATAROOTDIR@/centreon/lib/centreon-broker",
         "log_timestamp": false,
         "log_thread_id": false,
         "event_queue_max_size": 100000,
-        "command_file": "@PREFIX_VAR@/poller-module.cmd",
-        "cache_directory": "@PREFIX_VAR@",
+        "command_file": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/lib/centreon-broker/poller-module.cmd",
+        "cache_directory": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/lib/centreon-broker",
         "logger": [
             {
-                "name": "/var/log/centreon-broker/poller-module.log",
+                "name": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/log/centreon-broker/poller-module.log",
                 "config": "yes",
                 "debug": "no",
                 "error": "yes",
@@ -41,7 +41,7 @@
             {
                 "type": "stats",
                 "name": "poller-module-stats",
-                "json_fifo": "@PREFIX_VAR@/poller-module-stats.json"
+                "json_fifo": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/lib/centreon-broker/poller-module-stats.json"
             }
         ]
     }
