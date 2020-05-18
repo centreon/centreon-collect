@@ -53,3 +53,5 @@ target_include_directories(centreon-clib PUBLIC ${CMAKE_BINARY_DIR})
 target_include_directories(centreon-clib PUBLIC ${CMAKE_SOURCE_DIR}/include/)
 target_link_libraries(centreon-clib PUBLIC dl pthread)
 target_compile_features(centreon-clib PUBLIC cxx_std_11)
+
+install(TARGETS centreon-clib DESTINATION ${CMAKE_INSTALL_LIBDIR})

@@ -35,3 +35,4 @@ add_library(60-tls SHARED
 
 target_link_libraries(60-tls ${GNUTLS_LIBRARIES} CONAN_PKG::spdlog)
 set_target_properties(60-tls PROPERTIES PREFIX "")
+install(TARGETS 60-tls DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

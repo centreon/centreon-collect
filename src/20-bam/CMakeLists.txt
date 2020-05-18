@@ -102,3 +102,4 @@ add_library(20-bam SHARED
 
 set_target_properties(20-bam PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
 set_target_properties(20-bam PROPERTIES PREFIX "")
+install(TARGETS 20-bam DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

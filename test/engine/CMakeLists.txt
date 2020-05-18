@@ -34,9 +34,9 @@ target_link_libraries(bin_connector_test_run cce_core pthread)
 
 add_executable(cce_ut
   # Sources.
-  ${CMAKE_SOURCE_DIR}/src/cce_external_command/commands.cc
-  ${CMAKE_SOURCE_DIR}/src/cce_external_command/internal.cc
-  ${CMAKE_SOURCE_DIR}/src/cce_external_command/processing.cc
+  ${CMAKE_SOURCE_DIR}/src/external_command/commands.cc
+  ${CMAKE_SOURCE_DIR}/src/external_command/internal.cc
+  ${CMAKE_SOURCE_DIR}/src/external_command/processing.cc
   ${CMAKE_SOURCE_DIR}/src/centengine/engine_impl.cc
   ${CMAKE_SOURCE_DIR}/src/centengine/enginerpc.cc
   ${CMAKE_SOURCE_DIR}/test/engine/parse-check-output.cc

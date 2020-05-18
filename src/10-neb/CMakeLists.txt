@@ -34,3 +34,4 @@ add_library(10-neb
 
 target_link_libraries(10-neb ccb_neb)
 set_target_properties(10-neb PROPERTIES PREFIX "")
+install(TARGETS 10-neb DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

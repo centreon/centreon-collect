@@ -17,3 +17,5 @@ target_link_libraries(cbd
   CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::fmt CONAN_PKG::openssl
   CONAN_PKG::grpc CONAN_PKG::protobuf CONAN_PKG::protoc_installer ccb_rpc)
 set_target_properties(cbd PROPERTIES COMPILE_FLAGS "-fPIC")
+
+install(TARGETS cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})

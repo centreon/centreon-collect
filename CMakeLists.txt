@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.4)
 project("Centreon Collect" C CXX)
 set(CMAKE_CXX_STANDARD 11)
 
+include(GNUInstallDirs)
+
 # Version.
 set(COLLECT_MAJOR 20)
 set(COLLECT_MINOR 10)
@@ -38,6 +40,7 @@ add_subdirectory(src/ccb_neb)
 add_subdirectory(src/ccb_rpc)
 add_subdirectory(src/ccb_sql)
 add_subdirectory(src/cce_core)
+add_subdirectory(src/external_command)
 add_subdirectory(src/cce_rpc)
 add_subdirectory(src/centengine)
 add_subdirectory(src/centenginestats)

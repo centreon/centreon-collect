@@ -35,5 +35,4 @@ MESSAGE(INFO "pb ${Protobuf_IMPORT_DIRS} gRPC::grpc++_reflection ")
 # Link centengine with required libraries.
 target_link_libraries(centengine "-Wl,-whole-archive" cce_rpc cce_core grpc++_reflection "-Wl,-no-whole-archive")
 
-
-
+install(TARGETS centengine DESTINATION ${CMAKE_INSTALL_SBINDIR})

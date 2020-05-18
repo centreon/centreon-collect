@@ -38,3 +38,4 @@ add_library(70-rrd SHARED
 
 target_link_libraries(70-rrd ${LIBRRD_LDFLAGS} CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(70-rrd PROPERTIES PREFIX "")
+install(TARGETS 70-rrd DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

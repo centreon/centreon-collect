@@ -31,3 +31,4 @@ add_library(50-tcp SHARED
 
 target_link_libraries(50-tcp CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(50-tcp PROPERTIES PREFIX "")
+install(TARGETS 50-tcp DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

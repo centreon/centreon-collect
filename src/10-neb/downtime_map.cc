@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include <string>
 #include "com/centreon/broker/neb/downtime_map.hh"
 
 using namespace com::centreon::broker;

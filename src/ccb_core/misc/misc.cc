@@ -29,6 +29,7 @@
 #include <memory>
 #include <random>
 #include <thread>
+#include <stdexcept>
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/io/events.hh"
 
