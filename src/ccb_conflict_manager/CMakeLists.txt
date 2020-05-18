@@ -19,6 +19,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/FindMariaDB.cmake)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CONAN_INCLUDE_DIRS_JSON11})
+include_directories(${CMAKE_BINARY_DIR})
 
 # TLS module.
 add_library(ccb_conflict_manager STATIC
@@ -27,7 +28,9 @@ add_library(ccb_conflict_manager STATIC
   ${CMAKE_SOURCE_DIR}/src/ccb_conflict_manager/conflict_manager_sql.cc
   ${CMAKE_SOURCE_DIR}/src/ccb_conflict_manager/conflict_manager_storage.cc
   ${CMAKE_SOURCE_DIR}/src/ccb_conflict_manager/stored_timestamp.cc
+  ${CMAKE_BINARY_DIR}/table_max_size.hh
 )
 
+add_dependencies(ccb_conflict_manager table_max_size)
 target_link_libraries(ccb_conflict_manager CONAN_PKG::spdlog)
 set_target_properties(ccb_conflict_manager PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")

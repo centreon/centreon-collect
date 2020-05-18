@@ -19,7 +19,17 @@ include(${CMAKE_SOURCE_DIR}/cmake/FindMariaDB.cmake)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CONAN_INCLUDE_DIRS_JSON11})
+include_directories(${CMAKE_BINARY_DIR})
 
+add_custom_command(
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/20-storage/table_max_size.py
+    COMMENT "Generating table_max_size.hh"
+    OUTPUT ${CMAKE_BINARY_DIR}/table_max_size.hh
+    COMMAND python3
+    ARGS ${CMAKE_SOURCE_DIR}/src/20-storage/table_max_size.py ${CMAKE_BINARY_DIR}/table_max_size.hh "${CMAKE_SOURCE_DIR}/examples/simu/installBroker.sql" "${CMAKE_SOURCE_DIR}/examples/simu/partitioning-logs.xml"
+    )
+
+add_custom_target(table_max_size DEPENDS "${CMAKE_BINARY_DIR}/table_max_size.hh")
 
 # TLS module.
 add_library(20-storage SHARED
@@ -38,6 +48,7 @@ add_library(20-storage SHARED
   ${CMAKE_SOURCE_DIR}/src/20-storage/remove_graph.cc
   ${CMAKE_SOURCE_DIR}/src/20-storage/status.cc
   ${CMAKE_SOURCE_DIR}/src/20-storage/stream.cc
+  ${CMAKE_BINARY_DIR}/table_max_size.hh
 )
 
 target_link_libraries(20-storage CONAN_PKG::spdlog ccb_conflict_manager ccb_sql)
