@@ -2,6 +2,8 @@
 #include <functional>
 #include <sys/types.h>
 #include <unistd.h>
+#include <future>
+
 #include <google/protobuf/util/time_util.h>
 #include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/command_manager.hh"
@@ -95,11 +97,28 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
   return grpc::Status::OK;
 }
 
-grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericString* response) {
-	response->set_str_arg("ok");	
-	//std::cout << "host size is " << host::hosts.size() << std::endl;
-	command_manager::instance().enqueue([]() -> int {std::cout << host::hosts.size(); return 0;});
+grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericValue* response) {
+	std::promise<int> p;
+	std::future<int> f1 = p.get_future();
+	//int val = -1;
 	
+
+	std::cout << "from server" << std::endl;
+	
+	auto lambda = [&p]() -> int { 
+		p.set_value(host::hosts.size()); 
+		std::cout << host::hosts.size() << std::endl; 
+		return 0;
+	}; 
+
+	//auto fn = std::bind(lambda);
+
+	command_manager::instance().enqueue(lambda);
+	
+	//while (val == -1)  {}
+	int val = f1.get();
+	response->set_value(val);	
+
 	return grpc::Status::OK;
 }
 

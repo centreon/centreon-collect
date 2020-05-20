@@ -78,7 +78,7 @@ class EngineRPCClient {
     return true;
   }
 
-  bool GetNbrHost(GenericString* response, std::string req) {
+  bool GetNbrHost(GenericValue* response, std::string req) {
     GenericString request;
 	request.set_str_arg(req);
 
@@ -86,7 +86,7 @@ class EngineRPCClient {
 	grpc::Status status = _stub->GetNbrHost(&context, request, response);
 	
 	if (!status.ok()) {
-	  std::cout << "Hello pierre rpc engine failed" << std::endl;
+	  std::cout << "GetNbrHost rpc engine failed" << std::endl;
 	  return false;
 	}
 
@@ -150,11 +150,12 @@ int main(int argc, char** argv) {
     std::cout << "NewThresholdsFile: " << status << std::endl;
   }
   else if (strcmp(argv[1], "GetNbrHost") == 0) {
-	GenericString response;
+	GenericValue response;
 	std::string requete = "requete du client";
 	status = client.GetNbrHost(&response, requete) ? 0 : 1;
 	//réponse du serveur
-	std::cout << response.str_arg();
+	std::cout << "GetNbrHost from client" << std::endl;
+	std::cout << response.value() << std::endl;
   }
 
   exit(status);

@@ -22,6 +22,9 @@
 #include <gtest/gtest.h>
 
 #include <cstdio>
+#include <thread>
+#include <chrono>
+#include <atomic>
 
 #include "../test_engine.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -155,6 +158,32 @@ TEST_F(EngineRpc, ProcessServiceCheckResult) {
   auto output = execute("ProcessServiceCheckResult test_host test_svc 0");
   ASSERT_EQ(output.size(), 1);
   ASSERT_EQ(output.front(), "ProcessServiceCheckResult: 0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrHost) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrHost");
+ 
+  continuerunning = false;
+  th.join();
+
+  std::cout << "test" << std::endl;
+  std::cout << output.back() << std::endl;
+  std::cout << "test" << std::endl;
+	
   erpc.shutdown();
 }
 
