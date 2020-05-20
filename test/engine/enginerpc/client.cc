@@ -78,6 +78,8 @@ class EngineRPCClient {
     return true;
   }
 
+  bool GetNbrHost(GenericString*
+
   bool NewThresholdsFile(const ThresholdsFile& tf) {
     grpc::ClientContext context;
     CommandSuccess response;

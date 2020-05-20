@@ -1,3 +1,4 @@
+
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
@@ -9,11 +10,15 @@ package com.centreon.engine;
 service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(google.protobuf.Empty) returns (Stats) {}
-
+  rpc GetNbrHost(GenericString) returns (GenericString) {}
   rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
 
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
+}
+
+message GenericString {
+  string str_arg = 1;
 }
 
 message CommandSuccess {
