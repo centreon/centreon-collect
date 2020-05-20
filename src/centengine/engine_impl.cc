@@ -1,3 +1,4 @@
+
 #include <functional>
 #include <sys/types.h>
 #include <unistd.h>
@@ -10,6 +11,7 @@
 #include "engine-version.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/anomalydetection.hh"
+#include "com/centreon/engine/host.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -92,6 +94,15 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
 
   return grpc::Status::OK;
 }
+
+grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericString* response) {
+	
+	std::cout << "host size is " << host::hosts.size() << std::endl;
+	//command_manager::instance().enqueue(([]() -> void {std::cout << "test";}));
+
+	return grpc::Status::OK;
+}
+
 
 grpc::Status engine_impl::ProcessHostCheckResult(
     grpc::ServerContext* /*context*/,
