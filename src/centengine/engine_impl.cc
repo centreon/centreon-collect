@@ -96,10 +96,10 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
 }
 
 grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericString* response) {
+	response->set_str_arg("ok");	
+	//std::cout << "host size is " << host::hosts.size() << std::endl;
+	command_manager::instance().enqueue([]() -> int {std::cout << host::hosts.size(); return 0;});
 	
-	std::cout << "host size is " << host::hosts.size() << std::endl;
-	//command_manager::instance().enqueue(([]() -> void {std::cout << "test";}));
-
 	return grpc::Status::OK;
 }
 
