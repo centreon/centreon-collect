@@ -153,14 +153,6 @@ TEST_F(EngineRpc, GetVersion) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, ProcessServiceCheckResult) {
-  enginerpc erpc("0.0.0.0", 40001);
-  auto output = execute("ProcessServiceCheckResult test_host test_svc 0");
-  ASSERT_EQ(output.size(), 1);
-  ASSERT_EQ(output.front(), "ProcessServiceCheckResult: 0");
-  erpc.shutdown();
-}
-
 TEST_F(EngineRpc, GetNbrHost) {
   std::ostringstream oss;
   std::atomic<bool> continuerunning(true);
@@ -180,10 +172,40 @@ TEST_F(EngineRpc, GetNbrHost) {
   continuerunning = false;
   th.join();
 
-  std::cout << "test" << std::endl;
   std::cout << output.back() << std::endl;
-  std::cout << "test" << std::endl;
 	
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrContact) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrContact");
+ 
+  continuerunning = false;
+  th.join();
+
+  std::cout << output.back() << std::endl;
+	
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessServiceCheckResult) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("ProcessServiceCheckResult test_host test_svc 0");
+  ASSERT_EQ(output.size(), 1);
+  ASSERT_EQ(output.front(), "ProcessServiceCheckResult: 0");
   erpc.shutdown();
 }
 

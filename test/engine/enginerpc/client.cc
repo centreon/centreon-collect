@@ -56,6 +56,35 @@ class EngineRPCClient {
     return true;
   }
 
+  bool GetNbrHost(GenericValue* response, std::string req) {
+    GenericString request;
+	request.set_str_arg(req);
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrHost(&context, request, response);
+	
+	if (!status.ok()) {
+	  std::cout << "GetNbrHost rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrContact(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrContact(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrContact rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
   bool ProcessServiceCheckResult(Check const& sc) {
     grpc::ClientContext context;
     CommandSuccess response;
@@ -76,21 +105,6 @@ class EngineRPCClient {
       return false;
     }
     return true;
-  }
-
-  bool GetNbrHost(GenericValue* response, std::string req) {
-    GenericString request;
-	request.set_str_arg(req);
-
-	grpc::ClientContext context;
-	grpc::Status status = _stub->GetNbrHost(&context, request, response);
-	
-	if (!status.ok()) {
-	  std::cout << "GetNbrHost rpc engine failed" << std::endl;
-	  return false;
-	}
-
-	return true;
   }
 
   bool NewThresholdsFile(const ThresholdsFile& tf) {
@@ -153,7 +167,12 @@ int main(int argc, char** argv) {
 	GenericValue response;
 	std::string requete = "requete du client";
 	status = client.GetNbrHost(&response, requete) ? 0 : 1;
-	//réponse du serveur
+	std::cout << "GetNbrHost from client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrContact") == 0) {
+	GenericValue response;
+	status = client.GetNbrContact(&response) ? 0 : 1;
 	std::cout << "GetNbrHost from client" << std::endl;
 	std::cout << response.value() << std::endl;
   }

@@ -11,6 +11,7 @@ service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(google.protobuf.Empty) returns (Stats) {}
   rpc GetNbrHost(GenericString) returns (GenericValue) {}
+  rpc GetNbrContact(google.protobuf.Empty) returns (GenericValue) {}
   rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
 

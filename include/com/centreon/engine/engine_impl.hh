@@ -21,7 +21,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status NewThresholdsFile(grpc::ServerContext* context,
                                  const ThresholdsFile* request,
                                  CommandSuccess* response) override;
-  grpc::Status GetNbrHost(grpc::ServerContext* context, const GenericString*, GenericValue*) override;
+  grpc::Status GetNbrHost(grpc::ServerContext* context, 
+						  const GenericString*, 
+						  GenericValue*) override;
+  grpc::Status GetNbrContact(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
 };
 
 CCE_END()

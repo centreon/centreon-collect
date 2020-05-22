@@ -14,6 +14,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/contact.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -70,6 +71,42 @@ grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+	
+  auto lambda = [&p]() -> int { 
+	p.set_value(host::hosts.size()); 
+	std::cout << host::hosts.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetNbrContact(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(contact::contacts.size()); 
+	std::cout << contact::contacts.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
 grpc::Status engine_impl::ProcessServiceCheckResult(
     grpc::ServerContext* /*context*/,
     const Check* request,
@@ -96,32 +133,6 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
 
   return grpc::Status::OK;
 }
-
-grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericValue* response) {
-	std::promise<int> p;
-	std::future<int> f1 = p.get_future();
-	//int val = -1;
-	
-
-	std::cout << "from server" << std::endl;
-	
-	auto lambda = [&p]() -> int { 
-		p.set_value(host::hosts.size()); 
-		std::cout << host::hosts.size() << std::endl; 
-		return 0;
-	}; 
-
-	//auto fn = std::bind(lambda);
-
-	command_manager::instance().enqueue(lambda);
-	
-	//while (val == -1)  {}
-	int val = f1.get();
-	response->set_value(val);	
-
-	return grpc::Status::OK;
-}
-
 
 grpc::Status engine_impl::ProcessHostCheckResult(
     grpc::ServerContext* /*context*/,
