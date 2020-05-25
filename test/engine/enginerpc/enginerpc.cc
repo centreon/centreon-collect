@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2020 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,10 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <chrono>
 #include <cstdio>
+#include <thread>
 
 #include "../test_engine.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -147,6 +150,166 @@ TEST_F(EngineRpc, GetVersion) {
     oss << "patch: " << CENTREON_ENGINE_VERSION_PATCH;
     ASSERT_EQ(output.back(), oss.str());
   }
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHostsCount) {
+ enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHostsCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "1");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetContactsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetContactsCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "1");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetServicesCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetServicesCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "2");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetServiceGroupsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetServiceGroupsCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetContactGroupsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetContactGroupsCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHostGroupsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHostGroupsCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetServiceDependenciesCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetServiceDependenciesCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHostDependenciesCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHostDependenciesCount");
+  continuerunning = false;
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 
