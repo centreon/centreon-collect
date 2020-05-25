@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-#!/bin/sh
-
-echo "ut"
-
-exit 0
-=======
 #!/bin/bash
 
 echo "ut"
@@ -67,6 +60,3 @@ then
 fi
 
 exit 0
-
-
->>>>>>> 73c123c00a38c6b48f219f9389d448d2cb8e05ca
