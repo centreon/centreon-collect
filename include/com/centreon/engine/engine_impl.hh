@@ -22,9 +22,27 @@ class engine_impl final : public Engine::Service {
                                  const ThresholdsFile* request,
                                  CommandSuccess* response) override;
   grpc::Status GetNbrHost(grpc::ServerContext* context, 
-						  const GenericString*, 
+						  const ::google::protobuf::Empty*, 
 						  GenericValue*) override;
   grpc::Status GetNbrContact(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
+  grpc::Status GetNbrService(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
+  grpc::Status GetNbrServiceGroup(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
+  grpc::Status GetNbrContactGroup(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
+  grpc::Status GetNbrHostGroup(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
+  grpc::Status GetNbrServiceDependencies(grpc::ServerContext* context,
+						     const ::google::protobuf::Empty*, 
+							 GenericValue*) override;
+  grpc::Status GetNbrHostDependencies(grpc::ServerContext* context,
 						     const ::google::protobuf::Empty*, 
 							 GenericValue*) override;
 };

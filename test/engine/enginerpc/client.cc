@@ -56,12 +56,11 @@ class EngineRPCClient {
     return true;
   }
 
-  bool GetNbrHost(GenericValue* response, std::string req) {
-    GenericString request;
-	request.set_str_arg(req);
+  bool GetNbrHost(GenericValue* response) {
+    const ::google::protobuf::Empty e;
 	grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrHost(&context, request, response);
+	grpc::Status status = _stub->GetNbrHost(&context, e, response);
 	
 	if (!status.ok()) {
 	  std::cout << "GetNbrHost rpc engine failed" << std::endl;
@@ -79,6 +78,90 @@ class EngineRPCClient {
 
 	if (!status.ok()) {
 	  std::cout << "GetNbrContact rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrService(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrService(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrService rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrServiceGroup(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrServiceGroup(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrServiceGroup rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrContactGroup(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrContactGroup(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrContactGroup rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrHostGroup(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrHostGroup(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrHostGroup rpc engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrServiceDependencies(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrServiceDependencies(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrServiceDependencies engine failed" << std::endl;
+	  return false;
+	}
+
+	return true;
+  }
+
+  bool GetNbrHostDependencies(GenericValue* response) {
+    const ::google::protobuf::Empty e;
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetNbrHostDependencies(&context, e, response);
+
+	if (!status.ok()) {
+	  std::cout << "GetNbrHostDependencies engine failed" << std::endl;
 	  return false;
 	}
 
@@ -165,8 +248,7 @@ int main(int argc, char** argv) {
   }
   else if (strcmp(argv[1], "GetNbrHost") == 0) {
 	GenericValue response;
-	std::string requete = "requete du client";
-	status = client.GetNbrHost(&response, requete) ? 0 : 1;
+	status = client.GetNbrHost(&response) ? 0 : 1;
 	std::cout << "GetNbrHost from client" << std::endl;
 	std::cout << response.value() << std::endl;
   }
@@ -174,6 +256,42 @@ int main(int argc, char** argv) {
 	GenericValue response;
 	status = client.GetNbrContact(&response) ? 0 : 1;
 	std::cout << "GetNbrHost from client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrService") == 0) {
+	GenericValue response;
+	status = client.GetNbrService(&response) ? 0 : 1;
+	std::cout << "GetNbrService from client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrServiceGroup") == 0) {
+	GenericValue response;
+	status = client.GetNbrServiceGroup(&response) ? 0 : 1;
+	std::cout << "GetNbrServiceGroup from client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrContactGroup") == 0) {
+	GenericValue response;
+	status = client.GetNbrContactGroup(&response) ? 0 : 1;
+	std::cout << "GetNbrContactGroup from client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrHostGroup") == 0) {
+	GenericValue response;
+	status = client.GetNbrHostGroup(&response) ? 0 : 1;
+	std::cout << "GetNbrHostGroup from client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrServiceDependencies") == 0) {
+	GenericValue response;
+	status = client.GetNbrServiceDependencies(&response) ? 0 : 1;
+	std::cout << "GetNbrServiceDependencies client" << std::endl;
+	std::cout << response.value() << std::endl;
+  }
+  else if (strcmp(argv[1], "GetNbrHostDependencies") == 0) {
+	GenericValue response;
+	status = client.GetNbrHostDependencies(&response) ? 0 : 1;
+	std::cout << "GetNbrHostDependencies client" << std::endl;
 	std::cout << response.value() << std::endl;
   }
 
