@@ -83,7 +83,6 @@ grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const ::googl
 	
   auto lambda = [&p]() -> int { 
 	p.set_value(host::hosts.size()); 
-	std::cout << host::hosts.size() << std::endl; 
 	return 0;
   }; 
 
@@ -101,7 +100,6 @@ grpc::Status engine_impl::GetNbrContact(grpc::ServerContext* context, const ::go
   
   auto lambda = [&p]() -> int {
     p.set_value(contact::contacts.size()); 
-	std::cout << contact::contacts.size() << std::endl; 
 	return 0;
   }; 
 
@@ -119,7 +117,6 @@ grpc::Status engine_impl::GetNbrService(grpc::ServerContext* context, const ::go
   
   auto lambda = [&p]() -> int {
     p.set_value(service::services.size()); 
-	std::cout << service::services.size() << std::endl; 
 	return 0;
   }; 
 
@@ -137,7 +134,6 @@ grpc::Status engine_impl::GetNbrServiceGroup(grpc::ServerContext* context, const
   
   auto lambda = [&p]() -> int {
     p.set_value(servicegroup::servicegroups.size()); 
-	std::cout << servicegroup::servicegroups.size() << std::endl; 
 	return 0;
   }; 
 
@@ -155,7 +151,6 @@ grpc::Status engine_impl::GetNbrContactGroup(grpc::ServerContext* context, const
   
   auto lambda = [&p]() -> int {
     p.set_value(contactgroup::contactgroups.size()); 
-	std::cout << contactgroup::contactgroups.size() << std::endl; 
 	return 0;
   }; 
 
@@ -173,7 +168,6 @@ grpc::Status engine_impl::GetNbrHostGroup(grpc::ServerContext* context, const ::
   
   auto lambda = [&p]() -> int {
     p.set_value(hostgroup::hostgroups.size()); 
-	std::cout << hostgroup::hostgroups.size() << std::endl; 
 	return 0;
   }; 
 
@@ -191,7 +185,6 @@ grpc::Status engine_impl::GetNbrServiceDependencies(grpc::ServerContext* context
   
   auto lambda = [&p]() -> int {
     p.set_value(servicedependency::servicedependencies.size()); 
-	std::cout << servicedependency::servicedependencies.size() << std::endl; 
 	return 0;
   }; 
 
@@ -209,7 +202,6 @@ grpc::Status engine_impl::GetNbrHostDependencies(grpc::ServerContext* context, c
   
   auto lambda = [&p]() -> int {
     p.set_value(hostdependency::hostdependencies.size()); 
-	std::cout << hostdependency::hostdependencies.size() << std::endl; 
 	return 0;
   }; 
 

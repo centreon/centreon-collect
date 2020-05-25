@@ -167,7 +167,6 @@ TEST_F(EngineRpc, GetNbrHost) {
   };
 
   std::thread th(fn);
-
   auto output = execute("GetNbrHost");
   continuerunning = false;
   th.join();
@@ -178,6 +177,8 @@ TEST_F(EngineRpc, GetNbrHost) {
 
 TEST_F(EngineRpc, GetNbrContact) {
   std::ostringstream oss;
+  oss << "1";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -188,17 +189,18 @@ TEST_F(EngineRpc, GetNbrContact) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrContact");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetNbrService) {
   std::ostringstream oss;
+  oss << "2";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -209,17 +211,18 @@ TEST_F(EngineRpc, GetNbrService) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrService");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetNbrServiceGroup) {
   std::ostringstream oss;
+  oss << "0";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -230,17 +233,18 @@ TEST_F(EngineRpc, GetNbrServiceGroup) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrServiceGroup");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetNbrContactGroup) {
   std::ostringstream oss;
+  oss << "0";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -251,17 +255,18 @@ TEST_F(EngineRpc, GetNbrContactGroup) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrContactGroup");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetNbrHostGroup) {
   std::ostringstream oss;
+  oss << "0";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -272,17 +277,18 @@ TEST_F(EngineRpc, GetNbrHostGroup) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrHostGroup");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetNbrServiceDependencies) {
   std::ostringstream oss;
+  oss << "0";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -293,17 +299,18 @@ TEST_F(EngineRpc, GetNbrServiceDependencies) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrServiceDependencies");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetNbrHostDependencies) {
   std::ostringstream oss;
+  oss << "0";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -314,12 +321,11 @@ TEST_F(EngineRpc, GetNbrHostDependencies) {
   };
 
   std::thread th(fn);
-
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrHostDependencies");
- 
   continuerunning = false;
   th.join();
+
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
