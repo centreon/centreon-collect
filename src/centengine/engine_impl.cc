@@ -1,25 +1,44 @@
-#include <functional>
+/*
+ * Copyright 2020 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
+
 #include <sys/types.h>
 #include <unistd.h>
+#include <functional>
 #include <future>
 
 #include <google/protobuf/util/time_util.h>
-#include "com/centreon/engine/engine_impl.hh"
+#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/command_manager.hh"
-#include "com/centreon/engine/statistics.hh"
+#include "com/centreon/engine/contact.hh"
+#include "com/centreon/engine/contactgroup.hh"
+#include "com/centreon/engine/engine_impl.hh"
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/hostdependency.hh"
+#include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "engine-version.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/anomalydetection.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/service.hh"
-#include "com/centreon/engine/servicegroup.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/servicedependency.hh"
-#include "com/centreon/engine/hostdependency.hh"
+#include "com/centreon/engine/servicegroup.hh"
+#include "com/centreon/engine/statistics.hh"
+#include "engine-version.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -76,142 +95,165 @@ grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
   return grpc::Status::OK;
 }
 
-grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-	
-  auto lambda = [&p]() -> int { 
-	p.set_value(host::hosts.size()); 
-	return 0;
-  }; 
+grpc::Status engine_impl::GetHostsCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(host::hosts.size());
+    return 0;
+  };
 
   command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
+
+  int32_t val = f1.get();
+  response->set_value(val);
 
   return grpc::Status::OK;
 }
 
-grpc::Status engine_impl::GetNbrContact(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+grpc::Status engine_impl::GetContactsCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(contact::contacts.size());
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  int32_t val = f1.get();
+  response->set_value(val);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetServicesCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(service::services.size());
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  int32_t val = f1.get();
+  response->set_value(val);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetServiceGroupsCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(servicegroup::servicegroups.size());
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  int32_t val = f1.get();
+  response->set_value(val);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetContactGroupsCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(contactgroup::contactgroups.size());
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  int32_t val = f1.get();
+  response->set_value(val);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetHostGroupsCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(hostgroup::hostgroups.size());
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  int32_t val = f1.get();
+  response->set_value(val);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetServiceDependenciesCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
+  std::promise<int32_t> p;
+  std::future<int32_t> f1 = p.get_future();
+
+  auto lambda = [&p]() -> int32_t {
+    p.set_value(servicedependency::servicedependencies.size());
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  int32_t val = f1.get();
+  response->set_value(val);
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetHostDependenciesCount(
+    grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    GenericValue* response) {
   std::promise<int> p;
   std::future<int> f1 = p.get_future();
-  
+
   auto lambda = [&p]() -> int {
-    p.set_value(contact::contacts.size()); 
-	return 0;
-  }; 
+    p.set_value(hostdependency::hostdependencies.size());
+    return 0;
+  };
 
   command_manager::instance().enqueue(lambda);
-	
+
   int val = f1.get();
-  response->set_value(val);	
+  response->set_value(val);
 
   return grpc::Status::OK;
 }
-
-grpc::Status engine_impl::GetNbrService(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-  
-  auto lambda = [&p]() -> int {
-    p.set_value(service::services.size()); 
-	return 0;
-  }; 
-
-  command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
-
-  return grpc::Status::OK;
-}
-
-grpc::Status engine_impl::GetNbrServiceGroup(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-  
-  auto lambda = [&p]() -> int {
-    p.set_value(servicegroup::servicegroups.size()); 
-	return 0;
-  }; 
-
-  command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
-
-  return grpc::Status::OK;
-}
-
-grpc::Status engine_impl::GetNbrContactGroup(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-  
-  auto lambda = [&p]() -> int {
-    p.set_value(contactgroup::contactgroups.size()); 
-	return 0;
-  }; 
-
-  command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
-
-  return grpc::Status::OK;
-}
-
-grpc::Status engine_impl::GetNbrHostGroup(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-  
-  auto lambda = [&p]() -> int {
-    p.set_value(hostgroup::hostgroups.size()); 
-	return 0;
-  }; 
-
-  command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
-
-  return grpc::Status::OK;
-}
-
-grpc::Status engine_impl::GetNbrServiceDependencies(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-  
-  auto lambda = [&p]() -> int {
-    p.set_value(servicedependency::servicedependencies.size()); 
-	return 0;
-  }; 
-
-  command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
-
-  return grpc::Status::OK;
-}
-
-grpc::Status engine_impl::GetNbrHostDependencies(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
-  
-  auto lambda = [&p]() -> int {
-    p.set_value(hostdependency::hostdependencies.size()); 
-	return 0;
-  }; 
-
-  command_manager::instance().enqueue(lambda);
-	
-  int val = f1.get();
-  response->set_value(val);	
-
-  return grpc::Status::OK;
-}
-
 
 grpc::Status engine_impl::ProcessServiceCheckResult(
     grpc::ServerContext* /*context*/,
@@ -231,10 +273,7 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
                       &command_manager::instance(),
                       google::protobuf::util::TimeUtil::TimestampToSeconds(
                           request->check_time()),
-                      host_name,
-                      svc_desc,
-                      request->code(),
-                      request->output());
+                      host_name, svc_desc, request->code(), request->output());
   command_manager::instance().enqueue(std::move(fn));
 
   return grpc::Status::OK;
@@ -253,9 +292,7 @@ grpc::Status engine_impl::ProcessHostCheckResult(
                       &command_manager::instance(),
                       google::protobuf::util::TimeUtil::TimestampToSeconds(
                           request->check_time()),
-                      host_name,
-                      request->code(),
-                      request->output());
+                      host_name, request->code(), request->output());
   command_manager::instance().enqueue(std::move(fn));
 
   return grpc::Status::OK;
@@ -278,8 +315,7 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* /*context*/,
                                             const ThresholdsFile* request,
                                             CommandSuccess* /*response*/) {
   const std::string& filename = request->filename();
-  auto fn =
-      std::bind(&anomalydetection::update_thresholds, filename);
+  auto fn = std::bind(&anomalydetection::update_thresholds, filename);
   command_manager::instance().enqueue(std::move(fn));
   return grpc::Status::OK;
 }

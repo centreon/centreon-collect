@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2020 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <thread>
-#include <chrono>
-#include <atomic>
 
 #include "../test_engine.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -153,21 +153,21 @@ TEST_F(EngineRpc, GetVersion) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrHost) {
+TEST_F(EngineRpc, GetHostsCount) {
   std::ostringstream oss;
   oss << "1";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrHost");
+  auto output = execute("GetHostsCount");
   continuerunning = false;
   th.join();
 
@@ -175,21 +175,21 @@ TEST_F(EngineRpc, GetNbrHost) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrContact) {
+TEST_F(EngineRpc, GetContactsCount) {
   std::ostringstream oss;
   oss << "1";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrContact");
+  auto output = execute("GetContactsCount");
   continuerunning = false;
   th.join();
 
@@ -197,21 +197,21 @@ TEST_F(EngineRpc, GetNbrContact) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrService) {
+TEST_F(EngineRpc, GetServicesCount) {
   std::ostringstream oss;
   oss << "2";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrService");
+  auto output = execute("GetServicesCount");
   continuerunning = false;
   th.join();
 
@@ -219,21 +219,21 @@ TEST_F(EngineRpc, GetNbrService) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrServiceGroup) {
+TEST_F(EngineRpc, GetServiceGroupsCount) {
   std::ostringstream oss;
   oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrServiceGroup");
+  auto output = execute("GetServiceGroupsCount");
   continuerunning = false;
   th.join();
 
@@ -241,21 +241,21 @@ TEST_F(EngineRpc, GetNbrServiceGroup) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrContactGroup) {
+TEST_F(EngineRpc, GetContactGroupsCount) {
   std::ostringstream oss;
   oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrContactGroup");
+  auto output = execute("GetContactGroupsCount");
   continuerunning = false;
   th.join();
 
@@ -263,21 +263,21 @@ TEST_F(EngineRpc, GetNbrContactGroup) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrHostGroup) {
+TEST_F(EngineRpc, GetHostGroupsCount) {
   std::ostringstream oss;
   oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrHostGroup");
+  auto output = execute("GetHostGroupsCount");
   continuerunning = false;
   th.join();
 
@@ -285,21 +285,21 @@ TEST_F(EngineRpc, GetNbrHostGroup) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrServiceDependencies) {
+TEST_F(EngineRpc, GetServiceDependenciesCount) {
   std::ostringstream oss;
   oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrServiceDependencies");
+  auto output = execute("GetServiceDependenciesCount");
   continuerunning = false;
   th.join();
 
@@ -307,21 +307,21 @@ TEST_F(EngineRpc, GetNbrServiceDependencies) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, GetNbrHostDependencies) {
+TEST_F(EngineRpc, GetHostDependenciesCount) {
   std::ostringstream oss;
   oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
-  auto fn = [&continuerunning] () {
-	while(continuerunning) {
-	  command_manager::instance().execute();
-	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   };
 
   std::thread th(fn);
-  auto output = execute("GetNbrHostDependencies");
+  auto output = execute("GetHostDependenciesCount");
   continuerunning = false;
   th.join();
 

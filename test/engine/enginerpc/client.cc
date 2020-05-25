@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2020 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
  *
  */
 
-#include <iostream>
-#include <memory>
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
+#include <iostream>
+#include <memory>
 #include "engine.grpc.pb.h"
 
 using namespace com::centreon::engine;
@@ -56,122 +56,125 @@ class EngineRPCClient {
     return true;
   }
 
-  bool GetNbrHost(GenericValue* response) {
+  bool GetHostsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrHost(&context, e, response);
-	
-	if (!status.ok()) {
-	  std::cout << "GetNbrHost rpc engine failed" << std::endl;
-	  return false;
-	}
+    grpc::Status status = _stub->GetHostsCount(&context, e, response);
 
-	return true;
+    if (!status.ok()) {
+      std::cout << "GetHostsCount rpc engine failed" << std::endl;
+      return false;
+    }
+
+    return true;
   }
 
-  bool GetNbrContact(GenericValue* response) {
+  bool GetContactsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrContact(&context, e, response);
+    grpc::Status status = _stub->GetContactsCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrContact rpc engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetContactsCount rpc engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
-  bool GetNbrService(GenericValue* response) {
+  bool GetServicesCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrService(&context, e, response);
+    grpc::Status status = _stub->GetServicesCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrService rpc engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetServicesCount rpc engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
-  bool GetNbrServiceGroup(GenericValue* response) {
+  bool GetServiceGroupsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrServiceGroup(&context, e, response);
+    grpc::Status status = _stub->GetServiceGroupsCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrServiceGroup rpc engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetServiceGroupsCount rpc engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
-  bool GetNbrContactGroup(GenericValue* response) {
+  bool GetContactGroupsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrContactGroup(&context, e, response);
+    grpc::Status status = _stub->GetContactGroupsCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrContactGroup rpc engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetContactGroupsCount rpc engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
-  bool GetNbrHostGroup(GenericValue* response) {
+  bool GetHostGroupsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrHostGroup(&context, e, response);
+    grpc::Status status = _stub->GetHostGroupsCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrHostGroup rpc engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetHostGroupsCount rpc engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
-  bool GetNbrServiceDependencies(GenericValue* response) {
+  bool GetServiceDependenciesCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrServiceDependencies(&context, e, response);
+    grpc::Status status =
+        _stub->GetServiceDependenciesCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrServiceDependencies engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetServiceDependenciesCount engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
-  bool GetNbrHostDependencies(GenericValue* response) {
+  bool GetHostDependenciesCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
-	grpc::ClientContext context;
+    grpc::ClientContext context;
 
-	grpc::Status status = _stub->GetNbrHostDependencies(&context, e, response);
+    grpc::Status status =
+        _stub->GetHostDependenciesCount(&context, e, response);
 
-	if (!status.ok()) {
-	  std::cout << "GetNbrHostDependencies engine failed" << std::endl;
-	  return false;
-	}
+    if (!status.ok()) {
+      std::cout << "GetHostDependenciesCount engine failed" << std::endl;
+      return false;
+    }
 
-	return true;
+    return true;
   }
 
   bool ProcessServiceCheckResult(Check const& sc) {
     grpc::ClientContext context;
     CommandSuccess response;
-    grpc::Status status = _stub->ProcessServiceCheckResult(&context, sc, &response);
+    grpc::Status status =
+        _stub->ProcessServiceCheckResult(&context, sc, &response);
     if (!status.ok()) {
       std::cout << "ProcessServiceCheckResult failed." << std::endl;
       return false;
@@ -182,7 +185,8 @@ class EngineRPCClient {
   bool ProcessHostCheckResult(Check const& hc) {
     grpc::ClientContext context;
     CommandSuccess response;
-    grpc::Status status = _stub->ProcessHostCheckResult(&context, hc, &response);
+    grpc::Status status =
+        _stub->ProcessHostCheckResult(&context, hc, &response);
     if (!status.ok()) {
       std::cout << "ProcessHostCheckResult failed." << std::endl;
       return false;
@@ -217,13 +221,11 @@ int main(int argc, char** argv) {
     Version version;
     status = client.GetVersion(&version) ? 0 : 1;
     std::cout << "GetVersion: " << version.DebugString();
-  }
-  else if (strcmp(argv[1], "GetStats") == 0) {
+  } else if (strcmp(argv[1], "GetStats") == 0) {
     Stats stats;
     status = client.GetStats(&stats) ? 0 : 2;
     std::cout << "GetStats: " << stats.DebugString();
-  }
-  else if (strcmp(argv[1], "ProcessServiceCheckResult") == 0) {
+  } else if (strcmp(argv[1], "ProcessServiceCheckResult") == 0) {
     Check sc;
     sc.set_host_name(argv[2]);
     sc.set_svc_desc(argv[3]);
@@ -231,68 +233,58 @@ int main(int argc, char** argv) {
     sc.set_output("Test external command");
     status = client.ProcessServiceCheckResult(sc) ? 0 : 3;
     std::cout << "ProcessServiceCheckResult: " << status << std::endl;
-  }
-  else if (strcmp(argv[1], "ProcessHostCheckResult") == 0) {
+  } else if (strcmp(argv[1], "ProcessHostCheckResult") == 0) {
     Check hc;
     hc.set_host_name(argv[2]);
     hc.set_code(std::stol(argv[3]));
     hc.set_output("Test external command");
     status = client.ProcessHostCheckResult(hc) ? 0 : 4;
     std::cout << "ProcessHostCheckResult: " << status << std::endl;
-  }
-  else if (strcmp(argv[1], "NewThresholdsFile") == 0) {
+  } else if (strcmp(argv[1], "NewThresholdsFile") == 0) {
     ThresholdsFile tf;
     tf.set_filename(argv[2]);
     status = client.NewThresholdsFile(tf) ? 0 : 5;
     std::cout << "NewThresholdsFile: " << status << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrHost") == 0) {
-	GenericValue response;
-	status = client.GetNbrHost(&response) ? 0 : 1;
-	std::cout << "GetNbrHost from client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrContact") == 0) {
-	GenericValue response;
-	status = client.GetNbrContact(&response) ? 0 : 1;
-	std::cout << "GetNbrHost from client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrService") == 0) {
-	GenericValue response;
-	status = client.GetNbrService(&response) ? 0 : 1;
-	std::cout << "GetNbrService from client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrServiceGroup") == 0) {
-	GenericValue response;
-	status = client.GetNbrServiceGroup(&response) ? 0 : 1;
-	std::cout << "GetNbrServiceGroup from client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrContactGroup") == 0) {
-	GenericValue response;
-	status = client.GetNbrContactGroup(&response) ? 0 : 1;
-	std::cout << "GetNbrContactGroup from client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrHostGroup") == 0) {
-	GenericValue response;
-	status = client.GetNbrHostGroup(&response) ? 0 : 1;
-	std::cout << "GetNbrHostGroup from client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrServiceDependencies") == 0) {
-	GenericValue response;
-	status = client.GetNbrServiceDependencies(&response) ? 0 : 1;
-	std::cout << "GetNbrServiceDependencies client" << std::endl;
-	std::cout << response.value() << std::endl;
-  }
-  else if (strcmp(argv[1], "GetNbrHostDependencies") == 0) {
-	GenericValue response;
-	status = client.GetNbrHostDependencies(&response) ? 0 : 1;
-	std::cout << "GetNbrHostDependencies client" << std::endl;
-	std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetHostsCount") == 0) {
+    GenericValue response;
+    status = client.GetHostsCount(&response) ? 0 : 1;
+    std::cout << "GetHostsCount from client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetContactsCount") == 0) {
+    GenericValue response;
+    status = client.GetContactsCount(&response) ? 0 : 1;
+    std::cout << "GetContactsCount from client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetServicesCount") == 0) {
+    GenericValue response;
+    status = client.GetServicesCount(&response) ? 0 : 1;
+    std::cout << "GetServicesCount from client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetServiceGroupsCount") == 0) {
+    GenericValue response;
+    status = client.GetServiceGroupsCount(&response) ? 0 : 1;
+    std::cout << "GetServiceGroupsCount from client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetContactGroupsCount") == 0) {
+    GenericValue response;
+    status = client.GetContactGroupsCount(&response) ? 0 : 1;
+    std::cout << "GetContactGroupsCount from client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetHostGroupsCount") == 0) {
+    GenericValue response;
+    status = client.GetHostGroupsCount(&response) ? 0 : 1;
+    std::cout << "GetHostGroupsCount from client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetServiceDependenciesCount") == 0) {
+    GenericValue response;
+    status = client.GetServiceDependenciesCount(&response) ? 0 : 1;
+    std::cout << "GetServiceDependenciesCount client" << std::endl;
+    std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetHostDependenciesCount") == 0) {
+    GenericValue response;
+    status = client.GetHostDependenciesCount(&response) ? 0 : 1;
+    std::cout << "GetHostDependenciesCount client" << std::endl;
+    std::cout << response.value() << std::endl;
   }
 
   exit(status);
