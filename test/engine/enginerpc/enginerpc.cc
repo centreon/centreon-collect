@@ -154,9 +154,7 @@ TEST_F(EngineRpc, GetVersion) {
 }
 
 TEST_F(EngineRpc, GetHostsCount) {
- std::ostringstream oss;
-  oss << "1";
-  enginerpc erpc("0.0.0.0", 40001);
+ enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning]() {
@@ -171,13 +169,11 @@ TEST_F(EngineRpc, GetHostsCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetContactsCount) {
-  std::ostringstream oss;
-  oss << "1";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -193,13 +189,11 @@ TEST_F(EngineRpc, GetContactsCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetServicesCount) {
-  std::ostringstream oss;
-  oss << "2";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -215,13 +209,11 @@ TEST_F(EngineRpc, GetServicesCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "2");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetServiceGroupsCount) {
-  std::ostringstream oss;
-  oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -237,13 +229,11 @@ TEST_F(EngineRpc, GetServiceGroupsCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetContactGroupsCount) {
-  std::ostringstream oss;
-  oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -259,13 +249,11 @@ TEST_F(EngineRpc, GetContactGroupsCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetHostGroupsCount) {
-  std::ostringstream oss;
-  oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -281,13 +269,11 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetServiceDependenciesCount) {
-  std::ostringstream oss;
-  oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -303,13 +289,11 @@ TEST_F(EngineRpc, GetServiceDependenciesCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetHostDependenciesCount) {
-  std::ostringstream oss;
-  oss << "0";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
@@ -325,7 +309,7 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
   continuerunning = false;
   th.join();
 
-  ASSERT_EQ(output.back(), oss.str());
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 
