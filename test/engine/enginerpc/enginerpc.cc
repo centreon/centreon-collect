@@ -329,7 +329,6 @@ TEST_F(EngineRpc, GetNbrHostDependencies) {
   erpc.shutdown();
 }
 
-
 TEST_F(EngineRpc, ProcessServiceCheckResult) {
   enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("ProcessServiceCheckResult test_host test_svc 0");
