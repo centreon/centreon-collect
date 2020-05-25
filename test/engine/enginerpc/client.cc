@@ -168,7 +168,7 @@ class EngineRPCClient {
     }
 
     return true;
-  }
+ }
 
   bool ProcessServiceCheckResult(Check const& sc) {
     grpc::ClientContext context;
@@ -286,6 +286,5 @@ int main(int argc, char** argv) {
     std::cout << "GetHostDependenciesCount client" << std::endl;
     std::cout << response.value() << std::endl;
   }
-
   exit(status);
 }

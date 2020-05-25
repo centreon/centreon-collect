@@ -181,7 +181,7 @@ TEST_F(SimuGenericTest, ReadReturnValue4) {
                "end\n");
   std::map<std::string, misc::variant> conf;
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf));
   std::shared_ptr<io::data> d;
   ASSERT_TRUE(lb->read(d));
@@ -217,7 +217,7 @@ TEST_F(SimuGenericTest, ReadReturnCustomVariable) {
                "end\n");
   std::map<std::string, misc::variant> conf;
   modules::loader l;
-  l.load_file("./neb/10-neb.so");
+  l.load_file("./lib/10-neb.so");
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf));
   std::shared_ptr<io::data> d;
   ASSERT_TRUE(lb->read(d));

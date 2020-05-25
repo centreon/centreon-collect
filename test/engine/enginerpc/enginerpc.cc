@@ -154,7 +154,7 @@ TEST_F(EngineRpc, GetVersion) {
 }
 
 TEST_F(EngineRpc, GetHostsCount) {
-  std::ostringstream oss;
+ std::ostringstream oss;
   oss << "1";
   enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);

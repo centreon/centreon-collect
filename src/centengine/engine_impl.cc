@@ -151,7 +151,6 @@ grpc::Status engine_impl::GetServicesCount(
 
   int32_t val = f1.get();
   response->set_value(val);
-
   return grpc::Status::OK;
 }
 

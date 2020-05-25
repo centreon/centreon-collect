@@ -150,8 +150,8 @@ TEST_F(ApplierHost, HostParentChildUnreachable) {
 
   engine::host::host_state result;
   parent->second->run_sync_check_3x(&result, 0, 0, 0);
-  ASSERT_EQ(parent->second->get_current_state(), engine::host::state_down);
+  ASSERT_EQ(parent->second->get_current_state(), engine::host::state_up);
   child->second->run_sync_check_3x(&result, 0, 0, 0);
   ASSERT_EQ(child->second->get_current_state(),
-            engine::host::state_unreachable);
+            engine::host::state_up);
 }
