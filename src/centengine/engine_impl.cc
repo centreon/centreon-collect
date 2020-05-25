@@ -19,7 +19,6 @@
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/servicedependency.hh"
-//ajd
 #include "com/centreon/engine/hostdependency.hh"
 
 using namespace com::centreon::engine;
