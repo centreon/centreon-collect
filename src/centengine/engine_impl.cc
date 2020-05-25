@@ -1,4 +1,3 @@
-
 #include <functional>
 #include <sys/types.h>
 #include <unistd.h>
@@ -15,6 +14,13 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/contact.hh"
+#include "com/centreon/engine/service.hh"
+#include "com/centreon/engine/servicegroup.hh"
+#include "com/centreon/engine/contactgroup.hh"
+#include "com/centreon/engine/hostgroup.hh"
+#include "com/centreon/engine/servicedependency.hh"
+//ajd
+#include "com/centreon/engine/hostdependency.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -71,7 +77,7 @@ grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
   return grpc::Status::OK;
 }
 
-grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const GenericString* request, GenericValue* response) {
+grpc::Status engine_impl::GetNbrHost(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
   std::promise<int> p;
   std::future<int> f1 = p.get_future();
 	
@@ -106,6 +112,115 @@ grpc::Status engine_impl::GetNbrContact(grpc::ServerContext* context, const ::go
 
   return grpc::Status::OK;
 }
+
+grpc::Status engine_impl::GetNbrService(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(service::services.size()); 
+	std::cout << service::services.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetNbrServiceGroup(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(servicegroup::servicegroups.size()); 
+	std::cout << servicegroup::servicegroups.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetNbrContactGroup(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(contactgroup::contactgroups.size()); 
+	std::cout << contactgroup::contactgroups.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetNbrHostGroup(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(hostgroup::hostgroups.size()); 
+	std::cout << hostgroup::hostgroups.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetNbrServiceDependencies(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(servicedependency::servicedependencies.size()); 
+	std::cout << servicedependency::servicedependencies.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::GetNbrHostDependencies(grpc::ServerContext* context, const ::google::protobuf::Empty* request, GenericValue* response) {
+  std::promise<int> p;
+  std::future<int> f1 = p.get_future();
+  
+  auto lambda = [&p]() -> int {
+    p.set_value(hostdependency::hostdependencies.size()); 
+	std::cout << hostdependency::hostdependencies.size() << std::endl; 
+	return 0;
+  }; 
+
+  command_manager::instance().enqueue(lambda);
+	
+  int val = f1.get();
+  response->set_value(val);	
+
+  return grpc::Status::OK;
+}
+
 
 grpc::Status engine_impl::ProcessServiceCheckResult(
     grpc::ServerContext* /*context*/,

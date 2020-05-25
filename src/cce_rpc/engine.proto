@@ -10,11 +10,16 @@ package com.centreon.engine;
 service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(google.protobuf.Empty) returns (Stats) {}
-  rpc GetNbrHost(GenericString) returns (GenericValue) {}
+  rpc GetNbrHost(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetNbrContact(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetNbrService(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetNbrServiceGroup(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetNbrContactGroup(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetNbrHostGroup(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetNbrServiceDependencies(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetNbrHostDependencies(google.protobuf.Empty) returns (GenericValue) {}
   rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
-
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
 }
 

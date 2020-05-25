@@ -155,6 +155,8 @@ TEST_F(EngineRpc, GetVersion) {
 
 TEST_F(EngineRpc, GetNbrHost) {
   std::ostringstream oss;
+  oss << "1";
+  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);
 
   auto fn = [&continuerunning] () {
@@ -166,14 +168,11 @@ TEST_F(EngineRpc, GetNbrHost) {
 
   std::thread th(fn);
 
-  enginerpc erpc("0.0.0.0", 40001);
   auto output = execute("GetNbrHost");
- 
   continuerunning = false;
   th.join();
 
-  std::cout << output.back() << std::endl;
-	
+  ASSERT_EQ(output.back(), oss.str());
   erpc.shutdown();
 }
 
@@ -195,11 +194,135 @@ TEST_F(EngineRpc, GetNbrContact) {
  
   continuerunning = false;
   th.join();
-
-  std::cout << output.back() << std::endl;
-	
   erpc.shutdown();
 }
+
+TEST_F(EngineRpc, GetNbrService) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrService");
+ 
+  continuerunning = false;
+  th.join();
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrServiceGroup) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrServiceGroup");
+ 
+  continuerunning = false;
+  th.join();
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrContactGroup) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrContactGroup");
+ 
+  continuerunning = false;
+  th.join();
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrHostGroup) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrHostGroup");
+ 
+  continuerunning = false;
+  th.join();
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrServiceDependencies) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrServiceDependencies");
+ 
+  continuerunning = false;
+  th.join();
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetNbrHostDependencies) {
+  std::ostringstream oss;
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning] () {
+	while(continuerunning) {
+	  command_manager::instance().execute();
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("GetNbrHostDependencies");
+ 
+  continuerunning = false;
+  th.join();
+  erpc.shutdown();
+}
+
 
 TEST_F(EngineRpc, ProcessServiceCheckResult) {
   enginerpc erpc("0.0.0.0", 40001);
