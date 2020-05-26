@@ -12,5 +12,7 @@ RUN yum install -y \
   lua-devel \
   MariaDB-devel \
   MariaDB-shared \
+  python3-pip \
   rrdtool-devel \
   systemd
+RUN pip3 install conan
