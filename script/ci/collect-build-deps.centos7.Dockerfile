@@ -15,4 +15,8 @@ RUN yum install -y \
   python3-pip \
   rrdtool-devel \
   systemd
-RUN pip3 install conan
+
+# Install Conan.
+RUN pip3 install conan && \
+  conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon && \
+  conan remote remove conan-center
