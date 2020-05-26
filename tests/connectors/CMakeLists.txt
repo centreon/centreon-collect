@@ -23,14 +23,14 @@ add_executable(ccc_ut
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/sessions/session.cc
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/sessions/socket_handle.cc
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/reporter.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/buffer_handle.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/checks.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/connector.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/embedded_perl.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/fake_listener.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/main.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/orders.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/reporter.cc
-  ${CMAKE_SOURCE_DIR}/test/connectors/sessions.cc)
+  ${CMAKE_SOURCE_DIR}/tests/connectors/buffer_handle.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/checks.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/connector.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/embedded_perl.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/fake_listener.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/main.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/orders.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/reporter.cc
+  ${CMAKE_SOURCE_DIR}/tests/connectors/sessions.cc)
 
 target_link_libraries(ccc_ut CONAN_PKG::gtest CONAN_PKG::spdlog CONAN_PKG::libssh2 ${PERL_LIBRARIES} centreon-clib)

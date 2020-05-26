@@ -11,7 +11,13 @@ then
 	exit $return_code
 fi
 
-cmake3 ../..
+if [ `cmake3 --version` -eq 0 ]
+then
+	cmake3 ../..
+else
+	cmake ../..
+fi
+
 return_code=$?
 if [ $return_code -ne 0 ]
 then
@@ -59,4 +65,11 @@ then
 	exit $return_code
 fi
 
+./bin/cbwd_ut --gtest_output="xml:./watchdog.xml"
+return_code=$?
+if [ $return_code -ne 0 ]
+then
+	echo "watchdog ut failure"
+	exit $return_code
+fi
 exit 0
