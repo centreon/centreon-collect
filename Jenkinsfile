@@ -47,7 +47,7 @@ try {
       node {
         unstash 'git-sources'
         sh 'rm -rf centreon-collect && tar xzf centreon-collect.tar.gz'
-        docker.image('registry.centreon.com/broker-build-deps-20.10:centos7').inside() {
+        docker.image('registry.centreon.com/collect-build-deps-20.10:centos7').inside() {
           dir('centreon-collect') {
             sh './script/ci/ut.sh'
             step([
@@ -77,7 +77,7 @@ try {
       node {
         unstash 'git-sources'
         sh 'rm -rf centreon-collect && tar xzf centreon-collect.tar.gz'
-        docker.image('registry.centreon.com/broker-build-deps-20.10:centos7').inside() {
+        docker.image('registry.centreon.com/collect-build-deps-20.10:centos7').inside() {
           dir('centreon-collect') {
             sh './script/ci/package.sh centos7'
           }
