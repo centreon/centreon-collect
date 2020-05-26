@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo "ut"
+set -e
+set -x
 
 conan install `dirname $0`/../..
 
