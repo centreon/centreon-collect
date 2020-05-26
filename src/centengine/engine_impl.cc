@@ -95,6 +95,45 @@ grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::GetHost(grpc::ServerContext* context, const HostIdentifier* request, EngineHost* response) {
+  std::promise<EngineHost*> hostpromise;
+  std::future<EngineHost*> f1 = hostpromise.get_future();
+  EngineHost host;
+
+  auto lambda = [&hostpromise, request, &host]() -> int32_t {
+	std::shared_ptr<com::centreon::engine::host> selectedhost;
+	
+	switch (request->identifier_case()) {
+	  case HostIdentifier::kHostName:
+		selectedhost =  host::hosts.find(request->host_name())->second;
+		break;
+	  case HostIdentifier::kId:
+		selectedhost =  host::hosts_by_id.find(request->id())->second;
+		  break;
+	  default:
+	    return (1);
+		break;
+	}
+
+    host.set_name(selectedhost->get_name());
+    host.set_alias(selectedhost->get_alias());
+    host.set_address(selectedhost->get_address());
+	hostpromise.set_value(&host);
+
+    return (0);
+  };
+
+  command_manager::instance().enqueue(lambda);
+
+  *response = *(f1.get());
+  //response->set_name(hosttmp->name());	
+  //response->set_alias(hosttmp->alias());	
+  //response->set_address(hosttmp->address());	
+
+  return grpc::Status::OK;
+}
+
+
 grpc::Status engine_impl::GetHostsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,

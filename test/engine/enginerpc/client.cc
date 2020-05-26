@@ -56,6 +56,21 @@ class EngineRPCClient {
     return true;
   }
 
+  bool GetHost(std::string req, EngineHost* response) {
+    HostIdentifier request 	;
+	grpc::ClientContext context;
+
+    grpc::Status status = _stub->GetHost(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "GetHostsCount rpc engine failed" << std::endl;
+      return false;
+    }
+
+
+	  return true;
+  }
+
   bool GetHostsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
     grpc::ClientContext context;

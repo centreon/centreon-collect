@@ -28,6 +28,7 @@ package com.centreon.engine;
 service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(google.protobuf.Empty) returns (Stats) {}
+  rpc GetHost(HostIdentifier) returns (EngineHost) {}
   rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
@@ -92,3 +93,19 @@ message Stats {
 message ThresholdsFile {
   string filename = 1;
 }
+
+message HostIdentifier {
+  oneof identifier {
+	string host_name = 1;
+	uint32 id = 2;
+  }
+}
+
+message EngineHost {
+  string name = 1;
+  string alias = 2;
+  string address = 3;
+}
+
+
+
