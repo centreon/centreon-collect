@@ -19,4 +19,6 @@ RUN yum install -y \
 # Install Conan.
 RUN pip3 install conan && \
   conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon && \
-  conan remote remove conan-center
+  conan remote remove conan-center && \
+  cp -r /root/.conan /.conan && \
+  chmod -R 777 /.conan
