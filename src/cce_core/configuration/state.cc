@@ -2706,7 +2706,7 @@ std::string const& state::poller_name() const noexcept {
  *
  *  @param[in] value The new poller_name value.
  */
-void state::poller_name(std::string const& value) noexcept {
+void state::poller_name(std::string const& value) {
   _poller_name = value;
 }
 
@@ -2724,7 +2724,7 @@ uint32_t state::poller_id() const noexcept {
  *
  *  @param[in] value The new poller_id value.
  */
-void state::poller_id(uint32_t value) noexcept {
+void state::poller_id(uint32_t value) {
   _poller_id = value;
 }
 
@@ -2742,7 +2742,7 @@ uint16_t state::rpc_port() const noexcept {
  *
  *  @param[in] value The new poller_id value.
  */
-void state::rpc_port(uint16_t value) noexcept {
+void state::rpc_port(uint16_t value) {
   _poller_id = value;
 }
 

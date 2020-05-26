@@ -11,7 +11,7 @@ then
 	exit $return_code
 fi
 
-./bin/cmake ../..
+cmake3 ../..
 return_code=$?
 if [ $return_code -ne 0 ]
 then
