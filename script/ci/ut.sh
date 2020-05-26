@@ -13,9 +13,9 @@ fi
 
 if [ `cmake3 --version` -eq 0 ]
 then
-	cmake3 ../..
+	cmake3 `dirname $0`/../..
 else
-	cmake ../..
+	cmake `dirname $0`/../..
 fi
 
 return_code=$?
