@@ -106,5 +106,7 @@ module.exports = {
   // APM Monitoring
   newrelic: {
     enable: false
-  }
+  },
+  // JWT Secure key
+  jwtSecureKey: 'centreon'
 };
