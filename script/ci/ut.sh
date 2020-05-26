@@ -2,7 +2,7 @@
 
 echo "ut"
 
-conan install ../..
+conan install `dirname $0`/../..
 
 return_code=$?
 if [ $return_code -ne 0 ]
