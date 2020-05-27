@@ -1,20 +1,18 @@
 FROM registry.centreon.com/centos:7
 
 # Install Centreon repository.
-RUN yum install --nogpgcheck -y http://yum.centreon.com/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el7.centos.noarch.rpm
+RUN yum install --nogpgcheck -y http://yum.centreon.com/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el7.centos.noarch.rpm epel-release
 
 # Install build dependencies.
 RUN yum install -y \
-  cmake \
+  cmake3 \
   gcc \
   gcc-c++ \
   gnutls-devel \
-  lua-devel \
   MariaDB-devel \
-  MariaDB-shared \
+  perl-ExtUtils-Embed \
   python3-pip \
-  rrdtool-devel \
-  systemd
+  rrdtool-devel
 
 # Install Conan.
 RUN pip3 install conan && \
