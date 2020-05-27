@@ -12,7 +12,9 @@ then
 	exit $return_code
 fi
 
-if [ `cmake3 --version` -eq 0 ]
+cmake3 --version
+return_code=$?
+if [ $return_code -eq 0 ]
 then
 	cmake3 `dirname $0`/../..
 else
