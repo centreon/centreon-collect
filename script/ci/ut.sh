@@ -15,7 +15,7 @@ fi
 make -j8
 
 ./bin/clib-ut --gtest_output="xml:./clib.xml"
-./bin/ccc_ut --gtest_output="xml:./connectors.xml"
+#./bin/ccc_ut --gtest_output="xml:./connectors.xml"
 ./bin/cce_ut --gtest_output="xml:./engine.xml"
 ./bin/ccb_ut --gtest_output="xml:./broker.xml"
 ./bin/cbwd_ut --gtest_output="xml:./watchdog.xml"
