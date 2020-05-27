@@ -10,6 +10,7 @@ RUN yum install -y \
   gcc-c++ \
   gnutls-devel \
   MariaDB-devel \
+  MariaDB-shared \
   perl-ExtUtils-Embed \
   python3-pip \
   rrdtool-devel
