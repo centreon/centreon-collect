@@ -36,7 +36,7 @@ for i in engine etl report reporting-server ; do
   mv "centreon-bi-$i-$VERSION/packaging/centreon-bi-$i.spectemplate" "input-$i/"
 done
 cd input-server
-get_internal_source "mbi/$PROJECT-$VERSION-$RELEASE/centreon-bi-server-$VERSION-php72.tar.gz"
+get_internal_source "mbi/$PROJECT-$VERSION-$RELEASE/centreon-bi-server-$VERSION-php71.tar.gz"
 get_internal_source "mbi/$PROJECT-$VERSION-$RELEASE/centreon-bi-server.spectemplate"
 cd ..
 
