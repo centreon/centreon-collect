@@ -58,7 +58,7 @@ try {
                 [$class: 'FailedThreshold', failureThreshold: '0'],
                 [$class: 'SkippedThreshold', failureThreshold: '0']
               ],
-              tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
+              tools: [[$class: 'GoogleTestType', pattern: 'broker.xml,clib.xml,engine.xml']]
             ])
             if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
               withSonarQubeEnv('SonarQube') {
