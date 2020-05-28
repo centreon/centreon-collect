@@ -6,7 +6,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT=centreon-bi-server
+PROJECT=centreon-mbi
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -18,8 +18,8 @@ fi
 # Release delivery.
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  copy_internal_source_to_testing "mbi" "mbi-web" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "mbi" "19.10" "el7" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_source_to_testing "mbi" "mbi" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "mbi" "19.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
 
 #
 # CI delivery.
@@ -40,5 +40,5 @@ else
   done
 
   # Move RPMs to unstable.
-  promote_canary_rpms_to_unstable "mbi" "19.10" "el7" "noarch" "mbi-web" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "mbi" "19.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
 fi
