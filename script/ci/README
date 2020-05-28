@@ -1,0 +1,16 @@
+How to rebuild collect-build-deps
+=================================
+
+It is not done automatically by jenkins. You need to do that for centos7 for example : 
+
+docker build -t ci.int.centreon.com:5000/collect-build-deps-20.10:centos7 - < collect-build-deps.centos7.Dockerfile
+docker push ci.int.centreon.com:5000/collect-build-deps-20.10:centos7
+
+Ut stage
+========
+correspond to ut.sh
+
+Package stage
+=============
+correspond to package.sh
+
