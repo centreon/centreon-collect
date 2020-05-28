@@ -3,17 +3,19 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-mbi
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
-CENTOS_VERSION=7
 
 # Pull base image.
 DEP_IMAGE=registry.centreon.com/mon-dependencies-19.04:$DISTRIB
@@ -27,7 +29,11 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < mbi/19.04/server.Dockerfile.in > mbi/server.Dockerfile
 sed "s/@DISTRIB@/$DISTRIB/g" < mbi/19.04/web.Dockerfile.in > mbi/web.Dockerfile
-sed "s#@PROJECT@#mbi#g;s#@SUBDIR@#19.04/el$CENTOS_VERSION/noarch/mbi-web/centreon-bi-server-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+if [ "$DISTRIB" = 'centos7' ] ; then
+  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#19.04/el7/noarch/mbi/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+else
+  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#19.04/el8/noarch/mbi/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+fi
 
 # Build image.
 REGISTRY="registry.centreon.com"
