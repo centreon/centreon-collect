@@ -52,14 +52,11 @@ try {
         docker.image(utImage).inside() {
           dir('centreon-collect') {
             sh './script/ci/ut.sh'
-            step([
-              $class: 'XUnitBuilder',
-              thresholds: [
-                [$class: 'FailedThreshold', failureThreshold: '0'],
-                [$class: 'SkippedThreshold', failureThreshold: '0']
-              ],
-              tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
-            ])
+            xunit thresholds: [
+              failed(failureThreshold: '0'),
+              skipped(failureThreshold: '0')
+            ],
+            tools: [GoogleTest(pattern: 'clib.xml,engine.xml,broker.xml', stopProcessingIfError: true)]
             if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
               withSonarQubeEnv('SonarQube') {
                 sh 'sonar-scanner'
