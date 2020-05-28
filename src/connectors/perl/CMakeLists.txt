@@ -22,6 +22,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/Findperl.cmake)
 add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/xs_init.cc"
   COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${CMAKE_BINARY_DIR}/xs_init.cc")
 
+add_custom_target(xs_init DEPENDS "${CMAKE_BINARY_DIR}/xs_init.cc")
+
 # Perl connector.
 add_executable(centreon_connector_perl
   # Sources.
