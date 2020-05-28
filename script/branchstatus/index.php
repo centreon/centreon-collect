@@ -48,31 +48,6 @@ $projects = array(
     '19.04.x' => '19.04.x',
     '3.4.x' => '3.6.x'
   ),
-  'centreon-bi-engine' => array(
-    '20.04.x' => 'master',
-    '19.10.x' => '19.10.x',
-    '19.04.x' => '19.04.x',
-  ),
-  'centreon-bi-etl' => array(
-    '20.04.x' => 'master',
-    '19.10.x' => '19.10.x',
-    '19.04.x' => '19.04.x',
-  ),
-  'centreon-bi-report' => array(
-    '20.04.x' => 'master',
-    '19.10.x' => '19.10.x',
-    '19.04.x' => '19.04.x',
-  ),
-  'centreon-bi-reporting-server' => array(
-    '20.04.x' => 'master',
-    '19.10.x' => '19.10.x',
-    '19.04.x' => '19.04.x',
-  ),
-  'centreon-bi-server' => array(
-    '20.04.x' => 'master',
-    '19.10.x' => '19.10.x',
-    '19.04.x' => '19.04.x',
-  ),
   'centreon-broker' => array(
     '20.04.x' => 'master',
     '19.10.x' => '19.10.x',
@@ -130,6 +105,11 @@ $projects = array(
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '4.4.x'
+  ),
+  'centreon-mbi' => array(
+    '20.04.x' => 'master',
+    '19.10.x' => '19.10.x',
+    '19.04.x' => '19.04.x'
   ),
   'centreon-open-tickets' => array(
     '20.04.x' => 'master',
