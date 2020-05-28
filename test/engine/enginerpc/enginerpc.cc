@@ -166,11 +166,12 @@ TEST_F(EngineRpc, GetHost) {
 
   std::thread th(fn);
   auto output = execute("GetHost byhostname test_host");
+  auto output2 = execute("GetHost byhostid 12");
   continuerunning = false;
   th.join();
 
-  std::cout << output.back() << std::endl;
-
+  ASSERT_EQ(output.back(), "12");
+  ASSERT_EQ(output2.back(), "test_host");
   erpc.shutdown();
 }
 

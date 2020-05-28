@@ -86,8 +86,6 @@ class EngineRPCClient {
 	return true;
   }
 
-
-
   bool GetHostsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
     grpc::ClientContext context;
@@ -319,19 +317,19 @@ int main(int argc, char** argv) {
     std::cout << response.value() << std::endl;
   } else if (strcmp(argv[1], "GetHost") == 0) {
 	  if (argc != 4 ) { std::cout << "GetHost require arguments : GetHost [mode] [hostname or id]" << std::endl; return 1;}
-	  else if (strcmp(argv[2], "byhostid") == 0 ){
+	  else if (strcmp(argv[2], "byhostid") == 0){
 		EngineHost response;
 		uint32_t val = atoi(argv[3]);
 		status = client.GetHostByHostId(val,  &response)  ? 0 : 1;
 		std::cout << "GetHost" << std::endl;
-		std::cout << response.name() << std::endl;
 		std::cout << response.address() << std::endl;
-   } else if (strcmp(argv[2], "byhostname") == 0 ) {
+		std::cout << response.name() << std::endl;
+   } else if (strcmp(argv[2], "byhostname") == 0) {
 		EngineHost response;
 		std::string str(argv[3]);
 		status = client.GetHostByHostName(str,  &response)  ? 0 : 1;
 		std::cout << "GetHost" << std::endl;
-		std::cout << response.name() << std::endl;
+		std::cout << response.id() << std::endl;
 	 }
   }
 
