@@ -322,7 +322,6 @@ int main(int argc, char** argv) {
 		uint32_t val = atoi(argv[3]);
 		status = client.GetHostByHostId(val,  &response)  ? 0 : 1;
 		std::cout << "GetHost" << std::endl;
-		std::cout << response.address() << std::endl;
 		std::cout << response.name() << std::endl;
    } else if (strcmp(argv[2], "byhostname") == 0) {
 		EngineHost response;
