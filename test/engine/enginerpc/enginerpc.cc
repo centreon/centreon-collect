@@ -153,6 +153,27 @@ TEST_F(EngineRpc, GetVersion) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, GetHost) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::atomic<bool> continuerunning(true);
+
+  auto fn = [&continuerunning]() {
+    while (continuerunning) {
+      command_manager::instance().execute();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHost byhostname test_host");
+  continuerunning = false;
+  th.join();
+
+  std::cout << output.back() << std::endl;
+
+  erpc.shutdown();
+}
+
 TEST_F(EngineRpc, GetHostsCount) {
  enginerpc erpc("0.0.0.0", 40001);
   std::atomic<bool> continuerunning(true);

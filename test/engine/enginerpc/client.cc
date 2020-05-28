@@ -56,21 +56,37 @@ class EngineRPCClient {
     return true;
   }
 
-  bool GetHost(std::string* req, EngineHost* response) {
+  bool GetHostByHostName( std::string const& req, EngineHost* response) {
     HostIdentifier request;
-    request.set_allocated_host_name(req);
+    request.set_host_name(req);
 	grpc::ClientContext context;
-
+	
     grpc::Status status = _stub->GetHost(&context, request, response);
 
     if (!status.ok()) {
-      std::cout << "GetHostsCount rpc engine failed" << std::endl;
+      std::cout << "GetHostByHostName rpc engine failed" << std::endl;
       return false;
     }
 
-
-	  return true;
+	return true;
   }
+  
+  bool GetHostByHostId(uint32_t& req, EngineHost* response) {
+    HostIdentifier request;
+    request.set_id(req);
+	grpc::ClientContext context;
+	
+    grpc::Status status = _stub->GetHost(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "GetHostByHostId rpc engine failed" << std::endl;
+      return false;
+    }
+
+	return true;
+  }
+
+
 
   bool GetHostsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
@@ -301,6 +317,23 @@ int main(int argc, char** argv) {
     status = client.GetHostDependenciesCount(&response) ? 0 : 1;
     std::cout << "GetHostDependenciesCount client" << std::endl;
     std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetHost") == 0) {
+	  if (argc != 4 ) { std::cout << "GetHost require arguments : GetHost [mode] [hostname or id]" << std::endl; return 1;}
+	  else if (strcmp(argv[2], "byhostid") == 0 ){
+		EngineHost response;
+		uint32_t val = atoi(argv[3]);
+		status = client.GetHostByHostId(val,  &response)  ? 0 : 1;
+		std::cout << "GetHost" << std::endl;
+		std::cout << response.name() << std::endl;
+		std::cout << response.address() << std::endl;
+   } else if (strcmp(argv[2], "byhostname") == 0 ) {
+		EngineHost response;
+		std::string str(argv[3]);
+		status = client.GetHostByHostName(str,  &response)  ? 0 : 1;
+		std::cout << "GetHost" << std::endl;
+		std::cout << response.name() << std::endl;
+	 }
   }
+
   exit(status);
 }

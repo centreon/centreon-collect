@@ -105,6 +105,7 @@ message EngineHost {
   string name = 1;
   string alias = 2;
   string address = 3;
+  uint32 id = 4;
 }
 
 
