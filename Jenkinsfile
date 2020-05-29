@@ -60,10 +60,12 @@ try {
               ],
               tools: [[$class: 'GoogleTestType', pattern: 'broker.xml,clib.xml,engine.xml']]
             ])
-            if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
-              withSonarQubeEnv('SonarQube') {
-                sh 'sonar-scanner'
-              }
+          }
+        }
+        if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
+          dir('centreon-collect') {
+            withSonarQubeEnv('SonarQube') {
+              sh 'sonar-scanner'
             }
           }
         }
