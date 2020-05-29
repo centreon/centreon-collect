@@ -31,7 +31,7 @@ for distrib in el7 el8 ; do
       echo "Unsupported distribution $distrib"
       exit 1
     fi
-    BUILD_IMG="registry.centreon.com/mon-build-dependencies-19.10:$tag"
+    BUILD_IMG="registry.centreon.com/mon-build-dependencies-20.04:$tag"
     docker pull "$BUILD_IMG"
     docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
