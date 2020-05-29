@@ -16,3 +16,8 @@
   - import_tasks: 20.04/jobs-unittest.yml
   - import_tasks: 20.04/jobs-stable.yml
   - import_tasks: 20.04/jobs-misc.yml
+  - import_tasks: 20.10/jobs-build-dependencies.yml
+  - import_tasks: 20.10/jobs-dependencies.yml
+  - import_tasks: 20.10/jobs-unittest.yml
+  - import_tasks: 20.10/jobs-stable.yml
+  - import_tasks: 20.10/jobs-misc.yml

@@ -1,0 +1,56 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon map",
+        "shortname": "map"
+    },
+    "version": {
+        "version": "@VERSION@",
+        "versionserver": "@VERSIONSERVER@",
+        "versionweb": "@VERSIONWEB@",
+        "release": "@RELEASE@",
+        "serie": "20.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "Server RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/20.10/el7/noarch/map-server/@PROJECT@-server-@VERSIONSERVER@-@RELEASE@"
+        },
+        {
+            "displayname": "Web RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/20.10/el7/noarch/map-web/@PROJECT@-web-@VERSIONWEB@-@RELEASE@"
+        },
+        {
+            "displayname": "Server Docker image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/des-map-server-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Web Docker image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/des-map-web-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Server sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/map/@PROJECT@-server-@VERSIONSERVER@-@RELEASE@"
+        },
+        {
+            "displayname": "Web sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/map/@PROJECT@-web-@VERSIONWEB@-@RELEASE@"
+        },
+        {
+            "displayname": "Desktop sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/map/@PROJECT@-desktop-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Desktop installers",
+            "flavor": "Debian, Windows, MacOS",
+            "url": "@REPOSITORY@/sources/internal/map-desktop/@PROJECT@-desktop-@VERSION@-@RELEASE@"
+        }
+    ]
+}
