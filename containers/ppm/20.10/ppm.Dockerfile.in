@@ -1,0 +1,30 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Set middleware server.
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
+COPY lm/20.10/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
+RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
+COPY lm/20.10/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
+RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/php-fpm.d/centreon-license-manager.conf
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y centreon-pp-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install Plugin Pack JSON files.
+COPY middleware/data/pluginpacks/**/*.json /usr/share/centreon-packs/
+
+# Install license file.
+COPY ppm/epp.license.offline /etc/centreon/license.d/epp.license.offline
+
+# Install module in Centreon.
+COPY web/20.10/install-centreon-module.php /tmp/install-centreon-module.php
+COPY ppm/20.10/install.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh

@@ -1,0 +1,9 @@
+centreon-clib:armhf
+crossbuild-essential-armhf
+libgnutls28-dev:armhf
+libidn11-dev:armhf
+liblua5.3-dev:armhf
+libmariadb-dev:armhf
+librrd-dev:armhf
+libz-dev:armhf
+nettle-dev:armhf

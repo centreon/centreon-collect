@@ -1,0 +1,29 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon Engine",
+        "shortname": "engine"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "20.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/20.10/el7/x86_64/engine/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos8",
+            "url": "@REPOSITORY@/yum/internal/20.10/el8/x86_64/engine/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/engine/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}

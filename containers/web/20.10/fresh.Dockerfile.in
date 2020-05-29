@@ -1,0 +1,30 @@
+# Base information.
+FROM @BASE_IMAGE@
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+COPY web/20.10 /tmp/fresh
+
+RUN yum clean all && \
+    yum-config-manager --setopt='centreon-stable-noarch.exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' --save && \
+    yum-config-manager --setopt='centreon-testing-noarch.exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' --save && \
+    yum-config-manager --setopt='centreon-unstable-noarch.exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' --save && \
+    yum install -y centreon centreon-broker-influxdb libfaketime && \
+    cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
+    cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
+    chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
+    cp /tmp/fresh/autoinstall.php /usr/share/centreon/autoinstall.php && \
+    cp /tmp/fresh/configuration/* /usr/share/centreon/www/install/tmp/ && \
+    chown -R apache.apache /usr/share/centreon/www/install/tmp && \
+    chmod +x /tmp/fresh/fresh.sh && \
+    /tmp/fresh/fresh.sh && \
+    cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
+    chmod +x /usr/share/centreon/container.sh && \
+    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
+    yum clean all && \
+    rm -rf /tmp/fresh && \
+    touch /var/opt/rh/rh-php72/log/php-fpm/centreon-error.log && \
+    chown apache:apache /var/opt/rh/rh-php72/log/php-fpm/centreon-error.log
+
+ENTRYPOINT ["/usr/share/centreon/container.sh"]

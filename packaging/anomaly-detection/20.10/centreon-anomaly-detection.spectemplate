@@ -1,0 +1,68 @@
+%define debug_package %{nil}
+Name:           centreon-anomaly-detection
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        Centreon Anomaly Detection add-on for Centreon
+%define thismajor 20.10.0
+%define nextmajor 20.05.0
+
+Group:          System Environment/Base
+License:        Apache-2.0
+URL:            https://github.com/centreon/centreon-anomaly-detection
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+BuildRequires:  centreon-devel
+Requires:       centreon-web >= %{thismajor}
+Requires:       centreon-web < %{nextmajor}
+Requires:       lua-curl
+Requires:       bzip2
+AutoReqProv:    no
+
+%description
+Allow the Centreon application to offer the possibility of generating alerts from
+anomaly detection and to display a chart to understand the alerts generated.
+
+%prep
+%setup -q
+
+# Change CENTREON_ETC Macro
+find .          \
+        -type f \
+        -exec %{__grep} -qE '(@@CENTREON_ETC@@)' {} ';'   \
+        -exec %{__sed} -i -e 's|@@CENTREON_ETC@@|'"/etc/centreon/"'|g'\
+        {} ';'
+
+%install
+%{__install} -d $RPM_BUILD_ROOT%{centreon_www}/modules/
+%{__cp} -rp www/modules/%{name} $RPM_BUILD_ROOT%{centreon_www}/modules/
+
+%{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/
+%{__cp} -rp lua $RPM_BUILD_ROOT%{_datadir}/centreon-broker/
+
+%{__install} -d %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/anomaly_detection %buildroot%{_datadir}/centreon/bin/
+%{__install} -d %{buildroot}/%{perl_vendorlib}/centreon/anomalydetection
+%{__cp} -rp lib/perl/centreon/anomalydetection %{buildroot}/%{perl_vendorlib}/centreon
+
+%{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/
+%{__cp} gorgone/42-anomalydetection.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+
+%defattr(-, centreon, centreon,-)
+%{_datadir}/centreon/bin/anomaly_detection
+
+%defattr(-,apache,apache,-)
+%{centreon_www}/modules/%{name}
+%{_datadir}/centreon-broker/lua/centreon-anomaly-detection.lua
+%{perl_vendorlib}/centreon/anomalydetection
+%{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
+
+%defattr(-,root,root,-)
+%{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
+
+%changelog

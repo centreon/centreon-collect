@@ -1,0 +1,32 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install packages.
+RUN yum install centreon-map-server mysql-server redhat-lsb-core && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install script.
+COPY map/install-server.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
+
+# Copy configuration files.
+COPY map/centreon-database.properties /etc/centreon-studio/centreon-database.properties
+COPY map/studio-config.properties /etc/centreon-studio/studio-config.properties
+COPY map/studio-database.properties /etc/centreon-studio/studio-database.properties
+COPY map/20.10/map-log.xml /etc/centreon-studio/map-log.xml
+RUN mkdir -p /var/log/centreon-map && chown centreon-map:centreon-map /var/log/centreon-map
+
+# Change startup script.
+RUN rm -f /usr/lib/systemd/systemd/centreon-map.service
+COPY map/20.10/centreon-map.sh /etc/init.d/centreon-map
+
+# Main script.
+COPY map/20.10/run.sh /usr/local/bin/container.sh
+RUN chmod +x /usr/local/bin/container.sh
+ENTRYPOINT ["/usr/local/bin/container.sh"]
