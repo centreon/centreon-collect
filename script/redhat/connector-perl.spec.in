@@ -1,0 +1,33 @@
+Buildroot: @CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/connector-perl
+Summary:        Centreon Connector Perl provide embedded perl for Centreon-Engine.
+Name:           @CPACK_PACKAGE_CONNECTOR-PERL_PACKAGE_NAME@
+Version:        @CPACK_PACKAGE_VERSION@
+Release:        @CPACK_PACKAGE_RELEASE@
+License:        ASL 2.0
+Group:	     	%{group}
+Vendor:         @CPACK_PACKAGE_VENDOR@
+Prefix:         @CPACK_PACKAGING_INSTALL_PREFIX@
+
+%description
+Centreon Clib is a common library for all Centreon
+products written in C/C++.
+
+%prep
+mv $RPM_BUILD_ROOT @CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot/
+
+%install
+if [ -e $RPM_BUILD_ROOT ];
+then
+  rm -Rf $RPM_BUILD_ROOT
+fi
+mv "@CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot/connector-perl" $RPM_BUILD_ROOT
+
+%pre
+
+%files
+%defattr(-,root,root,-)
+%attr(0775,root,root) %{_libdir}/centreon-connector/centreon_connector_perl
+
+%changelog
+* Thu May 28 2020 Sylvestre Gallon <sgallon@centreon.com> 1.0.0-1
+- Initial build

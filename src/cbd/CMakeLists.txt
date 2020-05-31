@@ -11,6 +11,9 @@ configure_file(${CMAKE_SOURCE_DIR}/config/central-broker.json.in
 configure_file(${CMAKE_SOURCE_DIR}/config/central-rrd.json.in
   ${CMAKE_BINARY_DIR}/central-rrd.json
   @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/script/systemd/cbd.service.in
+  ${CMAKE_BINARY_DIR}/cbd.service
+  @ONLY)
 
 # Standalone binary.
 add_executable(cbd
@@ -32,6 +35,7 @@ target_link_libraries(cbd
 set_target_properties(cbd PROPERTIES COMPILE_FLAGS "-fPIC")
 
 install(TARGETS cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})
+install(FILES ${CMAKE_BINARY_DIR}/cbd.service DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${CMAKE_BINARY_DIR}/central-broker.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
 install(FILES ${CMAKE_BINARY_DIR}/central-rrd.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
 install(FILES ${CMAKE_BINARY_DIR}/poller-module.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)

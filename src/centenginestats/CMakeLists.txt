@@ -4,4 +4,4 @@ add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_CONF}/centengine.cfg")
 add_executable(centenginestats ${CMAKE_SOURCE_DIR}/src/centenginestats/centenginestats.cc)
 target_link_libraries(centenginestats centreon-clib CONAN_PKG::json11)
 
-install(TARGETS centenginestats DESTINATION ${CMAKE_INSTALL_SBINDIR})
+install(TARGETS centenginestats COMPONENT engine-daemon DESTINATION ${CMAKE_INSTALL_SBINDIR})
