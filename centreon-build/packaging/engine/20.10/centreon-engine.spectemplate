@@ -14,7 +14,7 @@ Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Engine monitoring core.
 %define thismajor 20.10.0
-%define nextmajor 20.05.0
+%define nextmajor 20.11.0
 
 Group:          %{group}
 License:        GPLv2

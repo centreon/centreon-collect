@@ -4,7 +4,7 @@ Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Centreon Agent Configuration add-on for Centreon
 %define thismajor 20.10.0
-%define nextmajor 20.05.0
+%define nextmajor 20.11.0
 
 Group:          System Environment/Base
 License:        Apache-2.0
