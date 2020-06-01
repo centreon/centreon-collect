@@ -4,7 +4,7 @@
 %define release @RELEASE@%{?dist}
 %define summary @SUMMARY@
 %define thismajor 20.10.0
-%define nextmajor 20.05.0
+%define nextmajor 20.11.0
 
 Summary:    %{summary}
 Name:       %{name}
