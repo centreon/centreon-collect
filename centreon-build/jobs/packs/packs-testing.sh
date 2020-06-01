@@ -44,6 +44,7 @@ promote_unstable_rpms_to_testing "plugin-packs" "3.4" "el7" "noarch" "packs" "$P
 promote_unstable_rpms_to_testing "plugin-packs" "19.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "plugin-packs" "20.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+promote_unstable_rpms_to_testing "plugin-packs" "20.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 
 # Move cache files to the testing directory.
 ssh "$REPO_CREDS" mv "/srv/cache/packs/unstable/cache-$VERSION-$RELEASE" "/srv/cache/packs/testing/"
