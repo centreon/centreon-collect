@@ -4,8 +4,12 @@
 %define thismajor 20.10.0
 %define nextmajor 20.11.0
 
-# Define base for rpm
-%define php_scl rh-php72
+# Define PHP prefix.
+%if 0%{?el7}
+%define php_prefix rh-php72-
+%else
+%define php_prefix %{nil}
+%endif
 
 Summary:    Centreon, Network & System Monitoring
 Name:       %{name}
@@ -65,9 +69,9 @@ Requires(post): sed
 Requires(post): sudo
 BuildRequires:  dos2unix
 BuildRequires:  gettext
-BuildRequires:  %{php_scl}-php-cli
-BuildRequires:  %{php_scl}-php-mbstring
-BuildRequires:  %{php_scl}-php-xml
+BuildRequires:  %{php_prefix}php-cli
+BuildRequires:  %{php_prefix}php-mbstring
+BuildRequires:  %{php_prefix}php-xml
 BuildRequires:  nodejs
 BuildRequires:  systemd
 
@@ -104,30 +108,36 @@ Group:      Networking/Other
 BuildRequires: systemd
 Requires:   centreon-common = %{version}-%{release}
 Requires:   centreon-perl-libs = %{version}-%{release}
+Requires:   initscripts
+%if 0%{?el7}
 Requires:   httpd24
 Requires:   mysql
-Requires:   initscripts
-Requires:   %{php_scl}
-Requires:   %{php_scl}-php-cli
-Requires:   %{php_scl}-php-pdo
-Requires:   %{php_scl}-php-mysqlnd
-Requires:   %{php_scl}-php-gd
-Requires:   %{php_scl}-php-xml
-Requires:   %{php_scl}-php-mbstring
-Requires:   %{php_scl}-php-ldap
-Requires:   %{php_scl}-php-snmp
-Requires:   %{php_scl}-php-intl
-Requires:   %{php_scl}-php-fpm
-Requires:   %{php_scl}-php-curl
-Requires:   %{php_scl}-php-zip
-Requires:   %{php_scl}-php-pear
+Requires:   rh-php72
+%else
+Requires:   httpd
+Requires:   mariadb
+%endif
+Requires:   %{php_prefix}php-cli
+Requires:   %{php_prefix}php-pdo
+Requires:   %{php_prefix}php-mysqlnd
+Requires:   %{php_prefix}php-gd
+Requires:   %{php_prefix}php-xml
+Requires:   %{php_prefix}php-mbstring
+Requires:   %{php_prefix}php-ldap
+Requires:   %{php_prefix}php-snmp
+Requires:   %{php_prefix}php-intl
+Requires:   %{php_prefix}php-fpm
+Requires:   %{php_prefix}php-curl
+Requires:   %{php_prefix}php-zip
+Requires:   %{php_prefix}php-pear
+Requires:   %{php_prefix}php-json
 Requires:   perl-DBD-MySQL
 Requires:   perl-DBI
 Requires:   perl-HTML-Parser
 Requires:   rrdtool
 Requires:   rrdtool-perl
 Requires:   net-snmp
-Requires:   net-snmp-perl
+#Requires:   net-snmp-perl
 Requires:   net-snmp-utils
 Requires:   rsync
 Requires(post): /etc/sudoers
@@ -152,7 +162,11 @@ This package contains WebUI files.
 %package database
 Summary:    Centreon Databases
 Group:      Networking/Other
+%if 0%{?el7}
 Requires:   mysql-server
+%else
+Requires:   mariadb-server
+%endif
 
 %description database
 Install a database server optimized for use with Centreon.
@@ -176,7 +190,7 @@ Group:      Networking/Other
 %{?systemd_requires}
 BuildRequires: systemd
 Requires:   net-snmp
-Requires:   net-snmp-perl
+#Requires:   net-snmp-perl
 Requires:   centreon-perl-libs = %{version}-%{release}
 Obsoletes:  centreon-trap-poller
 Obsoletes:  centreon-trap-central
@@ -187,7 +201,7 @@ This package contains Centreon Trap engine
 %package base-config-centreon-engine
 Summary:    Configuration for Centeon with Centreon Engine and Centreon Broker
 Group:      Networking/Other
-Requires:   centreon-broker-cbd >= 20.04.0
+Requires:   centreon-broker-cbd >= %{thismajor}
 Requires:   centreon-broker-cbd < %{nextmajor}
 Requires:   centreon-web = %{version}-%{release}
 Requires:   centreon-poller-centreon-engine = %{version}-%{release}
@@ -213,15 +227,15 @@ Summary:    Rights and file for pollers (including central)
 Group:      Networking/Other
 Requires:   centreon-common = %{version}-%{release}
 Requires:   centreon-trap = %{version}-%{release}
-Requires:   centreon-engine >= 20.04.0
+Requires:   centreon-engine >= %{thismajor}
 Requires:   centreon-engine < %{nextmajor}
-Requires:   centreon-broker >= 20.04.0
+Requires:   centreon-broker >= %{thismajor}
 Requires:   centreon-broker < %{nextmajor}
-Requires:   centreon-broker-cbmod >= 20.04.0
+Requires:   centreon-broker-cbmod >= %{thismajor}
 Requires:   centreon-broker-cbmod < %{nextmajor}
-Requires:   centreon-broker-storage >= 20.04.0
+Requires:   centreon-broker-storage >= %{thismajor}
 Requires:   centreon-broker-storage < %{nextmajor}
-Requires:   centreon-connector >= 20.04.0
+Requires:   centreon-connector >= %{thismajor}
 Requires:   centreon-connector < %{nextmajor}
 Requires:   centreon-gorgone-centreon-config >= %{thismajor}
 Requires:   centreon-gorgone-centreon-config < %{nextmajor}
@@ -242,7 +256,7 @@ Requires:   centreon-plugin-Hardware-Ups-Standard-Rfc1628-Snmp
 Requires:   centreon-plugin-Network-Cisco-Standard-Snmp
 Requires:   centreon-plugin-Operatingsystems-Linux-Snmp
 Requires:   centreon-plugin-Operatingsystems-Windows-Snmp
-#Requires:   centreon-nrpe-plugin
+Requires:   centreon-nrpe-plugin
 Requires:   nagios-plugins-dhcp >= 2.0.0
 Requires:   nagios-plugins-icmp >= 2.0.0
 Provides:   centreon-poller
@@ -281,6 +295,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__cp} tmpl/install/centstorage.cron %buildroot%{_sysconfdir}/cron.d/centstorage
 
 # Install httpd and PHP configuration
+%if 0%{?el7}
 %{__install} -d -m 0755 %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php72/php.d
@@ -289,6 +304,16 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d
 %{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
+%else
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/httpd/conf.d
+%{__cp} additional/centreon-apache.conf %buildroot%{_sysconfdir}/httpd/conf.d/10-centreon.conf
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/php.d
+%{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/php.d/50-centreon.ini
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/php-fpm.d
+%{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/php-fpm.d/centreon.conf
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/php-fpm.service.d
+%{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/php-fpm.service.d/centreon.conf
+%endif
 
 # Install systemd configuration files
 %{__install} -d -m 0755 %buildroot%{_unitdir}
@@ -436,7 +461,11 @@ export HOUR=$(awk 'BEGIN{srand(); print int(rand()*24)}')
 sed -i -E "s/0\s0(.*)centreon\-send\-stats\.php(.*)/$MIN $HOUR\1centreon-send-stats.php\2/" /etc/cron.d/centreon
 
 # Create HASH secret for Symfony application
-REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/%{php_scl}/root/usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
+%if 0%{?el7}
+REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/rh-php72/root/usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
+%else
+REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
+%endif
 
 ######################################################
 # Package centreon-common
@@ -493,10 +522,17 @@ fi
 
 # httpd and PHP configuration
 %defattr(-, root, root, -)
+%if 0%{?el7}
 %config(noreplace) /opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
 %config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php.d/50-centreon.ini
 %config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
 %config(noreplace) %{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
+%else
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/10-centreon.conf
+%config(noreplace) %{_sysconfdir}/php.d/50-centreon.ini
+%config(noreplace) %{_sysconfdir}/php-fpm.d/centreon.conf
+%config(noreplace) %{_sysconfdir}/systemd/system/php-fpm.service.d/centreon.conf
+%endif
 
 # Binaries
 %defattr(-, root, root, -)
@@ -561,8 +597,13 @@ fi
 %exclude %{_datadir}/centreon/www/install/install.conf.php
 
 %post web
-systemctl try-restart %{php_scl}-php-fpm || :
+%if 0%{?el7}
 systemctl try-restart httpd24-httpd || :
+systemctl try-restart %{php_scl}-php-fpm || :
+%else
+systemctl try-restart httpd || :
+systemctl try-restart php-fpm || :
+%endif
 
 #
 # centreon-perl-libs files

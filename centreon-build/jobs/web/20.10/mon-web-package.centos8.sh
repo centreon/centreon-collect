@@ -15,15 +15,15 @@ fi
 mv "centreon-$VERSION.tar.gz" input/
 cp -r `dirname $0`/../../../packaging/web/rpm/20.10/centreon.spectemplate input/
 cp -r `dirname $0`/../../../packaging/web/src/20.10/* input/
-mv input/centreon-macroreplacement.centos7.txt input/centreon-macroreplacement.txt
+mv input/centreon-macroreplacement.centos8.txt input/centreon-macroreplacement.txt
 
 # Build RPMs.
-docker-rpm-builder dir --verbose --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-20.10:centos7 input output
+docker-rpm-builder dir --verbose --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-20.10:centos8 input output
 export VERSION="$OLDVERSION"
 export RELEASE="$OLDRELEASE"
 
 # Publish RPMs.
-put_internal_rpms "20.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
+put_internal_rpms "20.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "20.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_canary "standard" "20.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
 fi

@@ -1,4 +1,6 @@
 #!/bin/sh
 
-source /opt/rh/httpd24/enable
+if [ -e /opt/rh/httpd24/enable ] ; then
+  source /opt/rh/httpd24/enable
+fi
 httpd -k start
