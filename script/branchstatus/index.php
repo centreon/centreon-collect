@@ -19,7 +19,7 @@
           <th scope="col">Project</th>
 <?php
 
-$versions = array('20.04.x', '19.10.x', '19.04.x', '3.4.x');
+$versions = array('20.10.x', '20.04.x', '19.10.x', '19.04.x', '3.4.x');
 foreach ($versions as $version) {
   echo '<th scope="col">' . $version . '</th>';
 }
@@ -31,19 +31,22 @@ foreach ($versions as $version) {
 
 $projects = array(
   'centreon-autodiscovery' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '2.4.x'
   ),
   'centreon-awie' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '1.0.x'
   ),
   'centreon-bam' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '3.6.x'
@@ -69,7 +72,8 @@ $projects = array(
     '20.04.x' => 'master'
   ),
   'centreon-dsm' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x'
   ),
@@ -80,50 +84,59 @@ $projects = array(
     '3.4.x' => '1.8.x'
   ),
   'centreon-gorgone' => array(
-    '20.04.x' => 'master'
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x'
   ),
   'centreon-hub' => array(
+    '20.10.x' => 'master',
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-imp-portal-api' => array(
+    '20.10.x' => 'master',
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-license-manager' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '1.2.x'
   ),
   'centreon-map' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '4.4.x'
   ),
   'centreon-mbi' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x'
   ),
   'centreon-open-tickets' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '1.2.x'
   ),
   'centreon-plugins' => array(
+    '20.10.x' => 'master',
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-plugin-packs' => array(
+    '20.10.x' => 'master',
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
@@ -133,24 +146,28 @@ $projects = array(
     '3.4.x' => 'master'
   ),
   'centreon-pp-manager' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '2.4.x'
   ),
   'centreon-ui' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x'
   ),
   'centreon-vmware' => array(
+    '20.10.x' => 'master',
     '20.04.x' => 'master',
     '19.10.x' => 'master',
     '19.04.x' => 'master',
     '3.4.x' => 'master'
   ),
   'centreon-web' => array(
-    '20.04.x' => 'master',
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x',
     '19.10.x' => '19.10.x',
     '19.04.x' => '19.04.x',
     '3.4.x' => '2.8.x'
