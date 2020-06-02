@@ -155,6 +155,50 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
   }
 }
 
+grpc::Status engine_impl::GetContact(
+	grpc::ServerContext* context,
+	const ContactIdentifier* request,
+	EngineContact* response) {
+  
+  std::promise<std::pair<bool, EngineContact*>> contactpromise;
+  std::future<std::pair<bool, EngineContact*>> f1 = contactpromise.get_future();
+  EngineContact contact;
+
+  auto lambda = [&contactpromise, request, &contact]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contact> selectedcontact;
+    std::unordered_map<std::string,
+                       std::shared_ptr<com::centreon::engine::contact>>::iterator
+        itcontactname;
+
+
+    itcontactname = contact::contacts.find(request->name());
+    if (itcontactname != contact::contacts.end()) {
+      selectedcontact = itcontactname->second;
+    } 
+	else {
+      contactpromise.set_value(std::make_pair(false, nullptr));
+      return 1;
+    }
+
+    contact.set_name(selectedcontact->get_name());
+    contact.set_alias(selectedcontact->get_alias());
+    contact.set_email(selectedcontact->get_email());
+    contactpromise.set_value(std::make_pair(true, &contact));
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+  auto promiseresponse = f1.get();
+  
+  if (promiseresponse.first == true) {
+    *response = *(promiseresponse.second);
+    return grpc::Status::OK;
+  } else {
+    return grpc::Status(grpc::INVALID_ARGUMENT,
+                        grpc::string("hostname not found"));
+  }
+}
+  
 grpc::Status engine_impl::GetHostsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
