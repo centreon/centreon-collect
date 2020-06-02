@@ -11,11 +11,21 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
-CENTOS_VERSION=7
+case "$DISTRIB" in
+  centos7)
+    REPODISTRIB=el7
+    ;;
+  centos8)
+    REPODISTRIB=el8
+    ;;
+  *)
+    echo "Unsupported distribution $DISTRIB."
+    exit 1
+esac
 
 # Target images.
 REGISTRY="registry.centreon.com"
@@ -34,11 +44,11 @@ docker pull "$BASE_IMG"
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s#@BASE_IMAGE@#$BASE_IMG#g;s#@CENTOS_VERSION@#$CENTOS_VERSION#g" < web/20.10/fresh.Dockerfile.in > web/fresh.Dockerfile
+sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/20.10/fresh.Dockerfile.$DISTRIB.in" > web/fresh.Dockerfile
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/20.10/standard.Dockerfile.in > web/standard.Dockerfile
 sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/20.10/widgets.Dockerfile.in > web/widgets.Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.10/el7/noarch/web/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-scp repo/centreon-internal.repo "$REPO_CREDS:/srv/yum/internal/20.10/el7/noarch/web/$PROJECT-$VERSION-$RELEASE/"
+sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.10/$REPODISTRIB/noarch/web/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+scp repo/centreon-internal.repo "$REPO_CREDS:/srv/yum/internal/20.10/$REPODISTRIB/noarch/web/$PROJECT-$VERSION-$RELEASE/"
 
 # Build 'fresh' image.
 docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .
