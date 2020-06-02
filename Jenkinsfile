@@ -31,7 +31,7 @@ stage('Source') {
       if (env.BUILD == 'RELEASE') {
         env.RELEASE = env.BUILD_NUMBER
       } else {
-	now = sh returnStdout: true, script: 'date +%s'
+        now = sh returnStdout: true, script: 'date +%s'
         commit = sh returnStdout: true, script: 'git log -1 HEAD --pretty=format:%h'
         env.RELEASE = "${now}.${commit}"
       }
@@ -47,7 +47,9 @@ try {
       node {
         unstash 'git-sources'
         sh 'rm -rf centreon-collect && tar xzf centreon-collect.tar.gz'
-        docker.image('registry.centreon.com/broker-build-deps-20.10:centos7').inside() {
+        def utImage = 'registry.centreon.com/collect-build-deps-20.10:centos7'
+        docker.image(utImage).pull()
+        docker.image(utImage).inside() {
           dir('centreon-collect') {
             sh './script/ci/ut.sh'
             step([
@@ -56,12 +58,14 @@ try {
                 [$class: 'FailedThreshold', failureThreshold: '0'],
                 [$class: 'SkippedThreshold', failureThreshold: '0']
               ],
-              tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
+              tools: [[$class: 'GoogleTestType', pattern: 'broker.xml,clib.xml,engine.xml']]
             ])
-            if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
-              withSonarQubeEnv('SonarQube') {
-                sh 'sonar-scanner'
-              }
+          }
+        }
+        if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
+          dir('centreon-collect') {
+            withSonarQubeEnv('SonarQube') {
+              sh 'sonar-scanner'
             }
           }
         }
@@ -77,7 +81,9 @@ try {
       node {
         unstash 'git-sources'
         sh 'rm -rf centreon-collect && tar xzf centreon-collect.tar.gz'
-        docker.image('registry.centreon.com/broker-build-deps-20.10:centos7').inside() {
+        def packageImage = 'registry.centreon.com/collect-build-deps-20.10:centos7'
+        docker.image(packageImage).pull()
+        docker.image(packageImage).inside() {
           dir('centreon-collect') {
             sh './script/ci/package.sh centos7'
           }

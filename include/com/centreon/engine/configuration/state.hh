@@ -292,11 +292,11 @@ class state {
   int perfdata_timeout() const noexcept;
   void perfdata_timeout(int value);
   std::string const& poller_name() const noexcept;
-  void poller_name(std::string const& value) noexcept;
+  void poller_name(std::string const& value);
   uint32_t poller_id() const noexcept;
-  void poller_id(uint32_t value) noexcept;
+  void poller_id(uint32_t value);
   uint16_t rpc_port() const noexcept;
-  void rpc_port(uint16_t value) noexcept;
+  void rpc_port(uint16_t value);
   bool process_performance_data() const noexcept;
   void process_performance_data(bool value);
   std::list<std::string> const& resource_file() const noexcept;

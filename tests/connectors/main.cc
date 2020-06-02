@@ -40,12 +40,6 @@ int main(int argc, char* argv[], char **env) {
   // Run all tests.
   int ret = RUN_ALL_TESTS();
 
-  PERL_SYS_TERM();
-  PL_perl_destruct_level = 1;
-  perl_destruct(my_perl);
-  perl_free(my_perl);
-  my_perl = nullptr;
-
   // Unload.
   embedded_perl::unload();
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 project("Centreon Collect" C CXX)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 include(GNUInstallDirs)
 
@@ -48,9 +48,9 @@ add_subdirectory(src/clib)
 add_subdirectory(src/connectors)
 
 #if (WITH_TESTING)
-  add_subdirectory(test/broker)
-  add_subdirectory(test/cbwd)
-  add_subdirectory(test/clib)
-  add_subdirectory(test/connectors)
-  add_subdirectory(test/engine)
+  add_subdirectory(tests/broker)
+  add_subdirectory(tests/cbwd)
+  add_subdirectory(tests/clib)
+  add_subdirectory(tests/connectors)
+  add_subdirectory(tests/engine)
 #endif()
