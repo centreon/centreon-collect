@@ -58,7 +58,7 @@ class EngineRPCClient {
 
   bool GetHostByHostName( std::string const& req, EngineHost* response) {
     HostIdentifier request;
-    request.set_host_name(req);
+    request.set_name(req);
 	grpc::ClientContext context;
 	
     grpc::Status status = _stub->GetHost(&context, request, response);

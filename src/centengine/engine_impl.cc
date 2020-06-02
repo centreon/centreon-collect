@@ -112,8 +112,8 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
         ithostid;
 
     switch (request->identifier_case()) {
-      case HostIdentifier::kHostName:
-        ithostname = host::hosts.find(request->host_name());
+      case HostIdentifier::kName:
+        ithostname = host::hosts.find(request->name());
         if (ithostname != host::hosts.end()) {
           selectedhost = ithostname->second;
         } else {

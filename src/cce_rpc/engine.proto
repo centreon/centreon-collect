@@ -96,7 +96,7 @@ message ThresholdsFile {
 
 message HostIdentifier {
   oneof identifier {
-	string host_name = 1;
+	string name = 1;
 	uint32 id = 2;
   }
 }
