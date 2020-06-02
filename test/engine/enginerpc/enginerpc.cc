@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2020 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,10 @@
 #include "com/centreon/engine/enginerpc.hh"
 
 #include <gtest/gtest.h>
-
+#include <atomic>
+#include <chrono>
 #include <cstdio>
+#include <thread>
 
 #include "../test_engine.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -147,6 +149,288 @@ TEST_F(EngineRpc, GetVersion) {
     oss << "patch: " << CENTREON_ENGINE_VERSION_PATCH;
     ASSERT_EQ(output.back(), oss.str());
   }
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHost) {
+  enginerpc erpc("0.0.0.0", 40001);
+
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHost byhostname test_host");
+  auto output2 = execute("GetHost byhostid 12");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "12");
+  ASSERT_EQ(output2.back(), "test_host");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHostsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHostsCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "1");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetContactsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetContactsCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "1");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetServicesCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetServicesCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "2");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetServiceGroupsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetServiceGroupsCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetContactGroupsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetContactGroupsCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHostGroupsCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHostGroupsCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetServiceDependenciesCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetServiceDependenciesCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetHostDependenciesCount) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetHostDependenciesCount");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
 }
 

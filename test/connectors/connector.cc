@@ -415,7 +415,7 @@ TEST_F(TestConnector, TimeoutKill) {
 
   ASSERT_EQ(retval, 0);
   ASSERT_EQ(output.size(), sizeof(TimeoutKillRESULT) - 1);
-  ASSERT_FALSE(
+  ASSERT_TRUE(
       memcmp(output.c_str(), TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1));
 }
 
@@ -436,6 +436,6 @@ TEST_F(TestConnector, TimeoutTerm) {
 
   ASSERT_EQ(retval, 0);
   ASSERT_EQ(output.size(), sizeof(TimeoutKillRESULT) - 1);
-  ASSERT_FALSE(
+  ASSERT_TRUE(
       memcmp(output.c_str(), TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1));
 }

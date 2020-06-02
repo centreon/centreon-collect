@@ -1,3 +1,22 @@
+/*
+ * Copyright 2020 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
+
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
@@ -9,11 +28,27 @@ package com.centreon.engine;
 service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(google.protobuf.Empty) returns (Stats) {}
-
+  rpc GetHost(HostIdentifier) returns (EngineHost) {}
+  rpc GetContact(ContactIdentifier) returns (EngineContact) {}
+  rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetServiceGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetContactGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetHostGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetServiceDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetHostDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
-
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
+}
+
+message GenericString {
+  string str_arg = 1;
+}
+
+message GenericValue {
+  int32 value = 1;
 }
 
 message CommandSuccess {
@@ -59,3 +94,30 @@ message Stats {
 message ThresholdsFile {
   string filename = 1;
 }
+
+message HostIdentifier {
+  oneof identifier {
+	string name = 1;
+	uint32 id = 2;
+  }
+}
+
+message EngineHost {
+  string name = 1;
+  string alias = 2;
+  string address = 3;
+  uint32 id = 4;
+}
+
+message ContactIdentifier {
+  string name = 1;
+}
+
+message EngineContact {
+  string name = 1;
+  string alias = 2;
+  string email = 3;
+}
+
+
+

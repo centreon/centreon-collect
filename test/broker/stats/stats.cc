@@ -84,12 +84,7 @@ TEST_F(StatsTest, Builder) {
 
 TEST_F(StatsTest, BuilderWithModules) {
   stats::builder build;
-  config::applier::modules::instance().apply(std::list<std::string>{},
-                                             "./storage/", nullptr);
-  config::applier::modules::instance().apply(std::list<std::string>{}, "./neb/",
-                                             nullptr);
-  config::applier::modules::instance().apply(std::list<std::string>{}, "./lua/",
-                                             nullptr);
+  config::applier::modules::instance().apply(std::list<std::string>{"./lib/10-neb.so", "./lib/20-storage.so", "./lib/70-lua.so"}, std::string(), nullptr);
 
   build.build();
 
@@ -105,10 +100,10 @@ TEST_F(StatsTest, BuilderWithModules) {
   ASSERT_TRUE(result["mysql manager"].is_object());
   ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
 
-  ASSERT_EQ(result["module./neb/10-neb.so"]["state"].string_value(), "loaded");
-  ASSERT_EQ(result["module./storage/20-storage.so"]["state"].string_value(),
+  ASSERT_EQ(result["module./lib/10-neb.so"]["state"].string_value(), "loaded");
+  ASSERT_EQ(result["module./lib/20-storage.so"]["state"].string_value(),
             "loaded");
-  ASSERT_EQ(result["module./lua/70-lua.so"]["state"].string_value(), "loaded");
+  ASSERT_EQ(result["module./lib/70-lua.so"]["state"].string_value(), "loaded");
 }
 
 class st : public io::stream {
