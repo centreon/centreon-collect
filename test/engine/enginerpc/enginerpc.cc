@@ -154,7 +154,7 @@ TEST_F(EngineRpc, GetVersion) {
 
 TEST_F(EngineRpc, GetHost) {
   enginerpc erpc("0.0.0.0", 40001);
-  
+
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -222,7 +222,7 @@ TEST_F(EngineRpc, GetContactsCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -253,7 +253,7 @@ TEST_F(EngineRpc, GetServicesCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -284,7 +284,7 @@ TEST_F(EngineRpc, GetServiceGroupsCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -315,7 +315,7 @@ TEST_F(EngineRpc, GetContactGroupsCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -346,7 +346,7 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -377,7 +377,7 @@ TEST_F(EngineRpc, GetServiceDependenciesCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
- 
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -408,7 +408,7 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
- 
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
