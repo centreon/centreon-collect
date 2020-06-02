@@ -35,8 +35,3 @@ promote_testing_rpms_to_stable "standard" "20.10" "el7" "noarch" "plugins" "$PRO
 TESTINGCACHE="/srv/cache/plugins/testing/cache-$VERSION-$RELEASE"
 STABLECACHE="/srv/cache/plugins/stable"
 $SSH_REPO 'for i in `ls '$TESTINGCACHE'` ; do rm -rf '$STABLECACHE'/$i ; mv '$TESTINGCACHE'/$i '$STABLECACHE'/ ; done ; rm -rf '$TESTINGCACHE
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-plugins -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-plugins -V latest -p'"
