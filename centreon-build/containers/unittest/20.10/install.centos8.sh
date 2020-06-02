@@ -5,6 +5,7 @@ set -x
 
 # Install build dependencies.
 xargs dnf install < /tmp/build-dependencies.txt
+dnf install centreon-clib centreon-clib-devel
 
 # Install PHPUnit.
 curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-8.phar
