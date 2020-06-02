@@ -95,6 +95,110 @@ grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
+                                  const HostIdentifier* request,
+                                  EngineHost* response) {
+  std::promise<std::pair<bool, EngineHost*>> hostpromise;
+  std::future<std::pair<bool, EngineHost*>> f1 = hostpromise.get_future();
+  EngineHost host;
+
+  auto lambda = [&hostpromise, request, &host]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> selectedhost;
+    std::unordered_map<std::string,
+                       std::shared_ptr<com::centreon::engine::host>>::iterator
+        ithostname;
+    std::unordered_map<uint64_t,
+                       std::shared_ptr<com::centreon::engine::host>>::iterator
+        ithostid;
+
+    switch (request->identifier_case()) {
+      case HostIdentifier::kName:
+        ithostname = host::hosts.find(request->name());
+        if (ithostname != host::hosts.end()) {
+          selectedhost = ithostname->second;
+        } else {
+          hostpromise.set_value(std::make_pair(false, nullptr));
+          return 1;
+        }
+        break;
+      case HostIdentifier::kId:
+        ithostid = host::hosts_by_id.find(request->id());
+        if (ithostid != host::hosts_by_id.end()) {
+          selectedhost = ithostid->second;
+        } else {
+          hostpromise.set_value(std::make_pair(false, nullptr));
+          return 1;
+        }
+        break;
+      default:
+        return 1;
+        break;
+    }
+
+    host.set_name(selectedhost->get_name());
+    host.set_alias(selectedhost->get_alias());
+    host.set_address(selectedhost->get_address());
+    host.set_id(selectedhost->get_host_id());
+    hostpromise.set_value(std::make_pair(true, &host));
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+  auto promiseresponse = f1.get();
+
+  if (promiseresponse.first == true) {
+    *response = *(promiseresponse.second);
+    return grpc::Status::OK;
+  } else {
+    return grpc::Status(grpc::INVALID_ARGUMENT,
+                        grpc::string("hostname not found"));
+  }
+}
+
+grpc::Status engine_impl::GetContact(
+	grpc::ServerContext* context,
+	const ContactIdentifier* request,
+	EngineContact* response) {
+  
+  std::promise<std::pair<bool, EngineContact*>> contactpromise;
+  std::future<std::pair<bool, EngineContact*>> f1 = contactpromise.get_future();
+  EngineContact contact;
+
+  auto lambda = [&contactpromise, request, &contact]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contact> selectedcontact;
+    std::unordered_map<std::string,
+                       std::shared_ptr<com::centreon::engine::contact>>::iterator
+        itcontactname;
+
+
+    itcontactname = contact::contacts.find(request->name());
+    if (itcontactname != contact::contacts.end()) {
+      selectedcontact = itcontactname->second;
+    } 
+	else {
+      contactpromise.set_value(std::make_pair(false, nullptr));
+      return 1;
+    }
+
+    contact.set_name(selectedcontact->get_name());
+    contact.set_alias(selectedcontact->get_alias());
+    contact.set_email(selectedcontact->get_email());
+    contactpromise.set_value(std::make_pair(true, &contact));
+    return 0;
+  };
+
+  command_manager::instance().enqueue(lambda);
+  auto promiseresponse = f1.get();
+  
+  if (promiseresponse.first == true) {
+    *response = *(promiseresponse.second);
+    return grpc::Status::OK;
+  } else {
+    return grpc::Status(grpc::INVALID_ARGUMENT,
+                        grpc::string("hostname not found"));
+  }
+}
+  
 grpc::Status engine_impl::GetHostsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,

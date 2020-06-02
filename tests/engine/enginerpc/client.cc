@@ -56,6 +56,51 @@ class EngineRPCClient {
     return true;
   }
 
+  bool GetHostByHostName(std::string const& req, EngineHost* response) {
+    HostIdentifier request;
+    request.set_name(req);
+	grpc::ClientContext context;
+	
+    grpc::Status status = _stub->GetHost(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "GetHostByHostName rpc engine failed" << std::endl;
+      return false;
+    }
+
+	return true;
+  }
+  
+  bool GetHostByHostId(uint32_t& req, EngineHost* response) {
+    HostIdentifier request;
+    request.set_id(req);
+	grpc::ClientContext context;
+	
+    grpc::Status status = _stub->GetHost(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "GetHostByHostId rpc engine failed" << std::endl;
+      return false;
+    }
+
+	return true;
+  }
+  
+  bool GetContact(std::string const& req, EngineContact* response) {
+	ContactIdentifier request;
+	request.set_name(req);
+	grpc::ClientContext context;
+
+	grpc::Status status = _stub->GetContact(&context, request, response);
+    
+	if (!status.ok()) {
+      std::cout << "GetContact rpc engine failed" << std::endl;
+      return false;
+    }
+
+	return true;
+  }
+
   bool GetHostsCount(GenericValue* response) {
     const ::google::protobuf::Empty e;
     grpc::ClientContext context;
@@ -285,6 +330,28 @@ int main(int argc, char** argv) {
     status = client.GetHostDependenciesCount(&response) ? 0 : 1;
     std::cout << "GetHostDependenciesCount client" << std::endl;
     std::cout << response.value() << std::endl;
+  } else if (strcmp(argv[1], "GetHost") == 0) {
+	  if (argc != 4 ) { std::cout << "GetHost require arguments : GetHost [mode] [hostname or id]" << std::endl; return 1; }
+	  else if (strcmp(argv[2], "byhostid") == 0) {
+		EngineHost response;
+		uint32_t val = atoi(argv[3]);
+		status = client.GetHostByHostId(val,  &response)  ? 0 : 1;
+		std::cout << "GetHost" << std::endl;
+		std::cout << response.name() << std::endl;
+   } else if (strcmp(argv[2], "byhostname") == 0) {
+		EngineHost response;
+		std::string str(argv[3]);
+		status = client.GetHostByHostName(str,  &response)  ? 0 : 1;
+		std::cout << "GetHost" << std::endl;
+		std::cout << response.id() << std::endl;
+	 }
+  } else if (strcmp(argv[1], "GetContact") == 0) {
+	if (argc != 3) { std::cout << "GetContact require arguments : GetContact [contactname]" << std::endl; return 1; }
+	EngineContact response;
+	std::string str(argv[3]);
+	status = client.GetContact(str, &response) ? 0 : 1;
+	std::cout << "GetContact" << std::endl;
+	std::cout << response.name() << std::endl;
   }
   exit(status);
 }

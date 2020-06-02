@@ -64,6 +64,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetHostDependenciesCount(grpc::ServerContext* context,
                                         const ::google::protobuf::Empty*,
                                         GenericValue*) override;
+  grpc::Status GetHost(grpc::ServerContext* context,
+                       const HostIdentifier* request,
+                       EngineHost* response) override;
+  grpc::Status GetContact(grpc::ServerContext* context,
+					   const ContactIdentifier* request,
+					   EngineContact* response) override;
 };
 
 CCE_END()
