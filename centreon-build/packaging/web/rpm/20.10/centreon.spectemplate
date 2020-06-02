@@ -187,7 +187,7 @@ This package contains Centreon Trap engine
 %package base-config-centreon-engine
 Summary:    Configuration for Centeon with Centreon Engine and Centreon Broker
 Group:      Networking/Other
-Requires:   centreon-broker-cbd >= %{thismajor}
+Requires:   centreon-broker-cbd >= 20.04.0
 Requires:   centreon-broker-cbd < %{nextmajor}
 Requires:   centreon-web = %{version}-%{release}
 Requires:   centreon-poller-centreon-engine = %{version}-%{release}
@@ -213,15 +213,15 @@ Summary:    Rights and file for pollers (including central)
 Group:      Networking/Other
 Requires:   centreon-common = %{version}-%{release}
 Requires:   centreon-trap = %{version}-%{release}
-Requires:   centreon-engine >= %{thismajor}
+Requires:   centreon-engine >= 20.04.0
 Requires:   centreon-engine < %{nextmajor}
-Requires:   centreon-broker >= %{thismajor}
+Requires:   centreon-broker >= 20.04.0
 Requires:   centreon-broker < %{nextmajor}
-Requires:   centreon-broker-cbmod >= %{thismajor}
+Requires:   centreon-broker-cbmod >= 20.04.0
 Requires:   centreon-broker-cbmod < %{nextmajor}
-Requires:   centreon-broker-storage >= %{thismajor}
+Requires:   centreon-broker-storage >= 20.04.0
 Requires:   centreon-broker-storage < %{nextmajor}
-Requires:   centreon-connector >= %{thismajor}
+Requires:   centreon-connector >= 20.04.0
 Requires:   centreon-connector < %{nextmajor}
 Requires:   centreon-gorgone-centreon-config >= %{thismajor}
 Requires:   centreon-gorgone-centreon-config < %{nextmajor}
