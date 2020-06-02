@@ -117,8 +117,8 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
         if (ithostname != host::hosts.end()) {
           selectedhost = ithostname->second;
         } else {
-		  hostpromise.set_value(std::make_pair(false, nullptr));
-          return (1);
+          hostpromise.set_value(std::make_pair(false, nullptr));
+          return 1;
         }
         break;
       case HostIdentifier::kId:
@@ -126,12 +126,12 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
         if (ithostid != host::hosts_by_id.end()) {
           selectedhost = ithostid->second;
         } else {
-		  hostpromise.set_value(std::make_pair(false, nullptr));
-          return (1);
+          hostpromise.set_value(std::make_pair(false, nullptr));
+          return 1;
         }
         break;
       default:
-        return (1);
+        return 1;
         break;
     }
 
@@ -140,7 +140,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
     host.set_address(selectedhost->get_address());
     host.set_id(selectedhost->get_host_id());
     hostpromise.set_value(std::make_pair(true, &host));
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -164,7 +164,7 @@ grpc::Status engine_impl::GetHostsCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(host::hosts.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -184,7 +184,7 @@ grpc::Status engine_impl::GetContactsCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(contact::contacts.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -204,7 +204,7 @@ grpc::Status engine_impl::GetServicesCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(service::services.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -223,7 +223,7 @@ grpc::Status engine_impl::GetServiceGroupsCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(servicegroup::servicegroups.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -243,7 +243,7 @@ grpc::Status engine_impl::GetContactGroupsCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(contactgroup::contactgroups.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -263,7 +263,7 @@ grpc::Status engine_impl::GetHostGroupsCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(hostgroup::hostgroups.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -283,7 +283,7 @@ grpc::Status engine_impl::GetServiceDependenciesCount(
 
   auto lambda = [&p]() -> int32_t {
     p.set_value(servicedependency::servicedependencies.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
@@ -303,7 +303,7 @@ grpc::Status engine_impl::GetHostDependenciesCount(
 
   auto lambda = [&p]() -> int {
     p.set_value(hostdependency::hostdependencies.size());
-    return (0);
+    return 0;
   };
 
   command_manager::instance().enqueue(lambda);
