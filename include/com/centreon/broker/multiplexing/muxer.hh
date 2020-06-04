@@ -26,6 +26,7 @@
 #include <queue>
 #include <string>
 #include <unordered_set>
+
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_file.hh"
 

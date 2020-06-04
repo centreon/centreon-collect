@@ -187,14 +187,14 @@ void mysql_connection::_statement(mysql_task* t) {
                       mysql_stmt_error(stmt), task->statement_id));
     else {
       log_v2::sql()->error("mysql: Error while binding values in statement: {}",
-          mysql_stmt_error(stmt));
+                           mysql_stmt_error(stmt));
       logging::error(logging::medium)
           << "mysql: Error while binding values in statement: "
           << mysql_stmt_error(stmt);
     }
   } else {
     int attempts(0);
-    while (true) {
+    for (;;) {
       if (mysql_stmt_execute(stmt)) {
         if (mysql_stmt_errno(stmt) != 1213 &&
             mysql_stmt_errno(stmt) != 1205)  // Dead Lock error
@@ -259,7 +259,8 @@ void mysql_connection::_statement_res(mysql_task* t) {
 
         log_v2::sql()->error(
             "mysql: Error while executing prepared statement <<{}>>: {} ({})",
-            _stmt_query[task->statement_id], mysql_stmt_error(stmt), task->statement_id);
+            _stmt_query[task->statement_id], mysql_stmt_error(stmt),
+            task->statement_id);
         logging::error(logging::medium)
             << "mysql: Error while executing prepared statement <<"
             << _stmt_query[task->statement_id]
@@ -320,10 +321,12 @@ void mysql_connection::_statement_int(mysql_task* t) {
   mysql_task_statement_int<T>* task(
       static_cast<mysql_task_statement_int<T>*>(t));
   log_v2::sql()->debug("mysql: execute statement: {}", task->statement_id);
-  log_v2::sql()->trace("statement {} query: {}", task->statement_id, _stmt_query[task->statement_id]);
+  log_v2::sql()->trace("statement {} query: {}", task->statement_id,
+                       _stmt_query[task->statement_id]);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
-    log_v2::sql()->error("mysql: no statement to execute ({})", task->statement_id);
+    log_v2::sql()->error("mysql: no statement to execute ({})",
+                         task->statement_id);
     exceptions::msg e;
     e << "statement not prepared";
     task->promise->set_exception(std::make_exception_ptr<exceptions::msg>(e));
@@ -334,13 +337,15 @@ void mysql_connection::_statement_int(mysql_task* t) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
 
   if (bb && mysql_stmt_bind_param(stmt, bb)) {
-    log_v2::sql()->debug("mysql: statement <<{}>> binding failed: {}", _stmt_query[task->statement_id], mysql_stmt_error(stmt));
+    log_v2::sql()->debug("mysql: statement <<{}>> binding failed: {}",
+                         _stmt_query[task->statement_id],
+                         mysql_stmt_error(stmt));
     exceptions::msg e;
     e << mysql_stmt_error(stmt);
     task->promise->set_exception(std::make_exception_ptr<exceptions::msg>(e));
   } else {
     int attempts(0);
-    while (true) {
+    for (;;) {
       if (mysql_stmt_execute(stmt)) {
         if (mysql_stmt_errno(stmt) != 1213 &&
             mysql_stmt_errno(stmt) != 1205)  // Dead Lock error
@@ -348,8 +353,10 @@ void mysql_connection::_statement_int(mysql_task* t) {
 
         mysql_commit(_conn);
 
-        log_v2::sql()->error("mysql: Error while sending prepared statement <<{}>>: {} ({})",
-            _stmt_query[task->statement_id], mysql_stmt_error(stmt), task->statement_id);
+        log_v2::sql()->error(
+            "mysql: Error while sending prepared statement <<{}>>: {} ({})",
+            _stmt_query[task->statement_id], mysql_stmt_error(stmt),
+            task->statement_id);
         if (++attempts >= MAX_ATTEMPTS) {
           exceptions::msg e;
           e << mysql_stmt_error(stmt);
