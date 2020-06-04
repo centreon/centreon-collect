@@ -154,7 +154,6 @@ TEST_F(EngineRpc, GetVersion) {
 
 TEST_F(EngineRpc, GetHost) {
   enginerpc erpc("0.0.0.0", 40001);
-
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -185,6 +184,71 @@ TEST_F(EngineRpc, GetHost) {
   ASSERT_EQ(output2.back(), "test_host");
   erpc.shutdown();
 }
+
+TEST_F(EngineRpc, GetContact) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+  auto output = execute("GetContact admin");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "admin");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, GetService) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  auto fn = [&continuerunning, &mutex, &condvar]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar.wait_for(
+              lock, std::chrono::milliseconds(50),
+              [&continuerunning]() -> bool { return continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  std::thread th(fn);
+	auto output = execute("GetService");
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+	condvar.notify_one();
+	th.join();
+	
+	std::cout << output.back() << std::endl;
+  erpc.shutdown();
+}
+
+
+ 
 
 TEST_F(EngineRpc, GetHostsCount) {
   enginerpc erpc("0.0.0.0", 40001);

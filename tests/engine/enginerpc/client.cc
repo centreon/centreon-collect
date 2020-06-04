@@ -58,8 +58,8 @@ class EngineRPCClient {
 
   bool GetHostByHostName(std::string const& req, EngineHost* response) {
     HostIdentifier request;
+	  grpc::ClientContext context;
     request.set_name(req);
-	grpc::ClientContext context;
 	
     grpc::Status status = _stub->GetHost(&context, request, response);
 
@@ -67,14 +67,13 @@ class EngineRPCClient {
       std::cout << "GetHostByHostName rpc engine failed" << std::endl;
       return false;
     }
-
-	return true;
+		return true;
   }
   
   bool GetHostByHostId(uint32_t& req, EngineHost* response) {
     HostIdentifier request;
+	  grpc::ClientContext context;
     request.set_id(req);
-	grpc::ClientContext context;
 	
     grpc::Status status = _stub->GetHost(&context, request, response);
 
@@ -82,36 +81,50 @@ class EngineRPCClient {
       std::cout << "GetHostByHostId rpc engine failed" << std::endl;
       return false;
     }
-
-	return true;
+		return true;
   }
   
   bool GetContact(std::string const& req, EngineContact* response) {
-	ContactIdentifier request;
-	request.set_name(req);
-	grpc::ClientContext context;
+		ContactIdentifier request;
+		grpc::ClientContext context;
+		request.set_name(req);
 
-	grpc::Status status = _stub->GetContact(&context, request, response);
-    
-	if (!status.ok()) {
-      std::cout << "GetContact rpc engine failed" << std::endl;
-      return false;
-    }
-
-	return true;
+		grpc::Status status = _stub->GetContact(&context, request, response);
+			
+		if (!status.ok()) {
+				std::cout << "GetContact rpc engine failed" << std::endl;
+				return false;
+		}
+		return true;
   }
 
-  bool GetHostsCount(GenericValue* response) {
-    const ::google::protobuf::Empty e;
-    grpc::ClientContext context;
+	bool GetServiceByNames(std::string const& hostname, std::string const& servicename, EngineService* response) {
+    ServiceIdentifier request;
+		grpc::ClientContext context;
+		request.mutable_names()->set_host_name(hostname);
+		request.mutable_names()->set_service_name(servicename);
 
-    grpc::Status status = _stub->GetHostsCount(&context, e, response);
+		grpc::Status status = _stub->GetService(&context, request, response);
+			
+		if (!status.ok()) {
+				std::cout << "GetService rpc engine failed" << std::endl;
+				return false;
+		}
+		return true;
+	}
+
+  bool GetHostsCount(GenericValue* response) {
+    //const ::google::protobuf::Empty e;
+		Test request;
+		request.mutable_name()->set_host_name("hello");
+		grpc::ClientContext context;
+
+		grpc::Status status = _stub->GetHostsCount(&context, request, response);
 
     if (!status.ok()) {
       std::cout << "GetHostsCount rpc engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -125,7 +138,6 @@ class EngineRPCClient {
       std::cout << "GetContactsCount rpc engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -139,7 +151,6 @@ class EngineRPCClient {
       std::cout << "GetServicesCount rpc engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -153,7 +164,6 @@ class EngineRPCClient {
       std::cout << "GetServiceGroupsCount rpc engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -167,7 +177,6 @@ class EngineRPCClient {
       std::cout << "GetContactGroupsCount rpc engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -181,7 +190,6 @@ class EngineRPCClient {
       std::cout << "GetHostGroupsCount rpc engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -189,14 +197,12 @@ class EngineRPCClient {
     const ::google::protobuf::Empty e;
     grpc::ClientContext context;
 
-    grpc::Status status =
-        _stub->GetServiceDependenciesCount(&context, e, response);
+    grpc::Status status = _stub->GetServiceDependenciesCount(&context, e, response);
 
     if (!status.ok()) {
       std::cout << "GetServiceDependenciesCount engine failed" << std::endl;
       return false;
     }
-
     return true;
   }
 
@@ -204,14 +210,12 @@ class EngineRPCClient {
     const ::google::protobuf::Empty e;
     grpc::ClientContext context;
 
-    grpc::Status status =
-        _stub->GetHostDependenciesCount(&context, e, response);
+    grpc::Status status = _stub->GetHostDependenciesCount(&context, e, response);
 
     if (!status.ok()) {
       std::cout << "GetHostDependenciesCount engine failed" << std::endl;
       return false;
     }
-
     return true;
  }
 
@@ -346,12 +350,19 @@ int main(int argc, char** argv) {
 		std::cout << response.id() << std::endl;
 	 }
   } else if (strcmp(argv[1], "GetContact") == 0) {
-	if (argc != 3) { std::cout << "GetContact require arguments : GetContact [contactname]" << std::endl; return 1; }
-	EngineContact response;
-	std::string str(argv[3]);
-	status = client.GetContact(str, &response) ? 0 : 1;
-	std::cout << "GetContact" << std::endl;
-	std::cout << response.name() << std::endl;
-  }
+		if (argc != 3) { std::cout << "GetContact require arguments : GetContact [contactname]" << std::endl; return 1; }
+		EngineContact response;
+		std::string str = (argv[2]);
+		status = client.GetContact(str, &response) ? 0 : 1;
+		std::cout << "GetContact" << std::endl;
+		std::cout << response.name() << std::endl;
+  } else if (strcmp(argv[1], "GetService") == 0) {
+		EngineService response;
+		std::string hostname = "test_host";
+		std::string servicename = "test_svc";
+		status = client.GetServiceByNames(hostname, servicename, &response) ? 0 : 1;
+		std::cout << "GetService" << std::endl;
+	  std::cout << response.host_name() << std::endl;
+	}
   exit(status);
 }

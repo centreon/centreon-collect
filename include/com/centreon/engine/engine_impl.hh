@@ -41,7 +41,7 @@ class engine_impl final : public Engine::Service {
                                  const ThresholdsFile* request,
                                  CommandSuccess* response) override;
   grpc::Status GetHostsCount(grpc::ServerContext* context,
-                             const ::google::protobuf::Empty*,
+                             /*const ::google::protobuf::Empty*/ const Test*,
                              GenericValue*) override;
   grpc::Status GetContactsCount(grpc::ServerContext* context,
                                 const ::google::protobuf::Empty*,
@@ -70,6 +70,9 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetContact(grpc::ServerContext* context,
 					   const ContactIdentifier* request,
 					   EngineContact* response) override;
+  grpc::Status GetService(grpc::ServerContext* context,
+		               const ServiceIdentifier* request,
+					   EngineService* response) override;
 };
 
 CCE_END()
