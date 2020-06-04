@@ -256,7 +256,6 @@ Requires:   centreon-plugin-Hardware-Ups-Standard-Rfc1628-Snmp
 Requires:   centreon-plugin-Network-Cisco-Standard-Snmp
 Requires:   centreon-plugin-Operatingsystems-Linux-Snmp
 Requires:   centreon-plugin-Operatingsystems-Windows-Snmp
-Requires:   centreon-nrpe-plugin
 Requires:   nagios-plugins-dhcp >= 2.0.0
 Requires:   nagios-plugins-icmp >= 2.0.0
 Provides:   centreon-poller
