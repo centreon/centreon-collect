@@ -21,6 +21,8 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CONAN_INCLUDE_DIRS_JSON11})
 include_directories(${CMAKE_BINARY_DIR})
 
+set_source_files_properties("${CMAKE_BINARY_DIR}/table_max_size.hh" PROPERTIES GENERATED TRUE)
+
 # TLS module.
 add_library(ccb_conflict_manager STATIC
   # Sources
