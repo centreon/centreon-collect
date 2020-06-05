@@ -235,20 +235,19 @@ TEST_F(EngineRpc, GetService) {
   };
 
   std::thread th(fn);
-	auto output = execute("GetService");
-	{
-		std::lock_guard<std::mutex> lock(mutex);
+  auto output = execute("GetService byids 12 13");
+  auto output2 = execute("GetService bynames test_host test_svc");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
-	condvar.notify_one();
-	th.join();
-	
-	std::cout << output.back() << std::endl;
+  condvar.notify_one();
+  th.join();
+
+  ASSERT_EQ(output.back(), "test_host");
+  ASSERT_EQ(output2.back(), "13");
   erpc.shutdown();
 }
-
-
- 
 
 TEST_F(EngineRpc, GetHostsCount) {
   enginerpc erpc("0.0.0.0", 40001);

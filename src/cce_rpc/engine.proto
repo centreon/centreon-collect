@@ -31,7 +31,7 @@ service Engine {
   rpc GetHost(HostIdentifier) returns (EngineHost) {}
   rpc GetContact(ContactIdentifier) returns (EngineContact) {}
   rpc GetService(ServiceIdentifier) returns (EngineService) {}
-  rpc GetHostsCount(Test/*google.protobuf.Empty*/) returns (GenericValue) {}
+  rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServiceGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
@@ -142,8 +142,4 @@ message EngineService {
   uint32 service_id = 2;
   string host_name = 3;
   string description = 4;
-}
-
-message Test {
-  NameIdentifier name = 1;
 }

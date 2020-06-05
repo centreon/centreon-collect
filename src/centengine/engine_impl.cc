@@ -228,7 +228,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
         IdIdentifier ids = request->ids();
         itserviceids = service::services_by_id.find(
             std::make_pair(ids.host_id(), ids.service_id()));
-				if (itserviceids != service::services_by_id.end()) {
+        if (itserviceids != service::services_by_id.end()) {
           selectedservice = itserviceids->second;
         } else {
           servicepromise.set_value(std::make_pair(false, nullptr));
@@ -241,15 +241,15 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
         break;
     }
 
-		service.set_host_id(selectedservice->get_host_id());
-		service.set_service_id(selectedservice->get_service_id());
-		service.set_host_name(selectedservice->get_hostname());
-		service.set_description(selectedservice->get_description());
+    service.set_host_id(selectedservice->get_host_id());
+    service.set_service_id(selectedservice->get_service_id());
+    service.set_host_name(selectedservice->get_hostname());
+    service.set_description(selectedservice->get_description());
     servicepromise.set_value(std::make_pair(true, &service));
     return 0;
   };
 
-	command_manager::instance().enqueue(lambda);
+  command_manager::instance().enqueue(lambda);
   auto promiseresponse = f1.get();
 
   if (promiseresponse.first == true) {
@@ -265,7 +265,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
 
 grpc::Status engine_impl::GetHostsCount(
     grpc::ServerContext* context,
-    /*const ::google::protobuf::Empty*/ const Test* request,
+    const ::google::protobuf::Empty* request,
     GenericValue* response) {
   std::promise<int32_t> p;
   std::future<int32_t> f1 = p.get_future();
@@ -276,9 +276,6 @@ grpc::Status engine_impl::GetHostsCount(
   };
 
   command_manager::instance().enqueue(lambda);
-
-  NameIdentifier oui = request->name();
-  std::cout << "serveur" << oui.host_name() << std::endl;
 
   int32_t val = f1.get();
   response->set_value(val);
