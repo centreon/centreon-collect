@@ -26,12 +26,13 @@
 #include <set>
 #include <unordered_map>
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/logging/file.hh"
-#include "com/centreon/broker/logging/logging.hh"
-#include "com/centreon/broker/logging/manager.hh"
 #include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/configuration_parser.hh"
 #include "com/centreon/broker/watchdog/instance.hh"
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::watchdog;
@@ -39,7 +40,7 @@ using namespace com::centreon::broker::watchdog;
 static char const* help_msg = "USAGE: cbwd configuration_file";
 static char const* config_filename = nullptr;
 static bool should_exit{false};
-static std::shared_ptr<logging::file> log;
+std::unique_ptr<spdlog::logger> logger;
 static configuration config;
 static std::unordered_map<std::string, instance*> instances;
 static bool sighup{false};
@@ -57,10 +58,18 @@ static void print_help() {
  * @param cfg The new configuration to set.
  */
 static void apply_new_configuration(configuration const& cfg) {
-  if (config.get_log_filename() != cfg.get_log_filename()) {
-    log.reset(new logging::file(cfg.get_log_filename()));
-    logging::manager::instance().log_on(log);
-  }
+    
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::warn);
+    console_sink->set_pattern("[cbwd] [%^%l%$] %v");
+  
+    if (config.get_log_filename() != cfg.get_log_filename()) {
+      auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("cfg.get_log_filename()", true);
+      file_sink->set_level(spdlog::level::trace);
+      logger.reset(new spdlog::logger("cbwd", {console_sink, file_sink}));
+    }
+    else
+      logger.reset(new spdlog::logger("cbwd", {console_sink}));
 
   std::set<std::string> to_update;
   std::set<std::string> to_delete;
@@ -187,10 +196,7 @@ int main(int argc, char** argv) {
     configuration_parser parser;
     config = parser.parse(config_filename);
   } catch (std::exception const& e) {
-    std::cout << "ERROR: could not parse the configuration file '"
-              << config_filename << "': " << e.what() << '\n';
-    logging::error(logging::medium)
-        << "watchdog: could not parse the new configuration: " << e.what();
+    logger->error("watchdog: Could not parse the configuration file '{}': {}",config_filename, e.what());
     return 2;
   }
 
@@ -223,9 +229,7 @@ int main(int argc, char** argv) {
          */
         freq++;
         if (freq / instances.size() > 5) {
-          logging::error(logging::medium)
-              << "watchdog: cbd seems to stop too many times, you must look at "
-                 "its configuration. The watchdog loop is slow down";
+          logger->error("watchdog: cbd seems to stop too many times, you must look at its configuration. The watchdog loop is slow down");
         } else
           timeout = 0;
       } else
@@ -239,9 +243,7 @@ int main(int argc, char** argv) {
           config = parser.parse(config_filename);
           apply_new_configuration(config);
         } catch (std::exception const& e) {
-          logging::error(logging::medium)
-              << "watchdog: could not parse the new configuration: "
-              << e.what();
+          logger->error("watchdog: Could not parse the new configuration: {}", e.what());
         }
         sighup = false;
         continue;
