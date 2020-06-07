@@ -169,9 +169,9 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context,
         itcontactname;
 
     itcontactname = contact::contacts.find(request->name());
-    if (itcontactname != contact::contacts.end()) {
+    if (itcontactname != contact::contacts.end()) 
       selectedcontact = itcontactname->second;
-    } else {
+    else {
       contactpromise.set_value(std::make_pair(false, nullptr));
       return 1;
     }
@@ -186,13 +186,13 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context,
   command_manager::instance().enqueue(lambda);
   auto promiseresponse = f1.get();
 
-  if (promiseresponse.first == true) {
+  if (promiseresponse.first) {
     *response = *(promiseresponse.second);
     return grpc::Status::OK;
-  } else {
+  } else 
     return grpc::Status(grpc::INVALID_ARGUMENT,
                         grpc::string("contact not found"));
-  }
+  
 }
 
 grpc::Status engine_impl::GetService(grpc::ServerContext* context,
@@ -228,9 +228,9 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
         IdIdentifier ids = request->ids();
         itserviceids = service::services_by_id.find(
             std::make_pair(ids.host_id(), ids.service_id()));
-        if (itserviceids != service::services_by_id.end()) {
+        if (itserviceids != service::services_by_id.end()) 
           selectedservice = itserviceids->second;
-        } else {
+        else {
           servicepromise.set_value(std::make_pair(false, nullptr));
           return 1;
         }
@@ -252,13 +252,13 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
   command_manager::instance().enqueue(lambda);
   auto promiseresponse = f1.get();
 
-  if (promiseresponse.first == true) {
+  if (promiseresponse.first) {
     *response = *(promiseresponse.second);
     return grpc::Status::OK;
-  } else {
+  } else 
     return grpc::Status(grpc::INVALID_ARGUMENT,
                         grpc::string("service not found"));
-  }
+  
 
   return grpc::Status::OK;
 }

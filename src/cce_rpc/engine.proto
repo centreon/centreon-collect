@@ -132,8 +132,8 @@ message IdIdentifier {
 
 message ServiceIdentifier {
   oneof identifier {
-    NameIdentifier names = 1;
-	  IdIdentifier ids = 2;
+		NameIdentifier names = 1;
+		IdIdentifier ids = 2;
   }
 }
 

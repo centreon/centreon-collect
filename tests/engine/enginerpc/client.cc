@@ -364,12 +364,15 @@ int main(int argc, char** argv) {
       status = client.GetHostByHostId(val, &response) ? 0 : 1;
       std::cout << "GetHost" << std::endl;
       std::cout << response.name() << std::endl;
+      std::cout << response.alias() << std::endl;
+      std::cout << response.id() << std::endl;
+      std::cout << response.address() << std::endl;
     } else if (strcmp(argv[2], "byhostname") == 0) {
       EngineHost response;
       std::string str(argv[3]);
       status = client.GetHostByHostName(str, &response) ? 0 : 1;
       std::cout << "GetHost" << std::endl;
-      std::cout << response.id() << std::endl;
+      std::cout << response.name() << std::endl;
     }
   } else if (strcmp(argv[1], "GetContact") == 0) {
     if (argc != 3) {
@@ -382,6 +385,8 @@ int main(int argc, char** argv) {
     status = client.GetContact(str, &response) ? 0 : 1;
     std::cout << "GetContact" << std::endl;
     std::cout << response.name() << std::endl;
+    std::cout << response.alias() << std::endl;
+    std::cout << response.email() << std::endl;
   } else if (strcmp(argv[1], "GetService") == 0) {
     if (argc != 5) {
       std::cout << "GetService require arguments : GetService [mode] [hostname "
@@ -395,7 +400,10 @@ int main(int argc, char** argv) {
       status =
           client.GetServiceByNames(hostname, servicename, &response) ? 0 : 1;
       std::cout << "GetService" << std::endl;
+      std::cout << response.host_id() << std::endl;
       std::cout << response.service_id() << std::endl;
+      std::cout << response.host_name() << std::endl;
+      std::cout << response.description() << std::endl;
     } else if (strcmp(argv[2], "byids") == 0) {
       EngineService response;
       uint32_t hostid = atoi(argv[3]);

@@ -92,6 +92,9 @@ class EngineRpc : public TestEngine {
       else
         _svc = svc;
     }
+
+    contact_map const& cm{engine::contact::contacts};
+    _contact = cm.begin()->second;
   }
 
   void TearDown() override {
@@ -125,6 +128,7 @@ class EngineRpc : public TestEngine {
 
  protected:
   std::shared_ptr<engine::host> _host;
+  std::shared_ptr<engine::contact> _contact;
   std::shared_ptr<engine::service> _svc;
   std::shared_ptr<engine::anomalydetection> _ad;
 };
@@ -157,6 +161,9 @@ TEST_F(EngineRpc, GetHost) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
+  std::vector<std::string> vectests = {"test_host", "test_host", "12",
+                                       "127.0.0.1"};
+  int j = 0;
 
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
@@ -171,8 +178,8 @@ TEST_F(EngineRpc, GetHost) {
   };
 
   std::thread th(fn);
-  auto output = execute("GetHost byhostname test_host");
-  auto output2 = execute("GetHost byhostid 12");
+  auto output = execute("GetHost byhostid 12");
+  auto output2 = execute("GetHost byhostname test_host");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -180,7 +187,10 @@ TEST_F(EngineRpc, GetHost) {
   condvar.notify_one();
   th.join();
 
-  ASSERT_EQ(output.back(), "12");
+  std::list<std::string>::const_iterator it = output.begin();
+  ++it;
+  for (; it != output.end() && j < vectests.size(); ++it, ++j)
+    ASSERT_EQ(it->c_str(), vectests[j]);
   ASSERT_EQ(output2.back(), "test_host");
   erpc.shutdown();
 }
@@ -190,6 +200,9 @@ TEST_F(EngineRpc, GetContact) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
+  std::vector<std::string> vectests = {"admin", "admin", "admin@centreon.com"};
+  int j = 0;
+  _contact->set_email("admin@centreon.com");
 
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
@@ -212,7 +225,10 @@ TEST_F(EngineRpc, GetContact) {
   condvar.notify_one();
   th.join();
 
-  ASSERT_EQ(output.back(), "admin");
+  std::list<std::string>::const_iterator it = output.begin();
+  ++it;
+  for (; it != output.end() && j < vectests.size(); ++it, ++j)
+    ASSERT_EQ(it->c_str(), vectests[j]);
   erpc.shutdown();
 }
 
@@ -221,7 +237,10 @@ TEST_F(EngineRpc, GetService) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-
+  std::vector<std::string> vectests = {"12", "13", "test_host", "test_description"};
+  int j = 0;
+	_svc->set_description("test_description");
+ 
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -235,8 +254,8 @@ TEST_F(EngineRpc, GetService) {
   };
 
   std::thread th(fn);
-  auto output = execute("GetService byids 12 13");
-  auto output2 = execute("GetService bynames test_host test_svc");
+  auto output = execute("GetService bynames test_host test_svc");
+  auto output2 = execute("GetService byids 12 13");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -244,8 +263,14 @@ TEST_F(EngineRpc, GetService) {
   condvar.notify_one();
   th.join();
 
-  ASSERT_EQ(output.back(), "test_host");
-  ASSERT_EQ(output2.back(), "13");
+	std::list<std::string>::const_iterator it = output.begin();
+  ++it;
+	for (; it != output.end() && j < vectests.size(); ++it, ++j)
+    ASSERT_EQ(it->c_str(), vectests[j]);
+
+
+  //ASSERT_EQ(output.back(), "test_host");
+  //ASSERT_EQ(output2.back(), "13");
   erpc.shutdown();
 }
 
