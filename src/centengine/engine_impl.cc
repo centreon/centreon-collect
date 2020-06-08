@@ -17,17 +17,19 @@
  *
  */
 
+#include "com/centreon/engine/engine_impl.hh"
+
+#include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <functional>
 #include <future>
 
-#include <google/protobuf/util/time_util.h>
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostdependency.hh"
@@ -63,222 +65,153 @@ grpc::Status engine_impl::GetVersion(
 }
 
 grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
-                                   const ::google::protobuf::Empty* /*request*/,
+                                   const GenericString* request,
                                    Stats* response) {
-  response->mutable_status_file()->set_name(config->status_file());
-  time_t now = time(nullptr);
-  std::ifstream status_file;
-  status_file.open(config->status_file());
-  std::string line;
-  time_t created;
-  while (std::getline(status_file, line)) {
-    size_t r = line.find("created=");
-    if (r != std::string::npos) {
-      created = std::stol(line.c_str() + r + strlen("created="), NULL, 10);
-      break;
-    }
-  }
-  com::centreon::engine::statistics& s =
-      com::centreon::engine::statistics::instance();
-  *response->mutable_status_file()->mutable_age() =
-      google::protobuf::util::TimeUtil::SecondsToDuration(now - created);
-  *response->mutable_program_status()->mutable_running_time() =
-      google::protobuf::util::TimeUtil::SecondsToDuration(now - program_start);
-  response->mutable_program_status()->set_pid(s.get_pid());
-
-  buffer_stats stats;
-  if (s.get_external_command_buffer_stats(stats)) {
-    response->mutable_buffer()->set_used(stats.used);
-    response->mutable_buffer()->set_high(stats.high);
-    response->mutable_buffer()->set_total(stats.total);
-  }
-  return grpc::Status::OK;
+  auto fn = std::packaged_task<int(void)>(
+      std::bind(&command_manager::get_stats, &command_manager::instance(),
+                request->str_arg(), response));
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+  int32_t res = result.get();
+  if (res == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::StatusCode::UNKNOWN, "Unknown error");
 }
 
 grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
                                   const HostIdentifier* request,
                                   EngineHost* response) {
-  std::promise<std::pair<bool, EngineHost*>> hostpromise;
-  std::future<std::pair<bool, EngineHost*>> f1 = hostpromise.get_future();
-  EngineHost host;
+  auto fn =
+      std::packaged_task<int(void)>([request, host = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::host> selectedhost;
 
-  auto lambda = [&hostpromise, request, &host]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> selectedhost;
-    std::unordered_map<std::string,
-                       std::shared_ptr<com::centreon::engine::host>>::iterator
-        ithostname;
-    std::unordered_map<uint64_t,
-                       std::shared_ptr<com::centreon::engine::host>>::iterator
-        ithostid;
-
-    switch (request->identifier_case()) {
-      case HostIdentifier::kName:
-        ithostname = host::hosts.find(request->name());
-        if (ithostname != host::hosts.end()) {
-          selectedhost = ithostname->second;
-        } else {
-          hostpromise.set_value(std::make_pair(false, nullptr));
-          return 1;
+        switch (request->identifier_case()) {
+          case HostIdentifier::kName: {
+            auto ithostname = host::hosts.find(request->name());
+            if (ithostname != host::hosts.end())
+              selectedhost = ithostname->second;
+            else
+              return 1;
+          } break;
+          case HostIdentifier::kId: {
+            auto ithostid = host::hosts_by_id.find(request->id());
+            if (ithostid != host::hosts_by_id.end())
+              selectedhost = ithostid->second;
+            else
+              return 1;
+          } break;
+          default:
+            return 1;
+            break;
         }
-        break;
-      case HostIdentifier::kId:
-        ithostid = host::hosts_by_id.find(request->id());
-        if (ithostid != host::hosts_by_id.end()) {
-          selectedhost = ithostid->second;
-        } else {
-          hostpromise.set_value(std::make_pair(false, nullptr));
-          return 1;
-        }
-        break;
-      default:
-        return 1;
-        break;
-    }
 
-    host.set_name(selectedhost->get_name());
-    host.set_alias(selectedhost->get_alias());
-    host.set_address(selectedhost->get_address());
-    host.set_id(selectedhost->get_host_id());
-    hostpromise.set_value(std::make_pair(true, &host));
-    return 0;
-  };
+        host->set_name(selectedhost->get_name());
+        host->set_alias(selectedhost->get_alias());
+        host->set_address(selectedhost->get_address());
+        host->set_id(selectedhost->get_host_id());
+        return 0;
+      });
 
-  command_manager::instance().enqueue(lambda);
-  auto promiseresponse = f1.get();
-
-  if (promiseresponse.first == true) {
-    *response = *(promiseresponse.second);
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+  int32_t res = result.get();
+  if (res == 0)
     return grpc::Status::OK;
-  } else {
+  else
     return grpc::Status(grpc::INVALID_ARGUMENT,
                         grpc::string("hostname not found"));
-  }
 }
 
 grpc::Status engine_impl::GetContact(grpc::ServerContext* context,
                                      const ContactIdentifier* request,
                                      EngineContact* response) {
-  std::promise<std::pair<bool, EngineContact*>> contactpromise;
-  std::future<std::pair<bool, EngineContact*>> f1 = contactpromise.get_future();
-  EngineContact contact;
+  auto fn =
+      std::packaged_task<int(void)>([request, contact = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::contact> selectedcontact;
+        auto itcontactname = contact::contacts.find(request->name());
+        if (itcontactname != contact::contacts.end())
+          selectedcontact = itcontactname->second;
+        else
+          return 1;
 
-  auto lambda = [&contactpromise, request, &contact]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::contact> selectedcontact;
-    std::unordered_map<
-        std::string, std::shared_ptr<com::centreon::engine::contact>>::iterator
-        itcontactname;
+        contact->set_name(selectedcontact->get_name());
+        contact->set_alias(selectedcontact->get_alias());
+        contact->set_email(selectedcontact->get_email());
+        return 0;
+      });
 
-    itcontactname = contact::contacts.find(request->name());
-    if (itcontactname != contact::contacts.end()) 
-      selectedcontact = itcontactname->second;
-    else {
-      contactpromise.set_value(std::make_pair(false, nullptr));
-      return 1;
-    }
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-    contact.set_name(selectedcontact->get_name());
-    contact.set_alias(selectedcontact->get_alias());
-    contact.set_email(selectedcontact->get_email());
-    contactpromise.set_value(std::make_pair(true, &contact));
-    return 0;
-  };
-
-  command_manager::instance().enqueue(lambda);
-  auto promiseresponse = f1.get();
-
-  if (promiseresponse.first) {
-    *response = *(promiseresponse.second);
+  if (result.get() == 0)
     return grpc::Status::OK;
-  } else 
+  else
     return grpc::Status(grpc::INVALID_ARGUMENT,
                         grpc::string("contact not found"));
-  
 }
 
 grpc::Status engine_impl::GetService(grpc::ServerContext* context,
                                      const ServiceIdentifier* request,
                                      EngineService* response) {
-  std::promise<std::pair<bool, EngineService*>> servicepromise;
-  std::future<std::pair<bool, EngineService*>> f1 = servicepromise.get_future();
-  EngineService service;
+  auto fn =
+      std::packaged_task<int(void)>([request, service = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::service> selectedservice;
 
-  auto lambda = [&servicepromise, request, &service]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::service> selectedservice;
-    std::unordered_map<std::pair<std::string, std::string>,
-                       std::shared_ptr<com::centreon::engine::service>>::
-        iterator itservicenames;
-    std::unordered_map<
-        std::pair<uint64_t, uint64_t>,
-        std::shared_ptr<com::centreon::engine::service>>::iterator itserviceids;
-
-    switch (request->identifier_case()) {
-      case ServiceIdentifier::kNames: {
-        NameIdentifier names = request->names();
-        itservicenames = service::services.find(
-            std::make_pair(names.host_name(), names.service_name()));
-        if (itservicenames != service::services.end()) {
-          selectedservice = itservicenames->second;
-        } else {
-          servicepromise.set_value(std::make_pair(false, nullptr));
-          return 1;
+        switch (request->identifier_case()) {
+          case ServiceIdentifier::kNames: {
+            NameIdentifier names = request->names();
+            auto itservicenames = service::services.find(
+                std::make_pair(names.host_name(), names.service_name()));
+            if (itservicenames != service::services.end())
+              selectedservice = itservicenames->second;
+            else
+              return 1;
+            break;
+          }
+          case ServiceIdentifier::kIds: {
+            IdIdentifier ids = request->ids();
+            auto itserviceids = service::services_by_id.find(
+                std::make_pair(ids.host_id(), ids.service_id()));
+            if (itserviceids != service::services_by_id.end())
+              selectedservice = itserviceids->second;
+            else
+              return 1;
+            break;
+          }
+          default:
+            return 1;
+            break;
         }
-        break;
-      }
-      case ServiceIdentifier::kIds: {
-        IdIdentifier ids = request->ids();
-        itserviceids = service::services_by_id.find(
-            std::make_pair(ids.host_id(), ids.service_id()));
-        if (itserviceids != service::services_by_id.end()) 
-          selectedservice = itserviceids->second;
-        else {
-          servicepromise.set_value(std::make_pair(false, nullptr));
-          return 1;
-        }
-        break;
-      }
-      default:
-        return 1;
-        break;
-    }
 
-    service.set_host_id(selectedservice->get_host_id());
-    service.set_service_id(selectedservice->get_service_id());
-    service.set_host_name(selectedservice->get_hostname());
-    service.set_description(selectedservice->get_description());
-    servicepromise.set_value(std::make_pair(true, &service));
-    return 0;
-  };
+        service->set_host_id(selectedservice->get_host_id());
+        service->set_service_id(selectedservice->get_service_id());
+        service->set_host_name(selectedservice->get_hostname());
+        service->set_description(selectedservice->get_description());
+        return 0;
+      });
 
-  command_manager::instance().enqueue(lambda);
-  auto promiseresponse = f1.get();
+  command_manager::instance().enqueue(std::move(fn));
+  std::future<int32_t> result = fn.get_future();
 
-  if (promiseresponse.first) {
-    *response = *(promiseresponse.second);
+  if (result.get() == 0)
     return grpc::Status::OK;
-  } else 
+  else
     return grpc::Status(grpc::INVALID_ARGUMENT,
                         grpc::string("service not found"));
-  
-
-  return grpc::Status::OK;
 }
 
 grpc::Status engine_impl::GetHostsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return host::hosts.size(); });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(host::hosts.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
+  response->set_value(result.get());
 
   return grpc::Status::OK;
 }
@@ -287,18 +220,13 @@ grpc::Status engine_impl::GetContactsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return contact::contacts.size(); });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(contact::contacts.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
+  response->set_value(result.get());
 
   return grpc::Status::OK;
 }
@@ -307,18 +235,13 @@ grpc::Status engine_impl::GetServicesCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return service::services.size(); });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(service::services.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
+  response->set_value(result.get());
   return grpc::Status::OK;
 }
 
@@ -326,19 +249,13 @@ grpc::Status engine_impl::GetServiceGroupsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return servicegroup::servicegroups.size(); });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(servicegroup::servicegroups.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
-
+  response->set_value(result.get());
   return grpc::Status::OK;
 }
 
@@ -346,19 +263,13 @@ grpc::Status engine_impl::GetContactGroupsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return contactgroup::contactgroups.size(); });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(contactgroup::contactgroups.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
-
+  response->set_value(result.get());
   return grpc::Status::OK;
 }
 
@@ -366,19 +277,13 @@ grpc::Status engine_impl::GetHostGroupsCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return hostgroup::hostgroups.size(); });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(hostgroup::hostgroups.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
-
+  response->set_value(result.get());
   return grpc::Status::OK;
 }
 
@@ -386,19 +291,14 @@ grpc::Status engine_impl::GetServiceDependenciesCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int32_t> p;
-  std::future<int32_t> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>([]() -> int32_t {
+    return servicedependency::servicedependencies.size();
+  });
 
-  auto lambda = [&p]() -> int32_t {
-    p.set_value(servicedependency::servicedependencies.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int32_t val = f1.get();
-  response->set_value(val);
-
+  response->set_value(result.get());
   return grpc::Status::OK;
 }
 
@@ -406,19 +306,13 @@ grpc::Status engine_impl::GetHostDependenciesCount(
     grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     GenericValue* response) {
-  std::promise<int> p;
-  std::future<int> f1 = p.get_future();
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { return hostdependency::hostdependencies.size(); });
 
-  auto lambda = [&p]() -> int {
-    p.set_value(hostdependency::hostdependencies.size());
-    return 0;
-  };
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-  command_manager::instance().enqueue(lambda);
-
-  int val = f1.get();
-  response->set_value(val);
-
+  response->set_value(result.get());
   return grpc::Status::OK;
 }
 
@@ -436,11 +330,12 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "svc_desc must not be empty");
 
-  auto fn = std::bind(&command_manager::process_passive_service_check,
-                      &command_manager::instance(),
-                      google::protobuf::util::TimeUtil::TimestampToSeconds(
-                          request->check_time()),
-                      host_name, svc_desc, request->code(), request->output());
+  auto fn = std::packaged_task<int(void)>(
+      std::bind(&command_manager::process_passive_service_check,
+                &command_manager::instance(),
+                google::protobuf::util::TimeUtil::TimestampToSeconds(
+                    request->check_time()),
+                host_name, svc_desc, request->code(), request->output()));
   command_manager::instance().enqueue(std::move(fn));
 
   return grpc::Status::OK;
@@ -455,11 +350,12 @@ grpc::Status engine_impl::ProcessHostCheckResult(
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "host_name must not be empty");
 
-  auto fn = std::bind(&command_manager::process_passive_host_check,
-                      &command_manager::instance(),
-                      google::protobuf::util::TimeUtil::TimestampToSeconds(
-                          request->check_time()),
-                      host_name, request->code(), request->output());
+  auto fn = std::packaged_task<int(void)>(
+      std::bind(&command_manager::process_passive_host_check,
+                &command_manager::instance(),
+                google::protobuf::util::TimeUtil::TimestampToSeconds(
+                    request->check_time()),
+                host_name, request->code(), request->output()));
   command_manager::instance().enqueue(std::move(fn));
 
   return grpc::Status::OK;
@@ -482,7 +378,8 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* /*context*/,
                                             const ThresholdsFile* request,
                                             CommandSuccess* /*response*/) {
   const std::string& filename = request->filename();
-  auto fn = std::bind(&anomalydetection::update_thresholds, filename);
+  auto fn = std::packaged_task<int(void)>(
+      std::bind(&anomalydetection::update_thresholds, filename));
   command_manager::instance().enqueue(std::move(fn));
   return grpc::Status::OK;
 }

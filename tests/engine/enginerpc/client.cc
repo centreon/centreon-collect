@@ -46,7 +46,7 @@ class EngineRPCClient {
   }
 
   bool GetStats(Stats* stats) {
-    const ::google::protobuf::Empty e;
+    GenericString e;
     grpc::ClientContext context;
     grpc::Status status = _stub->GetStats(&context, e, stats);
     if (!status.ok()) {

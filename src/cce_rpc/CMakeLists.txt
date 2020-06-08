@@ -19,6 +19,8 @@ add_custom_command(
   "${hw_proto}"
   DEPENDS "${hw_proto}")
 
+add_custom_target(engine_rpc DEPENDS ${hw_grpc_hdrs})
+
 add_library(
   cce_rpc
   STATIC
