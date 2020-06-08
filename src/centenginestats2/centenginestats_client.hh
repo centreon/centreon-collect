@@ -27,7 +27,7 @@
 #include <memory>
 
 #include "com/centreon/engine/namespace.hh"
-#include "enginerpc/engine.grpc.pb.h"
+#include "engine.grpc.pb.h"
 
 CCE_BEGIN()
 class centenginestats_client {

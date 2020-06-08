@@ -31,8 +31,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "enginerpc/engine.grpc.pb.h"
-
 using namespace com::centreon::engine;
 
 centenginestats_client::centenginestats_client(uint16_t grpc_port,

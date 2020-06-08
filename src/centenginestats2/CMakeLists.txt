@@ -24,6 +24,6 @@ set(stats_src
     centenginestats_client.hh
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/include)
 add_executable(centenginestats2 ${stats_src})
-target_link_libraries(centenginestats2 cerpc ${grpc_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
+target_link_libraries(centenginestats2 cce_rpc)

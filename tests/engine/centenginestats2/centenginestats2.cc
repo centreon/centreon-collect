@@ -20,7 +20,7 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
-#define executable "centenginestats2/centenginestats2"
+#define executable "bin/centenginestats2"
 
 static std::string execute(const std::string& command) {
   std::ostringstream oss;
@@ -39,7 +39,7 @@ static std::string execute(const std::string& command) {
 
 TEST(stats2, Help) {
   ASSERT_EQ(execute(executable " -h"),
-            "Usage: centenginestats2/centenginestats2 [options]Startup:  -V, "
+            "Usage: bin/centenginestats2 [options]Startup:  -V, "
             "--version        display program version information and exit.  "
             "-L, --license        display license information and exit.  -h, "
             "--help           display usage information and exit.Input "

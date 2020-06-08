@@ -40,6 +40,7 @@ add_executable(cce_ut
   ${CMAKE_SOURCE_DIR}/src/centengine/engine_impl.cc
   ${CMAKE_SOURCE_DIR}/src/centengine/enginerpc.cc
   ${CMAKE_SOURCE_DIR}/tests/engine/parse-check-output.cc
+  ${CMAKE_SOURCE_DIR}/tests/engine/centenginestats2/centenginestats2.cc
   ${CMAKE_SOURCE_DIR}/tests/engine/checks/service_check.cc
   ${CMAKE_SOURCE_DIR}/tests/engine/checks/service_retention.cc
   ${CMAKE_SOURCE_DIR}/tests/engine/checks/anomalydetection.cc

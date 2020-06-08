@@ -24,7 +24,7 @@
 
 #include "centenginestats_client.hh"
 #include "com/centreon/engine/namespace.hh"
-#include "com/centreon/engine/version.hh"
+#include "engine-version.hh"
 
 using namespace com::centreon::engine;
 

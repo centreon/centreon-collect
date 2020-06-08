@@ -44,6 +44,7 @@ add_subdirectory(src/external_command)
 add_subdirectory(src/cce_rpc)
 add_subdirectory(src/centengine)
 add_subdirectory(src/centenginestats)
+add_subdirectory(src/centenginestats2)
 add_subdirectory(src/clib)
 add_subdirectory(src/connectors)
 
