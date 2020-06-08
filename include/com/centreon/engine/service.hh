@@ -32,7 +32,7 @@
 #include "com/centreon/engine/check_result.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/hash.hh"
+#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/notifier.hh"
 
@@ -49,16 +49,16 @@ class serviceescalation;
 CCE_END()
 
 typedef std::unordered_map<std::pair<std::string, std::string>,
-                           std::shared_ptr<com::centreon::engine::service>,
-                           pair_hash>
+                           std::shared_ptr<com::centreon::engine::service>
+                          >
     service_map;
 typedef std::unordered_map<std::pair<std::string, std::string>,
-                           com::centreon::engine::service*,
-                           pair_hash>
+                           com::centreon::engine::service*
+                           >
     service_map_unsafe;
 typedef std::unordered_map<std::pair<uint64_t, uint64_t>,
-                           std::shared_ptr<com::centreon::engine::service>,
-                           pair_hash>
+                           std::shared_ptr<com::centreon::engine::service>
+                           >
     service_id_map;
 
 CCE_BEGIN()
