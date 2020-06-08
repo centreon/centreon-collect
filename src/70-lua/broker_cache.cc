@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/lua/broker_cache.hh"
 
-#include "com/centreon/broker/misc/pair.hh"
+#include "com/centreon/pair.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;

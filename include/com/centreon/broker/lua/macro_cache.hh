@@ -27,7 +27,6 @@
 #include "com/centreon/broker/bam/dimension_ba_event.hh"
 #include "com/centreon/broker/bam/dimension_bv_event.hh"
 #include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
@@ -39,6 +38,7 @@
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/metric_mapping.hh"
+#include "com/centreon/pair.hh"
 
 CCB_BEGIN()
 

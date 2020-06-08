@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_NEB_STRING_PAIR_HH
-#define CCB_NEB_STRING_PAIR_HH
+#ifndef STRING_PAIR_HH
+#define STRING_PAIR_HH
 
 #include <functional>
 
@@ -85,4 +85,4 @@ struct hash<std::pair<uint32_t, std::string>> {
 
 }  // namespace std
 
-#endif /* CCB_NEB_STRING_PAIR_HH */
+#endif /* STRING_PAIR_HH */

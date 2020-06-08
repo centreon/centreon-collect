@@ -23,8 +23,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -32,6 +32,7 @@
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/metric_mapping.hh"
+#include "com/centreon/pair.hh"
 CCB_BEGIN()
 
 namespace influxdb {
@@ -45,7 +46,8 @@ class macro_cache {
   std::unordered_map<uint64_t, std::shared_ptr<neb::instance> > _instances;
   std::unordered_map<uint64_t, std::shared_ptr<neb::host> > _hosts;
   std::unordered_map<std::pair<uint64_t, uint64_t>,
-                     std::shared_ptr<neb::service> > _services;
+                     std::shared_ptr<neb::service> >
+      _services;
   std::unordered_map<uint64_t, std::shared_ptr<storage::index_mapping> >
       _index_mappings;
   std::unordered_map<uint64_t, std::shared_ptr<storage::metric_mapping> >

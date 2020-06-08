@@ -20,10 +20,11 @@
 #define CCB_NEB_DOWNTIME_MAP_HH
 
 #include <unordered_map>
-#include "com/centreon/broker/misc/pair.hh"
+
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/node_id.hh"
+#include "com/centreon/pair.hh"
 
 CCB_BEGIN()
 
@@ -56,8 +57,7 @@ class downtime_map {
   std::unordered_map<uint32_t, downtime> _downtimes;
   std::unordered_multimap<node_id, uint32_t> _downtime_id_by_nodes;
   std::unordered_map<uint32_t, downtime> _recurring_downtimes;
-  std::unordered_multimap<node_id, uint32_t>
-      _recurring_downtime_id_by_nodes;
+  std::unordered_multimap<node_id, uint32_t> _recurring_downtime_id_by_nodes;
 };
 }  // namespace neb
 
