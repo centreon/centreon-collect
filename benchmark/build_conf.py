@@ -20,6 +20,9 @@
 import os
 import sys
 import json
+import xml.etree.ElementTree as ET
+from subprocess import Popen, PIPE
+
 from conf_builder import host_builder as hb
 from conf_builder import service_builder as sb
 from conf_builder import command_builder as cb
@@ -27,7 +30,32 @@ from conf_builder import file_builder as fb
 from conf_builder import hostgroup_builder  as hgb
 
 
+#
+# Create the Docker image with Mariadb and the centreon_storage database already configured.
+#
+def config_database():
+    tree = ET.parse('docker/partitioning-logs.xml')
+    root = tree.getroot()
+
+    partitioning = ""
+    for i in range(len(root[0])):
+        if root[0][i].tag == 'createstmt':
+            partitioning = root[0][i].text
+            break
+
+    os.chdir("docker")
+    part = open("partitioning.sql", 'w')
+    part.write(partitioning)
+    part.close()
+    process = Popen(["docker", "build", "-f", "Dockerfile-centreon-storage", "-t", "centreon_storage", "."],
+                    stdout=PIPE)
+    (output, err) = process.communicate()
+    exit_code = process.wait()
+    os.chdir("..")
+
+
 def main():
+    config_database()
     conf_dir = "centreon-engine"
 
     hosts = [hb.create_template()]
