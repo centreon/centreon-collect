@@ -1,6 +1,5 @@
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CONAN_INCLUDE_DIRS_GRPC})
-  message(STATUS "PROTOBUF =======> ${CONAN_INCLUDE_DIRS_PROTOBUF}")
 include_directories(${CONAN_INCLUDE_DIRS_PROTOBUF})
 
 configure_file(${CMAKE_SOURCE_DIR}/include/compatibility/locations.h.in ${CMAKE_BINARY_DIR}/locations.h)
