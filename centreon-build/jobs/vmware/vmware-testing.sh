@@ -21,3 +21,4 @@ promote_unstable_rpms_to_testing "standard" "19.04" "el7" "noarch" "vmware" "$PR
 promote_unstable_rpms_to_testing "standard" "19.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "20.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "20.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+promote_unstable_rpms_to_testing "standard" "20.10" "el8" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"

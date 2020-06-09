@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -23,8 +23,10 @@ DISTRIB="$1"
 # Pull mon-build-dependencies container.
 if [ "$DISTRIB" '=' 'centos6' ] ; then
   docker pull registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB
-else
+elif [ "$DISTRIB" '=' 'centos7' ] ; then
   docker pull registry.centreon.com/mon-build-dependencies-19.04:$DISTRIB
+else
+  docker pull registry.centreon.com/mon-build-dependencies-20.10:$DISTRIB
 fi
 
 # Retrieve sources.
