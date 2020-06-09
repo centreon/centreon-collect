@@ -18,7 +18,7 @@ tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd "$PROJECT"
-VERSION='20.10.1'
+VERSION='20.10.0'
 export VERSION="$VERSION"
 
 # Get release.
