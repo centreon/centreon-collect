@@ -22,8 +22,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_status.hh"
@@ -31,6 +31,7 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/broker/persistent_cache.hh"
+#include "com/centreon/pair.hh"
 
 CCB_BEGIN()
 

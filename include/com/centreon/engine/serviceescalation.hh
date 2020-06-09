@@ -21,7 +21,7 @@
 #define CCE_SERVICEESCALATION_HH
 
 #include "com/centreon/engine/escalation.hh"
-#include "com/centreon/engine/hash.hh"
+#include "com/centreon/pair.hh"
 
 /* Forward declaration. */
 CCE_BEGIN()
@@ -30,8 +30,7 @@ CCE_END()
 
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
-    std::shared_ptr<com::centreon::engine::serviceescalation>,
-    pair_hash>
+    std::shared_ptr<com::centreon::engine::serviceescalation>>
     serviceescalation_mmap;
 
 CCE_BEGIN()
