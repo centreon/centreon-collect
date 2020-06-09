@@ -167,8 +167,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
               selectedservice = itservicenames->second;
             else
               return 1;
-            break;
-          }
+          } break;
           case ServiceIdentifier::kIds: {
             IdIdentifier ids = request->ids();
             auto itserviceids = service::services_by_id.find(
@@ -177,8 +176,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
               selectedservice = itserviceids->second;
             else
               return 1;
-            break;
-          }
+          } break;
           default:
             return 1;
             break;
@@ -191,8 +189,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
         return 0;
       });
 
-  command_manager::instance().enqueue(std::move(fn));
   std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
   if (result.get() == 0)
     return grpc::Status::OK;
