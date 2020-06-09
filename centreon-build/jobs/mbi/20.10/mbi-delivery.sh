@@ -20,6 +20,7 @@ fi
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_source_to_testing "mbi" "mbi" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "mbi" "20.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "mbi" "20.10" "el8" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
 
 #
 # CI delivery.
@@ -27,7 +28,7 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 else
   # Set Docker images as latest.
   REGISTRY='registry.centreon.com'
-  for distrib in centos7 ; do
+  for distrib in centos7 centos8 ; do
     # -server- image.
     docker pull "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$distrib"
     docker tag "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$distrib" "$REGISTRY/des-mbi-server-20.10:$distrib"
@@ -41,4 +42,5 @@ else
 
   # Move RPMs to unstable.
   promote_canary_rpms_to_unstable "mbi" "20.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "mbi" "20.10" "el8" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
 fi
