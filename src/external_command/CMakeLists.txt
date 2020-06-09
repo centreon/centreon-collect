@@ -1,6 +1,6 @@
 
 add_library(
-  external_command
+  externalcmd
   SHARED
   ${CMAKE_SOURCE_DIR}/src/external_command/commands.cc
   ${CMAKE_SOURCE_DIR}/src/external_command/internal.cc
@@ -8,9 +8,9 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/external_command/processing.cc
   ${CMAKE_SOURCE_DIR}/src/external_command/utils.cc
 )
-target_link_libraries(external_command CONAN_PKG::json11)
-target_include_directories(external_command PUBLIC ${CMAKE_BINARY_DIR})
-target_include_directories(external_command PUBLIC ${CMAKE_SOURCE_DIR}/include/)
-target_compile_features(external_command PUBLIC cxx_std_11)
-set_target_properties(external_command PROPERTIES PREFIX "")
-install(TARGETS external_command DESTINATION ${CMAKE_INSTALL_LIBDIR})
+target_link_libraries(externalcmd CONAN_PKG::json11)
+target_include_directories(externalcmd PUBLIC ${CMAKE_BINARY_DIR})
+target_include_directories(externalcmd PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+target_compile_features(externalcmd PUBLIC cxx_std_11)
+set_target_properties(externalcmd PROPERTIES PREFIX "")
+install(TARGETS externalcmd COMPONENT engine-extcommands DESTINATION ${CMAKE_INSTALL_LIBDIR}/centreon-engine)
