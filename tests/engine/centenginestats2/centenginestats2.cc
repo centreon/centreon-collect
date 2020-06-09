@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <sstream>
 
 #define executable "bin/centenginestats2"
@@ -38,16 +39,18 @@ static std::string execute(const std::string& command) {
 }
 
 TEST(stats2, Help) {
-  ASSERT_EQ(execute(executable " -h"),
-            "Usage: bin/centenginestats2 [options]Startup:  -V, "
-            "--version        display program version information and exit.  "
-            "-L, --license        display license information and exit.  -h, "
-            "--help           display usage information and exit.Input "
-            "options:  -c, --config=FILE    specifies location of main "
-            "Centreon Engine config file.  -s, --statsfile=FILE specifies "
-            "alternate location of file to read Centreon  -p, --port=NUMBER    "
-            "specifies the port number of the engine grpc server to connect "
-            "to.                       Engine performance data from.");
+  ASSERT_EQ(
+      execute(executable " -h"),
+      "Usage: bin/centenginestats2 [options]Startup:  -V, --version        "
+      "display centreon-engine version and exit.  -L, --license        display "
+      "license information and exit.  -h, --help           display usage "
+      "information and exit.Input options:  -c, --config=FILE    specifies "
+      "location of main Centreon Engine config file.  -s, --statsfile=FILE "
+      "specifies alternate location of file to read Centreon  -p, "
+      "--port=NUMBER    specifies the port number of the engine grpc server to "
+      "connect to.  -o, --object=STRING  can contain be:     * default         "
+      "to get centengine stats.     * start           to get durations during "
+      "centengine start.                       Engine performance data from.");
 }
 
 TEST(stats2, License) {

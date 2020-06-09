@@ -1,3 +1,8 @@
+include_directories(${CMAKE_BINARY_DIR})
+include_directories(${CONAN_INCLUDE_DIRS_GRPC})
+  message(STATUS "PROTOBUF =======> ${CONAN_INCLUDE_DIRS_PROTOBUF}")
+include_directories(${CONAN_INCLUDE_DIRS_PROTOBUF})
+
 configure_file(${CMAKE_SOURCE_DIR}/include/compatibility/locations.h.in ${CMAKE_BINARY_DIR}/locations.h)
 configure_file(${CMAKE_SOURCE_DIR}/include/compatibility/common.h.in ${CMAKE_BINARY_DIR}/common.h)
 configure_file(${CMAKE_SOURCE_DIR}/include/com/centreon/engine/version.hh.in ${CMAKE_BINARY_DIR}/engine-version.hh)
@@ -145,6 +150,8 @@ add_library(cce_core
   ${CMAKE_SOURCE_DIR}/src/cce_core/xpddefault.cc
   ${CMAKE_SOURCE_DIR}/src/cce_core/xsddefault.cc
 )
+
+add_dependencies(cce_core engine_rpc)
 
 # Link target with required libraries.
 target_link_libraries(cce_core centreon-clib CONAN_PKG::json11)

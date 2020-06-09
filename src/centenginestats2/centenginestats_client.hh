@@ -47,11 +47,8 @@ class centenginestats_client {
   ~centenginestats_client() = default;
   bool is_configured() const;
   std::string get_version();
+  void get_stats(std::string const& object);
 
-  bool GetStats(Stats* stats);
-  bool ProcessServiceCheckResult(Check const& sc);
-  bool ProcessHostCheckResult(Check const& hc);
-  bool NewThresholdsFile(const ThresholdsFile& tf);
   int32_t read_stats_file();
 };
 

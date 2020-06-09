@@ -21,7 +21,9 @@
 */
 
 #include "com/centreon/engine/globals.hh"
+
 #include <map>
+
 #include "com/centreon/engine/logging/logger.hh"
 #include "compatibility/nagios.h"
 
@@ -35,6 +37,9 @@ char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "CONT", "STOP",   "TSTP",   "TTIN",  "TTOU",   "URG",
                       "XCPU", "XFSZ",   "VTALRM", "PROF",  "WINCH",  "IO",
                       "PWR",  "UNUSED", "ZERR",   "DEBUG", NULL};
+
+/* Start/Restart statistics */
+com::centreon::engine::restart_stats restart_apply_stats;
 
 char* config_file(NULL);
 char* debug_file(NULL);
@@ -73,6 +78,7 @@ time_t last_command_check((time_t)-1);
 time_t last_command_status_update((time_t)-1);
 time_t last_log_rotation((time_t)-1);
 time_t program_start((time_t)-1);
+uint16_t grpc_port(0);
 unsigned int accept_passive_host_checks(true);
 unsigned int accept_passive_service_checks(true);
 unsigned int check_external_commands(true);

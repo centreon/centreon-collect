@@ -19,6 +19,7 @@
 
 #include "centenginestats_client.hh"
 
+#include <google/protobuf/util/time_util.h>
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -26,12 +27,34 @@
 #include <stdint.h>
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 
+#include "engine.grpc.pb.h"
+
 using namespace com::centreon::engine;
+using namespace google::protobuf::util;
+
+static std::string duration_to_str(uint32_t diff) {
+  std::ostringstream oss;
+  uint32_t d = 0, h, m;
+  if (diff > 86400) {
+    d = diff / 86400;
+    diff %= 86400;
+    oss << d << "d ";
+  }
+  h = diff / 3600;
+  diff %= 3600;
+  oss << h << "h ";
+
+  m = diff / 60;
+  diff %= 60;
+  oss << m << "m " << diff << "s";
+  return oss.str();
+}
 
 centenginestats_client::centenginestats_client(uint16_t grpc_port,
                                                std::string const& config_file,
@@ -40,6 +63,10 @@ centenginestats_client::centenginestats_client(uint16_t grpc_port,
       _stats_file(stats_file),
       _status_creation_date(0),
       _grpc_port(grpc_port) {
+  // If no grpc port is given, we can get it from here.
+  if (!_stats_file.empty())
+    read_stats_file();
+
   if (!_grpc_port)
     std::cerr << "The GRPC port is not configured. Unable to get informations "
                  "from centreon-engine"
@@ -75,12 +102,13 @@ int centenginestats_client::read_stats_file() {
     count = 1;
   if (ifs) {
     while (count > 0 && std::getline(ifs, line)) {
-      if (strncmp(line.c_str(), "created", 7) == 0) {
-        _status_creation_date = strtoul(line.c_str() + 8, nullptr, 10);
+      size_t pos;
+      if ((pos = line.find("created=")) != std::string::npos) {
+        _status_creation_date = strtoul(line.c_str() + pos + 8, nullptr, 10);
         count--;
       } else if (_grpc_port == 0 &&
-                 strncmp(line.c_str(), "grpc_port", 9) == 0) {
-        _grpc_port = strtoul(line.c_str() + 10, nullptr, 10);
+                 (pos = line.find("grpc_port=")) != std::string::npos) {
+        _grpc_port = strtoul(line.c_str() + pos + 10, nullptr, 10);
         count--;
       }
     }
@@ -106,47 +134,308 @@ std::string centenginestats_client::get_version() {
   }
 }
 
-bool centenginestats_client::GetStats(Stats* stats) {
-  const ::google::protobuf::Empty e;
+/**
+ * @brief The main function of this program. It get statistics from centengine.
+ * The subject is given by the \a object parameter.
+ *
+ * @param object A string.
+ */
+void centenginestats_client::get_stats(std::string const& object) {
+  time_t current_time;
+  time(&current_time);
+  uint32_t time_difference = current_time - _status_creation_date;
   grpc::ClientContext context;
-  grpc::Status status = _stub->GetStats(&context, e, stats);
-  if (!status.ok()) {
-    std::cout << "GetStats rpc failed." << std::endl;
-    return false;
-  }
-  return true;
-}
+  Stats stats;
+  GenericString obj;
+  *obj.mutable_str_arg() = object;
+  grpc::Status status = _stub->GetStats(&context, obj, &stats);
+  if (!status.ok())
+    throw std::invalid_argument(
+        "Failed to get the centengine statistics. It is probably not running.");
 
-bool centenginestats_client::ProcessServiceCheckResult(Check const& sc) {
-  grpc::ClientContext context;
-  CommandSuccess response;
-  grpc::Status status =
-      _stub->ProcessServiceCheckResult(&context, sc, &response);
-  if (!status.ok()) {
-    std::cout << "ProcessServiceCheckResult failed." << std::endl;
-    return false;
-  }
-  return true;
-}
+  if (object == "default") {
+    uint32_t program_start =
+        TimeUtil::TimestampToSeconds(stats.program_status().program_start());
+    uint32_t program_age = current_time - program_start;
 
-bool centenginestats_client::ProcessHostCheckResult(Check const& hc) {
-  grpc::ClientContext context;
-  CommandSuccess response;
-  grpc::Status status = _stub->ProcessHostCheckResult(&context, hc, &response);
-  if (!status.ok()) {
-    std::cout << "ProcessHostCheckResult failed." << std::endl;
-    return false;
-  }
-  return true;
-}
+    printf(
+        "CURRENT STATUS DATA\n"
+        "---------------------------------------------------------------"
+        "-----------------\n");
 
-bool centenginestats_client::NewThresholdsFile(const ThresholdsFile& tf) {
-  grpc::ClientContext context;
-  CommandSuccess response;
-  grpc::Status status = _stub->NewThresholdsFile(&context, tf, &response);
-  if (!status.ok()) {
-    std::cout << "NewThresholdsFile failed." << std::endl;
-    return false;
+    printf("Status File:                            %s\n", _stats_file.c_str());
+    printf("Status File Age:                        %s\n\n",
+           duration_to_str(time_difference).c_str());
+    printf("Program Running Time:                   %s\n",
+           duration_to_str(program_age).c_str());
+    printf("Centreon Engine PID:                    %ud\n",
+           stats.program_status().pid());
+    printf("Used/High/Total command Buffers:        %d / %d / %d\n\n",
+           stats.program_status().used_external_command_buffer_slots(),
+           stats.program_status().high_external_command_buffer_slots(),
+           stats.program_status().total_external_command_buffer_slots());
+    printf("Total Services:                         %ud\n",
+           stats.services_stats().services_count());
+    printf("Services Checked:                       %ud\n",
+           stats.services_stats().checked_services());
+    printf("Services Scheduled:                     %ud\n",
+           stats.services_stats().scheduled_services());
+    printf("Services Actively Checked:              %ud\n",
+           stats.services_stats().actively_checked());
+    printf("Services Passively Checked:             %ud\n",
+           stats.services_stats().passively_checked());
+    printf("Total Service State Change:             %.3f / %.3f / %.3f %%\n",
+           stats.services_stats().min_state_change(),
+           stats.services_stats().max_state_change(),
+           stats.services_stats().average_state_change());
+    printf("Active Service Latency:                 %.3f / %.3f / %.3f sec\n",
+           stats.services_stats().active_services().min_latency(),
+           stats.services_stats().active_services().max_latency(),
+           stats.services_stats().active_services().average_latency());
+    printf("Active Service Execution Time:          %.3f / %.3f / %.3f sec\n",
+           stats.services_stats().active_services().min_execution_time(),
+           stats.services_stats().active_services().max_execution_time(),
+           stats.services_stats().active_services().average_execution_time());
+    printf("Active Service State Change:            %.3f / %.3f / %.3f %%\n",
+           stats.services_stats().active_services().min_state_change(),
+           stats.services_stats().active_services().max_state_change(),
+           stats.services_stats().active_services().average_state_change());
+    printf("Active Services Last 1/5/15/60 min:     %ud / %ud / %ud / %ud\n",
+           stats.services_stats().active_services().checks_last_1min(),
+           stats.services_stats().active_services().checks_last_5min(),
+           stats.services_stats().active_services().checks_last_15min(),
+           stats.services_stats().active_services().checks_last_1hour());
+    printf("Passive Service Latency:                %.3f / %.3f / %.3f sec\n",
+           stats.services_stats().passive_services().min_latency(),
+           stats.services_stats().passive_services().max_latency(),
+           stats.services_stats().passive_services().average_latency());
+    printf("Passive Service State Change:           %.3f / %.3f / %.3f %%\n",
+           stats.services_stats().passive_services().min_state_change(),
+           stats.services_stats().passive_services().max_state_change(),
+           stats.services_stats().passive_services().average_state_change());
+    printf("Passive Services Last 1/5/15/60 min:    %ud / %ud / %ud / %ud\n",
+           stats.services_stats().passive_services().checks_last_1min(),
+           stats.services_stats().passive_services().checks_last_5min(),
+           stats.services_stats().passive_services().checks_last_15min(),
+           stats.services_stats().passive_services().checks_last_1hour());
+    printf("Services OK/Warn/Unk/Crit:              %ud / %ud / %ud / %ud\n",
+           stats.services_stats().ok(), stats.services_stats().warning(),
+           stats.services_stats().unknown(), stats.services_stats().critical());
+    printf("Services Flapping:                      %ud\n",
+           stats.services_stats().flapping());
+    printf("Services In Downtime:                   %ud\n\n",
+           stats.services_stats().downtime());
+    printf("Total Hosts:                            %ud\n",
+           stats.hosts_stats().hosts_count());
+    printf("Hosts Checked:                          %ud\n",
+           stats.hosts_stats().checked_hosts());
+    printf("Hosts Scheduled:                        %ud\n",
+           stats.hosts_stats().scheduled_hosts());
+    printf("Hosts Actively Checked:                 %ud\n",
+           stats.hosts_stats().actively_checked());
+    printf("Hosts Passively Checked:                %ud\n",
+           stats.hosts_stats().passively_checked());
+    printf("Total Host State Change:                %.3f / %.3f / %.3f %%\n",
+           stats.hosts_stats().min_state_change(),
+           stats.hosts_stats().max_state_change(),
+           stats.hosts_stats().average_state_change());
+    printf("Active Host Latency:                    %.3f / %.3f / %.3f sec\n",
+           stats.hosts_stats().active_hosts().min_latency(),
+           stats.hosts_stats().active_hosts().max_latency(),
+           stats.hosts_stats().active_hosts().average_latency());
+    printf("Active Host Execution Time:             %.3f / %.3f / %.3f sec\n",
+           stats.hosts_stats().active_hosts().min_execution_time(),
+           stats.hosts_stats().active_hosts().max_execution_time(),
+           stats.hosts_stats().active_hosts().average_execution_time());
+    printf("Active Host State Change:               %.3f / %.3f / %.3f %%\n",
+           stats.hosts_stats().active_hosts().min_state_change(),
+           stats.hosts_stats().active_hosts().max_state_change(),
+           stats.hosts_stats().active_hosts().average_state_change());
+    printf("Active Hosts Last 1/5/15/60 min:        %ud / %ud / %ud / %ud\n",
+           stats.hosts_stats().active_hosts().checks_last_1min(),
+           stats.hosts_stats().active_hosts().checks_last_5min(),
+           stats.hosts_stats().active_hosts().checks_last_15min(),
+           stats.hosts_stats().active_hosts().checks_last_1hour());
+    printf("Passive Host Latency:                   %.3f / %.3f / %.3f sec\n",
+           stats.hosts_stats().passive_hosts().min_latency(),
+           stats.hosts_stats().passive_hosts().max_latency(),
+           stats.hosts_stats().passive_hosts().average_latency());
+    printf("Passive Host State Change:              %.3f / %.3f / %.3f %%\n",
+           stats.hosts_stats().passive_hosts().min_state_change(),
+           stats.hosts_stats().passive_hosts().max_state_change(),
+           stats.hosts_stats().passive_hosts().average_state_change());
+    printf("Passive Hosts Last 1/5/15/60 min:       %ud / %ud / %ud / %ud\n",
+           stats.hosts_stats().passive_hosts().checks_last_1min(),
+           stats.hosts_stats().passive_hosts().checks_last_5min(),
+           stats.hosts_stats().passive_hosts().checks_last_15min(),
+           stats.hosts_stats().passive_hosts().checks_last_1hour());
+    printf("Hosts Up/Down/Unreach:                  %ud / %ud / %ud\n",
+           stats.hosts_stats().up(), stats.hosts_stats().down(),
+           stats.hosts_stats().unreachable());
+    printf("Hosts Flapping:                         %ud\n",
+           stats.hosts_stats().flapping());
+    printf("Hosts In Downtime:                      %ud\n\n",
+           stats.hosts_stats().downtime());
+    printf("Active Host Checks Last 1/5/15 min:     %ud / %ud / %ud\n",
+           stats.program_status().active_scheduled_host_check_stats()[0] +
+               stats.program_status().active_ondemand_host_check_stats()[0],
+           stats.program_status().active_scheduled_host_check_stats()[1] +
+               stats.program_status().active_ondemand_host_check_stats()[1],
+           stats.program_status().active_scheduled_host_check_stats()[2] +
+               stats.program_status().active_ondemand_host_check_stats()[2]);
+    printf("   Scheduled:                           %ud / %ud / %ud\n",
+           stats.program_status().active_scheduled_host_check_stats()[0],
+           stats.program_status().active_scheduled_host_check_stats()[1],
+           stats.program_status().active_scheduled_host_check_stats()[2]);
+    printf("   On-demand:                           %ud / %ud / %ud\n",
+           stats.program_status().active_ondemand_host_check_stats()[0],
+           stats.program_status().active_ondemand_host_check_stats()[1],
+           stats.program_status().active_ondemand_host_check_stats()[2]);
+    printf("   Parallel:                            %ud / %ud / %ud\n",
+           stats.program_status().parallel_host_check_stats()[0],
+           stats.program_status().parallel_host_check_stats()[1],
+           stats.program_status().parallel_host_check_stats()[2]);
+    printf("   Serial:                              %ud / %ud / %ud\n",
+           stats.program_status().serial_host_check_stats()[0],
+           stats.program_status().serial_host_check_stats()[1],
+           stats.program_status().serial_host_check_stats()[2]);
+    printf("   Cached:                              %ud / %ud / %ud\n",
+           stats.program_status().cached_host_check_stats()[0],
+           stats.program_status().cached_host_check_stats()[1],
+           stats.program_status().cached_host_check_stats()[2]);
+    printf("Passive Host Checks Last 1/5/15 min:    %ud / %ud / %ud\n",
+           stats.program_status().passive_host_check_stats()[0],
+           stats.program_status().passive_host_check_stats()[1],
+           stats.program_status().passive_host_check_stats()[2]);
+    printf("Active Service Checks Last 1/5/15 min:  %ud / %ud / %ud\n",
+           stats.program_status().active_scheduled_service_check_stats()[0] +
+               stats.program_status().active_ondemand_service_check_stats()[0],
+           stats.program_status().active_scheduled_service_check_stats()[1] +
+               stats.program_status().active_ondemand_service_check_stats()[1],
+           stats.program_status().active_scheduled_service_check_stats()[2] +
+               stats.program_status().active_ondemand_service_check_stats()[2]);
+    printf("   Scheduled:                           %ud / %ud / %ud\n",
+           stats.program_status().active_scheduled_service_check_stats()[0],
+           stats.program_status().active_scheduled_service_check_stats()[1],
+           stats.program_status().active_scheduled_service_check_stats()[2]);
+    printf("   On-demand:                           %ud / %ud / %ud\n",
+           stats.program_status().active_ondemand_service_check_stats()[0],
+           stats.program_status().active_ondemand_service_check_stats()[1],
+           stats.program_status().active_ondemand_service_check_stats()[2]);
+    printf("   Cached:                              %ud / %ud / %ud\n",
+           stats.program_status().cached_service_check_stats()[0],
+           stats.program_status().cached_service_check_stats()[1],
+           stats.program_status().cached_service_check_stats()[2]);
+    printf("Passive Service Checks Last 1/5/15 min: %ud / %ud / %ud\n\n",
+           stats.program_status().passive_service_check_stats()[0],
+           stats.program_status().passive_service_check_stats()[1],
+           stats.program_status().passive_service_check_stats()[2]);
+    printf("External Commands Last 1/5/15 min:      %ud / %ud / %ud\n\n\n",
+           stats.program_status().external_command_stats()[0],
+           stats.program_status().external_command_stats()[1],
+           stats.program_status().external_command_stats()[2]);
+  } else if (object == "start") {
+    printf(
+        "RESTART STATUS DATA\n"
+        "---------------------------------------------------------------"
+        "-----------------\n");
+    printf("Apply start                             %s\n",
+           TimeUtil::ToString(stats.restart_status().apply_start()).c_str());
+    printf("   Objects expansion                    %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().objects_expansion())) /
+               1000.);
+
+    printf("   Objects differences                  %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().objects_difference())) /
+               1000.);
+    printf("   Global conf application              %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_config())) /
+               1000.);
+    printf("   Timeperiods application              %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_timeperiods())) /
+               1000.);
+    printf("   Connectors application               %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_connectors())) /
+               1000.);
+    printf("   Commands application                 %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_commands())) /
+               1000.);
+    printf("   Contacts application                 %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_contacts())) /
+               1000.);
+    printf("   Hosts application                    %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_hosts())) /
+               1000.);
+    printf("   Services application                 %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_services())) /
+               1000.);
+    printf("   Hosts resolution                     %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().resolve_hosts())) /
+               1000.);
+    printf("   Services resolution                  %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().resolve_services())) /
+               1000.);
+    printf("   Host dependencies application        %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_host_dependencies())) /
+               1000.);
+    printf("   Host dependencies resolution         %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().resolve_host_dependencies())) /
+               1000.);
+    printf("   Service dependencies application     %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_service_dependencies())) /
+               1000.);
+    printf("   Service dependencies resolution      %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().resolve_service_dependencies())) /
+               1000.);
+    printf("   Host escalations application         %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_host_escalations())) /
+               1000.);
+    printf("   Host escalations resolution          %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().resolve_host_escalations())) /
+               1000.);
+    printf("   Service escalations application      %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_service_escalations())) /
+               1000.);
+    printf("   Service escalations resolution       %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().resolve_service_escalations())) /
+               1000.);
+    printf("   New configuration application        %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_new_config())) /
+               1000.);
+    printf("   Scheduler configuration application  %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().apply_scheduler())) /
+               1000.);
+    printf("   Check circular paths                 %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().check_circular_paths())) /
+               1000.);
+    printf("   Modules reload                       %.3f s\n",
+           static_cast<double>(TimeUtil::DurationToMilliseconds(
+               stats.restart_status().reload_modules())) /
+               1000.);
+
+    printf("Apply end                               %s\n",
+           TimeUtil::ToString(stats.restart_status().apply_end()).c_str());
   }
-  return true;
 }

@@ -1105,8 +1105,8 @@ int neb::callback_host(int callback_type, void* data) {
       my_host->check_period = h->get_check_period();
     my_host->check_type = h->get_check_type();
     my_host->current_check_attempt = h->get_current_attempt();
-    my_host->current_state = (h->get_has_been_checked() ? h->get_current_state()
-                                                        : 4);  // Pending state.
+    my_host->current_state =
+        (h->has_been_checked() ? h->get_current_state() : 4);  // Pending state.
     my_host->default_active_checks_enabled = h->get_checks_enabled();
     my_host->default_event_handler_enabled = h->get_event_handler_enabled();
     my_host->default_flap_detection_enabled = h->get_flap_detection_enabled();
@@ -1130,7 +1130,7 @@ int neb::callback_host(int callback_type, void* data) {
     my_host->flap_detection_on_up =
         h->get_flap_detection_on(engine::notifier::up);
     my_host->freshness_threshold = h->get_freshness_threshold();
-    my_host->has_been_checked = h->get_has_been_checked();
+    my_host->has_been_checked = h->has_been_checked();
     my_host->high_flap_threshold = h->get_high_flap_threshold();
     if (!h->get_name().empty())
       my_host->host_name = h->get_name();
@@ -1190,8 +1190,8 @@ int neb::callback_host(int callback_type, void* data) {
     my_host->stalk_on_unreachable =
         h->get_stalk_on(engine::notifier::unreachable);
     my_host->stalk_on_up = h->get_stalk_on(engine::notifier::up);
-    my_host->state_type = (h->get_has_been_checked() ? h->get_state_type()
-                                                     : engine::notifier::hard);
+    my_host->state_type =
+        (h->has_been_checked() ? h->get_state_type() : engine::notifier::hard);
     if (!h->get_statusmap_image().empty())
       my_host->statusmap_image = h->get_statusmap_image();
     my_host->timezone = h->get_timezone();
@@ -1323,15 +1323,14 @@ int neb::callback_host_status(int callback_type, void* data) {
     host_status->check_type = h->get_check_type();
     host_status->current_check_attempt = h->get_current_attempt();
     host_status->current_state =
-        (h->get_has_been_checked() ? h->get_current_state()
-                                   : 4);  // Pending state.
+        (h->has_been_checked() ? h->get_current_state() : 4);  // Pending state.
     host_status->downtime_depth = h->get_scheduled_downtime_depth();
     if (!h->get_event_handler().empty())
       host_status->event_handler = h->get_event_handler();
     host_status->event_handler_enabled = h->get_event_handler_enabled();
     host_status->execution_time = h->get_execution_time();
     host_status->flap_detection_enabled = h->get_flap_detection_enabled();
-    host_status->has_been_checked = h->get_has_been_checked();
+    host_status->has_been_checked = h->has_been_checked();
     if (h->get_name().empty())
       throw(exceptions::msg() << "unnamed host");
     {
@@ -1371,8 +1370,7 @@ int neb::callback_host_status(int callback_type, void* data) {
     host_status->retry_interval = h->get_retry_interval();
     host_status->should_be_scheduled = h->get_should_be_scheduled();
     host_status->state_type =
-        (h->get_has_been_checked() ? h->get_state_type()
-                                   : engine::notifier::hard);
+        (h->has_been_checked() ? h->get_state_type() : engine::notifier::hard);
 
     // Send event(s).
     gl_publisher.write(host_status);
@@ -1763,8 +1761,7 @@ int neb::callback_service(int callback_type, void* data) {
     my_service->check_type = s->get_check_type();
     my_service->current_check_attempt = s->get_current_attempt();
     my_service->current_state =
-        (s->get_has_been_checked() ? s->get_current_state()
-                                   : 4);  // Pending state.
+        (s->has_been_checked() ? s->get_current_state() : 4);  // Pending state.
     my_service->default_active_checks_enabled = s->get_checks_enabled();
     my_service->default_event_handler_enabled = s->get_event_handler_enabled();
     my_service->default_flap_detection_enabled =
@@ -1791,7 +1788,7 @@ int neb::callback_service(int callback_type, void* data) {
     my_service->flap_detection_on_warning =
         s->get_flap_detection_on(engine::notifier::warning);
     my_service->freshness_threshold = s->get_freshness_threshold();
-    my_service->has_been_checked = s->get_has_been_checked();
+    my_service->has_been_checked = s->has_been_checked();
     my_service->high_flap_threshold = s->get_high_flap_threshold();
     if (!s->get_hostname().empty())
       my_service->host_name = s->get_hostname();
@@ -1857,8 +1854,7 @@ int neb::callback_service(int callback_type, void* data) {
     my_service->stalk_on_unknown = s->get_stalk_on(engine::notifier::unknown);
     my_service->stalk_on_warning = s->get_stalk_on(engine::notifier::warning);
     my_service->state_type =
-        (s->get_has_been_checked() ? s->get_state_type()
-                                   : engine::notifier::hard);
+        (s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
 
     // Search host ID and service ID.
     std::pair<uint64_t, uint64_t> p;
@@ -1996,15 +1992,14 @@ int neb::callback_service_status(int callback_type, void* data) {
     service_status->check_type = s->get_check_type();
     service_status->current_check_attempt = s->get_current_attempt();
     service_status->current_state =
-        (s->get_has_been_checked() ? s->get_current_state()
-                                   : 4);  // Pending state.
+        (s->has_been_checked() ? s->get_current_state() : 4);  // Pending state.
     service_status->downtime_depth = s->get_scheduled_downtime_depth();
     if (!s->get_event_handler().empty())
       service_status->event_handler = s->get_event_handler();
     service_status->event_handler_enabled = s->get_event_handler_enabled();
     service_status->execution_time = s->get_execution_time();
     service_status->flap_detection_enabled = s->get_flap_detection_enabled();
-    service_status->has_been_checked = s->get_has_been_checked();
+    service_status->has_been_checked = s->has_been_checked();
     service_status->is_flapping = s->get_is_flapping();
     service_status->last_check = s->get_last_check();
     service_status->last_hard_state = s->get_last_hard_state();
@@ -2054,8 +2049,7 @@ int neb::callback_service_status(int callback_type, void* data) {
     }
     service_status->should_be_scheduled = s->get_should_be_scheduled();
     service_status->state_type =
-        (s->get_has_been_checked() ? s->get_state_type()
-                                   : engine::notifier::hard);
+        (s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
 
     // Send event(s).
     gl_publisher.write(service_status);

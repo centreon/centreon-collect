@@ -20,6 +20,7 @@
 #include "com/centreon/engine/enginerpc.hh"
 
 #include <gtest/gtest.h>
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -161,9 +162,9 @@ TEST_F(EngineRpc, GetHost) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  std::vector<std::string> vectests = {"test_host", "test_host", "12",
-                                       "127.0.0.1"};
-  int j = 0;
+  std::vector<std::string> vectests = {"GetHost", "Host name: test_host",
+                                       "Host alias: test_host", "Host id: 12",
+                                       "Host address: 127.0.0.1"};
 
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
@@ -187,11 +188,15 @@ TEST_F(EngineRpc, GetHost) {
   condvar.notify_one();
   th.join();
 
-  std::list<std::string>::const_iterator it = output.begin();
-  ++it;
-  for (; it != output.end() && j < vectests.size(); ++it, ++j)
-    ASSERT_EQ(it->c_str(), vectests[j]);
-  ASSERT_EQ(output2.back(), "test_host");
+  std::vector<std::string> result_ids(output.size());
+  std::copy(output.begin(), output.end(), result_ids.begin());
+
+  ASSERT_EQ(vectests, result_ids);
+
+  std::vector<std::string> result_names(output2.size());
+  std::copy(output2.begin(), output2.end(), result_names.begin());
+
+  ASSERT_EQ(vectests, result_names);
   erpc.shutdown();
 }
 
@@ -237,10 +242,10 @@ TEST_F(EngineRpc, GetService) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  std::vector<std::string> vectests = {"12", "13", "test_host", "test_description"};
-  int j = 0;
-	_svc->set_description("test_description");
- 
+  std::vector<std::string> vectests = {"GetService", "Host id: 12",
+                                       "Service id: 13", "Host name: test_host",
+                                       "Serv desc: test_svc"};
+
   auto fn = [&continuerunning, &mutex, &condvar]() {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) {
@@ -263,14 +268,15 @@ TEST_F(EngineRpc, GetService) {
   condvar.notify_one();
   th.join();
 
-	std::list<std::string>::const_iterator it = output.begin();
-  ++it;
-	for (; it != output.end() && j < vectests.size(); ++it, ++j)
-    ASSERT_EQ(it->c_str(), vectests[j]);
+  std::vector<std::string> result_names(output.size());
+  std::copy(output.begin(), output.end(), result_names.begin());
 
+  ASSERT_EQ(vectests, result_names);
 
-  //ASSERT_EQ(output.back(), "test_host");
-  //ASSERT_EQ(output2.back(), "13");
+  std::vector<std::string> result_ids(output2.size());
+  std::copy(output2.begin(), output2.end(), result_ids.begin());
+
+  ASSERT_EQ(vectests, result_ids);
   erpc.shutdown();
 }
 

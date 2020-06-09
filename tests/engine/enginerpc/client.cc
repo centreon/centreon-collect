@@ -21,8 +21,10 @@
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
+
 #include <iostream>
 #include <memory>
+
 #include "engine.grpc.pb.h"
 
 using namespace com::centreon::engine;
@@ -46,7 +48,7 @@ class EngineRPCClient {
   }
 
   bool GetStats(Stats* stats) {
-    const ::google::protobuf::Empty e;
+    GenericString e;
     grpc::ClientContext context;
     grpc::Status status = _stub->GetStats(&context, e, stats);
     if (!status.ok()) {
@@ -363,16 +365,19 @@ int main(int argc, char** argv) {
       uint32_t val = atoi(argv[3]);
       status = client.GetHostByHostId(val, &response) ? 0 : 1;
       std::cout << "GetHost" << std::endl;
-      std::cout << response.name() << std::endl;
-      std::cout << response.alias() << std::endl;
-      std::cout << response.id() << std::endl;
-      std::cout << response.address() << std::endl;
+      std::cout << "Host name: " << response.name() << std::endl;
+      std::cout << "Host alias: " << response.alias() << std::endl;
+      std::cout << "Host id: " << response.id() << std::endl;
+      std::cout << "Host address: " << response.address() << std::endl;
     } else if (strcmp(argv[2], "byhostname") == 0) {
       EngineHost response;
       std::string str(argv[3]);
       status = client.GetHostByHostName(str, &response) ? 0 : 1;
       std::cout << "GetHost" << std::endl;
-      std::cout << response.name() << std::endl;
+      std::cout << "Host name: " << response.name() << std::endl;
+      std::cout << "Host alias: " << response.alias() << std::endl;
+      std::cout << "Host id: " << response.id() << std::endl;
+      std::cout << "Host address: " << response.address() << std::endl;
     }
   } else if (strcmp(argv[1], "GetContact") == 0) {
     if (argc != 3) {
@@ -400,17 +405,20 @@ int main(int argc, char** argv) {
       status =
           client.GetServiceByNames(hostname, servicename, &response) ? 0 : 1;
       std::cout << "GetService" << std::endl;
-      std::cout << response.host_id() << std::endl;
-      std::cout << response.service_id() << std::endl;
-      std::cout << response.host_name() << std::endl;
-      std::cout << response.description() << std::endl;
+      std::cout << "Host id: " << response.host_id() << std::endl;
+      std::cout << "Service id: " << response.service_id() << std::endl;
+      std::cout << "Host name: " << response.host_name() << std::endl;
+      std::cout << "Serv desc: " << response.description() << std::endl;
     } else if (strcmp(argv[2], "byids") == 0) {
       EngineService response;
       uint32_t hostid = atoi(argv[3]);
       uint32_t serviceid = atoi(argv[4]);
       status = client.GetServiceByIds(hostid, serviceid, &response) ? 0 : 1;
       std::cout << "GetService" << std::endl;
-      std::cout << response.host_name() << std::endl;
+      std::cout << "Host id: " << response.host_id() << std::endl;
+      std::cout << "Service id: " << response.service_id() << std::endl;
+      std::cout << "Host name: " << response.host_name() << std::endl;
+      std::cout << "Serv desc: " << response.description() << std::endl;
     }
   }
   exit(status);
