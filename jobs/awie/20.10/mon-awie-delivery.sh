@@ -21,6 +21,7 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   # Copy build artifacts.
   copy_internal_source_to_testing "standard" "awie" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "20.10" "el7" "noarch" "awie" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "20.10" "el8" "noarch" "awie" "$PROJECT-$VERSION-$RELEASE"
 
   # Docker image target version.
   TARGETVERSION="$VERSION"
@@ -31,6 +32,7 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 else
   # Move RPMs to unstable.
   promote_canary_rpms_to_unstable "standard" "20.10" "el7" "noarch" "awie" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "20.10" "el8" "noarch" "awie" "$PROJECT-$VERSION-$RELEASE"
 
   # Docker image target version.
   TARGETVERSION="20.10"
@@ -38,7 +40,7 @@ fi
 
 # Tag Docker images.
 REGISTRY='registry.centreon.com'
-for distrib in centos7 ; do
+for distrib in centos7 centos8 ; do
   docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib"
   docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-awie-$TARGETVERSION:$distrib"
   docker push "$REGISTRY/mon-awie-$TARGETVERSION:$distrib"
