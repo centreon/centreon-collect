@@ -30,6 +30,19 @@ foreach ($versions as $version) {
 <?php
 
 $projects = array(
+  'centreon-agent' => array(
+    '20.10.x' => 'master',
+    '20.04.x' => 'master',
+    '19.10.x' => 'master',
+    '19.04.x' => 'master'
+  ),
+  'centreon-agent-configuration' => array(
+    '20.10.x' => 'master'
+  ),
+  'centreon-anomaly-detection' => array(
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x'
+  ),
   'centreon-autodiscovery' => array(
     '20.10.x' => 'master',
     '20.04.x' => '20.04.x',
@@ -84,6 +97,10 @@ $projects = array(
     '3.4.x' => '1.8.x'
   ),
   'centreon-gorgone' => array(
+    '20.10.x' => 'master',
+    '20.04.x' => '20.04.x'
+  ),
+  'centreon-ha' => array(
     '20.10.x' => 'master',
     '20.04.x' => '20.04.x'
   ),
