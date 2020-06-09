@@ -25,3 +25,4 @@ curl "$DL_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&versio
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "20.10" "el7" "noarch" "open-tickets" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.10" "el8" "noarch" "open-tickets" "$PROJECT-$VERSION-$RELEASE"
