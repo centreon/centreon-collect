@@ -24,8 +24,8 @@
 #include <future>
 #include <mutex>
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/engine_impl.hh"
+#include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
 class command_manager {

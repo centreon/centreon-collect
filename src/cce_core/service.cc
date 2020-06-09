@@ -485,8 +485,7 @@ std::ostream& operator<<(std::ostream& os,
      << string::ctime(obj.get_last_time_unknown())
      << "\n  last_time_critical:                   "
      << string::ctime(obj.get_last_time_critical())
-     << "\n  has_been_checked:                     "
-     << obj.has_been_checked()
+     << "\n  has_been_checked:                     " << obj.has_been_checked()
      << "\n  is_being_freshened:                   "
      << obj.get_is_being_freshened()
      << "\n  notified_on_unknown:                  "
@@ -1850,8 +1849,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       queued_check_result->get_early_timeout(),
       queued_check_result->get_return_code(), nullptr, nullptr);
 
-  if (!(reschedule_check && get_should_be_scheduled() &&
-        has_been_checked()) ||
+  if (!(reschedule_check && get_should_be_scheduled() && has_been_checked()) ||
       !get_checks_enabled()) {
     /* set the checked flag */
     set_has_been_checked(true);

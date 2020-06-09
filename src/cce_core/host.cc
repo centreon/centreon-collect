@@ -3432,8 +3432,7 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
     if (dep->get_fail_on(state))
       return false;
 
-    if (state == host::state_up &&
-        !dep->master_host_ptr->has_been_checked() &&
+    if (state == host::state_up && !dep->master_host_ptr->has_been_checked() &&
         dep->get_fail_on_pending())
       return false;
 

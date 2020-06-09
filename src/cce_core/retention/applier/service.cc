@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/retention/applier/service.hh"
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"

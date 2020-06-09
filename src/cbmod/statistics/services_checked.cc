@@ -17,7 +17,9 @@
 */
 
 #include "com/centreon/broker/neb/statistics/services_checked.hh"
+
 #include <sstream>
+
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/engine/globals.hh"

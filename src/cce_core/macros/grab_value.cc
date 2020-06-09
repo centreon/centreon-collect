@@ -19,7 +19,9 @@
 */
 
 #include "com/centreon/engine/macros/grab_value.hh"
+
 #include <cstdlib>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -655,19 +657,26 @@ static int handle_summary_macro(nagios_macros* mac,
     mac->x[MACRO_TOTALHOSTSUP] = std::to_string(hosts_up);
     mac->x[MACRO_TOTALHOSTSDOWN] = std::to_string(hosts_down);
     mac->x[MACRO_TOTALHOSTSUNREACHABLE] = std::to_string(hosts_unreachable);
-    mac->x[MACRO_TOTALHOSTSDOWNUNHANDLED] = std::to_string(hosts_down_unhandled);
-    mac->x[MACRO_TOTALHOSTSUNREACHABLEUNHANDLED] = std::to_string(hosts_unreachable_unhandled);
+    mac->x[MACRO_TOTALHOSTSDOWNUNHANDLED] =
+        std::to_string(hosts_down_unhandled);
+    mac->x[MACRO_TOTALHOSTSUNREACHABLEUNHANDLED] =
+        std::to_string(hosts_unreachable_unhandled);
     mac->x[MACRO_TOTALHOSTPROBLEMS] = std::to_string(host_problems);
-    mac->x[MACRO_TOTALHOSTPROBLEMSUNHANDLED] = std::to_string(host_problems_unhandled);
+    mac->x[MACRO_TOTALHOSTPROBLEMSUNHANDLED] =
+        std::to_string(host_problems_unhandled);
     mac->x[MACRO_TOTALSERVICESOK] = std::to_string(services_ok);
     mac->x[MACRO_TOTALSERVICESWARNING] = std::to_string(services_warning);
     mac->x[MACRO_TOTALSERVICESCRITICAL] = std::to_string(services_critical);
     mac->x[MACRO_TOTALSERVICESUNKNOWN] = std::to_string(services_unknown);
-    mac->x[MACRO_TOTALSERVICESWARNINGUNHANDLED] = std::to_string(services_warning_unhandled);
-    mac->x[MACRO_TOTALSERVICESCRITICALUNHANDLED] = std::to_string(services_critical_unhandled);
-    mac->x[MACRO_TOTALSERVICESUNKNOWNUNHANDLED] = std::to_string(services_unknown_unhandled);
+    mac->x[MACRO_TOTALSERVICESWARNINGUNHANDLED] =
+        std::to_string(services_warning_unhandled);
+    mac->x[MACRO_TOTALSERVICESCRITICALUNHANDLED] =
+        std::to_string(services_critical_unhandled);
+    mac->x[MACRO_TOTALSERVICESUNKNOWNUNHANDLED] =
+        std::to_string(services_unknown_unhandled);
     mac->x[MACRO_TOTALSERVICEPROBLEMS] = std::to_string(service_problems);
-    mac->x[MACRO_TOTALSERVICEPROBLEMSUNHANDLED] = std::to_string(service_problems_unhandled);
+    mac->x[MACRO_TOTALSERVICEPROBLEMSUNHANDLED] =
+        std::to_string(service_problems_unhandled);
   }
 
   // Return only the macro the user requested.

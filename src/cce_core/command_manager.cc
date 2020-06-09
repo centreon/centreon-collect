@@ -23,8 +23,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 

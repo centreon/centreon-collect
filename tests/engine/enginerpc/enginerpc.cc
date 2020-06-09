@@ -20,6 +20,7 @@
 #include "com/centreon/engine/enginerpc.hh"
 
 #include <gtest/gtest.h>
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -268,12 +269,12 @@ TEST_F(EngineRpc, GetService) {
   th.join();
 
   std::vector<std::string> result_names(output.size());
-	std::copy(output.begin(), output.end(), result_names.begin());
+  std::copy(output.begin(), output.end(), result_names.begin());
 
   ASSERT_EQ(vectests, result_names);
 
   std::vector<std::string> result_ids(output2.size());
-	std::copy(output2.begin(), output2.end(), result_ids.begin());
+  std::copy(output2.begin(), output2.end(), result_ids.begin());
 
   ASSERT_EQ(vectests, result_ids);
   erpc.shutdown();

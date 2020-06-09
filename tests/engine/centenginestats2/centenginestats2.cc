@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <sstream>
 
 #define executable "bin/centenginestats2"

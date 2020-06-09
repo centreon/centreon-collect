@@ -21,7 +21,9 @@
 */
 
 #include "com/centreon/engine/globals.hh"
+
 #include <map>
+
 #include "com/centreon/engine/logging/logger.hh"
 #include "compatibility/nagios.h"
 
