@@ -23,7 +23,7 @@ configure_file(
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include/)
 
-add_library(centreon-clib
+add_library(centreon_clib
   SHARED
   ${CMAKE_SOURCE_DIR}/src/clib/clib/version.cc
   ${CMAKE_SOURCE_DIR}/src/clib/exceptions/basic.cc
@@ -49,9 +49,9 @@ add_library(centreon-clib
   ${CMAKE_SOURCE_DIR}/src/clib/timestamp.cc
   )
 
-target_include_directories(centreon-clib PUBLIC ${CMAKE_BINARY_DIR})
-target_include_directories(centreon-clib PUBLIC ${CMAKE_SOURCE_DIR}/include/)
-target_link_libraries(centreon-clib PUBLIC dl pthread)
-target_compile_features(centreon-clib PUBLIC cxx_std_11)
+target_include_directories(centreon_clib PUBLIC ${CMAKE_BINARY_DIR})
+target_include_directories(centreon_clib PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+target_link_libraries(centreon_clib PUBLIC dl pthread)
+target_compile_features(centreon_clib PUBLIC cxx_std_11)
 
-install(TARGETS centreon-clib COMPONENT clib DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS centreon_clib COMPONENT clib DESTINATION ${CMAKE_INSTALL_LIBDIR})

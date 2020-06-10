@@ -17,4 +17,4 @@ add_executable(clib-ut
   ${CMAKE_SOURCE_DIR}/tests/clib/task_manager.cc
   ${CMAKE_SOURCE_DIR}/tests/clib/timestamp.cc
   ${CMAKE_SOURCE_DIR}/tests/clib/version.cc)
-target_link_libraries(clib-ut CONAN_PKG::gtest centreon-clib)
+target_link_libraries(clib-ut CONAN_PKG::gtest centreon_clib)

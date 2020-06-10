@@ -12,8 +12,7 @@ set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 
-project (my_project)
-cmake_minimum_required (VERSION 2.8)
+project (centreon_collect)
 
 set(CPACK_RPM_COMPONENT_INSTALL IGNORE)
 set(CPACK_COMPONENTS_ALL broker clib connector-perl connector-ssh engine-daemon engine-extcommands)

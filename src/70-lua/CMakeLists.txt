@@ -34,3 +34,4 @@ add_library(70-lua SHARED
 
 target_link_libraries(70-lua CONAN_PKG::lua CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(70-lua PROPERTIES PREFIX "")
+install(TARGETS 70-lua DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

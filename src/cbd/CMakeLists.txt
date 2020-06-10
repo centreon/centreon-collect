@@ -35,7 +35,7 @@ target_link_libraries(cbd
 set_target_properties(cbd PROPERTIES COMPILE_FLAGS "-fPIC")
 
 install(TARGETS cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})
-install(FILES ${CMAKE_BINARY_DIR}/cbd.service DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
+install(FILES ${CMAKE_BINARY_DIR}/cbd.service DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
 install(FILES ${CMAKE_BINARY_DIR}/central-broker.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
 install(FILES ${CMAKE_BINARY_DIR}/central-rrd.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
 install(FILES ${CMAKE_BINARY_DIR}/poller-module.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)

@@ -34,5 +34,5 @@ add_executable(centreon_connector_ssh
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/sessions/session.cc
   ${CMAKE_SOURCE_DIR}/src/connectors/ssh/sessions/socket_handle.cc
 )
-target_link_libraries(centreon_connector_ssh CONAN_PKG::libssh2 centreon-clib CONAN_PKG::spdlog pthread)
+target_link_libraries(centreon_connector_ssh CONAN_PKG::libssh2 centreon_clib CONAN_PKG::spdlog pthread)
 install(TARGETS centreon_connector_ssh COMPONENT connector-ssh DESTINATION ${CMAKE_INSTALL_LIBDIR}/centreon-connector)

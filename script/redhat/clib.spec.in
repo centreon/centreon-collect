@@ -26,7 +26,7 @@ mv "@CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot/clib" $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%{_libdir}/libcentreon-clib.so
+%{_libdir}/libcentreon_clib.so
 
 %changelog
 * Thu May 28 2020 Sylvestre Gallon <sgallon@centreon.com> 1.0.0-1
