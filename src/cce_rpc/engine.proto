@@ -249,7 +249,7 @@ message EngineHost {
   uint32 id = 5;
   enum State {
 	  UP = 0;
-		DOWN = 1;
+    DOWN = 1;
 	  UNREACHABLE = 2;
   }
   State current_state = 6;
