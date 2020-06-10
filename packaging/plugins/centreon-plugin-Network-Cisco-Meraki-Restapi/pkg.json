@@ -7,5 +7,6 @@
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
         "network/cisco/meraki/cloudcontroller/restapi/"
-    ]
+    ],
+    "custom_pkg_data": "Obsoletes:    centreon-plugin-Network-Cisco-Meraki-Restap"
 }
