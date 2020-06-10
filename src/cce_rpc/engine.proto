@@ -245,7 +245,14 @@ message EngineHost {
   string name = 1;
   string alias = 2;
   string address = 3;
-  uint32 id = 4;
+  string check_period = 4;
+  uint32 id = 5;
+  enum State {
+	  UP = 0;
+		DOWN = 1;
+	  UNREACHABLE = 2;
+  }
+  State current_state = 6;
 }
 
 message ContactIdentifier {
@@ -270,8 +277,8 @@ message IdIdentifier {
 
 message ServiceIdentifier {
   oneof identifier {
-		NameIdentifier names = 1;
-		IdIdentifier ids = 2;
+    NameIdentifier names = 1;
+    IdIdentifier ids = 2;
   }
 }
 
@@ -280,4 +287,12 @@ message EngineService {
   uint32 service_id = 2;
   string host_name = 3;
   string description = 4;
+  string check_period = 5;
+  enum State {
+	  OK = 0;
+	  WARNING = 1;
+	  CRITICAL = 2;
+	  UNKNOWN = 3;
+	}
+  State current_state = 6;
 }
