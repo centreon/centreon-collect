@@ -14,7 +14,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|...>"
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -30,7 +30,7 @@ rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Pull latest build dependencies.
-BUILD_IMG="registry.centreon.com/build-dependencies-agent:centos7"
+BUILD_IMG="registry.centreon.com/build-dependencies-agent:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
@@ -40,14 +40,20 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input ou
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos7' ] ; then
-  DISTRIB='el7'
+  DISTRIB=el7
+elif [ "$DISTRIB" = 'centos8' ] ; then
+  DISTRIB=el8
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-put_internal_rpms "20.04" "$DISTRIB" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+if [ "$DISTRIB" = el7 ] ; then
+  put_internal_rpms "20.04" "$DISTRIB" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
+fi
 put_internal_rpms "20.10" "$DISTRIB" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "20.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_canary "standard" "20.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  if [ "$DISTRIB" = el7 ] ; then
+    copy_internal_rpms_to_canary "standard" "20.04" "$DISTRIB" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  fi
+  copy_internal_rpms_to_canary "standard" "20.10" "$DISTRIB" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
 fi
