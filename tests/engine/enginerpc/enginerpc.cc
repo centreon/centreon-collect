@@ -139,6 +139,27 @@ TEST_F(EngineRpc, StartStop) {
   ASSERT_NO_THROW(erpc.shutdown());
 }
 
+/* calls command manager in an other thread (function is used for units tests)
+ */
+static void call_command_manager(std::unique_ptr<std::thread>& th,
+                                 std::condition_variable* condvar,
+                                 std::mutex* mutex,
+                                 bool* continuerunning) {
+  auto fn = [continuerunning, mutex, condvar]() {
+    std::unique_lock<std::mutex> lock(*mutex);
+    while (true) {
+      command_manager::instance().execute();
+      if (condvar->wait_for(
+              lock, std::chrono::milliseconds(50),
+              [continuerunning]() -> bool { return *continuerunning; })) {
+        break;
+      }
+    }
+  };
+
+  th.reset(new std::thread(fn));
+}
+
 TEST_F(EngineRpc, GetVersion) {
   std::ostringstream oss;
   oss << "GetVersion: major: " << CENTREON_ENGINE_VERSION_MAJOR;
@@ -159,26 +180,21 @@ TEST_F(EngineRpc, GetVersion) {
 
 TEST_F(EngineRpc, GetHost) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  std::vector<std::string> vectests = {"GetHost", "Host name: test_host",
-                                       "Host alias: test_host", "Host id: 12",
-                                       "Host address: 127.0.0.1"};
+  std::vector<std::string> vectests = {"GetHost",
+                                       "Host name: test_host",
+                                       "Host alias: test_host",
+                                       "Host id: 12",
+                                       "Host address: 127.0.0.1",
+                                       "Host state: 1",
+                                       "Host period: test_period"};
+  _host->set_current_state(engine::host::state_down);
+  _host->set_check_period("test_period");
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
-
-  std::thread th(fn);
   auto output = execute("GetHost byhostid 12");
   auto output2 = execute("GetHost byhostname test_host");
   {
@@ -186,7 +202,7 @@ TEST_F(EngineRpc, GetHost) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   std::vector<std::string> result_ids(output.size());
   std::copy(output.begin(), output.end(), result_ids.begin());
@@ -202,63 +218,49 @@ TEST_F(EngineRpc, GetHost) {
 
 TEST_F(EngineRpc, GetContact) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  std::vector<std::string> vectests = {"admin", "admin", "admin@centreon.com"};
+  std::vector<std::string> vectests = {"GetContact", "admin", "admin",
+                                       "admin@centreon.com"};
   int j = 0;
   _contact->set_email("admin@centreon.com");
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetContact admin");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
-  std::list<std::string>::const_iterator it = output.begin();
-  ++it;
-  for (; it != output.end() && j < vectests.size(); ++it, ++j)
-    ASSERT_EQ(it->c_str(), vectests[j]);
+  std::vector<std::string> result_names(output.size());
+  std::copy(output.begin(), output.end(), result_names.begin());
+
+  ASSERT_EQ(vectests, result_names);
   erpc.shutdown();
 }
 
 TEST_F(EngineRpc, GetService) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  std::vector<std::string> vectests = {"GetService", "Host id: 12",
-                                       "Service id: 13", "Host name: test_host",
-                                       "Serv desc: test_svc"};
+  std::vector<std::string> vectests = {"GetService",
+                                       "Host id: 12",
+                                       "Service id: 13",
+                                       "Host name: test_host",
+                                       "Serv desc: test_svc",
+                                       "Service state: 2",
+                                       "Service period: test_period"};
+  _svc->set_current_state(engine::service::state_critical);
+  _svc->set_check_period("test_period");
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
-
-  std::thread th(fn);
   auto output = execute("GetService bynames test_host test_svc");
   auto output2 = execute("GetService byids 12 13");
   {
@@ -266,7 +268,7 @@ TEST_F(EngineRpc, GetService) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   std::vector<std::string> result_names(output.size());
   std::copy(output.begin(), output.end(), result_names.begin());
@@ -282,30 +284,20 @@ TEST_F(EngineRpc, GetService) {
 
 TEST_F(EngineRpc, GetHostsCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetHostsCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
@@ -313,30 +305,20 @@ TEST_F(EngineRpc, GetHostsCount) {
 
 TEST_F(EngineRpc, GetContactsCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetContactsCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
@@ -344,30 +326,20 @@ TEST_F(EngineRpc, GetContactsCount) {
 
 TEST_F(EngineRpc, GetServicesCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetServicesCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "2");
   erpc.shutdown();
@@ -375,30 +347,20 @@ TEST_F(EngineRpc, GetServicesCount) {
 
 TEST_F(EngineRpc, GetServiceGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetServiceGroupsCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -406,30 +368,20 @@ TEST_F(EngineRpc, GetServiceGroupsCount) {
 
 TEST_F(EngineRpc, GetContactGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetContactGroupsCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -437,30 +389,20 @@ TEST_F(EngineRpc, GetContactGroupsCount) {
 
 TEST_F(EngineRpc, GetHostGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetHostGroupsCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -468,30 +410,20 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
 
 TEST_F(EngineRpc, GetServiceDependenciesCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetServiceDependenciesCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -499,30 +431,20 @@ TEST_F(EngineRpc, GetServiceDependenciesCount) {
 
 TEST_F(EngineRpc, GetHostDependenciesCount) {
   enginerpc erpc("0.0.0.0", 40001);
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  auto fn = [&continuerunning, &mutex, &condvar]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (true) {
-      command_manager::instance().execute();
-      if (condvar.wait_for(
-              lock, std::chrono::milliseconds(50),
-              [&continuerunning]() -> bool { return continuerunning; })) {
-        break;
-      }
-    }
-  };
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  std::thread th(fn);
   auto output = execute("GetHostDependenciesCount");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();

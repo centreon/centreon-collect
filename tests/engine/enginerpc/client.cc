@@ -369,6 +369,8 @@ int main(int argc, char** argv) {
       std::cout << "Host alias: " << response.alias() << std::endl;
       std::cout << "Host id: " << response.id() << std::endl;
       std::cout << "Host address: " << response.address() << std::endl;
+      std::cout << "Host state: " << response.current_state() << std::endl;
+      std::cout << "Host period: " << response.check_period() << std::endl;
     } else if (strcmp(argv[2], "byhostname") == 0) {
       EngineHost response;
       std::string str(argv[3]);
@@ -378,6 +380,8 @@ int main(int argc, char** argv) {
       std::cout << "Host alias: " << response.alias() << std::endl;
       std::cout << "Host id: " << response.id() << std::endl;
       std::cout << "Host address: " << response.address() << std::endl;
+      std::cout << "Host state: " << response.current_state() << std::endl;
+      std::cout << "Host period: " << response.check_period() << std::endl;
     }
   } else if (strcmp(argv[1], "GetContact") == 0) {
     if (argc != 3) {
@@ -409,6 +413,8 @@ int main(int argc, char** argv) {
       std::cout << "Service id: " << response.service_id() << std::endl;
       std::cout << "Host name: " << response.host_name() << std::endl;
       std::cout << "Serv desc: " << response.description() << std::endl;
+      std::cout << "Service state: " << response.current_state() << std::endl;
+      std::cout << "Service period: " << response.check_period() << std::endl;
     } else if (strcmp(argv[2], "byids") == 0) {
       EngineService response;
       uint32_t hostid = atoi(argv[3]);
@@ -419,6 +425,8 @@ int main(int argc, char** argv) {
       std::cout << "Service id: " << response.service_id() << std::endl;
       std::cout << "Host name: " << response.host_name() << std::endl;
       std::cout << "Serv desc: " << response.description() << std::endl;
+      std::cout << "Service state: " << response.current_state() << std::endl;
+      std::cout << "Service period: " << response.check_period() << std::endl;
     }
   }
   exit(status);
