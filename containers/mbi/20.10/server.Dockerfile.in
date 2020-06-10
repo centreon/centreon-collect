@@ -12,7 +12,7 @@ COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install packages.
 RUN yum --disablerepo='*' --enablerepo='centreon*' clean all
-RUN yum install centreon-bi-reporting-server mysql-server
+RUN yum install centreon-bi-reporting-server MariaDB-server
 
 # Copy configuration files.
 COPY mbi/20.10/cbis-profile.xml /etc/centreon-bi/cbis-profile.xml
