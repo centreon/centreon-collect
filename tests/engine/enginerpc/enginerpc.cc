@@ -141,7 +141,7 @@ TEST_F(EngineRpc, StartStop) {
 
 /* calls command manager in an other thread (function is used for units tests)
  */
-static void call_command_manager(std::thread* th,
+static void call_command_manager(std::unique_ptr<std::thread>& th,
                                  std::condition_variable* condvar,
                                  std::mutex* mutex,
                                  bool* continuerunning) {
@@ -157,8 +157,7 @@ static void call_command_manager(std::thread* th,
     }
   };
 
-  *th = std::thread(fn);
-  return;
+  th.reset(new std::thread(fn));
 }
 
 TEST_F(EngineRpc, GetVersion) {
@@ -181,7 +180,7 @@ TEST_F(EngineRpc, GetVersion) {
 
 TEST_F(EngineRpc, GetHost) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -194,7 +193,7 @@ TEST_F(EngineRpc, GetHost) {
                                        "Host period: test_period"};
   _host->set_current_state(engine::host::state_down);
   _host->set_check_period("test_period");
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetHost byhostid 12");
   auto output2 = execute("GetHost byhostname test_host");
@@ -203,7 +202,7 @@ TEST_F(EngineRpc, GetHost) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   std::vector<std::string> result_ids(output.size());
   std::copy(output.begin(), output.end(), result_ids.begin());
@@ -219,7 +218,7 @@ TEST_F(EngineRpc, GetHost) {
 
 TEST_F(EngineRpc, GetContact) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -228,7 +227,7 @@ TEST_F(EngineRpc, GetContact) {
   int j = 0;
   _contact->set_email("admin@centreon.com");
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetContact admin");
   {
@@ -236,7 +235,7 @@ TEST_F(EngineRpc, GetContact) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   std::vector<std::string> result_names(output.size());
   std::copy(output.begin(), output.end(), result_names.begin());
@@ -247,7 +246,7 @@ TEST_F(EngineRpc, GetContact) {
 
 TEST_F(EngineRpc, GetService) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -260,7 +259,7 @@ TEST_F(EngineRpc, GetService) {
                                        "Service period: test_period"};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_check_period("test_period");
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetService bynames test_host test_svc");
   auto output2 = execute("GetService byids 12 13");
@@ -269,7 +268,7 @@ TEST_F(EngineRpc, GetService) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   std::vector<std::string> result_names(output.size());
   std::copy(output.begin(), output.end(), result_names.begin());
@@ -285,12 +284,12 @@ TEST_F(EngineRpc, GetService) {
 
 TEST_F(EngineRpc, GetHostsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetHostsCount");
   {
@@ -298,7 +297,7 @@ TEST_F(EngineRpc, GetHostsCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
@@ -306,12 +305,12 @@ TEST_F(EngineRpc, GetHostsCount) {
 
 TEST_F(EngineRpc, GetContactsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetContactsCount");
   {
@@ -319,7 +318,7 @@ TEST_F(EngineRpc, GetContactsCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
@@ -327,12 +326,12 @@ TEST_F(EngineRpc, GetContactsCount) {
 
 TEST_F(EngineRpc, GetServicesCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetServicesCount");
   {
@@ -340,7 +339,7 @@ TEST_F(EngineRpc, GetServicesCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "2");
   erpc.shutdown();
@@ -348,12 +347,12 @@ TEST_F(EngineRpc, GetServicesCount) {
 
 TEST_F(EngineRpc, GetServiceGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetServiceGroupsCount");
   {
@@ -361,7 +360,7 @@ TEST_F(EngineRpc, GetServiceGroupsCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -369,12 +368,12 @@ TEST_F(EngineRpc, GetServiceGroupsCount) {
 
 TEST_F(EngineRpc, GetContactGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetContactGroupsCount");
   {
@@ -382,7 +381,7 @@ TEST_F(EngineRpc, GetContactGroupsCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -390,12 +389,12 @@ TEST_F(EngineRpc, GetContactGroupsCount) {
 
 TEST_F(EngineRpc, GetHostGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetHostGroupsCount");
   {
@@ -403,7 +402,7 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -411,12 +410,12 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
 
 TEST_F(EngineRpc, GetServiceDependenciesCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetServiceDependenciesCount");
   {
@@ -424,7 +423,7 @@ TEST_F(EngineRpc, GetServiceDependenciesCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
@@ -432,12 +431,12 @@ TEST_F(EngineRpc, GetServiceDependenciesCount) {
 
 TEST_F(EngineRpc, GetHostDependenciesCount) {
   enginerpc erpc("0.0.0.0", 40001);
-  std::thread th;
+	std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
 
-  call_command_manager(&th, &condvar, &mutex, &continuerunning);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("GetHostDependenciesCount");
   {
@@ -445,7 +444,7 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
     continuerunning = true;
   }
   condvar.notify_one();
-  th.join();
+  th->join();
 
   ASSERT_EQ(output.back(), "0");
   erpc.shutdown();
