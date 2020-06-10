@@ -17,18 +17,36 @@
 */
 
 #include <gtest/gtest.h>
+
 #include <fstream>
+
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 
 using namespace com::centreon::broker;
 
-void create_conf(std::string const& filename, std::string const& content) {
+static std::list<int32_t> get_pid(std::string const& name) {
+  std::string r = misc::exec("ps ax");
+  std::list<std::string> spl = misc::string::split(r, '\n');
+  std::list<int32_t> pids;
+  for (auto const& l : spl) {
+    if (l.find(name) == std::string::npos ||
+        l.find("grep") != std::string::npos ||
+        l.find("defunc") != std::string::npos)
+      continue;
+    else
+      pids.push_back(atoi(l.c_str()));
+  }
+  return pids;
+}
+
+static void create_conf(std::string const& filename,
+                        std::string const& content) {
   std::ofstream oss(filename);
   oss << content;
 }
 
-void remove_file(std::string const& filename) {
+static void remove_file(std::string const& filename) {
   std::remove(filename.c_str());
 }
 
@@ -45,17 +63,19 @@ TEST(WatchdogTest, NoConfig) {
 TEST(WatchdogTest, NotExistingConfig) {
   std::string result = com::centreon::broker::misc::exec("bin/cbwd foo");
   ASSERT_EQ(
-      "ERROR: could not parse the configuration file 'foo': config parser: "
+      "[cbwd] [error] watchdog: Could not parse the configuration file 'foo': "
+      "config parser: "
       "cannot read file 'foo': No such file or directory\n",
       result);
 }
 
 TEST(WatchdogTest, BadConfig) {
   std::string result = com::centreon::broker::misc::exec(
-      "bin/cbwd " CENTREON_BROKER_WD_TEST "/bad-config.json");
+      "bin/cbwd " CENTREON_BROKER_WD_TEST "bad-config.json");
   char const* str =
-      "ERROR: could not parse the configuration file '" CENTREON_BROKER_WD_TEST
-      "/bad-config.json': reload field not provided for cbd instance\n";
+      "[cbwd] [error] watchdog: Could not parse the configuration file "
+      "'" CENTREON_BROKER_WD_TEST
+      "bad-config.json': reload field not provided for cbd instance\n";
   ASSERT_EQ(std::string(str), result);
 }
 
@@ -66,7 +86,7 @@ TEST(WatchdogTest, SimpleConfig) {
       "   \"cbd\": [\n"
       "      {\n"
       "        \"executable\": \"" CENTREON_BROKER_WD_TEST
-      "/tester\",\n"
+      "tester\",\n"
       "        \"name\": \"central-broker-master\",\n"
       "        \"configuration_file\": \"Master\",\n"
       "        \"run\": true,\n"
@@ -74,7 +94,7 @@ TEST(WatchdogTest, SimpleConfig) {
       "      },\n"
       "      {\n"
       "        \"executable\": \"" CENTREON_BROKER_WD_TEST
-      "/tester\",\n"
+      "tester\",\n"
       "        \"name\": \"central-rrd-master\",\n"
       "        \"configuration_file\": \"Slave\",\n"
       "        \"run\": true,\n"
@@ -87,40 +107,42 @@ TEST(WatchdogTest, SimpleConfig) {
   create_conf("/tmp/simple-conf.json", content);
   char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
   com::centreon::broker::misc::exec_process(arg, false);
-  std::string r =
-      misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
-  std::list<std::string> lst = misc::string::split(r, '\n');
+
+  std::list<int32_t> pids = get_pid("tester");
+  int32_t count = 100;
+  while (count > 0 && pids.size() < 2u) {
+    usleep(100);
+    pids = get_pid("tester");
+    count--;
+  }
+
   // There are 3 elements, but the last one is empty
-  ASSERT_EQ(lst.size(), 3u);
-  ASSERT_TRUE(lst.back().empty());
+  ASSERT_EQ(pids.size(), 2u);
 
   // We send a term signal to one child
-  int pid = std::stol(lst.front());
+  int32_t pid = pids.front();
   kill(pid, SIGTERM);
 
   // We wait for the next event
   sleep(5);
-  r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
-  lst = misc::string::split(r, '\n');
-  // There are still 3 elements, the lost child is resurrected
-  ASSERT_EQ(lst.size(), 3u);
-  ASSERT_TRUE(lst.back().empty());
+  pids = get_pid("tester");
+  ASSERT_EQ(pids.size(), 2u);
 
   // We send a term signal to cbwd
-  r = misc::exec(
-      "ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
-  pid = std::stol(r);
+  // the space after cbwd is important to avoid confusion with cbwd_ut
+  pids = get_pid("bin/cbwd ");
+  ASSERT_EQ(pids.size(), 1u);
+  pid = pids.front();
   kill(pid, SIGTERM);
   sleep(2);
 
   // No tester anymore.
-  r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
-  ASSERT_EQ(r, "");
+  pids = get_pid("tester");
+  ASSERT_TRUE(pids.empty());
 
-  r = misc::exec(
-      "ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
-  // No cbwd anymore.
-  ASSERT_EQ(r, "");
+  // the space after cbwd is important to avoid confusion with cbwd_ut
+  pids = get_pid("bin/cbwd ");
+  ASSERT_TRUE(pids.empty());
 }
 
 TEST(WatchdogTest, SimpleConfigUpdated) {
@@ -130,7 +152,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
       "   \"cbd\": [\n"
       "      {\n"
       "        \"executable\": \"" CENTREON_BROKER_WD_TEST
-      "/tester-echo\",\n"
+      "tester-echo\",\n"
       "        \"name\": \"central-broker-master\",\n"
       "        \"configuration_file\": \"Master\",\n"
       "        \"run\": true,\n"
@@ -138,7 +160,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
       "      },\n"
       "      {\n"
       "        \"executable\": \"" CENTREON_BROKER_WD_TEST
-      "/tester-echo\",\n"
+      "tester-echo\",\n"
       "        \"name\": \"central-rrd-master\",\n"
       "        \"configuration_file\": \"Slave\",\n"
       "        \"run\": true,\n"
@@ -154,7 +176,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
       "   \"cbd\": [\n"
       "      {\n"
       "        \"executable\": \"" CENTREON_BROKER_WD_TEST
-      "/tester-echo\",\n"
+      "tester-echo\",\n"
       "        \"name\": \"central-rrd-master\",\n"
       "        \"configuration_file\": \"Slave\",\n"
       "        \"run\": true,\n"
@@ -162,7 +184,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
       "      },\n"
       "      {\n"
       "        \"executable\": \"" CENTREON_BROKER_WD_TEST
-      "/tester-echo\",\n"
+      "tester-echo\",\n"
       "        \"name\": \"central-broker-master\",\n"
       "        \"configuration_file\": \"God\",\n"
       "        \"run\": true,\n"
@@ -176,41 +198,40 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
   char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
 
   com::centreon::broker::misc::exec_process(arg, false);
-  std::string r = misc::exec(
-      "ps ax | grep tester-echo | grep -v grep | grep -v defunc | awk '{print "
-      "$1}'");
-  std::list<std::string> lst = misc::string::split(r, '\n');
-  // There are 3 elements, but the last one is empty
-  ASSERT_EQ(lst.size(), 3u);
-  ASSERT_TRUE(lst.back().empty());
+
+  int32_t count = 100;
+  std::list<int32_t> lst = get_pid("tester-echo");
+  while (lst.size() < 2 && count > 0) {
+    usleep(100);
+    lst = get_pid("tester-echo");
+    count--;
+  }
+  ASSERT_EQ(lst.size(), 2u);
 
   // We change the configuration
   create_conf("/tmp/simple-conf.json", content2);
   // We send a sighup signal to cbwd
-  r = misc::exec(
-      "ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
-  int pid = std::stol(r);
+  lst = get_pid("bin/cbwd ");
+  ASSERT_FALSE(lst.empty());
+  int pid = lst.front();
   kill(pid, SIGHUP);
 
   int timeout = 20;
   do {
     sleep(1);
     // Testers are here again but with different pid.
-    r = misc::exec("ps ax | grep tester-echo | grep -v grep | grep -v defunc");
-    lst = misc::string::split(r, '\n');
+    lst = get_pid("tester-echo");
     // There are 3 elements, but the last one is empty
-  } while ((lst.size() < 3u || !lst.back().empty()) && --timeout > 0);
+  } while (lst.size() < 2u && --timeout > 0);
   ASSERT_GT(timeout, 0);
-  ASSERT_TRUE(lst.back().empty());
+  ASSERT_EQ(lst.size(), 2u);
 
   // We send a term signal to cbwd
   kill(pid, SIGTERM);
   timeout = 10;
   do {
     sleep(1);
-    r = misc::exec(
-        "ps ax | grep bin/cbwd | grep -v grep | grep -v defunc | awk "
-        "'{print $1}'");
-  } while (!r.empty());
+    lst = get_pid("bin/cbwd ");
+  } while (!lst.empty());
   ASSERT_GT(timeout, 0);
 }
