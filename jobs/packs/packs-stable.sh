@@ -25,6 +25,7 @@ promote_testing_rpms_to_stable "plugin-packs" "19.04" "el7" "noarch" "packs" "$P
 promote_testing_rpms_to_stable "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "20.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "plugin-packs" "20.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "plugin-packs" "20.10" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
 
 # Move cache files to the stable directory.
 TESTINGCACHE="/srv/cache/packs/testing/cache-$VERSION-$RELEASE"
