@@ -3,7 +3,7 @@
 set -e
 set -x
 
-. `dirname $0`/../common.sh
+. `dirname $0`/../../common.sh
 
 # Project.
 PROJECT=centreon-agent
@@ -36,7 +36,7 @@ docker pull "$BUILD_IMG"
 # Build RPMs.
 cp "$PROJECT-$VERSION.tar.gz" input/
 cp -r "$PROJECT-$VERSION/packaging/"* input/
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG" input output
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
 if [ "$DISTRIB" = 'centos7' ] ; then
