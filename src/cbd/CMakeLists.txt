@@ -34,8 +34,8 @@ target_link_libraries(cbd
   CONAN_PKG::grpc CONAN_PKG::protobuf CONAN_PKG::protoc_installer ccb_rpc)
 set_target_properties(cbd PROPERTIES COMPILE_FLAGS "-fPIC")
 
-install(TARGETS cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})
-install(FILES ${CMAKE_BINARY_DIR}/cbd.service DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
-install(FILES ${CMAKE_BINARY_DIR}/central-broker.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
-install(FILES ${CMAKE_BINARY_DIR}/central-rrd.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
-install(FILES ${CMAKE_BINARY_DIR}/poller-module.json DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/cbd.service COMPONENT broker-cbd DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
+install(FILES ${CMAKE_BINARY_DIR}/central-broker.json COMPONENT broker-cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/central-rrd.json COMPONENT broker-cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/poller-module.json DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
+install(TARGETS cbd COMPONENT broker-cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})

@@ -15,7 +15,7 @@ add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 project (centreon_collect)
 
 set(CPACK_RPM_COMPONENT_INSTALL IGNORE)
-set(CPACK_COMPONENTS_ALL broker clib connector-perl connector-ssh engine-daemon engine-extcommands)
+set(CPACK_COMPONENTS_ALL broker broker-cbd clib connector-perl connector-ssh engine-daemon engine-extcommands)
 set(CPACK_COMPONENTS_GROUPING "IGNORE")
 set(CPACK_PACKAGE_VERSION ${COLLECT_VERSION})
 set(CPACK_GENERATOR "RPM")
@@ -60,6 +60,12 @@ set(CPACK_PACKAGE_BROKER_PACKAGE_NAME "centreon-broker")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/broker.spec.in" "${CMAKE_BINARY_DIR}/broker.spec" @ONLY IMMEDIATE)
 set(CPACK_RPM_BROKER_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/broker.spec")
 set(CPACK_RPM_BROKER_FILE_NAME ${CPACK_PACKAGE_BROKER_PACKAGE_NAME}.rpm)
+
+#centreon-broker-cbd
+set(CPACK_PACKAGE_BROKER-CBD_PACKAGE_NAME "centreon-broker-cbd")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/broker-cbd.spec.in" "${CMAKE_BINARY_DIR}/broker-cbd.spec" @ONLY IMMEDIATE)
+set(CPACK_RPM_BROKER-CBD_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/broker-cbd.spec")
+set(CPACK_RPM_BROKER-CBD_FILE_NAME ${CPACK_PACKAGE_BROKER-CBD_PACKAGE_NAME}.rpm)
 
 include(CPack)
 

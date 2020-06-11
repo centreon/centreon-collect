@@ -16,8 +16,7 @@ configuration, designed to monitor hosts and services on your network.
 mv $RPM_BUILD_ROOT @CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot
 
 %install
-if [ -e $RPM_BUILD_ROOT ];
-then
+if [ -e $RPM_BUILD_ROOT ]; then
   rm -Rf $RPM_BUILD_ROOT
 fi
 mv "@CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot/engine-daemon" $RPM_BUILD_ROOT
