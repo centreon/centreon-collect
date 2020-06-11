@@ -4,6 +4,7 @@
     "plugin_name": "centreon_openldap_ldap.pl",
     "files": [
         "centreon/plugins/script_simple.pm",
+        "centreon/common/protocols/ldap/",
         "apps/openldap/ldap/"
     ]
 }
