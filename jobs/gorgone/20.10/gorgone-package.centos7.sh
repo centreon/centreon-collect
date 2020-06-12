@@ -15,6 +15,6 @@ docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.
 
 # Publish RPMs.
 put_internal_rpms "20.10" "el7" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BRANCH_NAME" '=' 'master' ] ; then
+if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_unstable "standard" "20.10" "el7" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE"
 fi
