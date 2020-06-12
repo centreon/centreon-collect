@@ -1,2 +1,2 @@
-                ['latest', '/docs/centreon-open-tickets/en/latest/'],
-                ['1.2.x', '/docs/centreon-open-tickets/en/1.2.x/']
+                ['latest', '/docs/centreon-open-tickets/@LANG@/latest/'],
+                ['1.2.x', '/docs/centreon-open-tickets/@LANG@/1.2.x/']

@@ -36,7 +36,7 @@ html_context = {
         'current_version': version,
         'versions': [
 EOF
-    cat >> "$lang/conf.py" < `dirname $0`"/restversions/$PROJECT"
+    sed "s/@LANG@/$lang/g" >> "$lang/conf.py" < `dirname $0`"/restversions/$PROJECT"
     cat >> "$lang/conf.py" << EOF
         ],
         'display_github': True,
