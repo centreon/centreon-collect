@@ -27,7 +27,7 @@
 #include <set>
 #include <unordered_map>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/configuration_parser.hh"
 #include "com/centreon/broker/watchdog/instance.hh"
@@ -35,16 +35,19 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::watchdog;
 
 static char const* help_msg = "USAGE: cbwd configuration_file";
 static char const* config_filename = nullptr;
 static bool should_exit{false};
-std::unique_ptr<spdlog::logger> logger;
+std::unique_ptr<spdlog::logger> logger; 
 static configuration config;
 static std::unordered_map<std::string, instance*> instances;
 static bool sighup{false};
+
+
 
 /**
  *  Print the help.
@@ -63,13 +66,14 @@ static void apply_new_configuration(configuration const& cfg) {
   console_sink->set_level(spdlog::level::warn);
   console_sink->set_pattern("[cbwd] [%^%l%$] %v");
 
-  if (config.get_log_filename() != cfg.get_log_filename()) {
-    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+  auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
         cfg.get_log_filename(), true);
     file_sink->set_level(spdlog::level::trace);
-    logger.reset(new spdlog::logger("cbwd", {console_sink, file_sink}));
+    
+  if (config.get_log_filename() != cfg.get_log_filename()) { 
+    logger.reset(new spdlog::logger("cbwd", {console_sink, file_sink})); 
   } else
-    logger.reset(new spdlog::logger("cbwd", {console_sink}));
+    logger.reset(new spdlog::logger("cbwd", {console_sink})); 
 
   std::set<std::string> to_update;
   std::set<std::string> to_delete;
@@ -170,8 +174,7 @@ static void set_signal_handlers() {
   if (::sigaction(SIGTERM, &sig, nullptr) < 0 ||
       ::sigaction(SIGINT, &sig, nullptr) < 0 ||
       ::sigaction(SIGHUP, &sig, nullptr) < 0)
-    throw com::centreon::broker::exceptions::msg()
-        << "can't set the signal handlers";
+    throw com::centreon::exceptions::msg_fmt("can't set the signal handlers");
 }
 
 /**
@@ -184,6 +187,12 @@ static void set_signal_handlers() {
  */
 int main(int argc, char** argv) {
   // Check arguments.
+  
+  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  console_sink->set_level(spdlog::level::warn);
+  console_sink->set_pattern("[cbwd] [%^%l%$] %v");
+  logger.reset( new spdlog::logger("cbwd",{console_sink}));
+
   if (argc != 2 || ::strcmp(argv[1], "-h") == 0) {
     print_help();
     return 0;
@@ -192,9 +201,10 @@ int main(int argc, char** argv) {
   config_filename = argv[1];
 
   configuration config;
+  
   try {
     configuration_parser parser;
-    config = parser.parse(config_filename);
+    config = parser.parse(config_filename);//
   } catch (std::exception const& e) {
     logger->error("watchdog: Could not parse the configuration file '{}': {}",
                   config_filename, e.what());

@@ -63,9 +63,8 @@ TEST(WatchdogTest, NoConfig) {
 TEST(WatchdogTest, NotExistingConfig) {
   std::string result = com::centreon::broker::misc::exec("bin/cbwd foo");
   ASSERT_EQ(
-      "[cbwd] [error] watchdog: Could not parse the configuration file 'foo': "
-      "config parser: "
-      "cannot read file 'foo': No such file or directory\n",
+      "[cbwd] [error] watchdog: Could not parse the configuration file 'foo':"
+      " Config parser: Cannot read file 'foo': No such file or directory\n",
       result);
 }
 
@@ -77,6 +76,25 @@ TEST(WatchdogTest, BadConfig) {
       "'" CENTREON_BROKER_WD_TEST
       "bad-config.json': reload field not provided for cbd instance\n";
   ASSERT_EQ(std::string(str), result);
+}
+
+//test CbdArray//
+TEST(WatchdogTest, CbdArray) {
+  std::string const& content{
+        "{\n"
+        "  \"centreonBroker\": {\n"
+        "   \"cbd\": \"var\"\n"
+        "   }\n"
+        "}\n"};
+    create_conf("/tmp/cbd-array-conf.json", content);
+    char const* arg[]{"bin/cbwd", "/tmp/cbd-array-conf.json", nullptr};
+    char const* str = "[cbwd] [error] watchdog: Could not parse the configuration file "
+      "'cbd-array-config.json': Config parser: Cannot read file 'cbd-array-config.json': "
+      "No such file or directory\n";
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd cbd-array-config.json"
+    );
+    ASSERT_EQ(std::string(str), result);
 }
 
 TEST(WatchdogTest, SimpleConfig) {
