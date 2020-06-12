@@ -60,6 +60,6 @@ EOF
 
     # Upload documentation.
     put_internal_source "docrest" "docrest-$BUILD_NUMBER" "html-$lang"
-    $SSH_REPO aws s3 sync --acl public-read "/srv/internal/docrest/docrest-$BUILD_NUMBER/html-$lang" "s3://centreon-documentation-preprod/docs/$PROJECT/$lang/$DOCTAG"
+    $SSH_REPO aws s3 sync --acl public-read "/srv/sources/internal/docrest/docrest-$BUILD_NUMBER/html-$lang" "s3://centreon-documentation-preprod/docs/$PROJECT/$lang/$DOCTAG"
   fi
 done
