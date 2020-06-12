@@ -1,5 +1,5 @@
-                ['latest', '/docs/centreon/en/latest/'],
-                ['19.10', '/docs/centreon/en/19.10/'],
-                ['19.04', '/docs/centreon/en/19.04/'],
-                ['18.10', '/docs/centreon/en/18.10/'],
-                ['2.8', '/docs/centreon/en/2.8/']
+                ['latest', '/docs/centreon/@LANG@/latest/'],
+                ['19.10', '/docs/centreon/@LANG@/19.10/'],
+                ['19.04', '/docs/centreon/@LANG@/19.04/'],
+                ['18.10', '/docs/centreon/@LANG@/18.10/'],
+                ['2.8', '/docs/centreon/@LANG@/2.8/']
