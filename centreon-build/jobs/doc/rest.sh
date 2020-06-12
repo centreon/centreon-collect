@@ -35,11 +35,9 @@ html_context = {
         'READTHEDOCS': True,
         'current_version': version,
         'versions': [
-                ['latest', '/docs/$PROJECT/en/latest/'],
-                ['19.10', '/docs/$PROJECT/en/19.10/'],
-                ['19.04', '/docs/$PROJECT/en/19.04/'],
-                ['18.10', '/docs/$PROJECT/en/18.10/'],
-                ['2.8', '/docs/$PROJECT/en/2.8/']
+EOF
+    cat >> "$lang/conf.py" < `dirname $0`"/restversions/$PROJECT"
+    cat >> "$lang/conf.py" << EOF
         ],
         'display_github': True,
         'github_user': 'centreon',
