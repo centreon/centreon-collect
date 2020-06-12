@@ -10,6 +10,9 @@ if [ -z "$PROJECT" -o -z "$COMMIT" -o -z "$DOCTAG" ] ; then
   echo "You need to specify PROJECT, COMMIT and DOCTAG environment variables."
   exit 1
 fi
+if [ -z "$GITREPO" ] ; then
+  GITREPO="$PROJECT"
+fi
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 
 # Pull build image.
@@ -18,8 +21,8 @@ docker pull "$BUILD_IMAGE"
 
 # Checkout sources.
 rm -rf "$PROJECT"
-git clone "ssh://git@github.com/centreon/$PROJECT"
-cd "$PROJECT"
+git clone "ssh://git@github.com/centreon/$GITREPO"
+cd "$GITREPO"
 git checkout "$COMMIT"
 cd doc
 
@@ -41,7 +44,7 @@ EOF
         ],
         'display_github': True,
         'github_user': 'centreon',
-        'github_repo': '$PROJECT',
+        'github_repo': '$GITREPO',
         'github_version': '$COMMIT/',
         'conf_py_path': 'doc/$lang/'
 }
