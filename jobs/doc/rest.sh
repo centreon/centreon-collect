@@ -20,7 +20,7 @@ BUILD_IMAGE=registry.centreon.com/sphinx
 docker pull "$BUILD_IMAGE"
 
 # Checkout sources.
-rm -rf "$PROJECT"
+rm -rf "$GITREPO"
 git clone "ssh://git@github.com/centreon/$GITREPO"
 cd "$GITREPO"
 git checkout "$COMMIT"
