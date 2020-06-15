@@ -1,6 +1,5 @@
 {
     "dependencies": [
-        "libjson-perl",
-        "libwww-curl-perl"
+        "libjson-perl"
     ]
 }
