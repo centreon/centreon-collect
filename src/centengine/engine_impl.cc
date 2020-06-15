@@ -65,8 +65,8 @@ grpc::Status engine_impl::GetVersion(
   return grpc::Status::OK;
 }
 
-grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
-                                   const GenericString* request,
+grpc::Status engine_impl::GetStats(grpc::ServerContext* context __attribute__((unused)),
+                                   const GenericString* request __attribute__((unused)),
                                    Stats* response) {
   auto fn = std::packaged_task<int(void)>(
       std::bind(&command_manager::get_stats, &command_manager::instance(),
@@ -84,13 +84,13 @@ grpc::Status engine_impl::GetStats(grpc::ServerContext* /*context*/,
  * @brief Return host informations.
  *
  * @param context gRPC context
- * @param request Host's identifier
+ * @param request Host's identifier (it can be a hostname or a hostid)
  * @param response The filled fields
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
-                                  const HostIdentifier* request,
+grpc::Status engine_impl::GetHost(grpc::ServerContext* context __attribute__((unused)),
+                                  const HostIdentifier* request __attribute__((unused)),
                                   EngineHost* response) {
   auto fn =
       std::packaged_task<int(void)>([request, host = response]() -> int32_t {
@@ -145,7 +145,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context,
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::GetContact(grpc::ServerContext* context,
+grpc::Status engine_impl::GetContact(grpc::ServerContext* context __attribute__((unused)),
                                      const ContactIdentifier* request,
                                      EngineContact* response) {
   auto fn =
@@ -177,7 +177,7 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context,
  * @brief Return service informations.
  *
  * @param context gRPC context
- * @param request Service's identifier
+ * @param request Service's identifier (it can be a hostname & servicename or a hostid & serviceid)
  * @param response The filled fields
  *
  * @return Status::OK
@@ -243,8 +243,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
  * @return Status::OK
  */
 grpc::Status engine_impl::GetHostsCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return host::hosts.size(); });
@@ -267,8 +267,8 @@ grpc::Status engine_impl::GetHostsCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetContactsCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return contact::contacts.size(); });
@@ -291,8 +291,8 @@ grpc::Status engine_impl::GetContactsCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetServicesCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return service::services.size(); });
@@ -314,8 +314,8 @@ grpc::Status engine_impl::GetServicesCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetServiceGroupsCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return servicegroup::servicegroups.size(); });
@@ -337,8 +337,8 @@ grpc::Status engine_impl::GetServiceGroupsCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetContactGroupsCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return contactgroup::contactgroups.size(); });
@@ -360,8 +360,8 @@ grpc::Status engine_impl::GetContactGroupsCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetHostGroupsCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return hostgroup::hostgroups.size(); });
@@ -383,8 +383,8 @@ grpc::Status engine_impl::GetHostGroupsCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetServiceDependenciesCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>([]() -> int32_t {
     return servicedependency::servicedependencies.size();
@@ -407,8 +407,8 @@ grpc::Status engine_impl::GetServiceDependenciesCount(
  * @return Status::OK
  */
 grpc::Status engine_impl::GetHostDependenciesCount(
-    grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericValue* response) {
   auto fn = std::packaged_task<int32_t(void)>(
       []() -> int32_t { return hostdependency::hostdependencies.size(); });
@@ -424,12 +424,12 @@ grpc::Status engine_impl::GetHostDependenciesCount(
  * @brief Remove all comments from a host.
  *
  * @param context gRPC context
- * @param request Host's identifier
+ * @param request Host's identifier (it can be a hostname or a hostid)
  * @param response Command answer
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context,
+grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context __attribute__((unused)),
                                                 const HostIdentifier* request,
                                                 CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
@@ -468,13 +468,13 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context,
  * @brief Remove all comments from a service.
  *
  * @param context gRPC context
- * @param request Service's identifier
+ * @param request Service's identifier (it can be a hostname & servicename or a hostid & serviceid)
  * @param response Command answer
  *
  * @return Status::OK
  */
 grpc::Status engine_impl::DeleteAllServiceComments(
-    grpc::ServerContext* context,
+    grpc::ServerContext* context __attribute__((unused)),
     const ServiceIdentifier* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
@@ -515,9 +515,9 @@ grpc::Status engine_impl::DeleteAllServiceComments(
 }
 
 grpc::Status engine_impl::ProcessServiceCheckResult(
-    grpc::ServerContext* /*context*/,
+    grpc::ServerContext* context __attribute__((unused)),
     const Check* request,
-    CommandSuccess* /*response*/) {
+    CommandSuccess* response __attribute__((unused))) {
   std::string const& host_name = request->host_name();
   if (host_name.empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
@@ -540,9 +540,9 @@ grpc::Status engine_impl::ProcessServiceCheckResult(
 }
 
 grpc::Status engine_impl::ProcessHostCheckResult(
-    grpc::ServerContext* /*context*/,
+    grpc::ServerContext* context __attribute__((unused)),
     const Check* request,
-    CommandSuccess* /*response*/) {
+    CommandSuccess* response __attribute__((unused))) {
   std::string const& host_name = request->host_name();
   if (host_name.empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
@@ -572,9 +572,9 @@ grpc::Status engine_impl::ProcessHostCheckResult(
  *
  * @return A grpc::Status::OK if the file is well read, an error otherwise.
  */
-grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* /*context*/,
+grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* context __attribute__((unused)),
                                             const ThresholdsFile* request,
-                                            CommandSuccess* /*response*/) {
+                                            CommandSuccess* response __attribute__((unused))) {
   const std::string& filename = request->filename();
   auto fn = std::packaged_task<int(void)>(
       std::bind(&anomalydetection::update_thresholds, filename));
