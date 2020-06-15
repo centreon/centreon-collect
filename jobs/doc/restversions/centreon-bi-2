@@ -1,4 +1,5 @@
                 ['latest', '/docs/centreon-bi-2/@LANG@/latest/'],
+                ['19.10.x', '/docs/centreon-bi-2/@LANG@/19.10.x/'],
                 ['19.04.x', '/docs/centreon-bi-2/@LANG@/19.04.x/'],
                 ['18.10.x', '/docs/centreon-bi-2/@LANG@/18.10.x/'],
                 ['3.2.x', '/docs/centreon-bi-2/@LANG@/3.2.x/']
