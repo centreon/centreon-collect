@@ -45,6 +45,8 @@ service Engine {
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
 
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
+  rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc DeleteAllHostComments(HostIdentifier) returns (CommandSuccess) {}
 }
 
 message GenericString {
@@ -295,4 +297,9 @@ message EngineService {
 	  UNKNOWN = 3;
 	}
   State current_state = 6;
+}
+
+message HostNameSvcDsc {
+  string host_name = 1;
+  string svc_desc = 2;
 }

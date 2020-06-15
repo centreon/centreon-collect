@@ -240,6 +240,73 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteAllHostCommentsByName(std::string const& req,
+                                   CommandSuccess* response) {
+    HostIdentifier request;
+    grpc::ClientContext context;
+    request.set_name(req);
+
+    grpc::Status status =
+        _stub->DeleteAllHostComments(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteAllHostCommentsByNames failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DeleteAllHostCommentsById(uint32_t& req, CommandSuccess* response) {
+    HostIdentifier request;
+    grpc::ClientContext context;
+    request.set_id(req);
+
+    grpc::Status status =
+        _stub->DeleteAllHostComments(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteAllHostCommentsByName failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DeleteAllServiceCommentsByNames(std::string const& hostname,
+                                       std::string const& svcdsc,
+                                       CommandSuccess* response) {
+    ServiceIdentifier request;
+    grpc::ClientContext context;
+    request.mutable_names()->set_host_name(hostname);
+    request.mutable_names()->set_service_name(svcdsc);
+
+    grpc::Status status =
+        _stub->DeleteAllServiceComments(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "DeleteAllServiceCommentsByNames rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DeleteAllServiceCommentsByIds(uint32_t& hostid,
+                                     uint32_t& serviceid,
+                                     CommandSuccess* response) {
+    ServiceIdentifier request;
+    grpc::ClientContext context;
+    request.mutable_ids()->set_host_id(hostid);
+    request.mutable_ids()->set_service_id(serviceid);
+
+    grpc::Status status =
+        _stub->DeleteAllServiceComments(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "DeleteAllServiceCommentsByIds rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool ProcessServiceCheckResult(Check const& sc) {
     grpc::ClientContext context;
     CommandSuccess response;
@@ -427,6 +494,45 @@ int main(int argc, char** argv) {
       std::cout << "Serv desc: " << response.description() << std::endl;
       std::cout << "Service state: " << response.current_state() << std::endl;
       std::cout << "Service period: " << response.check_period() << std::endl;
+    }
+  } else if (strcmp(argv[1], "DeleteAllHostComments") == 0) {
+    if (argc != 4) {
+      std::cout << "DeleteAllHostComments require arguments : GetHost [mode] "
+                   "[hostname or id]"
+                << std::endl;
+      return 1;
+    } else if (strcmp(argv[2], "byhostname") == 0) {
+      CommandSuccess response;
+      std::string hostname(argv[3]);
+      status = client.DeleteAllHostCommentsByName(hostname, &response);
+      std::cout << "DeleteAllHostComments" << std::endl;
+    } else if (strcmp(argv[2], "byhostid") == 0) {
+      CommandSuccess response;
+      uint32_t hostid = atoi(argv[3]);
+      status = client.DeleteAllHostCommentsById(hostid, &response);
+      std::cout << "DeleteAllHostComments" << std::endl;
+    }
+  } else if (strcmp(argv[1], "DeleteAllServiceComments") == 0) {
+    if (argc != 5) {
+      std::cout << "GetService require arguments : DeleteAllServiceComments "
+                   "[mode] [hostname "
+                   "or hostid] [servicename or serviceid]"
+                << std::endl;
+      return 1;
+    } else if (strcmp(argv[2], "bynames") == 0) {
+      CommandSuccess response;
+      std::string hostname(argv[3]);
+      std::string svcdsc(argv[4]);
+      status =
+          client.DeleteAllServiceCommentsByNames(hostname, svcdsc, &response);
+      std::cout << "DeleteAllServiceComments" << std::endl;
+    } else if (strcmp(argv[2], "byids") == 0) {
+      CommandSuccess response;
+      uint32_t hostid = atoi(argv[3]);
+      uint32_t serviceid = atoi(argv[4]);
+      status =
+          client.DeleteAllServiceCommentsByIds(hostid, serviceid, &response);
+      std::cout << "DeleteAllServiceComments" << std::endl;
     }
   }
   exit(status);

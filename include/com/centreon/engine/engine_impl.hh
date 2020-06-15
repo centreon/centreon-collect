@@ -73,6 +73,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           EngineService* response) override;
+  grpc::Status DeleteAllServiceComments(grpc::ServerContext* context,
+                                        const ServiceIdentifier* request,
+                                        CommandSuccess* response) override;
+  grpc::Status DeleteAllHostComments(grpc::ServerContext* context,
+                                     const HostIdentifier* request,
+                                     CommandSuccess* response) override;
 };
 
 CCE_END()
