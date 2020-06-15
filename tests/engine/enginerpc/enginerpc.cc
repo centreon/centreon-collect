@@ -451,6 +451,37 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, DeleteComment) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+	//create comment
+  std::ostringstream oss;
+  oss << "my comment ";
+  auto cmt = std::make_shared<comment>(
+        comment::host, comment::user, _host->get_host_id(),
+        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
+        comment::external, false, 0);
+  comment::comments.insert({cmt->get_comment_id(), cmt});
+  
+	call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute("DeleteComment 1");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  erpc.shutdown();
+}
+
 TEST_F(EngineRpc, DeleteAllHostComments) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;
@@ -467,6 +498,7 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
         comment::host, comment::user, _host->get_host_id(),
         _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
         comment::external, false, 0);
+		std::cout << cmt->get_comment_id() << std::endl;
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);

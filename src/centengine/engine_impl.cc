@@ -420,6 +420,24 @@ grpc::Status engine_impl::GetHostDependenciesCount(
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context __attribute__((unused)), const GenericValue* request, CommandSuccess* response) {
+  uint32_t comment_id = request->value(); 
+	if (comment_id == 0)
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "comment_id must not be set to 0");
+  
+  auto fn = std::packaged_task<int32_t(void)>([&comment_id]() -> int32_t { 
+	  comment::delete_comment(comment_id);
+		return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  result.get() ? response->set_value(false) : response->set_value(true);
+	return grpc::Status::OK;
+}
+
 /**
  * @brief Remove all comments from a host.
  *

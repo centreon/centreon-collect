@@ -240,6 +240,20 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteComment(uint32_t& req, CommandSuccess* response) {
+    GenericValue request;
+    grpc::ClientContext context;
+    request.set_value(req);
+
+    grpc::Status status =
+        _stub->DeleteComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteComment failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DeleteAllHostCommentsByName(std::string const& req,
                                    CommandSuccess* response) {
     HostIdentifier request;
@@ -534,6 +548,15 @@ int main(int argc, char** argv) {
           client.DeleteAllServiceCommentsByIds(hostid, serviceid, &response);
       std::cout << "DeleteAllServiceComments" << std::endl;
     }
+  } else if (strcmp(argv[1], "DeleteComment") == 0) {
+		if (argc != 3) {
+			std::cout  << "DeleteComment require arguments : DeleteComment [comment_id]" << std::endl;
+			return 1;
+		} 
+		CommandSuccess response;
+		uint32_t commentid = atoi(argv[2]);
+    status = client.DeleteComment(commentid, &response);
+    std::cout << "DeleteComment" << std::endl;
   }
   exit(status);
 }
