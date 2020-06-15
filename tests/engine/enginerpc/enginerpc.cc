@@ -30,6 +30,7 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
@@ -180,7 +181,7 @@ TEST_F(EngineRpc, GetVersion) {
 
 TEST_F(EngineRpc, GetHost) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -218,7 +219,7 @@ TEST_F(EngineRpc, GetHost) {
 
 TEST_F(EngineRpc, GetContact) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -246,7 +247,7 @@ TEST_F(EngineRpc, GetContact) {
 
 TEST_F(EngineRpc, GetService) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -284,7 +285,7 @@ TEST_F(EngineRpc, GetService) {
 
 TEST_F(EngineRpc, GetHostsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -305,7 +306,7 @@ TEST_F(EngineRpc, GetHostsCount) {
 
 TEST_F(EngineRpc, GetContactsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -326,7 +327,7 @@ TEST_F(EngineRpc, GetContactsCount) {
 
 TEST_F(EngineRpc, GetServicesCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -347,7 +348,7 @@ TEST_F(EngineRpc, GetServicesCount) {
 
 TEST_F(EngineRpc, GetServiceGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -368,7 +369,7 @@ TEST_F(EngineRpc, GetServiceGroupsCount) {
 
 TEST_F(EngineRpc, GetContactGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -389,7 +390,7 @@ TEST_F(EngineRpc, GetContactGroupsCount) {
 
 TEST_F(EngineRpc, GetHostGroupsCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -410,7 +411,7 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
 
 TEST_F(EngineRpc, GetServiceDependenciesCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -431,7 +432,7 @@ TEST_F(EngineRpc, GetServiceDependenciesCount) {
 
 TEST_F(EngineRpc, GetHostDependenciesCount) {
   enginerpc erpc("0.0.0.0", 40001);
-	std::unique_ptr<std::thread> th;
+  std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
@@ -447,6 +448,102 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
   th->join();
 
   ASSERT_EQ(output.back(), "0");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, DeleteAllHostComments) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  // create some comments
+  for (int i = 0; i < 10; ++i) {
+    std::ostringstream oss;
+    oss << "my host comment " << i;
+    auto cmt = std::make_shared<comment>(
+        comment::host, comment::user, _host->get_host_id(),
+        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
+        comment::external, false, 0);
+    comment::comments.insert({cmt->get_comment_id(), cmt});
+  }
+  ASSERT_EQ(comment::comments.size(), 10u);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  // first test
+  auto output = execute("DeleteAllHostComments byhostid 12");
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  for (int i = 0; i < 10; ++i) {
+    std::ostringstream oss;
+    oss << "my host comment " << i;
+    auto cmt = std::make_shared<comment>(
+        comment::host, comment::user, _host->get_host_id(),
+        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
+        comment::external, false, 0);
+    comment::comments.insert({cmt->get_comment_id(), cmt});
+  }
+  ASSERT_EQ(comment::comments.size(), 10u);
+  // second test
+  output = execute("DeleteAllHostComments byhostname test_host");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, DeleteAllServiceComments) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  // create some comments
+  for (int i = 0; i < 10; ++i) {
+    std::ostringstream oss;
+    oss << "my service comment " << i;
+    auto cmt = std::make_shared<comment>(
+        comment::service, comment::user, _host->get_host_id(),
+        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
+        comment::external, false, 0);
+    comment::comments.insert({cmt->get_comment_id(), cmt});
+  }
+  ASSERT_EQ(comment::comments.size(), 10u);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  // first test
+  auto output = execute("DeleteAllServiceComments byids 12 13");
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  for (int i = 0; i < 10; ++i) {
+    std::ostringstream oss;
+    oss << "my service comment " << i;
+    auto cmt = std::make_shared<comment>(
+        comment::service, comment::user, _host->get_host_id(),
+        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
+        comment::external, false, 0);
+    comment::comments.insert({cmt->get_comment_id(), cmt});
+  }
+  ASSERT_EQ(comment::comments.size(), 10u);
+  // second test
+  output = execute("DeleteAllServiceComments bynames test_host test_svc");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(comment::comments.size(), 0u);
   erpc.shutdown();
 }
 

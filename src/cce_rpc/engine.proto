@@ -45,6 +45,8 @@ service Engine {
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
 
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
+  rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc DeleteAllHostComments(HostIdentifier) returns (CommandSuccess) {}
 }
 
 message GenericString {
