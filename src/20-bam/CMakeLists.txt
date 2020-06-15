@@ -103,4 +103,4 @@ add_library(20-bam SHARED
 target_link_libraries(20-bam CONAN_PKG::spdlog)
 set_target_properties(20-bam PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
 set_target_properties(20-bam PROPERTIES PREFIX "")
-install(TARGETS 20-bam DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
+install(TARGETS 20-bam COMPONENT core DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
