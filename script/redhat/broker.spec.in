@@ -1,3 +1,7 @@
+##
+## Copyright 2020 Centreon
+##
+
 Buildroot: @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/@CPACK_PACKAGE_BROKER_PACKAGE_NAME@
 Summary:        Store Centreon Engine/Nagios events in a database.
 Name:           @CPACK_PACKAGE_BROKER_PACKAGE_NAME@
@@ -9,17 +13,37 @@ Vendor:         @CPACK_PACKAGE_VENDOR@
 Prefix:         @CPACK_PACKAGING_INSTALL_PREFIX@
 
 %description
-Centreon Broker is a Centreon Engine/Nagios module that report events in
+Centreon Broker is a Centreon Engine/Nagios module that reports events in
 one or multiple databases.
 
+%package broker
+Summary:        Centreon Broker's shared library.
+Group:          Applications/Communications
+Requires:       gnutls >= 2.0
+Requires:       %{name} = %{version}-%{release}
+Requires: 	%{name}-storage = %{version}-%{release}
+
+%description broker
+Centreon Broker is a Centreon Engine/Nagios module that reports events in
+one or multiple databases.
+
+%package cbd
+Summary:        Centreon Broker daemon.
+Group:          System Environment/Daemons
+
+%description cbd
+The Centreon Broker daemon can aggregate output of multiple cbmod and store
+events in a DB from a single point.
+
 %prep
-mv $RPM_BUILD_ROOT @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot
+#mv $RPM_BUILD_ROOT @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot
 
 %install
 if [ -e $RPM_BUILD_ROOT ];
 then
   rm -Rf $RPM_BUILD_ROOT
 fi
+#mv "@CMAKE_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot/broker-cbd" $RPM_BUILD_ROOT
 %{__install} -d -m 0775 $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-broker
 %{__install} -d -m 0775 $RPM_BUILD_ROOT%{_localstatedir}/lib/centreon-broker
 %{__install} -d -m 0775 $RPM_BUILD_ROOT%{_sysconfdir}/centreon-broker
@@ -38,18 +62,29 @@ if id nagios &>/dev/null; then
   %{_sbindir}/usermod -a -G centreon-broker nagios
 fi
 
-%post
+%post cbd
 chown -R centreon-broker:centreon-broker /var/lib/centreon-broker
 chmod -R g+w /var/lib/centreon-broker
 chown -R centreon-broker:centreon-broker /var/log/centreon-broker
 chmod -R g+w /var/log/centreon-broker
 
-%files
+%files broker
 %defattr(-,centreon-broker,centreon-broker,-)
-%{_localstatedir}/log/centreon-broker
-%{_localstatedir}/lib/centreon-broker
+%dir %{_localstatedir}/log/centreon-broker
+%dir %{_localstatedir}/lib/centreon-broker
 %dir %{_sysconfdir}/centreon-broker
+%attr(664,centreon-broker,centreon-broker) %dir %{_sysconfdir}/centreon-broker
+%defattr(664,centreon-broker,centreon-broker,-)
+%config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
+%config(noreplace) %{_sysconfdir}/centreon-broker/central-rrd.json
+%config(noreplace) %{_sysconfdir}/centreon-broker/watchdog.json
+%defattr(-,root,root,-)
+%attr(755,root,root) %{_unitdir}/cbd.service
+%{_sbindir}/cbd
+%{_sbindir}/cbwd
 
 %changelog
+* Thu Jun 11 2020 David Boucher <dboucher@centreon.com>
+- broker-cbd packagind added.
 * Thu May 28 2020 Sylvestre Gallon <sgallon@centreon.com> 1.0.0-1
 - Initial build
