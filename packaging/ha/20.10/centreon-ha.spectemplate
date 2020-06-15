@@ -14,6 +14,8 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 %{?systemd_requires}
 BuildRequires:  systemd
+Requires:       centreon-gorgone-centreon-config >= %{thismajor}
+Requires:       centreon-gorgone-centreon-config < %{nextmajor}
 Requires:       centreon-web >= %{thismajor}
 Requires:       centreon-web < %{nextmajor}
 Requires:       corosync
@@ -70,6 +72,9 @@ rm -rf %buildroot
 %{_sysconfdir}/centreon-ha
 %config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
 %config(noreplace) %{_sysconfdir}/centreon-ha/mysql-resources.sh
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/10-centreon-ha.yaml
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/20-centreon-ha-centreon-autodisco.yaml
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
 %{_sysconfdir}/logrotate.d/centreon-ha
 %{_sysconfdir}/sudoers.d/centreon-cluster
 %{_sysconfdir}/sudoers.d/centreon-cluster-db
