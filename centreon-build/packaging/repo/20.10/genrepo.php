@@ -2,7 +2,7 @@
 
 // Base centreon version.
 $centreonversion = '20.10';
-$reporelease = '1';
+$reporelease = '2';
 
 // Information table.
 $repos = array(
@@ -56,7 +56,11 @@ foreach ($repos as $repo => $repodata) {
                 $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
                 $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
                 $content .= "gpgcheck=1\n";
-                $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n\n";
+                $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n";
+                if ($distrib == 'el8') {
+                    $content .= "module_hotfixes=1\n";
+                }
+                $content .= "\n";
             }
         }
 
