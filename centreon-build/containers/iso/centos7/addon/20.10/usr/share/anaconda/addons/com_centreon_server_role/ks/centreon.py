@@ -162,7 +162,7 @@ class CentreonData(AddonData):
                        ]
         if self.installation_type == 'central':
             ksdata.packages.packageList.extend(
-                ['centreon-release', 'centos-release-scl', 'centreon', 'mariadb-server'])
+                ['centreon-release', 'centos-release-scl', 'centreon', 'MariaDB-server'])
             ksdata.packages.packageList.extend(widget_list)
         if self.installation_type == 'centralwithoutdb':
             ksdata.packages.packageList.extend(['centreon-release', 'centos-release-scl', 'centreon-base-config-centreon-engine'])
@@ -170,13 +170,13 @@ class CentreonData(AddonData):
         if self.installation_type == 'poller':
             ksdata.packages.packageList.extend(['centreon-release', 'centreon-poller-centreon-engine'])
         if self.installation_type == 'database':
-            ksdata.packages.packageList.extend(['centreon-release', 'centreon-database', 'mariadb-server'])
+            ksdata.packages.packageList.extend(['centreon-release', 'centreon-database', 'MariaDB-server'])
         if self.installation_type == 'centreonmap':
             ksdata.packages.packageList.extend(
-                ['centreon-release', 'centos-release-scl', 'centreon-map-release', 'centreon-map4-server', 'mariadb-server'])
+                ['centreon-release', 'centos-release-scl', 'centreon-map-release', 'centreon-map4-server', 'MariaDB-server'])
         if self.installation_type == 'centreonmbi':
             ksdata.packages.packageList.extend(
-                ['centreon-release', 'centos-release-scl', 'centreon-mbi-release', 'centreon-bi-reporting-server', 'mariadb-server'])
+                ['centreon-release', 'centos-release-scl', 'centreon-mbi-release', 'centreon-bi-reporting-server', 'MariaDB-server'])
 
     def execute(self, storage, ksdata, instclass, users, payload):
         """

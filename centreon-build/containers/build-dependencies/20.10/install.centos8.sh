@@ -11,7 +11,7 @@ dnf install dnf-plugins-core
 dnf config-manager --set-enabled 'PowerTools'
 
 # Install development repository.
-curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/20.10/el8/stable/noarch/RPMS/centreon-release-20.10-1.el8.noarch.rpm"
+curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/20.10/el8/stable/noarch/RPMS/centreon-release-20.10-2.el8.noarch.rpm"
 dnf install --nogpgcheck centreon-release.rpm
 sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 dnf config-manager --set-enabled 'centreon-testing*'
