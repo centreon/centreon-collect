@@ -6,16 +6,15 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Check arguments.
-if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
-  echo "You need to specify VERSION and RELEASE environment variables."
+if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$WIDGET" ] ; then
+  echo "You need to specify VERSION, RELEASE and WIDGET environment variables."
   exit 1
 fi
-if [ "$#" -lt 2 ] ; then
-  echo "USAGE: $0 <widget_name> <centos7|...>"
+if [ "$#" -lt 1 ] ; then
+  echo "USAGE: $0 <centos7|centos8|...>"
   exit 1
 fi
-WIDGET="$1"
-DISTRIB="$2"
+DISTRIB="$1"
 case "$DISTRIB" in
   centos7)
     DISTRIBCODENAME=el7
