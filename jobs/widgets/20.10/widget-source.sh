@@ -5,11 +5,11 @@ set -x
 
 . `dirname $0`/../../common.sh
 
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <widget_name>"
+# Check arguments.
+if [ -z "$WIDGET" ] ; then
+  echo "You need to specify WIDGET environment variable."
   exit 1
 fi
-WIDGET="$1"
 
 # Project.
 export PROJECT=centreon-widget-$WIDGET
