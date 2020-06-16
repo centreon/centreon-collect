@@ -46,9 +46,10 @@ service Engine {
 
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
 	rpc DeleteComment(GenericValue) returns (CommandSuccess) {}
-  rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
   rpc DeleteAllHostComments(HostIdentifier) returns (CommandSuccess) {}
-
+  rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc RemoveHostAcknowledgement(HostIdentifier) returns (CommandSuccess) {}
+  rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {}
 }
 
 message GenericString {

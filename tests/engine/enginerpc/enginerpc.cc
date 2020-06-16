@@ -459,16 +459,16 @@ TEST_F(EngineRpc, DeleteComment) {
   bool continuerunning = false;
 
   ASSERT_EQ(comment::comments.size(), 0u);
-	//create comment
+  // create comment
   std::ostringstream oss;
   oss << "my comment ";
   auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->get_host_id(),
-        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
-        comment::external, false, 0);
+      comment::host, comment::user, _host->get_host_id(),
+      _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
+      comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
-  
-	call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("DeleteComment 1");
   {
@@ -489,6 +489,7 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
   std::mutex mutex;
   bool continuerunning = false;
 
+  // first test
   ASSERT_EQ(comment::comments.size(), 0u);
   // create some comments
   for (int i = 0; i < 10; ++i) {
@@ -498,16 +499,16 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
         comment::host, comment::user, _host->get_host_id(),
         _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
         comment::external, false, 0);
-		std::cout << cmt->get_comment_id() << std::endl;
+    std::cout << cmt->get_comment_id() << std::endl;
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  // first test
   auto output = execute("DeleteAllHostComments byhostid 12");
 
   ASSERT_EQ(comment::comments.size(), 0u);
+  // second test
   for (int i = 0; i < 10; ++i) {
     std::ostringstream oss;
     oss << "my host comment " << i;
@@ -518,7 +519,6 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
-  // second test
   output = execute("DeleteAllHostComments byhostname test_host");
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -538,6 +538,7 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
   std::mutex mutex;
   bool continuerunning = false;
 
+  // first test
   ASSERT_EQ(comment::comments.size(), 0u);
   // create some comments
   for (int i = 0; i < 10; ++i) {
@@ -552,10 +553,10 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
   ASSERT_EQ(comment::comments.size(), 10u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  // first test
   auto output = execute("DeleteAllServiceComments byids 12 13");
 
   ASSERT_EQ(comment::comments.size(), 0u);
+  // second test
   for (int i = 0; i < 10; ++i) {
     std::ostringstream oss;
     oss << "my service comment " << i;
@@ -566,8 +567,92 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
-  // second test
   output = execute("DeleteAllServiceComments bynames test_host test_svc");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, RemoveHostAcknowledgement) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+  oss << "my comment ";
+  // first test
+  _host->set_problem_has_been_acknowledged(true);
+  // create comment
+  auto cmt = std::make_shared<comment>(
+      comment::host, comment::acknowledgment, _host->get_host_id(),
+      _svc->get_service_id(), 10000, "test-admin", oss.str(), false,
+      comment::external, false, 0);
+  comment::comments.insert({cmt->get_comment_id(), cmt});
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output = execute("RemoveHostAcknowledgement byhostid 12");
+
+  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(comment::comments.size(), 0u);
+  // second test
+  _host->set_problem_has_been_acknowledged(true);
+  cmt = std::make_shared<comment>(comment::host, comment::acknowledgment,
+                                  _host->get_host_id(), _svc->get_service_id(),
+                                  10000, "test-admin", oss.str(), false,
+                                  comment::external, false, 0);
+  comment::comments.insert({cmt->get_comment_id(), cmt});
+
+  output = execute("RemoveHostAcknowledgement byhostname test_host");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
+  ASSERT_EQ(comment::comments.size(), 0u);
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+  oss << "my comment ";
+  _svc->set_problem_has_been_acknowledged(true);
+  auto cmt = std::make_shared<comment>(
+      comment::service, comment::acknowledgment, _host->get_host_id(),
+      _svc->get_service_id(), 10000, "test-admin", oss.str(), false,
+      comment::external, false, 0);
+  comment::comments.insert({cmt->get_comment_id(), cmt});
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output =
+      execute("RemoveServiceAcknowledgement bynames test_host test_svc");
+
+  ASSERT_EQ(comment::comments.size(), 0u);
+  ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
+
+  _svc->set_problem_has_been_acknowledged(true);
+  cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
+                                  _host->get_host_id(), _svc->get_service_id(),
+                                  10000, "test-admin", oss.str(), false,
+                                  comment::external, false, 0);
+  comment::comments.insert({cmt->get_comment_id(), cmt});
+
+  output = execute("RemoveServiceAcknowledgement byids 12 13");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
