@@ -78,7 +78,26 @@ TEST(WatchdogTest, BadConfig) {
   ASSERT_EQ(std::string(str), result);
 }
 
-//test CbdArray//
+TEST(WatchdogTest, JsonObject) {
+  std::string const& content{
+      "{\n"
+      "}"};
+    create_conf("/tmp/json-object-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/json-object-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file '/tmp/json-object-conf.json': Config parser: Cannot parse file '/tmp/json-object-conf.json': it must contain a centreonBroker object\n", result);
+}
+
+TEST(WatchdogTest, JsonNull) {
+  std::string const& content{"$&!"};
+    create_conf("/tmp/json-null-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/json-null-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file '/tmp/json-null-conf.json': Config parser: Cannot parse file '/tmp/json-null-conf.json': expected value, got '$' (36)\n", result);
+}
+
 TEST(WatchdogTest, CbdArray) {
   std::string const& content{
         "{\n"
@@ -87,14 +106,238 @@ TEST(WatchdogTest, CbdArray) {
         "   }\n"
         "}\n"};
     create_conf("/tmp/cbd-array-conf.json", content);
-    char const* arg[]{"bin/cbwd", "/tmp/cbd-array-conf.json", nullptr};
-    char const* str = "[cbwd] [error] watchdog: Could not parse the configuration file "
-      "'cbd-array-config.json': Config parser: Cannot read file 'cbd-array-config.json': "
-      "No such file or directory\n";
     std::string result = com::centreon::broker::misc::exec(
-      "bin/cbwd cbd-array-config.json"
+      "bin/cbwd /tmp/cbd-array-conf.json"
     );
-    ASSERT_EQ(std::string(str), result);
+    ASSERT_EQ(
+      "[cbwd] [error] watchdog: Could not parse the configuration file "
+      "'/tmp/cbd-array-conf.json': error in watchdog config syntax 'cbd'"
+      " must be an array\n", result);
+}
+
+TEST(WatchdogTest, Object) {
+  std::string const& content{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "   \"object\": [\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-broker-master\",\n"
+      "        \"configuration_file\": \"Master\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      },\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-rrd-master\",\n"
+      "        \"configuration_file\": \"Slave\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      }\n"
+      "    ],\n"
+      "    \"object\": \"/tmp/watchdog.log\"\n"
+      "  }\n"
+      "}"};
+    create_conf("/tmp/object-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/object-conf.json"
+    );
+    ASSERT_EQ(
+      "[cbwd] [error] watchdog: Could not parse the configuration file "
+      "'/tmp/object-conf.json': error in watchdog config 'object' key is "
+      "not recognized\n", result);
+}
+                                
+TEST(WatchdogTest, Empty_Name) {
+  std::string const& content{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "   \"cbd\": [\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"\",\n"
+      "        \"configuration_file\": \"Master\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      },\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-rrd-master\",\n"
+      "        \"configuration_file\": \"Slave\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      }\n"
+      "    ],\n"
+      "    \"log\": \"/tmp/watchdog.log\"\n"
+      "  }\n"
+      "}"};
+    create_conf("/tmp/empty-name-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/empty-name-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file "
+    "'/tmp/empty-name-conf.json': watchdog: missing instance name\n", result);
+}
+
+TEST(WatchdogTest, Name) {
+  std::string const& content{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "   \"cbd\": [\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"configuration_file\": \"Master\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      },\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-rrd-master\",\n"
+      "        \"configuration_file\": \"Slave\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      }\n"
+      "    ],\n"
+      "    \"log\": \"/tmp/watchdog.log\"\n"
+      "  }\n"
+      "}"};
+    create_conf("/tmp/name-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/name-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file"
+    " '/tmp/name-conf.json': name field not provided for cbd instance\n", result);
+}
+
+TEST(WatchdogTest, Instance_config) {
+  std::string const& content{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "   \"cbd\": [\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-broker-master\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      },\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-rrd-master\",\n"
+      "        \"run\": true,\n"
+      "        \"reload\": true\n"
+      "      }\n"
+      "    ],\n"
+      "    \"log\": \"/tmp/watchdog.log\"\n"
+      "  }\n"
+      "}"};
+    create_conf("/tmp/instance-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/instance-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file"
+    " '/tmp/instance-conf.json': instance_config field not provided for cbd instance\n", result);
+}
+
+TEST(WatchdogTest, Run) {
+  std::string const& content{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "   \"cbd\": [\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-broker-master\",\n"
+      "        \"configuration_file\": \"Master\",\n"
+      "        \"reload\": true\n"
+      "      },\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-rrd-master\",\n"
+      "        \"configuration_file\": \"Slave\",\n"
+      "        \"reload\": true\n"
+      "      }\n"
+      "    ],\n"
+      "    \"log\": \"/tmp/watchdog.log\"\n"
+      "  }\n"
+      "}"};
+    create_conf("/tmp/run-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/run-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file "
+    "'/tmp/run-conf.json': run field not provided for cbd instance\n", result);
+}
+
+TEST(WatchdogTest, Reload) {
+  std::string const& content{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "   \"cbd\": [\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-broker-master\",\n"
+      "        \"configuration_file\": \"Master\",\n"
+      "        \"run\": true\n"
+      "      },\n"
+      "      {\n"
+      "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+      "tester\",\n"
+      "        \"name\": \"central-rrd-master\",\n"
+      "        \"configuration_file\": \"Slave\",\n"
+      "        \"run\": true\n"
+      "      }\n"
+      "    ],\n"
+      "    \"log\": \"/tmp/watchdog.log\"\n"
+      "  }\n"
+      "}"};
+    create_conf("/tmp/reload-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/reload-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file "
+    "'/tmp/reload-conf.json': reload field not provided for cbd instance\n", result);
+}
+
+TEST(WatchdogTest, exist) {
+  std::string const& content{
+    "{\n"
+    "  \"centreonBroker\": {\n"
+    "   \"cbd\": [\n"
+    "      {\n"
+    "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+    "tester\",\n"
+    "        \"name\": \"central-rrd-master\",\n"
+    "        \"configuration_file\": \"Master\",\n"
+    "        \"run\": true,\n"
+    "        \"reload\": true\n"
+    "      },\n"
+    "      {\n"
+    "        \"executable\": \"" CENTREON_BROKER_WD_TEST
+    "tester\",\n"
+    "        \"name\": \"central-rrd-master\",\n"
+    "        \"configuration_file\": \"Master\",\n"
+    "        \"run\": true,\n"
+    "        \"reload\": true\n"
+    "      }\n"
+    "    ],\n"
+    "    \"log\": \"/tmp/watchdog.log\"\n"
+    "  }\n"
+    "}"};
+    create_conf("/tmp/exist-conf.json", content);
+    std::string result = com::centreon::broker::misc::exec(
+      "bin/cbwd /tmp/exist-conf.json"
+    );
+    ASSERT_EQ("[cbwd] [error] watchdog: Could not parse the configuration file '/tmp/exist-conf.json': instance 'central-rrd-master' already exists\n", result);
 }
 
 TEST(WatchdogTest, SimpleConfig) {

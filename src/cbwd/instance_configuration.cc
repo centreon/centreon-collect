@@ -36,13 +36,13 @@ instance_configuration::instance_configuration()
  *  @param[in] should_reload  Should this instance be reloaded on SIGHUP?
  *  @param[in] seconds_per_tentative  The number of seconds between tentatives.
  */
-instance_configuration::instance_configuration(
-    std::string const& name,
-    std::string const& executable,
-    std::string const& config_file,
-    bool should_run,
-    bool should_reload,
-    __attribute__((__unused__))uint32_t seconds_per_tentative)
+instance_configuration::instance_configuration(std::string const& name,
+                                               std::string const& executable,
+                                               std::string const& config_file,
+                                               bool should_run,
+                                               bool should_reload,
+                                               __attribute__((__unused__))
+                                               uint32_t seconds_per_tentative)
     : _name{name},
       _executable{executable},
       _config_file{config_file},
@@ -96,8 +96,8 @@ instance_configuration& instance_configuration::operator=(
  *
  *  @return  True if equal.
  */
-bool instance_configuration::same_child(
-    instance_configuration const& other) const {
+bool instance_configuration::same_child(instance_configuration const& other)
+    const {
   return _name == other._name && _executable == other._executable &&
          _config_file == other._config_file && _run == other._run;
 }
@@ -107,9 +107,7 @@ bool instance_configuration::same_child(
  *
  *  @return  True if empty.
  */
-bool instance_configuration::is_empty() const throw() {
-  return _name.empty();
-}
+bool instance_configuration::is_empty() const throw() { return _name.empty(); }
 
 /**
  *  Get the name of this instance.
@@ -143,15 +141,11 @@ std::string const& instance_configuration::get_executable() const throw() {
  *
  *  @return  True if this instance should be run.
  */
-bool instance_configuration::should_run() const throw() {
-  return _run;
-}
+bool instance_configuration::should_run() const throw() { return _run; }
 
 /**
  *  Should this instance be reloaded?
  *
  *  @return  True if this instance should be reloaded.
  */
-bool instance_configuration::should_reload() const throw() {
-  return _reload;
-}
+bool instance_configuration::should_reload() const throw() { return _reload; }
