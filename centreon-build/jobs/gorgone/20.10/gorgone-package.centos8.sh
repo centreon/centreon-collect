@@ -18,3 +18,6 @@ put_internal_rpms "20.10" "el8" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE" 
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_unstable "standard" "20.10" "el8" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE"
 fi
+
+# Create RPMs tarball.
+tar czf rpms-centos8.tar.gz output
