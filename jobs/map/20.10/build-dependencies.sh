@@ -17,6 +17,9 @@ cp map/20.10/build-dependencies.Dockerfile.in Dockerfile
 sed -i -e "s#@BASE_IMAGE@#$BASE_IMAGE#g" Dockerfile
 
 # Build image.
-TARGET_IMAGE="registry.centreon.com/map-build-dependencies-20.10:centos7"
-docker build -t "$TARGET_IMAGE" .
-docker push "$TARGET_IMAGE"
+TARGET_IMAGE_CENTOS7="registry.centreon.com/map-build-dependencies-20.10:centos7"
+TARGET_IMAGE_CENTOS8="registry.centreon.com/map-build-dependencies-20.10:centos8"
+docker build -t "$TARGET_IMAGE_CENTOS7" .
+docker build -t "$TARGET_IMAGE_CENTOS8" .
+docker push "$TARGET_IMAGE_CENTOS7"
+docker push "$TARGET_IMAGE_CENTOS8"
