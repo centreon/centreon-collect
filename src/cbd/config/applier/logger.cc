@@ -22,7 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/file.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/logging/manager.hh"
@@ -31,6 +31,7 @@
 #endif  // CBMOD
 #include "com/centreon/broker/logging/syslogger.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config::applier;
 
@@ -156,8 +157,8 @@ std::shared_ptr<logging::backend> logger::_new_backend(
   switch (cfg.type()) {
     case config::logger::file: {
       if (cfg.name().empty())
-        throw exceptions::msg()
-            << "log applier: attempt to log on an empty file";
+        throw exceptions::msg_fmt(
+            "log applier: attempt to log on an empty file");
       std::unique_ptr<logging::file> file(
           new logging::file(cfg.name(), cfg.max_size()));
       back.reset(file.get());
@@ -181,15 +182,14 @@ std::shared_ptr<logging::backend> logger::_new_backend(
       else if (cfg.name() == "stdout" || cfg.name() == "cout")
         back.reset(new logging::file(std::cout, "cout"));
       else
-        throw exceptions::msg() << "log applier: attempt to log on "
-                                   "an undefined output object";
+        throw exceptions::msg_fmt(
+            "log applier: attempt to log on an undefined output object");
     } break;
     case config::logger::syslog:
       back.reset(new logging::syslogger(cfg.facility()));
       break;
     default:
-      throw exceptions::msg() << "log applier: attempt to create a "
-                                 "logging object of unknown type";
+      throw exceptions::msg_fmt("log applier: attempt to create a logging object of unknown type");
   }
   return back;
 }
