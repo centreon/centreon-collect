@@ -487,7 +487,7 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
-  result.get() ? response->set_value(false) : response->set_value(true);
+  response->set_value(!result.get());
   return grpc::Status::OK;
 }
 
@@ -538,7 +538,7 @@ grpc::Status engine_impl::DeleteAllServiceComments(
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
-  result.get() ? response->set_value(false) : response->set_value(true);
+  response->set_value(!result.get());
   return grpc::Status::OK;
 }
 
@@ -581,7 +581,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
-  result.get() ? response->set_value(false) : response->set_value(true);
+  response->set_value(!result.get());
   return grpc::Status::OK;
 }
 
@@ -628,7 +628,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
-  result.get() ? response->set_value(false) : response->set_value(true);
+  response->set_value(!result.get());
   return grpc::Status::OK;
 }
 
