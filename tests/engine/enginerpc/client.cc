@@ -240,6 +240,19 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteComment(uint32_t& req, CommandSuccess* response) {
+    GenericValue request;
+    grpc::ClientContext context;
+    request.set_value(req);
+
+    grpc::Status status = _stub->DeleteComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteComment failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DeleteAllHostCommentsByName(std::string const& req,
                                    CommandSuccess* response) {
     HostIdentifier request;
@@ -301,6 +314,73 @@ class EngineRPCClient {
 
     if (!status.ok()) {
       std::cout << "DeleteAllServiceCommentsByIds rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool RemoveHostAcknowledgementByNames(std::string const& hostname,
+                                        CommandSuccess* response) {
+    HostIdentifier request;
+    grpc::ClientContext context;
+    request.set_name(hostname);
+    grpc::Status status =
+        _stub->RemoveHostAcknowledgement(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "RemoveHostAcknowledgementByNames failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool RemoveHostAcknowledgementByIds(uint32_t& hostid,
+                                      CommandSuccess* response) {
+    HostIdentifier request;
+    grpc::ClientContext context;
+    request.set_id(hostid);
+
+    grpc::Status status =
+        _stub->RemoveHostAcknowledgement(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "RemoveHostAcknowledgementByIds failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool RemoveServiceAcknowledgementByNames(std::string const& hostname,
+                                           std::string const& svcdsc,
+                                           CommandSuccess* response) {
+    ServiceIdentifier request;
+    grpc::ClientContext context;
+    request.mutable_names()->set_host_name(hostname);
+    request.mutable_names()->set_service_name(svcdsc);
+
+    grpc::Status status =
+        _stub->RemoveServiceAcknowledgement(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "RemoveServiceAcknowledgementByNames rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool RemoveServiceAcknowledgementByIds(uint32_t& hostid,
+                                         uint32_t& serviceid,
+                                         CommandSuccess* response) {
+    ServiceIdentifier request;
+    grpc::ClientContext context;
+    request.mutable_ids()->set_host_id(hostid);
+    request.mutable_ids()->set_service_id(serviceid);
+
+    grpc::Status status =
+        _stub->RemoveServiceAcknowledgement(&context, request, response);
+
+    if (!status.ok()) {
+      std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
                 << std::endl;
       return false;
     }
@@ -514,7 +594,8 @@ int main(int argc, char** argv) {
     }
   } else if (strcmp(argv[1], "DeleteAllServiceComments") == 0) {
     if (argc != 5) {
-      std::cout << "GetService require arguments : DeleteAllServiceComments "
+      std::cout << "DeleteAllServiceComments require arguments : "
+                   "DeleteAllServiceComments "
                    "[mode] [hostname "
                    "or hostid] [servicename or serviceid]"
                 << std::endl;
@@ -533,6 +614,57 @@ int main(int argc, char** argv) {
       status =
           client.DeleteAllServiceCommentsByIds(hostid, serviceid, &response);
       std::cout << "DeleteAllServiceComments" << std::endl;
+    }
+  } else if (strcmp(argv[1], "DeleteComment") == 0) {
+    if (argc != 3) {
+      std::cout
+          << "DeleteComment require arguments : DeleteComment [comment_id]"
+          << std::endl;
+      return 1;
+    }
+    CommandSuccess response;
+    uint32_t commentid = atoi(argv[2]);
+    status = client.DeleteComment(commentid, &response);
+    std::cout << "DeleteComment" << std::endl;
+  } else if (strcmp(argv[1], "RemoveHostAcknowledgement") == 0) {
+    if (argc != 4) {
+      std::cout << "RemoveHostAcknowledgement require arguments : "
+                   "RemoveHostAcknowledgement [mode] [hostname or id]"
+                << std::endl;
+      return 1;
+    } else if (strcmp(argv[2], "byhostname") == 0) {
+      CommandSuccess response;
+      std::string hostname(argv[3]);
+      status = client.RemoveHostAcknowledgementByNames(hostname, &response);
+      std::cout << "RemoveHostAcknowledgement" << std::endl;
+    } else if (strcmp(argv[2], "byhostid") == 0) {
+      CommandSuccess response;
+      uint32_t hostid = atoi(argv[3]);
+      status = client.RemoveHostAcknowledgementByIds(hostid, &response);
+      std::cout << "RemoveHostAcknowledgement" << std::endl;
+    }
+  } else if (strcmp(argv[1], "RemoveServiceAcknowledgement") == 0) {
+    if (argc != 5) {
+      std::cout << "RemoveServiceAcknowledgement require arguments : "
+                   "RemoveServiceAcknowledgement "
+                   "[mode] [hostname "
+                   "or hostid] [servicename or serviceid]"
+                << std::endl;
+      return 1;
+    } else if (strcmp(argv[2], "bynames") == 0) {
+      CommandSuccess response;
+      std::string hostname(argv[3]);
+      std::string svcdsc(argv[4]);
+      status = client.RemoveServiceAcknowledgementByNames(hostname, svcdsc,
+                                                          &response);
+      std::cout << "RemoveServiceAcknowledgement" << std::endl;
+    } else if (strcmp(argv[2], "byids") == 0) {
+      CommandSuccess response;
+      uint32_t hostid = atoi(argv[3]);
+      uint32_t serviceid = atoi(argv[4]);
+      status = client.RemoveServiceAcknowledgementByIds(hostid, serviceid,
+                                                        &response);
+      std::cout << "RemoveServiceAcknowledgement" << std::endl;
     }
   }
   exit(status);
