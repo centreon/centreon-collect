@@ -68,4 +68,4 @@ if [ "$BUILD" '=' 'REFERENCE' ] ; then
 fi
 
 # Create RPMs tarball.
-tar czf "rpms-$DISTRIB.tar.gz"
+tar czf "rpms-$DISTRIB.tar.gz" output
