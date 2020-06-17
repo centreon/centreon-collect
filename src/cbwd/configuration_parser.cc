@@ -17,15 +17,15 @@
 */
 
 #include "com/centreon/broker/watchdog/configuration_parser.hh"
+
 #include <cstring>
 #include <fstream>
 #include <streambuf>
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/logging/manager.hh"
-#include "vars.hh"
-#include <fmt/format.h>
 
-using namespace com::centreon::broker;
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "vars.hh"
+
+using namespace com::centreon;
 using namespace com::centreon::broker::watchdog;
 using namespace json11;
 
@@ -60,12 +60,9 @@ void configuration_parser::_parse_file(std::string const& config_filename) {
   // Parse Json file
   std::ifstream f(config_filename);
 
-  if (f.fail()) {
-    std::string str(fmt::format("Config parser: Cannot read file '{}': {}",
-                                config_filename,
-                                std::strerror(errno)));
-    throw exceptions::msg_fmt(str);
-  }
+  if (f.fail())
+    throw exceptions::msg_fmt("Config parser: Cannot read file '{}': {}",
+                                config_filename, std::strerror(errno));
 
   std::string const& json_to_parse{std::istreambuf_iterator<char>(f),
                                    std::istreambuf_iterator<char>()};
@@ -73,20 +70,16 @@ void configuration_parser::_parse_file(std::string const& config_filename) {
 
   _json_document = Json::parse(json_to_parse, err);
 
-  if (_json_document.is_null()) {
-    std::string str(fmt::format(
-        "Config parser: Cannot parse file '{}': {}", config_filename, err));
-    throw exceptions::msg_fmt(str);
-  }
+  if (_json_document.is_null())
+    throw exceptions::msg_fmt("Config parser: Cannot parse file '{}': {}",
+                                config_filename, err);
 
   if (!_json_document.is_object() ||
-      !_json_document["centreonBroker"].is_object()) {
-    std::string str(fmt::format(
+      !_json_document["centreonBroker"].is_object())
+    throw exceptions::msg_fmt(
         "Config parser: Cannot parse file '{}': it must contain a "
         "centreonBroker object",
-        config_filename));
-    throw exceptions::msg_fmt(str);
-  }
+        config_filename);
   _check_json_document();
 }
 
@@ -108,11 +101,9 @@ void configuration_parser::_check_json_document() {
       else
         throw exceptions::msg_fmt(
             "error in watchdog config syntax 'cbd' must be an array");
-    } else {
-      std::string str(fmt::format(
-          "error in watchdog config '{}' key is not recognized", object.first));
-      throw exceptions::msg_fmt(str);
-    }
+    } else
+      throw exceptions::msg_fmt(
+          "error in watchdog config '{}' key is not recognized", object.first);
   }
 }
 
@@ -150,14 +141,13 @@ void configuration_parser::_parse_centreon_broker_element(
   else
     executable = instance_executable.string_value();
 
-  if (!_instances_configuration.insert({instance_name.string_value(),
-                                        instance_configuration(
-                                            instance_name.string_value(),
-                                            executable,
-                                            instance_config.string_value(),
-                                            run.bool_value(),
-                                            reload.bool_value(),
-                                            0)}).second) {
+  if (!_instances_configuration
+           .insert({instance_name.string_value(),
+                    instance_configuration(
+                        instance_name.string_value(), executable,
+                        instance_config.string_value(), run.bool_value(),
+                        reload.bool_value(), 0)})
+           .second) {
     std::string str(fmt::format("instance '{}' already exists",
                                 instance_name.string_value()));
     throw exceptions::msg_fmt(str);

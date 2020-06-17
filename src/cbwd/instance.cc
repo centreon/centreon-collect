@@ -17,18 +17,14 @@
 */
 
 #include "com/centreon/broker/watchdog/instance.hh"
-#include <wait.h>
-#include <cassert>
-#include <csignal>
-#include <cstring>
-#include <iostream>
-#include "com/centreon/broker/logging/logging.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "vars.hh"
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include <wait.h>
+
+#include <csignal>
+
 #include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::watchdog;
@@ -47,7 +43,9 @@ instance::instance(instance_configuration const& config)
 /**
  *  Destructor.
  */
-instance::~instance() { stop(); }
+instance::~instance() {
+  stop();
+}
 
 /**
  *  Merge a configuration with this instance.
@@ -104,8 +102,8 @@ void instance::start() {
     char const* argv[]{_config.get_executable().c_str(),
                        _config.get_config_file().c_str(), nullptr};
     _pid = exec_process(argv);
-    logger->info(
-        "watchdog: Process '{}' started (PID {})", _config.get_name(), _pid);
+    logger->info("watchdog: Process '{}' started (PID {})", _config.get_name(),
+                 _pid);
   }
 }
 
@@ -115,8 +113,7 @@ void instance::start() {
 void instance::update() {
   if (_started && _config.should_reload()) {
     logger->info("watchdog: Sending update signal to process '{}' (PID {})",
-                 _config.get_name(),
-                 _pid);
+                 _config.get_name(), _pid);
     kill(_pid, SIGHUP);
   }
 }
@@ -126,16 +123,14 @@ void instance::update() {
  */
 void instance::stop() {
   if (_started) {
-    logger->info(
-        "watchdog: Stopping process '{}' (PID {})", _config.get_name(), _pid);
+    logger->info("watchdog: Stopping process '{}' (PID {})", _config.get_name(),
+                 _pid);
     _started = false;
     int res = kill(_pid, SIGTERM);
     if (res)
       logger->error(
           "watchdog: Could not send a kill signal to process '{}' (PID {}): {}",
-          _config.get_name(),
-          _pid,
-          strerror(errno));
+          _config.get_name(), _pid, strerror(errno));
     int status;
     int timeout = 15;
     while ((res = waitpid(_pid, &status, WNOHANG)) == 0) {
@@ -143,33 +138,26 @@ void instance::stop() {
         logger->error(
             "watchdog: Could not gracefully terminate process '{}' (PID {}): "
             "killing it",
-            _config.get_name(),
-            _pid);
+            _config.get_name(), _pid);
         kill(_pid, SIGKILL);
         res = waitpid(_pid, &status, 0);
         if (res < 0)
           logger->error(
               "watchdog: Unable to kill the process '{}' (PID {}): {}",
-              _config.get_name(),
-              _pid,
-              strerror(errno));
+              _config.get_name(), _pid, strerror(errno));
         else
           logger->info("watchdog: Process '{}' (PID {}) killed.",
-                       _config.get_name(),
-                       _pid);
+                       _config.get_name(), _pid);
         return;
       }
       sleep(1);
     }
     if (res < 0)
       logger->error("watchdog: Unable to stop '{}' (PID {}): {}",
-                    _config.get_name(),
-                    _pid,
-                    strerror(errno));
+                    _config.get_name(), _pid, strerror(errno));
     else
       logger->info("watchdog: Process '{}' (PID {}) stopped gracefully",
-                   _config.get_name(),
-                   _pid);
+                   _config.get_name(), _pid);
   }
 }
 
@@ -178,4 +166,6 @@ void instance::stop() {
  *
  * @return The pid.
  */
-int instance::get_pid() const { return _pid; }
+int instance::get_pid() const {
+  return _pid;
+}

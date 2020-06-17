@@ -32,6 +32,6 @@ add_executable(cbwd
   ${CMAKE_SOURCE_DIR}/src/cbwd/instance.cc
   ${CMAKE_SOURCE_DIR}/src/cbwd/instance_configuration.cc
 )
-target_link_libraries(cbwd ccb_core CONAN_PKG::json11)
+target_link_libraries(cbwd CONAN_PKG::spdlog CONAN_PKG::json11)
 install(FILES ${CMAKE_BINARY_DIR}/watchdog.json COMPONENT broker-cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 install(TARGETS cbwd COMPONENT broker-cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})
