@@ -27,3 +27,6 @@ put_internal_rpms "20.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" outp
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "standard" "20.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
 fi
+
+# Create RPM tarball.
+tar czf rpms-centos8.tar.gz output
