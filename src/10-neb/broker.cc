@@ -16,13 +16,14 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/io/protocols.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 
 static uint32_t neb_instances(0);
@@ -63,9 +64,7 @@ void broker_module_init(void const* arg) {
     if (neb_category != io::events::neb) {
       e.unregister_category(neb_category);
       --neb_instances;
-      throw(exceptions::msg() << "NEB: category " << io::events::neb
-                              << " is already registered whereas it should be "
-                              << "reserved for the NEB module");
+      throw(exceptions::msg_fmt("NEB: category '{}' is already registered whereas it should be reserved for the NEB module", io::events::neb));
     }
 
     // Register events.
