@@ -45,8 +45,8 @@ class configuration {
 
   std::string const& get_log_filename() const throw();
   instance_map const& get_instances_configuration() const throw();
-  instance_configuration get_instance_configuration(
-      std::string const& name) const;
+  instance_configuration get_instance_configuration(std::string const& name)
+      const;
   bool instance_exists(std::string const& name) const throw();
 
  private:
