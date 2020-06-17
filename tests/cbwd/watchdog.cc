@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <cstdio>
 
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -95,6 +96,7 @@ TEST(WatchdogTest, JsonObject) {
       "'/tmp/json-object-conf.json': Config parser: Cannot parse file "
       "'/tmp/json-object-conf.json': it must contain a centreonBroker object\n",
       result);
+  std::remove("/tmp/json-object-conf.json");
 }  // Then an error message is returned : The file must contain an object
 
 // When the json configuration file does not contain json
@@ -108,6 +110,7 @@ TEST(WatchdogTest, JsonNull) {
       "'/tmp/json-null-conf.json': Config parser: Cannot parse file "
       "'/tmp/json-null-conf.json': expected value, got '$' (36)\n",
       result);
+  std::remove("/tmp/json-null-conf.json");
 }  // Then an error message is returned : The file must contain json language
 
 // When the content of the object in the json configuration file is not an array
@@ -126,6 +129,7 @@ TEST(WatchdogTest, CbdArray) {
       "'/tmp/cbd-array-conf.json': error in watchdog config syntax 'cbd'"
       " must be an array\n",
       result);
+  std::remove("/tmp/cbd-array-conf.json");
 }  // Then an error message is returned : 'cbd' must be an array
 
 // When the object name is not recognized in the json configuration file
@@ -162,6 +166,7 @@ TEST(WatchdogTest, Object) {
       "'/tmp/object-conf.json': error in watchdog config 'object' key is "
       "not recognized\n",
       result);
+  std::remove("/tmp/object-conf.json");
 }  // Then an error message is returned : The object is not recognized
 
 // When the instance name is missing in the json configuration file
@@ -197,6 +202,7 @@ TEST(WatchdogTest, Empty_Name) {
       "[cbwd] [error] watchdog: Could not parse the configuration file "
       "'/tmp/empty-name-conf.json': watchdog: missing instance name\n",
       result);
+  std::remove("/tmp/empty-name-conf.json");
 }  // Then an error message is returned : The file must contain an instance name
 
 TEST(WatchdogTest,
@@ -231,6 +237,7 @@ TEST(WatchdogTest,
       "[cbwd] [error] watchdog: Could not parse the configuration file"
       " '/tmp/name-conf.json': name field not provided for cbd instance\n",
       result);
+  std::remove("/tmp/name-conf.json");
 }  // Then an error message is returned : The name field must be provided for
    // cbd instance
 
@@ -265,6 +272,7 @@ TEST(WatchdogTest, Instance_config) {
       " '/tmp/instance-conf.json': instance_config field not provided for cbd "
       "instance\n",
       result);
+  std::remove("/tmp/instance-conf.json");
 }  // Then an error message is returned : The instance_config field must be
    // provided for cbd instance
 
@@ -298,6 +306,7 @@ TEST(WatchdogTest, Run) {
       "[cbwd] [error] watchdog: Could not parse the configuration file "
       "'/tmp/run-conf.json': run field not provided for cbd instance\n",
       result);
+  std::remove("/tmp/run-conf.json");
 }  // Then an error message is returned : The run field must be provided for cbd
    // instance
 
@@ -331,6 +340,7 @@ TEST(WatchdogTest, Reload) {
       "[cbwd] [error] watchdog: Could not parse the configuration file "
       "'/tmp/reload-conf.json': reload field not provided for cbd instance\n",
       result);
+  std::remove("/tmp/reload-conf.json");
 }  // Then an error message is returned : The reload field must be provided for
    // cbd instance
 
@@ -366,6 +376,7 @@ TEST(WatchdogTest, exist) {
       "[cbwd] [error] watchdog: Could not parse the configuration file "
       "'/tmp/exist-conf.json': instance 'central-rrd-master' already exists\n",
       result);
+  std::remove("/tmp/exist-conf.json");
 }  // Then an error message is returned : The instance 'central-rrd-master'
    // already exist
 
