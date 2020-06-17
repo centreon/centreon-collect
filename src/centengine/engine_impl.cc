@@ -425,6 +425,78 @@ grpc::Status engine_impl::GetHostDependenciesCount(
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
+                                         __attribute__((unused)),
+                                         const EngineComment* request,
+                                         CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> temp_host;
+    int32_t persistent;
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (request->persistent() > 1)
+      persistent = 1;
+    else if (request->persistent() < 0)
+      persistent = 0;
+    /* add the comment */
+    auto cmt = std::make_shared<comment>(
+        comment::host, comment::user, temp_host->get_host_id(), 0,
+        request->entry_time(), request->user(), request->comment_data(),
+        persistent, comment::external, false, (time_t)0);
+    comment::comments.insert({cmt->get_comment_id(), cmt});
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
+                                         __attribute__((unused)),
+                                         const EngineComment* request,
+                                         CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> temp_host;
+    std::shared_ptr<com::centreon::engine::service> temp_service;
+    int32_t persistent;
+    
+		auto it = service::services.find({request->host_name(), request->svc_desc()});
+    if (it != service::services.end())
+      temp_service = it->second;
+    if (temp_service == nullptr)
+      return 1;
+    auto it2 = host::hosts.find(request->host_name());
+    if (it2 != host::hosts.end())
+      temp_host = it2->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (request->persistent() > 1)
+      persistent = 1;
+    else if (request->persistent() < 0)
+      persistent = 0;
+    /* add the comment */
+    auto cmt = std::make_shared<comment>(
+        comment::service, comment::user, temp_host->get_host_id(), temp_service->get_service_id(),
+        request->entry_time(), request->user(), request->comment_data(),
+        persistent, comment::external, false, (time_t)0);
+    comment::comments.insert({cmt->get_comment_id(), cmt});
+	  return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
 grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
                                         __attribute__((unused)),
                                         const GenericValue* request,
@@ -442,7 +514,7 @@ grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
-  result.get() ? response->set_value(false) : response->set_value(true);
+  response->set_value(!result.get());
   return grpc::Status::OK;
 }
 

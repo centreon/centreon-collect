@@ -73,6 +73,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           EngineService* response) override;
+	grpc::Status AddHostComment(grpc::ServerContext* context,
+			                        const EngineComment* request,
+															CommandSuccess* response) override;
+	grpc::Status AddServiceComment(grpc::ServerContext* context,
+			                        const EngineComment* request,
+															CommandSuccess* response) override;
   grpc::Status DeleteComment(grpc::ServerContext* context,
                              const GenericValue* request,
                              CommandSuccess* response) override;

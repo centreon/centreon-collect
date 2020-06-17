@@ -240,6 +240,41 @@ class EngineRPCClient {
     return true;
   }
 
+	bool AddHostComment(std::string const& hostname, uint32_t& entrytime, std::string const& user, std::string const& commentdata, bool& persistent, CommandSuccess* response) {
+    grpc::ClientContext context;
+    EngineComment request;
+		request.set_host_name(hostname);
+		request.set_entry_time(entrytime);
+		request.set_user(user);
+		request.set_comment_data(commentdata);
+		request.set_persistent(persistent);
+
+	  grpc::Status status = _stub->AddHostComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "AddHostComment failed." << std::endl;
+      return false;
+    }
+		return true;
+	}
+
+bool AddServiceComment(std::string const& hostname,std::string svcdsc, uint32_t& entrytime, std::string const& user, std::string const& commentdata, bool& persistent, CommandSuccess* response) {
+    grpc::ClientContext context;
+    EngineComment request;
+		request.set_host_name(hostname);
+		request.set_svc_desc(svcdsc);
+		request.set_entry_time(entrytime);
+		request.set_user(user);
+		request.set_comment_data(commentdata);
+		request.set_persistent(persistent);
+
+	  grpc::Status status = _stub->AddHostComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "AddHostComment failed." << std::endl;
+      return false;
+    }
+		return true;
+	}
+
   bool DeleteComment(uint32_t& req, CommandSuccess* response) {
     GenericValue request;
     grpc::ClientContext context;
@@ -546,8 +581,7 @@ int main(int argc, char** argv) {
   } else if (strcmp(argv[1], "GetService") == 0) {
     if (argc != 5) {
       std::cout << "GetService require arguments : GetService [mode] [hostname "
-                   "or hostid] [servicename or serviceid]"
-                << std::endl;
+                   "or hostid] [servicename or serviceid]" << std::endl;
       return 1;
     } else if (strcmp(argv[2], "bynames") == 0) {
       EngineService response;
@@ -578,8 +612,7 @@ int main(int argc, char** argv) {
   } else if (strcmp(argv[1], "DeleteAllHostComments") == 0) {
     if (argc != 4) {
       std::cout << "DeleteAllHostComments require arguments : GetHost [mode] "
-                   "[hostname or id]"
-                << std::endl;
+                   "[hostname or id]" << std::endl;
       return 1;
     } else if (strcmp(argv[2], "byhostname") == 0) {
       CommandSuccess response;
@@ -598,7 +631,7 @@ int main(int argc, char** argv) {
                    "DeleteAllServiceComments "
                    "[mode] [hostname "
                    "or hostid] [servicename or serviceid]"
-                << std::endl;
+								<< std::endl;
       return 1;
     } else if (strcmp(argv[2], "bynames") == 0) {
       CommandSuccess response;
@@ -666,6 +699,41 @@ int main(int argc, char** argv) {
                                                         &response);
       std::cout << "RemoveServiceAcknowledgement" << std::endl;
     }
-  }
+  } else if (strcmp(argv[1], "AddHostComment") == 0) {
+		if (argc != 7) { 
+      std::cout << "AddHostComment require arguments : "
+                   "AddHostComment "
+                   "[hostname] [user] [your_own_comment] [persistent] "
+                   "[entry_time]"
+                << std::endl;
+			return 1;
+    }
+    CommandSuccess response;
+    std::string hostname = argv[2];
+		std::string user = argv[3];
+		std::string commentdata = argv[4];
+		bool persistent = atoi(argv[5]);
+		uint32_t entrytime = atoi(argv[6]);
+	  status = client.AddHostComment(hostname, entrytime, user, commentdata, persistent, &response);
+    std::cout << "AddHostComment" << std::endl;
+	} else if (strcmp(argv[1], "AddServiceComment") == 0) {
+    if (argc != 8) { 
+      std::cout << "AddHostComment require arguments : "
+                   "AddHostComment "
+                   "[hostname] [service_description] [user] [your_own_comment] "
+                   "[persistent] [entry_time]"
+                << std::endl;
+			return 1;
+    }
+    CommandSuccess response;
+    std::string hostname = argv[2]";
+    std::string svcdsc = argv[3];
+		std::string user = argv[4];
+		std::string commentdata = argv[5];
+		bool persistent = atoi(argv[6]);
+		uint32_t entrytime = atoi(argv[7]);
+	  status = client.AddServiceComment(hostname, svcdsc, entrytime, user, commentdata, persistent, &response);
+    std::cout << "AddServiceComment" << std::endl;
+	}
   exit(status);
 }
