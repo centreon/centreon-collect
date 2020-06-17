@@ -6,7 +6,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install packages.
-RUN yum install centreon-map-server mysql-server redhat-lsb-core && \
+RUN yum install centreon-map-server MariaDB-server initscripts redhat-lsb-core && \
     rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
