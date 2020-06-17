@@ -66,3 +66,6 @@ put_internal_rpms "20.10" "$DISTRIB" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "standard" "20.10" "$DISTRIB" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
 fi
+
+# Create RPMs tarball.
+tar czf "rpms-$DISTRIB.tar.gz"
