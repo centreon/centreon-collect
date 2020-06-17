@@ -107,7 +107,7 @@ bool instance_configuration::same_child(instance_configuration const& other)
  *
  *  @return  True if empty.
  */
-bool instance_configuration::is_empty() const throw() { return _name.empty(); }
+bool instance_configuration::is_empty() const noexcept { return _name.empty(); }
 
 /**
  *  Get the name of this instance.
@@ -141,11 +141,11 @@ std::string const& instance_configuration::get_executable() const throw() {
  *
  *  @return  True if this instance should be run.
  */
-bool instance_configuration::should_run() const throw() { return _run; }
+bool instance_configuration::should_run() const noexcept { return _run; }
 
 /**
  *  Should this instance be reloaded?
  *
  *  @return  True if this instance should be reloaded.
  */
-bool instance_configuration::should_reload() const throw() { return _reload; }
+bool instance_configuration::should_reload() const noexcept { return _reload; }

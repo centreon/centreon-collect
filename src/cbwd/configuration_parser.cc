@@ -60,9 +60,11 @@ void configuration_parser::_parse_file(std::string const& config_filename) {
   // Parse Json file
   std::ifstream f(config_filename);
 
-  if (f.fail()) { 
-    std::string str(fmt::format("Config parser: Cannot read file '{}': {}", config_filename, std::strerror(errno)));
-    throw exceptions::msg_fmt(str); 
+  if (f.fail()) {
+    std::string str(fmt::format("Config parser: Cannot read file '{}': {}",
+                                config_filename,
+                                std::strerror(errno)));
+    throw exceptions::msg_fmt(str);
   }
 
   std::string const& json_to_parse{std::istreambuf_iterator<char>(f),
@@ -71,16 +73,20 @@ void configuration_parser::_parse_file(std::string const& config_filename) {
 
   _json_document = Json::parse(json_to_parse, err);
 
-  if (_json_document.is_null()){
-    std::string str(fmt::format("Config parser: Cannot parse file '{}': {}", config_filename, err));
+  if (_json_document.is_null()) {
+    std::string str(fmt::format(
+        "Config parser: Cannot parse file '{}': {}", config_filename, err));
     throw exceptions::msg_fmt(str);
   }
 
   if (!_json_document.is_object() ||
-      !_json_document["centreonBroker"].is_object()){//
-        std::string str(fmt::format("config parser: cannot parse file '{}': it must contain a centreonBroker object", config_filename));
-        throw exceptions::msg_fmt(str);
-      }//wip//
+      !_json_document["centreonBroker"].is_object()) {
+    std::string str(fmt::format(
+        "Config parser: Cannot parse file '{}': it must contain a "
+        "centreonBroker object",
+        config_filename));
+    throw exceptions::msg_fmt(str);
+  }
   _check_json_document();
 }
 
@@ -100,9 +106,11 @@ void configuration_parser::_check_json_document() {
       else if (sec.is_object())
         _parse_centreon_broker_element(sec);
       else
-        throw exceptions::msg_fmt("error in watchdog config syntax 'cbd' must be an array");
+        throw exceptions::msg_fmt(
+            "error in watchdog config syntax 'cbd' must be an array");
     } else {
-      std::string str(fmt::format("error in watchdog config '{}' key is not recognized", object.first));
+      std::string str(fmt::format(
+          "error in watchdog config '{}' key is not recognized", object.first));
       throw exceptions::msg_fmt(str);
     }
   }
@@ -125,7 +133,8 @@ void configuration_parser::_parse_centreon_broker_element(
   if (!instance_name.is_string())
     throw exceptions::msg_fmt("name field not provided for cbd instance");
   if (!instance_config.is_string())
-    throw exceptions::msg_fmt("instance_config field not provided for cbd instance");
+    throw exceptions::msg_fmt(
+        "instance_config field not provided for cbd instance");
   if (!run.is_bool())
     throw exceptions::msg_fmt("run field not provided for cbd instance");
 
@@ -133,7 +142,7 @@ void configuration_parser::_parse_centreon_broker_element(
     throw exceptions::msg_fmt("reload field not provided for cbd instance");
 
   if (instance_name.string_value().empty())
-    throw exceptions::msg_fmt("watchdog: missing instance_name");
+    throw exceptions::msg_fmt("watchdog: missing instance name");
 
   std::string executable;
   if (instance_executable.string_value().empty())
@@ -141,14 +150,16 @@ void configuration_parser::_parse_centreon_broker_element(
   else
     executable = instance_executable.string_value();
 
-  if (!_instances_configuration
-           .insert({instance_name.string_value(),
-                    instance_configuration(
-                        instance_name.string_value(), executable,
-                        instance_config.string_value(), run.bool_value(),
-                        reload.bool_value(), 0)})
-           .second){
-    std::string str(fmt::format("instance '{}' already exists",instance_name.string_value()));
+  if (!_instances_configuration.insert({instance_name.string_value(),
+                                        instance_configuration(
+                                            instance_name.string_value(),
+                                            executable,
+                                            instance_config.string_value(),
+                                            run.bool_value(),
+                                            reload.bool_value(),
+                                            0)}).second) {
+    std::string str(fmt::format("instance '{}' already exists",
+                                instance_name.string_value()));
     throw exceptions::msg_fmt(str);
-    }
+  }
 }
