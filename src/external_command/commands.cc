@@ -45,6 +45,7 @@
 #include "com/centreon/engine/string.hh"
 #include "compatibility/mmap.h"
 
+
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::downtimes;
@@ -1054,6 +1055,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     default:
       break;
   }
+
   return OK;
 }
 

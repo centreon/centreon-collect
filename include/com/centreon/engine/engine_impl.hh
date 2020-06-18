@@ -73,12 +73,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           EngineService* response) override;
-	grpc::Status AddHostComment(grpc::ServerContext* context,
-			                        const EngineComment* request,
-															CommandSuccess* response) override;
-	grpc::Status AddServiceComment(grpc::ServerContext* context,
-			                        const EngineComment* request,
-															CommandSuccess* response) override;
+  grpc::Status AddHostComment(grpc::ServerContext* context,
+                              const EngineComment* request,
+                              CommandSuccess* response) override;
+  grpc::Status AddServiceComment(grpc::ServerContext* context,
+                                 const EngineComment* request,
+                                 CommandSuccess* response) override;
   grpc::Status DeleteComment(grpc::ServerContext* context,
                              const GenericValue* request,
                              CommandSuccess* response) override;
@@ -94,6 +94,18 @@ class engine_impl final : public Engine::Service {
   grpc::Status RemoveServiceAcknowledgement(grpc::ServerContext* context,
                                             const ServiceIdentifier* request,
                                             CommandSuccess* response) override;
+  grpc::Status DeleteHostDowntime(grpc::ServerContext* context,
+                                  const GenericValue* request,
+                                  CommandSuccess* response) override;
+  grpc::Status DeleteServiceDowntime(grpc::ServerContext* context,
+                                     const GenericValue* request,
+                                     CommandSuccess* response) override;
+  grpc::Status DelayHostNotification(grpc::ServerContext* context,
+                                     const HostDelayIdentifier* request,
+                                     CommandSuccess* response) override;
+  grpc::Status DelayServiceNotification(grpc::ServerContext* context,
+                                        const ServiceDelayIdentifier* request,
+                                        CommandSuccess* response) override;
 };
 
 CCE_END()

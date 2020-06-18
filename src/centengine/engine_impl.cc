@@ -31,6 +31,9 @@
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#include "com/centreon/engine/downtimes/downtime.hh"
+#include "com/centreon/engine/downtimes/downtime_finder.hh"
+#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostdependency.hh"
@@ -44,15 +47,17 @@
 #include "engine-version.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::
-    logging; /** * @brief Return the Engine's version.
-              *
-              * @param context gRPC context
-              * @param  unused
-              * @param response A Version object to fill
-              *
-              * @return Status::OK
-              */
+using namespace com::centreon::engine::logging;
+using namespace com::centreon::engine::downtimes;
+
+/** * @brief Return the Engine's version.
+ *
+ * @param context gRPC context
+ * @param  unused
+ * @param response A Version object to fill
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::GetVersion(
     grpc::ServerContext* /*context*/,
     const ::google::protobuf::Empty* /*request*/,
@@ -459,15 +464,16 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
 }
 
 grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
-                                         __attribute__((unused)),
-                                         const EngineComment* request,
-                                         CommandSuccess* response) {
+                                            __attribute__((unused)),
+                                            const EngineComment* request,
+                                            CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<com::centreon::engine::host> temp_host;
     std::shared_ptr<com::centreon::engine::service> temp_service;
     int32_t persistent;
-    
-		auto it = service::services.find({request->host_name(), request->svc_desc()});
+
+    auto it =
+        service::services.find({request->host_name(), request->svc_desc()});
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr)
@@ -483,11 +489,12 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
       persistent = 0;
     /* add the comment */
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, temp_host->get_host_id(), temp_service->get_service_id(),
-        request->entry_time(), request->user(), request->comment_data(),
-        persistent, comment::external, false, (time_t)0);
+        comment::service, comment::user, temp_host->get_host_id(),
+        temp_service->get_service_id(), request->entry_time(), request->user(),
+        request->comment_data(), persistent, comment::external, false,
+        (time_t)0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
-	  return 0;
+    return 0;
   });
 
   std::future<int32_t> result = fn.get_future();
@@ -694,6 +701,128 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     temp_service->update_status(false);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_service_acknowledgement_comments(temp_service.get());
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::DeleteHostDowntime(grpc::ServerContext* context
+                                             __attribute__((unused)),
+                                             const GenericValue* request,
+                                             CommandSuccess* response) {
+  uint32_t downtime_id = request->value();
+  auto fn = std::packaged_task<int32_t(void)>([&downtime_id]() -> int32_t {
+    /* deletes scheduled host downtime */
+    if (downtime_manager::instance().unschedule_downtime(
+            downtime::host_downtime, downtime_id) == ERROR)
+      return 1;
+    else
+      return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::DeleteServiceDowntime(grpc::ServerContext* context
+                                                __attribute__((unused)),
+                                                const GenericValue* request,
+                                                CommandSuccess* response) {
+  uint32_t downtime_id = request->value();
+  auto fn = std::packaged_task<int32_t(void)>([&downtime_id]() -> int32_t {
+    /* deletes scheduled service downtime */
+    if (downtime_manager::instance().unschedule_downtime(
+            downtime::service_downtime, downtime_id) == ERROR)
+      return 1;
+    else
+      return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::DelayHostNotification(
+    grpc::ServerContext* context __attribute__((unused)),
+    const HostDelayIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> temp_host;
+
+    switch (request->identifier_case()) {
+      case HostIdentifier::kName: {
+        auto it = host::hosts.find(request->name());
+        if (it != host::hosts.end())
+          temp_host = it->second;
+        if (temp_host == nullptr)
+          return 1;
+      } break;
+      case HostIdentifier::kId: {
+        auto it = host::hosts_by_id.find(request->id());
+        if (it != host::hosts_by_id.end())
+          temp_host = it->second;
+        if (temp_host == nullptr)
+          return 1;
+      } break;
+      default:
+        return 1;
+        break;
+    }
+
+    temp_host->set_next_notification(request->delay_time());
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::DelayServiceNotification(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ServiceDelayIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::service> temp_service;
+
+    switch (request->identifier_case()) {
+      case ServiceIdentifier::kNames: {
+        NameIdentifier names = request->names();
+        auto it =
+            service::services.find({names.host_name(), names.service_name()});
+        if (it != service::services.end())
+          temp_service = it->second;
+        if (temp_service == nullptr)
+          return 1;
+      } break;
+      case ServiceIdentifier::kIds: {
+        IdIdentifier ids = request->ids();
+        auto it =
+            service::services_by_id.find({ids.host_id(), ids.service_id()});
+        if (it != service::services_by_id.end())
+          temp_service = it->second;
+        if (temp_service == nullptr)
+          return 1;
+      } break;
+      default:
+        return 1;
+        break;
+    }
+
+    temp_service->set_next_notification(request->delay_time());
     return 0;
   });
 

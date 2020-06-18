@@ -52,6 +52,10 @@ service Engine {
   rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
   rpc RemoveHostAcknowledgement(HostIdentifier) returns (CommandSuccess) {}
   rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc DeleteHostDowntime(GenericValue) returns (CommandSuccess) {}
+  rpc DeleteServiceDowntime(GenericValue) returns (CommandSuccess) {}
+  rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {}
+  rpc DelayServiceNotification(ServiceDelayIdentifier) returns (CommandSuccess) {}
 }
 
 message GenericString {
@@ -311,4 +315,20 @@ message EngineComment {
 	string comment_data = 4;
 	bool persistent = 5;
 	uint32 entry_time = 6;
+}
+
+message HostDelayIdentifier {
+  oneof identifier {
+	string name = 1;
+	uint32 id = 2;
+  }
+	uint32 delay_time = 3;
+}
+
+message ServiceDelayIdentifier {
+  oneof identifier {
+    NameIdentifier names = 1;
+    IdIdentifier ids = 2;
+  }
+	uint32 delay_time = 3;
 }
