@@ -34,7 +34,7 @@
 #include "com/centreon/broker/bam/meta_service_status.hh"
 #include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -50,6 +50,7 @@
 #include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/timestamp.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
@@ -162,8 +163,7 @@ void monitoring_stream::update() {
     _rebuild();
     initialize();
   } catch (std::exception const& e) {
-    throw(exceptions::msg()
-          << "BAM: could not process configuration update: " << e.what());
+    throw com::centreon::exceptions::msg_fmt("BAM: could not process configuration update: {}", e.what());
   }
 }
 
@@ -366,8 +366,7 @@ void monitoring_stream::_rebuild() {
       while (_mysql.fetch_row(res))
         bas_to_rebuild.push_back(res.value_as_u32(0));
     } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "BAM: could not select the list of BAs to rebuild: " << e.what();
+      throw com::centreon::exceptions::msg_fmt("BAM: could not select the list of BAs to rebuild: {}", e.what());
     }
   }
 

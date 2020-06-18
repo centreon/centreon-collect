@@ -17,8 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/timeperiod_map.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -138,8 +139,7 @@ timeperiod_map::get_timeperiods_by_ba_id(uint32_t ba_id) const {
     bool is_default = found.first->second.second;
     time::timeperiod::ptr tp = get_timeperiod(tp_id);
     if (!tp)
-      throw exceptions::msg()
-          << "BAM-BI: could not find the timeperiod " << tp_id << " in cache";
+      throw com::centreon::exceptions::msg_fmt("BAM-BI: could not find the timeperiod {} in cache", tp_id);
     res.push_back(std::make_pair(tp, is_default));
   }
 
