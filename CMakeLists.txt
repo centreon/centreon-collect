@@ -58,6 +58,7 @@ add_subdirectory(src/connectors)
 
 #install(SCRIPT ${CMAKE_SOURCE_DIR}/script/centreon-broker.logrotate COMPONENT core DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/logrotate.d/cbd")
 install(DIRECTORY COMPONENT core DESTINATION ${CMAKE_INSTALL_DATADIR}/centreon-broker/lua)
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE COMPONENT clib DESTINATION  ${CMAKE_INSTALL_DATAROOTDIR}/doc/centreon-clib-${COLLECT_VERSION})
 
 include(CMakeCPack.cmake)
 

@@ -29,6 +29,14 @@ set(CPACK_RPM_core_PACKAGE_REQUIRES "gnutls >= 2.0")
 #centreon-clib
 set(CPACK_PACKAGE_clib_PACKAGE_NAME "centreon-clib-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}")
 set(CPACK_RPM_clib_FILE_NAME "${CPACK_PACKAGE_clib_PACKAGE_NAME}.rpm")
+set(CPACK_RPM_clib_PACKAGE_NAME "centreon-clib")
+set(CPACK_RPM_clib_PACKAGE_GROUP "Development/Libraries")
+set(CPACK_RPM_clib_PACKAGE_LICENSE "ASL 2.0")
+set(CPACK_RPM_clib_PACKAGE_SUMMARY "Centreon core library.")
+set(CPACK_RPM_clib_PACKAGE_URL "https://github.com/centreon/centreon-clib")
+set(CPACK_RPM_clib_PACKAGE_PACKAGER "David BOUCHER <dboucher@centreon.com>")
+set(CPACK_RPM_clib_PACKAGE_VENDOR "Centreon")
+set(CPACK_RPM_clib_PACKAGE_DESCRIPTION "Centreon Clib is a common library for all Centreon products written in C/C++.")
 
 #centreon-connector-perl
 set(CPACK_PACKAGE_connector-perl_PACKAGE_NAME "centreon-connector-perl")
