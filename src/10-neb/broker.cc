@@ -64,7 +64,7 @@ void broker_module_init(void const* arg) {
     if (neb_category != io::events::neb) {
       e.unregister_category(neb_category);
       --neb_instances;
-      throw(exceptions::msg_fmt("NEB: category '{}' is already registered whereas it should be reserved for the NEB module", io::events::neb));
+      throw exceptions::msg_fmt("NEB: category '{}' is already registered whereas it should be reserved for the NEB module", io::events::neb);
     }
 
     // Register events.
