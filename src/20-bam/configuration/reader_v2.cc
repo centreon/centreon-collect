@@ -37,7 +37,9 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
 
@@ -153,8 +155,7 @@ void reader_v2::_load(state::kpis& kpis) {
         }
       }
     } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "BAM: could not retrieve KPI configuration from DB: " << e.what();
+      throw com::centreon::exceptions::msg_fmt("BAM: could not retrieve KPI configuration from DB: {}", e.what());
     }
 
     // Load host ID/service ID of meta-services (temporary fix until
@@ -175,14 +176,11 @@ void reader_v2::_load(state::kpis& kpis) {
         try {
           database::mysql_result res(promise.get_future().get());
           if (!_mysql.fetch_row(res))
-            throw(exceptions::msg() << "virtual service of meta-service "
-                                    << it->first << " does not exist");
+            throw com::centreon::exceptions::msg_fmt("virtual service of meta-service {} does not exist", it->first);
           it->second.set_host_id(res.value_as_u32(0));
           it->second.set_service_id(res.value_as_u32(1));
         } catch (std::exception const& e) {
-          throw exceptions::msg()
-              << "could not retrieve virtual meta-service's service: "
-              << e.what();
+          throw com::centreon::exceptions::msg_fmt("could not retrieve virtual meta-service's service: {}", e.what());
         }
       }
     }
@@ -242,7 +240,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
           }
         }
       } catch (std::exception const& e) {
-        throw exceptions::msg() << "BAM: " << e.what();
+        throw com::centreon::exceptions::msg_fmt("BAM: {}", e.what());
       }
     }
   } catch (reader_exception const& e) {
@@ -610,8 +608,7 @@ void reader_v2::_load_dimensions() {
         datas.push_back(std::static_pointer_cast<io::data>(tp));
       }
     } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not load timeperiods from the database: " << e.what();
+      throw com::centreon::exceptions::msg_fmt("could not load timeperiods from the database: {}", e.what());
     }
 
     // Load the BAs.
@@ -651,8 +648,7 @@ void reader_v2::_load_dimensions() {
         }
       }
     } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not retrieve BAs from the database" << e.what();
+      throw com::centreon::exceptions::msg_fmt("could not retrieve BAs from the database {}", e.what());
     }
     // Load the BVs.
     promise = std::promise<database::mysql_result>();
@@ -670,8 +666,7 @@ void reader_v2::_load_dimensions() {
         datas.push_back(std::static_pointer_cast<io::data>(bv));
       }
     } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not retrieve BVs from the database: " << e.what();
+      throw com::centreon::exceptions::msg_fmt("could not retrieve BVs from the database: {}", e.what());
     }
     // Load the BA BV relations.
     {
@@ -697,8 +692,7 @@ void reader_v2::_load_dimensions() {
           datas.push_back(std::static_pointer_cast<io::data>(babv));
         }
       } catch (std::exception const& e) {
-        throw exceptions::msg()
-            << "could not retrieve BV memberships of BAs: " << e.what();
+        throw com::centreon::exceptions::msg_fmt("could not retrieve BV memberships of BAs: {}", e.what());
       }
     }
 
@@ -789,8 +783,7 @@ void reader_v2::_load_dimensions() {
           datas.push_back(std::static_pointer_cast<io::data>(k));
         }
       } catch (std::exception const& e) {
-        throw exceptions::msg()
-            << "could not retrieve KPI dimensions: " << e.what();
+        throw com::centreon::exceptions::msg_fmt("could not retrieve KPI dimensions: {}", e.what());
       }
     }
 
@@ -809,9 +802,7 @@ void reader_v2::_load_dimensions() {
         datas.push_back(dbtr);
       }
     } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not retrieve the timeperiods associated with the BAs: "
-          << e.what();
+      throw com::centreon::exceptions::msg_fmt("could not retrieve the timeperiods associated with the BAs: {}", e.what());
     }
 
     // End the update.
