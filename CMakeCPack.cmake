@@ -8,7 +8,7 @@ set(CPACK_RPM_PACKAGE_SUMMARY "The Centreon collect softwares mainly composed of
 set(CPACK_RPM_PACKAGE_DESCRIPTION "Centreon Broker is a Centreon Engine/Nagios module that reports events in one or multiple databases.")
 set(CPACK_BINARY_RPM On)
 
-set(CPACK_COMPONENTS_ALL broker core clib connector-perl connector-ssh engine-daemon engine-extcommands) # storage graphite influxdb cbd cbmod devel)
+set(CPACK_COMPONENTS_ALL broker cbd core clib connector-perl connector-ssh engine-daemon engine-extcommands) # storage graphite influxdb cbmod devel)
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 set(CPACK_PACKAGE_VERSION ${COLLECT_VERSION})
 set(CPACK_PACKAGE_RELEASE 1)
@@ -22,6 +22,10 @@ set(CPACK_PACKAGE_BROKER_PACKAGE_NAME "centreon-broker-${CPACK_PACKAGE_VERSION}-
 set(CPACK_RPM_BROKER_FILE_NAME "${CPACK_PACKAGE_BROKER_PACKAGE_NAME}.rpm")
 set(CPACK_RPM_BROKER_DEFAULT_USER "centreon-broker")
 set(CPACK_RPM_BROKER_DEFAULT_GROUP "centreon-broker")
+
+#centreon-broker-cbd
+set(CPACK_PACKAGE_CBD_PACKAGE_NAME "centreon-broker-cbd-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}")
+set(CPACK_RPM_CBD_FILE_NAME "${CPACK_PACKAGE_CBD_PACKAGE_NAME}.rpm")
 
 #centreon-broker-core
 set(CPACK_PACKAGE_core_PACKAGE_NAME "centreon-broker-core-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}")
