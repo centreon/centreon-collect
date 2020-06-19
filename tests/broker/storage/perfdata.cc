@@ -35,14 +35,15 @@ TEST(StoragePerfdataException, All) {
   bool success{false};
   try {
     throw storage::exceptions::perfdata() << "test exception";
-  } catch (storage::exceptions::perfdata const& e) {
+  }
+  catch (storage::exceptions::perfdata const& e) {
     try {
       e.rethrow();
-    } catch (storage::exceptions::perfdata const& e) {
-      exceptions::msg* msg{e.clone()};
-      if (std::string{msg->what()} == "test exception")
+    }
+    catch (storage::exceptions::perfdata const& e) {
+      // exceptions::msg* msg{e.clone()};
+      if (std::string{e.what()} == "test exception")
         success = true;
-      delete msg;
     }
   }
 
@@ -217,7 +218,9 @@ TEST(StoragePerfdata, DefaultCtor) {
 class StorageParserParsePerfdata : public testing::Test {
  public:
   void SetUp() override { config::applier::init(); }
-  void TearDown() override { config::applier::deinit(); };
+  void TearDown() override {
+    config::applier::deinit();
+  };
 };
 
 // Given a storage::parser object
