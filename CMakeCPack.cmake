@@ -20,11 +20,13 @@ set(CPACK_RPM_COMPONENT_INSTALL ON)
 #centreon-broker
 set(CPACK_PACKAGE_broker_PACKAGE_NAME "centreon-broker-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}")
 set(CPACK_RPM_broker_FILE_NAME "${CPACK_PACKAGE_broker_PACKAGE_NAME}.rpm")
+set(CPACK_RPM_DEFAULT_USER "centreon-broker")
+set(CPACK_RPM_DEFAULT_GROUP "centreon-broker")
 
 #centreon-broker-core
 set(CPACK_PACKAGE_core_PACKAGE_NAME "centreon-broker-core-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}")
 set(CPACK_RPM_core_FILE_NAME "${CPACK_PACKAGE_core_PACKAGE_NAME}.rpm")
-set(CPACK_RPM_core_PACKAGE_REQUIRES "gnutls >= 2.0")
+set(CPACK_RPM_core_PACKAGE_REQUIRES "centreon-broker = ${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}, centreon-broker-storage = ${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}, gnutls >= 2.0")
 
 #centreon-clib
 set(CPACK_PACKAGE_clib_PACKAGE_NAME "centreon-clib-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_RELEASE}")
@@ -49,6 +51,7 @@ set(CPACK_RPM_connector-ssh_FILE_NAME "${CPACK_PACKAGE_connector-ssh_PACKAGE_NAM
 #centreon-engine-daemon
 set(CPACK_PACKAGE_engine-daemon_PACKAGE_NAME "centreon-engine-daemon")
 set(CPACK_RPM_engine-daemon_FILE_NAME ${CPACK_PACKAGE_engine-daemon_PACKAGE_NAME}.rpm)
+#set(CPACK_RPM_engine-daemon_REQUIRES centreon-clib)
 
 #centreon-engine-extcommands
 set(CPACK_PACKAGE_engine-extcommands_PACKAGE_NAME "centreon-engine-extcommands")
