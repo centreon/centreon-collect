@@ -34,6 +34,7 @@
 #include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -52,7 +53,8 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
   // Browse all tokens.
   for (exp_parser::notation::const_iterator it(postfix.begin()),
        end(postfix.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Operators.
     if (exp_parser::is_operator(*it)) {
       // Unary operators.
@@ -89,7 +91,8 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
                  (*it == "%"))
           binary.reset(new bool_operation(*it));
         else
-          throw exceptions::msg_fmt("unsupported operator {} found while parsing expression", *it);
+          throw exceptions::msg_fmt(
+              "unsupported operator {} found while parsing expression", *it);
         bool_value::ptr right(_pop_operand());
         bool_value::ptr left(_pop_operand());
         left->add_parent(binary);
@@ -104,7 +107,9 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
       // Arity should be placed after function name.
       std::string func(*it);
       if (++it == end)
-        throw exceptions::msg_fmt("internal expression parsingerror: no arity placed after function name in postfix notation");
+        throw exceptions::msg_fmt(
+            "internal expression parsingerror: no arity placed after function "
+            "name in postfix notation");
       int arity(std::strtol(it->c_str(), nullptr, 0));
 
       // Host status.
@@ -123,10 +128,12 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
         std::string hst(_pop_string());
 
         // Find host and service IDs.
-        std::pair<uint32_t, uint32_t> ids(
-            _mapping.get_service_id(hst, svc));
+        std::pair<uint32_t, uint32_t> ids(_mapping.get_service_id(hst, svc));
         if (!ids.first || !ids.second)
-          throw exceptions::msg_fmt("could not find ID of service '{}' and/or of host '{}'", svc, hst);
+          throw exceptions::msg_fmt(
+              "could not find ID of service '{}' and/or of host '{}'",
+              svc,
+              hst);
 
         // Build object.
         bool_service::ptr obj(new bool_service);
@@ -171,7 +178,9 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
     else if (exp_parser::is_function(*it)) {
       // Arity should be placed after function name.
       if (++it == end)
-        throw exceptions::msg_fmt("internal expression parsing error: no arity placed after function name in postfix notation");
+        throw exceptions::msg_fmt(
+            "internal expression parsing error: no arity placed after function "
+            "name in postfix notation");
     }
     // Operand (will be evaluated when poped).
     else {
@@ -183,7 +192,8 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
   // The sole remaining operand should be the tree root.
   _tree = _pop_operand();
   if (!_operands.empty())
-    throw exceptions::msg_fmt("unable to build an expression: incorrect syntax");
+    throw exceptions::msg_fmt(
+        "unable to build an expression: incorrect syntax");
 }
 
 /**
@@ -223,9 +233,7 @@ exp_builder::list_service const& exp_builder::get_services() const {
  *
  *  @return The expression tree.
  */
-bool_value::ptr exp_builder::get_tree() const {
-  return (_tree);
-}
+bool_value::ptr exp_builder::get_tree() const { return (_tree); }
 
 /**
  *  Check the arity of a function or an operator.
@@ -238,7 +246,11 @@ void exp_builder::_check_arity(std::string const& func,
                                int expected,
                                int given) {
   if (expected != given)
-    throw exceptions::msg_fmt("invalid argument count for {}: it expects {} arguments, {} given", func, expected, given);
+    throw exceptions::msg_fmt(
+        "invalid argument count for {}: it expects {} arguments, {} given",
+        func,
+        expected,
+        given);
   return;
 }
 
@@ -265,7 +277,8 @@ bool exp_builder::_is_static_function(std::string const& str) const {
 bool_value::ptr exp_builder::_pop_operand() {
   // Check that operand exist.
   if (_operands.empty())
-    throw exceptions::msg_fmt("syntax error: operand is missing for operator or function");
+    throw exceptions::msg_fmt(
+        "syntax error: operand is missing for operator or function");
 
   // Check if operand needs to be converted.
   bool_value::ptr retval;
@@ -307,11 +320,13 @@ bool_value::ptr exp_builder::_pop_operand() {
 std::string exp_builder::_pop_string() {
   // Check that operand exists.
   if (_operands.empty())
-    throw exceptions::msg_fmt("syntax error: operand is missing for operator or function");
+    throw exceptions::msg_fmt(
+        "syntax error: operand is missing for operator or function");
 
   // Check that operand is a string.
   if (_operands.top().first || _operands.top().second.empty())
-    throw exceptions::msg_fmt("syntax error: operand was expected to be a string");
+    throw exceptions::msg_fmt(
+        "syntax error: operand was expected to be a string");
 
   // Retval.
   std::string retval(_operands.top().second);

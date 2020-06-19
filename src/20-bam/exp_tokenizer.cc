@@ -18,8 +18,9 @@
 
 #include "com/centreon/broker/bam/exp_tokenizer.hh"
 #include <cctype>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -83,12 +84,14 @@ std::string exp_tokenizer::next() {
       if (_is_special_char()) {
         if ((_current + 1 < _size)
             // Double character exceptions: ==, !=, >=, <=.
-            && ((((_text[_current] == '=') || (_text[_current] == '!') ||
-                  (_text[_current] == '<') || (_text[_current] == '>')) &&
-                 (_text[_current + 1] == '='))
-                // Double character exceptions: ||, &&.
-                || (((_text[_current] == '|') || (_text[_current] == '&')) &&
-                    (_text[_current] == _text[_current + 1])))) {
+            &&
+            ((((_text[_current] == '=') || (_text[_current] == '!') ||
+               (_text[_current] == '<') || (_text[_current] == '>')) &&
+              (_text[_current + 1] == '='))
+             // Double character exceptions: ||, &&.
+             ||
+             (((_text[_current] == '|') || (_text[_current] == '&')) &&
+              (_text[_current] == _text[_current + 1])))) {
           retval.push_back(_text[_current]);
           retval.push_back(_text[_current + 1]);
           _next = _current + 2;
@@ -161,8 +164,8 @@ std::string exp_tokenizer::_extract_token() {
     if ((_next < _size) && (_text[_next] == '}')) {
       ++_next;
     } else
-      throw(exceptions::msg() << "opening brace at position " << _current
-                              << " has no ending brace ");
+      throw msg_fmt("opening brace at position {} has no ending brace ",
+                    _current);
   }
   // Extract classical token.
   else {
@@ -204,9 +207,9 @@ std::string exp_tokenizer::_extract_until(bool (exp_tokenizer::*predicate)()) {
           }
         }
         if (!quote_matched)
-          throw(exceptions::msg()
-                << "unterminated " << (process_metachars ? "double" : "single")
-                << " quote in the following expression: " << _text);
+          throw msg_fmt("unterminated {} quote in the following expression: {}",
+                        (process_metachars ? "double" : "single"),
+                        _text);
       } break;
       case '\\':
         if (++_next < _size)
@@ -240,9 +243,7 @@ void exp_tokenizer::_internal_copy(exp_tokenizer const& other) {
  *
  *  @return True if the next character is a right brace.
  */
-bool exp_tokenizer::_is_right_brace() {
-  return (_text[_next] == '}');
-}
+bool exp_tokenizer::_is_right_brace() { return (_text[_next] == '}'); }
 
 /**
  *  Check if the next character is a right brace or a space.

@@ -42,7 +42,7 @@
 #include "com/centreon/broker/misc/global_lock.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 
-using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
@@ -201,9 +201,17 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
  */
 void reporting_stream::_apply(dimension_timeperiod const& tp) {
   _timeperiods.add_timeperiod(
-      tp.id, time::timeperiod::ptr(new time::timeperiod(
-                 tp.id, tp.name, "", tp.sunday, tp.monday, tp.tuesday,
-                 tp.wednesday, tp.thursday, tp.friday, tp.saturday)));
+      tp.id,
+      time::timeperiod::ptr(new time::timeperiod(tp.id,
+                                                 tp.name,
+                                                 "",
+                                                 tp.sunday,
+                                                 tp.monday,
+                                                 tp.tuesday,
+                                                 tp.wednesday,
+                                                 tp.thursday,
+                                                 tp.friday,
+                                                 tp.saturday)));
 }
 
 /**
@@ -252,7 +260,7 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
                                                   char const* table,
                                                   char const* id) {
   // Get events to close.
-  std::list<std::pair<uint32_t, time_t>> events;
+  std::list<std::pair<uint32_t, time_t> > events;
   {
     std::ostringstream query;
     query << "SELECT e1." << id << ", e1.start_time"
@@ -269,16 +277,18 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
       while (_mysql.fetch_row(res))
         events.push_back(std::make_pair(
             res.value_as_u32(0), static_cast<time_t>(res.value_as_i32(1))));
-    } catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt("BAM-BI: could not get inconsistent events: {}", e.what());
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM-BI: could not get inconsistent events: {}", e.what());
     }
   }
 
   // Close each event.
-  for (std::list<std::pair<uint32_t, time_t>>::const_iterator
+  for (std::list<std::pair<uint32_t, time_t> >::const_iterator
            it(events.begin()),
        end(events.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     time_t end_time;
     {
       std::ostringstream oss;
@@ -293,11 +303,18 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
       try {
         mysql_result res(promise.get_future().get());
         if (!_mysql.fetch_row(res))
-          throw com::centreon::exceptions::msg_fmt("no event following this one");
+          throw msg_fmt("no event following this one");
 
         end_time = res.value_as_i32(0);
-      } catch (std::exception const& e) {
-        throw com::centreon::exceptions::msg_fmt("BAM-BI: could not get end time of inconsistent event of {} {} starting at {}: {}", event_type, it->first, it->second, e.what());
+      }
+      catch (std::exception const& e) {
+        throw msg_fmt(
+            "BAM-BI: could not get end time of inconsistent event of {} {} "
+            "starting at {}: {}",
+            event_type,
+            it->first,
+            it->second,
+            e.what());
       }
     }
     {
@@ -318,14 +335,12 @@ void reporting_stream::_close_all_events() {
   std::ostringstream query;
 
   query << "UPDATE mod_bam_reporting_ba_events"
-           " SET end_time="
-        << now << " WHERE end_time IS NULL";
+           " SET end_time=" << now << " WHERE end_time IS NULL";
   _mysql.run_query(query.str(), "BAM-BI: could not close all ba events");
 
   query.str("");
   query << "UPDATE mod_bam_reporting_kpi_events"
-           "  SET end_time="
-        << now << "  WHERE end_time IS NULL";
+           "  SET end_time=" << now << "  WHERE end_time IS NULL";
 
   _mysql.run_query(query.str(), "BAM-BI, could not close all kpi events");
 }
@@ -350,14 +365,20 @@ void reporting_stream::_load_timeperiods() {
       while (_mysql.fetch_row(res)) {
         _timeperiods.add_timeperiod(
             res.value_as_u32(0),
-            time::timeperiod::ptr(new time::timeperiod(
-                res.value_as_u32(0), res.value_as_str(1), "",
-                res.value_as_str(2), res.value_as_str(3), res.value_as_str(4),
-                res.value_as_str(5), res.value_as_str(6), res.value_as_str(7),
-                res.value_as_str(8))));
+            time::timeperiod::ptr(new time::timeperiod(res.value_as_u32(0),
+                                                       res.value_as_str(1),
+                                                       "",
+                                                       res.value_as_str(2),
+                                                       res.value_as_str(3),
+                                                       res.value_as_str(4),
+                                                       res.value_as_str(5),
+                                                       res.value_as_str(6),
+                                                       res.value_as_str(7),
+                                                       res.value_as_str(8))));
       }
-    } catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt("BAM-BI: could not load timeperiods from DB: {}", e.what());
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM-BI: could not load timeperiods from DB: {}", e.what());
     }
   }
 
@@ -380,8 +401,10 @@ void reporting_stream::_load_timeperiods() {
         else
           tp->add_exception(res.value_as_str(1), res.value_as_str(2));
       }
-    } catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt("BAM-BI: could not load timeperiods exceptions from DB: {}", e.what());
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM-BI: could not load timeperiods exceptions from DB: {}",
+                    e.what());
     }
   }
 
@@ -407,8 +430,9 @@ void reporting_stream::_load_timeperiods() {
         else
           tp->add_excluded(excluded_tp);
       }
-    } catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt("BAM-BI: could not load exclusions from DB: {}", e.what());
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM-BI: could not load exclusions from DB: {}", e.what());
     }
   }
 
@@ -422,10 +446,12 @@ void reporting_stream::_load_timeperiods() {
     try {
       mysql_result res(promise.get_future().get());
       while (_mysql.fetch_row(res))
-        _timeperiods.add_relation(res.value_as_u32(0), res.value_as_u32(1),
-                                  res.value_as_bool(2));
-    } catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt("BAM-BI: could not load BA/timeperiods relations: {}", e.what());
+        _timeperiods.add_relation(
+            res.value_as_u32(0), res.value_as_u32(1), res.value_as_bool(2));
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM-BI: could not load BA/timeperiods relations: {}",
+                    e.what());
     }
   }
 }
@@ -586,10 +612,11 @@ void reporting_stream::_prepare() {
  */
 void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
   bam::ba_event const& be = *std::static_pointer_cast<bam::ba_event const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing event of BA " << be.ba_id << " (start time "
-      << be.start_time << ", end time " << be.end_time << ", status "
-      << be.status << ", in downtime " << be.in_downtime << ")";
+  logging::debug(logging::low) << "BAM-BI: processing event of BA " << be.ba_id
+                               << " (start time " << be.start_time
+                               << ", end time " << be.end_time << ", status "
+                               << be.status << ", in downtime "
+                               << be.in_downtime << ")";
 
   // Try to update event.
   if (be.end_time.is_null())
@@ -604,8 +631,8 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
       5, static_cast<uint64_t>(be.start_time.get_time_t()));
 
   std::promise<int> promise;
-  _mysql.run_statement_and_get_int<int>(_ba_event_update, &promise,
-                                        mysql_task::int_type::AFFECTED_ROWS);
+  _mysql.run_statement_and_get_int<int>(
+      _ba_event_update, &promise, mysql_task::int_type::AFFECTED_ROWS);
 
   // Event was not found, insert one.
   try {
@@ -637,7 +664,8 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
         if (m_events.find(be.start_time.get_time_t()) != m_events.end()) {
           // Insert kpi event link.
           _kpi_event_link_update.bind_value_as_i32(0, newba);
-          _kpi_event_link_update.bind_value_as_u64(1, m_events[be.start_time.get_time_t()]);
+          _kpi_event_link_update.bind_value_as_u64(
+              1, m_events[be.start_time.get_time_t()]);
           oss_err << "BAM-BI: could not update kpi event link "
                   << m_events[be.start_time.get_time_t()] << " event of BA "
                   << be.ba_id << " starting at " << be.start_time << ": ";
@@ -652,8 +680,15 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
         }
       }
     }
-  } catch (std::exception const& e) {
-    throw com::centreon::exceptions::msg_fmt("BAM-BI: could not update event of BA {} starting at {} and ending at {}: {}", be.ba_id, be.start_time, be.end_time, e.what());
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: could not update event of BA {} starting at {} and ending at "
+        "{}: {}",
+        be.ba_id,
+        be.start_time,
+        be.end_time,
+        e.what());
   }
 
   // Compute the associated event durations.
@@ -670,11 +705,11 @@ void reporting_stream::_process_ba_duration_event(
     std::shared_ptr<io::data> const& e) {
   bam::ba_duration_event const& bde =
       *std::static_pointer_cast<bam::ba_duration_event const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing BA duration event of BA " << bde.ba_id
-      << " (start time " << bde.start_time << ", end time " << bde.end_time
-      << ", duration " << bde.duration << ", sla duration " << bde.sla_duration
-      << ")";
+  logging::debug(logging::low) << "BAM-BI: processing BA duration event of BA "
+                               << bde.ba_id << " (start time " << bde.start_time
+                               << ", end time " << bde.end_time << ", duration "
+                               << bde.duration << ", sla duration "
+                               << bde.sla_duration << ")";
 
   // Try to update first.
   _ba_duration_event_update.bind_value_as_u64(
@@ -691,7 +726,8 @@ void reporting_stream::_process_ba_duration_event(
 
   std::promise<int> promise;
   int thread_id(_mysql.run_statement_and_get_int<int>(
-      _ba_duration_event_update, &promise,
+      _ba_duration_event_update,
+      &promise,
       mysql_task::int_type::AFFECTED_ROWS));
   try {
     // Insert if no rows was updated.
@@ -708,11 +744,16 @@ void reporting_stream::_process_ba_duration_event(
       _ba_duration_event_insert.bind_value_as_u64(
           7, static_cast<uint64_t>(bde.real_start_time.get_time_t()));
 
-      _mysql.run_statement(_ba_duration_event_insert, "Insertion failed", true,
-                           thread_id);
+      _mysql.run_statement(
+          _ba_duration_event_insert, "Insertion failed", true, thread_id);
     }
-  } catch (std::exception const& e) {
-    throw com::centreon::exceptions::msg_fmt("BAM-BI: could not insert duration event of BA {} starting at {}: {}", bde.ba_id, bde.start_time, e.what());
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: could not insert duration event of BA {} starting at {}: {}",
+        bde.ba_id,
+        bde.start_time,
+        e.what());
   }
 }
 
@@ -723,10 +764,11 @@ void reporting_stream::_process_ba_duration_event(
  */
 void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
   bam::kpi_event const& ke = *std::static_pointer_cast<bam::kpi_event const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing event of KPI " << ke.kpi_id << " (start time "
-      << ke.start_time << ", end time " << ke.end_time << ", state "
-      << ke.status << ", in downtime " << ke.in_downtime << ")";
+  logging::debug(logging::low) << "BAM-BI: processing event of KPI "
+                               << ke.kpi_id << " (start time " << ke.start_time
+                               << ", end time " << ke.end_time << ", state "
+                               << ke.status << ", in downtime "
+                               << ke.in_downtime << ")";
 
   // Try to update kpi.
   if (ke.end_time.is_null())
@@ -763,8 +805,8 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       oss_err << "BAM-BI: could not insert event of KPI " << ke.kpi_id
               << " starting at " << ke.start_time << " and ending at "
               << ke.end_time << ": ";
-      _mysql.run_statement(_kpi_full_event_insert, oss_err.str(), true,
-                           thread_id);
+      _mysql.run_statement(
+          _kpi_full_event_insert, oss_err.str(), true, thread_id);
 
       // Insert kpi event link.
       _kpi_event_link.bind_value_as_i32(0, ke.kpi_id);
@@ -780,11 +822,19 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       _mysql.run_statement_and_get_int<uint64_t>(
           _kpi_event_link, &result, mysql_task::LAST_INSERT_ID, thread_id);
 
-      uint64_t evt_id{result.get_future().get()};  //_kpi_event_link.last_insert_id().toUInt()};
+      uint64_t evt_id{
+          result.get_future()
+              .get()};  //_kpi_event_link.last_insert_id().toUInt()};
       _last_inserted_kpi[ke.ba_id].insert({ke.start_time.get_time_t(), evt_id});
     }
-  } catch (std::exception const& e) {
-    throw com::centreon::exceptions::msg_fmt("BAM-BI: could not update KPI {} starting at {} and ending at {}: {}", ke.kpi_id, ke.start_time, ke.end_time, e.what());
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: could not update KPI {} starting at {} and ending at {}: {}",
+        ke.kpi_id,
+        ke.start_time,
+        ke.end_time,
+        e.what());
   }
 }
 
@@ -797,9 +847,9 @@ void reporting_stream::_process_dimension_ba(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_ba_event const& dba =
       *std::static_pointer_cast<bam::dimension_ba_event const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing declaration of BA " << dba.ba_id << " ('"
-      << dba.ba_description << "')";
+  logging::debug(logging::low) << "BAM-BI: processing declaration of BA "
+                               << dba.ba_id << " ('" << dba.ba_description
+                               << "')";
   _dimension_ba_insert.bind_value_as_i32(0, dba.ba_id);
   _dimension_ba_insert.bind_value_as_str(1, dba.ba_name);
   _dimension_ba_insert.bind_value_as_str(2, dba.ba_description);
@@ -871,20 +921,22 @@ void reporting_stream::_process_dimension(std::shared_ptr<io::data> const& e) {
 
     if (!dtts.update_started) {
       // Lock the availability thread.
-      std::unique_ptr<std::unique_lock<std::mutex>> lock(
+      std::unique_ptr<std::unique_lock<std::mutex> > lock(
           _availabilities->lock());
 
       // XXX : dimension event acknowledgement might not work !!!
       //       For this reason, ignore any db error. We wouldn't
       //       be able to manage it on a stream level.
       try {
-        for (std::vector<std::shared_ptr<io::data>>::const_iterator
+        for (std::vector<std::shared_ptr<io::data> >::const_iterator
                  it(_dimension_data_cache.begin()),
              end(_dimension_data_cache.end());
-             it != end; ++it)
+             it != end;
+             ++it)
           _dimension_dispatch(*it);
         _mysql.commit();
-      } catch (std::exception const& e) {
+      }
+      catch (std::exception const& e) {
         logging::error(logging::medium)
             << "BAM-BI: ignored dimension insertion failure: " << e.what();
       }
@@ -918,9 +970,9 @@ void reporting_stream::_dimension_dispatch(
            io::events::data_type<io::events::bam,
                                  bam::de_dimension_kpi_event>::value)
     _process_dimension_kpi(data);
-  else if (data->type() ==
-           io::events::data_type<
-               io::events::bam, bam::de_dimension_truncate_table_signal>::value)
+  else if (data->type() == io::events::data_type<
+                               io::events::bam,
+                               bam::de_dimension_truncate_table_signal>::value)
     _process_dimension_truncate_signal(data);
   else if (data->type() ==
            io::events::data_type<io::events::bam,
@@ -968,9 +1020,9 @@ std::shared_ptr<io::data> reporting_stream::_dimension_copy(
                                  bam::de_dimension_kpi_event>::value)
     return std::make_shared<bam::dimension_kpi_event>(
         *std::static_pointer_cast<bam::dimension_kpi_event>(data));
-  else if (data->type() ==
-           io::events::data_type<
-               io::events::bam, bam::de_dimension_truncate_table_signal>::value)
+  else if (data->type() == io::events::data_type<
+                               io::events::bam,
+                               bam::de_dimension_truncate_table_signal>::value)
     return std::make_shared<bam::dimension_truncate_table_signal>(
         *std::static_pointer_cast<bam::dimension_truncate_table_signal>(data));
   else if (data->type() ==
@@ -1013,7 +1065,8 @@ void reporting_stream::_process_dimension_truncate_signal(
     for (std::vector<mysql_stmt>::iterator
              it(_dimension_truncate_tables.begin()),
          end(_dimension_truncate_tables.end());
-         it != end; ++it)
+         it != end;
+         ++it)
       _mysql.run_statement(*it,
                            "BAM-BI: could not truncate some dimension table");
 
@@ -1108,8 +1161,8 @@ void reporting_stream::_process_dimension_timeperiod_exception(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_timeperiod_exception const& tpe =
       *std::static_pointer_cast<bam::dimension_timeperiod_exception const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing exception of timeperiod " << tpe.timeperiod_id;
+  logging::debug(logging::low) << "BAM-BI: processing exception of timeperiod "
+                               << tpe.timeperiod_id;
 
   _dimension_timeperiod_exception_insert.bind_value_as_i32(0,
                                                            tpe.timeperiod_id);
@@ -1133,9 +1186,9 @@ void reporting_stream::_process_dimension_timeperiod_exclusion(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_timeperiod_exclusion const& tpe =
       *std::static_pointer_cast<bam::dimension_timeperiod_exclusion const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing exclusion of timeperiod "
-      << tpe.excluded_timeperiod_id << " by timeperiod " << tpe.timeperiod_id;
+  logging::debug(logging::low) << "BAM-BI: processing exclusion of timeperiod "
+                               << tpe.excluded_timeperiod_id
+                               << " by timeperiod " << tpe.timeperiod_id;
 
   _dimension_timeperiod_exclusion_insert.bind_value_as_i32(0,
                                                            tpe.timeperiod_id);
@@ -1159,9 +1212,9 @@ void reporting_stream::_process_dimension_ba_timeperiod_relation(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_ba_timeperiod_relation const& r =
       *std::static_pointer_cast<bam::dimension_ba_timeperiod_relation const>(e);
-  logging::debug(logging::low)
-      << "BAM-BI: processing relation of BA " << r.ba_id << " to timeperiod "
-      << r.timeperiod_id;
+  logging::debug(logging::low) << "BAM-BI: processing relation of BA "
+                               << r.ba_id << " to timeperiod "
+                               << r.timeperiod_id;
 
   _dimension_ba_timeperiod_insert.bind_value_as_i32(0, r.ba_id);
   _dimension_ba_timeperiod_insert.bind_value_as_i32(1, r.timeperiod_id);
@@ -1193,7 +1246,7 @@ void reporting_stream::_compute_event_durations(
       << " and ended at " << ev->end_time << " on BA " << ev->ba_id;
 
   // Find the timeperiods associated with this ba.
-  std::vector<std::pair<time::timeperiod::ptr, bool>> timeperiods =
+  std::vector<std::pair<time::timeperiod::ptr, bool> > timeperiods =
       _timeperiods.get_timeperiods_by_ba_id(ev->ba_id);
 
   if (timeperiods.empty()) {
@@ -1204,10 +1257,11 @@ void reporting_stream::_compute_event_durations(
     return;
   }
 
-  for (std::vector<std::pair<time::timeperiod::ptr, bool>>::const_iterator
+  for (std::vector<std::pair<time::timeperiod::ptr, bool> >::const_iterator
            it(timeperiods.begin()),
        end(timeperiods.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     time::timeperiod::ptr tp = it->first;
     bool is_default = it->second;
 
@@ -1216,26 +1270,28 @@ void reporting_stream::_compute_event_durations(
     dur_ev->real_start_time = ev->start_time;
     dur_ev->start_time = tp->get_next_valid(ev->start_time);
     dur_ev->end_time = ev->end_time;
-    if ((dur_ev->start_time != (time_t)-1) &&
-        (dur_ev->end_time != (time_t)-1) &&
+    if ((dur_ev->start_time != (time_t) - 1) &&
+        (dur_ev->end_time != (time_t) - 1) &&
         (dur_ev->start_time < dur_ev->end_time)) {
       dur_ev->duration = dur_ev->end_time - dur_ev->start_time;
       dur_ev->sla_duration =
           tp->duration_intersect(dur_ev->start_time, dur_ev->end_time);
       dur_ev->timeperiod_id = tp->get_id();
       dur_ev->timeperiod_is_default = is_default;
-      logging::debug(logging::low)
-          << "BAM-BI: durations of event started at " << ev->start_time
-          << " and ended at " << ev->end_time << " on BA " << ev->ba_id
-          << " were computed for timeperiod " << tp->get_name()
-          << ", duration is " << dur_ev->duration << "s, SLA duration is "
-          << dur_ev->sla_duration;
+      logging::debug(logging::low) << "BAM-BI: durations of event started at "
+                                   << ev->start_time << " and ended at "
+                                   << ev->end_time << " on BA " << ev->ba_id
+                                   << " were computed for timeperiod "
+                                   << tp->get_name() << ", duration is "
+                                   << dur_ev->duration << "s, SLA duration is "
+                                   << dur_ev->sla_duration;
       visitor->write(std::static_pointer_cast<io::data>(dur_ev));
     } else
-      logging::debug(logging::medium)
-          << "BAM-BI: event started at " << ev->start_time << " and ended at "
-          << ev->end_time << " on BA " << ev->ba_id
-          << " has no duration on timeperiod " << tp->get_name();
+      logging::debug(logging::medium) << "BAM-BI: event started at "
+                                      << ev->start_time << " and ended at "
+                                      << ev->end_time << " on BA " << ev->ba_id
+                                      << " has no duration on timeperiod "
+                                      << tp->get_name();
   }
 }
 
@@ -1256,7 +1312,8 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
   // We block the availability thread to prevent it waking
   // up on truncated event durations.
   try {
-    std::unique_ptr<std::unique_lock<std::mutex>> lock(_availabilities->lock());
+    std::unique_ptr<std::unique_lock<std::mutex> > lock(
+        _availabilities->lock());
 
     // Delete obsolete ba events durations.
     {
@@ -1276,7 +1333,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
     }
 
     // Get the ba events.
-    std::vector<std::shared_ptr<ba_event>> ba_events;
+    std::vector<std::shared_ptr<ba_event> > ba_events;
     {
       std::string query(
           "SELECT ba_id, start_time, end_time, "
@@ -1299,11 +1356,14 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
           baev->status = res.value_as_i32(3);
           baev->in_downtime = res.value_as_bool(4);
           ba_events.push_back(baev);
-          logging::debug(logging::low)
-              << "BAM-BI: got events of BA " << baev->ba_id;
+          logging::debug(logging::low) << "BAM-BI: got events of BA "
+                                       << baev->ba_id;
         }
-      } catch (std::exception const& e) {
-        throw com::centreon::exceptions::msg_fmt("BAM-BI: could not get BA events of {}: {}", r.bas_to_rebuild, e.what());
+      }
+      catch (std::exception const& e) {
+        throw msg_fmt("BAM-BI: could not get BA events of {}: {}",
+                      r.bas_to_rebuild,
+                      e.what());
       }
     }
 
@@ -1316,17 +1376,19 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
 
     // Generate new ba events durations for each ba events.
     {
-      for (std::vector<std::shared_ptr<ba_event>>::const_iterator
+      for (std::vector<std::shared_ptr<ba_event> >::const_iterator
                it(ba_events.begin()),
            end(ba_events.end());
-           it != end; ++it, ++ba_events_curr) {
+           it != end;
+           ++it, ++ba_events_curr) {
         ss.str("");
         ss << "rebuilding: ba event " << ba_events_curr << "/" << ba_events_num;
         _update_status(ss.str());
         _compute_event_durations(*it, this);
       }
     }
-  } catch (...) {
+  }
+  catch (...) {
     _update_status("");
     throw;
   }
