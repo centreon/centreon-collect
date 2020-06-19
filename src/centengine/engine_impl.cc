@@ -435,7 +435,7 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
                                          const EngineComment* request,
                                          CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> temp_host;
+    std::shared_ptr<engine::host> temp_host;
     int32_t persistent;
 
     auto it = host::hosts.find(request->host_name());
@@ -468,8 +468,8 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
                                             const EngineComment* request,
                                             CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> temp_host;
-    std::shared_ptr<com::centreon::engine::service> temp_service;
+    std::shared_ptr<engine::host> temp_host;
+    std::shared_ptr<engine::service> temp_service;
     int32_t persistent;
 
     auto it =
@@ -539,7 +539,7 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
                                                 const HostIdentifier* request,
                                                 CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> temp_host;
+    std::shared_ptr<engine::host> temp_host;
     switch (request->identifier_case()) {
       case HostIdentifier::kName: {
         auto it = host::hosts.find(request->name());
@@ -585,7 +585,7 @@ grpc::Status engine_impl::DeleteAllServiceComments(
     const ServiceIdentifier* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::service> temp_service;
+    std::shared_ptr<engine::service> temp_service;
 
     switch (request->identifier_case()) {
       case ServiceIdentifier::kNames: {
@@ -626,7 +626,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     const HostIdentifier* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> temp_host;
+    std::shared_ptr<engine::host> temp_host;
 
     switch (request->identifier_case()) {
       case HostIdentifier::kName: {
@@ -669,7 +669,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     const ServiceIdentifier* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::service> temp_service;
+    std::shared_ptr<engine::service> temp_service;
 
     switch (request->identifier_case()) {
       case ServiceIdentifier::kNames: {
@@ -758,7 +758,7 @@ grpc::Status engine_impl::DelayHostNotification(
     const HostDelayIdentifier* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::host> temp_host;
+    std::shared_ptr<engine::host> temp_host;
 
     switch (request->identifier_case()) {
       case HostIdentifier::kName: {
@@ -796,7 +796,7 @@ grpc::Status engine_impl::DelayServiceNotification(
     const ServiceDelayIdentifier* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<com::centreon::engine::service> temp_service;
+    std::shared_ptr<engine::service> temp_service;
 
     switch (request->identifier_case()) {
       case ServiceIdentifier::kNames: {
