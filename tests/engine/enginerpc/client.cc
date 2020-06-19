@@ -240,6 +240,52 @@ class EngineRPCClient {
     return true;
   }
 
+  bool AddHostComment(std::string const& hostname,
+                      uint32_t& entrytime,
+                      std::string const& user,
+                      std::string const& commentdata,
+                      bool& persistent,
+                      CommandSuccess* response) {
+    grpc::ClientContext context;
+    EngineComment request;
+    request.set_host_name(hostname);
+    request.set_entry_time(entrytime);
+    request.set_user(user);
+    request.set_comment_data(commentdata);
+    request.set_persistent(persistent);
+
+    grpc::Status status = _stub->AddHostComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "AddHostComment failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool AddServiceComment(std::string const& hostname,
+                         std::string svcdsc,
+                         uint32_t& entrytime,
+                         std::string const& user,
+                         std::string const& commentdata,
+                         bool& persistent,
+                         CommandSuccess* response) {
+    grpc::ClientContext context;
+    EngineComment request;
+    request.set_host_name(hostname);
+    request.set_svc_desc(svcdsc);
+    request.set_entry_time(entrytime);
+    request.set_user(user);
+    request.set_comment_data(commentdata);
+    request.set_persistent(persistent);
+
+    grpc::Status status = _stub->AddHostComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "AddHostComment failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DeleteComment(uint32_t& req, CommandSuccess* response) {
     GenericValue request;
     grpc::ClientContext context;
@@ -292,7 +338,6 @@ class EngineRPCClient {
 
     grpc::Status status =
         _stub->DeleteAllServiceComments(&context, request, response);
-
     if (!status.ok()) {
       std::cout << "DeleteAllServiceCommentsByNames rpc engine failed"
                 << std::endl;
@@ -311,7 +356,6 @@ class EngineRPCClient {
 
     grpc::Status status =
         _stub->DeleteAllServiceComments(&context, request, response);
-
     if (!status.ok()) {
       std::cout << "DeleteAllServiceCommentsByIds rpc engine failed"
                 << std::endl;
@@ -359,7 +403,6 @@ class EngineRPCClient {
 
     grpc::Status status =
         _stub->RemoveServiceAcknowledgement(&context, request, response);
-
     if (!status.ok()) {
       std::cout << "RemoveServiceAcknowledgementByNames rpc engine failed"
                 << std::endl;
@@ -378,10 +421,110 @@ class EngineRPCClient {
 
     grpc::Status status =
         _stub->RemoveServiceAcknowledgement(&context, request, response);
-
     if (!status.ok()) {
       std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
                 << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DeleteHostDowntime(uint32_t& downtime_id, CommandSuccess* response) {
+    GenericValue request;
+    grpc::ClientContext context;
+    request.set_value(downtime_id);
+
+    grpc::Status status =
+        _stub->DeleteHostDowntime(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DeleteServiceDowntime(uint32_t& downtime_id, CommandSuccess* response) {
+    GenericValue request;
+    grpc::ClientContext context;
+    request.set_value(downtime_id);
+
+    grpc::Status status =
+        _stub->DeleteServiceDowntime(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DelayHostNotificationByName(std::string const& hostname,
+                                   uint32_t& delaytime,
+                                   CommandSuccess* response) {
+    HostDelayIdentifier request;
+    grpc::ClientContext context;
+    request.set_name(hostname);
+    request.set_delay_time(delaytime);
+
+    grpc::Status status =
+        _stub->DelayHostNotification(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DelayHostNotification failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DelayHostNotificationById(uint32_t& hostid,
+                                 uint32_t& delaytime,
+                                 CommandSuccess* response) {
+    HostDelayIdentifier request;
+    grpc::ClientContext context;
+    request.set_id(hostid);
+    request.set_delay_time(delaytime);
+
+    grpc::Status status =
+        _stub->DelayHostNotification(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DelayHostNotification failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DelayServiceNotificationByNames(std::string const& hostname,
+                                       std::string const& svcdsc,
+                                       uint32_t& delaytime,
+                                       CommandSuccess* response) {
+    ServiceDelayIdentifier request;
+    grpc::ClientContext context;
+    request.mutable_names()->set_host_name(hostname);
+    request.mutable_names()->set_service_name(svcdsc);
+    request.set_delay_time(delaytime);
+    grpc::Status status =
+        _stub->DelayServiceNotification(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DelayServiceNotification rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DelayServiceNotificationByIds(uint32_t& hostid,
+                                     uint32_t& serviceid,
+                                     uint32_t& delaytime,
+                                     CommandSuccess* response) {
+    ServiceDelayIdentifier request;
+    grpc::ClientContext context;
+    request.mutable_ids()->set_host_id(hostid);
+    request.mutable_ids()->set_service_id(serviceid);
+    request.set_delay_time(delaytime);
+
+    grpc::Status status =
+        _stub->DelayServiceNotification(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DelayServiceNotification rpc engine failed" << std::endl;
       return false;
     }
     return true;
@@ -665,6 +808,98 @@ int main(int argc, char** argv) {
       status = client.RemoveServiceAcknowledgementByIds(hostid, serviceid,
                                                         &response);
       std::cout << "RemoveServiceAcknowledgement" << std::endl;
+    }
+  } else if (strcmp(argv[1], "AddHostComment") == 0) {
+    if (argc != 7) {
+      std::cout << "AddHostComment require arguments : "
+                   "AddHostComment "
+                   "[hostname] [user] [your_own_comment] [persistent] "
+                   "[entry_time]"
+                << std::endl;
+      return 1;
+    }
+    CommandSuccess response;
+    std::string hostname = argv[2];
+    std::string user = argv[3];
+    std::string commentdata = argv[4];
+    bool persistent = atoi(argv[5]);
+    uint32_t entrytime = atoi(argv[6]);
+    status = client.AddHostComment(hostname, entrytime, user, commentdata,
+                                   persistent, &response);
+    std::cout << "AddHostComment" << std::endl;
+  } else if (strcmp(argv[1], "AddServiceComment") == 0) {
+    if (argc != 8) {
+      std::cout << "AddHostComment require arguments : "
+                   "AddHostComment "
+                   "[hostname] [service_description] [user] [your_own_comment] "
+                   "[persistent] [entry_time]"
+                << std::endl;
+      return 1;
+    }
+    CommandSuccess response;
+    std::string hostname = argv[2];
+    std::string svcdsc = argv[3];
+    std::string user = argv[4];
+    std::string commentdata = argv[5];
+    bool persistent = atoi(argv[6]);
+    uint32_t entrytime = atoi(argv[7]);
+    status = client.AddServiceComment(hostname, svcdsc, entrytime, user,
+                                      commentdata, persistent, &response);
+    std::cout << "AddServiceComment" << std::endl;
+  } else if (strcmp(argv[1], "DeleteHostDowntime") == 0) {
+    CommandSuccess response;
+    uint32_t downtimeid = atoi(argv[2]);
+    status = client.DeleteHostDowntime(downtimeid, &response);
+    std::cout << "DeleteHostDowntime" << std::endl;
+  } else if (strcmp(argv[1], "DeleteServiceDowntime") == 0) {
+    CommandSuccess response;
+    uint32_t downtimeid = atoi(argv[2]);
+    status = client.DeleteServiceDowntime(downtimeid, &response);
+    std::cout << "DeleteServiceDowntime" << std::endl;
+  } else if (strcmp(argv[1], "DelayHostNotification") == 0) {
+    if (argc != 5) {
+      std::cout
+          << "RemoveHostAcknowledgement require arguments : "
+             "RemoveHostAcknowledgement [mode] [hostname or id] [delay_time]"
+          << std::endl;
+      return 1;
+    } else if (strcmp(argv[2], "byhostname") == 0) {
+      CommandSuccess response;
+      std::string hostname(argv[3]);
+      uint32_t delaytime = atoi(argv[4]);
+      status =
+          client.DelayHostNotificationByName(hostname, delaytime, &response);
+      std::cout << "DelayHostNotification" << std::endl;
+    } else if (strcmp(argv[2], "byhostid") == 0) {
+      CommandSuccess response;
+      uint32_t hostid = atoi(argv[3]);
+      uint32_t delaytime = atoi(argv[4]);
+      status = client.DelayHostNotificationById(hostid, delaytime, &response);
+      std::cout << "DelayHostNotification" << std::endl;
+    }
+  } else if (strcmp(argv[1], "DelayServiceNotification") == 0) {
+    if (argc != 6) {
+      std::cout << "RemoveHostAcknowledgement require arguments : "
+                   "RemoveHostAcknowledgement [mode] [hostname or id] "
+                   "[servicename or id] [delay_time]"
+                << std::endl;
+      return 1;
+    } else if (strcmp(argv[2], "bynames") == 0) {
+      CommandSuccess response;
+      std::string hostname(argv[3]);
+      std::string svcdsc(argv[4]);
+      uint32_t delaytime = atoi(argv[5]);
+      status = client.DelayServiceNotificationByNames(hostname, svcdsc,
+                                                      delaytime, &response);
+      std::cout << "DelayServiceNotification" << std::endl;
+    } else if (strcmp(argv[2], "byids") == 0) {
+      CommandSuccess response;
+      uint32_t hostid = atoi(argv[3]);
+      uint32_t serviceid = atoi(argv[4]);
+      uint32_t delaytime = atoi(argv[5]);
+      status = client.DelayServiceNotificationByIds(hostid, serviceid,
+                                                    delaytime, &response);
+      std::cout << "DelayServiceNotification" << std::endl;
     }
   }
   exit(status);
