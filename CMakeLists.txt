@@ -56,7 +56,7 @@ add_subdirectory(src/connectors)
   add_subdirectory(tests/engine)
 #endif()
 
-#install(SCRIPT ${CMAKE_SOURCE_DIR}/script/centreon-broker.logrotate COMPONENT core DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/logrotate.d/cbd")
+install(FILES ${CMAKE_SOURCE_DIR}/script/centreon-broker.logrotate COMPONENT core RENAME cbd DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/logrotate.d")
 install(DIRECTORY COMPONENT broker DESTINATION ${CMAKE_INSTALL_CONFDIR}/centreon-broker)
 install(DIRECTORY COMPONENT broker DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/log/centreon-broker)
 install(DIRECTORY COMPONENT broker DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/lib/centreon-broker)
