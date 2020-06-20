@@ -31,4 +31,4 @@ add_library(70-graphite SHARED
 )
 set_target_properties(70-graphite PROPERTIES PREFIX "")
 target_link_libraries(70-graphite CONAN_PKG::asio CONAN_PKG::fmt)
-install(TARGETS 70-graphite DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
+install(TARGETS 70-graphite COMPONENT graphite DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
