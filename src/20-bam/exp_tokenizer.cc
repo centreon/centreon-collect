@@ -243,7 +243,7 @@ void exp_tokenizer::_internal_copy(exp_tokenizer const& other) {
  *
  *  @return True if the next character is a right brace.
  */
-bool exp_tokenizer::_is_right_brace() { return (_text[_next] == '}'); }
+bool exp_tokenizer::_is_right_brace() { return _text[_next] == '}'; }
 
 /**
  *  Check if the next character is a right brace or a space.
