@@ -24,7 +24,7 @@
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -80,7 +80,7 @@ io::endpoint* factory::new_endpoint(
     std::map<std::string, std::string>::const_iterator it =
         cfg.params.find("command_file");
     if (it == cfg.params.end() || it->second.empty())
-      throw exceptions::msg_fmt("BAM: command_file parameter not set");
+      throw msg_fmt("BAM: command_file parameter not set");
     ext_cmd_file = it->second;
   }
 
