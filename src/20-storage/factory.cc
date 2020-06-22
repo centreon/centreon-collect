@@ -26,7 +26,7 @@
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/storage/connector.hh"
 
-using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
 
@@ -48,7 +48,7 @@ static std::string const& find_param(config::endpoint const& cfg,
                                      std::string const& key) {
   std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
   if (cfg.params.end() == it)
-    throw com::centreon::exceptions::msg_fmt("storage: no '{}' defined for endpoint '{}'", key, cfg.name);
+    throw msg_fmt("storage: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
 }
 
@@ -83,17 +83,18 @@ bool factory::has_endpoint(config::endpoint& cfg) const {
  *
  *  @return Endpoint matching the given configuration.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache)
+    const {
   (void)cache;
 
   // Find RRD length.
   uint32_t rrd_length;
   try {
     rrd_length = static_cast<uint32_t>(std::stoul(find_param(cfg, "length")));
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     rrd_length = 15552000;
     logging::error(logging::high) << "storage: the length field should contain "
                                      "a string containing a number. We use the "
@@ -108,7 +109,8 @@ io::endpoint* factory::new_endpoint(
     if (it != cfg.params.end()) {
       try {
         interval_length = std::stoul(it->second);
-      } catch (std::exception const& e) {
+      }
+      catch (std::exception const& e) {
         interval_length = 60;
         logging::error(logging::high) << "storage: the interval field should "
                                          "contain a string containing a "
@@ -131,7 +133,8 @@ io::endpoint* factory::new_endpoint(
     if (it != cfg.params.end()) {
       try {
         rebuild_check_interval = std::stoul(it->second);
-      } catch (std::exception const& e) {
+      }
+      catch (std::exception const& e) {
         rebuild_check_interval = 300;
         logging::error(logging::high)
             << "storage: the rebuild_check_interval field should "
@@ -154,7 +157,10 @@ io::endpoint* factory::new_endpoint(
 
   // Connector.
   std::unique_ptr<storage::connector> c(new storage::connector);
-  c->connect_to(dbcfg, rrd_length, interval_length, rebuild_check_interval,
+  c->connect_to(dbcfg,
+                rrd_length,
+                interval_length,
+                rebuild_check_interval,
                 store_in_data_bin);
   is_acceptor = false;
   return c.release();

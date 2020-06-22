@@ -32,9 +32,6 @@ using namespace com::centreon::broker::storage::exceptions;
  *
  *  @return Copy of this exception object.
  */
-/*exceptions::msg* perfdata::clone() const {
-  return new perfdata(*this);
-}*/
 
 /**
  *  Rethrow the exception.

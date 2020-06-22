@@ -41,7 +41,6 @@ TEST(StoragePerfdataException, All) {
       e.rethrow();
     }
     catch (storage::exceptions::perfdata const& e) {
-      // exceptions::msg* msg{e.clone()};
       if (std::string{e.what()} == "test exception")
         success = true;
     }

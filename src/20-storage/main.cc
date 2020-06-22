@@ -30,7 +30,7 @@
 #include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/broker/storage/stream.hh"
 
-using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 // Load count.
@@ -66,8 +66,8 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // Storage module.
-    logging::info(logging::high)
-        << "storage: module for Centreon Broker " << CENTREON_BROKER_VERSION;
+    logging::info(logging::high) << "storage: module for Centreon Broker "
+                                 << CENTREON_BROKER_VERSION;
 
     io::events& e(io::events::instance());
 
@@ -76,37 +76,50 @@ void broker_module_init(void const* arg) {
     if (storage_category != io::events::storage) {
       e.unregister_category(storage_category);
       --instances;
-      throw com::centreon::exceptions::msg_fmt("storage: category {} is already registered whereas it should be reserved for the storage module", io::events::storage);
+      throw msg_fmt(
+          "storage: category {} is already registered whereas it should be "
+          "reserved for the storage module",
+          io::events::storage);
     }
 
     // Register events.
     {
-      e.register_event(io::events::storage, storage::de_metric,
-                       io::event_info("metric", &storage::metric::operations,
-                                      storage::metric::entries, "rt_metrics"));
-      e.register_event(io::events::storage, storage::de_rebuild,
-                       io::event_info("rebuild", &storage::rebuild::operations,
+      e.register_event(io::events::storage,
+                       storage::de_metric,
+                       io::event_info("metric",
+                                      &storage::metric::operations,
+                                      storage::metric::entries,
+                                      "rt_metrics"));
+      e.register_event(io::events::storage,
+                       storage::de_rebuild,
+                       io::event_info("rebuild",
+                                      &storage::rebuild::operations,
                                       storage::rebuild::entries));
-      e.register_event(
-          io::events::storage, storage::de_remove_graph,
-          io::event_info("remove_graph", &storage::remove_graph::operations,
-                         storage::remove_graph::entries));
-      e.register_event(io::events::storage, storage::de_status,
-                       io::event_info("status", &storage::status::operations,
+      e.register_event(io::events::storage,
+                       storage::de_remove_graph,
+                       io::event_info("remove_graph",
+                                      &storage::remove_graph::operations,
+                                      storage::remove_graph::entries));
+      e.register_event(io::events::storage,
+                       storage::de_status,
+                       io::event_info("status",
+                                      &storage::status::operations,
                                       storage::status::entries));
-      e.register_event(
-          io::events::storage, storage::de_index_mapping,
-          io::event_info("index_mapping", &storage::index_mapping::operations,
-                         storage::index_mapping::entries));
-      e.register_event(
-          io::events::storage, storage::de_metric_mapping,
-          io::event_info("metric_mapping", &storage::metric_mapping::operations,
-                         storage::metric_mapping::entries));
+      e.register_event(io::events::storage,
+                       storage::de_index_mapping,
+                       io::event_info("index_mapping",
+                                      &storage::index_mapping::operations,
+                                      storage::index_mapping::entries));
+      e.register_event(io::events::storage,
+                       storage::de_metric_mapping,
+                       io::event_info("metric_mapping",
+                                      &storage::metric_mapping::operations,
+                                      storage::metric_mapping::entries));
     }
 
     // Register storage layer.
-    io::protocols::instance().reg("storage",
-                                  std::make_shared<storage::factory>(), 1, 7);
+    io::protocols::instance().reg(
+        "storage", std::make_shared<storage::factory>(), 1, 7);
   }
 }
 }
