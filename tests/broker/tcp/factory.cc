@@ -19,9 +19,10 @@
 
 #include "com/centreon/broker/tcp/factory.hh"
 #include <gtest/gtest.h>
-#include <com/centreon/broker/exceptions/msg.hh>
+#include <com/centreon/exceptions/msg_fmt.hh>
 #include <com/centreon/broker/tcp/acceptor.hh>
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 TEST(TcpFactory, HasEndpoint) {
@@ -46,7 +47,7 @@ TEST(TcpFactory, Exception) {
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 }
 
 TEST(TcpFactory, Acceptor) {
@@ -77,7 +78,8 @@ TEST(TcpFactory, Connector) {
   cfg.params["host"] = "127.0.0.1";
   std::unique_ptr<io::factory> f{new tcp::factory};
   ASSERT_TRUE(f->has_endpoint(cfg));
-  std::unique_ptr<io::endpoint> endp{fact.new_endpoint(cfg, is_acceptor, cache)};
+  std::unique_ptr<io::endpoint> endp{
+      fact.new_endpoint(cfg, is_acceptor, cache)};
 
   ASSERT_FALSE(is_acceptor);
   ASSERT_TRUE(endp->is_connector());

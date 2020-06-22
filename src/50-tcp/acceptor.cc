@@ -21,12 +21,13 @@
 
 #include <sstream>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 
@@ -106,17 +107,18 @@ std::shared_ptr<io::stream> acceptor::open() {
       _binding = true;
       log_v2::tcp()->info("binding on 0.0.0.0:{}", _port);
     }
-    if (!tcp_async::instance().wait_for_accept(*socket, *_acceptor,
-                                               std::chrono::seconds{1})) {
+    if (!tcp_async::instance().wait_for_accept(
+             *socket, *_acceptor, std::chrono::seconds{1})) {
       return std::shared_ptr<stream>();
     }
-  } catch (std::system_error const& se) {
+  }
+  catch (std::system_error const& se) {
     log_v2::tcp()->error(
-        "TCP: error while waiting client on port: {0} err: {1}", _port,
+        "TCP: error while waiting client on port: {0} err: {1}",
+        _port,
         se.what());
-    throw exceptions::msg()
-        << "TCP: error while waiting client on port: " << _port << " "
-        << se.what();
+    throw msg_fmt(
+        "TCP: error while waiting client on port: {} {}", _port, se.what());
   }
   tcp_async::instance().register_socket(*socket);
 
@@ -140,7 +142,8 @@ void acceptor::remove_child(std::string const& child) {
   std::lock_guard<std::mutex> lock(_childrenm);
   for (std::list<std::string>::iterator it(_children.begin()),
        end(_children.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (*it == child) {
       _children.erase(it);
       break;
@@ -155,18 +158,14 @@ void acceptor::remove_child(std::string const& child) {
  *
  *  @param[in] secs  Timeout in seconds.
  */
-void acceptor::set_read_timeout(int secs) {
-  _read_timeout = secs;
-}
+void acceptor::set_read_timeout(int secs) { _read_timeout = secs; }
 
 /**
  *  Set write timeout on data.
  *
  *  @param[in] secs  Timeout in seconds.
  */
-void acceptor::set_write_timeout(int secs) {
-  _write_timeout = secs;
-}
+void acceptor::set_write_timeout(int secs) { _write_timeout = secs; }
 
 /**
  *  Get statistics about this TCP acceptor.
@@ -179,7 +178,8 @@ void acceptor::stats(json11::Json::object& tree) {
   oss << _children.size() << ": ";
   for (std::list<std::string>::const_iterator it(_children.begin()),
        end(_children.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (it == _children.begin())
       oss << *it;
     else
