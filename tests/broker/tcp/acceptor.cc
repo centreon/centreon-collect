@@ -20,24 +20,24 @@
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include <json11.hpp>
 #include <gtest/gtest.h>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 constexpr static char test_addr[] = "127.0.0.1";
 constexpr static uint16_t test_port(4444);
 
-static auto try_connect = [](tcp::connector& con,
-                             uint32_t port =
-                                 test_port) -> std::shared_ptr<io::stream> {
+static auto try_connect = [](tcp::connector & con, uint32_t port = test_port)
+    -> std::shared_ptr<io::stream> {
   con.connect_to(test_addr, port);
   while (true) {
     try {
       return con.open();
-    } catch (...) {
-
+    }
+    catch (...) {
     }
   }
 };
@@ -47,7 +47,7 @@ TEST(TcpAcceptor, BadPort) {
 
   if (getuid() != 0) {
     acc.listen_on(2);
-    ASSERT_THROW(acc.open(), exceptions::msg);
+    ASSERT_THROW(acc.open(), msg_fmt);
   }
 }
 
@@ -65,7 +65,7 @@ TEST(TcpAcceptor, Wait2Connect) {
 
   acc.listen_on(4141);
   std::thread t{[&] {
-    std::this_thread::sleep_for(std::chrono::seconds {2});
+    std::this_thread::sleep_for(std::chrono::seconds{2});
     tcp::connector con;
     std::shared_ptr<io::stream> str{try_connect(con, 4141)};
   }};
@@ -224,7 +224,8 @@ TEST(TcpAcceptor, CloseRead) {
   while (true) {
     try {
       io->read(data_read, -1);
-    } catch (exceptions::msg const& ex) {
+    }
+    catch (msg_fmt const& ex) {
       break;
     }
   }
