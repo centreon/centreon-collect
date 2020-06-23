@@ -264,8 +264,8 @@ void rebuilder::_next_index_to_rebuild(index_info& info, mysql& ms) {
       memset(&info, 0, sizeof(info));
   }
   catch (std::exception const& e) {
-    throw com::centreon::exceptions::msg_fmt(
-        "storage: rebuilder: could not fetch index to rebuild: {}", e.what());
+    throw msg_fmt("storage: rebuilder: could not fetch index to rebuild: {}",
+                  e.what());
   }
 }
 
@@ -352,10 +352,9 @@ void rebuilder::_rebuild_metric(mysql& ms,
       }
     }
     catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt(
-          "storage: rebuilder: cannot fetch data of metric {}: {}",
-          metric_id,
-          e.what());
+      throw msg_fmt("storage: rebuilder: cannot fetch data of metric {}: {}",
+                    metric_id,
+                    e.what());
     }
   }
   catch (...) {
@@ -414,10 +413,9 @@ void rebuilder::_rebuild_status(mysql& ms,
       }
     }
     catch (std::exception const& e) {
-      throw com::centreon::exceptions::msg_fmt(
-          "storage: rebuilder: cannot fetch data of index {}: {}",
-          index_id,
-          e.what());
+      throw msg_fmt("storage: rebuilder: cannot fetch data of index {}: {}",
+                    index_id,
+                    e.what());
     }
   }
   catch (...) {
