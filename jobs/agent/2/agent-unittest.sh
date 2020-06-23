@@ -24,6 +24,7 @@ rm -rf github.com
 mkdir -p github.com/centreon
 cd github.com/centreon
 tar xzf "../../$PROJECT-$VERSION.tar.gz"
+mv "$PROJECT-$VERSION" "$PROJECT"
 cd ../..
 
 # Prepare unit test container.
