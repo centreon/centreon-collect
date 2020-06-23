@@ -20,8 +20,11 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION"
-tar xzf "$PROJECT-$VERSION.tar.gz"
+rm -rf github.com
+mkdir -p github.com/centreon
+cd github.com/centreon
+tar xzf "../../$PROJECT-$VERSION.tar.gz"
+cd ../..
 
 # Prepare unit test container.
 UT_IMAGE=registry.centreon.com/build-dependencies-agent-2:$DISTRIB
@@ -30,7 +33,7 @@ containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh`
 
 # Copy sources to container.
 docker cp `dirname $0`/agent-unittest.container.sh "$containerid:/usr/local/bin/unittest.sh"
-docker cp "$PROJECT-$VERSION" "$containerid:/root/go/src/github.com/centreon/$PROJECT"
+docker cp "github.com/." "$containerid:/root/go/src/github.com/"
 
 # Run unit tests.
 docker start -a "$containerid"
