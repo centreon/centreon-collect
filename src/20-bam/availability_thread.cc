@@ -19,10 +19,11 @@
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include <ctime>
 #include <sstream>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/misc/global_lock.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -39,14 +40,12 @@ availability_thread::availability_thread(database_config const& db_cfg,
       _shared_tps(shared_map),
       _mutex{},
       _should_exit(false),
-      _should_rebuild_all(false){}
+      _should_rebuild_all(false) {}
 
 /**
  *  Destructor.
  */
-availability_thread::~availability_thread() {
-  _close_database();
-}
+availability_thread::~availability_thread() { _close_database(); }
 
 /**
  *  The main loop of thread.
@@ -84,7 +83,8 @@ void availability_thread::run() {
 
       // Close the database.
       _close_database();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       // Something bad happened. Wait for the next loop.
       logging::error(logging::medium) << e.what();
       _close_database();
@@ -121,8 +121,8 @@ void availability_thread::wait() {
  *
  *  @return  A unique_lock<std::mutex> locking the main mutex.
  */
-std::unique_ptr<std::unique_lock<std::mutex>> availability_thread::lock() {
-  return std::unique_ptr<std::unique_lock<std::mutex>>(
+std::unique_ptr<std::unique_lock<std::mutex> > availability_thread::lock() {
+  return std::unique_ptr<std::unique_lock<std::mutex> >(
       new std::unique_lock<std::mutex>(_mutex));
 }
 
@@ -177,14 +177,13 @@ void availability_thread::_build_availabilities(time_t midnight) {
   if (_should_rebuild_all) {
     query << "SELECT MIN(start_time), MAX(end_time), MIN(IFNULL(end_time, '0'))"
              "  FROM mod_bam_reporting_ba_events"
-             "  WHERE ba_id IN ("
-          << _bas_to_rebuild << ")";
+             "  WHERE ba_id IN (" << _bas_to_rebuild << ")";
     try {
       std::promise<database::mysql_result> promise;
       thread_id = _mysql->run_query_and_get_result(query.str(), &promise);
       database::mysql_result res(promise.get_future().get());
       if (!_mysql->fetch_row(res))
-        throw(exceptions::msg() << "no events matching BAs to rebuild");
+        throw msg_fmt("no events matching BAs to rebuild");
       first_day = res.value_as_i32(0);
       first_day = _compute_start_of_day(first_day);
       // If there is opened events, rebuild until midnight of this day.
@@ -195,11 +194,12 @@ void availability_thread::_build_availabilities(time_t midnight) {
       // FIXME DBR: why this line?
       _mysql->fetch_row(res);
       _delete_all_availabilities();
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "BAM-BI: availability thread could not select the BA durations "
-             "from the reporting database: "
-          << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt(
+          "BAM-BI: availability thread could not select the BA durations from "
+          "the reporting database: {}",
+          e.what());
     }
 
   } else {
@@ -211,16 +211,17 @@ void availability_thread::_build_availabilities(time_t midnight) {
       // FIXME DBR: to finish...
       database::mysql_result res(promise.get_future().get());
       if (!_mysql->fetch_row(res))
-        throw(exceptions::msg() << "no availability in table");
+        throw msg_fmt("no availability in table");
       first_day = res.value_as_i32(0);
       first_day =
           time::timeperiod::add_round_days_to_midnight(first_day, 3600 * 24);
       _mysql->fetch_row(res);
-    } catch (std::exception const& e) {
-      throw exceptions::msg() << "BAM-BI: availability thread "
-                                 "could not select the BA availabilities "
-                                 "from the reporting database: "
-                              << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt(
+          "BAM-BI: availability thread could not select the BA availabilities "
+          "from the reporting database: {}",
+          e.what());
     }
   }
 
@@ -251,8 +252,7 @@ void availability_thread::_build_daily_availabilities(int thread_id,
                                                       time_t day_end) {
   logging::info(logging::medium)
       << "BAM-BI: availability thread writing daily availability for "
-         "day : "
-      << day_start << "-" << day_end;
+         "day : " << day_start << "-" << day_end;
 
   // Build the availabilities tied to event durations (event finished)
   std::stringstream query;
@@ -273,8 +273,7 @@ void availability_thread::_build_daily_availabilities(int thread_id,
   _mysql->run_query_and_get_result(query.str(), &promise, thread_id);
 
   // Create a builder for each ba_id and associated timeperiod_id.
-  std::map<std::pair<uint32_t, uint32_t>, availability_builder>
-      builders;
+  std::map<std::pair<uint32_t, uint32_t>, availability_builder> builders;
   try {
     database::mysql_result res(promise.get_future().get());
     while (_mysql->fetch_row(res)) {
@@ -286,15 +285,13 @@ void availability_thread::_build_daily_availabilities(int thread_id,
       if (!tp)
         continue;
       // Find the builder.
-      std::map<std::pair<uint32_t, uint32_t>,
-               availability_builder>::iterator found =
-          builders.find(std::make_pair(ba_id, timeperiod_id));
+      std::map<std::pair<uint32_t, uint32_t>, availability_builder>::iterator
+          found = builders.find(std::make_pair(ba_id, timeperiod_id));
       // No builders found, create one.
       if (found == builders.end())
-        found = builders
-                    .insert(std::make_pair(
-                        std::make_pair(ba_id, timeperiod_id),
-                        availability_builder(day_end, day_start)))
+        found = builders.insert(std::make_pair(
+                                    std::make_pair(ba_id, timeperiod_id),
+                                    availability_builder(day_end, day_start)))
                     .first;
       // Add the event to the builder.
       found->second.add_event(res.value_as_i32(8),   // Status
@@ -305,9 +302,10 @@ void availability_thread::_build_daily_availabilities(int thread_id,
       // Add the timeperiod is default flag.
       found->second.set_timeperiod_is_default(res.value_as_bool(7));
     }
-  } catch (std::exception const& e) {
-    throw exceptions::msg()
-        << "BAM-BI: availability thread could not build the data" << e.what();
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt("BAM-BI: availability thread could not build the data {}",
+                  e.what());
   }
 
   // Build the availabilities tied to event not finished.
@@ -328,23 +326,22 @@ void availability_thread::_build_daily_availabilities(int thread_id,
     while (_mysql->fetch_row(res)) {
       uint32_t ba_id = res.value_as_i32(1);
       // Get all the timeperiods associated with the ba of this event.
-      std::vector<std::pair<time::timeperiod::ptr, bool>> tps =
+      std::vector<std::pair<time::timeperiod::ptr, bool> > tps =
           _shared_tps.get_timeperiods_by_ba_id(ba_id);
-      for (std::vector<std::pair<time::timeperiod::ptr, bool>>::const_iterator
+      for (std::vector<std::pair<time::timeperiod::ptr, bool> >::const_iterator
                it(tps.begin()),
            end(tps.end());
-           it != end; ++it) {
+           it != end;
+           ++it) {
         uint32_t tp_id = it->first->get_id();
         // Find the builder.
-        std::map<std::pair<uint32_t, uint32_t>,
-                 availability_builder>::iterator found =
-            builders.find(std::make_pair(ba_id, tp_id));
+        std::map<std::pair<uint32_t, uint32_t>, availability_builder>::iterator
+            found = builders.find(std::make_pair(ba_id, tp_id));
         // No builders found, create one.
         if (found == builders.end())
-          found = builders
-                      .insert(std::make_pair(
-                          std::make_pair(ba_id, tp_id),
-                          availability_builder(day_end, day_start)))
+          found = builders.insert(std::make_pair(
+                                      std::make_pair(ba_id, tp_id),
+                                      availability_builder(day_end, day_start)))
                       .first;
         // Add the event to the builder.
         found->second.add_event(res.value_as_i32(4),   // Status
@@ -356,18 +353,20 @@ void availability_thread::_build_daily_availabilities(int thread_id,
         found->second.set_timeperiod_is_default(it->second);
       }
     }
-  } catch (std::exception const& e) {
-    throw exceptions::msg()
-        << "BAM-BI: availability thread could not build the data: " << e.what();
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt("BAM-BI: availability thread could not build the data: {}",
+                  e.what());
   }
 
   // For each builder, write the availabilities.
   for (std::map<std::pair<uint32_t, uint32_t>,
                 availability_builder>::const_iterator it = builders.begin(),
                                                       end = builders.end();
-       it != end; ++it)
-    _write_availability(thread_id, it->second, it->first.first, day_start,
-                        it->first.second);
+       it != end;
+       ++it)
+    _write_availability(
+        thread_id, it->second, it->first.first, day_start, it->first.second);
 }
 
 /**
@@ -387,9 +386,8 @@ void availability_thread::_write_availability(
     uint32_t timeperiod_id) {
   logging::debug(logging::low)
       << "BAM-BI: availability thread writing availability for "
-         "BA "
-      << ba_id << " at day " << day_start << " (timeperiod " << timeperiod_id
-      << ")";
+         "BA " << ba_id << " at day " << day_start << " (timeperiod "
+      << timeperiod_id << ")";
   std::stringstream query;
   query << "INSERT INTO mod_bam_reporting_ba_availabilities "
         << "  (ba_id, time_id, timeperiod_id, timeperiod_is_default,"
@@ -397,9 +395,8 @@ void availability_thread::_write_availability(
            "   unknown, downtime, alert_unavailable_opened,"
            "   alert_degraded_opened, alert_unknown_opened,"
            "   nb_downtime)"
-           "  VALUES ("
-        << ba_id << ", " << day_start << ", " << timeperiod_id << ", "
-        << builder.get_timeperiod_is_default() << ", "
+           "  VALUES (" << ba_id << ", " << day_start << ", " << timeperiod_id
+        << ", " << builder.get_timeperiod_is_default() << ", "
         << builder.get_available() << ", " << builder.get_unavailable() << ", "
         << builder.get_degraded() << ", " << builder.get_unknown() << ", "
         << builder.get_downtime() << ", " << builder.get_unavailable_opened()
@@ -408,7 +405,8 @@ void availability_thread::_write_availability(
         << ")";
   _mysql->run_query(
       query.str(),
-      "BAM-BI: availability thread could not insert an availability: ", true,
+      "BAM-BI: availability thread could not insert an availability: ",
+      true,
       thread_id);
 }
 
@@ -432,8 +430,7 @@ time_t availability_thread::_compute_next_midnight() {
 time_t availability_thread::_compute_start_of_day(time_t when) {
   struct tm tmv;
   if (!localtime_r(&when, &tmv))
-    throw exceptions::msg()
-        << "BAM-BI: availability thread could not compute start of day";
+    throw msg_fmt("BAM-BI: availability thread could not compute start of day");
   tmv.tm_sec = tmv.tm_min = tmv.tm_hour = 0;
   return mktime(&tmv);
 }
@@ -445,11 +442,12 @@ void availability_thread::_open_database() {
   // Add database connection.
   try {
     _mysql.reset(new mysql(_db_cfg));
-  } catch (std::exception const& e) {
-    throw exceptions::msg()
-        << "BAM-BI: availability thread could not connect to "
-           "reporting database '"
-        << e.what();
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt(
+        "BAM-BI: availability thread could not connect to reporting database "
+        "'{}'",
+        e.what());
   }
 }
 
