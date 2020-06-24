@@ -821,8 +821,6 @@ TEST_F(EngineRpc, DeleteHostDowntimeFull) {
   condvar.notify_one();
   th->join();
 
-  std::cout << oss.str() << std::endl;
-  std::cout << output.front() << std::endl;
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
   erpc.shutdown();
 }
@@ -859,8 +857,6 @@ TEST_F(EngineRpc, DeleteServiceDowntimeFull) {
   condvar.notify_one();
   th->join();
 
-  std::cout << oss.str() << std::endl;
-  std::cout << output.back() << std::endl;
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
   erpc.shutdown();
 }

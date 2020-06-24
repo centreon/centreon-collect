@@ -100,9 +100,6 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
                                   const HostIdentifier* request
                                   __attribute__((unused)),
                                   EngineHost* response) {
-  if (request->name().empty())
-    std::cout << "hostname empty" << std::endl;
-
   auto fn =
       std::packaged_task<int(void)>([request, host = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::host> selectedhost;
