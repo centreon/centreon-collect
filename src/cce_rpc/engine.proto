@@ -22,6 +22,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 package com.centreon.engine;
 
@@ -40,10 +41,8 @@ service Engine {
   rpc GetHostGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServiceDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetHostDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
-
   rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
-
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
   rpc AddHostComment(EngineComment) returns (CommandSuccess) {}
   rpc AddServiceComment(EngineComment) returns (CommandSuccess) {}
@@ -54,6 +53,8 @@ service Engine {
   rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {}
   rpc DeleteHostDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteServiceDowntime(GenericValue) returns (CommandSuccess) {}
+  rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
+  rpc DeleteServiceDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
   rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {}
   rpc DelayServiceNotification(ServiceDelayIdentifier) returns (CommandSuccess) {}
 }
@@ -331,4 +332,16 @@ message ServiceDelayIdentifier {
     IdIdentifier ids = 2;
   }
 	uint32 delay_time = 3;
+}
+
+message DowntimeCriterias {
+  string host_name = 1;
+  string service_desc = 2;
+  google.protobuf.UInt32Value start = 3;
+  google.protobuf.UInt32Value end = 4;
+  google.protobuf.BoolValue fixed = 5;
+  google.protobuf.UInt32Value triggered_by = 6;
+  google.protobuf.UInt32Value duration = 7;
+  string author = 8;
+  string comment_data = 9;
 }

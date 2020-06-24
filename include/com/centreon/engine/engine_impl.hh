@@ -100,6 +100,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status DeleteServiceDowntime(grpc::ServerContext* context,
                                      const GenericValue* request,
                                      CommandSuccess* response) override;
+  grpc::Status DeleteHostDowntimeFull(grpc::ServerContext* context,
+                                  const DowntimeCriterias* request,
+                                  CommandSuccess* response) override;
+  grpc::Status DeleteServiceDowntimeFull(grpc::ServerContext* context,
+                                  const DowntimeCriterias* request,
+                                  CommandSuccess* response) override;
   grpc::Status DelayHostNotification(grpc::ServerContext* context,
                                      const HostDelayIdentifier* request,
                                      CommandSuccess* response) override;
