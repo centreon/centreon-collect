@@ -24,7 +24,6 @@
 #include <cstring>
 #include <sstream>
 
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -141,7 +140,8 @@ void stream::statistics(json11::Json::object& tree) const {
 int32_t stream::write(std::shared_ptr<io::data> const& data) {
   ++_pending_events;
   assert(data);
-  int32_t ack = conflict_manager::instance().send_event(conflict_manager::storage, data);
+  int32_t ack =
+      conflict_manager::instance().send_event(conflict_manager::storage, data);
   _pending_events -= ack;
   return ack;
 }

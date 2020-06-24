@@ -38,7 +38,6 @@ class perfdata : public broker::exceptions::msg {
   perfdata() noexcept {}
   perfdata(perfdata const& pd) noexcept : broker::exceptions::msg(pd) {}
   ~perfdata() noexcept {}
-  virtual broker::exceptions::msg* clone() const;
   virtual void rethrow() const;
 
   /**

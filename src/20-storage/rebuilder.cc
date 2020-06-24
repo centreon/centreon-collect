@@ -25,7 +25,7 @@
 #include <ctime>
 #include <sstream>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -34,6 +34,7 @@
 #include "com/centreon/broker/storage/rebuild.hh"
 #include "com/centreon/broker/storage/status.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
 
@@ -91,9 +92,7 @@ uint32_t rebuilder::get_rebuild_check_interval() const noexcept {
  *
  *  @return RRD length in seconds.
  */
-uint32_t rebuilder::get_rrd_length() const noexcept {
-  return _rrd_len;
-}
+uint32_t rebuilder::get_rrd_length() const noexcept { return _rrd_len; }
 
 /**
  *  Thread entry point.
@@ -106,11 +105,12 @@ void rebuilder::_run() {
       std::unique_ptr<mysql> ms;
       try {
         ms.reset(new mysql(_db_cfg));
-      } catch (std::exception const& e) {
-        throw broker::exceptions::msg()
-            << "storage: rebuilder: could "
-               "not connect to Centreon Storage database: "
-            << e.what();
+      }
+      catch (std::exception const& e) {
+        throw msg_fmt(
+            "storage: rebuilder: could not connect to Centreon Storage "
+            "database: {}",
+            e.what());
       }
 
       // Fetch index to rebuild.
@@ -132,8 +132,7 @@ void rebuilder::_run() {
           std::ostringstream oss;
           if (!info.service_id)
             oss << "SELECT check_interval FROM hosts"
-                   " WHERE host_id="
-                << info.host_id;
+                   " WHERE host_id=" << info.host_id;
           else
             oss << "SELECT check_interval FROM services WHERE host_id="
                 << info.host_id << " AND service_id=" << info.service_id;
@@ -147,7 +146,8 @@ void rebuilder::_run() {
         }
         log_v2::sql()->info(
             "storage: rebuilder: index {} (interval {}) will be rebuild",
-            index_id, check_interval);
+            index_id,
+            check_interval);
 
         // Set index as being rebuilt.
         _set_index_rebuild(*ms, index_id, 2);
@@ -158,8 +158,7 @@ void rebuilder::_run() {
           {
             std::ostringstream oss;
             oss << "SELECT metric_id, metric_name, data_source_type"
-                   " FROM metrics WHERE index_id="
-                << index_id;
+                   " FROM metrics WHERE index_id=" << index_id;
 
             std::promise<database::mysql_result> promise;
             ms->run_query_and_get_result(oss.str(), &promise);
@@ -173,18 +172,25 @@ void rebuilder::_run() {
                 info.metric_type = res.value_as_str(2)[0] - '0';
                 metrics_to_rebuild.push_back(info);
               }
-            } catch (std::exception const& e) {
-              throw exceptions::msg()
-                  << "storage: rebuilder: could not fetch metrics of index "
-                  << index_id << ": " << e.what();
+            }
+            catch (std::exception const& e) {
+              throw com::centreon::exceptions::msg_fmt(
+                  "storage: rebuilder: could not fetch metrics of index {}: {}",
+                  index_id,
+                  e.what());
             }
           }
 
           // Browse metrics to rebuild.
           while (!_should_exit && !metrics_to_rebuild.empty()) {
             metric_info& info(metrics_to_rebuild.front());
-            _rebuild_metric(*ms, info.metric_id, host_id, service_id,
-                            info.metric_name, info.metric_type, check_interval,
+            _rebuild_metric(*ms,
+                            info.metric_id,
+                            host_id,
+                            service_id,
+                            info.metric_name,
+                            info.metric_type,
+                            check_interval,
                             rrd_len);
             // We need to update the conflict_manager for metrics that could
             // change of type.
@@ -195,7 +201,8 @@ void rebuilder::_run() {
 
           // Rebuild status.
           _rebuild_status(*ms, index_id, check_interval, rrd_len);
-        } catch (...) {
+        }
+        catch (...) {
           // Set index as to-be-rebuilt.
           _set_index_rebuild(*ms, index_id, 1);
 
@@ -210,9 +217,11 @@ void rebuilder::_run() {
         // Get next index to rebuild.
         _next_index_to_rebuild(info, *ms);
       }
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       logging::error(logging::high) << e.what();
-    } catch (...) {
+    }
+    catch (...) {
       logging::error(logging::high) << "storage: rebuilder: unknown error";
     }
 
@@ -253,9 +262,10 @@ void rebuilder::_next_index_to_rebuild(index_info& info, mysql& ms) {
         info.rrd_retention = _rrd_len;
     } else
       memset(&info, 0, sizeof(info));
-  } catch (std::exception const& e) {
-    throw exceptions::msg()
-        << "storage: rebuilder: could not fetch index to rebuild: " << e.what();
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt("storage: rebuilder: could not fetch index to rebuild: {}",
+                  e.what());
   }
 }
 
@@ -283,7 +293,10 @@ void rebuilder::_rebuild_metric(mysql& ms,
   log_v2::sql()->info(
       "storage: rebuilder: rebuilding metric {} (name {}, type {}, interval "
       "{})",
-      metric_id, metric_name, metric_type, interval);
+      metric_id,
+      metric_name,
+      metric_type,
+      interval);
 
   // Send rebuild start event.
   _send_rebuild_event(false, metric_id, false);
@@ -299,15 +312,23 @@ void rebuilder::_rebuild_metric(mysql& ms,
     ms.run_query_and_get_result(oss.str(), &promise);
     log_v2::sql()->debug(
         "storage(rebuilder): rebuild of metric {}: SQL query: \"{}\"",
-        metric_id, oss.str());
+        metric_id,
+        oss.str());
 
     try {
       database::mysql_result res(promise.get_future().get());
       while (!_should_exit && ms.fetch_row(res)) {
         std::shared_ptr<storage::metric> entry =
-            std::make_shared<storage::metric>(
-                host_id, service_id, metric_name, res.value_as_u32(0), interval,
-                true, metric_id, length, res.value_as_f64(1), metric_type);
+            std::make_shared<storage::metric>(host_id,
+                                              service_id,
+                                              metric_name,
+                                              res.value_as_u32(0),
+                                              interval,
+                                              true,
+                                              metric_id,
+                                              length,
+                                              res.value_as_f64(1),
+                                              metric_type);
         if (entry->value > FLT_MAX * 0.999)
           entry->value = INFINITY;
         else if (entry->value < -FLT_MAX * 0.999)
@@ -316,17 +337,27 @@ void rebuilder::_rebuild_metric(mysql& ms,
             "storage(rebuilder): Sending metric with host_id {}, service_id "
             "{}, metric_name {}, ctime {}, interval {}, is_for_rebuild {}, "
             "metric_id {}, rrd_len {}, value {}, value_type{}",
-            host_id, service_id, metric_name, res.value_as_u32(0), interval,
-            true, metric_id, length, res.value_as_f64(1), metric_type);
+            host_id,
+            service_id,
+            metric_name,
+            res.value_as_u32(0),
+            interval,
+            true,
+            metric_id,
+            length,
+            res.value_as_f64(1),
+            metric_type);
 
         multiplexing::publisher().write(entry);
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "storage: rebuilder: "
-          << "cannot fetch data of metric " << metric_id << ": " << e.what();
     }
-  } catch (...) {
+    catch (std::exception const& e) {
+      throw msg_fmt("storage: rebuilder: cannot fetch data of metric {}: {}",
+                    metric_id,
+                    e.what());
+    }
+  }
+  catch (...) {
     // Send rebuild end event.
     _send_rebuild_event(true, metric_id, false);
 
@@ -351,7 +382,8 @@ void rebuilder::_rebuild_status(mysql& ms,
                                 uint32_t length) {
   // Log.
   log_v2::sql()->info("storage: rebuilder: rebuilding status {} (interval {})",
-                      index_id, interval);
+                      index_id,
+                      interval);
 
   // Send rebuild start event.
   _send_rebuild_event(false, index_id, true);
@@ -363,25 +395,30 @@ void rebuilder::_rebuild_status(mysql& ms,
     // Get data.
     std::ostringstream oss;
     oss << "SELECT d.ctime, d.status FROM metrics AS m JOIN data_bin AS d"
-           " ON m.metric_id=d.id_metric WHERE m.index_id="
-        << index_id << " AND ctime>=" << start << " ORDER BY d.ctime ASC";
+           " ON m.metric_id=d.id_metric WHERE m.index_id=" << index_id
+        << " AND ctime>=" << start << " ORDER BY d.ctime ASC";
     std::promise<database::mysql_result> promise;
     ms.run_query_and_get_result(oss.str(), &promise);
     try {
       database::mysql_result res(promise.get_future().get());
       while (!_should_exit && ms.fetch_row(res)) {
         std::shared_ptr<storage::status> entry(
-            std::make_shared<storage::status>(res.value_as_u32(0), index_id,
-                                              interval, true, _rrd_len,
+            std::make_shared<storage::status>(res.value_as_u32(0),
+                                              index_id,
+                                              interval,
+                                              true,
+                                              _rrd_len,
                                               res.value_as_i32(1)));
         multiplexing::publisher().write(entry);
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "storage: rebuilder: "
-          << "cannot fetch data of index " << index_id << ": " << e.what();
     }
-  } catch (...) {
+    catch (std::exception const& e) {
+      throw msg_fmt("storage: rebuilder: cannot fetch data of index {}: {}",
+                    index_id,
+                    e.what());
+    }
+  }
+  catch (...) {
     // Send rebuild end event.
     _send_rebuild_event(true, index_id, true);
 
