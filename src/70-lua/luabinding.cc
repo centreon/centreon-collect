@@ -18,7 +18,7 @@
 
 #include <cassert>
 #include <fstream>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/lua/broker_cache.hh"
@@ -26,6 +26,7 @@
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include "com/centreon/broker/lua/broker_utils.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 
@@ -123,27 +124,23 @@ void luabinding::_load_script() {
   // script loading
   if (luaL_loadfile(_L, _lua_script.c_str()) != 0) {
     char const* error_msg(lua_tostring(_L, -1));
-    throw exceptions::msg() << "lua: '" << _lua_script
-                            << "' could not be loaded: " << error_msg;
+    throw msg_fmt("lua: '{}' could not be loaded: {}", _lua_script, error_msg);
   }
 
   // Script compilation
   if (lua_pcall(_L, 0, 0, 0) != 0) {
-    throw exceptions::msg() << "lua: '" << _lua_script
-                            << "' could not be compiled";
+    throw msg_fmt("lua: '{}' could not be compiled", _lua_script);
   }
 
   // Checking for init() availability: this function is mandatory
   lua_getglobal(_L, "init");
   if (!lua_isfunction(_L, lua_gettop(_L)))
-    throw exceptions::msg() << "lua: '" << _lua_script
-                            << "' init() global function is missing";
+    throw msg_fmt("lua: '{}'init() global function is missing", _lua_script);
 
   // Checking for write() availability: this function is mandatory
   lua_getglobal(_L, "write");
   if (!lua_isfunction(_L, lua_gettop(_L)))
-    throw exceptions::msg() << "lua: '" << _lua_script
-                            << "' write() global function is missing";
+    throw msg_fmt("lua: '{}' write() global function is missing", _lua_script);
 
   // Checking for filter() availability: this function is optional
   lua_getglobal(_L, "filter");
@@ -211,8 +208,8 @@ void luabinding::_init_script(
     }
   }
   if (lua_pcall(_L, 1, 0, 0) != 0)
-    throw exceptions::msg() << "lua: error running function `init'"
-                            << lua_tostring(_L, -1);
+    throw msg_fmt("lua: error running function `init'{}'",
+                  lua_tostring(_L, -1));
 }
 
 /**
@@ -405,17 +402,20 @@ void luabinding::_parse_entries(io::data const& d) {
             }
             break;
           default:  // Error in one of the mappings.
-            throw exceptions::msg() << "invalid mapping for object "
-                                    << "of type '" << info->get_name()
-                                    << "': " << current_entry->get_type()
-                                    << " is not a known type ID";
+            throw msg_fmt(
+                "invalid mapping for object of type '{}': {} is not a known "
+                "type ID",
+                info->get_name(),
+                current_entry->get_type());
         }
         lua_rawset(_L, -3);
       }
     }
   } else
-    throw exceptions::msg() << "cannot bind object of type " << d.type()
-                            << " to database query: mapping does not exist";
+    throw msg_fmt(
+        "cannot bind object of type {} to database query: mapping does not "
+        "exist",
+        d.type());
 }
 
 /**
