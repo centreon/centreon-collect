@@ -207,56 +207,59 @@ TEST(InfluxDBLineProtoQuery, Except) {
   storage::status s;
   storage::metric m;
 
-  influxdb::line_protocol_query q{"test .", columns,
-                                  influxdb::line_protocol_query::metric, cache};
+  influxdb::line_protocol_query q{
+      "test .", columns, influxdb::line_protocol_query::metric, cache};
   influxdb::line_protocol_query q2{
       "test .", columns, influxdb::line_protocol_query::status, cache};
 
   try {
-    influxdb::line_protocol_query q3{"test . $METRICID$", columns,
-                                     influxdb::line_protocol_query::status,
-                                     cache};
+    influxdb::line_protocol_query q3{
+        "test . $METRICID$",                   columns,
+        influxdb::line_protocol_query::status, cache};
     ASSERT_TRUE(false);
-  } catch (msg_fmt const& ex) {
+  }
+  catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   try {
-    influxdb::line_protocol_query q3{"test . $METRIC$", columns,
-                                     influxdb::line_protocol_query::status,
-                                     cache};
+    influxdb::line_protocol_query q3{
+        "test . $METRIC$",                     columns,
+        influxdb::line_protocol_query::status, cache};
     ASSERT_TRUE(false);
-  } catch (msg_fmt const& ex) {
+  }
+  catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   try {
-    influxdb::line_protocol_query q3{"test . $METRIC", columns,
-                                     influxdb::line_protocol_query::status,
-                                     cache};
+    influxdb::line_protocol_query q3{
+        "test . $METRIC",                      columns,
+        influxdb::line_protocol_query::status, cache};
     ASSERT_TRUE(false);
-  } catch (msg_fmt const& ex) {
+  }
+  catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   m.metric_id = 3;
   m.name = "A";
 
-  influxdb::line_protocol_query q4{"test . $METRICID$ $METRIC$", columns,
-                                   influxdb::line_protocol_query::metric,
-                                   cache};
+  influxdb::line_protocol_query q4{
+      "test . $METRICID$ $METRIC$",          columns,
+      influxdb::line_protocol_query::metric, cache};
 
   ASSERT_THROW(q.generate_status(s), msg_fmt);
   ASSERT_THROW(q2.generate_metric(m), msg_fmt);
   ASSERT_EQ(q4.generate_metric(m), "test\\ .\\ 3\\ A 0\n");
 
-  influxdb::line_protocol_query q5{"test . $INSTANCE$", columns,
-                                   influxdb::line_protocol_query::metric,
-                                   cache};
+  influxdb::line_protocol_query q5{
+      "test . $INSTANCE$",                   columns,
+      influxdb::line_protocol_query::metric, cache};
   ASSERT_EQ(q5.generate_metric(m), "");
 
-  influxdb::line_protocol_query q6{"test . $INSTANCE$", columns,
-                                   influxdb::line_protocol_query::status,
-                                   cache};
+  influxdb::line_protocol_query q6{
+      "test . $INSTANCE$",                   columns,
+      influxdb::line_protocol_query::status, cache};
   ASSERT_EQ(q6.generate_status(s), "");
 }

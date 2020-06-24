@@ -62,8 +62,16 @@ stream::stream(std::string const& user,
       _actual_query(0),
       _commit(false),
       _cache(cache) {
-  _influx_db.reset(new influxdb12(user, passwd, addr, port, db, status_ts,
-                                  status_cols, metric_ts, metric_cols, _cache));
+  _influx_db.reset(new influxdb12(user,
+                                  passwd,
+                                  addr,
+                                  port,
+                                  db,
+                                  status_ts,
+                                  status_cols,
+                                  metric_ts,
+                                  metric_cols,
+                                  _cache));
 }
 
 /**
@@ -77,8 +85,8 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int stream::flush() {
-  logging::debug(logging::medium)
-      << "influxdb: commiting " << _actual_query << " queries";
+  logging::debug(logging::medium) << "influxdb: commiting " << _actual_query
+                                  << " queries";
   int ret(_pending_queries);
   _actual_query = 0;
   _pending_queries = 0;

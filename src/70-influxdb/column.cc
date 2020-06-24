@@ -76,36 +76,28 @@ column& column::operator=(column const& c) {
  *
  *  @return  The name of this column.
  */
-std::string const& column::get_name() const {
-  return (_name);
-}
+std::string const& column::get_name() const { return (_name); }
 
 /**
  *  Get the value of this column.
  *
  *  @return  The value of this column.
  */
-std::string const& column::get_value() const {
-  return (_value);
-}
+std::string const& column::get_value() const { return (_value); }
 
 /**
  *  Is this column a flag?
  *
  *  @return  True if this column is a flag.
  */
-bool column::is_flag() const {
-  return (_is_flag);
-}
+bool column::is_flag() const { return (_is_flag); }
 
 /**
  *  Get the type of this column.
  *
  *  @return  The type of this column.
  */
-column::type column::get_type() const {
-  return (_type);
-}
+column::type column::get_type() const { return (_type); }
 
 /**
  *  Parse a string containing a type.
