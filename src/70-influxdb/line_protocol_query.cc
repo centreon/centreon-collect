@@ -210,8 +210,7 @@ std::string line_protocol_query::generate_metric(storage::metric const& me) {
  */
 std::string line_protocol_query::generate_status(storage::status const& st) {
   if (_type != status)
-    throw msg_fmt << "influxdb: attempt to generate status"
-                               " with a query of the bad type");
+    throw msg_fmt("influxdb: attempt to generate status with a query of the bad type");
   _string_index = 0;
   std::ostringstream iss;
   try {

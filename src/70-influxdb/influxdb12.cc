@@ -107,10 +107,7 @@ void influxdb12::commit() {
 
   asio::write(_socket, buffer(final_query), asio::transfer_all(), err);
   if (err)
-    throw msg_fmt(
-        << "influxdb: couldn't commit data to InfluxDB with address '"
-        << _socket.remote_endpoint().address().to_string() << "' and port '"
-        << _socket.remote_endpoint().port() << "': " << err.message();
+    throw msg_fmt("influxdb: couldn't commit data to InfluxDB with address '{}' and port '{}': {}", _socket.remote_endpoint().address().to_string(), _socket.remote_endpoint().port(), err.message());
   // Receive the server answer.
 
   std::string answer;
@@ -196,8 +193,7 @@ bool influxdb12::_check_answer_string(std::string const& ans) {
             std::istream_iterator<std::string>(), std::back_inserter(split));
 
   if (split.size() < 3)
-    throw msg_fmt(
-          << "influxdb: unrecognizable HTTP header for '{}' and port '{}': got '{}'", _socket.remote_endpoint().address().to_string(), _socket.remote_endpoint().port(), first_line_str);
+    throw msg_fmt("influxdb: unrecognizable HTTP header for '{}' and port '{}': got '{}'", _socket.remote_endpoint().address().to_string(), _socket.remote_endpoint().port(), first_line_str);
 
   if ((split[0] == "HTTP/1.0") && (split[1] == "204") && (split[2] == "No") &&
       (split[3] == "Content"))
