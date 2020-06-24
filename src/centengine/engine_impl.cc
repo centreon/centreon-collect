@@ -754,6 +754,19 @@ grpc::Status engine_impl::DeleteServiceDowntime(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Delete scheduled host  downtime, according to some criterias.
+ * If a criteria is not defined then it doesnt matter in the search 
+ * for downtime
+ *
+ * @param context gRPC context
+ * @param request DowntimeCriterias (it can be a hostname, a start_time, 
+ * an end_time, a fixed, a triggered_by, a duration, an author 
+ * or a comment)
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteHostDowntimeFull(
     grpc::ServerContext* context __attribute__((unused)),
     const DowntimeCriterias* request,
@@ -762,7 +775,6 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
     downtime::type downtime_type = downtime::host_downtime;
     std::list<std::shared_ptr<com::centreon::engine::downtimes::downtime>>
         dtlist;
-    std::cout << "has start" << request->has_start() << std::endl;
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
                        .begin(),
@@ -773,28 +785,28 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
       auto dt = it->second;
 
       if (!(request->host_name().empty()) &&
-          (dt->get_hostname() != request->host_name()))
+          dt->get_hostname() != request->host_name())
         continue;
-      if ((request->has_start()) &&
-          (dt->get_start_time() != request->start().value()))
+      if (request->has_start() &&
+          dt->get_start_time() != request->start().value())
         continue;
-      if ((request->has_end()) &&
-          (dt->get_end_time() != request->end().value()))
+      if (request->has_end() &&
+          dt->get_end_time() != request->end().value())
         continue;
-      if ((request->has_fixed()) &&
-          (dt->is_fixed() != request->fixed().value()))
+      if (request->has_fixed() &&
+          dt->is_fixed() != request->fixed().value())
         continue;
-      if ((request->has_triggered_by()) &&
-          (dt->get_triggered_by() != request->triggered_by().value()))
+      if (request->has_triggered_by() &&
+          dt->get_triggered_by() != request->triggered_by().value())
         continue;
-      if ((request->has_duration()) &&
-          (dt->get_duration() != request->duration().value()))
+      if (request->has_duration() &&
+          dt->get_duration() != request->duration().value())
         continue;
       if (!(request->author().empty()) &&
-          (dt->get_author() != request->author()))
+          dt->get_author() != request->author())
         continue;
       if (!(request->comment_data().empty()) &&
-          (dt->get_comment() != request->comment_data()))
+          dt->get_comment() != request->comment_data())
         continue;
       dtlist.push_back(dt);
     }
@@ -813,6 +825,19 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Delete scheduled service downtime, according to some criterias.
+ * If a criteria is not defined then it doesnt matter in the search 
+ * for downtime
+ *
+ * @param context gRPC context
+ * @param request DowntimeCriterias (it can be a hostname, a service description
+ * a start_time, an end_time, a fixed, a triggered_by, a duration, an author 
+ * or a comment)
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteServiceDowntimeFull(
     grpc::ServerContext* context __attribute__((unused)),
     const DowntimeCriterias* request,
@@ -836,26 +861,26 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
       if (!(request->service_desc().empty()) &&
           (dt->get_service_description() != request->service_desc()))
         continue;
-      if ((request->has_start()) &&
-          (dt->get_start_time() != request->start().value()))
+      if (request->has_start() &&
+          dt->get_start_time() != request->start().value())
         continue;
-      if ((request->has_end()) &&
-          (dt->get_end_time() != request->end().value()))
+      if (request->has_end() &&
+          dt->get_end_time() != request->end().value())
         continue;
-      if ((request->has_fixed()) &&
-          (dt->is_fixed() != request->fixed().value()))
+      if (request->has_fixed() &&
+          dt->is_fixed() != request->fixed().value())
         continue;
-      if ((request->has_triggered_by()) &&
-          (dt->get_triggered_by() != request->triggered_by().value()))
+      if (request->has_triggered_by() &&
+          dt->get_triggered_by() != request->triggered_by().value())
         continue;
-      if ((request->has_duration()) &&
-          (dt->get_duration() != request->duration().value()))
+      if (request->has_duration() &&
+          dt->get_duration() != request->duration().value())
         continue;
       if (!(request->author().empty()) &&
-          (dt->get_author() != request->author()))
+          dt->get_author() != request->author())
         continue;
       if (!(request->comment_data().empty()) &&
-          (dt->get_comment() != request->comment_data()))
+          dt->get_comment() != request->comment_data())
         continue;
       /* if all criterias match then we found a downtime to delete */
       dtlist.push_back(dt);
