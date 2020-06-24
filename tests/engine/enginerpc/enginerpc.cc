@@ -789,6 +789,78 @@ TEST_F(EngineRpc, DeleteServiceDowntime) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, DeleteHostDowntimeFull) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+
+  set_time(20000);
+
+  time_t now = time(nullptr);
+  std::stringstream s;
+  s << "test_host;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+
+  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_HOST_DOWNTIME, now,
+                                  const_cast<char*>(s.str().c_str())),
+            OK);
+  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  // undef means undefined field
+  oss << "DeleteHostDowntimeFull undef "
+      << "undef"
+      << " " << now + 1 << " 1 0 1 admin undef";
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, DeleteServiceDowntimeFull) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+
+  set_time(20000);
+
+  time_t now = time(nullptr);
+  std::stringstream s;
+  s << "test_host;test_svc;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+
+  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_SVC_DOWNTIME, now,
+                                  const_cast<char*>(s.str().c_str())),
+            OK);
+  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  oss << "DeleteServiceDowntimeFull undef undef " << now << " " << now + 1
+      << " 1 0 1 admin host";
+
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+  erpc.shutdown();
+}
+
 TEST_F(EngineRpc, DelayHostNotification) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;

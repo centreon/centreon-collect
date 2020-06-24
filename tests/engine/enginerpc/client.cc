@@ -459,6 +459,83 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteHostDowntimeFull(std::string const& hostname,
+                              std::pair<bool, uint32_t> const& start,
+                              std::pair<bool, uint32_t> const& end,
+                              std::pair<bool, bool> const& fixed,
+                              std::pair<bool, uint32_t> const& triggeredby,
+                              std::pair<bool, uint32_t> const& duration,
+                              std::string const& author,
+                              std::string const& commentdata,
+                              CommandSuccess* response) {
+    DowntimeCriterias request;
+    grpc::ClientContext context;
+
+    request.set_host_name(hostname);
+    request.set_author(author);
+    request.set_comment_data(commentdata);
+
+    /*checking if the criteria is defined or not*/
+    if (start.first)
+      request.mutable_start()->set_value(start.second);
+    if (end.first)
+      request.mutable_end()->set_value(end.second);
+    if (fixed.first)
+      request.mutable_fixed()->set_value(fixed.second);
+    if (triggeredby.first)
+      request.mutable_triggered_by()->set_value(triggeredby.second);
+    if (duration.first)
+      request.mutable_duration()->set_value(duration.second);
+
+    grpc::Status status =
+        _stub->DeleteHostDowntimeFull(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool DeleteServiceDowntimeFull(std::string const& hostname,
+                                 std::string const& svcdsc,
+                                 std::pair<bool, uint32_t> const& start,
+                                 std::pair<bool, uint32_t> const& end,
+                                 std::pair<bool, bool> const& fixed,
+                                 std::pair<bool, uint32_t> const& triggeredby,
+                                 std::pair<bool, uint32_t> const& duration,
+                                 std::string const& author,
+                                 std::string const& commentdata,
+                                 CommandSuccess* response) {
+    DowntimeCriterias request;
+    grpc::ClientContext context;
+
+    request.set_host_name(hostname);
+    request.set_service_desc(svcdsc);
+    request.set_author(author);
+    request.set_comment_data(commentdata);
+
+    /*checking if the criteria is defined or not*/
+    if (start.first)
+      request.mutable_start()->set_value(start.second);
+    if (end.first)
+      request.mutable_end()->set_value(end.second);
+    if (fixed.first)
+      request.mutable_fixed()->set_value(fixed.second);
+    if (triggeredby.first)
+      request.mutable_triggered_by()->set_value(triggeredby.second);
+    if (duration.first)
+      request.mutable_duration()->set_value(duration.second);
+
+    grpc::Status status =
+        _stub->DeleteServiceDowntimeFull(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteServiceDowntimeFull rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DelayHostNotificationByName(std::string const& hostname,
                                    uint32_t& delaytime,
                                    CommandSuccess* response) {
@@ -901,6 +978,103 @@ int main(int argc, char** argv) {
                                                     delaytime, &response);
       std::cout << "DelayServiceNotification" << std::endl;
     }
+  } else if (strcmp(argv[1], "DeleteHostDowntimeFull") == 0) {
+    CommandSuccess response;
+    std::string hostname;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::pair<bool, bool> fixed;
+
+    // parsing parameters. we are checking if some parameters is definied or
+    // not. here if this parameter is undefined we send an empty string to the
+    // function otherwise we fill the string with the value of the parameter
+    if (strcmp(argv[2], "undef") != 0)
+      hostname = argv[2];
+    // here if the parameter is not defined then we make a pair with default
+    // values otherwise we make a pair with the true boolean and parameter value
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, false);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+
+    status =
+        client.DeleteHostDowntimeFull(hostname, start, end, fixed, triggeredby,
+                                      duration, author, commentdata, &response);
+    std::cout << "DeleteHostDowntimeFull" << std::endl;
+  } else if (strcmp(argv[1], "DeleteServiceDowntimeFull") == 0) {
+    CommandSuccess response;
+    std::string hostname;
+    std::string svcdsc;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::pair<bool, bool> fixed;
+
+    // parsing parameters. we are checking if some parameters is definied or
+    // not. here if this parameter is undefined we send an empty string to the
+    // function otherwise we fill the string with the value of the parameter
+    if (strcmp(argv[2], "undef") != 0)
+      hostname = argv[2];
+    if (strcmp(argv[3], "undef") != 0)
+      svcdsc = argv[3];
+    // here if the parameter is not defined then we make a pair with default
+    // values otherwise we make a pair with the true boolean and parameter value
+    if (strcmp(argv[4], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      fixed = std::make_pair(false, false);
+    else
+      fixed = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[8]));
+    if (strcmp(argv[9], "undef") != 0)
+      author = argv[9];
+    if (strcmp(argv[10], "undef") != 0)
+      commentdata = argv[10];
+
+    status = client.DeleteServiceDowntimeFull(hostname, svcdsc, start, end,
+                                              fixed, triggeredby, duration,
+                                              author, commentdata, &response);
+    std::cout << "DeleteServiceDowntimeFull" << std::endl;
   }
   exit(status);
 }
