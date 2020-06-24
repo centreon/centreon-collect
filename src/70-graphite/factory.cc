@@ -21,9 +21,10 @@
 #include <memory>
 #include <sstream>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/graphite/connector.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
 
@@ -45,8 +46,7 @@ static std::string find_param(config::endpoint const& cfg,
                               std::string const& key) {
   std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
   if (cfg.params.end() == it)
-    throw exceptions::msg() << "graphite: no '" << key
-                            << "' defined for endpoint '" << cfg.name << "'";
+    throw msg_fmt("graphite: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
 }
 
@@ -79,17 +79,18 @@ static std::string get_string_param(config::endpoint const& cfg,
  *  @return Property value.
  */
 static uint32_t get_uint_param(config::endpoint const& cfg,
-                                   std::string const& key,
-                                   uint32_t def) {
+                               std::string const& key,
+                               uint32_t def) {
   std::map<std::string, std::string>::const_iterator it(cfg.params.find(key));
   if (cfg.params.end() == it)
     return (def);
   else {
     try {
       return std::stoul(it->second);
-    } catch (std::exception const& ex) {
-      throw exceptions::msg() << "graphite: '" << key
-                              << "' must be numeric for endpoint '" << cfg.name << "'";
+    }
+    catch (std::exception const& ex) {
+      throw msg_fmt(
+          "graphite: '{}' must be numeric for endpoint '{}'", key, cfg.name);
     }
   }
 
@@ -127,10 +128,10 @@ bool factory::has_endpoint(config::endpoint& cfg) const {
  *
  *  @return Endpoint matching the given configuration.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache)
+    const {
   std::string db_host(find_param(cfg, "db_host"));
   unsigned short db_port(get_uint_param(cfg, "db_port", 2003));
   std::string db_user(get_string_param(cfg, "db_user", ""));
@@ -145,8 +146,15 @@ io::endpoint* factory::new_endpoint(
 
   // Connector.
   std::unique_ptr<graphite::connector> c(new graphite::connector);
-  c->connect_to(metric_naming, status_naming, escape_string, db_user,
-                db_password, db_host, db_port, queries_per_transaction, cache);
+  c->connect_to(metric_naming,
+                status_naming,
+                escape_string,
+                db_user,
+                db_password,
+                db_host,
+                db_port,
+                queries_per_transaction,
+                cache);
   is_acceptor = false;
   return (c.release());
 }
