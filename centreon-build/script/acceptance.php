@@ -26,13 +26,16 @@ function build_image_name($base) {
 }
 
 // Replace all the elements of a file
-function replace_in_file($in, $out, $to_replace) {
-  $str = file_get_contents($in);
-  foreach ($to_replace as $from => $to) {
-    $str = str_replace($from, $to, $str);
+function replace_in_file($in, $out, $toReplace) {
+  $content = file_get_contents($in);
+  foreach ($toReplace as $from => $to) {
+    $content = str_replace($from, $to, $content);
   }
-  file_put_contents($out, $str);
-  return (true);
+  $yaml = yaml_parse($content);
+  unset($yaml['services']['webdriver']);
+  file_put_contents($out, yaml_emit($yaml));
+
+  return true;
 }
 
 function call_exit(int $signo)
@@ -47,10 +50,11 @@ if (function_exists('pcntl_signal')) {
 }
 
 // Parse the options.
-$opts = getopt("cd:ghsv:i:t:");
+$opts = getopt('cd:ghsv:i:t:', ['api']);
 array_shift($argv);
 if (isset($opts['h'])) {
-    echo "USAGE: acceptance.php [-h] [-g] [-s] [-c] [-v version] [-d distrib] [feature1 [feature2 [...] ] ]\n";
+    echo "USAGE: acceptance.php [-h] ";
+    echo "[--api] [-g] [-s] [-c] [-v version] [-d distrib] [feature1 [feature2 [...] ] ]\n";
     echo "\n";
     echo "  Description:\n";
     echo "    Feature files are optional. By default all of them will be run.\n";
@@ -58,13 +62,14 @@ if (isset($opts['h'])) {
     echo "    directory in case of an error in a scenario.\n";
     echo "\n";
     echo "  Arguments:\n";
-    echo "    -h  Print this help.\n";
-    echo "    -c  Use images from the continuous integration instead of locally generated images.\n";
-    echo "    -v  Use precise version (can be use with -c for CI).\n";
-    echo "    -d  Distribution used to run tests. Default is centos7.\n";
-    echo "    -g  Only generate files and images. Do not run tests.\n";
-    echo "    -t  Filter features or scenarios by tags.\n";
-    echo "    -s  Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
+    echo "    -h     Print this help.\n";
+    echo "    --api  API tests (end to end tests if not set).\n";
+    echo "    -c     Use images from the continuous integration instead of locally generated images.\n";
+    echo "    -v     Use precise version (can be use with -c for CI).\n";
+    echo "    -d     Distribution used to run tests. Default is centos7.\n";
+    echo "    -g     Only generate files and images. Do not run tests.\n";
+    echo "    -t     Filter features or scenarios by tags.\n";
+    echo "    -s     Synchronize with registry. Pull all images from ci.int.centreon.com registry.\n";
     echo "\n";
     echo "  Prerequisites:\n";
     echo "    - *Docker* (connected to Docker Machine on Windows or MacOS)\n";
@@ -79,6 +84,11 @@ if (isset($opts['h'])) {
     return (0);
 }
 
+$apiTest = false;
+if (isset($opts['api'])) {
+    $apiTest = true;
+    array_shift($argv);
+}
 
 if (isset($opts['v'])) {
     $version = $opts['v'];
@@ -465,6 +475,11 @@ else {
         echo "Image generation only mode (-g), step not needed\n";
     } else {
         $cmdAttr = '';
+
+        if ($apiTest === true) {
+            $cmdAttr .= " --config tests/api/behat.yml";
+        }
+
         if ($tags !== null) {
             $cmdAttr .= " --tags '{$tags}'";
         }
@@ -473,6 +488,7 @@ else {
         if (empty($argv)) {
             $argv[] = '';
         }
+
         foreach ($argv as $feature) {
             passthru($cmd . ' ' . $feature, $return_var);
         }
