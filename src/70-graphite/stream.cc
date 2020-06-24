@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include <sstream>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -30,6 +30,7 @@
 #include "com/centreon/broker/storage/metric.hh"
 
 using namespace asio;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
 
@@ -99,22 +100,26 @@ stream::stream(std::string const& metric_naming,
     }
 
     if (err) {
-      throw exceptions::msg()
-          << "graphite: can't connect to graphite on host '" << _db_host
-          << "', port '" << _db_port << "': " << err.message();
+      throw msg_fmt(
+          "graphite: can't connect to graphite on host '{}', port '{}': {}",
+          _db_host,
+          _db_port,
+          err.message());
     }
-  } catch (std::system_error const& se) {
-    throw exceptions::msg()
-        << "graphite: can't connect to graphite on host '" << _db_host
-        << "', port '" << _db_port << "': " << se.what();
+  }
+  catch (std::system_error const& se) {
+    throw msg_fmt(
+        "graphite: can't connect to graphite on host '{}', port '{}': {}",
+        _db_host,
+        _db_port,
+        se.what());
   }
 }
 
 /**
  *  Destructor.
  */
-stream::~stream() {
-}
+stream::~stream() {}
 
 /**
  *  Flush the stream.
@@ -122,8 +127,8 @@ stream::~stream() {
  *  @return Number of events acknowledged.
  */
 int stream::flush() {
-  logging::debug(logging::medium)
-      << "graphite: commiting " << _actual_query << " queries";
+  logging::debug(logging::medium) << "graphite: commiting " << _actual_query
+                                  << " queries";
   int ret(_pending_queries);
   if (_actual_query != 0)
     _commit();
@@ -158,7 +163,6 @@ void stream::statistics(json11::Json::object& tree) const {
   if (!_status.empty())
     tree["status"] = _status;
 }
-
 
 /**
  *  Write an event.
@@ -232,9 +236,11 @@ void stream::_commit() {
 
     asio::write(_socket, buffer(_query), asio::transfer_all(), err);
     if (err)
-      throw exceptions::msg()
-          << "graphite: can't send data to graphite on host '" << _db_host
-          << "', port '" << _db_port << "': " << err.message();
+      throw msg_fmt(
+          "graphite: can't send data to graphite on host '{}', port '{}': {}",
+          _db_host,
+          _db_port,
+          err.message());
 
     _query.clear();
     _query.append(_auth_query);
