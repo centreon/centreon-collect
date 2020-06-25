@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include <ctime>
 #include <sstream>
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/mysql.hh"
 
@@ -62,7 +61,6 @@ cleanup::cleanup(std::string const& db_type,
       _started{false},
       _should_exit{false} {}
 
-
 /**
  *  Destructor.
  */
@@ -90,9 +88,7 @@ void cleanup::exit() throw() {
  *
  *  @return Rebuild check interval in seconds.
  */
-uint32_t cleanup::get_interval() const throw() {
-  return _interval;
-}
+uint32_t cleanup::get_interval() const throw() { return _interval; }
 
 bool cleanup::should_exit() const {
   std::lock_guard<std::mutex> lk(_start_stop_m);
@@ -113,8 +109,8 @@ void cleanup::start() {
  */
 void cleanup::_run() {
   while (!should_exit() && _interval) {
-    mysql ms(database_config(_db_type, _db_host, _db_port, _db_user,
-                             _db_password, _db_name));
+    mysql ms(database_config(
+        _db_type, _db_host, _db_port, _db_user, _db_password, _db_name));
 
     ms.run_query(
         "UPDATE index_data"
@@ -131,7 +127,8 @@ void cleanup::_run() {
         "DELETE hosts FROM hosts INNER JOIN instances"
         "  ON hosts.instance_id=instances.instance_id"
         "  WHERE instances.deleted=1",
-        "SQL: could not delete outdated entries from the hosts table", false);
+        "SQL: could not delete outdated entries from the hosts table",
+        false);
     ms.run_query(
         "DELETE modules FROM modules INNER JOIN instances"
         "  ON modules.instance_id=instances.instance_id"

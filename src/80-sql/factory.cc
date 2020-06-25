@@ -20,9 +20,10 @@
 #include <cstring>
 #include <memory>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/sql/connector.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::sql;
 
@@ -57,10 +58,10 @@ bool factory::has_endpoint(config::endpoint& cfg) const {
  *
  *  @return New endpoint.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache)
+    const {
   (void)cache;
 
   // Database configuration.
@@ -94,8 +95,9 @@ io::endpoint* factory::new_endpoint(
         loop_timeout = std::stoul(it->second);
       }
     catch (std::exception const& e) {
-      throw exceptions::msg() << "sql: Unable to read the 'loop_timeout' key"
-                                 " that should be a delay in seconds";
+      throw msg_fmt(
+          "sql: Unable to read the 'loop_timeout' key that should be a delay "
+          "in seconds");
     }
   }
   // Instance timeout
