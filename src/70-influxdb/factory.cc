@@ -23,10 +23,11 @@
 #include <sstream>
 #include <vector>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/connector.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
 using namespace json11;
@@ -49,8 +50,7 @@ static std::string find_param(config::endpoint const& cfg,
                               std::string const& key) {
   std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
   if (cfg.params.end() == it)
-    throw exceptions::msg() << "influxdb: no '" << key
-                            << "' defined for endpoint '" << cfg.name << "'";
+    throw msg_fmt("influxdb: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
 }
 
@@ -85,10 +85,10 @@ bool factory::has_endpoint(config::endpoint& cfg) const {
  *
  *  @return Endpoint matching the given configuration.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache)
+    const {
   std::string user(find_param(cfg, "db_user"));
   std::string passwd(find_param(cfg, "db_password"));
   std::string addr(find_param(cfg, "db_host"));
@@ -105,9 +105,10 @@ io::endpoint* factory::new_endpoint(
       ss << it->second;
       ss >> port;
       if (!ss.eof())
-        throw exceptions::msg()
-            << "influxdb: couldn't parse port '" << ss.str()
-            << "' defined for endpoint '" << cfg.name << "'";
+        throw msg_fmt(
+            "influxdb: couldn't parse port '{}' defined for endpoint '{}'",
+            ss.str(),
+            cfg.name);
     }
   }
 
@@ -118,23 +119,25 @@ io::endpoint* factory::new_endpoint(
     if (it != cfg.params.end())
       try {
         queries_per_transaction = std::stoul(it->second);
-      } catch (std::exception const& ex) {
-        throw exceptions::msg()
-            << "influxdb: couldn't parse queries_per_transaction '"
-            << it->second << "' defined for endpoint '" << cfg.name << "'";
       }
-    else
-      queries_per_transaction = 1000;
+    catch (std::exception const& ex) {
+      throw msg_fmt(
+          "influxdb: couldn't parse queries_per_transaction '{}' defined for "
+          "endpoint '{}'",
+          it->second,
+          cfg.name);
+    }
+    else queries_per_transaction = 1000;
   }
 
-  auto chk_str = [](Json const& js) -> std::string {
+  auto chk_str = [](Json const & js)->std::string {
     if (!js.is_string() || js.string_value().empty()) {
-      throw exceptions::msg()
-          << "influxdb: couldn't get the configuration of a metric column name";
+      throw msg_fmt(
+          "influxdb: couldn't get the configuration of a metric column name");
     }
     return js.string_value();
   };
-  auto chk_bool = [](std::string const& boolean) -> bool {
+  auto chk_bool = [](std::string const & boolean)->bool {
     if (boolean == "yes" || boolean == "true")
       return true;
     return false;
@@ -145,14 +148,16 @@ io::endpoint* factory::new_endpoint(
   std::vector<column> status_column_list;
   Json const& status_columns = cfg.cfg["status_column"];
   if (status_columns.is_object())
-    status_column_list.push_back(column(
-        chk_str(status_columns["name"]), chk_str(status_columns["value"]),
-        chk_bool(chk_str(status_columns["is_tag"])),
-        column::parse_type(chk_str(status_columns["type"]))));
+    status_column_list.push_back(
+        column(chk_str(status_columns["name"]),
+               chk_str(status_columns["value"]),
+               chk_bool(chk_str(status_columns["is_tag"])),
+               column::parse_type(chk_str(status_columns["type"]))));
   else if (status_columns.is_array())
     for (Json const& object : status_columns.array_items())
       status_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
+          column(chk_str(object["name"]),
+                 chk_str(object["value"]),
                  chk_bool(chk_str(object["is_tag"])),
                  column::parse_type(chk_str(object["type"]))));
 
@@ -161,22 +166,32 @@ io::endpoint* factory::new_endpoint(
   std::vector<column> metric_column_list;
   Json const& metric_columns = cfg.cfg["metrics_column"];
   if (metric_columns.is_object())
-    metric_column_list.push_back(column(
-        chk_str(metric_columns["name"]), chk_str(metric_columns["value"]),
-        chk_bool(chk_str(metric_columns["is_tag"])),
-        column::parse_type(chk_str(metric_columns["type"]))));
+    metric_column_list.push_back(
+        column(chk_str(metric_columns["name"]),
+               chk_str(metric_columns["value"]),
+               chk_bool(chk_str(metric_columns["is_tag"])),
+               column::parse_type(chk_str(metric_columns["type"]))));
   else if (metric_columns.is_array())
     for (Json const& object : metric_columns.array_items())
       metric_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
+          column(chk_str(object["name"]),
+                 chk_str(object["value"]),
                  chk_bool(chk_str(object["is_tag"])),
                  column::parse_type(chk_str(object["type"]))));
 
   // Connector.
   std::unique_ptr<influxdb::connector> c(new influxdb::connector);
-  c->connect_to(user, passwd, addr, port, db, queries_per_transaction,
-                status_timeseries, status_column_list, metric_timeseries,
-                metric_column_list, cache);
+  c->connect_to(user,
+                passwd,
+                addr,
+                port,
+                db,
+                queries_per_transaction,
+                status_timeseries,
+                status_column_list,
+                metric_timeseries,
+                metric_column_list,
+                cache);
   is_acceptor = false;
   return c.release();
 }
