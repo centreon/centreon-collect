@@ -1,5 +1,7 @@
-####Copyright 2013 Centreon####Licensed under the Apache License,
-    Version 2.0(the "License");
+##
+## Copyright 2013 Centreon
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
 ## You may obtain a copy of the License at
 ##
@@ -17,9 +19,9 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CONAN_INCLUDE_DIRS_JSON11})
 include_directories(${CONAN_INCLUDE_DIRS_SPDLOG})
 
-#TLS module.
+# TLS module.
 add_library(70-graphite SHARED
-#Sources
+  # Sources
   ${CMAKE_SOURCE_DIR}/src/70-graphite/connector.cc
   ${CMAKE_SOURCE_DIR}/src/70-graphite/factory.cc
   ${CMAKE_SOURCE_DIR}/src/70-graphite/macro_cache.cc
