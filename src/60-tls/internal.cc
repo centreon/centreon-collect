@@ -155,7 +155,7 @@ void tls::initialize() {
     log_v2::tls()->error("TLS: could not import PKCS #3 parameters: ",
                          gnutls_strerror(ret));
     throw msg_fmt("TLS: could not import PKCS #3 parameters: {}",
-                  gnutls_strerror(ret));
+                  gnutls_strerror(ret)); 
   }
 
   return;
