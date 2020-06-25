@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/neb/statistics/generator.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -52,6 +52,7 @@
 #include "com/centreon/broker/neb/statistics/total_service_state_change.hh"
 #include "com/centreon/broker/neb/statistics/total_services.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb::statistics;
 
@@ -114,9 +115,7 @@ generator::generator() : _interval(0) {
  *
  *  @param[in] right The object to copy.
  */
-generator::generator(generator const& right) {
-  operator=(right);
-}
+generator::generator(generator const& right) { operator=(right); }
 
 /**
  *  Destructor.
@@ -149,12 +148,11 @@ void generator::add(uint32_t host_id,
                     uint32_t service_id,
                     std::shared_ptr<plugin> plugin) {
   if (!host_id)
-    throw(exceptions::msg() << "stats: invalid plugin host id");
+    throw msg_fmt("stats: invalid plugin host id");
   if (!service_id)
-    throw(exceptions::msg() << "stats: invalid plugin service id");
+    throw msg_fmt("stats: invalid plugin service id");
 
-  std::pair<uint32_t, uint32_t> ids(
-      std::make_pair(host_id, service_id));
+  std::pair<uint32_t, uint32_t> ids(std::make_pair(host_id, service_id));
   _registers.insert(std::make_pair(ids, plugin));
   return;
 }
@@ -172,7 +170,7 @@ void generator::add(uint32_t host_id,
   std::map<std::string, std::shared_ptr<plugin> >::const_iterator it(
       _plugins.find(name));
   if (it == _plugins.end())
-    throw(exceptions::msg() << "stats: invalid plugin name");
+    throw msg_fmt("stats: invalid plugin name");
   add(host_id, service_id, it->second);
   return;
 }
@@ -190,18 +188,14 @@ void generator::clear() {
  *
  *  @return The interval to generate statistics.
  */
-uint32_t generator::interval() const throw() {
-  return (_interval);
-}
+uint32_t generator::interval() const throw() { return (_interval); }
 
 /**
  *  Set the statistics interval.
  *
  *  @param[in] interval The interval to generate statistics.
  */
-void generator::interval(uint32_t value) {
-  _interval = value;
-}
+void generator::interval(uint32_t value) { _interval = value; }
 
 /**
  *  Remove plugin.
@@ -225,7 +219,8 @@ void generator::run() {
                 std::shared_ptr<plugin> >::const_iterator
            it(_registers.begin()),
        end(_registers.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::shared_ptr<neb::service_status> ss(new neb::service_status);
     ss->check_interval = _interval;
     ss->last_check = now;
@@ -240,7 +235,8 @@ void generator::run() {
       it->second->run(output, perfdata);
       ss->output = output;
       ss->perf_data = perfdata;
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       ss->output = e.what();
     }
 
