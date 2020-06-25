@@ -17,29 +17,28 @@
  *
  */
 
+#include <gtest/gtest.h>
+
+#include <com/centreon/engine/configuration/applier/command.hh>
 #include <com/centreon/engine/configuration/applier/host.hh>
+#include <com/centreon/engine/configuration/applier/service.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
 #include <com/centreon/engine/configuration/parser.hh>
 #include <com/centreon/engine/hostescalation.hh>
+#include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
-#include <com/centreon/engine/macros.hh>
 #include <fstream>
 #include <helper.hh>
-#include <gtest/gtest.h>
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 
 class Macro : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given host configuration without host_id
@@ -155,4 +154,40 @@ TEST_F(Macro, TotalHostServicesCriticalError) {
   /* The call of this variable needs a host name */
   process_macros_r(&mac, "$TOTALHOSTSERVICESCRITICAL$", out, 1);
   ASSERT_EQ(out, "");
+}
+
+TEST_F(Macro, ServiceMacro) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::service svc;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  ASSERT_NO_THROW(hst_aply.add_object(hst));
+  ASSERT_EQ(1u, host::hosts.size());
+  ASSERT_TRUE(svc.parse("description", "test_svc"));
+  ASSERT_TRUE(svc.parse("host_name", "test_host"));
+  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
+  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  // We fake the expand_object
+  svc.set_host_id(12);
+
+  configuration::command cmd("cmd");
+  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
+  svc.parse("check_command", "cmd");
+  configuration::applier::command cmd_aply;
+  cmd_aply.add_object(cmd);
+  ASSERT_NO_THROW(svc_aply.add_object(svc));
+  ASSERT_EQ(1u, service::services.size());
+  init_macros();
+
+  nagios_macros mac;
+  std::string out;
+  host::hosts["test_host"]->set_current_state(host::state_up);
+  host::hosts["test_host"]->set_has_been_checked(true);
+  service::services[std::make_pair("test_host", "test_svc")]->set_plugin_output(
+      "foo bar!");
+  process_macros_r(&mac, "$SERVICEOUTPUT:test_host:test_svc$", out, 1);
+  ASSERT_EQ(out, "foo bar!");
 }
