@@ -91,8 +91,6 @@ void tls::destroy() {
 
   // Unload GNU TLS library
   gnutls_global_deinit();
-
-  return;
 }
 
 /**
@@ -152,13 +150,11 @@ void tls::initialize() {
   }
   ret = gnutls_dh_params_import_pkcs3(dh_params, &dhp, GNUTLS_X509_FMT_PEM);
   if (ret != GNUTLS_E_SUCCESS) {
-    log_v2::tls()->error("TLS: could not import PKCS #3 parameters: ",
+    log_v2::tls()->error("TLS: could not import PKCS #3 parameters: {}",
                          gnutls_strerror(ret));
     throw msg_fmt("TLS: could not import PKCS #3 parameters: {}",
-                  gnutls_strerror(ret)); 
+                  gnutls_strerror(ret));
   }
-
-  return;
 }
 
 /**
@@ -166,7 +162,7 @@ void tls::initialize() {
  *  layer and give it to TLS for decoding.
  */
 ssize_t tls::pull_helper(gnutls_transport_ptr_t ptr, void* data, size_t size) {
-  return (static_cast<tls::stream*>(ptr)->read_encrypted(data, size));
+  return static_cast<tls::stream*>(ptr)->read_encrypted(data, size);
 }
 
 /**
@@ -176,5 +172,5 @@ ssize_t tls::pull_helper(gnutls_transport_ptr_t ptr, void* data, size_t size) {
 ssize_t tls::push_helper(gnutls_transport_ptr_t ptr,
                          void const* data,
                          size_t size) {
-  return (static_cast<tls::stream*>(ptr)->write_encrypted(data, size));
+  return static_cast<tls::stream*>(ptr)->write_encrypted(data, size);
 }
