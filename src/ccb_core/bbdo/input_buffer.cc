@@ -18,9 +18,10 @@
 
 #include "com/centreon/broker/bbdo/input_buffer.hh"
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
@@ -34,9 +35,7 @@ input_buffer::input_buffer() : _first_offset(0), _size(0) {}
  *
  *  @param[in] other  Object to copy.
  */
-input_buffer::input_buffer(input_buffer const& other) {
-  _internal_copy(other);
-}
+input_buffer::input_buffer(input_buffer const& other) { _internal_copy(other); }
 
 /**
  *  Destructor.
@@ -136,12 +135,16 @@ void input_buffer::extract(std::string& output, int offset, int size) {
         "BBDO: cannot extract {0} bytes at offset {1} from input buffer, only "
         "{2} bytes available: this is likely a software bug that you should "
         "report to Centreon Broker developers",
-        size, offset, _size);
-    throw exceptions::msg()
-        << "BBDO: cannot extract " << size << " bytes at offset " << offset
-        << " from input buffer, only " << _size
-        << " bytes available: this is likely a software bug"
-        << " that you should report to Centreon Broker developers";
+        size,
+        offset,
+        _size);
+    throw msg_fmt(
+        "BBDO: cannot extract {} bytes at offset {} from input buffer, only {} "
+        "bytes available: this is likely a software bug that you should report "
+        "to Centreon Broker developers",
+        size,
+        offset,
+        _size);
   }
 }
 
@@ -150,9 +153,7 @@ void input_buffer::extract(std::string& output, int offset, int size) {
  *
  *  @return Buffer size in bytes.
  */
-int input_buffer::size() const {
-  return _size;
-}
+int input_buffer::size() const { return _size; }
 
 /**
  *  Copy internal data members.

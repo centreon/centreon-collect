@@ -23,7 +23,7 @@
 #include <memory>
 #include <vector>
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -37,6 +37,7 @@
 #include "com/centreon/broker/processing/failover.hh"
 #include "com/centreon/broker/processing/thread.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config::applier;
 
@@ -96,9 +97,7 @@ class name_match_failover {
 /**
  *  Destructor.
  */
-endpoint::~endpoint() {
-  discard();
-}
+endpoint::~endpoint() { discard(); }
 
 /**
  *  Apply the endpoint configuration.
@@ -108,18 +107,20 @@ endpoint::~endpoint() {
 void endpoint::apply(std::list<config::endpoint> const& endpoints) {
   // Log messages.
   logging::config(logging::medium) << "endpoint applier: loading configuration";
-  logging::debug(logging::high)
-      << "endpoint applier: " << endpoints.size() << " endpoints to apply";
+  logging::debug(logging::high) << "endpoint applier: " << endpoints.size()
+                                << " endpoints to apply";
 
   // Copy endpoint configurations and apply eventual modifications.
   std::list<config::endpoint> tmp_endpoints(endpoints);
   for (std::map<std::string, io::protocols::protocol>::const_iterator
            it1(io::protocols::instance().begin()),
        end1(io::protocols::instance().end());
-       it1 != end1; ++it1) {
+       it1 != end1;
+       ++it1) {
     for (std::list<config::endpoint>::iterator it2(tmp_endpoints.begin()),
          end2(tmp_endpoints.end());
-         it2 != end2; ++it2)
+         it2 != end2;
+         ++it2)
       it1->second.endpntfactry->has_endpoint(*it2);
   }
 
@@ -141,10 +142,12 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
   // Create new endpoints.
   for (std::list<config::endpoint>::iterator it(endp_to_create.begin()),
        end(endp_to_create.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Check that output is not a failover.
     if (it->name.empty() ||
-        (std::find_if(endp_to_create.begin(), endp_to_create.end(),
+        (std::find_if(endp_to_create.begin(),
+                      endp_to_create.end(),
                       name_match_failover(it->name)) == endp_to_create.end())) {
       // Create subscriber and endpoint.
       std::shared_ptr<multiplexing::subscriber> s(_create_subscriber(*it));
@@ -166,8 +169,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
 
       // Run thread.
       logging::debug(logging::medium) << "endpoint applier: endpoint "
-                                         "thread "
-                                      << endp.get() << " of '" << it->name
+                                         "thread " << endp.get() << " of '"
+                                      << it->name
                                       << "' is registered and ready to run";
       endp.release()->start();
     }
@@ -190,7 +193,8 @@ void endpoint::discard() {
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // Send termination requests.
-    for (auto it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it) {
+    for (auto it = _endpoints.begin(), end = _endpoints.end(); it != end;
+         ++it) {
       logging::debug(logging::medium)
           << "endpoint applier: send exit signal on endpoint '"
           << it->second->get_name() << "'";
@@ -208,36 +212,28 @@ void endpoint::discard() {
  *
  *  @return Iterator to the first endpoint.
  */
-endpoint::iterator endpoint::endpoints_begin() {
-  return _endpoints.begin();
-}
+endpoint::iterator endpoint::endpoints_begin() { return _endpoints.begin(); }
 
 /**
  *  Get last iterator of endpoints.
  *
  *  @return Last iterator of endpoints.
  */
-endpoint::iterator endpoint::endpoints_end() {
-  return _endpoints.end();
-}
+endpoint::iterator endpoint::endpoints_end() { return _endpoints.end(); }
 
 /**
  *  Get endpoints mutex.
  *
  *  @return Endpoints mutex.
  */
-std::timed_mutex& endpoint::endpoints_mutex() {
-  return _endpointsm;
-}
+std::timed_mutex& endpoint::endpoints_mutex() { return _endpointsm; }
 
 /**
  *  Get the class instance.
  *
  *  @return Class instance.
  */
-endpoint& endpoint::instance() {
-  return *gl_endpoint;
-}
+endpoint& endpoint::instance() { return *gl_endpoint; }
 
 /**
  *  Load singleton.
@@ -310,16 +306,18 @@ processing::failover* endpoint::_create_failover(
     std::list<config::endpoint>::iterator it(
         std::find_if(l.begin(), l.end(), failover_match_name(front_failover)));
     if (it == l.end())
-      throw(exceptions::msg()
-            << "endpoint applier: could not find "
-               "failover '"
-            << front_failover << "' for endpoint '" << cfg.name << "'");
+      throw msg_fmt(
+          "endpoint applier: could not find failover '{}' for endpoint '{}'",
+          front_failover,
+          cfg.name);
     bool is_acceptor;
     std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
     if (is_acceptor)
-      throw(exceptions::msg()
-            << "endpoint applier: cannot allow acceptor '" << front_failover
-            << "' as failover for endpoint '" << cfg.name << "'");
+      throw msg_fmt(
+          "endpoint applier: cannot allow acceptor '{}' as failover for "
+          "endpoint '{}'",
+          front_failover,
+          cfg.name);
     failovr = std::shared_ptr<processing::failover>(
         _create_failover(*it, sbscrbr, e, l));
 
@@ -327,14 +325,16 @@ processing::failover* endpoint::_create_failover(
     for (std::list<std::string>::const_iterator
              failover_it(++cfg.failovers.begin()),
          failover_end(cfg.failovers.end());
-         failover_it != failover_end; ++failover_it) {
+         failover_it != failover_end;
+         ++failover_it) {
       std::list<config::endpoint>::iterator it(
           std::find_if(l.begin(), l.end(), failover_match_name(*failover_it)));
       if (it == l.end())
-        throw(exceptions::msg()
-              << "endpoint applier: could not find "
-                 "secondary failover '"
-              << *failover_it << "' for endpoint '" << cfg.name << "'");
+        throw msg_fmt(
+            "endpoint applier: could not find secondary failover '{}' for "
+            "endpoint '{}'",
+            *failover_it,
+            cfg.name);
       bool is_acceptor(false);
       std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
       if (is_acceptor) {
@@ -372,7 +372,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
   for (std::map<std::string, io::protocols::protocol>::const_iterator
            it(io::protocols::instance().begin()),
        end(io::protocols::instance().end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if ((it->second.osi_from == 1) &&
         it->second.endpntfactry->has_endpoint(cfg)) {
       std::shared_ptr<persistent_cache> cache;
@@ -390,9 +391,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
     }
   }
   if (!endp)
-    throw exceptions::msg() << "endpoint applier: no matching "
-                               "type found for endpoint '"
-                            << cfg.name << "'";
+    throw msg_fmt("endpoint applier: no matching type found for endpoint '{}'",
+                  cfg.name);
 
   // Create remaining objects.
   while (level <= 7) {
@@ -414,9 +414,9 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
       ++it;
     }
     if (7 == level && it == end)
-      throw exceptions::msg() << "endpoint applier: no matching "
-                                 "protocol found for endpoint '"
-                              << cfg.name << "'";
+      throw msg_fmt(
+          "endpoint applier: no matching protocol found for endpoint '{}'",
+          cfg.name);
     ++level;
   }
 
@@ -443,12 +443,13 @@ void endpoint::_diff_endpoints(
     // Find a root entry.
     std::list<config::endpoint>::iterator list_it(new_ep.begin());
     while ((list_it != new_ep.end()) && !list_it->name.empty() &&
-           (std::find_if(new_ep.begin(), new_ep.end(),
+           (std::find_if(new_ep.begin(),
+                         new_ep.end(),
                          name_match_failover(list_it->name)) != new_ep.end()))
       ++list_it;
     if (list_it == new_ep.end())
-      throw(exceptions::msg() << "endpoint applier: error while "
-                                 "diff'ing new and old configuration");
+      throw msg_fmt(
+          "endpoint applier: error while diff'ing new and old configuration");
     std::list<config::endpoint> entries;
     entries.push_back(*list_it);
     new_ep.erase(list_it);
@@ -456,20 +457,23 @@ void endpoint::_diff_endpoints(
     // Find all subentries.
     for (std::list<config::endpoint>::iterator it_entries(entries.begin()),
          it_end(entries.end());
-         it_entries != it_end; ++it_entries) {
+         it_entries != it_end;
+         ++it_entries) {
       // Find failovers.
       if (!it_entries->failovers.empty())
         for (std::list<std::string>::const_iterator
                  failover_it(it_entries->failovers.begin()),
              failover_end(it_entries->failovers.end());
-             failover_it != failover_end; ++failover_it) {
-          list_it = std::find_if(new_ep.begin(), new_ep.end(),
-                                 failover_match_name(*failover_it));
+             failover_it != failover_end;
+             ++failover_it) {
+          list_it = std::find_if(
+              new_ep.begin(), new_ep.end(), failover_match_name(*failover_it));
           if (list_it == new_ep.end())
-            throw(exceptions::msg()
-                  << "endpoint applier: could not find failover '"
-                  << *failover_it << "' for endpoint '" << it_entries->name
-                  << "'");
+            throw msg_fmt(
+                "endpoint applier: could not find failover '{}' for endpoint "
+                "'{}'",
+                *failover_it,
+                it_entries->name);
           entries.push_back(*list_it);
           new_ep.erase(list_it);
         }
@@ -481,7 +485,8 @@ void endpoint::_diff_endpoints(
     if (map_it == to_delete.end())
       for (std::list<config::endpoint>::iterator it(entries.begin()),
            end(entries.end());
-           it != end; ++it)
+           it != end;
+           ++it)
         to_create.push_back(*it);
     else
       to_delete.erase(map_it);
@@ -509,12 +514,14 @@ std::unordered_set<uint32_t> endpoint::_filters(
   std::unordered_set<uint32_t> elements;
   for (std::set<std::string>::const_iterator it(str_filters.begin()),
        end(str_filters.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     io::events::events_container const& tmp_elements(
         io::events::instance().get_matching_events(*it));
     for (io::events::events_container::const_iterator it(tmp_elements.begin()),
          end(tmp_elements.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       logging::config(logging::medium)
           << "endpoint applier: new filtering element: " << it->first;
       elements.insert(it->first);

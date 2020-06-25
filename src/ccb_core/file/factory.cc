@@ -18,9 +18,10 @@
 
 #include "com/centreon/broker/file/factory.hh"
 #include <memory>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/file/opener.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
 
@@ -56,10 +57,10 @@ bool factory::has_endpoint(config::endpoint& cfg) const {
  *
  *  @return Acceptor matching configuration.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache)
+    const {
   (void)cache;
 
   // Find path to the file.
@@ -68,9 +69,7 @@ io::endpoint* factory::new_endpoint(
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("path")};
     if (it == cfg.params.end())
-      throw exceptions::msg() << "file: no 'path' defined for file "
-                                 "endpoint '"
-                              << cfg.name << "'";
+      throw msg_fmt("file: no 'path' defined for file endpoint '{}'", cfg.name);
     filename = it->second;
   }
 

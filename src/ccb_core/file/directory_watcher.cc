@@ -27,9 +27,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <memory>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
 
@@ -39,18 +40,15 @@ using namespace com::centreon::broker::file;
 directory_watcher::directory_watcher() : _timeout(0) {
   if ((_inotify_instance_id = ::inotify_init()) == -1) {
     int err = errno;
-    throw(exceptions::msg()
-          << "directory_watcher: couldn't create inotify instance: '"
-          << ::strerror(err) << "'");
+    throw msg_fmt("directory_watcher: couldn't create inotify instance: '{}'",
+                  ::strerror(err));
   }
 }
 
 /**
  *  Destructor.
  */
-directory_watcher::~directory_watcher() {
-  ::close(_inotify_instance_id);
-}
+directory_watcher::~directory_watcher() { ::close(_inotify_instance_id); }
 
 /**
  *  Add a directory to the list of watched directories.
@@ -59,12 +57,13 @@ directory_watcher::~directory_watcher() {
  */
 void directory_watcher::add_directory(std::string const& directory) {
   int id =
-      ::inotify_add_watch(_inotify_instance_id, directory.c_str(),
+      ::inotify_add_watch(_inotify_instance_id,
+                          directory.c_str(),
                           IN_CREATE | IN_MODIFY | IN_DELETE | IN_DELETE_SELF);
   if (id == -1) {
     int err = errno;
-    throw(exceptions::msg() << "directory_watcher: couldn't add directory: '"
-                            << ::strerror(err) << "'");
+    throw msg_fmt("directory_watcher: couldn't add directory: '{}'",
+                  ::strerror(err));
   }
 
   char* real_path = ::realpath(directory.c_str(), nullptr);
@@ -89,8 +88,8 @@ void directory_watcher::remove_directory(std::string const& directory) {
 
   if (::inotify_rm_watch(_inotify_instance_id, it->second) == -1) {
     int err = errno;
-    throw(exceptions::msg() << "directory_watcher: couldn't remove directory: '"
-                            << ::strerror(err) << "'");
+    throw msg_fmt("directory_watcher: couldn't remove directory: '{}'",
+                  ::strerror(err));
   }
 
   _id_to_path.erase(it->second);
@@ -123,7 +122,10 @@ std::vector<directory_event> directory_watcher::get_events() {
   FD_SET(_inotify_instance_id, &set);
   tv.tv_sec = _timeout / 1000;
   tv.tv_usec = (_timeout % 1000) * 1000;
-  ::select(_inotify_instance_id + 1, &set, nullptr, nullptr,
+  ::select(_inotify_instance_id + 1,
+           &set,
+           nullptr,
+           nullptr,
            _timeout != 0 ? &tv : nullptr);
 
   if (!FD_ISSET(_inotify_instance_id, &set))
@@ -133,8 +135,8 @@ std::vector<directory_event> directory_watcher::get_events() {
   int buf_size;
   if (ioctl(_inotify_instance_id, FIONREAD, &buf_size) == -1) {
     int err = errno;
-    throw(exceptions::msg() << "directory_watcher: couldn't read events: '"
-                            << ::strerror(err) << "'");
+    throw msg_fmt("directory_watcher: couldn't read events: '{}'",
+                  ::strerror(err));
   }
   logging::debug(logging::medium)
       << "file: directory watcher getting events of size " << buf_size;
@@ -143,8 +145,8 @@ std::vector<directory_event> directory_watcher::get_events() {
   if (len == -1) {
     int err = errno;
     delete[] buf;
-    throw(exceptions::msg() << "directory_watcher: couldn't read events: '"
-                            << ::strerror(err) << "'");
+    throw msg_fmt("directory_watcher: couldn't read events: '{}'",
+                  ::strerror(err));
   }
 
   // Iterate over all the events.
@@ -178,9 +180,8 @@ std::vector<directory_event> directory_watcher::get_events() {
       struct stat st;
       if (::lstat(name.c_str(), &st) == -1) {
         const char* error = ::strerror(errno);
-        throw(exceptions::msg()
-              << "directory_watcher: couldn't check the file type: '" << error
-              << "'");
+        throw msg_fmt("directory_watcher: couldn't check the file type: '{}'",
+                      error);
       }
       ft = directory_event::other;
       if (S_ISDIR(st.st_mode))
@@ -203,6 +204,4 @@ std::vector<directory_event> directory_watcher::get_events() {
  *
  *  @param[in] msecs  The timeout, in milliseconds. 0 for none.
  */
-void directory_watcher::set_timeout(uint32_t msecs) {
-  _timeout = msecs;
-}
+void directory_watcher::set_timeout(uint32_t msecs) { _timeout = msecs; }

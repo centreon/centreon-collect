@@ -21,7 +21,9 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/exceptions/corruption.hh"
 #include "com/centreon/broker/logging/logging.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::compression;
 
 /**************************************
@@ -53,8 +55,10 @@ std::vector<char> zlib::compress(std::vector<char> const& data,
   int res;
   do {
     retval.resize(len + 4);
-    res = ::compress2(reinterpret_cast<Bytef*>(retval.data()) + 4, &len,
-                      reinterpret_cast<Bytef const*>(&data[0]), nbytes,
+    res = ::compress2(reinterpret_cast<Bytef*>(retval.data()) + 4,
+                      &len,
+                      reinterpret_cast<Bytef const*>(&data[0]),
+                      nbytes,
                       compression_level);
 
     switch (res) {
@@ -66,8 +70,8 @@ std::vector<char> zlib::compress(std::vector<char> const& data,
         retval[3] = (nbytes & 0xff);
         break;
       case Z_MEM_ERROR:
-        throw(exceptions::msg() << "compression: not enough memory to compress "
-                                << nbytes << " bytes");
+        throw msg_fmt("compression: not enough memory to compress {} bytes",
+                      nbytes);
         break;
       case Z_BUF_ERROR:
         len <<= 1;
@@ -109,7 +113,9 @@ std::vector<char> zlib::uncompress(unsigned char const* data, uLong nbytes) {
   ulong alloc = len;
 
   int res = ::uncompress(reinterpret_cast<Bytef*>(uncompressed_array.data()),
-                         &len, static_cast<Bytef const*>(data) + 4, nbytes - 4);
+                         &len,
+                         static_cast<Bytef const*>(data) + 4,
+                         nbytes - 4);
 
   switch (res) {
     case Z_OK:
@@ -117,9 +123,11 @@ std::vector<char> zlib::uncompress(unsigned char const* data, uLong nbytes) {
         uncompressed_array.resize(len);
       break;
     case Z_MEM_ERROR:
-      throw exceptions::msg()
-          << "compression: not enough memory to uncompress " << nbytes
-          << " compressed bytes to " << len << " uncompressed bytes";
+      throw msg_fmt(
+          "compression: not enough memory to uncompress {} compressed bytes to "
+          "{} uncompressed bytes",
+          nbytes,
+          len);
     case Z_BUF_ERROR:
     case Z_DATA_ERROR:
       throw exceptions::corruption()

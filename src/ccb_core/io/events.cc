@@ -19,8 +19,9 @@
 #include <cassert>
 #include "com/centreon/broker/io/events.hh"
 #include <algorithm>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::io;
 
@@ -38,9 +39,7 @@ static events* _instance(nullptr);
  *
  *  @return Class instance.
  */
-events& events::instance() {
-  return *_instance;
-}
+events& events::instance() { return *_instance; }
 
 /**
  *  Load singleton.
@@ -101,13 +100,14 @@ void events::unregister_category(unsigned short category_id) {
  *  @return Event type ID.
  */
 uint32_t events::register_event(unsigned short category_id,
-                                    unsigned short event_id,
-                                    event_info const& info) {
+                                unsigned short event_id,
+                                event_info const& info) {
   categories_container::iterator it(_elements.find(category_id));
   if (it == _elements.end())
-    throw(exceptions::msg()
-          << "core: could not register event '" << info.get_name()
-          << "': category " << category_id << " was not registered");
+    throw msg_fmt(
+        "core: could not register event '{}': category {} was not registered",
+        info.get_name(),
+        category_id);
   int type(make_type(category_id, event_id));
   it->second.events[type] = info;
   return type;
@@ -160,10 +160,12 @@ events::events_container events::get_events_by_category_name(
     events::events_container all;
     for (categories_container::const_iterator it1(_elements.begin()),
          end1(_elements.end());
-         it1 != end1; ++it1)
+         it1 != end1;
+         ++it1)
       for (events_container::const_iterator it2(it1->second.events.begin()),
            end2(it1->second.events.end());
-           it2 != end2; ++it2)
+           it2 != end2;
+           ++it2)
         all.insert(*it2);
     return all;
   }
@@ -171,13 +173,13 @@ events::events_container events::get_events_by_category_name(
   else {
     for (categories_container::const_iterator it(_elements.begin()),
          end(_elements.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       if (it->second.name == name)
         return it->second.events;
     }
   }
-  throw(exceptions::msg() << "core: cannot find event category '" << name
-                          << "'");
+  throw msg_fmt("core: cannot find event category '{}'", name);
 }
 
 /**
@@ -210,8 +212,8 @@ event_info const* events::get_event_info(uint32_t type) {
  *
  *  @return  A list of all the matching events.
  */
-events::events_container events::get_matching_events(
-    std::string const& name) const {
+events::events_container events::get_matching_events(std::string const& name)
+    const {
   size_t num = std::count(name.begin(), name.end(), ':');
   if (num == 0)
     return get_events_by_category_name(name);
@@ -223,17 +225,17 @@ events::events_container events::get_matching_events(
     std::string event_name = name.substr(place + 1);
     for (events::events_container::const_iterator it(events.begin()),
          end(events.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       if (it->second.get_name() == event_name) {
         events::events_container res;
         res[it->first] = it->second;
         return res;
       }
     }
-    throw(exceptions::msg() << "core: cannot find event '" << event_name
-                            << "' in '" << name << "'");
+    throw msg_fmt("core: cannot find event '{}' in '{}'", event_name, name);
   } else
-    throw(exceptions::msg() << "core: too many ':' in '" << name << "'");
+    throw msg_fmt("core: too many ':' in '{}'", name);
 }
 
 /**************************************
@@ -253,6 +255,4 @@ events::events() {
 /**
  *  Destructor.
  */
-events::~events() {
-  unregister_category(io::events::internal);
-}
+events::~events() { unregister_category(io::events::internal); }
