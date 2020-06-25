@@ -20,13 +20,14 @@
 
 #include <gnutls/gnutls.h>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/tls/internal.hh"
 #include "com/centreon/broker/tls/params.hh"
 #include "com/centreon/broker/tls/stream.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
 
@@ -126,7 +127,7 @@ std::shared_ptr<io::stream> acceptor::open(std::shared_ptr<io::stream> lower) {
       // Initialize the TLS session
       log_v2::tcp()->debug("TLS: initializing session");
       logging::debug(logging::low) << "TLS: initializing session";
-      // GNUTLS_NONBLOCK was introduced in gnutls 2.99.3.
+// GNUTLS_NONBLOCK was introduced in gnutls 2.99.3.
 #ifdef GNUTLS_NONBLOCK
       ret = gnutls_init(session, GNUTLS_SERVER | GNUTLS_NONBLOCK);
 #else
@@ -134,9 +135,9 @@ std::shared_ptr<io::stream> acceptor::open(std::shared_ptr<io::stream> lower) {
 #endif  // GNUTLS_NONBLOCK
       if (ret != GNUTLS_E_SUCCESS) {
         log_v2::tcp()->error("TLS: cannot initialize session: {}",
-                                        gnutls_strerror(ret));
-        throw(exceptions::msg()
-              << "TLS: cannot initialize session: " << gnutls_strerror(ret));
+                             gnutls_strerror(ret));
+        throw msg_fmt("TLS: cannot initialize session: {}",
+                      gnutls_strerror(ret));
       }
 
       // Apply TLS parameters.
@@ -144,14 +145,15 @@ std::shared_ptr<io::stream> acceptor::open(std::shared_ptr<io::stream> lower) {
 
       // Create stream object.
       s = std::shared_ptr<io::stream>(new stream(session));
-    } catch (...) {
+    }
+    catch (...) {
       gnutls_deinit(*session);
       delete (session);
       throw;
     }
     s->set_substream(lower);
 
-    // Bind the TLS session with the stream from the lower layer.
+// Bind the TLS session with the stream from the lower layer.
 #if GNUTLS_VERSION_NUMBER < 0x020C00
     gnutls_transport_set_lowat(*session, 0);
 #endif  // GNU TLS < 2.12.0
@@ -166,10 +168,8 @@ std::shared_ptr<io::stream> acceptor::open(std::shared_ptr<io::stream> lower) {
       ret = gnutls_handshake(*session);
     } while (GNUTLS_E_AGAIN == ret || GNUTLS_E_INTERRUPTED == ret);
     if (ret != GNUTLS_E_SUCCESS) {
-      log_v2::tcp()->error("TLS: handshake failed: {}",
-                                      gnutls_strerror(ret));
-      throw(exceptions::msg()
-            << "TLS: handshake failed: " << gnutls_strerror(ret));
+      log_v2::tcp()->error("TLS: handshake failed: {}", gnutls_strerror(ret));
+      throw msg_fmt("TLS: handshake failed: {}", gnutls_strerror(ret));
     }
     log_v2::tcp()->debug("TLS: successful handshake");
     logging::debug(logging::medium) << "TLS: successful handshake";
