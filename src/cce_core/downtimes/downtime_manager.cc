@@ -261,16 +261,16 @@ int downtime_manager::
     delete_downtime_by_hostname_service_description_start_time_comment(
         std::string const& hostname,
         std::string const& service_description,
-        time_t start_time,
+        std::pair<bool, time_t> const& start_time,
         std::string const& comment) {
   logger(dbg_downtime, basic)
     << "Delete downtimes (host: '" << hostname << "', service description: '"
-    << service_description << "', start time: " << start_time
+    << service_description << "', start time: " << start_time.second
     << ", comment: '" << comment << "')";
   int deleted{0};
 
   /* Do not allow deletion of everything - must have at least 1 filter on. */
-  if (hostname.empty() && service_description.empty() && start_time == 0 &&
+  if (hostname.empty() && service_description.empty() && !start_time.first &&
       comment.empty())
     return deleted;
 
@@ -278,8 +278,8 @@ int downtime_manager::
             std::multimap<time_t, std::shared_ptr<downtime>>::iterator>
       range;
 
-  if (start_time != 0)
-    range = _scheduled_downtimes.equal_range(start_time);
+  if (start_time.first)
+    range = _scheduled_downtimes.equal_range(start_time.second);
   else
     range = {_scheduled_downtimes.begin(), _scheduled_downtimes.end()};
 
