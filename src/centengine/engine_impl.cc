@@ -919,7 +919,8 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
 
   auto fn = std::packaged_task<int32_t(void)>([&host_name,
                                                request]() -> int32_t {
-    time_t start_time;
+                                               
+    std::pair<bool, time_t> start_time;
     std::string service_desc;
     std::string comment_data;
     if (!(request->service_desc().empty()))
@@ -927,9 +928,9 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
     if (!(request->comment_data().empty()))
       comment_data = request->comment_data();
     if (!(request->has_start()))
-      start_time = 0;
+      start_time = {false, 0};
     else
-      start_time = request->start().value();
+      start_time = {true, request->start().value()};
 
     uint32_t deleted =
         downtime_manager::instance()

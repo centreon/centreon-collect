@@ -1168,6 +1168,7 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
   char* service_description(nullptr);
   char* downtime_comment(nullptr);
   time_t downtime_start_time(0L);
+  std::pair<bool, time_t> start_time;
   int deleted(0);
 
   (void)cmd;
@@ -1188,7 +1189,10 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
     temp_ptr = my_strtok(nullptr, ";");
     if (temp_ptr != nullptr) {
       downtime_start_time = strtoul(temp_ptr, &end_ptr, 10);
-
+      if (temp_ptr == end_ptr)
+        start_time = {false, downtime_start_time};
+      else
+        start_time = {true, downtime_start_time};
       /* Get the optional comment. */
       temp_ptr = my_strtok(nullptr, ";");
       if (temp_ptr != nullptr) {
@@ -1201,7 +1205,7 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
   deleted =
       downtime_manager::instance()
           .delete_downtime_by_hostname_service_description_start_time_comment(
-              hostname, service_description, downtime_start_time,
+              hostname, service_description, start_time,
               downtime_comment);
   if (0 == deleted)
     return ERROR;
@@ -1218,6 +1222,7 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
   char* host_name(nullptr);
   time_t downtime_start_time(0L);
   int deleted(0);
+  std::pair<bool, time_t> start_time;
 
   (void)cmd;
 
@@ -1246,7 +1251,10 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
       temp_ptr = my_strtok(nullptr, ";");
       if (temp_ptr != nullptr) {
         downtime_start_time = strtoul(temp_ptr, &end_ptr, 10);
-
+        if (temp_ptr == end_ptr)
+          start_time = {false, downtime_start_time};
+        else
+          start_time = {true, downtime_start_time};
         /* Get the optional comment. */
         temp_ptr = my_strtok(nullptr, ";");
         if (temp_ptr != nullptr) {
@@ -1266,7 +1274,10 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
       temp_ptr = my_strtok(nullptr, ";");
       if (temp_ptr != nullptr) {
         downtime_start_time = strtoul(temp_ptr, &end_ptr, 10);
-
+        if (temp_ptr == end_ptr)
+          start_time = {false, downtime_start_time};
+        else
+          start_time = {true, downtime_start_time};
         /* Get the optional comment. */
         temp_ptr = my_strtok(nullptr, ";");
         if (temp_ptr != nullptr) {
@@ -1287,7 +1298,7 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
     deleted =
         downtime_manager::instance()
             .delete_downtime_by_hostname_service_description_start_time_comment(
-                it->first, service_description, downtime_start_time,
+                it->first, service_description, start_time,
                 downtime_comment);
   }
 
@@ -1304,6 +1315,7 @@ int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
   char* temp_ptr(nullptr);
   char* end_ptr(nullptr);
   int deleted(0);
+  std::pair<bool, time_t> start_time;
 
   (void)cmd;
 
@@ -1312,20 +1324,20 @@ int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
   if (temp_ptr != nullptr)
     /* This will be set to 0 if no start_time is entered or data is bad. */
     downtime_start_time = strtoul(temp_ptr, &end_ptr, 10);
+    if (temp_ptr == end_ptr)
+      start_time = {false, downtime_start_time};
+    else
+      start_time = {true, downtime_start_time};
 
   /* Get comment - not sure if this should be also tokenised by ; */
   temp_ptr = my_strtok(nullptr, "\n");
   if ((temp_ptr != nullptr) && (*temp_ptr != '\0'))
     downtime_comment = temp_ptr;
 
-  /* No args should give an error. */
-  if ((0 == downtime_start_time) && (nullptr == downtime_comment))
-    return ERROR;
-
   deleted =
       downtime_manager::instance()
           .delete_downtime_by_hostname_service_description_start_time_comment(
-              "", "", downtime_start_time, downtime_comment);
+              "", "", start_time, downtime_comment);
 
   if (0 == deleted)
     return ERROR;

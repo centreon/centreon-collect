@@ -46,7 +46,7 @@ class downtime_manager {
   int delete_downtime_by_hostname_service_description_start_time_comment(
       std::string const& hostname,
       std::string const& service_description,
-      time_t start_time,
+      std::pair<bool, time_t> const& start_time,
       std::string const& comment);
   void insert_downtime(std::shared_ptr<downtime> dt);
   void initialize_downtime_data();
