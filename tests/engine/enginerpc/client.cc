@@ -536,6 +536,28 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteDowntimeByHostName(std::string const& hostname,
+                                std::string const& svcdsc,
+                                std::pair<bool, uint32_t> const& start,
+                                std::string const& commentdata,
+                                CommandSuccess* response) {
+    DowntimeHostIdentifier request;
+    grpc::ClientContext context;
+    request.set_host_name(hostname);
+    request.set_service_desc(svcdsc);
+    request.set_comment_data(commentdata);
+    if (start.first)
+      request.mutable_start()->set_value(start.second);
+
+    grpc::Status status =
+        _stub->DeleteDowntimeByHostName(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteDowntimeByHostName rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DelayHostNotificationByName(std::string const& hostname,
                                    uint32_t& delaytime,
                                    CommandSuccess* response) {
@@ -1075,6 +1097,27 @@ int main(int argc, char** argv) {
                                               fixed, triggeredby, duration,
                                               author, commentdata, &response);
     std::cout << "DeleteServiceDowntimeFull" << std::endl;
+  } else if (strcmp(argv[1], "DeleteDowntimeByHostName") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string svcdsc;
+    std::string commentdata;
+    std::pair<bool, uint32_t> start;
+    // hostname must be defined to delete the downtime but not others arguments
+    if (strcmp(argv[3], "undef") != 0)
+      svcdsc = argv[3];
+    std::cout << "test2" << std::endl;
+    if (strcmp(argv[4], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") != 0)
+      commentdata = argv[5];
+
+    status = client.DeleteDowntimeByHostName(hostname, svcdsc, start,
+                                             commentdata, &response);
+    std::cout << "DeleteDowntimeByHostName" << std::endl;
   }
+
   exit(status);
 }

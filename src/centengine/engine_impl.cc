@@ -756,12 +756,12 @@ grpc::Status engine_impl::DeleteServiceDowntime(grpc::ServerContext* context
 
 /**
  * @brief Delete scheduled host  downtime, according to some criterias.
- * If a criteria is not defined then it doesnt matter in the search 
+ * If a criteria is not defined then it doesnt matter in the search
  * for downtime
  *
  * @param context gRPC context
- * @param request DowntimeCriterias (it can be a hostname, a start_time, 
- * an end_time, a fixed, a triggered_by, a duration, an author 
+ * @param request DowntimeCriterias (it can be a hostname, a start_time,
+ * an end_time, a fixed, a triggered_by, a duration, an author
  * or a comment)
  * @param response Command answer
  *
@@ -790,11 +790,9 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
       if (request->has_start() &&
           dt->get_start_time() != request->start().value())
         continue;
-      if (request->has_end() &&
-          dt->get_end_time() != request->end().value())
+      if (request->has_end() && dt->get_end_time() != request->end().value())
         continue;
-      if (request->has_fixed() &&
-          dt->is_fixed() != request->fixed().value())
+      if (request->has_fixed() && dt->is_fixed() != request->fixed().value())
         continue;
       if (request->has_triggered_by() &&
           dt->get_triggered_by() != request->triggered_by().value())
@@ -802,8 +800,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
       if (request->has_duration() &&
           dt->get_duration() != request->duration().value())
         continue;
-      if (!(request->author().empty()) &&
-          dt->get_author() != request->author())
+      if (!(request->author().empty()) && dt->get_author() != request->author())
         continue;
       if (!(request->comment_data().empty()) &&
           dt->get_comment() != request->comment_data())
@@ -827,12 +824,12 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
 
 /**
  * @brief Delete scheduled service downtime, according to some criterias.
- * If a criteria is not defined then it doesnt matter in the search 
+ * If a criteria is not defined then it doesnt matter in the search
  * for downtime
  *
  * @param context gRPC context
  * @param request DowntimeCriterias (it can be a hostname, a service description
- * a start_time, an end_time, a fixed, a triggered_by, a duration, an author 
+ * a start_time, an end_time, a fixed, a triggered_by, a duration, an author
  * or a comment)
  * @param response Command answer
  *
@@ -864,11 +861,9 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
       if (request->has_start() &&
           dt->get_start_time() != request->start().value())
         continue;
-      if (request->has_end() &&
-          dt->get_end_time() != request->end().value())
+      if (request->has_end() && dt->get_end_time() != request->end().value())
         continue;
-      if (request->has_fixed() &&
-          dt->is_fixed() != request->fixed().value())
+      if (request->has_fixed() && dt->is_fixed() != request->fixed().value())
         continue;
       if (request->has_triggered_by() &&
           dt->get_triggered_by() != request->triggered_by().value())
@@ -876,8 +871,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
       if (request->has_duration() &&
           dt->get_duration() != request->duration().value())
         continue;
-      if (!(request->author().empty()) &&
-          dt->get_author() != request->author())
+      if (!(request->author().empty()) && dt->get_author() != request->author())
         continue;
       if (!(request->comment_data().empty()) &&
           dt->get_comment() != request->comment_data())
@@ -890,6 +884,60 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
     for (auto& d : dtlist)
       downtime_manager::instance().unschedule_downtime(downtime_type,
                                                        d->get_downtime_id());
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Deletes scheduled host and service downtime based on hostname and
+ * optionnaly other filter arguments.
+ *
+ * @param context gRPC context
+ * @param request DowntimeHostIdentifier (it's a hostname and optionally other
+ * filter arguments like service description, start time and downtime's 
+ * comment 
+ * @param Command response 
+ *
+ * @return Status::OK
+ */
+grpc::Status engine_impl::DeleteDowntimeByHostName(
+    grpc::ServerContext* context __attribute__((unused)),
+    const DowntimeHostIdentifier* request,
+    CommandSuccess* response) {
+
+  /*hostname must be defined to delete the downtime but not others arguments*/
+  std::string const& host_name = request->host_name();
+  if (host_name.empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([&host_name,
+                                               request]() -> int32_t {
+    time_t start_time;
+    std::string service_desc;
+    std::string comment_data;
+    if (!(request->service_desc().empty()))
+      service_desc = request->service_desc();
+    if (!(request->comment_data().empty()))
+      comment_data = request->comment_data();
+    if (!(request->has_start()))
+      start_time = 0;
+    else
+      start_time = request->start().value();
+
+    uint32_t deleted =
+        downtime_manager::instance()
+            .delete_downtime_by_hostname_service_description_start_time_comment(
+                host_name, service_desc, start_time,
+                comment_data);
+    if (deleted == 0)
+      return 1;
     return 0;
   });
 

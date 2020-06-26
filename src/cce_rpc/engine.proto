@@ -55,6 +55,7 @@ service Engine {
   rpc DeleteServiceDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
   rpc DeleteServiceDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
+  rpc DeleteDowntimeByHostName(DowntimeHostIdentifier) returns (CommandSuccess) {}
   rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {}
   rpc DelayServiceNotification(ServiceDelayIdentifier) returns (CommandSuccess) {}
 }
@@ -344,4 +345,11 @@ message DowntimeCriterias {
   google.protobuf.UInt32Value duration = 7;
   string author = 8;
   string comment_data = 9;
+}
+
+message DowntimeHostIdentifier {
+  string host_name = 1;
+  string service_desc = 2;
+  google.protobuf.UInt32Value start = 3;
+  string comment_data = 4;
 }
