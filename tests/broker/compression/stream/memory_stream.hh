@@ -21,6 +21,9 @@
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using namespace com::centreon::exceptions;
 
 class CompressionStreamMemoryStream : public com::centreon::broker::io::stream {
  public:
@@ -49,7 +52,7 @@ class CompressionStreamMemoryStream : public com::centreon::broker::io::stream {
   int write(std::shared_ptr<com::centreon::broker::io::data> const& d) {
     using namespace com::centreon::broker;
     if (!d || d->type() != io::raw::static_type())
-      throw(exceptions::msg() << "invalid data sent to " << __FUNCTION__);
+      throw msg_fmt("invalid data sent to {}", __FUNCTION__);
     io::raw& e(*std::static_pointer_cast<io::raw>(d));
     if (!_buffer)
       _buffer.reset(new io::raw(e));
