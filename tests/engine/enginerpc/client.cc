@@ -558,6 +558,23 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteDowntimeByStartTimeComment(uint32_t const start,
+                                        std::string const& commentdata,
+                                        CommandSuccess* response) {
+    DowntimeStartTimeIdentifier request;
+    grpc::ClientContext context;
+    request.set_comment_data(commentdata);
+    request.mutable_start()->set_value(start);
+
+    grpc::Status status =
+        _stub->DeleteDowntimeByStartTimeComment(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteDowntimeByStartTimeComment rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DelayHostNotificationByName(std::string const& hostname,
                                    uint32_t& delaytime,
                                    CommandSuccess* response) {
@@ -1117,7 +1134,13 @@ int main(int argc, char** argv) {
     status = client.DeleteDowntimeByHostName(hostname, svcdsc, start,
                                              commentdata, &response);
     std::cout << "DeleteDowntimeByHostName" << std::endl;
+  } else if (strcmp(argv[1], "DeleteDowntimeByStartTimeComment") == 0) {
+    CommandSuccess response;
+    uint32_t start = atoi(argv[2]);
+    std::string commentdata = argv[3];
+    
+    status = client.DeleteDowntimeByStartTimeComment(start, commentdata, &response);
+    std::cout << "DeleteDowntimeByStartTimeComment" << std::endl;
   }
-
   exit(status);
 }

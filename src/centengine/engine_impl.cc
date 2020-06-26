@@ -900,9 +900,9 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
  *
  * @param context gRPC context
  * @param request DowntimeHostIdentifier (it's a hostname and optionally other
- * filter arguments like service description, start time and downtime's 
- * comment 
- * @param Command response 
+ * filter arguments like service description, start time and downtime's
+ * comment
+ * @param Command response
  *
  * @return Status::OK
  */
@@ -910,7 +910,6 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
     grpc::ServerContext* context __attribute__((unused)),
     const DowntimeHostIdentifier* request,
     CommandSuccess* response) {
-
   /*hostname must be defined to delete the downtime but not others arguments*/
   std::string const& host_name = request->host_name();
   if (host_name.empty())
@@ -919,7 +918,6 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
 
   auto fn = std::packaged_task<int32_t(void)>([&host_name,
                                                request]() -> int32_t {
-                                               
     std::pair<bool, time_t> start_time;
     std::string service_desc;
     std::string comment_data;
@@ -935,13 +933,46 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
     uint32_t deleted =
         downtime_manager::instance()
             .delete_downtime_by_hostname_service_description_start_time_comment(
-                host_name, service_desc, start_time,
-                comment_data);
+                host_name, service_desc, start_time, comment_data);
     if (deleted == 0)
       return 1;
     return 0;
   });
 
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
+    grpc::ServerContext* context __attribute__((unused)),
+    const DowntimeStartTimeIdentifier* request,
+    CommandSuccess* response) {
+  time_t start_time;
+  /*hostname must be defined to delete the downtime but not others arguments*/
+  if (!(request->has_start()))
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "start_time must not be empty");
+  else
+    start_time = request->start().value();
+
+  std::string const& comment_data = request->comment_data();
+  if (comment_data.empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "comment_data must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([&comment_data,
+                                               &start_time]() -> int32_t {
+    uint32_t deleted =
+        downtime_manager::instance()
+            .delete_downtime_by_hostname_service_description_start_time_comment(
+                "", "", {true, start_time}, comment_data);
+    if (0 == deleted)
+      return 1;
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
