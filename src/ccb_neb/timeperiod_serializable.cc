@@ -18,9 +18,10 @@
 
 #include "com/centreon/broker/neb/timeperiod_serializable.hh"
 #include <sstream>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/misc/string.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::neb;
 
 /**
@@ -168,7 +169,8 @@ std::string timeperiod_serializable::get_excluded() const {
   std::vector<time::timeperiod::ptr> const& excluded = _tp->get_excluded();
   for (std::vector<time::timeperiod::ptr>::const_iterator it = excluded.begin(),
                                                           end = excluded.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (!ret.empty())
       ret.append(",");
     ret += (*it)->get_name();
@@ -186,7 +188,8 @@ std::string timeperiod_serializable::get_included() const {
   std::vector<time::timeperiod::ptr> const& included = _tp->get_included();
   for (std::vector<time::timeperiod::ptr>::const_iterator it = included.begin(),
                                                           end = included.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (!ret.empty())
       ret.append(",");
     ret += (*it)->get_name();
@@ -219,7 +222,7 @@ void timeperiod_serializable::set_alias(std::string const& val) {
  */
 void timeperiod_serializable::set_sunday(std::string const& val) {
   if (!_tp->set_timerange(val, 0))
-    throw(exceptions::msg() << "couldn't set sunday for " << _tp->get_name());
+    throw msg_fmt("couldn't set sunday for {}", _tp->get_name());
 }
 
 /**
@@ -229,7 +232,7 @@ void timeperiod_serializable::set_sunday(std::string const& val) {
  */
 void timeperiod_serializable::set_monday(std::string const& val) {
   if (!_tp->set_timerange(val, 1))
-    throw(exceptions::msg() << "couldn't set monday for " << _tp->get_name());
+    throw msg_fmt("couldn't set monday for {}", _tp->get_name());
 }
 
 /**
@@ -239,7 +242,7 @@ void timeperiod_serializable::set_monday(std::string const& val) {
  */
 void timeperiod_serializable::set_tuesday(std::string const& val) {
   if (!_tp->set_timerange(val, 2))
-    throw(exceptions::msg() << "couldn't set tuesday for " << _tp->get_name());
+    throw msg_fmt("couldn't set tuesday for {}", _tp->get_name());
 }
 
 /**
@@ -249,8 +252,7 @@ void timeperiod_serializable::set_tuesday(std::string const& val) {
  */
 void timeperiod_serializable::set_wednesday(std::string const& val) {
   if (!_tp->set_timerange(val, 3))
-    throw(exceptions::msg()
-          << "couldn't set wednesday for " << _tp->get_name());
+    throw msg_fmt("couldn't set wednesday for {}", _tp->get_name());
 }
 
 /**
@@ -260,7 +262,7 @@ void timeperiod_serializable::set_wednesday(std::string const& val) {
  */
 void timeperiod_serializable::set_thursday(std::string const& val) {
   if (!_tp->set_timerange(val, 4))
-    throw(exceptions::msg() << "couldn't set thursday for " << _tp->get_name());
+    throw msg_fmt("couldn't set thursday for {}", _tp->get_name());
 }
 
 /**
@@ -270,7 +272,7 @@ void timeperiod_serializable::set_thursday(std::string const& val) {
  */
 void timeperiod_serializable::set_friday(std::string const& val) {
   if (!_tp->set_timerange(val, 5))
-    throw(exceptions::msg() << "couldn't set friday for " << _tp->get_name());
+    throw msg_fmt("couldn't set friday for {}", _tp->get_name());
 }
 
 /**
@@ -280,7 +282,7 @@ void timeperiod_serializable::set_friday(std::string const& val) {
  */
 void timeperiod_serializable::set_saturday(std::string const& val) {
   if (!_tp->set_timerange(val, 6))
-    throw(exceptions::msg() << "couldn't set saturday for " << _tp->get_name());
+    throw msg_fmt("couldn't set saturday for {}", _tp->get_name());
 }
 
 /**
@@ -291,12 +293,12 @@ void timeperiod_serializable::set_saturday(std::string const& val) {
 void timeperiod_serializable::set_exceptions(std::string const& val) {
   std::vector<std::list<time::daterange> > dateranges;
   if (time::daterange::build_dateranges_from_string(val, dateranges))
-    throw(exceptions::msg()
-          << "couldn't parse exceptions timeranges '" << val << "'");
+    throw msg_fmt("couldn't parse exceptions timeranges '{}'", val);
   for (std::vector<std::list<time::daterange> >::const_iterator
            it = dateranges.begin(),
            end = dateranges.end();
-       it != end; ++it)
+       it != end;
+       ++it)
     _tp->add_exceptions(*it);
 }
 
@@ -310,11 +312,11 @@ void timeperiod_serializable::set_excluded(std::string const& val) {
   excluded = misc::string::split(val, ',');
   for (std::list<std::string>::const_iterator it = excluded.begin(),
                                               end = excluded.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     time::timeperiod::ptr tp = _tps->at(*it);
     if (!tp)
-      throw(exceptions::msg()
-            << "couldn't find the excluded timeperiod '" << *it << "'");
+      throw msg_fmt("couldn't find the excluded timeperiod '{}'", *it);
     _tp->add_excluded(tp);
   }
 }
@@ -329,11 +331,11 @@ void timeperiod_serializable::set_included(std::string const& val) {
   included = misc::string::split(val, ',');
   for (std::list<std::string>::const_iterator it = included.begin(),
                                               end = included.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     time::timeperiod::ptr tp = _tps->at(*it);
     if (!tp)
-      throw(exceptions::msg()
-            << "couldn't find the included timeperiod '" << *it << "'");
+      throw msg_fmt("couldn't find the included timeperiod '{}'", *it);
     _tp->add_included(tp);
   }
 }
@@ -354,28 +356,52 @@ timeperiod_serializable::get_timeperiod() const {
  *   @param[in] visitor  The visitor.
  */
 void timeperiod_serializable::visit(ceof::ceof_visitor& visitor) {
-  visitor.visit(*this, "timeperiod_name", &timeperiod_serializable::get_name,
+  visitor.visit(*this,
+                "timeperiod_name",
+                &timeperiod_serializable::get_name,
                 &timeperiod_serializable::set_name);
-  visitor.visit(*this, "alias", &timeperiod_serializable::get_alias,
+  visitor.visit(*this,
+                "alias",
+                &timeperiod_serializable::get_alias,
                 &timeperiod_serializable::set_alias);
-  visitor.visit(*this, "sunday", &timeperiod_serializable::get_sunday,
+  visitor.visit(*this,
+                "sunday",
+                &timeperiod_serializable::get_sunday,
                 &timeperiod_serializable::set_sunday);
-  visitor.visit(*this, "monday", &timeperiod_serializable::get_monday,
+  visitor.visit(*this,
+                "monday",
+                &timeperiod_serializable::get_monday,
                 &timeperiod_serializable::set_monday);
-  visitor.visit(*this, "tuesday", &timeperiod_serializable::get_tuesday,
+  visitor.visit(*this,
+                "tuesday",
+                &timeperiod_serializable::get_tuesday,
                 &timeperiod_serializable::set_tuesday);
-  visitor.visit(*this, "wednesday", &timeperiod_serializable::get_wednesday,
+  visitor.visit(*this,
+                "wednesday",
+                &timeperiod_serializable::get_wednesday,
                 &timeperiod_serializable::set_wednesday);
-  visitor.visit(*this, "thursday", &timeperiod_serializable::get_thursday,
+  visitor.visit(*this,
+                "thursday",
+                &timeperiod_serializable::get_thursday,
                 &timeperiod_serializable::set_thursday);
-  visitor.visit(*this, "friday", &timeperiod_serializable::get_friday,
+  visitor.visit(*this,
+                "friday",
+                &timeperiod_serializable::get_friday,
                 &timeperiod_serializable::set_friday);
-  visitor.visit(*this, "saturday", &timeperiod_serializable::get_saturday,
+  visitor.visit(*this,
+                "saturday",
+                &timeperiod_serializable::get_saturday,
                 &timeperiod_serializable::set_saturday);
-  visitor.visit(*this, "exceptions", &timeperiod_serializable::get_exceptions,
+  visitor.visit(*this,
+                "exceptions",
+                &timeperiod_serializable::get_exceptions,
                 &timeperiod_serializable::set_exceptions);
-  visitor.visit(*this, "exclude", &timeperiod_serializable::get_excluded,
+  visitor.visit(*this,
+                "exclude",
+                &timeperiod_serializable::get_excluded,
                 &timeperiod_serializable::set_excluded);
-  visitor.visit(*this, "include", &timeperiod_serializable::get_included,
+  visitor.visit(*this,
+                "include",
+                &timeperiod_serializable::get_included,
                 &timeperiod_serializable::set_included);
 }
