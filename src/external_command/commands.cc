@@ -45,7 +45,6 @@
 #include "com/centreon/engine/string.hh"
 #include "compatibility/mmap.h"
 
-
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::downtimes;
