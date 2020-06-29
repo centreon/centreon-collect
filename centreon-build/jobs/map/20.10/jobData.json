@@ -13,7 +13,7 @@
     },
     "artifacts": [
         {
-            "displayname": "Server RPM repository",
+            "displayname": "Server (legacy + NG) RPM repository",
             "flavor": "centos7",
             "url": "@REPOSITORY@/yum/internal/20.10/el7/noarch/map-server/@PROJECT@-server-@VERSIONSERVER@-@RELEASE@"
         },
