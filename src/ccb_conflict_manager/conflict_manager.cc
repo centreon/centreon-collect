@@ -242,7 +242,7 @@ void conflict_manager::_load_caches() {
       }
     }
     catch (std::exception const& e) {
-      throw msg_fmt("storage: could not fetch index list from data DB: ",
+      throw msg_fmt("storage: could not fetch index list from data DB: {}",
                     e.what());
     }
   }
