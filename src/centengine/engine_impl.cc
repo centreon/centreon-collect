@@ -946,6 +946,61 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
+    grpc::ServerContext* context __attribute__((unused)),
+    const DowntimeHostGroupIdentifier* request,
+    CommandSuccess* response) {
+  std::string const& host_group_name = request->host_group_name();
+  if (host_group_name.empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_group_name must not be empty");
+  auto fn = std::packaged_task<int32_t(void)>([&host_group_name,
+                                               request]() -> int32_t {
+    std::pair<bool, time_t> start_time;
+    std::string host_name;
+    std::string service_desc;
+    std::string comment_data;
+    uint32_t deleted;
+
+    auto it = hostgroup::hostgroups.find(host_group_name);
+    if (it == hostgroup::hostgroups.end() || !it->second)
+      return 1;
+    if (!(request->host_name().empty()))
+      host_name = request->host_name();
+    if (!(request->service_desc().empty()))
+      service_desc = request->service_desc();
+    if (!(request->comment_data().empty()))
+      comment_data = request->comment_data();
+    if (!(request->has_start()))
+      start_time = {false, 0};
+    else
+      start_time = {true, request->start().value()};
+
+    for (host_map_unsafe::iterator it_h(it->second->members.begin()),
+         end_h(it->second->members.end());
+         it_h != end_h; ++it_h) {
+      if (!it_h->second)
+        continue;
+      if (!(host_name.empty()) && it_h->first != host_name)
+        continue;
+      deleted =
+          downtime_manager::instance()
+              .delete_downtime_by_hostname_service_description_start_time_comment(
+                  host_name, service_desc, start_time, comment_data);
+    }
+
+    if (deleted == 0)
+      return 1;
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
 grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
     grpc::ServerContext* context __attribute__((unused)),
     const DowntimeStartTimeIdentifier* request,

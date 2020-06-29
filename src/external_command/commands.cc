@@ -1284,12 +1284,12 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
        it_h != end_h; ++it_h) {
     if (!it_h->second)
       continue;
-    if (host_name != nullptr && it->first != host_name)
+    if (host_name != nullptr && it_h->first != host_name)
       continue;
     deleted =
         downtime_manager::instance()
             .delete_downtime_by_hostname_service_description_start_time_comment(
-                it->first, service_description, start_time,
+                host_name, service_description, start_time,
                 downtime_comment);
   }
 

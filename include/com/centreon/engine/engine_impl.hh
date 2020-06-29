@@ -109,6 +109,9 @@ class engine_impl final : public Engine::Service {
   grpc::Status DeleteDowntimeByHostName(grpc::ServerContext* context,
                                   const DowntimeHostIdentifier* request,
                                   CommandSuccess* response) override;
+  grpc::Status DeleteDowntimeByHostGroupName(grpc::ServerContext* context,
+                                  const DowntimeHostGroupIdentifier* request,
+                                  CommandSuccess* response) override;
   grpc::Status DeleteDowntimeByStartTimeComment(grpc::ServerContext* context,
                                   const DowntimeStartTimeIdentifier* request,
                                   CommandSuccess* response) override;
