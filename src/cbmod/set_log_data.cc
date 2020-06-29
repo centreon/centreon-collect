@@ -19,12 +19,13 @@
 #include "com/centreon/broker/neb/set_log_data.hh"
 #include <cstdlib>
 #include <cstring>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 /**
@@ -33,7 +34,7 @@ using namespace com::centreon::broker;
 static char* log_extract_first(char* str, char** lasts) {
   char* data(strtok_r(str, ";", lasts));
   if (!data)
-    throw(exceptions::msg() << "log: data extraction failed");
+    throw msg_fmt("log: data extraction failed");
   return (data);
 }
 
@@ -43,7 +44,7 @@ static char* log_extract_first(char* str, char** lasts) {
 static char* log_extract(char** lasts) {
   char* data(strtok_r(nullptr, ";", lasts));
   if (!data)
-    throw(exceptions::msg() << "log: data extraction failed");
+    throw msg_fmt("log: data extraction failed");
   return (data);
 }
 
@@ -101,7 +102,7 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
   // Duplicate string so that we can split it with strtok_r.
   char* datadup(strdup(log_data));
   if (!datadup)
-    throw(exceptions::msg() << "log: data extraction failed");
+    throw msg_fmt("log: data extraction failed");
 
   try {
     char* lasts;
@@ -180,7 +181,7 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
         le.msg_type = log_entry::other;
         le.output = log_data;
       }
-    }  else if (!strcmp(datadup, "HOST EVENT HANDLER")) {
+    } else if (!strcmp(datadup, "HOST EVENT HANDLER")) {
       le.msg_type = log_entry::host_event_handler;
       le.host_name = log_extract_first(lasts, &lasts);
       le.status = status_id(log_extract(&lasts));
@@ -217,7 +218,8 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
       le.msg_type = log_entry::other;
       le.output = log_data;
     }
-  } catch (...) {
+  }
+  catch (...) {
   }
   free(datadup);
 
