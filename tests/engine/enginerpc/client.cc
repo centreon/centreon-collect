@@ -558,6 +558,31 @@ class EngineRPCClient {
     return true;
   }
 
+  bool DeleteDowntimeByHostGroupName(std::string const& hostgroupname,
+                                     std::string const& hostname,
+                                     std::string const& svcdsc,
+                                     std::string const& commentdata,
+                                     std::pair<bool, uint32_t> const& start,
+                                     CommandSuccess* response) {
+    DowntimeHostGroupIdentifier request;
+    grpc::ClientContext context;
+    request.set_host_group_name(hostgroupname);
+    request.set_host_name(hostname);
+    request.set_service_desc(svcdsc);
+    request.set_comment_data(commentdata);
+    if (start.first)
+      request.mutable_start()->set_value(start.second);
+
+    grpc::Status status =
+        _stub->DeleteDowntimeByHostGroupName(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "DeleteDowntimeByHostGroupName rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DeleteDowntimeByStartTimeComment(uint32_t const start,
                                         std::string const& commentdata,
                                         CommandSuccess* response) {
@@ -569,7 +594,8 @@ class EngineRPCClient {
     grpc::Status status =
         _stub->DeleteDowntimeByStartTimeComment(&context, request, response);
     if (!status.ok()) {
-      std::cout << "DeleteDowntimeByStartTimeComment rpc engine failed" << std::endl;
+      std::cout << "DeleteDowntimeByStartTimeComment rpc engine failed"
+                << std::endl;
       return false;
     }
     return true;
@@ -1123,7 +1149,6 @@ int main(int argc, char** argv) {
     // hostname must be defined to delete the downtime but not others arguments
     if (strcmp(argv[3], "undef") != 0)
       svcdsc = argv[3];
-    std::cout << "test2" << std::endl;
     if (strcmp(argv[4], "undef") == 0)
       start = std::make_pair(false, 0);
     else
@@ -1138,9 +1163,31 @@ int main(int argc, char** argv) {
     CommandSuccess response;
     uint32_t start = atoi(argv[2]);
     std::string commentdata = argv[3];
-    
-    status = client.DeleteDowntimeByStartTimeComment(start, commentdata, &response);
+
+    status =
+        client.DeleteDowntimeByStartTimeComment(start, commentdata, &response);
     std::cout << "DeleteDowntimeByStartTimeComment" << std::endl;
+  } else if (strcmp(argv[1], "DeleteDowntimeByHostGroupName") == 0) {
+    CommandSuccess response;
+    std::string hostgroupname(argv[2]);
+    std::string hostname;
+    std::string svcdsc;
+    std::string commentdata;
+    std::pair<bool, uint32_t> start;
+    // hostname must be defined to delete the downtime but not others arguments
+    if (strcmp(argv[3], "undef") != 0)
+      hostname = argv[3];
+    if (strcmp(argv[4], "undef") != 0)
+      svcdsc = argv[4];
+    if (strcmp(argv[5], "undef") != 0)
+      commentdata = argv[5];
+    if (strcmp(argv[6], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[6]));
+    status = client.DeleteDowntimeByHostGroupName(
+        hostgroupname, hostname, svcdsc, commentdata, start, &response);
+    std::cout << "DeleteDowntimeByHostGroupName" << std::endl;
   }
   exit(status);
 }
