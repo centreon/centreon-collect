@@ -23,7 +23,3 @@ upload_tarball_for_download "$PROJECT" "$VERSION" "/srv/sources/standard/stable/
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "19.04" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"

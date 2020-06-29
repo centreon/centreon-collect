@@ -57,8 +57,3 @@ scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.co
 scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el7/testing/x86_64/RPMS"
 $SSH_REPO createrepo /srv/yum/standard/3.4/el6/testing/x86_64
 $SSH_REPO createrepo /srv/yum/standard/3.4/el7/testing/x86_64
-
-# Generate doc.
-SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V 3.0 -p'"

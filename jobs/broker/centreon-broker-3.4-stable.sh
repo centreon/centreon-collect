@@ -22,8 +22,3 @@ upload_artifact_for_download "$PROJECT" 3.4 "$VERSION" tar.gz 0 "/srv/sources/st
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
 $SSH_REPO /srv/scripts/sync-standard.sh --confirm /3.4
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-broker -V 3.0 -p'"
