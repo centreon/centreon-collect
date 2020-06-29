@@ -35,7 +35,7 @@ sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/20.10/
 cd "$PROJECT-$VERSION"
 alreadyset=`grep docker-compose-web.yml < tests/api/behat.yml || true`
 if [ -z "$alreadyset" ] ; then
-  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../../../api-integration-test-logs\n      web: docker-compose-web.yml#g' tests/api/behat.yml
+  sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../api-integration-test-logs\n      web: docker-compose-web.yml#g' tests/api/behat.yml
 fi
 
 # Run acceptance tests.
