@@ -28,7 +28,6 @@
 #include <cstring>
 #include <sstream>
 
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
@@ -63,16 +62,12 @@ void lib::begin() {}
 /**
  *  Clean the template cache.
  */
-void lib::clean() {
-  _creator.clear();
-}
+void lib::clean() { _creator.clear(); }
 
 /**
  *  Close the RRD file.
  */
-void lib::close() {
-  _filename.clear();
-}
+void lib::close() { _filename.clear(); }
 
 /**
  *  @brief Commit transaction started with begin().
@@ -129,8 +124,8 @@ void lib::open(std::string const& filename,
 void lib::remove(std::string const& filename) {
   if (::remove(filename.c_str())) {
     char const* msg(strerror(errno));
-    logging::error(logging::high)
-        << "RRD: could not remove file '" << filename << "': " << msg;
+    logging::error(logging::high) << "RRD: could not remove file '" << filename
+                                  << "': " << msg;
   }
 }
 
@@ -162,14 +157,14 @@ void lib::update(time_t t, std::string const& value) {
 
   // Update RRD file.
   rrd_clear_error();
-  if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
-                   argv)) {
+  if (rrd_update_r(
+          _filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1, argv)) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
       logging::error(logging::high) << "RRD: failed to update value in file '"
                                     << _filename << "': " << msg;
     else
-      logging::error(logging::low)
-          << "RRD: ignored update error in file '" << _filename << "': " << msg;
+      logging::error(logging::low) << "RRD: ignored update error in file '"
+                                   << _filename << "': " << msg;
   }
 }
