@@ -26,6 +26,7 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/msg.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
