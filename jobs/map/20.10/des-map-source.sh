@@ -74,10 +74,12 @@ cp -r "$PROJECT/desktop" "$PROJECT-desktop-$VERSION"
 tar czf "$PROJECT-desktop-$VERSION.tar.gz" "$PROJECT-desktop-$VERSION"
 
 # Generate Centreon Map server source tarball.
-rm -rf "$PROJECT-server-$VERSIONSERVER" "$PROJECT-server-$VERSIONSERVER.tar.gz"
-cp -r "$PROJECT/server" "$PROJECT-server-$VERSIONSERVER"
-sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/pom.xml"
-tar czf "$PROJECT-server-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
+for flavor in '' '-ng' ; do
+  rm -rf "$PROJECT-server-$VERSIONSERVER" "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
+  cp -r "$PROJECT/server$flavor" "$PROJECT-server-$VERSIONSERVER"
+  sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/pom.xml"
+  tar czf "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
+done
 
 # Send it to srvi-repo.
 curl -F "file=@$PROJECT-web-client-$VERSIONWEB.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-web-client-$VERSIONWEB-php72.tar.gz"
@@ -86,6 +88,7 @@ put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-clie
 put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT/web/packaging/$PROJECT-web-client.spectemplate"
 put_internal_source "map" "$PROJECT-desktop-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
 put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-$VERSIONSERVER.tar.gz"
+put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-ng-$VERSIONSERVER.tar.gz"
 put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.

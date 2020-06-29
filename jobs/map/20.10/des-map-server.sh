@@ -13,20 +13,26 @@ if [ -z "$VERSION" -o -z "$VERSIONSERVER" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION, VERSIONSERVER and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos7|centos8|...>"
+if [ "$#" -lt 2 ] ; then
+  echo "USAGE: $0 <centos7|centos8|...> <legacy|ng>"
   exit 1
 fi
 DISTRIB="$1"
+if [ "$2" = 'ng' ] ; then
+  flavor=-ng
+else
+  flavor=
+fi
 
 # Fetch sources.
-rm -rf "$PROJECT-server-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
-get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
-tar xzf "$PROJECT-server-$VERSIONSERVER.tar.gz"
+rm -rf "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
+get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
 if [ "$DISTRIB" = 'centos8' ] ; then
+  rm -rf "$PROJECT-server-$VERSIONSERVER"
+  tar xzf "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
   sed -i 's@el7</project.release>@el8</project.release>@g' "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/pom.xml"
-  rm -rf "$PROJECT-server-$VERSIONSERVER.tar.gz"
-  tar czf "$PROJECT-server-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
+  rm -f "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
+  tar czf "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz" "$PROJECT-server-$VERSIONSERVER"
 fi
 
 # Create and populate container.
@@ -34,7 +40,7 @@ BUILD_IMAGE="registry.centreon.com/map-build-dependencies-20.10:$DISTRIB"
 docker pull "$BUILD_IMAGE"
 containerid=`docker create -e "VERSION=$VERSIONSERVER" $BUILD_IMAGE /usr/local/bin/server.sh`
 docker cp `dirname $0`/des-map-server.container.sh "$containerid:/usr/local/bin/server.sh"
-docker cp "$PROJECT-server-$VERSIONSERVER.tar.gz" "$containerid:/usr/local/src/"
+docker cp "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz" "$containerid:/usr/local/src/$PROJECT-server-$VERSIONSERVER.tar.gz"
 
 # Run container.
 docker start -a "$containerid"
@@ -56,7 +62,7 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-FILES_MAP_SERVER="$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/target/rpm/centreon-map-server/RPMS/noarch/"'*.rpm'
+FILES_MAP_SERVER=`find "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/target/rpm/" -name '*.rpm'`
 put_internal_rpms "20.10" "$DISTRIB" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" $FILES_MAP_SERVER
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO rpm --resign "/srv/yum/internal/20.10/$DISTRIB/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/*.rpm"
