@@ -134,7 +134,7 @@ void mysql::_check_errors() {
   if (mysql_manager::instance().is_in_error()) {
     database::mysql_error err(mysql_manager::instance().get_error());
     if (err.is_fatal())
-      throw msg_fmt("{}", err.get_message());
+      throw msg_fmt(err.get_message());
     else
       logging::error(logging::medium) << "mysql: " << err.get_message();
   }
