@@ -32,6 +32,8 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
+int const stream::max_data_size = 100000000;
+
 /**************************************
  *                                     *
  *           Public Methods            *
@@ -247,11 +249,10 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
     // Check length.
     if (r.size() > max_data_size) {
-      const int var_test = max_data_size;
       throw msg_fmt(
           "cannot compress buffers longer than {} bytes: you should report "
           "this error to Centreon Broker developers",
-          var_test);
+          max_data_size);
     } else if (r.size() > 0) {
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(),
