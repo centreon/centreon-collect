@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        "perl(Net::Curl)",
+        "perl-Net-Curl",
         "perl(JSON::XS)",
         "perl(URI::Encode)",
         "perl(LWP::UserAgent)",

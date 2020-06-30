@@ -1,7 +1,7 @@
 {
     "dependencies": [
-        "libwww-curl-perl",
-        "perl(JSON)",
+        "perl-Net-Curl",
+        "perl(JSON::XS)",
         "perl(URI::Encode)",
         "perl(LWP::UserAgent)",
         "perl(LWP::Protocol::https)",
