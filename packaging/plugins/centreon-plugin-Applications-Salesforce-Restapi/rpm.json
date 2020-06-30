@@ -1,6 +1,6 @@
 {
     "dependencies": [
         "perl(JSON)",
-        "perl(Net::Curl)"
+        "perl-Net-Curl"
     ]
 }
