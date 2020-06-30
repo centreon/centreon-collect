@@ -246,12 +246,13 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     io::raw& r(*std::static_pointer_cast<io::raw>(d));
 
     // Check length.
-    if (r.size() > max_data_size)
+    if (r.size() > max_data_size) {
+      const int var_test = max_data_size;
       throw msg_fmt(
           "cannot compress buffers longer than {} bytes: you should report "
           "this error to Centreon Broker developers",
-          max_data_size);
-    else if (r.size() > 0) {
+          var_test);
+    } else if (r.size() > 0) {
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(),
                 r.get_buffer().end(),

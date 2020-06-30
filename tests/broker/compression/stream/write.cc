@@ -17,9 +17,10 @@
  *
  */
 #include <gtest/gtest.h>
-#include "com/centreon/broker/compression/stream.hh" 
+#include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "memory_stream.hh"
@@ -32,7 +33,8 @@ class CompressionStreamWrite : public ::testing::Test {
   void SetUp() override {
     try {
       config::applier::init();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
     }
     _stream.reset(new compression::stream(-1, 20000));
@@ -121,7 +123,7 @@ TEST_F(CompressionStreamWrite, CompressNothing) {
 
   // Then
   std::shared_ptr<io::data> d;
-  ASSERT_THROW(_substream->read(d), msg_fmt);
+  ASSERT_THROW(_substream->read(d), exceptions::msg);
 }
 
 // Given a compression stream
