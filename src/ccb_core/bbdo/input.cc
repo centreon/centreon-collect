@@ -132,12 +132,12 @@ static uint32_t set_string(io::data& t,
   uint32_t len(strlen(str));
   if (len >= size) {
     log_v2::bbdo()->error(
-        "BBDO: cannot extract string value: no terminating '\\0' in remaining "
+        "BBDO: cannot extract string value: no terminating '\0' in remaining "
         "{} bytes left in packet",
         size);
 
     throw msg_fmt(
-        "BBDO: cannot extract string value: no terminating '\\0' in remaining "
+        "BBDO: cannot extract string value: no terminating '\0' in remaining "
         "{} bytes of packet",
         size);
   }

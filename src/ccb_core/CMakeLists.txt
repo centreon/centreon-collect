@@ -114,5 +114,5 @@ set_target_properties(ccb_core PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(ccb_core PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
 
 target_link_libraries(ccb_core PUBLIC
-  CONAN_PKG::json11 CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::zlib CONAN_PKG::asio ${MYSQL_LIBS}
+  CONAN_PKG::json11 CONAN_PKG::spdlog CONAN_PKG::zlib CONAN_PKG::asio ${MYSQL_LIBS}
   )
