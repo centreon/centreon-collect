@@ -20,7 +20,7 @@
 #include <string>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/database_config.hh"
-#include "com/centreon/broker/exceptions/config.hh"
+#include "com/centreon/exceptions/config.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
 using namespace com::centreon::broker;
@@ -83,8 +83,8 @@ database_config::database_config(config::endpoint const& cfg) {
   if (it != end)
     _type = it->second;
   else
-    throw exceptions::config()
-          << "no 'db_type' defined for endpoint '" << cfg.name << "'";
+    throw exceptions::config("no 'db_type' defined for endpoint '{}'",
+                             cfg.name);
 
   // db_host
   it = cfg.params.find("db_host");
@@ -115,8 +115,8 @@ database_config::database_config(config::endpoint const& cfg) {
   if (it != end)
     _name = it->second;
   else
-    throw exceptions::config()
-        << "no 'db_name' defined for endpoint '" << cfg.name << "'";
+    throw exceptions::config("no 'db_name' defined for endpoint '{}'",
+                             cfg.name);
 
   // queries_per_transaction
   it = cfg.params.find("queries_per_transaction");
@@ -154,8 +154,7 @@ database_config::database_config(config::endpoint const& cfg) {
                                        "\"1\".";
       _connections_count = 1;
     }
-  }
-  else
+  } else
     _connections_count = 1;
 }
 
@@ -209,54 +208,42 @@ bool database_config::operator==(database_config const& other) {
  *
  *  @return The DB type.
  */
-std::string const& database_config::get_type() const {
-  return _type;
-}
+std::string const& database_config::get_type() const { return _type; }
 
 /**
  *  Get the DB host.
  *
  *  @return The DB host
  */
-std::string const& database_config::get_host() const {
-  return _host;
-}
+std::string const& database_config::get_host() const { return _host; }
 
 /**
  *  Get the connection port.
  *
  *  @return The connection port.
  */
-unsigned short database_config::get_port() const {
-  return _port;
-}
+unsigned short database_config::get_port() const { return _port; }
 
 /**
  *  Get user.
  *
  *  @return The user.
  */
-std::string const& database_config::get_user() const {
-  return _user;
-}
+std::string const& database_config::get_user() const { return _user; }
 
 /**
  *  Get password.
  *
  *  @return The password.
  */
-std::string const& database_config::get_password() const {
-  return _password;
-}
+std::string const& database_config::get_password() const { return _password; }
 
 /**
  *  Get DB name.
  *
  *  @return The database name.
  */
-std::string const& database_config::get_name() const {
-  return _name;
-}
+std::string const& database_config::get_name() const { return _name; }
 
 /**
  *  Get the number of queries per transaction.
@@ -290,36 +277,28 @@ int database_config::get_connections_count() const {
  *
  *  @param[in] type  The database type.
  */
-void database_config::set_type(std::string const& type) {
-  _type = type;
-}
+void database_config::set_type(std::string const& type) { _type = type; }
 
 /**
  *  Set host.
  *
  *  @param[in] host  The host.
  */
-void database_config::set_host(std::string const& host) {
-  _host = host;
-}
+void database_config::set_host(std::string const& host) { _host = host; }
 
 /**
  *  Set port.
  *
  *  @param[in] port  Set the port number of the database server.
  */
-void database_config::set_port(unsigned short port) {
-  _port = port;
-}
+void database_config::set_port(unsigned short port) { _port = port; }
 
 /**
  *  Set user.
  *
  *  @param[in] user  The user name.
  */
-void database_config::set_user(std::string const& user) {
-  _user = user;
-}
+void database_config::set_user(std::string const& user) { _user = user; }
 
 /**
  *  Set password.
@@ -335,9 +314,7 @@ void database_config::set_password(std::string const& password) {
  *
  *  @param[in] name  The database name.
  */
-void database_config::set_name(std::string const& name) {
-  _name = name;
-}
+void database_config::set_name(std::string const& name) { _name = name; }
 
 /**
  *  Set the number of queries per transaction.
