@@ -19,11 +19,12 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "memory_stream.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 class CompressionStreamWrite : public ::testing::Test {
@@ -31,7 +32,8 @@ class CompressionStreamWrite : public ::testing::Test {
   void SetUp() override {
     try {
       config::applier::init();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
     }
     _stream.reset(new compression::stream(-1, 20000));
@@ -150,7 +152,7 @@ TEST_F(CompressionStreamWrite, TooMuchData) {
   r->resize(compression::stream::max_data_size + 10);
 
   // Then
-  ASSERT_THROW(_stream->write(r), exceptions::msg);
+  ASSERT_THROW(_stream->write(r), msg_fmt);
 }
 
 // Given a compression stream
