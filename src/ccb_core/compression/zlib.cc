@@ -20,7 +20,6 @@
 #include <zlib.h>
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/exceptions/corruption.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
 using namespace com::centreon::exceptions;

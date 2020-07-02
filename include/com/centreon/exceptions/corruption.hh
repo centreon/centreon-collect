@@ -19,10 +19,6 @@
 #ifndef CC_EXCEPTIONS_CORRUPTION_HH
 #define CC_EXCEPTIONS_CORRUPTION_HH
 
-#include <fmt/format.h>
-#include <exception>
-#include <string>
-
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/namespace.hh"
 
@@ -52,11 +48,6 @@ class corruption : public msg_fmt {
    *
    *  @param[in] t Data to insert.
    */
-  /*template <typename T>
-  corruption& operator<<(T t) noexcept {
-    *(misc::stringifier*)this << t;
-    return *this;
-  }*/
 };
 }  // namespace exceptions
 
