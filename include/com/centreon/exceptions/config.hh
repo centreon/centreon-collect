@@ -16,12 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_EXCEPTIONS_CONFIG_HH
-#define CCB_EXCEPTIONS_CONFIG_HH
-#include <fmt/format.h>
-
-#include <exception>
-#include <string>
+#ifndef CC_EXCEPTIONS_CONFIG_HH
+#define CC_EXCEPTIONS_CONFIG_HH
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/namespace.hh"
@@ -39,7 +35,7 @@ class config : public msg_fmt {
  public:
   template <typename... Args>
   explicit config(std::string const& str, const Args&... args)
-      : msg_fmt(fmt::format(str, args...)) {}
+      : msg_fmt(str, args...) {}
 
   config() = delete;
   ~config() noexcept {}
@@ -52,14 +48,9 @@ class config : public msg_fmt {
    *
    *  @return This object.
    */
-  /*template <typename T>
-  config& operator<<(T t) noexcept {
-    *(misc::stringifier*)this << t;
-    return *this;
-  }*/
 };
 }  // namespace exceptions
 
 CC_END()
 
-#endif  // !CCB_EXCEPTIONS_CONFIG_HH
+#endif  // !CC_EXCEPTIONS_CONFIG_HH

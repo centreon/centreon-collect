@@ -34,7 +34,6 @@ namespace exceptions {
  */
 
 class msg_fmt : public std::exception {
-  // class msg_fmt : public std::exception {
   const std::string _msg;
 
  public:
