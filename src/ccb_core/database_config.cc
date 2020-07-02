@@ -23,6 +23,7 @@
 #include "com/centreon/exceptions/config.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
+using namespace com::centreon;
 using namespace com::centreon::broker;
 
 /**
