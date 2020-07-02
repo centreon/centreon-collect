@@ -19,9 +19,10 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 
@@ -53,7 +54,7 @@ publisher::~publisher() throw() {}
 bool publisher::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw exceptions::shutdown() << "cannot read from publisher";
+  throw shutdown("cannot read from publisher");
   return true;
 }
 
@@ -80,7 +81,7 @@ int publisher::write(std::shared_ptr<io::data> const& d) {
  *
  * @return The number of events published.
  */
-int publisher::write(std::list<std::shared_ptr<io::data>> const& to_publish) {
+int publisher::write(std::list<std::shared_ptr<io::data> > const& to_publish) {
   engine::instance().publish(to_publish);
   return to_publish.size();
 }

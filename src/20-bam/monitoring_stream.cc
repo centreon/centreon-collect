@@ -34,8 +34,7 @@
 #include "com/centreon/broker/bam/meta_service_status.hh"
 #include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -136,7 +135,7 @@ void monitoring_stream::initialize() {
 bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw(exceptions::shutdown() << "cannot read from BAM monitoring stream");
+  throw shutdown("cannot read from BAM monitoring stream");
   return true;
 }
 /**

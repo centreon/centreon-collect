@@ -20,7 +20,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <thread>
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/file/stream.hh"
@@ -54,9 +54,11 @@ class read_thread {
         std::lock_guard<std::mutex> lock(mutex);
         ret = _file->read(_buf.data() + _current, _size - _current);
         _current += ret;
-        std::cout << "ret = " << ret << "\nsize = " << _size << "\ncurrent = " << _current << '\n';
+        std::cout << "ret = " << ret << "\nsize = " << _size
+                  << "\ncurrent = " << _current << '\n';
         ASSERT_TRUE(_current <= _size);
-      } catch (...) {
+      }
+      catch (...) {
       }
       usleep(100);
     } while (_current < _size);
@@ -120,7 +122,8 @@ class FileSplitterConcurrent : public ::testing::Test {
         RETENTION_DIR, RETENTION_FILE "*");
     for (std::list<std::string>::iterator it{entries.begin()},
          end{entries.end()};
-         it != end; ++it)
+         it != end;
+         ++it)
       std::remove(it->c_str());
   }
 };
@@ -170,7 +173,7 @@ TEST_F(FileSplitterConcurrent, MultipleFilesCreated) {
 
   // Then
   _file->remove_all_files();
-  std::list<std::string> entries =
-      misc::filesystem::dir_content_with_filter(RETENTION_DIR, RETENTION_FILE "*");
+  std::list<std::string> entries = misc::filesystem::dir_content_with_filter(
+      RETENTION_DIR, RETENTION_FILE "*");
   ASSERT_EQ(entries.size(), 0u);
 }

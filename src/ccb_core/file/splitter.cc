@@ -25,7 +25,7 @@
 #include <sstream>
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
@@ -87,10 +87,10 @@ splitter::splitter(std::string const& path,
   size_t offset{base_dir.size() + base_name.size()};
   if (base_dir.back() != '/')
     offset++;
-  for (std::string &f : parts) {
+  for (std::string& f : parts) {
     const char* ptr{f.c_str() + offset};
     int val = 0;
-    if (*ptr) { // Not empty, conversion needed.
+    if (*ptr) {  // Not empty, conversion needed.
       char* endptr(nullptr);
       val = strtol(ptr, &endptr, 10);
       if (endptr && *endptr)  // Invalid conversion.
@@ -150,11 +150,12 @@ long splitter::read(void* buffer, long max_size) {
   // Read data.
   try {
     long rb(_rfile->read(buffer, max_size));
-    logging::debug(logging::low)
-        << "file: read " << rb << " bytes from '" << get_file_path(_rid) << "'";
+    logging::debug(logging::low) << "file: read " << rb << " bytes from '"
+                                 << get_file_path(_rid) << "'";
     _roffset += rb;
     return rb;
-  } catch (exceptions::shutdown const& e) {
+  }
+  catch (com::centreon::exceptions::shutdown const& e) {
     (void)e;
 
     // Erase file that just got read.
@@ -164,8 +165,8 @@ long splitter::read(void* buffer, long max_size) {
       _wfile.reset();
     std::string file_path(get_file_path(_rid));
     if (_auto_delete) {
-      logging::info(logging::high)
-          << "file: end of file '" << file_path << "' reached, erasing file";
+      logging::info(logging::high) << "file: end of file '" << file_path
+                                   << "' reached, erasing file";
       std::remove(file_path.c_str());
     } else {
       logging::info(logging::high) << "file: end of file '" << file_path
@@ -202,9 +203,7 @@ void splitter::seek(long offset, fs_file::seek_whence whence) {
  *
  *  @return Current position in file.
  */
-long splitter::tell() {
-  return _roffset;
-}
+long splitter::tell() { return _roffset; }
 
 /**
  *  Write data.
@@ -238,7 +237,7 @@ long splitter::write(void const* buffer, long size) {
     long wb(_wfile->write(buffer, remaining));
     remaining -= wb;
     _woffset += wb;
-    //buffer = static_cast<char const*>(buffer) + wb;
+    // buffer = static_cast<char const*>(buffer) + wb;
   }
   return size;
 }
@@ -246,9 +245,7 @@ long splitter::write(void const* buffer, long size) {
 /**
  *  Flush the write stream.
  */
-void splitter::flush() {
-  _wfile->flush();
-}
+void splitter::flush() { _wfile->flush(); }
 
 /**
  *  Get the file path matching the ID.
@@ -269,45 +266,35 @@ std::string splitter::get_file_path(int id) const {
  *
  *  @return Max file size.
  */
-long splitter::get_max_file_size() const {
-  return _max_file_size;
-}
+long splitter::get_max_file_size() const { return _max_file_size; }
 
 /**
  *  Get current read ID.
  *
  *  @return Current read ID.
  */
-int splitter::get_rid() const {
-  return _rid;
-}
+int splitter::get_rid() const { return _rid; }
 
 /**
  *  Get current read offset.
  *
  *  @return Current read offset.
  */
-long splitter::get_roffset() const {
-  return _roffset;
-}
+long splitter::get_roffset() const { return _roffset; }
 
 /**
  *  Get current write ID.
  *
  *  @return Current write ID.
  */
-int splitter::get_wid() const {
-  return _wid;
-}
+int splitter::get_wid() const { return _wid; }
 
 /**
  *  Get current write offset.
  *
  *  @return Current write offset.
  */
-long splitter::get_woffset() const {
-  return _woffset;
-}
+long splitter::get_woffset() const { return _woffset; }
 
 /**
  *  Remove all the files the splitter is concerned by.
@@ -348,7 +335,8 @@ void splitter::_open_read_file() {
       std::shared_ptr<fs_file> new_file{std::make_shared<cfile>(
           file_path, fs_file::open_read_write_no_create)};
       _rfile = new_file;
-    } catch (exceptions::msg const& e) {
+    }
+    catch (exceptions::msg const& e) {
       std::shared_ptr<fs_file> new_file{std::make_shared<cfile>(
           file_path, fs_file::open_read_write_truncate)};
       _rfile = new_file;
@@ -370,11 +358,12 @@ void splitter::_open_write_file() {
   // Otherwise open file.
   else {
     std::string file_path(get_file_path(_wid));
-    logging::info(logging::high)
-        << "file: opening new file '" << file_path.c_str() << "'";
+    logging::info(logging::high) << "file: opening new file '"
+                                 << file_path.c_str() << "'";
     try {
       _wfile.reset(new cfile(file_path, fs_file::open_read_write_no_create));
-    } catch (exceptions::msg const& e) {
+    }
+    catch (exceptions::msg const& e) {
       _wfile.reset(new cfile(file_path, fs_file::open_read_write_truncate));
     }
   }
@@ -398,4 +387,3 @@ void splitter::_open_write_file() {
     _woffset = 2 * sizeof(uint32_t);
   }
 }
-

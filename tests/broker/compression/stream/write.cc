@@ -20,10 +20,11 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "memory_stream.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 class CompressionStreamWrite : public ::testing::Test {
@@ -31,7 +32,8 @@ class CompressionStreamWrite : public ::testing::Test {
   void SetUp() override {
     try {
       config::applier::init();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
     }
     _stream.reset(new compression::stream(-1, 20000));
@@ -120,7 +122,7 @@ TEST_F(CompressionStreamWrite, CompressNothing) {
 
   // Then
   std::shared_ptr<io::data> d;
-  ASSERT_THROW(_substream->read(d), exceptions::msg);
+  ASSERT_THROW(_substream->read(d), msg_fmt);
 }
 
 // Given a compression stream
@@ -160,10 +162,10 @@ TEST_F(CompressionStreamWrite, WriteOnShutdown) {
   // Given
   _substream->shutdown(true);
   std::shared_ptr<io::data> d;
-  ASSERT_THROW(_stream->read(d), exceptions::shutdown);
+  ASSERT_THROW(_stream->read(d), shutdown);
 
   // When, Then
-  ASSERT_THROW(_stream->write(new_data()), exceptions::shutdown);
+  ASSERT_THROW(_stream->write(new_data()), shutdown);
 }
 
 // Given a compression stream

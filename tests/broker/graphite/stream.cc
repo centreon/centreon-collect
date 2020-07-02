@@ -73,7 +73,7 @@ TEST_F(graphiteStream, Read) {
                       4242,
                       3,
                       cache);
-  ASSERT_THROW(st.read(data, -1), exceptions::msg);
+  ASSERT_THROW(st.read(data, -1), msg_fmt);
 }
 
 TEST_F(graphiteStream, Write) {

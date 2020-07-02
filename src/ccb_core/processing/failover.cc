@@ -19,11 +19,12 @@
 #include "com/centreon/broker/processing/failover.hh"
 #include <unistd.h>
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/subscriber.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
 
@@ -56,9 +57,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
 /**
  *  Destructor.
  */
-failover::~failover() {
-  exit();
-}
+failover::~failover() { exit(); }
 
 /**
  *  Add secondary endpoint to this failover thread.
@@ -91,26 +90,22 @@ time_t failover::get_buffering_timeout() const throw() {
  *
  *  @return True if the thread is initializable. That is it is read()able.
  */
-bool failover::get_initialized() const throw() {
-  return _initialized;
-}
+bool failover::get_initialized() const throw() { return _initialized; }
 
 /**
  *  Get retry interval.
  *
  *  @return Failover thread retry interval.
  */
-time_t failover::get_retry_interval() const throw() {
-  return _retry_interval;
-}
+time_t failover::get_retry_interval() const throw() { return _retry_interval; }
 
 /**
  *  Thread core function.
  */
 void failover::run() {
   // Initial log.
-  logging::debug(logging::high)
-      << "failover: thread of endpoint '" << _name << "' is starting";
+  logging::debug(logging::high) << "failover: thread of endpoint '" << _name
+                                << "' is starting";
 
   // Check endpoint.
   if (!_endpoint) {
@@ -153,7 +148,8 @@ void failover::run() {
 
         // Wait loop.
         // FIXME SGA: condvar should be more elegant...
-        for (ssize_t i = 0; !should_exit() && i < (_buffering_timeout * 10); i++) {
+        for (ssize_t i = 0; !should_exit() && i < (_buffering_timeout * 10);
+             i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
@@ -166,7 +162,8 @@ void failover::run() {
       for (std::vector<std::shared_ptr<io::endpoint> >::iterator
                it(_secondary_endpoints.begin()),
            end(_secondary_endpoints.end());
-           it != end; ++it)
+           it != end;
+           ++it)
         try {
           std::shared_ptr<io::stream> s((*it)->open());
           if (s)
@@ -175,11 +172,12 @@ void failover::run() {
             logging::error(logging::medium)
                 << "failover: could not open a secondary of endpoint '" << _name
                 << ": secondary returned a null stream";
-        } catch (std::exception const& e) {
-          logging::error(logging::medium)
-              << "failover: error occured while opening a secondary "
-              << "of endpoint '" << _name << "': " << e.what();
         }
+      catch (std::exception const& e) {
+        logging::error(logging::medium)
+            << "failover: error occured while opening a secondary "
+            << "of endpoint '" << _name << "': " << e.what();
+      }
       _update_status("");
 
       // Shutdown failover.
@@ -227,7 +225,8 @@ void failover::run() {
           try {
             std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
             timed_out_stream = !_stream->read(d, 0);
-          } catch (exceptions::shutdown const& e) {
+          }
+          catch (shutdown const& e) {
             logging::debug(logging::medium)
                 << "failover: stream of endpoint '" << _name
                 << "' shutdown while reading: " << e.what();
@@ -257,7 +256,8 @@ void failover::run() {
           try {
             timed_out_muxer = !_subscriber->get_muxer().read(d, 0);
             should_commit = should_commit || d;
-          } catch (exceptions::shutdown const& e) {
+          }
+          catch (shutdown const& e) {
             logging::debug(logging::medium)
                 << "failover: muxer of endpoint '" << _name
                 << "' shutdown while reading: " << e.what();
@@ -273,7 +273,8 @@ void failover::run() {
             try {
               std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
               we = _stream->write(d);
-            } catch (exceptions::shutdown const& e) {
+            }
+            catch (shutdown const& e) {
               logging::debug(logging::medium)
                   << "failover: stream of endpoint '" << _name
                   << "' shutdown while writing: " << e.what();
@@ -288,7 +289,8 @@ void failover::run() {
               try {
                 (*it)->write(d);
                 ++it;
-              } catch (std::exception const& e) {
+              }
+              catch (std::exception const& e) {
                 logging::error(logging::medium)
                     << "failover: error "
                     << "occurred while writing to a secondary of endpoint '"
@@ -330,7 +332,8 @@ void failover::run() {
       }
       _launch_failover();
       _initialized = true;
-    } catch (...) {
+    }
+    catch (...) {
       logging::error(logging::high)
           << "failover: endpoint '" << _name
           << "' encountered an unknown exception, this is likely a "
@@ -379,8 +382,8 @@ void failover::run() {
   }
 
   // Exit log.
-  logging::debug(logging::high)
-      << "failover: thread of endpoint '" << _name << "' is exiting";
+  logging::debug(logging::high) << "failover: thread of endpoint '" << _name
+                                << "' is exiting";
 }
 
 /**
@@ -388,18 +391,14 @@ void failover::run() {
  *
  *  @param[in] secs Buffering timeout in seconds.
  */
-void failover::set_buffering_timeout(time_t secs) {
-  _buffering_timeout = secs;
-}
+void failover::set_buffering_timeout(time_t secs) { _buffering_timeout = secs; }
 
 /**
  *  Set the thread's failover.
  *
  *  @param[in] fo Thread's failover.
  */
-void failover::set_failover(std::shared_ptr<failover> fo) {
-  _failover = fo;
-}
+void failover::set_failover(std::shared_ptr<failover> fo) { _failover = fo; }
 
 /**
  *  Set the connection retry interval.
@@ -414,9 +413,7 @@ void failover::set_retry_interval(time_t retry_interval) {
 /**
  *  Configuration update request.
  */
-void failover::update() {
-  _update = true;
-}
+void failover::update() { _update = true; }
 
 /**
  *  Wait for this thread to terminate along with other failovers.
@@ -425,7 +422,7 @@ void failover::update() {
  *
  *  @return True if thread exited.
  */
-//bool failover::wait(unsigned long time) {
+// bool failover::wait(unsigned long time) {
 //  // Check that failover finished.
 //  bool finished;
 //  if (_failover)
