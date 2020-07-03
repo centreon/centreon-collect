@@ -23,7 +23,7 @@
 #include <sstream>
 
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -32,6 +32,7 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 
@@ -66,7 +67,8 @@ muxer::muxer(std::string const& name, bool persistent)
           ++_events_size;
         }
       }
-    } catch (exceptions::shutdown const& e) {
+    }
+    catch (shutdown const& e) {
       // Memory file was properly read back in memory.
       (void)e;
     }
@@ -87,7 +89,8 @@ muxer::muxer(std::string const& name, bool persistent)
       _events.push_back(e);
       ++_events_size;
     } while (_events_size < event_queue_max_size());
-  } catch (exceptions::shutdown const& e) {
+  }
+  catch (shutdown const& e) {
     // Queue file was entirely read back.
     (void)e;
   }
@@ -96,15 +99,15 @@ muxer::muxer(std::string const& name, bool persistent)
   // Log messages.
   log_v2::perfdata()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
-      _name, _events_size, _file ? "enable" : "disable");
+      _name,
+      _events_size,
+      _file ? "enable" : "disable");
 }
 
 /**
  *  Destructor.
  */
-muxer::~muxer() {
-  _clean();
-}
+muxer::~muxer() { _clean(); }
 
 /**
  *  Acknowledge events.
@@ -114,7 +117,8 @@ muxer::~muxer() {
 void muxer::ack_events(int count) {
   // Remove acknowledged events.
   log_v2::perfdata()->debug(
-      "multiplexing: acknowledging {} events from {} event queue", count,
+      "multiplexing: acknowledging {} events from {} event queue",
+      count,
       _name);
   if (count) {
     std::lock_guard<std::mutex> lock(_mutex);
@@ -130,8 +134,8 @@ void muxer::ack_events(int count) {
       _events.pop_front();
       --_events_size;
     }
-    log_v2::perfdata()->trace("multiplexing: still {} events in {} event queue",
-                              _events_size, _name);
+    log_v2::perfdata()->trace(
+        "multiplexing: still {} events in {} event queue", _events_size, _name);
 
     // Fill memory from file.
     std::shared_ptr<io::data> e;
@@ -201,7 +205,7 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   // No data is directly available.
   if (_pos == _events.end()) {
     // Wait a while if subscriber was not shutdown.
-    if ((time_t)-1 == deadline)
+    if ((time_t) - 1 == deadline)
       _cv.wait(lock);
     else {
       time_t now(time(nullptr));
@@ -255,9 +259,7 @@ void muxer::set_write_filters(muxer::filters const& fltrs) {
  *
  *  @return  The read filters.
  */
-muxer::filters const& muxer::get_read_filters() const {
-  return _read_filters;
-}
+muxer::filters const& muxer::get_read_filters() const { return _read_filters; }
 
 /**
  *  Get the write filters.
@@ -397,7 +399,8 @@ void muxer::_clean() {
         _events.pop_front();
         --_events_size;
       }
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       logging::error(logging::high)
           << "multiplexing: could not backup memory queue of '" << _name
           << "': " << e.what();
@@ -421,7 +424,8 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
       do {
         _file->read(event);
       } while (!event);
-    } catch (exceptions::shutdown const& e) {
+    }
+    catch (shutdown const& e) {
       // The file end was reach.
       (void)e;
       _file.reset();
@@ -434,9 +438,7 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
  *
  *  @return Path to the memory file.
  */
-std::string muxer::_memory_file() const {
-  return memory_file(_name);
-}
+std::string muxer::_memory_file() const { return memory_file(_name); }
 
 /**
  *  Push event to queue (_mutex is locked when this method is called).
@@ -459,16 +461,14 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
  *
  *  @return Path to the queue file.
  */
-std::string muxer::_queue_file() const {
-  return queue_file(_name);
-}
+std::string muxer::_queue_file() const { return queue_file(_name); }
 
 /**
  *  Remove all the queue files attached to this muxer.
  */
 void muxer::remove_queue_files() {
-  logging::info(logging::low)
-      << "multiplexing: '" << _queue_file() << "' removed";
+  logging::info(logging::low) << "multiplexing: '" << _queue_file()
+                              << "' removed";
 
   /* Here _file is already destroyed */
   persistent_file file(_queue_file());

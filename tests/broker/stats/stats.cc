@@ -30,8 +30,7 @@
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -115,7 +114,7 @@ class st : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override {
     (void)deadline;
     d.reset();
-    throw exceptions::shutdown() << "cannot read from connector";
+    throw shutdown("cannot read from connector");
   }
 
   virtual int write(std::shared_ptr<io::data> const& d

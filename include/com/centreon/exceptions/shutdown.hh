@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2011,2017,2020 Centreon
+** Copyright 2011,2017,2020 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_EXCEPTIONS_CORRUPTION_HH
-#define CC_EXCEPTIONS_CORRUPTION_HH
+#ifndef CC_EXCEPTIONS_SHUTDOWN_HH
+#define CC_EXCEPTIONS_SHUTDOWN_HH
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/namespace.hh"
@@ -26,22 +26,20 @@ CC_BEGIN()
 
 namespace exceptions {
 /**
- *  @class corruption corruption.hh
- * "com/centreon/exceptions/corruption.hh"
+ *  @class shutdown shutdown.hh "com/centreon/exceptions/shutdown.hh"
  *  @brief Shutdown exception class.
  *
  *  This exception is thrown when someone attemps to read from a
- *  stream that has been corruption.
+ *  stream that has been shutdown.
  */
-class corruption : public msg_fmt {
+class shutdown : public msg_fmt {
  public:
   template <typename... Args>
-  explicit corruption(std::string const& str, const Args&... args)
+  explicit shutdown(std::string const& str, const Args&... args)
       : msg_fmt(str, args...) {}
-
-  corruption() = delete;
-  ~corruption() noexcept {}
-  corruption& operator=(const corruption&) = delete;
+  shutdown() = delete;
+  ~shutdown() noexcept {}
+  shutdown& operator=(const shutdown&) = delete;
 
   /**
    *  Insert data in message.
@@ -53,4 +51,4 @@ class corruption : public msg_fmt {
 
 CC_END()
 
-#endif  // !CC_EXCEPTIONS_CORRUPTION_HH
+#endif  // !CC_EXCEPTIONS_SHUTDOWN_HH

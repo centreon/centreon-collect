@@ -21,8 +21,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/exceptions/config.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/storage/factory.hh"
 
 using namespace com::centreon::broker;

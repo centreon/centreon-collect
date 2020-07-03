@@ -23,8 +23,10 @@
 #include <thread>
 #include "../test_server.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/raw.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 constexpr static char test_addr[] = "127.0.0.1";
@@ -51,14 +53,14 @@ TEST_F(TcpConnector, InvalidHost) {
   tcp::connector connector;
 
   connector.connect_to("htrekf';kfdsa'", test_port);
-  ASSERT_THROW(connector.open(), exceptions::msg);
+  ASSERT_THROW(connector.open(), msg_fmt);
 }
 
 TEST_F(TcpConnector, NoConnection) {
   tcp::connector connector;
 
   connector.connect_to(test_addr, 2);
-  ASSERT_THROW(connector.open(), exceptions::msg);
+  ASSERT_THROW(connector.open(), msg_fmt);
 }
 
 TEST_F(TcpConnector, Timeout) {

@@ -23,9 +23,10 @@
 #include <fstream>
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 /**
@@ -72,15 +73,15 @@ void persistent_cache::commit() {
     _read_file.reset();
     if (::rename(_cache_file.c_str(), _old_file().c_str())) {
       char const* msg(strerror(errno));
-      throw(exceptions::msg()
-            << "core: cache file '" << _cache_file
-            << "' could not be renamed to '" << _old_file() << "': " << msg);
+      throw(exceptions::msg() << "core: cache file '" << _cache_file
+                              << "' could not be renamed to '" << _old_file()
+                              << "': " << msg);
     } else if (::rename(_new_file().c_str(), _cache_file.c_str())) {
       // .old file will be renamed by the _open() method.
       char const* msg(strerror(errno));
-      throw(exceptions::msg()
-            << "core: cache file '" << _new_file()
-            << "' could not be renamed to '" << _cache_file << "': " << msg);
+      throw(exceptions::msg() << "core: cache file '" << _new_file()
+                              << "' could not be renamed to '" << _cache_file
+                              << "': " << msg);
     }
     // No error checking, this is a secondary issue.
     ::remove(_old_file().c_str());
@@ -99,7 +100,8 @@ void persistent_cache::get(std::shared_ptr<io::data>& d) {
     _open();
   try {
     _read_file->read(d);
-  } catch (exceptions::shutdown const& e) {
+  }
+  catch (shutdown const& e) {
     (void)e;
     d.reset();
   }
