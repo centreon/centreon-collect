@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/compression/zlib.hh"
-#include "com/centreon/broker/exceptions/corruption.hh"
+#include "com/centreon/exceptions/corruption.hh"
 #include "com/centreon/broker/exceptions/interrupt.hh"
 #include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
@@ -30,6 +30,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
+int const stream::max_data_size = 100000000;
 /**************************************
  *                                     *
  *           Public Methods            *
@@ -148,7 +149,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
         }
-        catch (exceptions::corruption const& e) {
+        catch (corruption const& e) {
           logging::debug(logging::medium) << e.what();
         }
       }
@@ -245,10 +246,10 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
     // Check length.
     if (r.size() > max_data_size)
-      throw exceptions::msg() << "cannot compress buffers longer than "
-                              << max_data_size
-                              << " bytes: you should report this error "
-                              << "to Centreon Broker developers";
+      throw msg_fmt(
+          "cannot compress buffers longer than {} bytes: you should report "
+          "this error to Centreon Broker developers",
+          max_data_size);
     else if (r.size() > 0) {
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(),

@@ -152,7 +152,7 @@ TEST_F(CompressionStreamWrite, TooMuchData) {
   r->resize(compression::stream::max_data_size + 10);
 
   // Then
-  ASSERT_THROW(_stream->write(r), exceptions::msg);
+  ASSERT_THROW(_stream->write(r), msg_fmt);
 }
 
 // Given a compression stream
