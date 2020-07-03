@@ -29,6 +29,7 @@
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
 
@@ -195,7 +196,7 @@ long splitter::read(void* buffer, long max_size) {
 void splitter::seek(long offset, fs_file::seek_whence whence) {
   (void)offset;
   (void)whence;
-  throw(exceptions::msg() << "cannot seek within a splitted file");
+  throw msg_fmt("cannot seek within a splitted file");
 }
 
 /**
@@ -336,7 +337,7 @@ void splitter::_open_read_file() {
           file_path, fs_file::open_read_write_no_create)};
       _rfile = new_file;
     }
-    catch (exceptions::msg const& e) {
+    catch (msg_fmt const& e) {
       std::shared_ptr<fs_file> new_file{std::make_shared<cfile>(
           file_path, fs_file::open_read_write_truncate)};
       _rfile = new_file;
@@ -363,7 +364,7 @@ void splitter::_open_write_file() {
     try {
       _wfile.reset(new cfile(file_path, fs_file::open_read_write_no_create));
     }
-    catch (exceptions::msg const& e) {
+    catch (msg_fmt const& e) {
       _wfile.reset(new cfile(file_path, fs_file::open_read_write_truncate));
     }
   }
