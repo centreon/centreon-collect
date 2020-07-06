@@ -72,11 +72,17 @@ void persistent_cache::commit() {
     _read_file.reset();
     if (::rename(_cache_file.c_str(), _old_file().c_str())) {
       char const* msg(strerror(errno));
-      throw msg_fmt("core: cache file '{}' could not be renamed to '{}': {}", _cache_file, _old_file(), msg);
+      throw msg_fmt("core: cache file '{}' could not be renamed to '{}': {}",
+                    _cache_file,
+                    _old_file(),
+                    msg);
     } else if (::rename(_new_file().c_str(), _cache_file.c_str())) {
       // .old file will be renamed by the _open() method.
       char const* msg(strerror(errno));
-      throw msg_fmt("core: cache file '{}' could not be renamed to '{}': {}", _new_file(), _cache_file, msg);
+      throw msg_fmt("core: cache file '{}' could not be renamed to '{}': {}",
+                    _new_file(),
+                    _cache_file,
+                    msg);
     }
     // No error checking, this is a secondary issue.
     ::remove(_old_file().c_str());
@@ -95,7 +101,8 @@ void persistent_cache::get(std::shared_ptr<io::data>& d) {
     _open();
   try {
     _read_file->read(d);
-  } catch (exceptions::shutdown const& e) {
+  }
+  catch (shutdown const& e) {
     (void)e;
     d.reset();
   }
@@ -118,7 +125,8 @@ void persistent_cache::rollback() {
  */
 void persistent_cache::transaction() {
   if (_write_file)
-    throw msg_fmt("core: cache file '{}' is already open for writing", _cache_file);
+    throw msg_fmt("core: cache file '{}' is already open for writing",
+                  _cache_file);
   file::opener opnr;
   opnr.set_filename(_new_file());
   opnr.set_auto_delete(false);

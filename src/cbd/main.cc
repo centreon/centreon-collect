@@ -29,7 +29,6 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/logger.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/config/logger.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
@@ -75,22 +74,26 @@ static void hup_handler(int signum) {
       config::applier::state::instance().apply(conf);
 
       gl_state = conf;
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       logging::error(logging::high)
           << "main: configuration update "
           << "could not succeed, reloading previous configuration: "
           << e.what();
       config::applier::state::instance().apply(gl_state);
-    } catch (...) {
+    }
+    catch (...) {
       logging::error(logging::high)
           << "main: configuration update "
           << "could not succeed, reloading previous configuration";
       config::applier::state::instance().apply(gl_state);
     }
-  } catch (std::exception const& e) {
-    logging::config(logging::high)
-        << "main: configuration update failed: " << e.what();
-  } catch (...) {
+  }
+  catch (std::exception const& e) {
+    logging::config(logging::high) << "main: configuration update failed: "
+                                   << e.what();
+  }
+  catch (...) {
     logging::config(logging::high)
         << "main: configuration update failed: unknown exception";
   }
@@ -215,24 +218,24 @@ int main(int argc, char* argv[]) {
       logging::info(logging::high) << "  -D  Generate a diagnostic file.";
       logging::info(logging::high) << "  -h  Print this help.";
       logging::info(logging::high) << "  -v  Print Centreon Broker version.";
-      logging::info(logging::high)
-          << "Centreon Broker " << CENTREON_BROKER_VERSION;
+      logging::info(logging::high) << "Centreon Broker "
+                                   << CENTREON_BROKER_VERSION;
       logging::info(logging::high) << "Copyright 2009-2018 Centreon";
       logging::info(logging::high)
           << "License ASL 2.0 "
              "<http://www.apache.org/licenses/LICENSE-2.0>";
       retval = 0;
     } else if (version) {
-      logging::info(logging::high)
-          << "Centreon Broker " << CENTREON_BROKER_VERSION;
+      logging::info(logging::high) << "Centreon Broker "
+                                   << CENTREON_BROKER_VERSION;
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
       logging::error(logging::high)
           << "USAGE: " << argv[0] << " [-c] [-d] [-D] [-h] [-v] [<configfile>]";
       retval = 1;
     } else {
-      logging::info(logging::medium)
-          << "Centreon Broker " << CENTREON_BROKER_VERSION;
+      logging::info(logging::medium) << "Centreon Broker "
+                                     << CENTREON_BROKER_VERSION;
       logging::info(logging::medium) << "Copyright 2009-2018 Centreon";
       logging::info(logging::medium)
           << "License ASL 2.0 "
@@ -251,7 +254,8 @@ int main(int argc, char* argv[]) {
           // Loggers.
           for (std::list<config::logger>::iterator it(conf.loggers().begin()),
                end(conf.loggers().end());
-               it != end; ++it)
+               it != end;
+               ++it)
             it->types(0);
           conf.loggers().push_back(default_state.loggers().front());
         }
@@ -266,8 +270,8 @@ int main(int argc, char* argv[]) {
         config::applier::state::instance().apply(conf, !check);
         std::string err;
         broker_name = conf.broker_name();
-        if (!log_v2::instance().load("/etc/centreon-broker/log-config.json",
-                                     broker_name, err))
+        if (!log_v2::instance().load(
+                 "/etc/centreon-broker/log-config.json", broker_name, err))
           logging::error(logging::low) << err;
         gl_state = conf;
       }
@@ -294,7 +298,7 @@ int main(int argc, char* argv[]) {
         default_port += gl_state.broker_id();
       else
         default_port = gl_state.rpc_port();
-      std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)>> rpc(
+      std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
           new brokerrpc("0.0.0.0", default_port, broker_name),
           [](brokerrpc* rpc) {
             rpc->shutdown();

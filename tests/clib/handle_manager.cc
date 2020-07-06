@@ -27,7 +27,6 @@ using namespace com::centreon;
 
 class     listener : public handle_listener {
  public:
-  listener();
   listener(
       handle& ref_h,
       bool want_read,
@@ -36,7 +35,7 @@ class     listener : public handle_listener {
         _ref_h(ref_h),
         _want_read(want_read),
         _want_write(want_write) {}
-  ~listener() throw () {}
+  ~listener() noexcept {}
   void    error(handle& h) { if (&_ref_h == &h) _is_call = true; }
   bool    is_call() const throw () { return (_is_call); }
   void    read(handle& h) { if (&_ref_h == &h) _is_call = true; }
@@ -104,7 +103,8 @@ static bool basic_multiplex_close() {
 static bool null_handle() {
   try {
     handle_manager hm;
-    listener l;
+    io::file_stream fs(stdin);
+    listener l(fs, true, true);
     hm.add(nullptr, &l);
   }
   catch (std::exception const& e) {
@@ -132,7 +132,7 @@ static bool basic_add() {
     handle_manager hm;
 
     io::file_stream fs(stdin);
-    listener l;
+    listener l(fs, false, false);
     hm.add(&fs, &l);
     hm.remove(&fs);
   }
@@ -149,7 +149,7 @@ static bool double_add() {
     handle_manager hm;
 
     io::file_stream fs(stdin);
-    listener l;
+    listener l(fs, false, false);
     hm.add(&fs, &l);
     try {
       hm.add(&fs, &l);
@@ -200,7 +200,7 @@ TEST(ClibHandleManager, RemoveByHandle) {
   io::file_stream fs(stdin);
   ASSERT_FALSE(hm.remove(&fs));
 
-  listener l;
+  listener l(fs, false, false);
   hm.add(&fs, &l);
   ASSERT_TRUE(hm.remove(&fs));
 }
@@ -209,7 +209,8 @@ TEST(ClibHandleManager, RemoveByHandleListener) {
   handle_manager hm;
   ASSERT_FALSE(hm.remove(static_cast<handle_listener*>(nullptr)));
 
-  listener l;
+  io::file_stream fs(stdout);
+  listener l(fs, false, false);
   ASSERT_FALSE(hm.remove(&l));
 
   io::file_stream fs1(stdin);

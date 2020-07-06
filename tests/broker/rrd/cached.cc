@@ -22,8 +22,10 @@
 #include <asio.hpp>
 #include <atomic>
 #include <fstream>
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 TEST(RRDCached, LibExisting) {
@@ -54,7 +56,7 @@ TEST(RRDCached, BatchLocal) {
   ::unlink("/tmp/foobar");  // Remove previous binding.
   rrd::cached cached{"tmp", 42, rrd::cached::local};
 
-  ASSERT_THROW(cached.begin(), exceptions::msg);
+  ASSERT_THROW(cached.begin(), msg_fmt);
 
   std::thread t{[&] {
     asio::io_context io;
@@ -86,11 +88,11 @@ TEST(RRDCached, BatchLocal) {
   while (!init_done)
     ;
 
-  ASSERT_THROW(cached.connect_local("/tmp/toto"), exceptions::msg);
+  ASSERT_THROW(cached.connect_local("/tmp/toto"), msg_fmt);
   ASSERT_NO_THROW(cached.connect_local("/tmp/foobar"));
   cached.begin();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
-  ASSERT_THROW(cached.commit(), exceptions::msg);
+  ASSERT_THROW(cached.commit(), msg_fmt);
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
   cached.begin();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -112,7 +114,7 @@ TEST(RRDCached, BatchRemote) {
   ::unlink("/tmp/foobar");  // Remove previous binding.
   rrd::cached cached{"tmp", 42, rrd::cached::tcp};
 
-  ASSERT_THROW(cached.begin(), exceptions::msg);
+  ASSERT_THROW(cached.begin(), msg_fmt);
 
   std::thread t{[&] {
     asio::io_context io;
@@ -144,12 +146,12 @@ TEST(RRDCached, BatchRemote) {
   while (!init_done)
     ;
 
-  ASSERT_THROW(cached.connect_remote("badurl.centreon.org", 4242), exceptions::msg);
-  ASSERT_THROW(cached.connect_remote("localhost", 2), exceptions::msg);
+  ASSERT_THROW(cached.connect_remote("badurl.centreon.org", 4242), msg_fmt);
+  ASSERT_THROW(cached.connect_remote("localhost", 2), msg_fmt);
   ASSERT_NO_THROW(cached.connect_remote("localhost", 4242));
   cached.begin();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
-  ASSERT_THROW(cached.commit(), exceptions::msg);
+  ASSERT_THROW(cached.commit(), msg_fmt);
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
   cached.begin();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));

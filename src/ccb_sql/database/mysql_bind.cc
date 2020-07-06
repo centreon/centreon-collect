@@ -23,7 +23,6 @@
 #include <cstring>
 #include <iostream>
 #include "com/centreon/broker/database/mysql_column.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/mysql.hh"
@@ -31,9 +30,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind() {
-  set_size(0);
-}
+mysql_bind::mysql_bind() { set_size(0); }
 
 /**
  *  Constructor
@@ -70,9 +67,7 @@ void mysql_bind::set_size(int size, int length) {
   }
 }
 
-bool mysql_bind::_prepared(int range) const {
-  return _typed[range];
-}
+bool mysql_bind::_prepared(int range) const { return _typed[range]; }
 
 void mysql_bind::_prepare_type(int range, enum enum_field_types type) {
   _typed[range] = true;
@@ -345,21 +340,13 @@ void mysql_bind::debug() {
   }
 }
 
-bool mysql_bind::is_empty() const {
-  return _is_empty;
-}
+bool mysql_bind::is_empty() const { return _is_empty; }
 
-MYSQL_BIND const* mysql_bind::get_bind() const {
-  return &_bind[0];
-}
+MYSQL_BIND const* mysql_bind::get_bind() const { return &_bind[0]; }
 
-MYSQL_BIND* mysql_bind::get_bind() {
-  return &_bind[0];
-}
+MYSQL_BIND* mysql_bind::get_bind() { return &_bind[0]; }
 
-int mysql_bind::get_size() const {
-  return _bind.size();
-}
+int mysql_bind::get_size() const { return _bind.size(); }
 
 /**
  *  At the moment, the bind only carries one row. So this number is 0 or 1.
@@ -367,10 +354,6 @@ int mysql_bind::get_size() const {
  *
  * @return 1 or 0.
  */
-int mysql_bind::get_rows_count() const {
-  return _is_empty ? 0 : 1;
-}
+int mysql_bind::get_rows_count() const { return _is_empty ? 0 : 1; }
 
-void mysql_bind::set_empty(bool empty) {
-  _is_empty = empty;
-}
+void mysql_bind::set_empty(bool empty) { _is_empty = empty; }

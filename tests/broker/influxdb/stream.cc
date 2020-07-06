@@ -83,7 +83,7 @@ TEST_F(InfluxDBStream, Read) {
                       mcolumns,
                       cache);
 
-  ASSERT_THROW(st.read(data, -1), exceptions::msg);
+  ASSERT_THROW(st.read(data, -1), msg_fmt);
 }
 
 TEST_F(InfluxDBStream, Write) {

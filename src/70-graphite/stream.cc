@@ -18,8 +18,7 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include <sstream>
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/misc/global_lock.hh"
@@ -30,6 +29,7 @@
 #include "com/centreon/broker/storage/metric.hh"
 
 using namespace asio;
+using namespace com::centreon;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
@@ -149,7 +149,7 @@ int stream::flush() {
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw(exceptions::shutdown() << "cannot read from Graphite database");
+  throw exceptions::shutdown("cannot read from Graphite database");
   return (true);
 }
 

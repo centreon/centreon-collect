@@ -35,8 +35,10 @@
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/contact.hh"
+#include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
@@ -47,6 +49,8 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::engine::configuration;
+using namespace com::centreon::engine::configuration::applier;
 
 class EngineRpc : public TestEngine {
  public:
@@ -55,16 +59,29 @@ class EngineRpc : public TestEngine {
 
     // Do not unload this in the tear down function, it is done by the
     // other unload function... :-(
+
+    /* contact */
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
     ct_aply.resolve_object(ctct);
 
+    /* host */
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
+    /* hostgroup */
+    configuration::hostgroup hg;
+    configuration::applier::hostgroup hg_aply;
+    hg.parse("hostgroup_name", "test_hg");
+    hg.parse("members", "test_host");
+    hg_aply.add_object(hg);
+    hg_aply.expand_objects(*config);
+    hg_aply.resolve_object(hg);
+
+    /* service */
     configuration::service svc{
         new_configuration_service("test_host", "test_svc", "admin")};
     configuration::applier::service svc_aply;
@@ -409,7 +426,7 @@ TEST_F(EngineRpc, GetHostGroupsCount) {
   condvar.notify_one();
   th->join();
 
-  ASSERT_EQ(output.back(), "0");
+  ASSERT_EQ(output.back(), "1");
   erpc.shutdown();
 }
 
@@ -848,6 +865,123 @@ TEST_F(EngineRpc, DeleteServiceDowntimeFull) {
 
   oss << "DeleteServiceDowntimeFull undef undef " << now << " " << now + 1
       << " 1 0 1 admin host";
+
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, DeleteDowntimeByHostName) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+
+  /* creating our downtime */
+  set_time(20000);
+  time_t now = time(nullptr);
+  std::stringstream s;
+  s << "test_host;test_svc;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+
+  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_SVC_DOWNTIME, now,
+                                  const_cast<char*>(s.str().c_str())),
+            OK);
+  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  /*-----------------------*/
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  /*hostname must be defined to delete the downtime but not others arguments*/
+  oss << "DeleteDowntimeByHostName test_host undef " << now << " host";
+
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, DeleteDowntimeByHostGroupName) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+
+  // checking that we have a hostgroup
+  ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
+  // checking that we have a members (hosts) in our group
+  ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 1u);
+
+  /* creating our downtime */
+  set_time(20000);
+  time_t now = time(nullptr);
+  std::stringstream s;
+  s << "test_host;test_svc;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+
+  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_SVC_DOWNTIME, now,
+                                  const_cast<char*>(s.str().c_str())),
+            OK);
+  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  /*-----------------------*/
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  /*hostgroupname must be defined to delete the downtime but
+   * not others arguments*/
+  oss << "DeleteDowntimeByHostGroupName test_hg test_host test_svc host "
+      << now;
+
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, DeleteDowntimeByStartTimeComment) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+
+  set_time(20000);
+
+  time_t now = time(nullptr);
+  std::stringstream s;
+  s << "test_host;test_svc;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
+
+  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_SVC_DOWNTIME, now,
+                                  const_cast<char*>(s.str().c_str())),
+            OK);
+  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  /*hostname must be defined to delete the downtime but not others arguments*/
+  oss << "DeleteDowntimeByStartTimeComment " << now << " host";
 
   auto output = execute(oss.str());
   {

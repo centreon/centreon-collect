@@ -19,7 +19,7 @@
 #include "com/centreon/broker/compression/zlib.hh"
 #include <zlib.h>
 #include "com/centreon/broker/compression/stream.hh"
-#include "com/centreon/broker/exceptions/corruption.hh"
+#include "com/centreon/exceptions/corruption.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -99,15 +99,14 @@ std::vector<char> zlib::uncompress(unsigned char const* data, uLong nbytes) {
   if (nbytes <= 4) {
     if (nbytes < 4 ||
         (data[0] != 0 || data[1] != 0 || data[2] != 0 || data[3] != 0))
-      throw exceptions::corruption()
-          << "compression: attempting to uncompress data with invalid size";
+      throw corruption(
+          "compression: attempting to uncompress data with invalid size");
   }
   ulong expected_size =
       (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
   ulong len = (expected_size > 1ul) ? expected_size : 1ul;
   if (len > stream::max_data_size)
-    throw exceptions::corruption()
-        << "compression: data expected size is too big";
+    throw corruption("compression: data expected size is too big");
   std::vector<char> uncompressed_array(len, '\0');
 
   ulong alloc = len;
@@ -130,9 +129,9 @@ std::vector<char> zlib::uncompress(unsigned char const* data, uLong nbytes) {
           len);
     case Z_BUF_ERROR:
     case Z_DATA_ERROR:
-      throw exceptions::corruption()
-          << "compression: compressed input data is corrupted, "
-          << "unable to uncompress it";
+      throw corruption(
+          "compression: compressed input data is corrupted, unable to "
+          "uncompress it");
   }
   return uncompressed_array;
 }

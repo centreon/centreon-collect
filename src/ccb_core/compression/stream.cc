@@ -18,9 +18,9 @@
 
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/compression/zlib.hh"
-#include "com/centreon/broker/exceptions/corruption.hh"
+#include "com/centreon/exceptions/corruption.hh"
 #include "com/centreon/broker/exceptions/interrupt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
@@ -111,7 +111,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
         // We do not have enough data to get the next chunk's size.
         // Stream is shutdown.
         if (_rbuffer.size() < static_cast<int>(sizeof(int32_t)))
-          throw exceptions::shutdown() << "no more data to uncompress";
+          throw shutdown("no more data to uncompress");
 
         // Extract next chunk's size.
         {
@@ -240,20 +240,20 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
   // Check if substream is shutdown.
   if (_shutdown)
-    throw exceptions::shutdown() << "cannot write to compression "
-                                 << "stream: sub-stream is already shutdown";
+    throw shutdown(
+        "cannot write to compression stream: sub-stream is already shutdown");
 
   // Process raw data only.
   if (d->type() == io::raw::static_type()) {
     io::raw& r(*std::static_pointer_cast<io::raw>(d));
 
     // Check length.
-    if (r.size() > max_data_size) {
+    if (r.size() > max_data_size)
       throw msg_fmt(
           "cannot compress buffers longer than {} bytes: you should report "
           "this error to Centreon Broker developers",
           max_data_size);
-    } else if (r.size() > 0) {
+    else if (r.size() > 0) {
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(),
                 r.get_buffer().end(),
@@ -279,8 +279,8 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 void stream::_flush() {
   // Check for shutdown stream.
   if (_shutdown)
-    throw exceptions::shutdown() << "cannot flush compression "
-                                 << "stream: sub-stream is already shutdown";
+    throw shutdown(
+        "cannot flush compression stream: sub-stream is already shutdown");
 
   if (_wbuffer.size() > 0) {
     // Compress data.
@@ -329,7 +329,7 @@ void stream::_get_data(int size, time_t deadline) {
   }
   // If the substream is shutdown, just indicates it and return already
   // read data. Caller will handle missing data.
-  catch (exceptions::shutdown const& e) {
+  catch (shutdown const& e) {
     (void)e;
     _shutdown = true;
   }

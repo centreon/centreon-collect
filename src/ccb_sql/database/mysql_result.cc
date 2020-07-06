@@ -18,8 +18,9 @@
 #include "com/centreon/broker/database/mysql_result.hh"
 #include <cstdlib>
 #include <iostream>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
@@ -92,9 +93,7 @@ void mysql_result::set(MYSQL_RES* result) {
  *
  *  @return A pointer to the result.
  */
-MYSQL_RES* mysql_result::get() {
-  return _result.get();
-}
+MYSQL_RES* mysql_result::get() { return _result.get(); }
 
 /**
  *  Accessor to a column boolean value
@@ -110,7 +109,7 @@ bool mysql_result::value_as_bool(int idx) {
   else if (_row)
     retval = _row[idx] ? strtol(_row[idx], nullptr, 10) : 0;
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -128,7 +127,7 @@ std::string mysql_result::value_as_str(int idx) {
   else if (_row)
     retval = (_row[idx]) ? _row[idx] : "";
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -146,7 +145,7 @@ float mysql_result::value_as_f32(int idx) {
   else if (_row)
     retval = _row[idx] ? atof(_row[idx]) : 0;
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -164,7 +163,7 @@ double mysql_result::value_as_f64(int idx) {
   else if (_row)
     retval = _row[idx] ? atof(_row[idx]) : 0;
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -182,7 +181,7 @@ int mysql_result::value_as_i32(int idx) {
   else if (_row)
     retval = _row[idx] ? strtol(_row[idx], nullptr, 10) : 0;
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -200,7 +199,7 @@ uint32_t mysql_result::value_as_u32(int idx) {
   else if (_row)
     retval = _row[idx] ? strtoul(_row[idx], nullptr, 10) : 0;
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -218,7 +217,7 @@ unsigned long long mysql_result::value_as_u64(int idx) {
   else if (_row)
     retval = _row[idx] ? strtoull(_row[idx], nullptr, 10) : 0;
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -236,7 +235,7 @@ bool mysql_result::value_is_null(int idx) {
   else if (_row)
     retval = (_row[idx] == nullptr);
   else
-    throw exceptions::msg() << "mysql: No row fetched in result";
+    throw msg_fmt("mysql: No row fetched in result");
   return retval;
 }
 
@@ -278,9 +277,7 @@ void mysql_result::set_bind(std::unique_ptr<database::mysql_bind>&& bind) {
  *
  * @param row The row to affect
  */
-void mysql_result::set_row(MYSQL_ROW row) {
-  _row = row;
-}
+void mysql_result::set_row(MYSQL_ROW row) { _row = row; }
 
 /**
  *  Accessord to the bind
@@ -296,18 +293,14 @@ std::unique_ptr<database::mysql_bind>& mysql_result::get_bind() {
  *
  * @return an integer
  */
-int mysql_result::get_statement_id() const {
-  return _statement_id;
-}
+int mysql_result::get_statement_id() const { return _statement_id; }
 
 /**
  *  Accessor to the parent connection.
  *
  * @return A pointer the the connection.
  */
-mysql_connection* mysql_result::get_connection() {
-  return _parent;
-}
+mysql_connection* mysql_result::get_connection() { return _parent; }
 
 int mysql_result::get_num_fields() const {
   return mysql_num_fields(_result.get());

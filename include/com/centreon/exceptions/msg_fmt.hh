@@ -17,11 +17,10 @@
 */
 #ifndef CC_EXCEPTIONS_MSG_FMT_HH
 #define CC_EXCEPTIONS_MSG_FMT_HH
-#include <fmt/format.h>
 
+#include <fmt/format.h>
 #include <exception>
 #include <string>
-
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -33,6 +32,7 @@ namespace exceptions {
  *
  *  Simple exception class containing an basic error message.
  */
+
 class msg_fmt : public std::exception {
   const std::string _msg;
 

@@ -39,7 +39,8 @@ service Engine {
   rpc GetServiceGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetHostGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
-  rpc GetServiceDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetServiceDependenciesCount(google.protobuf.Empty)
+      returns (GenericValue) {}
   rpc GetHostDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
   rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
@@ -50,13 +51,21 @@ service Engine {
   rpc DeleteAllHostComments(HostIdentifier) returns (CommandSuccess) {}
   rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
   rpc RemoveHostAcknowledgement(HostIdentifier) returns (CommandSuccess) {}
-  rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {}
+  rpc RemoveServiceAcknowledgement(ServiceIdentifier) 
+      returns (CommandSuccess) {}
   rpc DeleteHostDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteServiceDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
   rpc DeleteServiceDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
+  rpc DeleteDowntimeByHostName(DowntimeHostIdentifier)
+      returns (CommandSuccess) {}
+  rpc DeleteDowntimeByHostGroupName(DowntimeHostGroupIdentifier)
+      returns (CommandSuccess) {}
+  rpc DeleteDowntimeByStartTimeComment(DowntimeStartTimeIdentifier)
+      returns (CommandSuccess) {}
   rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {}
-  rpc DelayServiceNotification(ServiceDelayIdentifier) returns (CommandSuccess) {}
+  rpc DelayServiceNotification(ServiceDelayIdentifier)
+      returns (CommandSuccess) {}
 }
 
 message GenericString {
@@ -248,8 +257,8 @@ message ThresholdsFile {
 
 message HostIdentifier {
   oneof identifier {
-	string name = 1;
-	uint32 id = 2;
+    string name = 1;
+    uint32 id = 2;
   }
 }
 
@@ -260,9 +269,9 @@ message EngineHost {
   string check_period = 4;
   uint32 id = 5;
   enum State {
-	  UP = 0;
+    UP = 0;
     DOWN = 1;
-	  UNREACHABLE = 2;
+    UNREACHABLE = 2;
   }
   State current_state = 6;
 }
@@ -301,29 +310,29 @@ message EngineService {
   string description = 4;
   string check_period = 5;
   enum State {
-	  OK = 0;
-	  WARNING = 1;
-	  CRITICAL = 2;
-	  UNKNOWN = 3;
-	}
+    OK = 0;
+    WARNING = 1;
+    CRITICAL = 2;
+    UNKNOWN = 3;
+  }
   State current_state = 6;
 }
 
 message EngineComment {
-	string host_name = 1;
-	string svc_desc  = 2;
-	string user = 3;
-	string comment_data = 4;
-	bool persistent = 5;
-	uint32 entry_time = 6;
+  string host_name = 1;
+  string svc_desc = 2;
+  string user = 3;
+  string comment_data = 4;
+  bool persistent = 5;
+  uint32 entry_time = 6;
 }
 
 message HostDelayIdentifier {
   oneof identifier {
-	string name = 1;
-	uint32 id = 2;
+    string name = 1;
+    uint32 id = 2;
   }
-	uint32 delay_time = 3;
+  uint32 delay_time = 3;
 }
 
 message ServiceDelayIdentifier {
@@ -331,7 +340,7 @@ message ServiceDelayIdentifier {
     NameIdentifier names = 1;
     IdIdentifier ids = 2;
   }
-	uint32 delay_time = 3;
+  uint32 delay_time = 3;
 }
 
 message DowntimeCriterias {
@@ -344,4 +353,24 @@ message DowntimeCriterias {
   google.protobuf.UInt32Value duration = 7;
   string author = 8;
   string comment_data = 9;
+}
+
+message DowntimeHostIdentifier {
+  string host_name = 1;
+  string service_desc = 2;
+  google.protobuf.UInt32Value start = 3;
+  string comment_data = 4;
+}
+
+message DowntimeStartTimeIdentifier {
+  google.protobuf.UInt32Value start = 1;
+  string comment_data = 2;
+}
+
+message DowntimeHostGroupIdentifier {
+  string host_group_name = 1;
+  string host_name = 2;
+  string service_desc = 3;
+  string comment_data = 4;
+  google.protobuf.UInt32Value start = 5;
 }

@@ -16,25 +16,28 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_EXCEPTIONS_CONFIG_HH
-#define CCB_EXCEPTIONS_CONFIG_HH
+#ifndef CC_EXCEPTIONS_CONFIG_HH
+#define CC_EXCEPTIONS_CONFIG_HH
 
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/namespace.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/namespace.hh"
 
-CCB_BEGIN()
+CC_BEGIN()
 
 namespace exceptions {
 /**
- *  @class config config.hh "com/centreon/broker/exceptions/config.hh"
+ *  @class config config.hh "com/centreon/exceptions/config.hh"
  *  @brief Configuration exception.
  *
  *  Such exceptions are thrown in case of configuration errors.
  */
-class config : public msg {
+class config : public msg_fmt {
  public:
-  config() = default;
-  config(const config&) = default;
+  template <typename... Args>
+  explicit config(std::string const& str, const Args&... args)
+      : msg_fmt(str, args...) {}
+
+  config() = delete;
   ~config() noexcept {}
   config& operator=(const config&) = delete;
 
@@ -45,14 +48,9 @@ class config : public msg {
    *
    *  @return This object.
    */
-  template <typename T>
-  config& operator<<(T t) noexcept {
-    *(misc::stringifier*)this << t;
-    return *this;
-  }
 };
 }  // namespace exceptions
 
-CCB_END()
+CC_END()
 
-#endif  // !CCB_EXCEPTIONS_CONFIG_HH
+#endif  // !CC_EXCEPTIONS_CONFIG_HH

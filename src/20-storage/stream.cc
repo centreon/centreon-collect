@@ -24,7 +24,7 @@
 #include <cstring>
 #include <sstream>
 
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -42,6 +42,7 @@
 #include "com/centreon/broker/storage/remove_graph.hh"
 #include "com/centreon/broker/storage/status.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::storage;
@@ -74,8 +75,8 @@ stream::stream(database_config const& dbcfg,
     rrd_len = 15552000;
 
   if (!conflict_manager::init_storage(store_in_db, rrd_len, interval_length))
-    throw broker::exceptions::shutdown()
-        << "Unable to initialize the storage connection to the database";
+    throw shutdown(
+        "Unable to initialize the storage connection to the database");
 }
 
 /**
@@ -114,7 +115,7 @@ int32_t stream::flush() {
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw broker::exceptions::shutdown() << "cannot read from a storage stream";
+  throw shutdown("cannot read from a storage stream");
   return true;
 }
 
