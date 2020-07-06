@@ -19,8 +19,7 @@
 #include <cmath>
 #include <sstream>
 #include <sstream>
-#include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -173,7 +172,7 @@ stream::~stream() {
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw exceptions::shutdown() << "cannot read from lua generic connector";
+  throw shutdown("cannot read from lua generic connector");
 }
 
 /**

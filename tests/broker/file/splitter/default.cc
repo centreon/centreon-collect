@@ -17,12 +17,13 @@
  *
  */
 #include <gtest/gtest.h>
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/logging/manager.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 class FileSplitterDefault : public ::testing::Test {
@@ -30,17 +31,16 @@ class FileSplitterDefault : public ::testing::Test {
   void SetUp() override {
     _path = "/tmp/queue";
     {
-      std::list<std::string> parts{misc::filesystem::dir_content_with_filter("/tmp/", "queue*")};
+      std::list<std::string> parts{
+          misc::filesystem::dir_content_with_filter("/tmp/", "queue*")};
       for (std::string const& f : parts)
         std::remove(f.c_str());
     }
-    _file = new file::splitter(_path, file::fs_file::open_read_write_truncate,
-                               10000, true);
+    _file = new file::splitter(
+        _path, file::fs_file::open_read_write_truncate, 10000, true);
   }
 
-  void TearDown() override {
-    delete _file;
-  }
+  void TearDown() override { delete _file; }
 
  protected:
   file::splitter* _file;
@@ -74,7 +74,7 @@ TEST_F(FileSplitterDefault, WriteReturnsNumberOfBytes) {
 TEST_F(FileSplitterDefault, FirstReadNoDataAndRemove) {
   // Then
   char buffer[10];
-  ASSERT_THROW(_file->read(buffer, sizeof(buffer)), exceptions::msg);
+  ASSERT_THROW(_file->read(buffer, sizeof(buffer)), msg_fmt);
   std::list<std::string> removed;
   removed.push_back(_path);
   ASSERT_FALSE(misc::filesystem::file_exists(_path));

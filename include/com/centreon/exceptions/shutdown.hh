@@ -16,26 +16,29 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_EXCEPTIONS_SHUTDOWN_HH
-#define CCB_EXCEPTIONS_SHUTDOWN_HH
+#ifndef CC_EXCEPTIONS_SHUTDOWN_HH
+#define CC_EXCEPTIONS_SHUTDOWN_HH
 
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/namespace.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/namespace.hh"
 
-CCB_BEGIN()
+CC_BEGIN()
 
 namespace exceptions {
 /**
- *  @class shutdown shutdown.hh "com/centreon/broker/exceptions/shutdown.hh"
+ *  @class shutdown shutdown.hh "com/centreon/exceptions/shutdown.hh"
  *  @brief Shutdown exception class.
  *
  *  This exception is thrown when someone attemps to read from a
  *  stream that has been shutdown.
  */
-class shutdown : public msg {
+class shutdown : public msg_fmt {
  public:
-  shutdown() = default;
-  shutdown(const shutdown&) = default;
+  template <typename... Args>
+  explicit shutdown(std::string const& str, const Args&... args)
+      : msg_fmt(str, args...) {}
+
+  shutdown() = delete;
   ~shutdown() noexcept {}
   shutdown& operator=(const shutdown&) = delete;
 
@@ -44,14 +47,9 @@ class shutdown : public msg {
    *
    *  @param[in] t Data to insert.
    */
-  template <typename T>
-  shutdown& operator<<(T t) noexcept {
-    *(misc::stringifier*)this << t;
-    return *this;
-  }
 };
 }  // namespace exceptions
 
-CCB_END()
+CC_END()
 
-#endif  // !CCB_EXCEPTIONS_SHUTDOWN_HH
+#endif  // !CC_EXCEPTIONS_SHUTDOWN_HH
