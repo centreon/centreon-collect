@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"

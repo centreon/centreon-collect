@@ -30,9 +30,10 @@
 #include <random>
 #include <thread>
 #include <stdexcept>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 /**
@@ -45,7 +46,7 @@ std::string misc::temp_path() {
   int retval(mkstemp(path));
   if (retval < 0) {
     char const* err_msg(strerror(errno));
-    throw exceptions::msg() << "cannot create temporary file: " << err_msg;
+    throw msg_fmt("cannot create temporary file: {}", err_msg);
   }
   ::close(retval);
   ::remove(path);
@@ -132,8 +133,7 @@ std::vector<char> misc::from_hex(std::string const& str) {
   std::vector<char> retval;
   size_t len{str.size()};
   if (len & 1)
-    throw exceptions::msg()
-        << "from_hex: '" << str << "' length should be even";
+    throw msg_fmt("from_hex: '{}' length should be even", str);
   retval.reserve(len >> 1);
   bool valid{false};
   uint8_t value;
@@ -149,9 +149,7 @@ std::vector<char> misc::from_hex(std::string const& str) {
     else if (c >= 'a' && c <= 'f')
       value |= c + 10 - 'a';
     else
-      throw exceptions::msg()
-          << "from_hex: '" << str << "' should be a string containing some "
-          << "hexadecimal digits";
+      throw msg_fmt("from_hex: '{}' should be a string containing some hexadecimal digits", str);
     if (valid) {
       retval.push_back(value);
       valid = false;

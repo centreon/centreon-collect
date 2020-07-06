@@ -21,6 +21,7 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/exceptions/corruption.hh"
 #include "com/centreon/broker/logging/logging.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::compression;

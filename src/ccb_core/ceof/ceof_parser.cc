@@ -17,8 +17,9 @@
 */
 
 #include "com/centreon/broker/ceof/ceof_parser.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::ceof;
 
 /**
@@ -89,8 +90,7 @@ ceof_iterator ceof_parser::parse() {
     switch (state) {
       case waiting_for_define:
         if (substr != "define")
-          throw(exceptions::msg()
-                << "expected 'define' at position " << actual);
+          throw msg_fmt("expected 'define' at position {}", actual);
         state = waiting_for_object_name;
         break;
       case waiting_for_object_name:
@@ -101,33 +101,33 @@ ceof_iterator ceof_parser::parse() {
         break;
       case waiting_for_object_opening:
         if (substr != "{")
-          throw(exceptions::msg() << "expected '{' at position " << actual);
+          throw msg_fmt("expected '{' at position {}", actual);
         state = in_object_waiting_for_key;
         break;
       case in_object_waiting_for_key:
         if (substr == "}")
           state = waiting_for_define;
         else {
-          _tokens.push_back(ceof_token(ceof_token::key, substr, _tokens.size(),
-                                       parent_token));
+          _tokens.push_back(ceof_token(
+              ceof_token::key, substr, _tokens.size(), parent_token));
           state = in_object_waiting_for_value;
         }
         break;
       case in_object_waiting_for_value:
         if (substr == "}")
-          throw(exceptions::msg()
-                << "expected value instead of '{' at position " << actual);
+          throw msg_fmt("expected value instead of '{' at position {}", actual);
         size_t trimmed(substr.find_last_not_of(" \t"));
-        substr =
-            substr.substr(0, (trimmed == std::string::npos) ? std::string::npos
-                                                            : trimmed + 1);
-        _tokens.push_back(ceof_token(ceof_token::value, substr, _tokens.size(),
-                                     parent_token));
+        substr = substr.substr(
+            0,
+            (trimmed == std::string::npos) ? std::string::npos : trimmed + 1);
+        _tokens.push_back(ceof_token(
+            ceof_token::value, substr, _tokens.size(), parent_token));
         state = in_object_waiting_for_key;
     }
     // Skip to the next token.
     actual = end_of_token;
-    skip(actual, _string,
+    skip(actual,
+         _string,
          state == in_object_waiting_for_value ? " \t" : " \t\n");
   }
 

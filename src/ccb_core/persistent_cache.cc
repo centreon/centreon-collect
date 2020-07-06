@@ -22,8 +22,8 @@
 #include <cstring>
 #include <fstream>
 #include "com/centreon/broker/bbdo/stream.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"
 
 using namespace com::centreon::exceptions;

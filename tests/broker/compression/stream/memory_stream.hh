@@ -21,6 +21,9 @@
 
 #include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using namespace com::centreon::exceptions;
 
 class CompressionStreamMemoryStream : public com::centreon::broker::io::stream {
  public:

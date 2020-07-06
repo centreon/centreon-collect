@@ -19,8 +19,8 @@
 #include "com/centreon/broker/processing/feeder.hh"
 #include <unistd.h>
 #include <cassert>
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -120,8 +120,7 @@ void feeder::start() {
   std::unique_lock<std::mutex> lock(_started_m);
   _stopped = false;
   if (!_client)
-    throw msg_fmt("could not process '{}' with no client stream", _name);
-
+      throw msg_fmt("could not process '{}' with no client stream", _name);
   if (!_started) {
     _should_exit = false;
     _thread = std::thread(&feeder::_callback, this);
