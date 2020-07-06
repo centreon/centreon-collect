@@ -27,9 +27,11 @@
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
+using namespace com::centreon::engine::downtimes;
 
 /**
  *  The default constructor
@@ -357,6 +359,34 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
   } else if (request == "start")
     return get_restart_stats(response->mutable_restart_status());
   return 0;
+}
+
+void command_manager::schedule_and_propagate_downtime(host* temp_host,
+                                     time_t entry_time,
+                                     char const* author,
+                                     char const* comment_data,
+                                     time_t start_time,
+                                     time_t end_time,
+                                     int fixed,
+                                     unsigned long triggered_by,
+                                     unsigned long duration) {
+  /* check all child hosts... */
+  for (host_map_unsafe::iterator it(temp_host->child_hosts.begin()),
+       end(temp_host->child_hosts.end());
+       it != end; ++it) {
+    if (it->second == nullptr)
+      continue;
+    /* recurse... */
+    schedule_and_propagate_downtime(it->second, entry_time, author,
+                                    comment_data, start_time, end_time, fixed,
+                                    triggered_by, duration);
+
+    /* schedule downtime for this host */
+    downtime_manager::instance().schedule_downtime(
+        downtime::host_downtime, it->first, "", entry_time, author,
+        comment_data, start_time, end_time, fixed, triggered_by, duration,
+        nullptr);
+  }
 }
 
 int command_manager::get_services_stats(ServicesStats* sstats) {
