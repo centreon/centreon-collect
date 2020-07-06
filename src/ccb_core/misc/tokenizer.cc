@@ -17,7 +17,9 @@
 */
 
 #include "com/centreon/broker/misc/tokenizer.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::misc;
 
 /**

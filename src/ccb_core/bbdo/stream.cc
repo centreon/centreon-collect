@@ -24,12 +24,13 @@
 #include "com/centreon/broker/bbdo/ack.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/bbdo/version_response.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/misc/string.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
@@ -97,16 +98,14 @@ void stream::negotiate(stream::negotiation_type neg) {
   logging::debug(logging::medium) << "BBDO: retrieving welcome packet of peer";
   std::shared_ptr<io::data> d;
   time_t deadline;
-  if (_timeout == (time_t)-1)
-    deadline = (time_t)-1;
+  if (_timeout == (time_t) - 1)
+    deadline = (time_t) - 1;
   else
     deadline = time(nullptr) + _timeout;
   read_any(d, deadline);
   if (!d || d->type() != version_response::static_type()) {
-    log_v2::bbdo()->error(
-        "BBDO: invalid protocol header, aborting connection");
-    throw exceptions::msg()
-          << "BBDO: invalid protocol header, aborting connection";
+    log_v2::bbdo()->error("BBDO: invalid protocol header, aborting connection");
+    throw msg_fmt("BBDO: invalid protocol header, aborting connection");
   }
 
   // Handle protocol version.
@@ -116,24 +115,37 @@ void stream::negotiate(stream::negotiation_type neg) {
     log_v2::bbdo()->error(
         "BBDO: peer is using protocol version {0}.{1}.{2} whereas we're using "
         "protocol version {3}.{4}.{5}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, BBDO_VERSION_MAJOR,
-        BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
-    throw(exceptions::msg()
-          << "BBDO: peer is using protocol version " << v->bbdo_major << "."
-          << v->bbdo_minor << "." << v->bbdo_patch
-          << " whereas we're using protocol version " << BBDO_VERSION_MAJOR
-          << "." << BBDO_VERSION_MINOR << "." << BBDO_VERSION_PATCH);
+        v->bbdo_major,
+        v->bbdo_minor,
+        v->bbdo_patch,
+        BBDO_VERSION_MAJOR,
+        BBDO_VERSION_MINOR,
+        BBDO_VERSION_PATCH);
+    throw msg_fmt(
+        "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
+        "protocol version {}.{}.{}",
+        v->bbdo_major,
+        v->bbdo_minor,
+        v->bbdo_patch,
+        BBDO_VERSION_MAJOR,
+        BBDO_VERSION_MINOR,
+        BBDO_VERSION_PATCH);
   }
   log_v2::bbdo()->info(
       "BBDO: peer is using protocol version {0}.{1}.{2}, we're using version "
       "{3}.{4}.{5}",
-      v->bbdo_major, v->bbdo_minor, v->bbdo_patch, BBDO_VERSION_MAJOR,
-      BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
-  logging::info(logging::medium)
-      << "BBDO: peer is using protocol version " << v->bbdo_major << "."
-      << v->bbdo_minor << "." << v->bbdo_patch << ", we're using version "
-      << BBDO_VERSION_MAJOR << "." << BBDO_VERSION_MINOR << "."
-      << BBDO_VERSION_PATCH;
+      v->bbdo_major,
+      v->bbdo_minor,
+      v->bbdo_patch,
+      BBDO_VERSION_MAJOR,
+      BBDO_VERSION_MINOR,
+      BBDO_VERSION_PATCH);
+  logging::info(logging::medium) << "BBDO: peer is using protocol version "
+                                 << v->bbdo_major << "." << v->bbdo_minor << "."
+                                 << v->bbdo_patch << ", we're using version "
+                                 << BBDO_VERSION_MAJOR << "."
+                                 << BBDO_VERSION_MINOR << "."
+                                 << BBDO_VERSION_PATCH;
 
   // Send our own packet if we should be second.
   if (neg == negotiate_second) {
@@ -154,29 +166,31 @@ void stream::negotiate(stream::negotiation_type neg) {
   // Negotiation.
   if (_negotiate) {
     // Apply negotiated extensions.
-    log_v2::bbdo()->info(
-        "BBDO: we have extensions '{0}' and peer has '{1}'", _extensions,
-        v->extensions);
-    logging::info(logging::medium)
-        << "BBDO: we have extensions '" << _extensions << "' and peer has '"
-        << v->extensions << "'";
+    log_v2::bbdo()->info("BBDO: we have extensions '{0}' and peer has '{1}'",
+                         _extensions,
+                         v->extensions);
+    logging::info(logging::medium) << "BBDO: we have extensions '"
+                                   << _extensions << "' and peer has '"
+                                   << v->extensions << "'";
     std::list<std::string> own_ext(misc::string::split(_extensions, ' '));
     std::list<std::string> peer_ext(misc::string::split(v->extensions, ' '));
     for (std::list<std::string>::const_iterator it{own_ext.begin()},
          end{own_ext.end()};
-         it != end; ++it) {
+         it != end;
+         ++it) {
       // Find matching extension in peer extension list.
       std::list<std::string>::const_iterator peer_it{
           std::find(peer_ext.begin(), peer_ext.end(), *it)};
       // Apply extension if found.
       if (peer_it != peer_ext.end()) {
         log_v2::bbdo()->info("BBDO: applying extension '{}'", *it);
-        logging::info(logging::medium)
-            << "BBDO: applying extension '" << *it << "'";
+        logging::info(logging::medium) << "BBDO: applying extension '" << *it
+                                       << "'";
         for (std::map<std::string, io::protocols::protocol>::const_iterator
                  proto_it{io::protocols::instance().begin()},
              proto_end{io::protocols::instance().end()};
-             proto_it != proto_end; ++proto_it)
+             proto_it != proto_end;
+             ++proto_it)
           if (proto_it->first == *it) {
             std::shared_ptr<io::stream> s{
                 proto_it->second.endpntfactry->new_stream(
@@ -217,18 +231,14 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @param limit  The limit of events received before an ack should be sent.
  */
-void stream::set_ack_limit(uint32_t limit) {
-  _ack_limit = limit;
-}
+void stream::set_ack_limit(uint32_t limit) { _ack_limit = limit; }
 
 /**
  *  Set whether this stream is coarse or not.
  *
  *  @param[in] coarse  True if coarse.
  */
-void stream::set_coarse(bool coarse) {
-  _coarse = coarse;
-}
+void stream::set_coarse(bool coarse) { _coarse = coarse; }
 
 /**
  *  Set whether or not the stream should negotiate features.
@@ -246,9 +256,7 @@ void stream::set_negotiate(bool negotiate, std::string const& extensions) {
  *
  *  @param[in] timeout  Timeout in seconds.
  */
-void stream::set_timeout(int timeout) {
-  _timeout = timeout;
-}
+void stream::set_timeout(int timeout) { _timeout = timeout; }
 
 /**
  *  Get statistics.

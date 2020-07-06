@@ -25,12 +25,15 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/logging/logging.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/msg.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
 int const stream::max_data_size = 100000000;
+
 /**************************************
  *                                     *
  *           Public Methods            *
@@ -149,7 +152,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
         }
-        catch (corruption const& e) {
+        catch (exceptions::corruption const& e) {
           logging::debug(logging::medium) << e.what();
         }
       }
@@ -187,7 +190,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
     (void)e;
     return false;
   }
-  catch (shutdown const& e) {
+  catch (exceptions::shutdown const& e) {
     _shutdown = true;
     if (!_wbuffer.empty()) {
       std::shared_ptr<io::raw> r(new io::raw);

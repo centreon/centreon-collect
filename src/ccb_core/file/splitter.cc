@@ -24,8 +24,8 @@
 #include <memory>
 #include <sstream>
 #include "com/centreon/broker/misc/filesystem.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
@@ -156,7 +156,7 @@ long splitter::read(void* buffer, long max_size) {
     _roffset += rb;
     return rb;
   }
-  catch (com::centreon::exceptions::shutdown const& e) {
+  catch (exceptions::shutdown const& e) {
     (void)e;
 
     // Erase file that just got read.

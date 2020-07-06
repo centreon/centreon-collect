@@ -23,7 +23,6 @@
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/bbdo/version_response.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -58,7 +57,7 @@ connector::connector(bool negotiate,
       _negotiate{negotiate},
       _timeout{timeout},
       _ack_limit{ack_limit} {
-  if (_timeout == (time_t)-1 || _timeout == 0)
+  if (_timeout == (time_t) - 1 || _timeout == 0)
     _timeout = 3;
 }
 

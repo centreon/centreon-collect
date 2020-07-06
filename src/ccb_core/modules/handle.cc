@@ -18,10 +18,11 @@
 
 #include "com/centreon/broker/modules/handle.hh"
 #include <cstring>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::modules;
 
@@ -161,8 +162,7 @@ void handle::open(std::string const& filename, void const* arg) {
 
   // Could not load library.
   if (!_handle)
-    throw exceptions::msg() << "modules: could not load library '" << filename
-                            << "': " << dlerror();
+    throw msg_fmt("modules: could not load library '{}': {}", filename, dlerror());
 
   // Initialize module.
   _check_version();
@@ -177,8 +177,7 @@ void handle::open(std::string const& filename, void const* arg) {
 void handle::update(void const* arg) {
   // Check that library is loaded.
   if (!is_open())
-    throw exceptions::msg() << "modules: could not update "
-                               "module that is not loaded";
+    throw msg_fmt("modules: could not update module that is not loaded");
 
   // Find update routine.
   union {
@@ -216,20 +215,14 @@ void handle::_check_version() {
   // Could not find version symbol.
   if (!version) {
     char const* error_str{dlerror()};
-    throw exceptions::msg()
-        << "modules: could not find version in '" << _filename
-        << "' (not a Centreon Broker module ?): " << error_str;
+    throw msg_fmt("modules: could not find version in '{}' (not a Centreon Broker module ?): {}", _filename, error_str);
   }
   if (!*version)
-    throw exceptions::msg()
-        << "modules: version symbol of module '" << _filename
-        << "' is empty (not a Centreon Broker module ?)";
+    throw msg_fmt("modules: version symbol of module '{}' is empty (not a Centreon Broker module ?)", _filename);
 
   // Check version.
   if (::strcmp(CENTREON_BROKER_VERSION, *version) != 0)
-    throw exceptions::msg()
-        << "modules: version mismatch in '" << _filename << "': expected '"
-        << CENTREON_BROKER_VERSION << "', found '" << *version << "'";
+    throw msg_fmt("modules: version mismatch in '{}': expected '{}', found '{}'", _filename, CENTREON_BROKER_VERSION, *version);
 }
 
 /**
@@ -248,9 +241,7 @@ void handle::_init(void const* arg) {
   // Could not find initialization routine.
   if (!sym.data) {
     char const* error_str = dlerror();
-    throw exceptions::msg()
-        << "modules: could not find initialization routine in '" << _filename
-        << "' (not a Centreon Broker module ?): " << error_str;
+    throw msg_fmt("modules: could not find initialization routine in '{}' (not a Centreon Broker module ?): {}", _filename, error_str);
   }
 
   // Call initialization routine.
