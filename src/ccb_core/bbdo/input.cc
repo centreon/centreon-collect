@@ -75,11 +75,11 @@ static uint32_t set_double(io::data& t,
   uint32_t len(strlen(str));
   if (len >= size) {
     log_v2::bbdo()->error(
-        "BBDO: cannot extract double value: not terminating '\0' in remaining "
+        "BBDO: cannot extract double value: not terminating '\\0' in remaining "
         "{} bytes of packet",
         size);
     throw msg_fmt(
-        "BBDO: cannot extract double value: not terminating '\0' in remaining "
+        "BBDO: cannot extract double value: not terminating '\\0' in remaining "
         "{} bytes of packet",
         size);
   }
