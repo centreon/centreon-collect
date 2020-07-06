@@ -18,7 +18,6 @@
 #include <fmt/format.h>
 
 #include "com/centreon/broker/database/mysql_result.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -54,7 +53,8 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       instance_id));
   _mysql.run_query(
       query,
-      "conflict_manager: could not clean hosts and services tables: ", false,
+      "conflict_manager: could not clean hosts and services tables: ",
+      false,
       conn);
   _add_action(conn, actions::hosts);
 
@@ -69,7 +69,8 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
   _mysql.run_query(
       query,
       "conflict_manager: could not clean host groups memberships table: ",
-      false, conn);
+      false,
+      conn);
   _add_action(conn, actions::hostgroups);
 
   /* Remove service group memberships */
@@ -81,9 +82,10 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       "hosts ON services_servicegroups.host_id=hosts.host_id WHERE "
       "hosts.instance_id={}",
       instance_id);
-  _mysql.run_query(
-      query, "SQL: could not clean service groups memberships table: ", false,
-      conn);
+  _mysql.run_query(query,
+                   "SQL: could not clean service groups memberships table: ",
+                   false,
+                   conn);
   _add_action(conn, actions::servicegroups);
 
   /* Remove host groups. */
@@ -93,7 +95,9 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
   _mysql.run_query(
       "DELETE hg FROM hostgroups AS hg LEFT JOIN hosts_hostgroups AS hhg ON "
       "hg.hostgroup_id=hhg.hostgroup_id WHERE hhg.hostgroup_id IS NULL",
-      "conflict_manager: could not remove empty host groups", false, conn);
+      "conflict_manager: could not remove empty host groups",
+      false,
+      conn);
   _add_action(conn, actions::hostgroups);
 
   /* Remove service groups. */
@@ -105,7 +109,9 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       "DELETE sg FROM servicegroups AS sg LEFT JOIN services_servicegroups as "
       "ssg ON sg.servicegroup_id=ssg.servicegroup_id WHERE ssg.servicegroup_id "
       "IS NULL",
-      "conflict_manager: could not remove empty service groups", false, conn);
+      "conflict_manager: could not remove empty service groups",
+      false,
+      conn);
   _add_action(conn, actions::servicegroups);
 
   /* Remove host dependencies. */
@@ -119,7 +125,8 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       instance_id);
   _mysql.run_query(
       query,
-      "conflict_manager: could not clean host dependencies table: ", false,
+      "conflict_manager: could not clean host dependencies table: ",
+      false,
       conn);
   _add_action(conn, actions::host_dependencies);
 
@@ -132,9 +139,10 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       "hhp.child_id=h.host_id OR hhp.parent_id=h.host_id WHERE "
       "h.instance_id={}",
       instance_id);
-  _mysql.run_query(
-      query, "conflict_manager: could not clean host parents table: ", false,
-      conn);
+  _mysql.run_query(query,
+                   "conflict_manager: could not clean host parents table: ",
+                   false,
+                   conn);
   _add_action(conn, actions::host_parents);
 
   /* Remove service dependencies. */
@@ -155,23 +163,24 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
   _add_action(conn, actions::service_dependencies);
 
   /* Remove list of modules. */
-  logging::debug(logging::low)
-      << "SQL: remove list of modules (instance_id:" << instance_id << ")";
+  logging::debug(logging::low) << "SQL: remove list of modules (instance_id:"
+                               << instance_id << ")";
   query = fmt::format("DELETE FROM modules WHERE instance_id={}", instance_id);
   _mysql.run_query(
       query, "conflict_manager: could not clean modules table: ", false, conn);
   _add_action(conn, actions::modules);
 
   // Cancellation of downtimes.
-  logging::debug(logging::low)
-      << "SQL: Cancellation of downtimes (instance_id:" << instance_id << ")";
+  logging::debug(logging::low) << "SQL: Cancellation of downtimes (instance_id:"
+                               << instance_id << ")";
   query = fmt::format(
       "UPDATE downtimes AS d INNER JOIN hosts AS h ON d.host_id=h.host_id "
       "SET d.cancelled=1 WHERE d.actual_end_time IS NULL AND d.cancelled=0 "
       "AND h.instance_id={}",
       instance_id);
   _mysql.run_query(query,
-                   "conflict_manager: could not clean downtimes table: ", false,
+                   "conflict_manager: could not clean downtimes table: ",
+                   false,
                    conn);
   _add_action(conn, actions::downtimes);
 
@@ -183,7 +192,8 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       "UPDATE comments AS c JOIN hosts AS h ON c.host_id=h.host_id SET "
       "c.deletion_time={} WHERE h.instance_id={} AND c.persistent=0 AND "
       "(c.deletion_time IS NULL OR c.deletion_time=0)",
-      time(nullptr), instance_id);
+      time(nullptr),
+      instance_id);
   _mysql.run_query(
       query, "conflict_manager: could not clean comments table: ", false, conn);
   _add_action(conn, actions::comments);
@@ -199,7 +209,8 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
 
   _mysql.run_query(query,
                    "conflict_manager: could not clean custom variables table: ",
-                   false, conn);
+                   false,
+                   conn);
   _add_action(conn, actions::custom_variables);
 }
 
@@ -222,7 +233,8 @@ void conflict_manager::_update_hosts_and_services_of_unresponsive_instances() {
   for (std::unordered_map<uint32_t, stored_timestamp>::iterator
            it = _stored_timestamps.begin(),
            end = _stored_timestamps.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (it->second.get_state() == stored_timestamp::responsive &&
         it->second.timestamp_outdated(_instance_timeout)) {
       it->second.set_state(stored_timestamp::unresponsive);
@@ -235,7 +247,8 @@ void conflict_manager::_update_hosts_and_services_of_unresponsive_instances() {
   for (std::unordered_map<uint32_t, stored_timestamp>::iterator
            it = _stored_timestamps.begin(),
            end = _stored_timestamps.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (it->second.get_state() == stored_timestamp::responsive &&
         _oldest_timestamp > it->second.get_timestamp())
       _oldest_timestamp = it->second.get_timestamp();
@@ -252,22 +265,23 @@ void conflict_manager::_update_hosts_and_services_of_instance(uint32_t id,
                                                               bool responsive) {
   int32_t conn = _mysql.choose_connection_by_instance(id);
   _finish_action(conn, actions::hosts);
-  _finish_action(-1, actions::acknowledgements | actions::modules |
-                         actions::downtimes | actions::comments);
+  _finish_action(-1,
+                 actions::acknowledgements | actions::modules |
+                     actions::downtimes | actions::comments);
 
   std::string query;
   if (responsive) {
     query = fmt::format(
         "UPDATE instances SET outdated=FALSE WHERE instance_id={}", id);
-    _mysql.run_query(query, "SQL: could not restore outdated instance", false,
-                     conn);
+    _mysql.run_query(
+        query, "SQL: could not restore outdated instance", false, conn);
     _add_action(conn, actions::instances);
     query = fmt::format(
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.state=h.real_state,s.state=s.real_state WHERE h.instance_id={}",
         id);
-    _mysql.run_query(query, "SQL: could not restore outdated instance", false,
-                     conn);
+    _mysql.run_query(
+        query, "SQL: could not restore outdated instance", false, conn);
     _add_action(conn, actions::hosts);
   } else {
     query = fmt::format(
@@ -279,7 +293,8 @@ void conflict_manager::_update_hosts_and_services_of_instance(uint32_t id,
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
         "WHERE h.instance_id={}",
         com::centreon::engine::host::state_unreachable,
-        com::centreon::engine::service::state_unknown, id);
+        com::centreon::engine::service::state_unknown,
+        id);
     _mysql.run_query(query, "SQL: could not outdate instance", false, conn);
     _add_action(conn, actions::hosts);
   }
@@ -368,7 +383,10 @@ void conflict_manager::_process_acknowledgement(std::shared_ptr<io::data> d) {
   log_v2::sql()->info(
       "processing acknowledgement event (poller: {}, host: {}, service: {}, "
       "entry time: {}, deletion time: {})",
-      ack.poller_id, ack.service_id, ack.entry_time, ack.deletion_time);
+      ack.poller_id,
+      ack.service_id,
+      ack.entry_time,
+      ack.deletion_time);
 
   // Processing.
   if (_is_valid_poller(ack.poller_id)) {
@@ -388,7 +406,10 @@ void conflict_manager::_process_acknowledgement(std::shared_ptr<io::data> d) {
         "SQL: could not store acknowledgement (poller: {}"
         ", host: {}, service: {}"
         ", entry time: {}): ",
-        ack.poller_id, ack.host_id, ack.service_id, ack.entry_time));
+        ack.poller_id,
+        ack.host_id,
+        ack.service_id,
+        ack.entry_time));
 
     if (ack.author.size() >
             get_acknowledgements_col_size(acknowledgements_author) ||
@@ -430,9 +451,10 @@ void conflict_manager::_process_acknowledgement(std::shared_ptr<io::data> d) {
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_comment(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::hosts | actions::instances |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::hosts | actions::instances | actions::host_parents |
+                     actions::host_dependencies |
+                     actions::service_dependencies);
 
   // Cast object.
   neb::comment const& cmmnt{*static_cast<neb::comment const*>(d.get())};
@@ -440,9 +462,9 @@ void conflict_manager::_process_comment(std::shared_ptr<io::data> d) {
   int32_t conn = _mysql.choose_connection_by_instance(cmmnt.poller_id);
 
   // Log message.
-  logging::info(logging::medium)
-      << "SQL: processing comment of poller " << cmmnt.poller_id << " on ("
-      << cmmnt.host_id << ", " << cmmnt.service_id << ")";
+  logging::info(logging::medium) << "SQL: processing comment of poller "
+                                 << cmmnt.poller_id << " on (" << cmmnt.host_id
+                                 << ", " << cmmnt.service_id << ")";
 
   // Prepare queries.
   if (!_comment_insupdate.prepared()) {
@@ -457,13 +479,16 @@ void conflict_manager::_process_comment(std::shared_ptr<io::data> d) {
   }
 
   // Processing.
-  std::string err_msg(
-      fmt::format("SQL: could not store comment (poller: {}"
-                  ", host: {}, service: {}"
-                  ", entry time: {}"
-                  ", internal ID: {}): ",
-                  cmmnt.poller_id, cmmnt.host_id, cmmnt.service_id,
-                  cmmnt.entry_time, cmmnt.internal_id));
+  std::string err_msg(fmt::format(
+      "SQL: could not store comment (poller: {}"
+      ", host: {}, service: {}"
+      ", entry time: {}"
+      ", internal ID: {}): ",
+      cmmnt.poller_id,
+      cmmnt.host_id,
+      cmmnt.service_id,
+      cmmnt.entry_time,
+      cmmnt.internal_id));
 
   if (cmmnt.author.size() > get_comments_col_size(comments_author) ||
       cmmnt.data.size() > get_comments_col_size(comments_data)) {
@@ -472,14 +497,16 @@ void conflict_manager::_process_comment(std::shared_ptr<io::data> d) {
       log_v2::sql()->warn(
           "comments author ({} instead of {}) is too long to "
           "be stored in database.",
-          trunc_cmnt.author.size(), get_comments_col_size(comments_author));
+          trunc_cmnt.author.size(),
+          get_comments_col_size(comments_author));
       trunc_cmnt.author.resize(get_comments_col_size(comments_author));
     }
     if (trunc_cmnt.data.size() > get_comments_col_size(comments_data)) {
       log_v2::sql()->warn(
           "comments data ({} instead of {}) is too long to "
           "be stored in database.",
-          trunc_cmnt.data.size(), get_comments_col_size(comments_data));
+          trunc_cmnt.data.size(),
+          get_comments_col_size(comments_data));
       trunc_cmnt.data.resize(get_comments_col_size(comments_data));
     }
     _comment_insupdate << trunc_cmnt;
@@ -519,13 +546,15 @@ void conflict_manager::_process_custom_variable(std::shared_ptr<io::data> d) {
 
   // Processing.
   if (cv.enabled) {
-    logging::info(logging::medium)
-        << "SQL: enabling custom variable '" << cv.name << "' of ("
-        << cv.host_id << ", " << cv.service_id << ")";
-    std::string err_msg(
-        fmt::format("SQL: could not store custom variable (name: {}"
-                    ", host: {}, service: {}): ",
-                    cv.name, cv.host_id, cv.service_id));
+    logging::info(logging::medium) << "SQL: enabling custom variable '"
+                                   << cv.name << "' of (" << cv.host_id << ", "
+                                   << cv.service_id << ")";
+    std::string err_msg(fmt::format(
+        "SQL: could not store custom variable (name: {}"
+        ", host: {}, service: {}): ",
+        cv.name,
+        cv.host_id,
+        cv.service_id));
 
     if (cv.default_value.size() >
             get_customvariables_col_size(customvariables_default_value) ||
@@ -569,17 +598,19 @@ void conflict_manager::_process_custom_variable(std::shared_ptr<io::data> d) {
     _mysql.run_statement(_custom_variable_insupdate, err_msg, true, conn);
     _add_action(conn, actions::custom_variables);
   } else {
-    logging::info(logging::medium)
-        << "SQL: disabling custom variable '" << cv.name << "' of ("
-        << cv.host_id << ", " << cv.service_id << ")";
+    logging::info(logging::medium) << "SQL: disabling custom variable '"
+                                   << cv.name << "' of (" << cv.host_id << ", "
+                                   << cv.service_id << ")";
     _custom_variable_delete.bind_value_as_i32(":host_id", cv.host_id);
     _custom_variable_delete.bind_value_as_i32(":service_id", cv.service_id);
     _custom_variable_delete.bind_value_as_str(":name", cv.name);
 
-    std::string err_msg(
-        fmt::format("SQL: could not remove custom variable (host: {}"
-                    ", service: {}, name '{}'): ",
-                    cv.host_id, cv.service_id, cv.name));
+    std::string err_msg(fmt::format(
+        "SQL: could not remove custom variable (host: {}"
+        ", service: {}, name '{}'): ",
+        cv.host_id,
+        cv.service_id,
+        cv.name));
     _mysql.run_statement(_custom_variable_delete, err_msg, true, conn);
     _add_action(conn, actions::custom_variables);
   }
@@ -612,14 +643,16 @@ void conflict_manager::_process_custom_variable_status(
     _custom_variable_status_insupdate = qp.prepare_insert_or_update(_mysql);
   }
 
-  logging::info(logging::medium)
-      << "SQL: enabling custom variable '" << cv.name << "' of (" << cv.host_id
-      << ", " << cv.service_id << ")";
+  logging::info(logging::medium) << "SQL: enabling custom variable '" << cv.name
+                                 << "' of (" << cv.host_id << ", "
+                                 << cv.service_id << ")";
 
-  std::string err_msg(
-      fmt::format("SQL: could not store custom variable (name: {}"
-                  ", host: {}, service: {}): ",
-                  cv.name, cv.host_id, cv.service_id));
+  std::string err_msg(fmt::format(
+      "SQL: could not store custom variable (name: {}"
+      ", host: {}, service: {}): ",
+      cv.name,
+      cv.host_id,
+      cv.service_id));
 
   if (cv.value.size() > get_customvariables_col_size(customvariables_value) ||
       cv.name.size() > get_customvariables_col_size(customvariables_name)) {
@@ -660,9 +693,10 @@ void conflict_manager::_process_custom_variable_status(
  */
 void conflict_manager::_process_downtime(std::shared_ptr<io::data> d) {
   int conn = _mysql.choose_best_connection(neb::downtime::static_type());
-  _finish_action(-1, actions::hosts | actions::instances |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::hosts | actions::instances | actions::host_parents |
+                     actions::host_dependencies |
+                     actions::service_dependencies);
 
   // Cast object.
   neb::downtime const& dd = *static_cast<neb::downtime const*>(d.get());
@@ -703,10 +737,12 @@ void conflict_manager::_process_downtime(std::shared_ptr<io::data> d) {
     }
 
     // Process object.
-    std::string err_msg(
-        fmt::format("SQL: could not store downtime (poller: {}"
-                    ", host: {}, service: {}): ",
-                    dd.poller_id, dd.host_id, dd.service_id));
+    std::string err_msg(fmt::format(
+        "SQL: could not store downtime (poller: {}"
+        ", host: {}, service: {}): ",
+        dd.poller_id,
+        dd.host_id,
+        dd.service_id));
 
     if (dd.author.size() > get_downtimes_col_size(downtimes_author) ||
         dd.comment.size() > get_downtimes_col_size(downtimes_comment_data)) {
@@ -715,7 +751,8 @@ void conflict_manager::_process_downtime(std::shared_ptr<io::data> d) {
         log_v2::sql()->warn(
             "downtimes author ({} instead of {}) is too long to "
             "be stored in database.",
-            trunc_dd.author.size(), get_downtimes_col_size(downtimes_author));
+            trunc_dd.author.size(),
+            get_downtimes_col_size(downtimes_author));
         trunc_dd.author.resize(get_downtimes_col_size(downtimes_author));
       }
       if (trunc_dd.comment.size() >
@@ -764,10 +801,12 @@ void conflict_manager::_process_event_handler(std::shared_ptr<io::data> d) {
   }
 
   // Processing.
-  std::string err_msg(
-      fmt::format("SQL: could not store event handler (host: {}"
-                  ", service: {}, start time: {}): ",
-                  eh.host_id, eh.service_id, eh.start_time));
+  std::string err_msg(fmt::format(
+      "SQL: could not store event handler (host: {}"
+      ", service: {}, start time: {}): ",
+      eh.host_id,
+      eh.service_id,
+      eh.start_time));
 
   if (eh.command_args.size() >
           get_eventhandlers_col_size(eventhandlers_command_args) ||
@@ -799,14 +838,17 @@ void conflict_manager::_process_event_handler(std::shared_ptr<io::data> d) {
       log_v2::sql()->warn(
           "event handler output ({} instead of {}) is too long to be "
           "stored in database.",
-          eh.output.size(), get_eventhandlers_col_size(eventhandlers_output));
+          eh.output.size(),
+          get_eventhandlers_col_size(eventhandlers_output));
       trunc_eh.output.resize(get_eventhandlers_col_size(eventhandlers_output));
     }
     _event_handler_insupdate << trunc_eh;
   } else
     _event_handler_insupdate << eh;
   _mysql.run_statement(
-      _event_handler_insupdate, err_msg, true,
+      _event_handler_insupdate,
+      err_msg,
+      true,
       _mysql.choose_connection_by_instance(_cache_host_instance[eh.host_id]));
 }
 
@@ -839,10 +881,12 @@ void conflict_manager::_process_flapping_status(std::shared_ptr<io::data> d) {
   }
 
   // Processing.
-  std::string err_msg(
-      fmt::format("SQL: could not store flapping status (host: {}"
-                  ", service: {}, event time: {}): ",
-                  fs.host_id, fs.service_id, fs.event_time));
+  std::string err_msg(fmt::format(
+      "SQL: could not store flapping status (host: {}"
+      ", service: {}, event time: {}): ",
+      fs.host_id,
+      fs.service_id,
+      fs.event_time));
 
   _flapping_status_insupdate << fs;
   int32_t conn =
@@ -859,9 +903,10 @@ void conflict_manager::_process_flapping_status(std::shared_ptr<io::data> d) {
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_host_check(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::host_dependencies |
-                         actions::host_parents | actions::service_dependencies);
+  _finish_action(-1,
+                 actions::instances | actions::downtimes | actions::comments |
+                     actions::host_dependencies | actions::host_parents |
+                     actions::service_dependencies);
 
   // Cast object.
   neb::host_check const& hc = *static_cast<neb::host_check const*>(d.get());
@@ -874,7 +919,8 @@ void conflict_manager::_process_host_check(std::shared_ptr<io::data> d) {
       !hc.next_check) {                 // - initial state
     // Apply to DB.
     log_v2::sql()->info(
-        "SQL: processing host check event (host: {}, command: {}", hc.host_id,
+        "SQL: processing host check event (host: {}, command: {}",
+        hc.host_id,
         hc.command_line);
 
     // Prepare queries.
@@ -887,7 +933,8 @@ void conflict_manager::_process_host_check(std::shared_ptr<io::data> d) {
 
     // Processing.
     bool store;
-    size_t str_hash = std::hash<std::string>{}(hc.command_line);
+    size_t str_hash = std::hash<std::string> {}
+    (hc.command_line);
     // Did the command changed since last time?
     if (_cache_hst_cmd[hc.host_id] != str_hash) {
       store = true;
@@ -904,7 +951,8 @@ void conflict_manager::_process_host_check(std::shared_ptr<io::data> d) {
         log_v2::sql()->warn(
             "hosts command_line ({} instead of {}) is too long to be "
             "stored in database.",
-            hc.command_line.size(), get_hosts_col_size(hosts_command_line));
+            hc.command_line.size(),
+            get_hosts_col_size(hosts_command_line));
         trunc_hc.command_line.resize(get_hosts_col_size(hosts_command_line));
         _host_check_update << trunc_hc;
       } else
@@ -934,10 +982,10 @@ void conflict_manager::_process_host_check(std::shared_ptr<io::data> d) {
 void conflict_manager::_process_host_dependency(std::shared_ptr<io::data> d) {
   int32_t conn =
       _mysql.choose_best_connection(neb::host_dependency::static_type());
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::comments | actions::downtimes |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::hosts | actions::host_parents | actions::comments |
+                     actions::downtimes | actions::host_dependencies |
+                     actions::service_dependencies);
 
   // Cast object.
   neb::host_dependency const& hd =
@@ -945,9 +993,9 @@ void conflict_manager::_process_host_dependency(std::shared_ptr<io::data> d) {
 
   // Insert/Update.
   if (hd.enabled) {
-    logging::info(logging::medium)
-        << "SQL: enabling host dependency of " << hd.dependent_host_id << " on "
-        << hd.host_id;
+    logging::info(logging::medium) << "SQL: enabling host dependency of "
+                                   << hd.dependent_host_id << " on "
+                                   << hd.host_id;
 
     // Prepare queries.
     if (!_host_dependency_insupdate.prepared()) {
@@ -959,10 +1007,11 @@ void conflict_manager::_process_host_dependency(std::shared_ptr<io::data> d) {
     }
 
     // Process object.
-    std::string err_msg(
-        fmt::format("SQL: could not store host dependency (host: {}"
-                    ", dependent host: {}): ",
-                    hd.host_id, hd.dependent_host_id));
+    std::string err_msg(fmt::format(
+        "SQL: could not store host dependency (host: {}"
+        ", dependent host: {}): ",
+        hd.host_id,
+        hd.dependent_host_id));
 
     if (hd.dependency_period.size() >
             get_hosts_hosts_dependencies_col_size(
@@ -1020,13 +1069,14 @@ void conflict_manager::_process_host_dependency(std::shared_ptr<io::data> d) {
   }
   // Delete.
   else {
-    logging::info(logging::medium)
-        << "SQL: removing host dependency of " << hd.dependent_host_id << " on "
-        << hd.host_id;
+    logging::info(logging::medium) << "SQL: removing host dependency of "
+                                   << hd.dependent_host_id << " on "
+                                   << hd.host_id;
     std::string query(fmt::format(
         "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
         " AND host_id={}",
-        hd.dependent_host_id, hd.host_id));
+        hd.dependent_host_id,
+        hd.host_id));
     _mysql.run_query(query, "SQL: ", true, conn);
     _add_action(conn, actions::host_dependencies);
   }
@@ -1047,22 +1097,24 @@ void conflict_manager::_process_host_group(std::shared_ptr<io::data> d) {
   neb::host_group const& hg{*static_cast<neb::host_group const*>(d.get())};
 
   if (hg.enabled) {
-    logging::info(logging::medium)
-        << "SQL: enabling host group " << hg.id << " ('" << hg.name
-        << "') on instance " << hg.poller_id;
+    logging::info(logging::medium) << "SQL: enabling host group " << hg.id
+                                   << " ('" << hg.name << "') on instance "
+                                   << hg.poller_id;
     _prepare_hg_insupdate_statement();
 
-    std::string err_msg(
-        fmt::format("SQL: could not store host group (poller: {}"
-                    ", group: {}): ",
-                    hg.poller_id, hg.id));
+    std::string err_msg(fmt::format(
+        "SQL: could not store host group (poller: {}"
+        ", group: {}): ",
+        hg.poller_id,
+        hg.id));
 
     if (hg.name.size() > get_hostgroups_col_size(hostgroups_name)) {
       neb::host_group trunc_hg(hg);
       log_v2::sql()->warn(
           "hostgroups name ({} instead of {}) is too long to be "
           "stored in database.",
-          hg.name.size(), get_hostgroups_col_size(hostgroups_name));
+          hg.name.size(),
+          get_hostgroups_col_size(hostgroups_name));
       trunc_hg.name.resize(get_hostgroups_col_size(hostgroups_name));
       _host_group_insupdate << trunc_hg;
     } else
@@ -1073,9 +1125,9 @@ void conflict_manager::_process_host_group(std::shared_ptr<io::data> d) {
   }
   // Delete group.
   else {
-    logging::info(logging::medium)
-        << "SQL: disabling host group " << hg.id << " ('" << hg.name
-        << "' on instance " << hg.poller_id;
+    logging::info(logging::medium) << "SQL: disabling host group " << hg.id
+                                   << " ('" << hg.name << "' on instance "
+                                   << hg.poller_id;
 
     // Delete group members.
     {
@@ -1083,7 +1135,8 @@ void conflict_manager::_process_host_group(std::shared_ptr<io::data> d) {
           "DELETE hosts_hostgroups FROM hosts_hostgroups LEFT JOIN hosts"
           " ON hosts_hostgroups.host_id=hosts.host_id"
           " WHERE hosts_hostgroups.hostgroup_id={} AND hosts.instance_id={}",
-          hg.id, hg.poller_id));
+          hg.id,
+          hg.poller_id));
       _mysql.run_query(query, "SQL: ", false, conn);
       _hostgroup_cache.erase(hg.id);
     }
@@ -1108,10 +1161,10 @@ void conflict_manager::_process_host_group_member(std::shared_ptr<io::data> d) {
 
   if (hgm.enabled) {
     // Log message.
-    logging::info(logging::medium)
-        << "SQL: enabling membership of host " << hgm.host_id
-        << " to host group " << hgm.group_id << " on instance "
-        << hgm.poller_id;
+    logging::info(logging::medium) << "SQL: enabling membership of host "
+                                   << hgm.host_id << " to host group "
+                                   << hgm.group_id << " on instance "
+                                   << hgm.poller_id;
 
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
@@ -1139,14 +1192,16 @@ void conflict_manager::_process_host_group_member(std::shared_ptr<io::data> d) {
 
         std::string err_msg(fmt::format(
             "SQL: could not store host group (poller: {}, group: {}): ",
-            hg.poller_id, hg.id));
+            hg.poller_id,
+            hg.id));
 
         if (hg.name.size() > get_hostgroups_col_size(hostgroups_name)) {
           neb::host_group trunc_hg(hg);
           log_v2::sql()->warn(
               "hostgroups name ({} instead of {}) is too long to be "
               "stored in database.",
-              hg.name.size(), get_hostgroups_col_size(hostgroups_name));
+              hg.name.size(),
+              get_hostgroups_col_size(hostgroups_name));
           trunc_hg.name.resize(get_hostgroups_col_size(hostgroups_name));
           _host_group_insupdate << trunc_hg;
         } else
@@ -1161,15 +1216,18 @@ void conflict_manager::_process_host_group_member(std::shared_ptr<io::data> d) {
         log_v2::sql()->warn(
             "hostgroups name ({} instead of {}) is too long to be "
             "stored in database.",
-            hgm.group_name.size(), get_hostgroups_col_size(hostgroups_name));
+            hgm.group_name.size(),
+            get_hostgroups_col_size(hostgroups_name));
         trunc_hgm.group_name.resize(get_hostgroups_col_size(hostgroups_name));
         _host_group_member_insert << trunc_hgm;
       } else
         _host_group_member_insert << hgm;
-      std::string err_msg(
-          fmt::format("SQL: could not store host group membership (poller: "
-                      "{}, host: {}, group: {}): ",
-                      hgm.poller_id, hgm.host_id, hgm.group_id));
+      std::string err_msg(fmt::format(
+          "SQL: could not store host group membership (poller: "
+          "{}, host: {}, group: {}): ",
+          hgm.poller_id,
+          hgm.host_id,
+          hgm.group_id));
       _mysql.run_statement(_host_group_member_insert, err_msg, false, conn);
       _add_action(conn, actions::hostgroups);
     } else
@@ -1181,10 +1239,10 @@ void conflict_manager::_process_host_group_member(std::shared_ptr<io::data> d) {
   // Delete.
   else {
     // Log message.
-    logging::info(logging::medium)
-        << "SQL: disabling membership of host " << hgm.host_id
-        << " to host group " << hgm.group_id << " on instance "
-        << hgm.poller_id;
+    logging::info(logging::medium) << "SQL: disabling membership of host "
+                                   << hgm.host_id << " to host group "
+                                   << hgm.group_id << " on instance "
+                                   << hgm.poller_id;
 
     if (!_host_group_member_delete.prepared()) {
       query_preparator::event_unique unique;
@@ -1193,10 +1251,12 @@ void conflict_manager::_process_host_group_member(std::shared_ptr<io::data> d) {
       query_preparator qp(neb::host_group_member::static_type(), unique);
       _host_group_member_delete = qp.prepare_delete(_mysql);
     }
-    std::string err_msg(
-        fmt::format("SQL: cannot delete membership of host {} to host group "
-                    "{} on instance {}: ",
-                    hgm.host_id, hgm.group_id, hgm.poller_id));
+    std::string err_msg(fmt::format(
+        "SQL: cannot delete membership of host {} to host group "
+        "{} on instance {}: ",
+        hgm.host_id,
+        hgm.group_id,
+        hgm.poller_id));
 
     _host_group_member_delete << hgm;
     _mysql.run_statement(_host_group_member_delete, err_msg, true, conn);
@@ -1212,16 +1272,19 @@ void conflict_manager::_process_host_group_member(std::shared_ptr<io::data> d) {
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::instances | actions::hostgroups |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::custom_variables | actions::downtimes |
-                         actions::comments | actions::service_dependencies);
+  _finish_action(-1,
+                 actions::instances | actions::hostgroups |
+                     actions::host_dependencies | actions::host_parents |
+                     actions::custom_variables | actions::downtimes |
+                     actions::comments | actions::service_dependencies);
   neb::host& h = *static_cast<neb::host*>(d.get());
 
   // Log message.
   log_v2::sql()->debug(
-      "SQL: processing host event (poller: {}, id: {}, name: {})", h.poller_id,
-      h.host_id, h.host_name);
+      "SQL: processing host event (poller: {}, id: {}, name: {})",
+      h.poller_id,
+      h.host_id,
+      h.host_name);
 
   // Processing
   if (_is_valid_poller(h.poller_id)) {
@@ -1240,9 +1303,10 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
       }
 
       // Process object.
-      std::string err_msg(fmt::format(
-          "SQL: could not store host (poller: {}, host: {}): ", h.poller_id,
-          h.host_id));
+      std::string err_msg(
+          fmt::format("SQL: could not store host (poller: {}, host: {}): ",
+                      h.poller_id,
+                      h.host_id));
 
       if (h.host_name.size() > get_hosts_col_size(hosts_name) ||
           h.action_url.size() > get_hosts_col_size(hosts_action_url) ||
@@ -1268,28 +1332,32 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
           log_v2::sql()->warn(
               "hosts name ({} instead of {}) is too long to be stored in "
               "database.",
-              h.host_name.size(), get_hosts_col_size(hosts_name));
+              h.host_name.size(),
+              get_hosts_col_size(hosts_name));
           trunc_h.host_name.resize(get_hosts_col_size(hosts_name));
         }
         if (h.action_url.size() > get_hosts_col_size(hosts_action_url)) {
           log_v2::sql()->warn(
               "hosts action_url ({} instead of {}) is too long to be stored in "
               "database.",
-              h.action_url.size(), get_hosts_col_size(hosts_action_url));
+              h.action_url.size(),
+              get_hosts_col_size(hosts_action_url));
           trunc_h.action_url.resize(get_hosts_col_size(hosts_action_url));
         }
         if (h.address.size() > get_hosts_col_size(hosts_address)) {
           log_v2::sql()->warn(
               "hosts address ({} instead of {}) is too long to be stored in "
               "database.",
-              h.address.size(), get_hosts_col_size(hosts_address));
+              h.address.size(),
+              get_hosts_col_size(hosts_address));
           trunc_h.address.resize(get_hosts_col_size(hosts_address));
         }
         if (h.alias.size() > get_hosts_col_size(hosts_alias)) {
           log_v2::sql()->warn(
               "hosts alias ({} instead of {}) is too long to be stored in "
               "database.",
-              h.alias.size(), get_hosts_col_size(hosts_alias));
+              h.alias.size(),
+              get_hosts_col_size(hosts_alias));
           trunc_h.alias.resize(get_hosts_col_size(hosts_alias));
         }
         if (h.check_command.size() > get_hosts_col_size(hosts_check_command)) {
@@ -1297,7 +1365,8 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
               "hosts check_command ({} instead of {}) is too long to be stored "
               "in "
               "database.",
-              h.check_command.size(), get_hosts_col_size(hosts_check_command));
+              h.check_command.size(),
+              get_hosts_col_size(hosts_check_command));
           trunc_h.check_command.resize(get_hosts_col_size(hosts_check_command));
         }
         if (h.check_period.size() > get_hosts_col_size(hosts_check_period)) {
@@ -1305,7 +1374,8 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
               "hosts check_period ({} instead of {}) is too long to be stored "
               "in "
               "database.",
-              h.check_period.size(), get_hosts_col_size(hosts_check_period));
+              h.check_period.size(),
+              get_hosts_col_size(hosts_check_period));
           trunc_h.check_period.resize(get_hosts_col_size(hosts_check_period));
         }
         if (h.display_name.size() > get_hosts_col_size(hosts_display_name)) {
@@ -1313,7 +1383,8 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
               "hosts display_name ({} instead of {}) is too long to be stored "
               "in "
               "database.",
-              h.display_name.size(), get_hosts_col_size(hosts_display_name));
+              h.display_name.size(),
+              get_hosts_col_size(hosts_display_name));
           trunc_h.display_name.resize(get_hosts_col_size(hosts_display_name));
         }
         if (h.event_handler.size() > get_hosts_col_size(hosts_event_handler)) {
@@ -1321,14 +1392,16 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
               "hosts event_handler ({} instead of {}) is too long to be stored "
               "in "
               "database.",
-              h.event_handler.size(), get_hosts_col_size(hosts_event_handler));
+              h.event_handler.size(),
+              get_hosts_col_size(hosts_event_handler));
           trunc_h.event_handler.resize(get_hosts_col_size(hosts_event_handler));
         }
         if (h.icon_image.size() > get_hosts_col_size(hosts_icon_image)) {
           log_v2::sql()->warn(
               "hosts icon_image ({} instead of {}) is too long to be stored in "
               "database.",
-              h.icon_image.size(), get_hosts_col_size(hosts_icon_image));
+              h.icon_image.size(),
+              get_hosts_col_size(hosts_icon_image));
           trunc_h.icon_image.resize(get_hosts_col_size(hosts_icon_image));
         }
         if (h.icon_image_alt.size() >
@@ -1346,14 +1419,16 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
           log_v2::sql()->warn(
               "hosts notes ({} instead of {}) is too long to be stored in "
               "database.",
-              h.notes.size(), get_hosts_col_size(hosts_notes));
+              h.notes.size(),
+              get_hosts_col_size(hosts_notes));
           trunc_h.notes.resize(get_hosts_col_size(hosts_notes));
         }
         if (h.notes_url.size() > get_hosts_col_size(hosts_notes_url)) {
           log_v2::sql()->warn(
               "hosts notes_url ({} instead of {}) is too long to be stored in "
               "database.",
-              h.notes_url.size(), get_hosts_col_size(hosts_notes_url));
+              h.notes_url.size(),
+              get_hosts_col_size(hosts_notes_url));
           trunc_h.notes_url.resize(get_hosts_col_size(hosts_notes_url));
         }
         if (h.notification_period.size() >
@@ -1371,14 +1446,16 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
           log_v2::sql()->warn(
               "hosts output ({} instead of {}) is too long to be stored in "
               "database.",
-              h.output.size(), get_hosts_col_size(hosts_output));
+              h.output.size(),
+              get_hosts_col_size(hosts_output));
           trunc_h.output.resize(get_hosts_col_size(hosts_output));
         }
         if (h.perf_data.size() > get_hosts_col_size(hosts_perfdata)) {
           log_v2::sql()->warn(
               "hosts perfdata ({} instead of {}) is too long to be stored in "
               "database.",
-              h.perf_data.size(), get_hosts_col_size(hosts_perfdata));
+              h.perf_data.size(),
+              get_hosts_col_size(hosts_perfdata));
           trunc_h.perf_data.resize(get_hosts_col_size(hosts_perfdata));
         }
         if (h.statusmap_image.size() >
@@ -1396,7 +1473,8 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
           log_v2::sql()->warn(
               "hosts timezone ({} instead of {}) is too long to be stored in "
               "database.",
-              h.timezone.size(), get_hosts_col_size(hosts_timezone));
+              h.timezone.size(),
+              get_hosts_col_size(hosts_timezone));
           trunc_h.timezone.resize(get_hosts_col_size(hosts_timezone));
         }
         _host_insupdate << trunc_h;
@@ -1416,7 +1494,8 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
           "SQL: host '{0}' of poller {1} has no ID nor alias, probably bam "
           "fake "
           "host",
-          h.host_name, h.poller_id);
+          h.host_name,
+          h.poller_id);
   }
 }
 
@@ -1429,16 +1508,17 @@ void conflict_manager::_process_host(std::shared_ptr<io::data> d) {
  */
 void conflict_manager::_process_host_parent(std::shared_ptr<io::data> d) {
   int32_t conn = _mysql.choose_best_connection(neb::host_parent::static_type());
-  _finish_action(-1, actions::hosts | actions::host_dependencies |
-                         actions::comments | actions::downtimes);
+  _finish_action(-1,
+                 actions::hosts | actions::host_dependencies |
+                     actions::comments | actions::downtimes);
 
   neb::host_parent const& hp(*static_cast<neb::host_parent const*>(d.get()));
 
   // Enable parenting.
   if (hp.enabled) {
     // Log message.
-    logging::info(logging::medium)
-        << "SQL: host " << hp.parent_id << " is parent of host " << hp.host_id;
+    logging::info(logging::medium) << "SQL: host " << hp.parent_id
+                                   << " is parent of host " << hp.host_id;
 
     // Prepare queries.
     if (!_host_parent_insert.prepared()) {
@@ -1447,10 +1527,11 @@ void conflict_manager::_process_host_parent(std::shared_ptr<io::data> d) {
     }
 
     // Insert.
-    std::string err_msg(
-        fmt::format("SQL: could not store host parentship (child host: {}, "
-                    "parent host: {}): ",
-                    hp.host_id, hp.parent_id));
+    std::string err_msg(fmt::format(
+        "SQL: could not store host parentship (child host: {}, "
+        "parent host: {}): ",
+        hp.host_id,
+        hp.parent_id));
 
     _host_parent_insert << hp;
     _mysql.run_statement(_host_parent_insert, err_msg, false, conn);
@@ -1458,9 +1539,9 @@ void conflict_manager::_process_host_parent(std::shared_ptr<io::data> d) {
   }
   // Disable parenting.
   else {
-    logging::info(logging::medium)
-        << "SQL: host " << hp.parent_id << " is not parent of host "
-        << hp.host_id << " anymore";
+    logging::info(logging::medium) << "SQL: host " << hp.parent_id
+                                   << " is not parent of host " << hp.host_id
+                                   << " anymore";
 
     // Prepare queries.
     if (!_host_parent_delete.prepared()) {
@@ -1486,10 +1567,10 @@ void conflict_manager::_process_host_parent(std::shared_ptr<io::data> d) {
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_host_status(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::custom_variables |
-                         actions::hostgroups | actions::host_dependencies |
-                         actions::host_parents);
+  _finish_action(-1,
+                 actions::instances | actions::downtimes | actions::comments |
+                     actions::custom_variables | actions::hostgroups |
+                     actions::host_dependencies | actions::host_parents);
 
   // Processed object.
   neb::host_status const& hs(*static_cast<neb::host_status const*>(d.get()));
@@ -1503,7 +1584,10 @@ void conflict_manager::_process_host_status(std::shared_ptr<io::data> d) {
     // Apply to DB.
     log_v2::sql()->info(
         "processing host status event (id: {}, last check: {}, state ({}, {}))",
-        hs.host_id, hs.last_check, hs.current_state, hs.state_type);
+        hs.host_id,
+        hs.last_check,
+        hs.current_state,
+        hs.state_type);
 
     // Prepare queries.
     if (!_host_status_update.prepared()) {
@@ -1525,14 +1609,16 @@ void conflict_manager::_process_host_status(std::shared_ptr<io::data> d) {
             "hosts check_command ({} instead of {}) is too long to be stored "
             "in "
             "database.",
-            hs.check_command.size(), get_hosts_col_size(hosts_check_command));
+            hs.check_command.size(),
+            get_hosts_col_size(hosts_check_command));
         trunc_hs.check_command.resize(get_hosts_col_size(hosts_check_command));
       }
       if (hs.check_period.size() > get_hosts_col_size(hosts_check_period)) {
         log_v2::sql()->warn(
             "hosts check_period ({} instead of {}) is too long to be stored in "
             "database.",
-            hs.check_period.size(), get_hosts_col_size(hosts_check_period));
+            hs.check_period.size(),
+            get_hosts_col_size(hosts_check_period));
         trunc_hs.check_period.resize(get_hosts_col_size(hosts_check_period));
       }
       if (hs.event_handler.size() > get_hosts_col_size(hosts_event_handler)) {
@@ -1540,21 +1626,24 @@ void conflict_manager::_process_host_status(std::shared_ptr<io::data> d) {
             "hosts event_handler ({} instead of {}) is too long to be stored "
             "in "
             "database.",
-            hs.event_handler.size(), get_hosts_col_size(hosts_event_handler));
+            hs.event_handler.size(),
+            get_hosts_col_size(hosts_event_handler));
         trunc_hs.event_handler.resize(get_hosts_col_size(hosts_event_handler));
       }
       if (hs.output.size() > get_hosts_col_size(hosts_output)) {
         log_v2::sql()->warn(
             "hosts output ({} instead of {}) is too long to be stored in "
             "database.",
-            hs.output.size(), get_hosts_col_size(hosts_output));
+            hs.output.size(),
+            get_hosts_col_size(hosts_output));
         trunc_hs.output.resize(get_hosts_col_size(hosts_output));
       }
       if (hs.perf_data.size() > get_hosts_col_size(hosts_perfdata)) {
         log_v2::sql()->warn(
             "hosts perfdata ({} instead of {}) is too long to be stored in "
             "database.",
-            hs.perf_data.size(), get_hosts_col_size(hosts_perfdata));
+            hs.perf_data.size(),
+            get_hosts_col_size(hosts_perfdata));
         trunc_hs.perf_data.resize(get_hosts_col_size(hosts_perfdata));
       }
       _host_status_update << trunc_hs;
@@ -1587,17 +1676,18 @@ void conflict_manager::_process_host_status(std::shared_ptr<io::data> d) {
 void conflict_manager::_process_instance(std::shared_ptr<io::data> d) {
   neb::instance& i(*static_cast<neb::instance*>(d.get()));
   int32_t conn = _mysql.choose_connection_by_instance(i.poller_id);
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments | actions::servicegroups |
-                         actions::hostgroups | actions::service_dependencies |
-                         actions::host_dependencies);
+  _finish_action(-1,
+                 actions::hosts | actions::acknowledgements | actions::modules |
+                     actions::downtimes | actions::comments |
+                     actions::servicegroups | actions::hostgroups |
+                     actions::service_dependencies |
+                     actions::host_dependencies);
 
   // Log message.
-  logging::info(logging::medium)
-      << "SQL: processing poller event "
-      << "(id: " << i.poller_id << ", name: " << i.name
-      << ", running: " << (i.is_running ? "yes" : "no") << ")";
+  logging::info(logging::medium) << "SQL: processing poller event "
+                                 << "(id: " << i.poller_id
+                                 << ", name: " << i.name << ", running: "
+                                 << (i.is_running ? "yes" : "no") << ")";
 
   // Clean tables.
   _clean_tables(i.poller_id);
@@ -1625,21 +1715,24 @@ void conflict_manager::_process_instance(std::shared_ptr<io::data> d) {
             "instances name ({} instead of {}) is too long to be stored "
             "in "
             "database.",
-            i.name.size(), get_instances_col_size(instances_name));
+            i.name.size(),
+            get_instances_col_size(instances_name));
         trunc_i.name.resize(get_instances_col_size(instances_name));
       }
       if (i.engine.size() > get_instances_col_size(instances_engine)) {
         log_v2::sql()->warn(
             "instances engine ({} instead of {}) is too long to be stored in "
             "database.",
-            i.engine.size(), get_instances_col_size(instances_engine));
+            i.engine.size(),
+            get_instances_col_size(instances_engine));
         trunc_i.engine.resize(get_instances_col_size(instances_engine));
       }
       if (i.version.size() > get_instances_col_size(instances_version)) {
         log_v2::sql()->warn(
             "instances version ({} instead of {}) is too long to be stored "
             "in database.",
-            i.version.size(), get_instances_col_size(instances_version));
+            i.version.size(),
+            get_instances_col_size(instances_version));
         trunc_i.version.resize(get_instances_col_size(instances_version));
       }
       _instance_insupdate << trunc_i;
@@ -1664,14 +1757,14 @@ void conflict_manager::_process_instance_status(std::shared_ptr<io::data> d) {
   neb::instance_status& is = *static_cast<neb::instance_status*>(d.get());
   int32_t conn = _mysql.choose_connection_by_instance(is.poller_id);
 
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments);
+  _finish_action(-1,
+                 actions::hosts | actions::acknowledgements | actions::modules |
+                     actions::downtimes | actions::comments);
 
   // Log message.
-  logging::info(logging::medium)
-      << "SQL: processing poller status event (id: " << is.poller_id
-      << ", last alive: " << is.last_alive << ")";
+  logging::info(logging::medium) << "SQL: processing poller status event (id: "
+                                 << is.poller_id
+                                 << ", last alive: " << is.last_alive << ")";
 
   // Processing.
   if (_is_valid_poller(is.poller_id)) {
@@ -1734,9 +1827,10 @@ void conflict_manager::_process_log(std::shared_ptr<io::data> d) {
   neb::log_entry const& le(*static_cast<neb::log_entry const*>(d.get()));
 
   // Log message.
-  logging::info(logging::medium)
-      << "SQL: processing log of poller '" << le.poller_name
-      << "' generated at " << le.c_time << " (type " << le.msg_type << ")";
+  logging::info(logging::medium) << "SQL: processing log of poller '"
+                                 << le.poller_name << "' generated at "
+                                 << le.c_time << " (type " << le.msg_type
+                                 << ")";
 
   // Prepare query.
   if (!_log_insert.prepared()) {
@@ -1758,14 +1852,16 @@ void conflict_manager::_process_log(std::shared_ptr<io::data> d) {
       log_v2::sql()->warn(
           "logs host_name ({} instead of {}) is too long to be stored in "
           "database.",
-          le.host_name.size(), get_logs_col_size(logs_host_name));
+          le.host_name.size(),
+          get_logs_col_size(logs_host_name));
       trunc_le.host_name.resize(get_logs_col_size(logs_host_name));
     }
     if (le.poller_name.size() > get_logs_col_size(logs_instance_name)) {
       log_v2::sql()->warn(
           "logs instance_name ({} instead of {}) is too long to be stored in "
           "database.",
-          le.poller_name.size(), get_logs_col_size(logs_instance_name));
+          le.poller_name.size(),
+          get_logs_col_size(logs_instance_name));
       trunc_le.poller_name.resize(get_logs_col_size(logs_instance_name));
     }
     if (le.notification_cmd.size() > get_logs_col_size(logs_notification_cmd)) {
@@ -1773,7 +1869,8 @@ void conflict_manager::_process_log(std::shared_ptr<io::data> d) {
           "logs notification_cmd ({} instead of {}) is too long to be stored "
           "in "
           "database.",
-          le.notification_cmd.size(), get_logs_col_size(logs_notification_cmd));
+          le.notification_cmd.size(),
+          get_logs_col_size(logs_notification_cmd));
       trunc_le.notification_cmd.resize(
           get_logs_col_size(logs_notification_cmd));
     }
@@ -1792,7 +1889,8 @@ void conflict_manager::_process_log(std::shared_ptr<io::data> d) {
       log_v2::sql()->warn(
           "logs output ({} instead of {}) is too long to be stored in "
           "database.",
-          le.output.size(), get_logs_col_size(logs_output));
+          le.output.size(),
+          get_logs_col_size(logs_output));
       trunc_le.output.resize(get_logs_col_size(logs_output));
     }
     if (le.service_description.size() >
@@ -1827,10 +1925,10 @@ void conflict_manager::_process_module(std::shared_ptr<io::data> d) {
   int32_t conn = _mysql.choose_connection_by_instance(m.poller_id);
 
   // Log message.
-  logging::info(logging::medium)
-      << "SQL: processing module event (poller: " << m.poller_id
-      << ", filename: " << m.filename
-      << ", loaded: " << (m.loaded ? "yes" : "no") << ")";
+  logging::info(logging::medium) << "SQL: processing module event (poller: "
+                                 << m.poller_id << ", filename: " << m.filename
+                                 << ", loaded: " << (m.loaded ? "yes" : "no")
+                                 << ")";
 
   // Processing.
   if (_is_valid_poller(m.poller_id)) {
@@ -1851,14 +1949,16 @@ void conflict_manager::_process_module(std::shared_ptr<io::data> d) {
         log_v2::sql()->warn(
             "modules args ({} instead of {}) is too long to be stored in "
             "database.",
-            m.args.size(), get_modules_col_size(modules_args));
+            m.args.size(),
+            get_modules_col_size(modules_args));
         tmp_m->args.resize(get_modules_col_size(modules_args));
       }
       if (m.filename.size() > get_modules_col_size(modules_filename)) {
         log_v2::sql()->warn(
             "modules filename ({} instead of {}) is too long to be stored in "
             "database.",
-            m.filename.size(), get_modules_col_size(modules_filename));
+            m.filename.size(),
+            get_modules_col_size(modules_filename));
         tmp_m->filename.resize(get_modules_col_size(modules_filename));
       }
     } else
@@ -1873,7 +1973,8 @@ void conflict_manager::_process_module(std::shared_ptr<io::data> d) {
     } else {
       std::string query(fmt::format(
           "DELETE FROM modules WHERE instance_id={} AND filename='{}'",
-          tmp_m->poller_id, tmp_m->filename));
+          tmp_m->poller_id,
+          tmp_m->filename));
       _mysql.run_query(query, "SQL: ", false, conn);
       _add_action(conn, actions::modules);
     }
@@ -1891,21 +1992,23 @@ void conflict_manager::_process_module(std::shared_ptr<io::data> d) {
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_service_check(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::downtimes | actions::comments |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::downtimes | actions::comments |
+                     actions::host_dependencies | actions::host_parents |
+                     actions::service_dependencies);
 
   // Cast object.
   neb::service_check const& sc(
       *static_cast<neb::service_check const*>(d.get()));
 
   time_t now{time(nullptr)};
-  if (sc.check_type                 // - passive result
-      || !sc.active_checks_enabled  // - active checks are disabled,
-                                    //   status might not be updated
-                                    // - normal case
-      || (sc.next_check >= now - 5 * 60) ||
-      !sc.next_check) {  // - initial state
+  if (sc.check_type  // - passive result
+      ||
+      !sc.active_checks_enabled  // - active checks are disabled,
+                                 //   status might not be updated
+                                 // - normal case
+      ||
+      (sc.next_check >= now - 5 * 60) || !sc.next_check) {  // - initial state
     // Apply to DB.
     logging::info(logging::medium)
         << "SQL: processing service check event (host: " << sc.host_id
@@ -1923,7 +2026,8 @@ void conflict_manager::_process_service_check(std::shared_ptr<io::data> d) {
 
     // Processing.
     bool store = true;
-    size_t str_hash = std::hash<std::string>{}(sc.command_line);
+    size_t str_hash = std::hash<std::string> {}
+    (sc.command_line);
     // Did the command changed since last time?
     if (_cache_svc_cmd[{sc.host_id, sc.service_id}] != str_hash)
       _cache_svc_cmd[std::make_pair(sc.host_id, sc.service_id)] = str_hash;
@@ -1947,10 +2051,11 @@ void conflict_manager::_process_service_check(std::shared_ptr<io::data> d) {
           _service_check_update << sc;
 
         std::promise<int> promise;
-        std::string err_msg(
-            fmt::format("SQL: could not store service check command (host: {}, "
-                        "service: {}): ",
-                        sc.host_id, sc.service_id));
+        std::string err_msg(fmt::format(
+            "SQL: could not store service check command (host: {}, "
+            "service: {}): ",
+            sc.host_id,
+            sc.service_id));
         int32_t conn = _mysql.choose_connection_by_instance(
             _cache_host_instance[sc.host_id]);
         _mysql.run_statement(_service_check_update, err_msg, false, conn);
@@ -1980,10 +2085,10 @@ void conflict_manager::_process_service_dependency(
     std::shared_ptr<io::data> d) {
   int32_t conn =
       _mysql.choose_best_connection(neb::service_dependency::static_type());
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::downtimes | actions::comments |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::hosts | actions::host_parents | actions::downtimes |
+                     actions::comments | actions::host_dependencies |
+                     actions::service_dependencies);
 
   // Cast object.
   neb::service_dependency const& sd(
@@ -1991,10 +2096,11 @@ void conflict_manager::_process_service_dependency(
 
   // Insert/Update.
   if (sd.enabled) {
-    logging::info(logging::medium)
-        << "SQL: enabling service dependency of (" << sd.dependent_host_id
-        << ", " << sd.dependent_service_id << ") on (" << sd.host_id << ", "
-        << sd.service_id << ")";
+    logging::info(logging::medium) << "SQL: enabling service dependency of ("
+                                   << sd.dependent_host_id << ", "
+                                   << sd.dependent_service_id << ") on ("
+                                   << sd.host_id << ", " << sd.service_id
+                                   << ")";
 
     // Prepare queries.
     if (!_service_dependency_insupdate.prepared()) {
@@ -2011,7 +2117,9 @@ void conflict_manager::_process_service_dependency(
     std::string err_msg(fmt::format(
         "SQL: could not store service dependency (host: {}, service: {}, "
         "dependent host: {}, dependent service: {}): ",
-        sd.host_id, sd.service_id, sd.dependent_host_id,
+        sd.host_id,
+        sd.service_id,
+        sd.dependent_host_id,
         sd.dependent_service_id));
 
     if (sd.dependency_period.size() >
@@ -2072,14 +2180,17 @@ void conflict_manager::_process_service_dependency(
   }
   // Delete.
   else {
-    logging::info(logging::medium)
-        << "SQL: removing service dependency of (" << sd.dependent_host_id
-        << ", " << sd.dependent_service_id << ") on (" << sd.host_id << ", "
-        << sd.service_id << ")";
+    logging::info(logging::medium) << "SQL: removing service dependency of ("
+                                   << sd.dependent_host_id << ", "
+                                   << sd.dependent_service_id << ") on ("
+                                   << sd.host_id << ", " << sd.service_id
+                                   << ")";
     std::string query(fmt::format(
         "DELETE FROM serivces_services_dependencies WHERE dependent_host_id={} "
         "AND dependent_service_id={} AND host_id={} AND service_id={}",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
+        sd.dependent_host_id,
+        sd.dependent_service_id,
+        sd.host_id,
         sd.service_id));
     _mysql.run_query(query, "SQL: ", false, conn);
     _add_action(conn, actions::service_dependencies);
@@ -2104,21 +2215,23 @@ void conflict_manager::_process_service_group(std::shared_ptr<io::data> d) {
 
   // Insert/update group.
   if (sg.enabled) {
-    logging::info(logging::medium)
-        << "SQL: enabling service group " << sg.id << " ('" << sg.name
-        << "') on instance " << sg.poller_id;
+    logging::info(logging::medium) << "SQL: enabling service group " << sg.id
+                                   << " ('" << sg.name << "') on instance "
+                                   << sg.poller_id;
     _prepare_sg_insupdate_statement();
 
     std::string err_msg(fmt::format(
         "SQL: could not store service group (poller: {}, group: {}): ",
-        sg.poller_id, sg.id));
+        sg.poller_id,
+        sg.id));
 
     if (sg.name.size() > get_servicegroups_col_size(servicegroups_name)) {
       neb::service_group trunc_sg(sg);
       log_v2::sql()->warn(
           "servicegroups name ({} instead of {}) is too long to be "
           "stored in database.",
-          sg.name.size(), get_servicegroups_col_size(servicegroups_name));
+          sg.name.size(),
+          get_servicegroups_col_size(servicegroups_name));
       trunc_sg.name.resize(get_servicegroups_col_size(servicegroups_name));
       _service_group_insupdate << trunc_sg;
     } else
@@ -2131,9 +2244,9 @@ void conflict_manager::_process_service_group(std::shared_ptr<io::data> d) {
   }
   // Delete group.
   else {
-    logging::info(logging::medium)
-        << "SQL: disabling service group " << sg.id << " ('" << sg.name
-        << "') on instance " << sg.poller_id;
+    logging::info(logging::medium) << "SQL: disabling service group " << sg.id
+                                   << " ('" << sg.name << "') on instance "
+                                   << sg.poller_id;
 
     // Delete group members.
     {
@@ -2142,7 +2255,8 @@ void conflict_manager::_process_service_group(std::shared_ptr<io::data> d) {
           "JOIN hosts ON services_servicegroups.host_id=hosts.host_id WHERE "
           "services_servicegroups.servicegroup_id={} AND "
           "hosts.instance_id={}",
-          sg.id, sg.poller_id));
+          sg.id,
+          sg.poller_id));
       _mysql.run_query(query, "SQL: ", false, conn);
       _add_action(conn, actions::servicegroups);
       _servicegroup_cache.erase(sg.id);
@@ -2170,10 +2284,10 @@ void conflict_manager::_process_service_group_member(
 
   if (sgm.enabled) {
     // Log message.
-    logging::info(logging::medium)
-        << "SQL: enabling membership of service (" << sgm.host_id << ", "
-        << sgm.service_id << ") to service group " << sgm.group_id
-        << " on instance " << sgm.poller_id;
+    logging::info(logging::medium) << "SQL: enabling membership of service ("
+                                   << sgm.host_id << ", " << sgm.service_id
+                                   << ") to service group " << sgm.group_id
+                                   << " on instance " << sgm.poller_id;
 
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.
@@ -2201,14 +2315,16 @@ void conflict_manager::_process_service_group_member(
 
       std::string err_msg(fmt::format(
           "SQL: could not store service group (poller: {}, group: {}): ",
-          sg.poller_id, sg.id));
+          sg.poller_id,
+          sg.id));
 
       if (sg.name.size() > get_servicegroups_col_size(servicegroups_name)) {
         neb::service_group trunc_sg(sg);
         log_v2::sql()->warn(
             "servicegroups name ({} instead of {}) is too long to be "
             "stored in database.",
-            sg.name.size(), get_servicegroups_col_size(servicegroups_name));
+            sg.name.size(),
+            get_servicegroups_col_size(servicegroups_name));
         trunc_sg.name.resize(get_servicegroups_col_size(servicegroups_name));
         _service_group_insupdate << trunc_sg;
       } else
@@ -2217,30 +2333,36 @@ void conflict_manager::_process_service_group_member(
       _add_action(conn, actions::servicegroups);
     }
 
-    if (sgm.group_name.size() > get_servicegroups_col_size(servicegroups_name)) {
+    if (sgm.group_name.size() >
+        get_servicegroups_col_size(servicegroups_name)) {
       neb::service_group_member trunc_sgm(sgm);
       log_v2::sql()->warn(
           "servicegroups name ({} instead of {}) is too long to be "
           "stored in database.",
-          sgm.group_name.size(), get_servicegroups_col_size(servicegroups_name));
-      trunc_sgm.group_name.resize(get_servicegroups_col_size(servicegroups_name));
+          sgm.group_name.size(),
+          get_servicegroups_col_size(servicegroups_name));
+      trunc_sgm.group_name.resize(
+          get_servicegroups_col_size(servicegroups_name));
       _service_group_member_insert << trunc_sgm;
     } else
       _service_group_member_insert << sgm;
     std::string err_msg(fmt::format(
         "SQL: could not store service group membership (poller: {}, host: "
         "{}, service: {}, group: {}): ",
-        sgm.poller_id, sgm.host_id, sgm.service_id, sgm.group_id));
+        sgm.poller_id,
+        sgm.host_id,
+        sgm.service_id,
+        sgm.group_id));
     _mysql.run_statement(_service_group_member_insert, err_msg, false, conn);
     _add_action(conn, actions::servicegroups);
   }
   // Delete.
   else {
     // Log message.
-    logging::info(logging::medium)
-        << "SQL: disabling membership of service (" << sgm.host_id << ", "
-        << sgm.service_id << ") to service group " << sgm.group_id
-        << " on instance " << sgm.poller_id;
+    logging::info(logging::medium) << "SQL: disabling membership of service ("
+                                   << sgm.host_id << ", " << sgm.service_id
+                                   << ") to service group " << sgm.group_id
+                                   << " on instance " << sgm.poller_id;
 
     if (!_service_group_member_delete.prepared()) {
       query_preparator::event_unique unique;
@@ -2253,7 +2375,10 @@ void conflict_manager::_process_service_group_member(
     std::string err_msg(fmt::format(
         "SQL: cannot delete membership of service (host: {}, service: {}) to "
         "service group {} on instance {}: ",
-        sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id));
+        sgm.host_id,
+        sgm.service_id,
+        sgm.group_id,
+        sgm.poller_id));
 
     _service_group_member_delete << sgm;
     _mysql.run_statement(_service_group_member_delete, err_msg, false, conn);
@@ -2269,9 +2394,10 @@ void conflict_manager::_process_service_group_member(
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_service(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::host_parents | actions::comments |
+                     actions::downtimes | actions::host_dependencies |
+                     actions::service_dependencies);
 
   // Processed object.
   neb::service const& s(*static_cast<neb::service const*>(d.get()));
@@ -2280,11 +2406,11 @@ void conflict_manager::_process_service(std::shared_ptr<io::data> d) {
         _mysql.choose_connection_by_instance(_cache_host_instance[s.host_id]);
 
     // Log message.
-    logging::info(logging::medium)
-        << "SQL: processing service event "
-           "(host id: "
-        << s.host_id << ", service_id: " << s.service_id
-        << ", description: " << s.service_description << ")";
+    logging::info(logging::medium) << "SQL: processing service event "
+                                      "(host id: " << s.host_id
+                                   << ", service_id: " << s.service_id
+                                   << ", description: " << s.service_description
+                                   << ")";
 
     // Processing.
     // FixMe BAM Generate fake services, this service
@@ -2301,9 +2427,10 @@ void conflict_manager::_process_service(std::shared_ptr<io::data> d) {
         _service_insupdate = qp.prepare_insert_or_update(_mysql);
       }
 
-      std::string err_msg(fmt::format(
-          "SQL: could not store service (host: {}, service: {}): ", s.host_id,
-          s.service_id));
+      std::string err_msg(
+          fmt::format("SQL: could not store service (host: {}, service: {}): ",
+                      s.host_id,
+                      s.service_id));
 
       if (s.service_description.size() >
               get_services_col_size(services_description) ||
@@ -2327,94 +2454,121 @@ void conflict_manager::_process_service(std::shared_ptr<io::data> d) {
           s.perf_data.size() > get_services_col_size(services_perfdata)) {
         neb::service trunc_s(s);
         if (s.service_description.size() >
-              get_services_col_size(services_description)) {
+            get_services_col_size(services_description)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.service_description.size(), get_services_col_size(services_description));
-          trunc_s.service_description.resize(get_services_col_size(services_description));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.service_description.size(),
+              get_services_col_size(services_description));
+          trunc_s.service_description.resize(
+              get_services_col_size(services_description));
         }
-        if (s.action_url.size() >
-              get_services_col_size(services_action_url)) {
+        if (s.action_url.size() > get_services_col_size(services_action_url)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.action_url.size(), get_services_col_size(services_action_url));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.action_url.size(),
+              get_services_col_size(services_action_url));
           trunc_s.action_url.resize(get_services_col_size(services_action_url));
         }
         if (s.check_command.size() >
-              get_services_col_size(services_check_command)) {
+            get_services_col_size(services_check_command)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.check_command.size(), get_services_col_size(services_check_command));
-          trunc_s.check_command.resize(get_services_col_size(services_check_command));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.check_command.size(),
+              get_services_col_size(services_check_command));
+          trunc_s.check_command.resize(
+              get_services_col_size(services_check_command));
         }
         if (s.check_period.size() >
-              get_services_col_size(services_check_period)) {
+            get_services_col_size(services_check_period)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.check_period.size(), get_services_col_size(services_check_period));
-          trunc_s.check_period.resize(get_services_col_size(services_check_period));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.check_period.size(),
+              get_services_col_size(services_check_period));
+          trunc_s.check_period.resize(
+              get_services_col_size(services_check_period));
         }
         if (s.display_name.size() >
-              get_services_col_size(services_display_name)) {
+            get_services_col_size(services_display_name)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.display_name.size(), get_services_col_size(services_display_name));
-          trunc_s.display_name.resize(get_services_col_size(services_display_name));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.display_name.size(),
+              get_services_col_size(services_display_name));
+          trunc_s.display_name.resize(
+              get_services_col_size(services_display_name));
         }
         if (s.event_handler.size() >
-              get_services_col_size(services_event_handler)) {
+            get_services_col_size(services_event_handler)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.event_handler.size(), get_services_col_size(services_event_handler));
-          trunc_s.event_handler.resize(get_services_col_size(services_event_handler));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.event_handler.size(),
+              get_services_col_size(services_event_handler));
+          trunc_s.event_handler.resize(
+              get_services_col_size(services_event_handler));
         }
-        if (s.icon_image.size() >
-              get_services_col_size(services_icon_image)) {
+        if (s.icon_image.size() > get_services_col_size(services_icon_image)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.icon_image.size(), get_services_col_size(services_icon_image));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.icon_image.size(),
+              get_services_col_size(services_icon_image));
           trunc_s.icon_image.resize(get_services_col_size(services_icon_image));
         }
         if (s.icon_image_alt.size() >
-              get_services_col_size(services_icon_image_alt)) {
+            get_services_col_size(services_icon_image_alt)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.icon_image_alt.size(), get_services_col_size(services_icon_image_alt));
-          trunc_s.icon_image_alt.resize(get_services_col_size(services_icon_image_alt));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.icon_image_alt.size(),
+              get_services_col_size(services_icon_image_alt));
+          trunc_s.icon_image_alt.resize(
+              get_services_col_size(services_icon_image_alt));
         }
-        if (s.notes.size() >
-              get_services_col_size(services_notes)) {
+        if (s.notes.size() > get_services_col_size(services_notes)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.notes.size(), get_services_col_size(services_notes));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.notes.size(),
+              get_services_col_size(services_notes));
           trunc_s.notes.resize(get_services_col_size(services_notes));
         }
-        if (s.notes_url.size() >
-              get_services_col_size(services_notes_url)) {
+        if (s.notes_url.size() > get_services_col_size(services_notes_url)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.notes_url.size(), get_services_col_size(services_notes_url));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.notes_url.size(),
+              get_services_col_size(services_notes_url));
           trunc_s.notes_url.resize(get_services_col_size(services_notes_url));
         }
         if (s.notification_period.size() >
-              get_services_col_size(services_notification_period)) {
+            get_services_col_size(services_notification_period)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.notification_period.size(), get_services_col_size(services_notification_period));
-          trunc_s.notification_period.resize(get_services_col_size(services_notification_period));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.notification_period.size(),
+              get_services_col_size(services_notification_period));
+          trunc_s.notification_period.resize(
+              get_services_col_size(services_notification_period));
         }
-        if (s.output.size() >
-              get_services_col_size(services_output)) {
+        if (s.output.size() > get_services_col_size(services_output)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.output.size(), get_services_col_size(services_output));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.output.size(),
+              get_services_col_size(services_output));
           trunc_s.output.resize(get_services_col_size(services_output));
         }
-        if (s.perf_data.size() >
-              get_services_col_size(services_perfdata)) {
+        if (s.perf_data.size() > get_services_col_size(services_perfdata)) {
           log_v2::sql()->warn(
-              "services description ({} instead of {}) is too long to be stored in database.",
-              s.perf_data.size(), get_services_col_size(services_perfdata));
+              "services description ({} instead of {}) is too long to be "
+              "stored in database.",
+              s.perf_data.size(),
+              get_services_col_size(services_perfdata));
           trunc_s.perf_data.resize(get_services_col_size(services_perfdata));
         }
         _service_insupdate << trunc_s;
@@ -2442,9 +2596,10 @@ void conflict_manager::_process_service(std::shared_ptr<io::data> d) {
  * @return The number of events that can be acknowledged.
  */
 void conflict_manager::_process_service_status(std::shared_ptr<io::data> d) {
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(-1,
+                 actions::host_parents | actions::comments |
+                     actions::downtimes | actions::host_dependencies |
+                     actions::service_dependencies);
   // Processed object.
   neb::service_status const& ss{
       *static_cast<neb::service_status const*>(d.get())};
@@ -2458,7 +2613,8 @@ void conflict_manager::_process_service_status(std::shared_ptr<io::data> d) {
       !ss.active_checks_enabled  // - active checks are disabled,
                                  //   status might not be updated
       ||                         // - normal case
-      ss.next_check >= now - 5 * 60 || !ss.next_check) {  // - initial state
+      ss.next_check >= now - 5 * 60 ||
+      !ss.next_check) {  // - initial state
     // Apply to DB.
     logging::info(logging::medium)
         << "SQL: processing service status event (host: " << ss.host_id
@@ -2475,47 +2631,63 @@ void conflict_manager::_process_service_status(std::shared_ptr<io::data> d) {
     }
 
     // Processing.
-    if (ss.check_command.size() > get_services_col_size(services_check_command) ||
+    if (ss.check_command.size() >
+            get_services_col_size(services_check_command) ||
         ss.check_period.size() > get_services_col_size(services_check_period) ||
-        ss.event_handler.size() > get_services_col_size(services_event_handler) ||
+        ss.event_handler.size() >
+            get_services_col_size(services_event_handler) ||
         ss.output.size() > get_services_col_size(services_output) ||
         ss.perf_data.size() > get_services_col_size(services_perfdata)) {
       neb::service_status trunc_ss(ss);
-      if (ss.check_command.size() > get_services_col_size(services_check_command)) {
+      if (ss.check_command.size() >
+          get_services_col_size(services_check_command)) {
         log_v2::sql()->warn(
-            "services check_command ({} instead of {}) is too long to be stored "
+            "services check_command ({} instead of {}) is too long to be "
+            "stored "
             "in "
             "database.",
-            ss.check_command.size(), get_services_col_size(services_check_command));
-        trunc_ss.check_command.resize(get_services_col_size(services_check_command));
+            ss.check_command.size(),
+            get_services_col_size(services_check_command));
+        trunc_ss.check_command.resize(
+            get_services_col_size(services_check_command));
       }
-      if (ss.check_period.size() > get_services_col_size(services_check_period)) {
+      if (ss.check_period.size() >
+          get_services_col_size(services_check_period)) {
         log_v2::sql()->warn(
-            "services check_period ({} instead of {}) is too long to be stored in "
-            "database.",
-            ss.check_period.size(), get_services_col_size(services_check_period));
-        trunc_ss.check_period.resize(get_services_col_size(services_check_period));
-      }
-      if (ss.event_handler.size() > get_services_col_size(services_event_handler)) {
-        log_v2::sql()->warn(
-            "services event_handler ({} instead of {}) is too long to be stored "
+            "services check_period ({} instead of {}) is too long to be stored "
             "in "
             "database.",
-            ss.event_handler.size(), get_services_col_size(services_event_handler));
-        trunc_ss.event_handler.resize(get_services_col_size(services_event_handler));
+            ss.check_period.size(),
+            get_services_col_size(services_check_period));
+        trunc_ss.check_period.resize(
+            get_services_col_size(services_check_period));
+      }
+      if (ss.event_handler.size() >
+          get_services_col_size(services_event_handler)) {
+        log_v2::sql()->warn(
+            "services event_handler ({} instead of {}) is too long to be "
+            "stored "
+            "in "
+            "database.",
+            ss.event_handler.size(),
+            get_services_col_size(services_event_handler));
+        trunc_ss.event_handler.resize(
+            get_services_col_size(services_event_handler));
       }
       if (ss.output.size() > get_services_col_size(services_output)) {
         log_v2::sql()->warn(
             "services output ({} instead of {}) is too long to be stored in "
             "database.",
-            ss.output.size(), get_services_col_size(services_output));
+            ss.output.size(),
+            get_services_col_size(services_output));
         trunc_ss.output.resize(get_services_col_size(services_output));
       }
       if (ss.perf_data.size() > get_services_col_size(services_perfdata)) {
         log_v2::sql()->warn(
             "services perfdata ({} instead of {}) is too long to be stored in "
             "database.",
-            ss.perf_data.size(), get_services_col_size(services_perfdata));
+            ss.perf_data.size(),
+            get_services_col_size(services_perfdata));
         trunc_ss.perf_data.resize(get_services_col_size(services_perfdata));
       }
       _service_status_update << trunc_ss;
@@ -2523,7 +2695,8 @@ void conflict_manager::_process_service_status(std::shared_ptr<io::data> d) {
       _service_status_update << ss;
     std::string err_msg(fmt::format(
         "SQL: could not store service status (host: {}, service: {}) ",
-        ss.host_id, ss.service_id));
+        ss.host_id,
+        ss.service_id));
     int32_t conn =
         _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id]);
     _mysql.run_statement(_service_status_update, err_msg, false, conn);

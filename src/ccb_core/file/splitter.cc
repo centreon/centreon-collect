@@ -337,7 +337,7 @@ void splitter::_open_read_file() {
           file_path, fs_file::open_read_write_no_create)};
       _rfile = new_file;
     }
-    catch (exceptions::msg const& e) {
+    catch (msg_fmt const& e) {
       std::shared_ptr<fs_file> new_file{std::make_shared<cfile>(
           file_path, fs_file::open_read_write_truncate)};
       _rfile = new_file;
@@ -364,7 +364,7 @@ void splitter::_open_write_file() {
     try {
       _wfile.reset(new cfile(file_path, fs_file::open_read_write_no_create));
     }
-    catch (exceptions::msg const& e) {
+    catch (msg_fmt const& e) {
       _wfile.reset(new cfile(file_path, fs_file::open_read_write_truncate));
     }
   }

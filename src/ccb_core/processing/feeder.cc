@@ -120,8 +120,7 @@ void feeder::start() {
   std::unique_lock<std::mutex> lock(_started_m);
   _stopped = false;
   if (!_client)
-    throw exceptions::msg() << "could not process '" << _name
-                            << "' with no client stream";
+    throw msg_fmt("could not process '{}' with no client stream", _name);
 
   if (!_started) {
     _should_exit = false;

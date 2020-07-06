@@ -24,6 +24,7 @@
 //#include "com/centreon/broker/bbdo/stream.hh"
 //#include "com/centreon/broker/config/applier/init.hh"
 //#include "com/centreon/broker/exceptions/msg.hh"
+//#include "com/centreon/exceptions/msg_fmt.hh"
 //#include "com/centreon/broker/extcmd/command_request.hh"
 //#include "com/centreon/broker/extcmd/internal.hh"
 //#include "com/centreon/broker/file/stream.hh"
@@ -33,6 +34,7 @@
 //#include "com/centreon/broker/neb/service.hh"
 //#include "com/centreon/broker/modules/loader.hh"
 //
+// using namespace com::centreon::exceptions;
 // using namespace com::centreon::broker;
 //
 //// Valid empty event (a command_request).
@@ -53,7 +55,7 @@
 //    (void)deadline;
 //    std::cout << "from memory read...\n";
 //    if (sent_data)
-//      throw exceptions::msg() << "shutdown";
+//      throw msg_fmt("shutdown");
 //    std::shared_ptr<io::raw> raw(new io::raw);
 //    raw->get_buffer() = _memory;
 //    d = raw;
@@ -146,7 +148,7 @@
 ////            0x55667788);
 ////  ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 260);
 ////  ASSERT_EQ(htonl(*reinterpret_cast<uint32_t const*>(&mem1[0] + 91)),
-///12345u); /  ASSERT_EQ(std::string(&mem1[0] + 265), "Bonjour");
+/// 12345u); /  ASSERT_EQ(std::string(&mem1[0] + 265), "Bonjour");
 ////
 ////  ASSERT_EQ(std::string(&mem1[0] + 265), "Bonjour");
 ////  svc->host_id = 78113;
@@ -157,8 +159,8 @@
 ////
 ////  ASSERT_EQ(mem2.size(), 276);
 ////  ASSERT_EQ(htonl(*reinterpret_cast<uint32_t const*>(&mem1[0] + 91)),
-///78113u); /  // The size is 276 - 16: 16 is the header size. /
-///ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 260);
+/// 78113u); /  // The size is 276 - 16: 16 is the header size. /
+/// ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 260);
 ////
 ////  // Check checksum
 ////  ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0])), 33491);
