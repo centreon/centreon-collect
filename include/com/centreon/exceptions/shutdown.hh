@@ -40,12 +40,6 @@ class shutdown : public msg_fmt {
   shutdown() = delete;
   ~shutdown() noexcept {}
   shutdown& operator=(const shutdown&) = delete;
-
-  /**
-   *  Insert data in message.
-   *
-   *  @param[in] t Data to insert.
-   */
 };
 }  // namespace exceptions
 

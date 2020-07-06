@@ -20,7 +20,6 @@
 #define CCB_CONFIGURATION_READER_EXCEPTION_HH
 
 #include <exception>
-#include "com/centreon/broker/misc/stringifier.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 CCB_BEGIN()
