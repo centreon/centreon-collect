@@ -59,7 +59,6 @@ add_library(20-bam SHARED
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/bool_expression.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/kpi.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/meta_service.cc
-  ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/reader_exception.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/reader_v2.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/state.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/connector.cc
