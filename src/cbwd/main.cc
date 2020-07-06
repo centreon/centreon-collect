@@ -34,6 +34,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::watchdog;
 
@@ -48,9 +49,7 @@ static bool sighup{false};
 /**
  *  Print the help.
  */
-static void print_help() {
-  std::cout << help_msg << std::endl;
-}
+static void print_help() { std::cout << help_msg << std::endl; }
 
 /**
  *  This function applies a new configuration in replacement of the current one.
@@ -81,7 +80,8 @@ static void apply_new_configuration(configuration const& cfg) {
   for (configuration::instance_map::const_iterator
            it(config.get_instances_configuration().begin()),
        end(config.get_instances_configuration().end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     instance_configuration new_config(
         cfg.get_instance_configuration(it->first));
     if (new_config.is_empty())
@@ -97,7 +97,8 @@ static void apply_new_configuration(configuration const& cfg) {
   // Delete old processes.
   for (std::set<std::string>::const_iterator it(to_delete.begin()),
        end(to_delete.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::unordered_map<std::string, instance*>::iterator found(
         instances.find(*it));
     if (found != instances.end()) {
@@ -111,14 +112,16 @@ static void apply_new_configuration(configuration const& cfg) {
   for (configuration::instance_map::const_iterator
            it(cfg.get_instances_configuration().begin()),
        end(cfg.get_instances_configuration().end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (!config.instance_exists(it->first))
       to_create.insert(it->first);
 
   // Update processes.
   for (std::set<std::string>::const_iterator it(to_update.begin()),
        end(to_update.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::unordered_map<std::string, instance*>::iterator found(
         instances.find(*it));
     if (found != instances.end()) {
@@ -130,7 +133,8 @@ static void apply_new_configuration(configuration const& cfg) {
   // Start new processes.
   for (std::set<std::string>::const_iterator it(to_create.begin()),
        end(to_create.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::unique_ptr<instance> ins(
         new instance(cfg.get_instance_configuration(*it)));
     instances.insert({*it, ins.release()});
@@ -170,7 +174,7 @@ static void set_signal_handlers() {
   if (::sigaction(SIGTERM, &sig, nullptr) < 0 ||
       ::sigaction(SIGINT, &sig, nullptr) < 0 ||
       ::sigaction(SIGHUP, &sig, nullptr) < 0)
-    throw com::centreon::exceptions::msg_fmt("can't set the signal handlers");
+    throw msg_fmt("can't set the signal handlers");
 }
 
 /**
@@ -201,9 +205,11 @@ int main(int argc, char** argv) {
   try {
     configuration_parser parser;
     config = parser.parse(config_filename);
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     logger->error("watchdog: Could not parse the configuration file '{}': {}",
-                  config_filename, e.what());
+                  config_filename,
+                  e.what());
     return 2;
   }
 
@@ -223,7 +229,8 @@ int main(int argc, char** argv) {
         for (std::unordered_map<std::string, instance*>::iterator
                  it = instances.begin(),
                  end = instances.end();
-             it != end; ++it) {
+             it != end;
+             ++it) {
           instance* inst{it->second};
           if (inst->get_pid() == stopped_pid)
             inst->restart();
@@ -251,7 +258,8 @@ int main(int argc, char** argv) {
           configuration_parser parser;
           config = parser.parse(config_filename);
           apply_new_configuration(config);
-        } catch (std::exception const& e) {
+        }
+        catch (std::exception const& e) {
           logger->error("watchdog: Could not parse the new configuration: {}",
                         e.what());
         }
@@ -267,7 +275,8 @@ int main(int argc, char** argv) {
           break;
       }
     }
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     std::cerr << "watchdog: " << e.what() << std::endl;
     retval = 1;
   }
@@ -275,7 +284,8 @@ int main(int argc, char** argv) {
   for (std::unordered_map<std::string, instance*>::iterator
            it{instances.begin()},
        end{instances.end()};
-       it != end; ++it) {
+       it != end;
+       ++it) {
     it->second->stop();
   }
   return retval;
