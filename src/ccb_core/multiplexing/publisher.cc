@@ -17,7 +17,7 @@
 */
 
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 
 using namespace com::centreon::exceptions;

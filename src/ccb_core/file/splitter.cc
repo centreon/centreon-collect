@@ -25,7 +25,7 @@
 #include <sstream>
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
