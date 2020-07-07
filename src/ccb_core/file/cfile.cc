@@ -21,7 +21,7 @@
 #include <cerrno>
 #include <cstring>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::file;

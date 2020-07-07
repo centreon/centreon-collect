@@ -39,9 +39,7 @@ tokenizer::tokenizer(std::string const& line, char separator /*= ';'*/)
 /**
  *  Destructor.
  */
-tokenizer::~tokenizer() {
-  ::free(_line);
-}
+tokenizer::~tokenizer() { ::free(_line); }
 
 template <>
 /**

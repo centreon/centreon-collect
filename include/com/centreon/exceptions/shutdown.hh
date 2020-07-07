@@ -37,16 +37,9 @@ class shutdown : public msg_fmt {
   template <typename... Args>
   explicit shutdown(std::string const& str, const Args&... args)
       : msg_fmt(str, args...) {}
-
   shutdown() = delete;
   ~shutdown() noexcept {}
   shutdown& operator=(const shutdown&) = delete;
-
-  /**
-   *  Insert data in message.
-   *
-   *  @param[in] t Data to insert.
-   */
 };
 }  // namespace exceptions
 

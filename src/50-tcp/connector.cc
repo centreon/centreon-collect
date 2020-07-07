@@ -22,12 +22,13 @@
 #include <memory>
 #include <sstream>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 
@@ -65,8 +66,8 @@ void connector::connect_to(std::string const& host, unsigned short port) {
 std::shared_ptr<io::stream> connector::open() {
   // Launch connection process.
   log_v2::tcp()->info("TCP: connecting to {0}:{1}", _host, _port);
-  logging::info(logging::high)
-      << "TCP: connecting to " << _host << ":" << _port;
+  logging::info(logging::high) << "TCP: connecting to " << _host << ":"
+                               << _port;
   std::string connection_name{_host + ":" + std::to_string(_port)};
 
   std::shared_ptr<asio::ip::tcp::socket> sock;
@@ -91,30 +92,28 @@ std::shared_ptr<io::stream> connector::open() {
     }
 
     if (err) {
-      broker::exceptions::msg e;
-      log_v2::tcp()->error("TCP: could not connect to {0}:{1}",
-                                      _host, _port);
-      e << "TCP: could not connect to remote server '" << _host << ":" << _port
-        << "': " << err.message();
-      throw e;
+      log_v2::tcp()->error("TCP: could not connect to {0}:{1}", _host, _port);
+      throw msg_fmt("TCP: could not connect to remote server '{}:{}': {}",
+                    _host,
+                    _port,
+                    err.message());
     }
 
     asio::socket_base::keep_alive option{true};
     sock->set_option(option);
-  } catch (std::system_error const& se) {
-    broker::exceptions::msg e;
-    log_v2::tcp()->error("TCP: could not resolve {0}:{1}", _host,
-                                    _port);
-    e << "TCP: could not resolve remote server '" << _host << ":" << _port
-      << "': " << se.what();
-    throw e;
+  }
+  catch (std::system_error const& se) {
+    log_v2::tcp()->error("TCP: could not resolve {0}:{1}", _host, _port);
+    throw msg_fmt("TCP: could not resolve remote server '{}:{}': {}",
+                  _host,
+                  _port,
+                  se.what());
   }
   tcp_async::instance().register_socket(*sock);
 
-  log_v2::tcp()->info("TCP: successfully connected to {}",
-                                  connection_name);
-  logging::info(logging::high)
-      << "TCP: successfully connected to " << connection_name;
+  log_v2::tcp()->info("TCP: successfully connected to {}", connection_name);
+  logging::info(logging::high) << "TCP: successfully connected to "
+                               << connection_name;
 
   // Return stream.
   std::shared_ptr<stream> s(std::make_shared<stream>(sock, connection_name));
@@ -128,15 +127,11 @@ std::shared_ptr<io::stream> connector::open() {
  *
  *  @param[in] secs  Timeout in seconds.
  */
-void connector::set_read_timeout(int secs) {
-  _read_timeout = secs;
-}
+void connector::set_read_timeout(int secs) { _read_timeout = secs; }
 
 /**
  *  Set write timeout.
  *
  *  @param[in] secs  Timeout in seconds.
  */
-void connector::set_write_timeout(int secs) {
-  _write_timeout = secs;
-}
+void connector::set_write_timeout(int secs) { _write_timeout = secs; }

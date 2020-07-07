@@ -152,7 +152,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
         }
-        catch (exceptions::corruption const& e) {
+        catch (corruption const& e) {
           logging::debug(logging::medium) << e.what();
         }
       }
@@ -190,7 +190,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
     (void)e;
     return false;
   }
-  catch (exceptions::shutdown const& e) {
+  catch (shutdown const& e) {
     _shutdown = true;
     if (!_wbuffer.empty()) {
       std::shared_ptr<io::raw> r(new io::raw);

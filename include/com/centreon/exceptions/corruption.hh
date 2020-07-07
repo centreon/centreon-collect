@@ -37,7 +37,7 @@ class corruption : public msg_fmt {
  public:
   template <typename... Args>
   explicit corruption(std::string const& str, const Args&... args)
-      : msg_fmt(fmt::format(str, args...)) {}
+      : msg_fmt(str, args...) {}
 
   corruption() = delete;
   ~corruption() noexcept {}
