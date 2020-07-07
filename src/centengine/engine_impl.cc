@@ -41,14 +41,10 @@
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/modules/external_commands/internal.hh"
-#include "com/centreon/engine/modules/external_commands/processing.hh"
-#include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/statistics.hh"
-#include "compatibility/mmap.h"
 #include "engine-version.hh"
 
 using namespace com::centreon::engine;
@@ -1528,56 +1524,5 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* context
   auto fn = std::packaged_task<int(void)>(
       std::bind(&anomalydetection::update_thresholds, filename));
   command_manager::instance().enqueue(std::move(fn));
-  return grpc::Status::OK;
-}
-
-grpc::Status engine_impl::ProcessExternalCommandsFromFile(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ProcessFile* request,
-    CommandSuccess* response) {
-  std::string const& filename = request->filename();
-  if (filename.empty())
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "filename must not be empty");
-
-  auto fn =
-      std::packaged_task<int32_t(void)>([&filename, request]() -> int32_t {
-        bool delete_file;
-        if (request->value())
-          delete_file = true;
-        else
-          delete_file = false;
-
-        logger(dbg_functions, basic) << "process_external_commands_from_file()";
-        logger(dbg_external_command, more)
-            << "Processing commands from file '" << filename << "'.  File will "
-            << (delete_file ? "be" : "NOT be") << " deleted after processing.";
-
-        mmapfile* thefile(nullptr);
-        if ((thefile = mmap_fopen(filename.c_str())) == nullptr) {
-          logger(log_info_message, basic)
-              << "Error: Cannot open file '" << filename
-              << "' to process external commands!";
-          return 1;
-        }
-
-        /* process all commands in the file */
-        char* input(nullptr);
-        while (true) {
-          /* free memory */
-          delete[] input;
-
-          /* read the next line */
-          if ((input = mmap_fgets(thefile)) == nullptr)
-            break;
-        }
-
-        return 0;
-      });
-
-  std::future<int32_t> result = fn.get_future();
-  command_manager::instance().enqueue(std::move(fn));
-
-  response->set_value(!result.get());
   return grpc::Status::OK;
 }

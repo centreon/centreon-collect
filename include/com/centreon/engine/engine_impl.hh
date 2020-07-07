@@ -159,10 +159,6 @@ class engine_impl final : public Engine::Service {
   grpc::Status DelayServiceNotification(grpc::ServerContext* context,
                                         const ServiceDelayIdentifier* request,
                                         CommandSuccess* response) override;
-  grpc::Status ProcessExternalCommandsFromFile(
-      grpc::ServerContext* context,
-      const ProcessFile* request,
-      CommandSuccess* response) override;
 };
 
 CCE_END()
