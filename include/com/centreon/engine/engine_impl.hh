@@ -94,6 +94,42 @@ class engine_impl final : public Engine::Service {
   grpc::Status RemoveServiceAcknowledgement(grpc::ServerContext* context,
                                             const ServiceIdentifier* request,
                                             CommandSuccess* response) override;
+  grpc::Status ScheduleHostDowntime(grpc::ServerContext* context,
+                                    const ScheduleDowntimeIdentifier* request,
+                                    CommandSuccess* response) override;
+  grpc::Status ScheduleServiceDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleHostServicesDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleHostGroupHostsDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleHostGroupServicesDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleServiceGroupHostsDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleServiceGroupServicesDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleAndPropagateHostDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleAndPropagateTriggeredHostDowntime(
+      grpc::ServerContext* context,
+      const ScheduleDowntimeIdentifier* request,
+      CommandSuccess* response) override;
+
   grpc::Status DeleteHostDowntime(grpc::ServerContext* context,
                                   const GenericValue* request,
                                   CommandSuccess* response) override;
@@ -101,20 +137,22 @@ class engine_impl final : public Engine::Service {
                                      const GenericValue* request,
                                      CommandSuccess* response) override;
   grpc::Status DeleteHostDowntimeFull(grpc::ServerContext* context,
-                                  const DowntimeCriterias* request,
-                                  CommandSuccess* response) override;
+                                      const DowntimeCriterias* request,
+                                      CommandSuccess* response) override;
   grpc::Status DeleteServiceDowntimeFull(grpc::ServerContext* context,
-                                  const DowntimeCriterias* request,
-                                  CommandSuccess* response) override;
+                                         const DowntimeCriterias* request,
+                                         CommandSuccess* response) override;
   grpc::Status DeleteDowntimeByHostName(grpc::ServerContext* context,
-                                  const DowntimeHostIdentifier* request,
-                                  CommandSuccess* response) override;
-  grpc::Status DeleteDowntimeByHostGroupName(grpc::ServerContext* context,
-                                  const DowntimeHostGroupIdentifier* request,
-                                  CommandSuccess* response) override;
-  grpc::Status DeleteDowntimeByStartTimeComment(grpc::ServerContext* context,
-                                  const DowntimeStartTimeIdentifier* request,
-                                  CommandSuccess* response) override;
+                                        const DowntimeHostIdentifier* request,
+                                        CommandSuccess* response) override;
+  grpc::Status DeleteDowntimeByHostGroupName(
+      grpc::ServerContext* context,
+      const DowntimeHostGroupIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status DeleteDowntimeByStartTimeComment(
+      grpc::ServerContext* context,
+      const DowntimeStartTimeIdentifier* request,
+      CommandSuccess* response) override;
   grpc::Status DelayHostNotification(grpc::ServerContext* context,
                                      const HostDelayIdentifier* request,
                                      CommandSuccess* response) override;

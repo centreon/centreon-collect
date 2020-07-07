@@ -712,6 +712,347 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
   return grpc::Status::OK;
 }
 
+grpc::Status engine_impl::ScheduleHostDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    uint64_t downtime_id(0);
+    unsigned long duration;
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+    downtime_manager::instance().schedule_downtime(
+        downtime::host_downtime, request->host_name(), "",
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleServiceDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::service> temp_service;
+    uint64_t downtime_id(0);
+    auto it =
+        service::services.find({request->host_name(), request->service_desc()});
+    if (it != service::services.end())
+      temp_service = it->second;
+    if (temp_service == nullptr)
+      return 1;
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+
+    downtime_manager::instance().schedule_downtime(
+        downtime::service_downtime, request->host_name(),
+        request->service_desc(), request->entry_time(),
+        request->author().c_str(), request->comment_data().c_str(),
+        request->start(), request->end(), request->fixed(),
+        request->triggered_by(), request->duration(), &downtime_id);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleHostServicesDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    uint64_t downtime_id(0);
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+
+    for (service_map_unsafe::iterator it(temp_host->services.begin()),
+         end(temp_host->services.end());
+         it != end; ++it) {
+      if (!it->second)
+        continue;
+      downtime_manager::instance().schedule_downtime(
+          downtime::service_downtime, request->host_name(),
+          it->second->get_description(), request->entry_time(),
+          request->author().c_str(), request->comment_data().c_str(),
+          request->start(), request->end(), request->fixed(),
+          request->triggered_by(), request->duration(), &downtime_id);
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  if (request->host_group_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_group_name must be defined");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    uint64_t downtime_id(0);
+    hostgroup* hg{nullptr};
+
+    hostgroup_map::const_iterator it(
+        hostgroup::hostgroups.find(request->host_group_name()));
+    if (it == hostgroup::hostgroups.end() || !it->second)
+      return 1;
+    hg = it->second.get();
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+    for (host_map_unsafe::iterator it(hg->members.begin()),
+         end(hg->members.end());
+         it != end; ++it)
+      downtime_manager::instance().schedule_downtime(
+          downtime::host_downtime, it->first, "", request->entry_time(),
+          request->author().c_str(), request->comment_data().c_str(),
+          request->start(), request->end(), request->fixed(),
+          request->triggered_by(), request->duration(), &downtime_id);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  if (request->host_group_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_group_name must be defined");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    uint64_t downtime_id(0);
+    hostgroup* hg{nullptr};
+
+    hostgroup_map::const_iterator it(
+        hostgroup::hostgroups.find(request->host_group_name()));
+    if (it == hostgroup::hostgroups.end() || !it->second)
+      return 1;
+    hg = it->second.get();
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+
+    for (host_map_unsafe::iterator it(hg->members.begin()),
+         end(hg->members.end());
+         it != end; ++it) {
+      if (!it->second)
+        continue;
+      for (service_map_unsafe::iterator it2(it->second->services.begin()),
+           end2(it->second->services.end());
+           it2 != end2; ++it2) {
+        if (!it2->second)
+          continue;
+        downtime_manager::instance().schedule_downtime(
+            downtime::service_downtime, it2->second->get_hostname(),
+            it2->second->get_description(), request->entry_time(),
+            request->author().c_str(), request->comment_data().c_str(),
+            request->start(), request->end(), request->fixed(),
+            request->triggered_by(), request->duration(), &downtime_id);
+      }
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  if (request->service_group_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "service_group_name must be defined");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    host* temp_host{nullptr};
+    host* last_host{nullptr};
+    uint64_t downtime_id(0);
+    servicegroup_map::const_iterator sg_it;
+    /* verify that the servicegroup is valid */
+    sg_it = servicegroup::servicegroups.find(request->service_group_name());
+    if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
+      return 1;
+    for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
+         end(sg_it->second->members.end());
+         it != end; ++it) {
+      host_map::const_iterator found(host::hosts.find(it->first.first));
+      if (found == host::hosts.end() || !found->second)
+        continue;
+      temp_host = found->second.get();
+      if (last_host == temp_host)
+        continue;
+      downtime_manager::instance().schedule_downtime(
+          downtime::host_downtime, it->first.first, "", request->entry_time(),
+          request->author().c_str(), request->comment_data().c_str(),
+          request->start(), request->end(), request->fixed(),
+          request->triggered_by(), request->duration(), &downtime_id);
+      last_host = temp_host;
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  if (request->service_group_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "service_group_name must be defined");
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    uint64_t downtime_id(0);
+    servicegroup_map::const_iterator sg_it;
+    /* verify that the servicegroup is valid */
+    sg_it = servicegroup::servicegroups.find(request->service_group_name());
+    if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
+      return 1;
+    for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
+         end(sg_it->second->members.end());
+         it != end; ++it)
+      downtime_manager::instance().schedule_downtime(
+          downtime::service_downtime, it->first.first, it->first.second,
+          request->entry_time(), request->author().c_str(),
+          request->comment_data().c_str(), request->start(), request->end(),
+          request->fixed(), request->triggered_by(), request->duration(),
+          &downtime_id);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    uint64_t downtime_id(0);
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+
+    downtime_manager::instance().schedule_downtime(
+        downtime::host_downtime, request->host_name(), "",
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), request->duration(),
+        &downtime_id);
+
+    /* schedule (non-triggered) downtime for all child hosts */
+    command_manager::schedule_and_propagate_downtime(
+        temp_host.get(), request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), 0, request->duration());
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ScheduleDowntimeIdentifier* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    uint64_t downtime_id(0);
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (request->author().empty() || request->comment_data().empty())
+      return 1;
+    downtime_manager::instance().schedule_downtime(
+        downtime::host_downtime, request->host_name(), "",
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), request->duration(),
+        &downtime_id);
+
+    command_manager::schedule_and_propagate_downtime(
+        temp_host.get(), request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), downtime_id, request->duration());
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
 grpc::Status engine_impl::DeleteHostDowntime(grpc::ServerContext* context
                                              __attribute__((unused)),
                                              const GenericValue* request,
@@ -773,8 +1114,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     downtime::type downtime_type = downtime::host_downtime;
-    std::list<std::shared_ptr<com::centreon::engine::downtimes::downtime>>
-        dtlist;
+    std::list<std::shared_ptr<downtimes::downtime>> dtlist;
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
                        .begin(),
@@ -783,7 +1123,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
                         .end();
          it != end; ++it) {
       auto dt = it->second;
-
+      std::cout << dt->get_hostname() << std::endl;
       if (!(request->host_name().empty()) &&
           dt->get_hostname() != request->host_name())
         continue;
