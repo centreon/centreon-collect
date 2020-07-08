@@ -19,11 +19,12 @@
 
 #include "com/centreon/engine/commands/forward.hh"
 #include <cstdlib>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "engine-version.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
@@ -45,10 +46,9 @@ forward::forward(std::string const& command_name,
                  command& cmd)
     : command(command_name, command_line, nullptr), _command(&cmd) {
   if (_name.empty())
-    throw(engine_error() << "Could not create a command with an empty name");
+    throw error("Could not create a command with an empty name");
   if (_command_line.empty())
-    throw(engine_error() << "Could not create '" << _name
-                         << "' command: command line is empty");
+    throw error("Could not create '{}' command: command line is empty", _name);
 }
 
 /**

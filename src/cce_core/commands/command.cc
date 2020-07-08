@@ -21,11 +21,12 @@
 #include <atomic>
 #include <memory>
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/grab.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 
 static std::atomic<uint64_t> _id{0};
@@ -44,7 +45,7 @@ commands::command::command(std::string const& name,
                            command_listener* listener)
     : _command_line(command_line), _listener(listener), _name(name) {
   if (_name.empty())
-    throw(engine_error() << "Could not create a command with an empty name");
+    throw error("Could not create a command with an empty name");
 }
 
 /**
@@ -116,9 +117,7 @@ void commands::command::set_listener(
  *
  *  @param[in] right The copy class.
  */
-commands::command::command(commands::command const& right) {
-  operator=(right);
-}
+commands::command::command(commands::command const& right) { operator=(right); }
 
 /**
  *  Default copy operatro.
@@ -155,6 +154,4 @@ std::string commands::command::process_cmd(nagios_macros* macros) const {
  *
  *  @return The unique command id.
  */
-uint64_t commands::command::get_uniq_id() {
-  return ++_id;
-}
+uint64_t commands::command::get_uniq_id() { return ++_id; }

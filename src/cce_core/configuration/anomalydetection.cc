@@ -20,7 +20,7 @@
 #include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
@@ -29,76 +29,80 @@ extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
 #define SETTER(type, method) \
   &object::setter<anomalydetection, type, &anomalydetection::method>::generic
 
-std::unordered_map<std::string, anomalydetection::setter_func> const anomalydetection::_setters{
-    {"host_name", SETTER(std::string const&, _set_host_name)},
-    {"service_description",
-     SETTER(std::string const&, _set_service_description)},
-    {"host_id", SETTER(uint64_t, set_host_id)},
-    {"_HOST_ID", SETTER(uint64_t, set_host_id)},
-    {"service_id", SETTER(uint64_t, set_service_id)},
-    {"_SERVICE_ID", SETTER(uint64_t, set_service_id)},
-    {"dependent_service_id", SETTER(uint64_t, set_dependent_service_id)},
-    {"acknowledgement_timeout", SETTER(int, set_acknowledgement_timeout)},
-    {"description", SETTER(std::string const&, _set_service_description)},
-    {"display_name", SETTER(std::string const&, _set_display_name)},
-    {"service_groups", SETTER(std::string const&, _set_servicegroups)},
-    {"servicegroups", SETTER(std::string const&, _set_servicegroups)},
-    {"metric_name", SETTER(std::string const&, _set_metric_name)},
-    {"thresholds_file", SETTER(std::string const&, _set_thresholds_file)},
-    {"event_handler", SETTER(std::string const&, _set_event_handler)},
-    {"notification_period",
-     SETTER(std::string const&, _set_notification_period)},
-    {"contact_groups", SETTER(std::string const&, _set_contactgroups)},
-    {"contacts", SETTER(std::string const&, _set_contacts)},
-    {"failure_prediction_options",
-     SETTER(std::string const&, _set_failure_prediction_options)},
-    {"notes", SETTER(std::string const&, _set_notes)},
-    {"notes_url", SETTER(std::string const&, _set_notes_url)},
-    {"action_url", SETTER(std::string const&, _set_action_url)},
-    {"icon_image", SETTER(std::string const&, _set_icon_image)},
-    {"icon_image_alt", SETTER(std::string const&, _set_icon_image_alt)},
-    {"initial_state", SETTER(std::string const&, _set_initial_state)},
-    {"max_check_attempts", SETTER(unsigned int, _set_max_check_attempts)},
-    {"check_interval", SETTER(unsigned int, _set_check_interval)},
-    {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
-    {"retry_interval", SETTER(unsigned int, _set_retry_interval)},
-    {"retry_check_interval", SETTER(unsigned int, _set_retry_interval)},
-    {"recovery_notification_delay",
-     SETTER(unsigned int, _set_recovery_notification_delay)},
-    {"status_change", SETTER(bool, _set_status_change)},
-    {"active_checks_enabled", SETTER(bool, _set_checks_active)},
-    {"passive_checks_enabled", SETTER(bool, _set_checks_passive)},
-    {"parallelize_check", SETTER(bool, _set_parallelize_check)},
-    {"is_volatile", SETTER(bool, _set_is_volatile)},
-    {"obsess_over_service", SETTER(bool, _set_obsess_over_service)},
-    {"event_handler_enabled", SETTER(bool, _set_event_handler_enabled)},
-    {"check_freshness", SETTER(bool, _set_check_freshness)},
-    {"freshness_threshold", SETTER(unsigned int, _set_freshness_threshold)},
-    {"low_flap_threshold", SETTER(unsigned int, _set_low_flap_threshold)},
-    {"high_flap_threshold", SETTER(unsigned int, _set_high_flap_threshold)},
-    {"flap_detection_enabled", SETTER(bool, _set_flap_detection_enabled)},
-    {"flap_detection_options",
-     SETTER(std::string const&, _set_flap_detection_options)},
-    {"notification_options",
-     SETTER(std::string const&, _set_notification_options)},
-    {"notifications_enabled", SETTER(bool, _set_notifications_enabled)},
-    {"notification_interval", SETTER(unsigned int, _set_notification_interval)},
-    {"first_notification_delay",
-     SETTER(unsigned int, _set_first_notification_delay)},
-    {"stalking_options", SETTER(std::string const&, _set_stalking_options)},
-    {"process_perf_data", SETTER(bool, _set_process_perf_data)},
-    {"failure_prediction_enabled",
-     SETTER(bool, _set_failure_prediction_enabled)},
-    {"retain_status_information", SETTER(bool, _set_retain_status_information)},
-    {"retain_nonstatus_information",
-     SETTER(bool, _set_retain_nonstatus_information)},
-    {"timezone", SETTER(std::string const&, _set_timezone)}};
+std::unordered_map<std::string, anomalydetection::setter_func> const
+    anomalydetection::_setters{
+        {"host_name", SETTER(std::string const&, _set_host_name)},
+        {"service_description",
+         SETTER(std::string const&, _set_service_description)},
+        {"host_id", SETTER(uint64_t, set_host_id)},
+        {"_HOST_ID", SETTER(uint64_t, set_host_id)},
+        {"service_id", SETTER(uint64_t, set_service_id)},
+        {"_SERVICE_ID", SETTER(uint64_t, set_service_id)},
+        {"dependent_service_id", SETTER(uint64_t, set_dependent_service_id)},
+        {"acknowledgement_timeout", SETTER(int, set_acknowledgement_timeout)},
+        {"description", SETTER(std::string const&, _set_service_description)},
+        {"display_name", SETTER(std::string const&, _set_display_name)},
+        {"service_groups", SETTER(std::string const&, _set_servicegroups)},
+        {"servicegroups", SETTER(std::string const&, _set_servicegroups)},
+        {"metric_name", SETTER(std::string const&, _set_metric_name)},
+        {"thresholds_file", SETTER(std::string const&, _set_thresholds_file)},
+        {"event_handler", SETTER(std::string const&, _set_event_handler)},
+        {"notification_period",
+         SETTER(std::string const&, _set_notification_period)},
+        {"contact_groups", SETTER(std::string const&, _set_contactgroups)},
+        {"contacts", SETTER(std::string const&, _set_contacts)},
+        {"failure_prediction_options",
+         SETTER(std::string const&, _set_failure_prediction_options)},
+        {"notes", SETTER(std::string const&, _set_notes)},
+        {"notes_url", SETTER(std::string const&, _set_notes_url)},
+        {"action_url", SETTER(std::string const&, _set_action_url)},
+        {"icon_image", SETTER(std::string const&, _set_icon_image)},
+        {"icon_image_alt", SETTER(std::string const&, _set_icon_image_alt)},
+        {"initial_state", SETTER(std::string const&, _set_initial_state)},
+        {"max_check_attempts", SETTER(unsigned int, _set_max_check_attempts)},
+        {"check_interval", SETTER(unsigned int, _set_check_interval)},
+        {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
+        {"retry_interval", SETTER(unsigned int, _set_retry_interval)},
+        {"retry_check_interval", SETTER(unsigned int, _set_retry_interval)},
+        {"recovery_notification_delay",
+         SETTER(unsigned int, _set_recovery_notification_delay)},
+        {"status_change", SETTER(bool, _set_status_change)},
+        {"active_checks_enabled", SETTER(bool, _set_checks_active)},
+        {"passive_checks_enabled", SETTER(bool, _set_checks_passive)},
+        {"parallelize_check", SETTER(bool, _set_parallelize_check)},
+        {"is_volatile", SETTER(bool, _set_is_volatile)},
+        {"obsess_over_service", SETTER(bool, _set_obsess_over_service)},
+        {"event_handler_enabled", SETTER(bool, _set_event_handler_enabled)},
+        {"check_freshness", SETTER(bool, _set_check_freshness)},
+        {"freshness_threshold", SETTER(unsigned int, _set_freshness_threshold)},
+        {"low_flap_threshold", SETTER(unsigned int, _set_low_flap_threshold)},
+        {"high_flap_threshold", SETTER(unsigned int, _set_high_flap_threshold)},
+        {"flap_detection_enabled", SETTER(bool, _set_flap_detection_enabled)},
+        {"flap_detection_options",
+         SETTER(std::string const&, _set_flap_detection_options)},
+        {"notification_options",
+         SETTER(std::string const&, _set_notification_options)},
+        {"notifications_enabled", SETTER(bool, _set_notifications_enabled)},
+        {"notification_interval",
+         SETTER(unsigned int, _set_notification_interval)},
+        {"first_notification_delay",
+         SETTER(unsigned int, _set_first_notification_delay)},
+        {"stalking_options", SETTER(std::string const&, _set_stalking_options)},
+        {"process_perf_data", SETTER(bool, _set_process_perf_data)},
+        {"failure_prediction_enabled",
+         SETTER(bool, _set_failure_prediction_enabled)},
+        {"retain_status_information",
+         SETTER(bool, _set_retain_status_information)},
+        {"retain_nonstatus_information",
+         SETTER(bool, _set_retain_nonstatus_information)},
+        {"timezone", SETTER(std::string const&, _set_timezone)}};
 
 // Default values.
 static int default_acknowledgement_timeout(0);
@@ -110,10 +114,10 @@ static unsigned int const default_check_interval(5);
 static bool const default_event_handler_enabled(true);
 static unsigned int const default_first_notification_delay(0);
 static bool const default_flap_detection_enabled(true);
-static unsigned short const default_flap_detection_options(anomalydetection::ok |
-                                                           anomalydetection::warning |
-                                                           anomalydetection::unknown |
-                                                           anomalydetection::critical);
+static unsigned short const default_flap_detection_options(
+    anomalydetection::ok | anomalydetection::warning |
+    anomalydetection::unknown |
+    anomalydetection::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
 static unsigned int const default_initial_state(engine::service::state_ok);
@@ -123,8 +127,11 @@ static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
 static unsigned int const default_notification_interval(30);
 static unsigned short const default_notification_options(
-    anomalydetection::ok | anomalydetection::warning | anomalydetection::critical | anomalydetection::unknown |
-    anomalydetection::flapping | anomalydetection::downtime);
+    anomalydetection::ok | anomalydetection::warning |
+    anomalydetection::critical |
+    anomalydetection::unknown |
+    anomalydetection::flapping |
+    anomalydetection::downtime);
 static std::string const default_notification_period;
 static bool const default_obsess_over_service(true);
 static bool const default_process_perf_data(true);
@@ -294,7 +301,8 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
  *
  *  @return True if is the same anomalydetection, otherwise false.
  */
-bool anomalydetection::operator==(anomalydetection const& other) const noexcept {
+bool anomalydetection::operator==(anomalydetection const& other) const
+    noexcept {
   if (!object::operator==(other)) {
     logger(dbg_config, more)
         << "configuration::anomalydetection::equality => object don't match";
@@ -306,48 +314,48 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (_action_url != other._action_url) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => action_url don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "action_url don't match";
     return false;
   }
   if (_status_change != other._status_change) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => status_change don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "status_change don't match";
     return false;
   }
   if (_checks_active != other._checks_active) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => checks_active don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "checks_active don't match";
     return false;
   }
   if (_checks_passive != other._checks_passive) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => checks_passive don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "checks_passive don't match";
     return false;
   }
   if (_metric_name != other._metric_name) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => metric_name don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "metric_name don't match";
     return false;
   }
   if (_thresholds_file != other._thresholds_file) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => thresholds_file don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "thresholds_file don't match";
     return false;
   }
   if (_check_freshness != other._check_freshness) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => check_freshness don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "check_freshness don't match";
     return false;
   }
   if (_check_interval != other._check_interval) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => check_interval don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "check_interval don't match";
     return false;
   }
   if (_contactgroups != other._contactgroups) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => contactgroups don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "contactgroups don't match";
     return false;
   }
   if (_contacts != other._contacts) {
@@ -356,23 +364,23 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (std::operator!=(_customvariables, other._customvariables)) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => customvariables don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "customvariables don't match";
     return false;
   }
   if (_display_name != other._display_name) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => display_name don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "display_name don't match";
     return false;
   }
   if (_event_handler != other._event_handler) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => event_handler don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "event_handler don't match";
     return false;
   }
   if (_event_handler_enabled != other._event_handler_enabled) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => event_handler don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "event_handler don't match";
     return false;
   }
   if (_first_notification_delay != other._first_notification_delay) {
@@ -401,38 +409,38 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (_host_name != other._host_name) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => _host_name don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "_host_name don't match";
     return false;
   }
   if (_icon_image != other._icon_image) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => icon_image don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "icon_image don't match";
     return false;
   }
   if (_icon_image_alt != other._icon_image_alt) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => icon_image_alt don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "icon_image_alt don't match";
     return false;
   }
   if (_initial_state != other._initial_state) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => initial_state don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "initial_state don't match";
     return false;
   }
   if (_is_volatile != other._is_volatile) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => is_volatile don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "is_volatile don't match";
     return false;
   }
   if (_low_flap_threshold != other._low_flap_threshold) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => low_flap_threshold don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "low_flap_threshold don't match";
     return false;
   }
   if (_max_check_attempts != other._max_check_attempts) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => max_check_attempts don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "max_check_attempts don't match";
     return false;
   }
   if (_notes != other._notes) {
@@ -471,8 +479,8 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (_process_perf_data != other._process_perf_data) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => process_perf_data don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "process_perf_data don't match";
     return false;
   }
   if (_retain_nonstatus_information != other._retain_nonstatus_information) {
@@ -486,8 +494,8 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (_retry_interval != other._retry_interval) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => retry_interval don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "retry_interval don't match";
     return false;
   }
   if (_recovery_notification_delay != other._recovery_notification_delay) {
@@ -496,8 +504,8 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (_servicegroups != other._servicegroups) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => servicegroups don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "servicegroups don't match";
     return false;
   }
   if (_service_description != other._service_description) {
@@ -516,18 +524,18 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
     return false;
   }
   if (_service_id != other._service_id) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => service_id don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "service_id don't match";
     return false;
   }
   if (_dependent_service_id != other._dependent_service_id) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => dependent_service_id don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "dependent_service_id don't match";
     return false;
   }
   if (_stalking_options != other._stalking_options) {
-    logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => stalking_options don't match";
+    logger(dbg_config, more) << "configuration::anomalydetection::equality => "
+                                "stalking_options don't match";
     return false;
   }
   if (_timezone != other._timezone) {
@@ -546,7 +554,8 @@ bool anomalydetection::operator==(anomalydetection const& other) const noexcept 
  *
  *  @return True if is not the same anomalydetection, otherwise false.
  */
-bool anomalydetection::operator!=(anomalydetection const& other) const noexcept {
+bool anomalydetection::operator!=(anomalydetection const& other) const
+    noexcept {
   return !operator==(other);
 }
 
@@ -660,20 +669,21 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
  */
 void anomalydetection::check_validity() const {
   if (_service_description.empty())
-    throw engine_error() << "Service has no description (property "
-                         << "'service_description')";
+    throw error("Service has no description (property 'service_description')");
   if (_host_name.empty())
-    throw engine_error() << "Service '" << _service_description
-                         << "' is not attached to any host (property "
-                            "'host_name')";
+    throw error(
+        "Service '{}' is not attached to any host (property 'host_name')",
+        _service_description);
   if (_metric_name.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no metric name specified (property 'metric_name')";
+    throw error(
+        "Anomaly detection service '{}' has no metric name specified (property "
+        "'metric_name')",
+        _service_description);
   if (_thresholds_file.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no thresholds file specified (property 'thresholds_file')";
+    throw error(
+        "Anomaly detection service '{}' has no thresholds file specified "
+        "(property 'thresholds_file')",
+        _service_description);
 }
 
 /**
@@ -706,7 +716,7 @@ void anomalydetection::merge(configuration::serviceextinfo const& tmpl) {
  */
 void anomalydetection::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge anomalydetection with '" << obj.type() << "'";
+    throw error("Cannot merge anomalydetection with '{}'", obj.type());
   anomalydetection const& tmpl(static_cast<anomalydetection const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -763,8 +773,8 @@ void anomalydetection::merge(object const& obj) {
  *  @return True on success, otherwise false.
  */
 bool anomalydetection::parse(char const* key, char const* value) {
-  std::unordered_map<std::string, anomalydetection::setter_func>::const_iterator it{
-      _setters.find(key)};
+  std::unordered_map<std::string, anomalydetection::setter_func>::const_iterator
+      it{_setters.find(key)};
   if (it != _setters.end())
     return (it->second)(*this, value);
 
@@ -794,18 +804,14 @@ std::string const& anomalydetection::action_url() const noexcept {
  *
  *  @return The status_change.
  */
-bool anomalydetection::status_change() const noexcept {
-  return _status_change;
-}
+bool anomalydetection::status_change() const noexcept { return _status_change; }
 
 /**
  *  Get checks_active.
  *
  *  @return The checks_active.
  */
-bool anomalydetection::checks_active() const noexcept {
-  return _checks_active;
-}
+bool anomalydetection::checks_active() const noexcept { return _checks_active; }
 
 /**
  *  Get checks_passive.
@@ -884,9 +890,7 @@ bool anomalydetection::contactgroups_defined() const noexcept {
  *
  *  @return The contacts.
  */
-set_string& anomalydetection::contacts() noexcept {
-  return *_contacts;
-}
+set_string& anomalydetection::contacts() noexcept { return *_contacts; }
 
 /**
  *  Get contacts.
@@ -921,7 +925,8 @@ com::centreon::engine::map_customvar const& anomalydetection::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar& anomalydetection::customvariables() noexcept {
+com::centreon::engine::map_customvar&
+anomalydetection::customvariables() noexcept {
   return _customvariables;
 }
 
@@ -1002,9 +1007,7 @@ unsigned int anomalydetection::high_flap_threshold() const noexcept {
  *
  *  @return The host name.
  */
-std::string& anomalydetection::host_name() noexcept {
-  return _host_name;
-}
+std::string& anomalydetection::host_name() noexcept { return _host_name; }
 
 /**
  *  Get host name.
@@ -1047,9 +1050,7 @@ unsigned int anomalydetection::initial_state() const noexcept {
  *
  *  @return The is_volatile.
  */
-bool anomalydetection::is_volatile() const noexcept {
-  return _is_volatile;
-}
+bool anomalydetection::is_volatile() const noexcept { return _is_volatile; }
 
 /**
  *  Get low_flap_threshold.
@@ -1074,9 +1075,7 @@ unsigned int anomalydetection::max_check_attempts() const noexcept {
  *
  *  @return The notes.
  */
-std::string const& anomalydetection::notes() const noexcept {
-  return _notes;
-}
+std::string const& anomalydetection::notes() const noexcept { return _notes; }
 
 /**
  *  Get notes_url.
@@ -1256,18 +1255,14 @@ std::string const& anomalydetection::service_description() const noexcept {
  *
  *  @return  The anomalydetection id.
  */
-uint64_t anomalydetection::host_id() const noexcept {
-  return _host_id;
-}
+uint64_t anomalydetection::host_id() const noexcept { return _host_id; }
 
 /**
  *  Get the service id.
  *
  *  @return  The anomalydetection id.
  */
-uint64_t anomalydetection::service_id() const noexcept {
-  return _service_id;
-}
+uint64_t anomalydetection::service_id() const noexcept { return _service_id; }
 
 /**
  *  Get the dependent service id.
@@ -1521,7 +1516,8 @@ bool anomalydetection::_set_failure_prediction_enabled(bool value) {
  *
  *  @return True on success, otherwise false.
  */
-bool anomalydetection::_set_failure_prediction_options(std::string const& value) {
+bool anomalydetection::_set_failure_prediction_options(
+    std::string const& value) {
   (void)value;
   logger(log_verification_error, basic)
       << "Warning: anomalydetection failure_prediction_options is deprecated."
@@ -1566,7 +1562,8 @@ bool anomalydetection::_set_flap_detection_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "ok")
       options |= ok;
@@ -1756,7 +1753,8 @@ bool anomalydetection::_set_notification_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "u" || *it == "unknown")
       options |= unknown;
@@ -1955,7 +1953,8 @@ bool anomalydetection::_set_stalking_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "ok")
       options |= ok;

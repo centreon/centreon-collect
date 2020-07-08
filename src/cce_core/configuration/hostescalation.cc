@@ -18,28 +18,32 @@
 */
 
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
   &object::setter<hostescalation, type, &hostescalation::method>::generic
 
-std::unordered_map<std::string,
-                   hostescalation::setter_func> const hostescalation::_setters{
-    {"hostgroup", SETTER(std::string const&, _set_hostgroups)},
-    {"hostgroups", SETTER(std::string const&, _set_hostgroups)},
-    {"hostgroup_name", SETTER(std::string const&, _set_hostgroups)},
-    {"host", SETTER(std::string const&, _set_hosts)},
-    {"host_name", SETTER(std::string const&, _set_hosts)},
-    {"contact_groups", SETTER(std::string const&, _set_contactgroups)},
-    {"escalation_options", SETTER(std::string const&, _set_escalation_options)},
-    {"escalation_period", SETTER(std::string const&, _set_escalation_period)},
-    {"first_notification", SETTER(uint32_t, _set_first_notification)},
-    {"last_notification", SETTER(uint32_t, _set_last_notification)},
-    {"notification_interval", SETTER(uint32_t, _set_notification_interval)}};
+std::unordered_map<std::string, hostescalation::setter_func> const
+    hostescalation::_setters{
+        {"hostgroup", SETTER(std::string const&, _set_hostgroups)},
+        {"hostgroups", SETTER(std::string const&, _set_hostgroups)},
+        {"hostgroup_name", SETTER(std::string const&, _set_hostgroups)},
+        {"host", SETTER(std::string const&, _set_hosts)},
+        {"host_name", SETTER(std::string const&, _set_hosts)},
+        {"contact_groups", SETTER(std::string const&, _set_contactgroups)},
+        {"escalation_options",
+         SETTER(std::string const&, _set_escalation_options)},
+        {"escalation_period",
+         SETTER(std::string const&, _set_escalation_period)},
+        {"first_notification", SETTER(uint32_t, _set_first_notification)},
+        {"last_notification", SETTER(uint32_t, _set_last_notification)},
+        {"notification_interval",
+         SETTER(uint32_t, _set_notification_interval)}};
 
 // Default values.
 static unsigned short const default_escalation_options(hostescalation::none);
@@ -154,9 +158,9 @@ bool hostescalation::operator<(hostescalation const& right) const {
  */
 void hostescalation::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host escalation is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+    throw error(
+        "Host escalation is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)");
 }
 
 /**
@@ -175,8 +179,7 @@ hostescalation::key_type const& hostescalation::key() const throw() {
  */
 void hostescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host escalation with '" << obj.type()
-                         << "'");
+    throw error("Cannot merge host escalation with '{}'", obj.type());
   hostescalation const& tmpl(static_cast<hostescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);
@@ -210,9 +213,7 @@ bool hostescalation::parse(char const* key, char const* value) {
  *
  *  @return The contact groups.
  */
-set_string& hostescalation::contactgroups() throw() {
-  return *_contactgroups;
-}
+set_string& hostescalation::contactgroups() throw() { return *_contactgroups; }
 
 /**
  *  Get contactgroups.
@@ -303,9 +304,7 @@ unsigned int hostescalation::first_notification() const throw() {
  *
  *  @return The host groups.
  */
-set_string& hostescalation::hostgroups() throw() {
-  return *_hostgroups;
-}
+set_string& hostescalation::hostgroups() throw() { return *_hostgroups; }
 
 /**
  *  Get hostgroups.
@@ -321,18 +320,14 @@ set_string const& hostescalation::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string& hostescalation::hosts() throw() {
-  return *_hosts;
-}
+set_string& hostescalation::hosts() throw() { return *_hosts; }
 
 /**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-set_string const& hostescalation::hosts() const throw() {
-  return *_hosts;
-}
+set_string const& hostescalation::hosts() const throw() { return *_hosts; }
 
 /**
  *  Set the last notification.
@@ -405,7 +400,8 @@ bool hostescalation::_set_escalation_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "d" || *it == "down")
       options |= down;
@@ -501,6 +497,4 @@ bool hostescalation::_set_notification_interval(unsigned int value) {
  *
  *  @return uuid.
  */
-Uuid const& hostescalation::uuid(void) const {
-  return _uuid;
-}
+Uuid const& hostescalation::uuid(void) const { return _uuid; }

@@ -20,10 +20,11 @@
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine;
@@ -43,18 +44,14 @@ serviceescalation::serviceescalation(std::string const& hostname,
       _hostname{hostname},
       _description{description} {
   if (hostname.empty())
-    throw engine_error() << "Could not create escalation "
-                         << "on a host without name";
+    throw error("Could not create escalation on a host without name");
   if (description.empty())
-    throw engine_error() << "Could not create escalation "
-                         << "on a service without description";
+    throw error("Could not create escalation on a service without description");
 }
 
 serviceescalation::~serviceescalation() {}
 
-std::string const& serviceescalation::get_hostname() const {
-  return _hostname;
-}
+std::string const& serviceescalation::get_hostname() const { return _hostname; }
 
 std::string const& serviceescalation::get_description() const {
   return _description;
@@ -75,12 +72,10 @@ bool serviceescalation::is_viable(int state,
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
-    std::array<notifier::notification_flag, 4> nt = {
-        notifier::ok,
-        notifier::warning,
-        notifier::critical,
-        notifier::unknown,
-    };
+    std::array<notifier::notification_flag, 4> nt = {notifier::ok,
+                                                     notifier::warning,
+                                                     notifier::critical,
+                                                     notifier::unknown, };
 
     if (!get_escalate_on(nt[state]))
       return false;
@@ -110,7 +105,8 @@ void serviceescalation::resolve(int& w, int& e) {
 
   try {
     escalation::resolve(w, errors);
-  } catch (std::exception const& ee) {
+  }
+  catch (std::exception const& ee) {
     logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
   }
@@ -118,6 +114,6 @@ void serviceescalation::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw engine_error() << "Cannot resolve service escalation";
+    throw error("Cannot resolve service escalation");
   }
 }

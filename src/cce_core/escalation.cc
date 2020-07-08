@@ -18,10 +18,11 @@
 */
 
 #include "com/centreon/engine/escalation.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
@@ -69,9 +70,7 @@ void escalation::remove_escalate_on(notifier::notification_flag type) {
   _escalate_on &= ~type;
 }
 
-uint32_t escalation::get_escalate_on() const {
-  return _escalate_on;
-}
+uint32_t escalation::get_escalate_on() const { return _escalate_on; }
 
 void escalation::set_escalate_on(uint32_t escalate_on) {
   _escalate_on = escalate_on;
@@ -134,7 +133,8 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
   // Check all contact groups.
   for (contactgroup_map_unsafe::iterator it{_contact_groups.begin()},
        end{_contact_groups.end()};
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Find the contact group.
     contactgroup_map::iterator it_cg{
         contactgroup::contactgroups.find(it->first)};
@@ -153,10 +153,8 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
 
   if (errors) {
     e += errors;
-    throw engine_error() << "Cannot resolve notifier escalation";
+    throw error("Cannot resolve notifier escalation");
   }
 }
 
-Uuid const& escalation::get_uuid() const {
-  return _uuid;
-}
+Uuid const& escalation::get_uuid() const { return _uuid; }

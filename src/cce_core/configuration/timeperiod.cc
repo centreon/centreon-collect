@@ -21,10 +21,11 @@
 #include <cstdio>
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/timerange.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
@@ -131,8 +132,7 @@ bool timeperiod::operator<(timeperiod const& right) const throw() {
  */
 void timeperiod::check_validity() const {
   if (_timeperiod_name.empty())
-    throw(engine_error()
-          << "Time period has no name (property 'timeperiod_name')");
+    throw error("Time period has no name (property 'timeperiod_name')");
   return;
 }
 
@@ -152,8 +152,7 @@ timeperiod::key_type const& timeperiod::key() const throw() {
  */
 void timeperiod::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge time period with '" << obj.type()
-                         << "'");
+    throw error("Cannot merge time period with '{}'", obj.type());
   timeperiod const& tmpl(static_cast<timeperiod const&>(obj));
 
   MRG_DEFAULT(_alias);
@@ -165,7 +164,8 @@ void timeperiod::merge(object const& obj) {
   for (unsigned int i(0); i < DATERANGE_TYPES; ++i) {
     for (std::list<daterange>::const_iterator it(tmpl._exceptions[i].begin()),
          end(tmpl._exceptions[i].end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       if (_has_similar_daterange(_exceptions[i], *it))
         continue;
       _exceptions[i].push_front(*it);
@@ -216,9 +216,7 @@ bool timeperiod::parse(std::string const& line) {
  *
  *  @return The alias value.
  */
-std::string const& timeperiod::alias() const throw() {
-  return _alias;
-}
+std::string const& timeperiod::alias() const throw() { return _alias; }
 
 /**
  *  Get exceptions value.
@@ -235,9 +233,7 @@ std::vector<std::list<daterange> > const& timeperiod::exceptions() const
  *
  *  @return The exclude value.
  */
-set_string const& timeperiod::exclude() const throw() {
-  return *_exclude;
-}
+set_string const& timeperiod::exclude() const throw() { return *_exclude; }
 
 /**
  *  Get timeperiod_name value.
@@ -272,7 +268,8 @@ bool timeperiod::_build_timeranges(std::string const& line,
   string::split(line, timeranges_str, ',');
   for (list_string::const_iterator it(timeranges_str.begin()),
        end(timeranges_str.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::size_t pos(it->find('-'));
     if (pos == std::string::npos)
       return false;
@@ -322,7 +319,8 @@ bool timeperiod::_build_time_t(std::string const& time_str,
 bool timeperiod::_has_similar_daterange(std::list<daterange> const& lst,
                                         daterange const& range) throw() {
   for (std::list<daterange>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (it->type() == range.type() && it->year_start() == range.year_start() &&
         it->month_start() == range.month_start() &&
         it->month_day_start() == range.month_day_start() &&
@@ -357,20 +355,41 @@ bool timeperiod::_add_calendar_date(std::string const& line) {
   unsigned int year_end(0);
   unsigned int skip_interval(0);
 
-  if ((ret = sscanf(line.c_str(), "%4u-%2u-%2u - %4u-%2u-%2u / %u %n",
-                    &year_start, &month_start, &month_day_start, &year_end,
-                    &month_end, &month_day_end, &skip_interval, &pos)) == 7)
+  if ((ret = sscanf(line.c_str(),
+                    "%4u-%2u-%2u - %4u-%2u-%2u / %u %n",
+                    &year_start,
+                    &month_start,
+                    &month_day_start,
+                    &year_end,
+                    &month_end,
+                    &month_day_end,
+                    &skip_interval,
+                    &pos)) == 7)
     fill_missing = false;
-  else if ((ret = sscanf(line.c_str(), "%4u-%2u-%2u - %4u-%2u-%2u %n",
-                         &year_start, &month_start, &month_day_start, &year_end,
-                         &month_end, &month_day_end, &pos)) == 6)
+  else if ((ret = sscanf(line.c_str(),
+                         "%4u-%2u-%2u - %4u-%2u-%2u %n",
+                         &year_start,
+                         &month_start,
+                         &month_day_start,
+                         &year_end,
+                         &month_end,
+                         &month_day_end,
+                         &pos)) == 6)
     fill_missing = false;
-  else if ((ret = sscanf(line.c_str(), "%4u-%2u-%2u / %u %n", &year_start,
-                         &month_start, &month_day_start, &skip_interval,
+  else if ((ret = sscanf(line.c_str(),
+                         "%4u-%2u-%2u / %u %n",
+                         &year_start,
+                         &month_start,
+                         &month_day_start,
+                         &skip_interval,
                          &pos)) == 4)
     fill_missing = true;
-  else if ((ret = sscanf(line.c_str(), "%4u-%2u-%2u %n", &year_start,
-                         &month_start, &month_day_start, &pos)) == 3)
+  else if ((ret = sscanf(line.c_str(),
+                         "%4u-%2u-%2u %n",
+                         &year_start,
+                         &month_start,
+                         &month_day_start,
+                         &pos)) == 3)
     fill_missing = true;
 
   if (ret) {
@@ -424,17 +443,29 @@ bool timeperiod::_add_other_date(std::string const& line) {
   if (line.size() > 1024)
     return false;
 
-  if (sscanf(line.c_str(), "%[a-z] %d %[a-z] - %[a-z] %d %[a-z] / %u %n",
-             buffer[0], &week_day_start_offset, buffer[1], buffer[2],
-             &week_day_end_offset, buffer[3], &skip_interval, &pos) == 7) {
+  if (sscanf(line.c_str(),
+             "%[a-z] %d %[a-z] - %[a-z] %d %[a-z] / %u %n",
+             buffer[0],
+             &week_day_start_offset,
+             buffer[1],
+             buffer[2],
+             &week_day_end_offset,
+             buffer[3],
+             &skip_interval,
+             &pos) == 7) {
     // wednesday 1 january - thursday 2 july / 3
     if (_get_day_id(buffer[0], week_day_start) &&
         _get_month_id(buffer[1], month_start) &&
         _get_day_id(buffer[2], week_day_end) &&
         _get_month_id(buffer[3], month_end))
       type = daterange::month_week_day;
-  } else if (sscanf(line.c_str(), "%[a-z] %d - %[a-z] %d / %u %n", buffer[0],
-                    &month_day_start, buffer[1], &month_day_end, &skip_interval,
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d - %[a-z] %d / %u %n",
+                    buffer[0],
+                    &month_day_start,
+                    buffer[1],
+                    &month_day_end,
+                    &skip_interval,
                     &pos) == 5) {
     // monday 2 - thursday 3 / 2
     if (_get_day_id(buffer[0], week_day_start) &&
@@ -450,8 +481,12 @@ bool timeperiod::_add_other_date(std::string const& line) {
     // day 4 - 6 / 2
     else if (!strcmp(buffer[0], "day") && !strcmp(buffer[1], "day"))
       type = daterange::month_day;
-  } else if (sscanf(line.c_str(), "%[a-z] %d - %d / %u %n", buffer[0],
-                    &month_day_start, &month_day_end, &skip_interval,
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d - %d / %u %n",
+                    buffer[0],
+                    &month_day_start,
+                    &month_day_end,
+                    &skip_interval,
                     &pos) == 4) {
     // thursday 2 - 4
     if (_get_day_id(buffer[0], week_day_start)) {
@@ -468,17 +503,27 @@ bool timeperiod::_add_other_date(std::string const& line) {
     // day 1 - 4
     else if (!strcmp(buffer[0], "day"))
       type = daterange::month_day;
-  } else if (sscanf(line.c_str(), "%[a-z] %d %[a-z] - %[a-z] %d %[a-z] %n",
-                    buffer[0], &week_day_start_offset, buffer[1], buffer[2],
-                    &week_day_end_offset, buffer[3], &pos) == 6) {
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d %[a-z] - %[a-z] %d %[a-z] %n",
+                    buffer[0],
+                    &week_day_start_offset,
+                    buffer[1],
+                    buffer[2],
+                    &week_day_end_offset,
+                    buffer[3],
+                    &pos) == 6) {
     // wednesday 1 january - thursday 2 july
     if (_get_day_id(buffer[0], week_day_start) &&
         _get_month_id(buffer[1], month_start) &&
         _get_day_id(buffer[2], week_day_end) &&
         _get_month_id(buffer[3], month_end))
       type = daterange::month_week_day;
-  } else if (sscanf(line.c_str(), "%[a-z] %d - %d %n", buffer[0],
-                    &month_day_start, &month_day_end, &pos) == 3) {
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d - %d %n",
+                    buffer[0],
+                    &month_day_start,
+                    &month_day_end,
+                    &pos) == 3) {
     // thursday 2 - 4
     if (_get_day_id(buffer[0], week_day_start)) {
       week_day_start_offset = month_day_start;
@@ -494,8 +539,13 @@ bool timeperiod::_add_other_date(std::string const& line) {
     // day 1 - 4
     else if (!strcmp(buffer[0], "day"))
       type = daterange::month_day;
-  } else if (sscanf(line.c_str(), "%[a-z] %d - %[a-z] %d %n", buffer[0],
-                    &month_day_start, buffer[1], &month_day_end, &pos) == 4) {
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d - %[a-z] %d %n",
+                    buffer[0],
+                    &month_day_start,
+                    buffer[1],
+                    &month_day_end,
+                    &pos) == 4) {
     // monday 2 - thursday 3
     if (_get_day_id(buffer[0], week_day_start) &&
         _get_day_id(buffer[1], week_day_end)) {
@@ -510,8 +560,12 @@ bool timeperiod::_add_other_date(std::string const& line) {
     // day 1 - day 5
     else if (!strcmp(buffer[0], "day") && !strcmp(buffer[1], "day"))
       type = daterange::month_day;
-  } else if (sscanf(line.c_str(), "%[a-z] %d %[a-z] %n", buffer[0],
-                    &week_day_start_offset, buffer[1], &pos) == 3) {
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d %[a-z] %n",
+                    buffer[0],
+                    &week_day_start_offset,
+                    buffer[1],
+                    &pos) == 3) {
     // thursday 3 february
     if (_get_day_id(buffer[0], week_day_start) &&
         _get_month_id(buffer[1], month_start)) {
@@ -520,7 +574,10 @@ bool timeperiod::_add_other_date(std::string const& line) {
       week_day_end_offset = week_day_start_offset;
       type = daterange::month_week_day;
     }
-  } else if (sscanf(line.c_str(), "%[a-z] %d %n", buffer[0], &month_day_start,
+  } else if (sscanf(line.c_str(),
+                    "%[a-z] %d %n",
+                    buffer[0],
+                    &month_day_start,
                     &pos) == 2) {
     // thursday 2
     if (_get_day_id(buffer[0], week_day_start)) {

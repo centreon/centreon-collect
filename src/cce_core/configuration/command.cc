@@ -19,9 +19,10 @@
 
 #include "com/centreon/engine/configuration/command.hh"
 #include <memory>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
@@ -45,9 +46,7 @@ command::command(key_type const& key)
  *
  *  @param[in] right The command to copy.
  */
-command::command(command const& right) : object(right) {
-  operator=(right);
-}
+command::command(command const& right) : object(right) { operator=(right); }
 
 /**
  *  Destructor.
@@ -115,10 +114,10 @@ bool command::operator<(command const& right) const throw() {
  */
 void command::check_validity() const {
   if (_command_name.empty())
-    throw(engine_error() << "Command has no name (property 'command_name')");
+    throw error("Command has no name (property 'command_name')");
   if (_command_line.empty())
-    throw(engine_error() << "Command '" << _command_name
-                         << "' has no command line (property 'command_line')");
+    throw error("Command '{}' has no command line (property 'command_line')",
+                _command_name);
   return;
 }
 
@@ -138,7 +137,7 @@ command::key_type const& command::key() const throw() {
  */
 void command::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge command with '" << obj.type() << "'");
+    throw error("Cannot merge command with '{}'", obj.type());
   command const& tmpl(static_cast<command const&>(obj));
 
   MRG_DEFAULT(_command_line);
@@ -185,9 +184,7 @@ std::string const& command::command_name() const throw() {
  *
  *  @return The connector.
  */
-std::string const& command::connector() const throw() {
-  return (_connector);
-}
+std::string const& command::connector() const throw() { return (_connector); }
 
 /**
  *  Set command_line value.

@@ -20,8 +20,9 @@
 
 #include "com/centreon/engine/commands/environment.hh"
 #include <cstring>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::commands;
 
 // Default size.
@@ -48,9 +49,7 @@ environment::environment(char** env)
  *
  *  @param[in] right  The object to copy.
  */
-environment::environment(environment const& right) {
-  _internal_copy(right);
-}
+environment::environment(environment const& right) { _internal_copy(right); }
 
 /**
  *  Destructor.
@@ -191,8 +190,8 @@ void environment::add(std::string const& name, std::string const& value) {
   }
   memcpy(_buffer + _pos_buffer, name.c_str(), name.size() + 1);
   _buffer[_pos_buffer + name.size()] = '=';
-  memcpy(_buffer + _pos_buffer + name.size() + 1, value.c_str(),
-         value.size() + 1);
+  memcpy(
+      _buffer + _pos_buffer + name.size() + 1, value.c_str(), value.size() + 1);
   if (_pos_env + 1 >= _size_env)
     _realoc_env(_size_env + EXTRA_SIZE_ENV);
   _env[_pos_env++] = _buffer + _pos_buffer;
@@ -204,9 +203,7 @@ void environment::add(std::string const& name, std::string const& value) {
 /**
  *  Get environement.
  */
-char** environment::data() throw() {
-  return (_env);
-}
+char** environment::data() throw() { return (_env); }
 
 /**
  *  Internal copy
@@ -222,7 +219,7 @@ void environment::_internal_copy(environment const& right) {
     _size_buffer = right._size_buffer;
     _size_env = right._size_env;
     _buffer = new char[_size_buffer];
-    _env = new char*[_size_env];
+    _env = new char* [_size_env];
     memcpy(_buffer, right._buffer, _pos_buffer);
     _rebuild_env();
   }
@@ -236,9 +233,9 @@ void environment::_internal_copy(environment const& right) {
  */
 void environment::_realoc_buffer(uint32_t size) {
   if (_size_buffer >= size)
-    throw(
-        engine_error() << "Invalid size for command environment reallocation: "
-                       << "Buffer size is greater than the requested size");
+    throw error(
+        "Invalid size for command environment reallocation: Buffer size is "
+        "greater than the requested size");
   char* new_buffer(new char[size]);
   if (_buffer)
     memcpy(new_buffer, _buffer, _pos_buffer);
@@ -256,10 +253,10 @@ void environment::_realoc_buffer(uint32_t size) {
  */
 void environment::_realoc_env(uint32_t size) {
   if (_size_env >= size)
-    throw(engine_error()
-          << "Invalid size for command environment reallocation: "
-          << "Environment size is greater than the requested size");
-  char** new_env(new char*[size]);
+    throw error(
+        "Invalid size for command environment reallocation: Environment size "
+        "is greater than the requested size");
+  char** new_env(new char* [size]);
   if (_env)
     memcpy(new_env, _env, sizeof(*new_env) * (_pos_env + 1));
   _size_env = size;

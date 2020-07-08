@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -26,6 +26,7 @@ extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
@@ -225,31 +226,28 @@ void servicedependency::check_validity() const {
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())
-      throw(engine_error() << "Service dependency is not attached to "
-                           << "any service or service group (properties "
-                           << "'service_description' or 'servicegroup_name', "
-                           << "respectively)");
+      throw error(
+          "Service dependency is not attached to any service or service group "
+          "(properties 'service_description' or 'servicegroup_name', "
+          "respectively)");
     else if (_hosts->empty() && _hostgroups->empty())
-      throw(
-          engine_error() << "Service dependency is not attached to "
-                         << "any host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+      throw error(
+          "Service dependency is not attached to any host or host group "
+          "(properties 'host_name' or 'hostgroup_name', respectively)");
   }
 
   // Check dependent service(s).
   if (_dependent_servicegroups->empty()) {
     if (_dependent_service_description->empty())
-      throw(
-          engine_error() << "Service dependency is not attached to "
-                         << "any dependent service or dependent service group "
-                         << "(properties 'dependent_service_description' or "
-                         << "'dependent_servicegroup_name', respectively)");
+      throw error(
+          "Service dependency is not attached to any dependent service or "
+          "dependent service group (properties 'dependent_service_description' "
+          "or 'dependent_servicegroup_name', respectively)");
     else if (_dependent_hosts->empty() && _dependent_hostgroups->empty())
-      throw(engine_error()
-            << "Service dependency is not attached to "
-            << "any dependent host or dependent host group (properties "
-            << "'dependent_host_name' or 'dependent_hostgroup_name', "
-            << "respectively)");
+      throw error(
+          "Service dependency is not attached to any dependent host or "
+          "dependent host group (properties 'dependent_host_name' or "
+          "'dependent_hostgroup_name', respectively)");
   }
 
   // With no execution or failure options this dependency is useless.
@@ -298,8 +296,7 @@ servicedependency::key_type const& servicedependency::key() const throw() {
  */
 void servicedependency::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service dependency with '"
-                         << obj.type() << "'");
+    throw error("Cannot merge service dependency with '{}'", obj.type());
   servicedependency const& tmpl(static_cast<servicedependency const&>(obj));
 
   MRG_DEFAULT(_dependency_period);
@@ -326,8 +323,8 @@ void servicedependency::merge(object const& obj) {
  */
 bool servicedependency::parse(char const* key, char const* value) {
   std::unordered_map<std::string,
-                     servicedependency::setter_func>::const_iterator it{
-      _setters.find(key)};
+                     servicedependency::setter_func>::const_iterator
+      it{_setters.find(key)};
   if (it != _setters.end())
     return (it->second)(*this, value);
   return false;
@@ -490,9 +487,7 @@ bool servicedependency::inherits_parent() const throw() {
  *
  *  @return Host groups.
  */
-list_string& servicedependency::hostgroups() throw() {
-  return *_hostgroups;
-}
+list_string& servicedependency::hostgroups() throw() { return *_hostgroups; }
 
 /**
  *  Get hostgroup.
@@ -508,18 +503,14 @@ list_string const& servicedependency::hostgroups() const throw() {
  *
  *  @return Hosts.
  */
-list_string& servicedependency::hosts() throw() {
-  return *_hosts;
-}
+list_string& servicedependency::hosts() throw() { return *_hosts; }
 
 /**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-list_string const& servicedependency::hosts() const throw() {
-  return *_hosts;
-}
+list_string const& servicedependency::hosts() const throw() { return *_hosts; }
 
 /**
  *  Set the notification failure options.
@@ -651,7 +642,8 @@ bool servicedependency::_set_execution_failure_options(
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "ok")
       options |= ok;
@@ -723,7 +715,8 @@ bool servicedependency::_set_notification_failure_options(
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "ok")
       options |= ok;

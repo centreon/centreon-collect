@@ -19,13 +19,14 @@
 
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
@@ -98,30 +99,24 @@ void servicedependency::set_service_description(
 }
 
 bool servicedependency::get_fail_on(int state) const {
-  std::array<bool, 4> retval{_fail_on_ok, _fail_on_warning, _fail_on_critical,
-                             _fail_on_unknown};
+  std::array<bool, 4> retval{_fail_on_ok,       _fail_on_warning,
+                             _fail_on_critical, _fail_on_unknown};
   return retval[state];
 }
 
-bool servicedependency::get_fail_on_ok() const {
-  return _fail_on_ok;
-}
+bool servicedependency::get_fail_on_ok() const { return _fail_on_ok; }
 
 void servicedependency::set_fail_on_ok(bool fail_on_ok) {
   _fail_on_ok = fail_on_ok;
 }
 
-bool servicedependency::get_fail_on_warning() const {
-  return _fail_on_warning;
-}
+bool servicedependency::get_fail_on_warning() const { return _fail_on_warning; }
 
 void servicedependency::set_fail_on_warning(bool fail_on_warning) {
   _fail_on_warning = fail_on_warning;
 }
 
-bool servicedependency::get_fail_on_unknown() const {
-  return _fail_on_unknown;
-}
+bool servicedependency::get_fail_on_unknown() const { return _fail_on_unknown; }
 
 void servicedependency::set_fail_on_unknown(bool fail_on_unknown) {
   _fail_on_unknown = fail_on_unknown;
@@ -161,58 +156,41 @@ std::ostream& operator<<(std::ostream& os, servicedependency const& obj) {
   }
 
   os << "servicedependency {\n"
-        "  dependency_type:               "
-     << obj.get_dependency_type()
+        "  dependency_type:               " << obj.get_dependency_type()
      << "\n"
-        "  dependent_hostname:            "
-     << obj.get_dependent_hostname()
+        "  dependent_hostname:            " << obj.get_dependent_hostname()
      << "\n"
         "  dependent_service_description: "
      << obj.get_dependent_service_description()
      << "\n"
-        "  hostname:                      "
-     << obj.get_hostname()
+        "  hostname:                      " << obj.get_hostname()
      << "\n"
-        "  service_description:           "
-     << obj.get_service_description()
+        "  service_description:           " << obj.get_service_description()
      << "\n"
-        "  dependency_period:             "
-     << obj.get_dependency_period()
+        "  dependency_period:             " << obj.get_dependency_period()
      << "\n"
-        "  inherits_parent:               "
-     << obj.get_inherits_parent()
+        "  inherits_parent:               " << obj.get_inherits_parent()
      << "\n"
-        "  fail_on_ok:                    "
-     << obj.get_fail_on_ok()
+        "  fail_on_ok:                    " << obj.get_fail_on_ok()
      << "\n"
-        "  fail_on_warning:               "
-     << obj.get_fail_on_warning()
+        "  fail_on_warning:               " << obj.get_fail_on_warning()
      << "\n"
-        "  fail_on_unknown:               "
-     << obj.get_fail_on_unknown()
+        "  fail_on_unknown:               " << obj.get_fail_on_unknown()
      << "\n"
-        "  fail_on_critical:              "
-     << obj.get_fail_on_critical()
+        "  fail_on_critical:              " << obj.get_fail_on_critical()
      << "\n"
-        "  fail_on_pending:               "
-     << obj.get_fail_on_pending()
+        "  fail_on_pending:               " << obj.get_fail_on_pending()
      << "\n"
-        "  circular_path_checked:         "
-     << obj.get_circular_path_checked()
+        "  circular_path_checked:         " << obj.get_circular_path_checked()
      << "\n"
-        "  contains_circular_path:        "
-     << obj.get_contains_circular_path()
+        "  contains_circular_path:        " << obj.get_contains_circular_path()
      << "\n"
-        "  master_service_ptr:            "
-     << master_svc_str
+        "  master_service_ptr:            " << master_svc_str
      << "\n"
-        "  dependent_service_ptr:         "
-     << dependent_svc_str
+        "  dependent_service_ptr:         " << dependent_svc_str
      << "\n"
-        "  dependency_period_ptr:         "
-     << dependency_period_str
-     << "\n"
-        "}\n";
+        "  dependency_period_ptr:         " << dependency_period_str << "\n"
+                                                                        "}\n";
   return os;
 }
 
@@ -270,7 +248,8 @@ bool servicedependency::check_for_circular_servicedependency_path(
   for (servicedependency_mmap::iterator
            it(servicedependency::servicedependencies.begin()),
        end(servicedependency::servicedependencies.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Only check parent dependencies.
     if (dep->master_service_ptr != it->second->dependent_service_ptr)
       continue;
@@ -350,7 +329,7 @@ void servicedependency::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw engine_error() << "Cannot resolve service dependency";
+    throw error("Cannot resolve service dependency");
   }
 }
 

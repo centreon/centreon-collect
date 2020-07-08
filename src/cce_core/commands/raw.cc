@@ -19,12 +19,13 @@
 
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/commands/environment.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
@@ -47,8 +48,7 @@ raw::raw(std::string const& name,
          command_listener* listener)
     : command(name, command_line, listener), process_listener() {
   if (_command_line.empty())
-    throw engine_error() << "Could not create '" << _name
-                         << "' command: command line is empty";
+    throw error("Could not create '{}' command: command line is empty", _name);
 }
 
 /**
@@ -72,10 +72,10 @@ raw::~raw() noexcept {
     }
     for (auto p : _processes_free)
       delete p;
-
-  } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
-        << "Error: Raw command destructor failed: " << e.what();
+  }
+  catch (std::exception const& e) {
+    logger(log_runtime_error, basic) << "Error: Raw command destructor failed: "
+                                     << e.what();
   }
 }
 
@@ -97,9 +97,7 @@ raw& raw::operator=(raw const& right) {
  *
  *  @return Return a pointer on a copy object.
  */
-commands::command* raw::clone() const {
-  return new raw(*this);
-}
+commands::command* raw::clone() const { return new raw(*this); }
 
 /**
  *  Run a command.
@@ -113,8 +111,8 @@ commands::command* raw::clone() const {
 uint64_t raw::run(std::string const& processed_cmd,
                   nagios_macros& macros,
                   uint32_t timeout) {
-  logger(dbg_commands, basic)
-      << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
+  logger(dbg_commands, basic) << "raw::run: cmd='" << processed_cmd
+                              << "', timeout=" << timeout;
 
   // Get process and put into the busy list.
   process* p;
@@ -125,8 +123,8 @@ uint64_t raw::run(std::string const& processed_cmd,
     _processes_busy[p] = command_id;
   }
 
-  logger(dbg_commands, basic)
-      << "raw::run: id=" << command_id << ", process=" << p;
+  logger(dbg_commands, basic) << "raw::run: id=" << command_id
+                              << ", process=" << p;
 
   // Setup environnement macros if is necessary.
   environment env;
@@ -135,11 +133,12 @@ uint64_t raw::run(std::string const& processed_cmd,
   try {
     // Start process.
     p->exec(processed_cmd.c_str(), env.data(), timeout);
-    logger(dbg_commands, basic)
-        << "raw::run: start process success: id=" << command_id;
-  } catch (...) {
-    logger(dbg_commands, basic)
-        << "raw::run: start process failed: id=" << command_id;
+    logger(dbg_commands, basic) << "raw::run: start process success: id="
+                                << command_id;
+  }
+  catch (...) {
+    logger(dbg_commands, basic) << "raw::run: start process failed: id="
+                                << command_id;
 
     std::lock_guard<std::mutex> lock(_lock);
     _processes_busy.erase(p);
@@ -161,15 +160,15 @@ void raw::run(std::string const& processed_cmd,
               nagios_macros& macros,
               uint32_t timeout,
               result& res) {
-  logger(dbg_commands, basic)
-      << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
+  logger(dbg_commands, basic) << "raw::run: cmd='" << processed_cmd
+                              << "', timeout=" << timeout;
 
   // Get process.
   process p;
   uint64_t command_id(get_uniq_id());
 
-  logger(dbg_commands, basic)
-      << "raw::run: id=" << command_id << ", process=" << &p;
+  logger(dbg_commands, basic) << "raw::run: id=" << command_id
+                              << ", process=" << &p;
 
   // Setup environement macros if is necessary.
   environment env;
@@ -178,11 +177,12 @@ void raw::run(std::string const& processed_cmd,
   // Start process.
   try {
     p.exec(processed_cmd.c_str(), env.data(), timeout);
-    logger(dbg_commands, basic)
-        << "raw::run: start process success: id=" << command_id;
-  } catch (...) {
-    logger(dbg_commands, basic)
-        << "raw::run: start process failed: id=" << command_id;
+    logger(dbg_commands, basic) << "raw::run: start process success: id="
+                                << command_id;
+  }
+  catch (...) {
+    logger(dbg_commands, basic) << "raw::run: start process failed: id="
+                                << command_id;
     throw;
   }
 
@@ -207,22 +207,16 @@ void raw::run(std::string const& processed_cmd,
     res.exit_code = service::state_unknown;
 
   logger(dbg_commands, basic) << "raw::run: end process: "
-                                 "id="
-                              << command_id
+                                 "id=" << command_id
                               << ", "
-                                 "start_time="
-                              << res.start_time.to_mseconds()
+                                 "start_time=" << res.start_time.to_mseconds()
                               << ", "
-                                 "end_time="
-                              << res.end_time.to_mseconds()
+                                 "end_time=" << res.end_time.to_mseconds()
                               << ", "
-                                 "exit_code="
-                              << res.exit_code
+                                 "exit_code=" << res.exit_code
                               << ", "
-                                 "exit_status="
-                              << res.exit_status
-                              << ", "
-                                 "output='"
+                                 "exit_status=" << res.exit_status << ", "
+                                                                      "output='"
                               << res.output << "'";
 }
 
@@ -237,18 +231,14 @@ void raw::run(std::string const& processed_cmd,
  *
  *  @param[in] p  Unused.
  */
-void raw::data_is_available(process& p) noexcept {
-  (void)p;
-}
+void raw::data_is_available(process& p) noexcept { (void)p; }
 
 /**
  *  Provide by process_listener interface but not used.
  *
  *  @param[in] p  Unused.
  */
-void raw::data_is_available_err(process& p) noexcept {
-  (void)p;
-}
+void raw::data_is_available_err(process& p) noexcept { (void)p; }
 
 /**
  *  Provide by process_listener interface. Call at the end
@@ -309,18 +299,19 @@ void raw::finished(process& p) noexcept {
                (res.exit_code > 3))
       res.exit_code = service::state_unknown;
 
-    logger(dbg_commands, basic)
-        << "raw::finished: id=" << command_id
-        << ", start_time=" << res.start_time.to_mseconds()
-        << ", end_time=" << res.end_time.to_mseconds()
-        << ", exit_code=" << res.exit_code
-        << ", exit_status=" << res.exit_status << ", output='" << res.output
-        << "'";
+    logger(dbg_commands, basic) << "raw::finished: id=" << command_id
+                                << ", start_time="
+                                << res.start_time.to_mseconds()
+                                << ", end_time=" << res.end_time.to_mseconds()
+                                << ", exit_code=" << res.exit_code
+                                << ", exit_status=" << res.exit_status
+                                << ", output='" << res.output << "'";
 
     // Forward result to the listener.
     if (_listener)
       _listener->finished(res);
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     logger(log_runtime_warning, basic)
         << "Warning: Raw process termination routine failed: " << e.what();
 

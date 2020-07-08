@@ -18,9 +18,10 @@
 */
 
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
@@ -114,15 +115,15 @@ bool serviceextinfo::operator!=(serviceextinfo const& right) const throw() {
  */
 void serviceextinfo::check_validity() const {
   if (_service_description.empty())
-    throw(engine_error()
-          << "Service extended information is not "
-          << "attached to a service (property 'service_description')");
+    throw error(
+        "Service extended information is not attached to a service (property "
+        "'service_description')");
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error()
-          << "Service extended information of service '" << _service_description
-          << "' is not attached to any host or"
-          << " host group (properties 'host_name' or 'hostgroup_name'"
-          << ", respectively)");
+    throw error(
+        "Service extended information of service '{}' is not attached to any "
+        "host or host group (properties 'host_name' or 'hostgroup_name', "
+        "respectively)",
+        _service_description);
   return;
 }
 
@@ -133,8 +134,8 @@ void serviceextinfo::check_validity() const {
  */
 void serviceextinfo::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service extended information with '"
-                         << obj.type() << "'");
+    throw error("Cannot merge service extended information with '{}'",
+                obj.type());
   serviceextinfo const& tmpl(static_cast<serviceextinfo const&>(obj));
 
   MRG_DEFAULT(_action_url);
@@ -204,18 +205,14 @@ set_string const& serviceextinfo::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string const& serviceextinfo::hosts() const throw() {
-  return *_hosts;
-}
+set_string const& serviceextinfo::hosts() const throw() { return *_hosts; }
 
 /**
  *  Get notes.
  *
  *  @return The notes.
  */
-std::string const& serviceextinfo::notes() const throw() {
-  return _notes;
-}
+std::string const& serviceextinfo::notes() const throw() { return _notes; }
 
 /**
  *  Get notes_url.

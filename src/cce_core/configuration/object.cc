@@ -34,10 +34,11 @@
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
@@ -61,9 +62,7 @@ object::object(object::object_type type)
  *
  *  @param[in] right The object to copy.
  */
-object::object(object const& right) {
-  operator=(right);
-}
+object::object(object const& right) { operator=(right); }
 
 /**
  *  Destructor.
@@ -162,9 +161,7 @@ object_ptr object::create(std::string const& type_name) {
  *
  *  @return The object name.
  */
-std::string const& object::name() const noexcept {
-  return _name;
-}
+std::string const& object::name() const noexcept { return _name; }
 
 /**
  *  Parse and set the object property.
@@ -216,10 +213,11 @@ void object::resolve_template(map_object& templates) {
   _is_resolve = true;
   for (std::list<std::string>::const_iterator it(_templates.begin()),
        end(_templates.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     map_object::iterator tmpl(templates.find(*it));
     if (tmpl == templates.end())
-      throw(engine_error() << "Cannot merge object of type '" << *it << "'");
+      throw error("Cannot merge object of type '", *it);
     tmpl->second->resolve_template(templates);
     merge(*tmpl->second);
   }
@@ -230,18 +228,14 @@ void object::resolve_template(map_object& templates) {
  *
  *  @return True if object should be registered, false otherwise.
  */
-bool object::should_register() const noexcept {
-  return _should_register;
-}
+bool object::should_register() const noexcept { return _should_register; }
 
 /**
  *  Get the object type.
  *
  *  @return The object type.
  */
-object::object_type object::type() const noexcept {
-  return _type;
-}
+object::object_type object::type() const noexcept { return _type; }
 
 /**
  *  Get the object type name.

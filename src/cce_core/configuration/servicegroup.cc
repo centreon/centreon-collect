@@ -18,25 +18,27 @@
 */
 
 #include "com/centreon/engine/configuration/servicegroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
   &object::setter<servicegroup, type, &servicegroup::method>::generic
 
-std::unordered_map<std::string,
-                   servicegroup::setter_func> const servicegroup::_setters{
-    {"servicegroup_id", SETTER(unsigned int, _set_servicegroup_id)},
-    {"servicegroup_name", SETTER(std::string const&, _set_servicegroup_name)},
-    {"alias", SETTER(std::string const&, _set_alias)},
-    {"members", SETTER(std::string const&, _set_members)},
-    {"servicegroup_members",
-     SETTER(std::string const&, _set_servicegroup_members)},
-    {"notes", SETTER(std::string const&, _set_notes)},
-    {"notes_url", SETTER(std::string const&, _set_notes_url)},
-    {"action_url", SETTER(std::string const&, _set_action_url)}};
+std::unordered_map<std::string, servicegroup::setter_func> const
+    servicegroup::_setters{
+        {"servicegroup_id", SETTER(unsigned int, _set_servicegroup_id)},
+        {"servicegroup_name",
+         SETTER(std::string const&, _set_servicegroup_name)},
+        {"alias", SETTER(std::string const&, _set_alias)},
+        {"members", SETTER(std::string const&, _set_members)},
+        {"servicegroup_members",
+         SETTER(std::string const&, _set_servicegroup_members)},
+        {"notes", SETTER(std::string const&, _set_notes)},
+        {"notes_url", SETTER(std::string const&, _set_notes_url)},
+        {"action_url", SETTER(std::string const&, _set_action_url)}};
 
 /**
  *  Constructor.
@@ -143,8 +145,7 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  */
 void servicegroup::check_validity() const {
   if (_servicegroup_name.empty())
-    throw(engine_error() << "Service group has no name "
-                            "(property 'servicegroup_name')");
+    throw error("Service group has no name (property 'servicegroup_name')");
   return;
 }
 
@@ -164,8 +165,7 @@ servicegroup::key_type const& servicegroup::key() const throw() {
  */
 void servicegroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service group with '" << obj.type()
-                         << "'");
+    throw error("Cannot merge service group with '{}'", obj.type());
   servicegroup const& tmpl(static_cast<servicegroup const&>(obj));
 
   MRG_DEFAULT(_action_url);
@@ -207,18 +207,14 @@ std::string const& servicegroup::action_url() const throw() {
  *
  *  @return The alias.
  */
-std::string const& servicegroup::alias() const throw() {
-  return _alias;
-}
+std::string const& servicegroup::alias() const throw() { return _alias; }
 
 /**
  *  Get members.
  *
  *  @return The members.
  */
-set_pair_string& servicegroup::members() throw() {
-  return *_members;
-}
+set_pair_string& servicegroup::members() throw() { return *_members; }
 
 /**
  *  Get members.
@@ -234,9 +230,7 @@ set_pair_string const& servicegroup::members() const throw() {
  *
  *  @return The notes.
  */
-std::string const& servicegroup::notes() const throw() {
-  return _notes;
-}
+std::string const& servicegroup::notes() const throw() { return _notes; }
 
 /**
  *  Get notes_url.

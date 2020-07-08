@@ -20,10 +20,11 @@
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
@@ -94,9 +95,7 @@ contact::contact(key_type const& key)
  *
  *  @param[in] other  The contact to copy.
  */
-contact::contact(contact const& other) : object(other) {
-  operator=(other);
-}
+contact::contact(contact const& other) : object(other) { operator=(other); }
 
 /**
  *  Destructor.
@@ -237,7 +236,7 @@ bool contact::operator<(contact const& other) const throw() {
  */
 void contact::check_validity() const {
   if (_contact_name.empty())
-    throw(engine_error() << "Contact has no name (property 'contact_name')");
+    throw error("Contact has no name (property 'contact_name')");
   return;
 }
 
@@ -246,9 +245,7 @@ void contact::check_validity() const {
  *
  *  @return Contact name.
  */
-contact::key_type const& contact::key() const throw() {
-  return _contact_name;
-}
+contact::key_type const& contact::key() const throw() { return _contact_name; }
 
 /**
  *  Merge object.
@@ -257,7 +254,7 @@ contact::key_type const& contact::key() const throw() {
  */
 void contact::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge contact with '" << obj.type() << "'");
+    throw error("Cannot merge contact with '{}'", obj.type());
   contact const& tmpl(static_cast<contact const&>(obj));
 
   MRG_TAB(_address);
@@ -313,18 +310,14 @@ bool contact::parse(char const* key, char const* value) {
  *
  *  @return The address.
  */
-tab_string const& contact::address() const throw() {
-  return _address;
-}
+tab_string const& contact::address() const throw() { return _address; }
 
 /**
  *  Get alias.
  *
  *  @return The alias.
  */
-std::string const& contact::alias() const throw() {
-  return _alias;
-}
+std::string const& contact::alias() const throw() { return _alias; }
 
 /**
  *  Get can_submit_commands.
@@ -340,9 +333,7 @@ bool contact::can_submit_commands() const throw() {
  *
  *  @return The contact groups.
  */
-set_string& contact::contactgroups() throw() {
-  return *_contactgroups;
-}
+set_string& contact::contactgroups() throw() { return *_contactgroups; }
 
 /**
  *  Get contactgroups.
@@ -376,18 +367,14 @@ map_customvar const& contact::customvariables() const throw() {
  *
  *  @return The customvariables.
  */
-map_customvar& contact::customvariables() throw() {
-  return _customvariables;
-}
+map_customvar& contact::customvariables() throw() { return _customvariables; }
 
 /**
  *  Get email.
  *
  *  @return The email.
  */
-std::string const& contact::email() const throw() {
-  return _email;
-}
+std::string const& contact::email() const throw() { return _email; }
 
 /**
  *  Get host_notifications_enabled.
@@ -448,9 +435,7 @@ bool contact::retain_status_information() const throw() {
  *
  *  @return The pager.
  */
-std::string const& contact::pager() const throw() {
-  return _pager;
-}
+std::string const& contact::pager() const throw() { return _pager; }
 
 /**
  *  Get service_notification_commands.
@@ -493,9 +478,7 @@ bool contact::service_notifications_enabled() const throw() {
  *
  *  @return This contact timezone.
  */
-std::string const& contact::timezone() const throw() {
-  return _timezone;
-}
+std::string const& contact::timezone() const throw() { return _timezone; }
 
 /**
  *  Set new contact address.
@@ -609,7 +592,8 @@ bool contact::_set_host_notification_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "d" || *it == "down")
       options |= host::down;
@@ -705,7 +689,8 @@ bool contact::_set_service_notification_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "u" || *it == "unknown")
       options |= service::unknown;

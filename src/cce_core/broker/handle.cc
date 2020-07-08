@@ -20,10 +20,11 @@
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/broker/compatibility.hh"
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/nebmodules.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::broker;
 using namespace com::centreon::engine::logging;
 
@@ -130,27 +131,21 @@ void handle::close() {
  *
  *  @return The arguments.
  */
-std::string const& handle::get_args() const noexcept {
-  return _args;
-}
+std::string const& handle::get_args() const noexcept { return _args; }
 
 /**
  *  Get the module's author name.
  *
  *  @return The author name.
  */
-std::string const& handle::get_author() const noexcept {
-  return _author;
-}
+std::string const& handle::get_author() const noexcept { return _author; }
 
 /**
  *  Get the module's copyright.
  *
  *  @return The copyright.
  */
-std::string const& handle::get_copyright() const noexcept {
-  return _copyright;
-}
+std::string const& handle::get_copyright() const noexcept { return _copyright; }
 
 /**
  *  Get the module's description.
@@ -166,9 +161,7 @@ std::string const& handle::get_description() const noexcept {
  *
  *  @return The filename.
  */
-std::string const& handle::get_filename() const noexcept {
-  return _filename;
-}
+std::string const& handle::get_filename() const noexcept { return _filename; }
 
 /**
  *  Get the handle of the module.
@@ -184,36 +177,28 @@ com::centreon::library* handle::get_handle() const noexcept {
  *
  *  @return The license.
  */
-std::string const& handle::get_license() const noexcept {
-  return _license;
-}
+std::string const& handle::get_license() const noexcept { return _license; }
 
 /**
  *  Get the module's name.
  *
  *  @return The name.
  */
-std::string const& handle::get_name() const noexcept {
-  return _name;
-}
+std::string const& handle::get_name() const noexcept { return _name; }
 
 /**
  *  Get the module's version.
  *
  *  @return The version.
  */
-std::string const& handle::get_version() const noexcept {
-  return _version;
-}
+std::string const& handle::get_version() const noexcept { return _version; }
 
 /**
  *  Check if the module is loaded.
  *
  *  @return true if the module is loaded, false otherwise.
  */
-bool handle::is_loaded() {
-  return _handle.get() && _handle->is_loaded();
-}
+bool handle::is_loaded() { return _handle.get() && _handle->is_loaded(); }
 
 /**
  *  Open and load module.
@@ -228,19 +213,20 @@ void handle::open() {
 
     int api_version(*static_cast<int*>(_handle->resolve("__neb_api_version")));
     if (api_version != CURRENT_NEB_API_VERSION)
-      throw(engine_error() << "Module is using an old or unspecified "
-                              "version of the event broker API");
+      throw error(
+          "Module is using an old or unspecified version of the event broker "
+          "API");
 
     typedef int (*func_init)(int, char const*, void*);
     func_init init((func_init)_handle->resolve_proc("nebmodule_init"));
 
     if (init(NEBMODULE_NORMAL_LOAD | NEBMODULE_ENGINE, _args.c_str(), this) !=
         OK)
-      throw(engine_error() << "Function nebmodule_init "
-                              "returned an error");
+      throw error("Function nebmodule_init returned an error");
 
     broker::compatibility::instance().loaded_module(this);
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     (void)e;
     close();
     throw;

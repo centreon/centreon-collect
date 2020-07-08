@@ -20,13 +20,14 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::logging;
@@ -57,15 +58,12 @@ hostescalation::hostescalation(std::string const& host_name,
                  escalation_period,  escalate_on,       uuid},
       _hostname{host_name} {
   if (host_name.empty())
-    throw engine_error() << "Could not create escalation "
-                         << "on host '" << host_name << "'";
+    throw error("Could not create escalation on host '{}'", host_name);
 }
 
 hostescalation::~hostescalation() {}
 
-std::string const& hostescalation::get_hostname() const {
-  return _hostname;
-}
+std::string const& hostescalation::get_hostname() const { return _hostname; }
 
 /**
  *  This method is called by a notifier to know if this escalation is touched
@@ -82,10 +80,7 @@ bool hostescalation::is_viable(int state, uint32_t notification_number) const {
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
     std::array<notifier::notification_flag, 3> nt = {
-        notifier::up,
-        notifier::down,
-        notifier::unreachable,
-    };
+        notifier::up, notifier::down, notifier::unreachable, };
 
     if (!get_escalate_on(nt[state]))
       return false;
@@ -113,7 +108,8 @@ void hostescalation::resolve(int& w, int& e) {
 
   try {
     escalation::resolve(w, errors);
-  } catch (std::exception const& ee) {
+  }
+  catch (std::exception const& ee) {
     logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
   }
@@ -121,6 +117,6 @@ void hostescalation::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw engine_error() << "Cannot resolve host escalation";
+    throw error("Cannot resolve host escalation");
   }
 }
