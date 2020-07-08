@@ -21,7 +21,6 @@
 #include <gtest/gtest.h>
 #include <com/centreon/broker/graphite/connector.hh>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/logging/manager.hh"
 #include "../test_server.hh"
 

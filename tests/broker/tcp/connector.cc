@@ -22,7 +22,6 @@
 #include <chrono>
 #include <thread>
 #include "../test_server.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/raw.hh"
 

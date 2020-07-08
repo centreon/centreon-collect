@@ -19,7 +19,9 @@
 #ifndef CCB_RRD_EXCEPTIONS_OPEN_HH_
 #define CCB_RRD_EXCEPTIONS_OPEN_HH_
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using namespace com::centreon::exceptions;
 
 namespace com {
 namespace centreon {
@@ -32,24 +34,15 @@ namespace exceptions {
  *
  *  Exception thrown when unable to open an RRD file.
  */
-class open : public broker::exceptions::msg {
+class open : public msg_fmt {
  public:
-  open() throw();
-  open(open const& o) throw();
-  ~open() throw();
-  virtual broker::exceptions::msg* clone() const;
-  virtual void rethrow() const;
+  open() = delete;
 
-  /**
-   *  Insert data in message.
-   *
-   *  @param[in] t Data to insert.
-   */
-  template <typename T>
-  open& operator<<(T t) throw() {
-    broker::exceptions::msg::operator<<(t);
-    return (*this);
-  }
+  template <typename... Args>
+  explicit open(std::string const& str, const Args&... args)
+      : msg_fmt(str, args...) {}
+
+  ~open() noexcept {}
 };
 }  // namespace exceptions
 }  // namespace rrd

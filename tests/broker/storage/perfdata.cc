@@ -34,7 +34,7 @@ using namespace com::centreon::broker;
 TEST(StoragePerfdataException, All) {
   bool success{false};
   try {
-    throw storage::exceptions::perfdata() << "test exception";
+    throw storage::exceptions::perfdata("test exception");
   }
   catch (storage::exceptions::perfdata const& e) {
     try {

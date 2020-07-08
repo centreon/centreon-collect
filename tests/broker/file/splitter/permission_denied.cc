@@ -17,10 +17,11 @@
  *
  */
 #include <gtest/gtest.h>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/logging/manager.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
 
@@ -30,10 +31,7 @@ using namespace com::centreon::broker::file;
 
 class FileSplitterPermissionDenied : public ::testing::Test {
  public:
-  void SetUp() override {
-
-    _path = FILE_WITH_BAD_PERMISSION;
-  }
+  void SetUp() override { _path = FILE_WITH_BAD_PERMISSION; }
 
  protected:
   std::string _path;
@@ -44,8 +42,9 @@ class FileSplitterPermissionDenied : public ::testing::Test {
 // Then the creation does not crash
 TEST_F(FileSplitterPermissionDenied, DefaultFile) {
   if (getuid() != 0) {
-    ASSERT_THROW(new splitter(_path, file::fs_file::open_read_write_truncate,
-                              10000, true),
-                 exceptions::msg);
+    ASSERT_THROW(
+        new splitter(
+            _path, file::fs_file::open_read_write_truncate, 10000, true),
+        msg_fmt);
   }
 }

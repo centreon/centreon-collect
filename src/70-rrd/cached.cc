@@ -22,14 +22,12 @@
 #include <cerrno>
 #include <cstdlib>
 #include <sstream>
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"
 
 using namespace asio;
-using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
@@ -178,8 +176,7 @@ void cached::open(std::string const& filename) {
 
   // Check that the file exists.
   if (access(filename.c_str(), F_OK))
-    throw(exceptions::open() << "RRD: file '" << filename
-                             << "' does not exist");
+    throw exceptions::open("RRD: file '{}' does not exist", filename);
 
   // Remember information for further operations.
   _filename = filename;
@@ -265,7 +262,7 @@ void cached::update(time_t t, std::string const& value) {
   }
   catch (msg_fmt const& e) {
     if (!strstr(e.what(), "illegal attempt to update using time"))
-      throw(exceptions::update() << e.what());
+      throw exceptions::update(e.what());
     else
       logging::error(logging::low) << "RRD: ignored update error in file '"
                                    << _filename << "': " << e.what() + 5;

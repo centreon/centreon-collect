@@ -23,7 +23,6 @@
 #include <atomic>
 #include <fstream>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -32,7 +31,7 @@ TEST(RRDCached, LibExisting) {
   rrd::cached cached{"/tmp", 42, rrd::cached::local};
 
   std::remove("/tmp/test_rrd");
-  ASSERT_THROW(cached.open("/tmp/test_rrd"), exceptions::msg);
+  ASSERT_THROW(cached.open("/tmp/test_rrd"), msg_fmt);
   std::ofstream ofs("/tmp/test_rrd");
   ofs.close();
   cached.clean();

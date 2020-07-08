@@ -108,7 +108,6 @@ add_executable(ccb_ut
   ${CMAKE_SOURCE_DIR}/tests/broker/processing/thread.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/rpc/brokerrpc.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/rrd/cached.cc
-  ${CMAKE_SOURCE_DIR}/tests/broker/rrd/exceptions.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/rrd/factory.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/rrd/lib.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/rrd/rrd.cc
