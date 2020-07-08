@@ -25,7 +25,6 @@
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/lib.hh"
-#include "com/centreon/broker/rrd/exceptions/open.hh"
 
 CCB_BEGIN()
 
