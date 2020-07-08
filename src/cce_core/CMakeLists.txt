@@ -153,4 +153,4 @@ add_library(cce_core
 add_dependencies(cce_core engine_rpc)
 
 # Link target with required libraries.
-target_link_libraries(cce_core centreon_clib CONAN_PKG::json11)
+target_link_libraries(cce_core centreon_clib CONAN_PKG::fmt CONAN_PKG::json11)
