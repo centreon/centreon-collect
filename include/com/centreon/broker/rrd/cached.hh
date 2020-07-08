@@ -25,6 +25,7 @@
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/lib.hh"
+#include "com/centreon/broker/rrd/exceptions/open.hh"
 
 CCB_BEGIN()
 
@@ -42,7 +43,11 @@ namespace rrd {
  */
 class cached : public backend {
  public:
-  enum cached_type { uninitialized, local, tcp };
+  enum cached_type {
+    uninitialized,
+    local,
+    tcp
+  };
   cached(std::string const& tmpl_path, uint32_t cache_size, cached_type type);
   cached(cached const& c) = delete;
   cached& operator=(cached const& c) = delete;

@@ -18,8 +18,9 @@
  */
 
 #include "temporary_stream.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 /**************************************
@@ -81,7 +82,7 @@ bool temporary_stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
   (void)deadline;
   std::lock_guard<std::mutex> lock(_eventsm);
   if (_events.empty())
-    throw exceptions::msg() << "temporary stream does not have any more event";
+    throw msg_fmt("temporary stream does not have any more event");
   else
     data = _events.front();
   _events.pop();

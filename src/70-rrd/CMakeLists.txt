@@ -28,8 +28,6 @@ add_library(70-rrd SHARED
   ${CMAKE_SOURCE_DIR}/src/70-rrd/cached.cc
   ${CMAKE_SOURCE_DIR}/src/70-rrd/connector.cc
   ${CMAKE_SOURCE_DIR}/src/70-rrd/creator.cc
-  ${CMAKE_SOURCE_DIR}/src/70-rrd/exceptions/open.cc
-  ${CMAKE_SOURCE_DIR}/src/70-rrd/exceptions/update.cc
   ${CMAKE_SOURCE_DIR}/src/70-rrd/factory.cc
   ${CMAKE_SOURCE_DIR}/src/70-rrd/lib.cc
   ${CMAKE_SOURCE_DIR}/src/70-rrd/main.cc

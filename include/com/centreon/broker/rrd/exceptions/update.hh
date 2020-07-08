@@ -19,7 +19,9 @@
 #ifndef CCB_RRD_EXCEPTIONS_UPDATE_HH_
 #define CCB_RRD_EXCEPTIONS_UPDATE_HH_
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using namespace com::centreon::exceptions;
 
 namespace com {
 namespace centreon {
@@ -32,24 +34,14 @@ namespace exceptions {
  *
  *  Exception thrown when unable to update an RRD file.
  */
-class update : public broker::exceptions::msg {
+class update : public msg_fmt {
  public:
-  update() throw();
-  update(update const& u) throw();
-  ~update() throw();
-  virtual broker::exceptions::msg* clone() const;
-  virtual void rethrow() const;
+  update() = delete;
+  ~update() noexcept {}
 
-  /**
-   *  Insert data in message.
-   *
-   *  @param[in] t Data to insert.
-   */
-  template <typename T>
-  update& operator<<(T t) throw() {
-    broker::exceptions::msg::operator<<(t);
-    return (*this);
-  }
+  template <typename... Args>
+  explicit update(std::string const& str, const Args&... args)
+      : msg_fmt(str, args...) {}
 };
 }  // namespace exceptions
 }  // namespace rrd

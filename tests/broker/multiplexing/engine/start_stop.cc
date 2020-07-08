@@ -20,13 +20,14 @@
 #include <cstdlib>
 #include <iostream>
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/subscriber.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 #define MSG1 "0123456789abcdef"
@@ -36,13 +37,9 @@ using namespace com::centreon::broker;
 
 class StartStop : public testing::Test {
  public:
-  void SetUp() override {
-    config::applier::init();
-  }
+  void SetUp() override { config::applier::init(); }
 
-  void TearDown() override {
-    config::applier::deinit();
-  }
+  void TearDown() override { config::applier::deinit(); }
 };
 
 /**
@@ -76,7 +73,7 @@ TEST_F(StartStop, MultiplexingWorks) {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
       if (data)
-        throw exceptions::msg() << "error at step #1";
+        throw msg_fmt("error at step #1");
     }
 
     // Start multiplexing engine.
@@ -87,11 +84,11 @@ TEST_F(StartStop, MultiplexingWorks) {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
       if (!data || data->type() != io::raw::static_type())
-        throw exceptions::msg() << "error at step #2";
+        throw msg_fmt("error at step #2");
       else {
         std::shared_ptr<io::raw> raw(std::static_pointer_cast<io::raw>(data));
         if (strncmp(raw->const_data(), messages[i], strlen(messages[i])))
-          throw exceptions::msg() << "error at step #3";
+          throw msg_fmt("error at step #3");
       }
     }
 
@@ -108,11 +105,11 @@ TEST_F(StartStop, MultiplexingWorks) {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
       if (!data || data->type() != io::raw::static_type())
-        throw exceptions::msg() << "error at step #4";
+        throw msg_fmt("error at step #4");
       else {
         std::shared_ptr<io::raw> raw(std::static_pointer_cast<io::raw>(data));
         if (strncmp(raw->const_data(), MSG3, strlen(MSG3)))
-          throw exceptions::msg() << "error at step #5";
+          throw msg_fmt("error at step #5");
       }
     }
 
@@ -132,14 +129,16 @@ TEST_F(StartStop, MultiplexingWorks) {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
       if (data)
-        throw exceptions::msg() << "error at step #6";
+        throw msg_fmt("error at step #6");
     }
 
     // Success.
     error = false;
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     std::cerr << e.what() << "\n";
-  } catch (...) {
+  }
+  catch (...) {
     std::cerr << "unknown exception\n";
   }
 

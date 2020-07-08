@@ -20,7 +20,6 @@
 #include "com/centreon/broker/influxdb/stream.hh"
 #include <gtest/gtest.h>
 #include <com/centreon/broker/influxdb/connector.hh>
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/manager.hh"
 #include "../test_server.hh"

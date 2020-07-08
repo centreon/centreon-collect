@@ -20,10 +20,10 @@
 #include "com/centreon/broker/storage/connector.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/exceptions/config.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/storage/factory.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 TEST(StorageFactory, Factory) {
@@ -37,7 +37,7 @@ TEST(StorageFactory, Factory) {
                         true,
                         5);
   std::shared_ptr<persistent_cache> cache;
-  config::endpoint cfg;
+  com::centreon::broker::config::endpoint cfg;
   bool is_acceptor;
 
   storage::factory factory;
@@ -75,7 +75,7 @@ TEST(StorageFactory, FactoryWithFullConf) {
                         true,
                         5);
   std::shared_ptr<persistent_cache> cache;
-  config::endpoint cfg;
+  com::centreon::broker::config::endpoint cfg;
   bool is_acceptor;
 
   storage::factory factory;
