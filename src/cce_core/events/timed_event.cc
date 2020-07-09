@@ -28,7 +28,7 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
@@ -104,10 +104,11 @@ void timed_event::_exec_event_service_check() {
   double latency = (double)((double)(tv.tv_sec - run_time) +
                             (double)(tv.tv_usec / 1000) / 1000.0);
 
-  logger(dbg_events, basic)
-      << "** Service Check Event ==> Host: '" << svc->get_hostname()
-      << "', Service: '" << svc->get_description()
-      << "', Options: " << event_options << ", Latency: " << latency << " sec";
+  logger(dbg_events, basic) << "** Service Check Event ==> Host: '"
+                            << svc->get_hostname() << "', Service: '"
+                            << svc->get_description()
+                            << "', Options: " << event_options
+                            << ", Latency: " << latency << " sec";
 
   // run the service check.
   svc->run_scheduled_check(event_options, latency);
@@ -121,8 +122,14 @@ void timed_event::_exec_event_command_check() {
   logger(dbg_events, basic) << "** External Command Check Event";
 
   // send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, NEBFLAG_NONE,
-                          NEBATTR_NONE, CMD_NONE, time(NULL), NULL, NULL, NULL);
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK,
+                          NEBFLAG_NONE,
+                          NEBATTR_NONE,
+                          CMD_NONE,
+                          time(NULL),
+                          NULL,
+                          NULL,
+                          NULL);
 }
 
 /**
@@ -182,7 +189,8 @@ void timed_event::_exec_event_check_reaper() {
   // reap host and service check results.
   try {
     checks::checker::instance().reap();
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     logger(log_runtime_error, basic) << "Error: " << e.what();
   }
 }
@@ -273,9 +281,10 @@ void timed_event::_exec_event_host_check() {
   double latency = (double)((double)(tv.tv_sec - run_time) +
                             (double)(tv.tv_usec / 1000) / 1000.0);
 
-  logger(dbg_events, basic)
-      << "** Host Check Event ==> Host: '" << hst->get_name()
-      << "', Options: " << event_options << ", Latency: " << latency << " sec";
+  logger(dbg_events, basic) << "** Host Check Event ==> Host: '"
+                            << hst->get_name()
+                            << "', Options: " << event_options
+                            << ", Latency: " << latency << " sec";
 
   // run the host check.
   hst->run_scheduled_check(event_options, latency);
@@ -366,7 +375,7 @@ time_t adjust_timestamp_for_time_change(int64_t time_difference, time_t ts) {
   logger(dbg_functions, basic) << "adjust_timestamp_for_time_change()";
 
   // we shouldn't do anything with epoch or invalid values.
-  if (ts == (time_t)0 || ts == (time_t)-1)
+  if (ts == (time_t)0 || ts == (time_t) - 1)
     return ts;
 
   time_t retval = ts + time_difference;
@@ -408,8 +417,8 @@ int timed_event::handle_timed_event() {
   logger(dbg_functions, basic) << "handle_timed_event()";
 
   // send event data to broker.
-  broker_timed_event(NEBTYPE_TIMEDEVENT_EXECUTE, NEBFLAG_NONE, NEBATTR_NONE,
-                     this, nullptr);
+  broker_timed_event(
+      NEBTYPE_TIMEDEVENT_EXECUTE, NEBFLAG_NONE, NEBATTR_NONE, this, nullptr);
 
   logger(dbg_events, basic) << "** Timed Event ** Type: " << event_type
                             << ", Run Time: " << my_ctime(&run_time);

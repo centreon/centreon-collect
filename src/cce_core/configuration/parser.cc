@@ -19,11 +19,12 @@
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include <memory>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/io/directory_entry.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::io;
 
@@ -129,16 +130,21 @@ void parser::_add_object(object_ptr obj) {
  */
 void parser::_add_template(object_ptr obj) {
   std::string const& name(obj->name());
+  auto& file_info = _get_file_info(obj.get());
   if (name.empty())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get())
-                         << ": Property 'name' "
-                            "is missing";
+    throw error(
+        "Parsing of {} failed in file {} on line {}: Property 'name' is "
+        "missing",
+        obj->type_name(),
+        file_info.path(),
+        file_info.line());
   map_object& tmpl(_templates[obj->type()]);
   if (tmpl.find(name) != tmpl.end())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get()) << ": " << name
-                         << " already exists";
+    throw error("Parsing of {} failed in file {} on line {}: {} already exists",
+                obj->type_name(),
+                file_info.path(),
+                file_info.line(),
+                name);
   tmpl[name] = obj;
 }
 
@@ -151,7 +157,8 @@ void parser::_add_template(object_ptr obj) {
 void parser::_apply(std::list<std::string> const& lst,
                     void (parser::*pfunc)(std::string const&)) {
   for (std::list<std::string>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     (this->*pfunc)(*it);
 }
 
@@ -167,7 +174,8 @@ void parser::_apply_hostextinfo() {
   list_object const& hostextinfos(_lst_objects[object::hostextinfo]);
   for (list_object::const_iterator it(hostextinfos.begin()),
        end(hostextinfos.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Get the current hostextinfo to check.
     hostextinfo_ptr obj(std::static_pointer_cast<hostextinfo>(*it));
 
@@ -194,7 +202,8 @@ void parser::_apply_serviceextinfo() {
   list_object const& serviceextinfos(_lst_objects[object::serviceextinfo]);
   for (list_object::const_iterator it(serviceextinfos.begin()),
        end(serviceextinfos.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Get the current serviceextinfo to check.
     serviceextinfo_ptr obj(std::static_pointer_cast<serviceextinfo>(*it));
 
@@ -203,7 +212,8 @@ void parser::_apply_serviceextinfo() {
     _get_hosts_by_hostgroups_name(obj->hostgroups(), hosts);
 
     for (list_object::iterator it(gl_services.begin()), end(gl_services.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       service_ptr svc(std::static_pointer_cast<service>(*it));
       if (svc->service_description() != obj->service_description())
         continue;
@@ -215,10 +225,12 @@ void parser::_apply_serviceextinfo() {
       bool found(false);
       for (list_host::const_iterator it_host(hosts.begin()),
            end_host(hosts.end());
-           !found && it_host != end_host; ++it_host) {
+           !found && it_host != end_host;
+           ++it_host) {
         for (list_host::const_iterator it_svc_host(svc_hosts.begin()),
              end_svc_host(svc_hosts.end());
-             it_svc_host != end_svc_host; ++it_svc_host) {
+             it_svc_host != end_svc_host;
+             ++it_svc_host) {
           if (it_host->host_name() == it_svc_host->host_name()) {
             svc->merge(*obj);
             found = true;
@@ -243,8 +255,8 @@ file_info const& parser::_get_file_info(object* obj) const {
     if (it != _objects_info.end())
       return it->second;
   }
-  throw engine_error() << "Parsing failed: Object not "
-                          "found into the file information cache";
+  throw error(
+      "Parsing failed: Object not found into the file information cache");
 }
 
 /**
@@ -255,8 +267,8 @@ file_info const& parser::_get_file_info(object* obj) const {
  */
 void parser::_get_hosts_by_hostgroups(hostgroup const& hostgroups,
                                       list_host& hosts) {
-  _get_objects_by_list_name(hostgroups.members(), _map_objects[object::host],
-                            hosts);
+  _get_objects_by_list_name(
+      hostgroups.members(), _map_objects[object::host], hosts);
 }
 
 /**
@@ -269,7 +281,8 @@ void parser::_get_hosts_by_hostgroups_name(set_string const& lst_group,
                                            list_host& hosts) {
   map_object& gl_hostgroups(_map_objects[object::hostgroup]);
   for (set_string::const_iterator it(lst_group.begin()), end(lst_group.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     map_object::iterator it_hostgroups(gl_hostgroups.find(*it));
     if (it_hostgroups != gl_hostgroups.end())
       _get_hosts_by_hostgroups(
@@ -350,7 +363,8 @@ void parser::_parse_directory_configuration(std::string const& path) {
   directory_entry dir(path);
   std::list<file_entry> const& lst(dir.entry_list("*.cfg"));
   for (std::list<file_entry>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _parse_object_definitions(it->path());
 }
 
@@ -365,9 +379,8 @@ void parser::_parse_global_configuration(std::string const& path) {
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw engine_error() << "Parsing of global "
-                            "configuration failed: Can't open file '"
-                         << path << "'";
+    throw error("Parsing of global configuration failed: Can't open file '{}'",
+                path);
 
   _config->cfg_main(path);
 
@@ -379,10 +392,12 @@ void parser::_parse_global_configuration(std::string const& path) {
     char const* key;
     char const* value;
     if (!string::split(input, &key, &value, '=') || !_config->set(key, value))
-      throw engine_error() << "Parsing of global "
-                              "configuration failed in file '"
-                           << path << "' on line " << _current_line
-                           << ": Invalid line '" << input << "'";
+      throw error(
+          "Parsing of global configuration failed in file '{}' on line {}: "
+          "Invalid line '{}'",
+          path,
+          _current_line,
+          input);
   }
 }
 
@@ -397,8 +412,8 @@ void parser::_parse_object_definitions(std::string const& path) {
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw engine_error() << "Parsing of object definition failed: "
-                         << "Can't open file '" << path << "'";
+    throw error("Parsing of object definition failed: Can't open file '{}'",
+                path);
 
   _current_line = 0;
   _current_path = path;
@@ -419,24 +434,28 @@ void parser::_parse_object_definitions(std::string const& path) {
     // Check if is a valid object.
     if (obj == nullptr) {
       if (input.find("define") || !std::isspace(input[6]))
-        throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unexpected start definition";
+        throw error(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unexpected start definition",
+            _current_path,
+            _current_line);
       string::trim_left(input.erase(0, 6));
       std::size_t last(input.size() - 1);
       if (input.empty() || input[last] != '{')
-        throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unexpected start definition";
+        throw error(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unexpected start definition",
+            _current_path,
+            _current_line);
       std::string const& type(string::trim_right(input.erase(last)));
       obj = object::create(type);
       if (obj == nullptr)
-        throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unknown object type name '" << type << "'";
+        throw error(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unknown object type name '{}'",
+            _current_path,
+            _current_line,
+            type);
       parse_object = (_read_options & (1 << obj->type()));
       _objects_info[obj.get()] = file_info(path, _current_line);
     }
@@ -444,10 +463,12 @@ void parser::_parse_object_definitions(std::string const& path) {
     else if (input != "}") {
       if (parse_object) {
         if (!obj->parse(input))
-          throw engine_error()
-              << "Parsing of object definition "
-              << "failed in file '" << _current_path << "' on line "
-              << _current_line << ": Invalid line '" << input << "'";
+          throw error(
+              "Parsing of object definition failed in file '{}' on line {}: "
+              "Invalid line '{}'",
+              _current_path,
+              _current_line,
+              input);
       }
     }
     // End of the current object.
@@ -469,13 +490,12 @@ void parser::_parse_object_definitions(std::string const& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  logger(logging::log_info_message, logging::most)
-      << "Reading resource file '" << path << "'";
+  logger(logging::log_info_message, logging::most) << "Reading resource file '"
+                                                   << path << "'";
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw engine_error() << "Parsing of resource file failed: "
-                         << "can't open file '" << path << "'";
+    throw error("Parsing of resource file failed: can't open file '{}'", path);
 
   _current_line = 0;
   _current_path = path;
@@ -486,15 +506,21 @@ void parser::_parse_resource_file(std::string const& path) {
       std::string key;
       std::string value;
       if (!string::split(input, key, value, '='))
-        throw engine_error() << "Parsing of resource file '" << _current_path
-                             << "' failed on line " << _current_line
-                             << ": Invalid line '" << input << "'";
+        throw error(
+            "Parsing of resource file '{}' failed on line {}: Invalid line "
+            "'{}'",
+            _current_path,
+            _current_line,
+            input);
       _config->user(key, value);
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
-      throw engine_error() << "Parsing of resource file '" << _current_path
-                           << "' failed on line " << _current_line
-                           << ": Invalid line '" << input << "'";
+      throw error(
+          "Parsing of resource file '{}' failed on line {}: Invalid line '{}'",
+          _current_path,
+          _current_line,
+          input);
     }
   }
 }
@@ -507,7 +533,8 @@ void parser::_resolve_template() {
     map_object& templates(_templates[i]);
     for (map_object::iterator it(_templates[i].begin()),
          end(_templates[i].end());
-         it != end; ++it)
+         it != end;
+         ++it)
       it->second->resolve_template(templates);
   }
 
@@ -516,13 +543,20 @@ void parser::_resolve_template() {
     map_object& templates(_templates[i]);
     for (list_object::iterator it(_lst_objects[i].begin()),
          end(_lst_objects[i].end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       (*it)->resolve_template(templates);
       try {
         (*it)->check_validity();
-      } catch (std::exception const& e) {
-        throw engine_error() << "Configuration parsing failed "
-                             << _get_file_info(it->get()) << ": " << e.what();
+      }
+      catch (std::exception const& e) {
+        auto& file_info = _get_file_info(it->get());
+        // throw error("Configuration parsing failed {}: {}",
+        // _get_file_info(it->get()), e.what());
+        throw error("Configuration parsing failed in file {} on line {}: {}",
+                    file_info.path(),
+                    file_info.line(),
+                    e.what());
       }
     }
   }
@@ -532,14 +566,18 @@ void parser::_resolve_template() {
     map_object& templates(_templates[i]);
     for (map_object::iterator it(_map_objects[i].begin()),
          end(_map_objects[i].end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       it->second->resolve_template(templates);
       try {
         it->second->check_validity();
-      } catch (std::exception const& e) {
-        throw engine_error()
-            << "Configuration parsing failed "
-            << _get_file_info(it->second.get()) << ": " << e.what();
+      }
+      catch (std::exception const& e) {
+        auto& file_info = _get_file_info(it->second.get());
+        throw error("Configuration parsing failed in file {} on line {}: {}",
+                    file_info.path(),
+                    file_info.line(),
+                    e.what());
       }
     }
   }
@@ -561,11 +599,14 @@ void parser::_store_into_list(object_ptr obj) {
  */
 template <typename T, std::string const& (T::*ptr)() const throw()>
 void parser::_store_into_map(object_ptr obj) {
+  auto& file_info = _get_file_info(obj.get());
   std::shared_ptr<T> real(std::static_pointer_cast<T>(obj));
   map_object::iterator it(_map_objects[obj->type()].find((real.get()->*ptr)()));
   if (it != _map_objects[obj->type()].end())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get()) << ": " << obj->name()
-                         << " alrealdy exists";
+    throw error("Parsing of {} failed in file {} on line {}: {} alreadyexists",
+                obj->type_name(),
+                file_info.path(),
+                file_info.line(),
+                obj->name());
   _map_objects[obj->type()][(real.get()->*ptr)()] = real;
 }

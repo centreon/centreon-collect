@@ -21,7 +21,7 @@
 #define CCE_CONFIGURATION_FILE_INFO_HH
 
 #include <string>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
@@ -49,12 +49,18 @@ class file_info {
   bool operator!=(file_info const& right) const noexcept {
     return !operator==(right);
   }
-  friend exceptions::error& operator<<(exceptions::error& err,
-                                       file_info const& info) {
+
+  /*friend exceptions::error& operator<<(file_info const& info) {
+    return error("in file '{}' on line {}", info.path(), info.line());
+  }*/
+
+  // previous code
+  /*friend exceptions::error& operator<<(exceptions::error& err, file_info
+const& info) {
     err << "in file '" << info.path() << "' on line " << info.line();
     return err;
-  }
-  unsigned int line() const noexcept { return _line; }
+}*/
+  uint32_t line() const noexcept { return _line; }
   void line(unsigned int line) noexcept { _line = line; }
   std::string const& path() const noexcept { return _path; }
   void path(std::string const& path) { _path = path; }

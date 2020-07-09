@@ -21,9 +21,10 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -47,8 +48,9 @@ void applier::serviceescalation::add_object(
   // Check service escalation.
   if ((obj.hosts().size() != 1) || !obj.hostgroups().empty() ||
       obj.service_description().size() != 1 || !obj.servicegroups().empty())
-    throw engine_error() << "Could not create service escalation with multiple "
-                            "hosts / host groups / services / service groups";
+    throw error(
+        "Could not create service escalation with multiple hosts / host groups "
+        "/ services / service groups");
 
   // Logging.
   logger(logging::dbg_config, logging::more)
@@ -61,9 +63,12 @@ void applier::serviceescalation::add_object(
 
   // Create service escalation.
   std::shared_ptr<engine::serviceescalation> se{new engine::serviceescalation(
-      obj.hosts().front(), obj.service_description().front(),
-      obj.first_notification(), obj.last_notification(),
-      obj.notification_interval(), obj.escalation_period(),
+      obj.hosts().front(),
+      obj.service_description().front(),
+      obj.first_notification(),
+      obj.last_notification(),
+      obj.notification_interval(),
+      obj.escalation_period(),
       ((obj.escalation_options() & configuration::serviceescalation::warning)
            ? notifier::warning
            : notifier::none) |
@@ -87,13 +92,14 @@ void applier::serviceescalation::add_object(
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_escalation_data(NEBTYPE_SERVICEESCALATION_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, se.get(), &tv);
+  broker_adaptive_escalation_data(
+      NEBTYPE_SERVICEESCALATION_ADD, NEBFLAG_NONE, NEBATTR_NONE, se.get(), &tv);
 
   // Add contact groups to service escalation.
   for (set_string::const_iterator it(obj.contactgroups().begin()),
        end(obj.contactgroups().end());
-       it != end; ++it)
+       it != end;
+       ++it)
     se->get_contactgroups().insert({*it, nullptr});
 }
 
@@ -110,18 +116,23 @@ void applier::serviceescalation::expand_objects(configuration::state& s) {
   for (configuration::set_serviceescalation::const_iterator
            it_esc(s.serviceescalations().begin()),
        end_esc(s.serviceescalations().end());
-       it_esc != end_esc; ++it_esc) {
+       it_esc != end_esc;
+       ++it_esc) {
     // Expanded services.
-    std::set<std::pair<std::string, std::string>> expanded_services;
-    _expand_services(it_esc->hosts(), it_esc->hostgroups(),
-                     it_esc->service_description(), it_esc->servicegroups(), s,
+    std::set<std::pair<std::string, std::string> > expanded_services;
+    _expand_services(it_esc->hosts(),
+                     it_esc->hostgroups(),
+                     it_esc->service_description(),
+                     it_esc->servicegroups(),
+                     s,
                      expanded_services);
 
     // Browse all services.
-    for (std::set<std::pair<std::string, std::string>>::const_iterator
+    for (std::set<std::pair<std::string, std::string> >::const_iterator
              it(expanded_services.begin()),
          end(expanded_services.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       configuration::serviceescalation sesc(*it_esc);
       sesc.hostgroups().clear();
       sesc.hosts().clear();
@@ -151,11 +162,10 @@ void applier::serviceescalation::expand_objects(configuration::state& s) {
 void applier::serviceescalation::modify_object(
     configuration::serviceescalation const& obj) {
   (void)obj;
-  throw engine_error()
-      << "Could not modify a service "
-      << "escalation: service escalation objects can only be added "
-      << "or removed, this is likely a software bug that you should "
-      << "report to Centreon Engine developers";
+  throw error(
+      "Could not modify a service escalation: service escalation objects can "
+      "only be added or removed, this is likely a software bug that you should "
+      "report to Centreon Engine developers");
 }
 
 /**
@@ -185,34 +195,37 @@ void applier::serviceescalation::remove_object(
   /* ... and its escalations */
   if (sit == engine::service::services.end()) {
     logger(logging::dbg_config, logging::more)
-      << "Cannot find service '" << host_name << "/" << description
-      << "' - already removed.";
+        << "Cannot find service '" << host_name << "/" << description
+        << "' - already removed.";
     service_exists = false;
-  }
-  else
+  } else
     service_exists = true;
 
   for (serviceescalation_mmap::iterator it{range.first}, end{range.second};
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (it->second->get_uuid() == obj.uuid()) {
       // We have the serviceescalation to remove.
 
       // Notify event broker.
       timeval tv(get_broker_timestamp(nullptr));
       broker_adaptive_escalation_data(NEBTYPE_SERVICEESCALATION_DELETE,
-                                      NEBFLAG_NONE, NEBATTR_NONE,
-                                      it->second.get(), &tv);
+                                      NEBFLAG_NONE,
+                                      NEBATTR_NONE,
+                                      it->second.get(),
+                                      &tv);
 
       if (service_exists) {
         logger(logging::dbg_config, logging::more)
-          << "Service '" << host_name << "/" << description
-          << "' found - removing escalation from it.";
+            << "Service '" << host_name << "/" << description
+            << "' found - removing escalation from it.";
         std::list<escalation*>& srv_escalations(sit->second->get_escalations());
         /* We need also to remove the escalation from the service */
         for (std::list<engine::escalation*>::iterator
                  eit{srv_escalations.begin()},
              eend{srv_escalations.end()};
-             eit != eend; ++eit) {
+             eit != eend;
+             ++eit) {
           if (*eit == it->second.get()) {
             srv_escalations.erase(eit);
             break;
@@ -248,9 +261,10 @@ void applier::serviceescalation::resolve_object(
   auto p(engine::serviceescalation::serviceescalations.equal_range(
       {hostname, desc}));
   if (p.first == p.second)
-    throw engine_error() << "Cannot find service escalations "
-                         << "concerning host '" << hostname << "' and service '"
-                         << desc << "'";
+    throw error(
+        "Cannot find service escalations concerning host '{}' and service '{}'",
+        hostname,
+        desc);
   for (serviceescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
     if (it->second->get_uuid() == obj.uuid()) {
       found = true;
@@ -260,7 +274,7 @@ void applier::serviceescalation::resolve_object(
     }
   }
   if (!found)
-    throw engine_error() << "Cannot resolve non-existing service escalation";
+    throw error("Cannot resolve non-existing service escalation");
 }
 
 /**
@@ -279,7 +293,7 @@ void applier::serviceescalation::_expand_services(
     std::list<std::string> const& svc,
     std::list<std::string> const& sg,
     configuration::state& s,
-    std::set<std::pair<std::string, std::string>>& expanded) {
+    std::set<std::pair<std::string, std::string> >& expanded) {
   // Expanded hosts.
   std::set<std::string> all_hosts;
 
@@ -288,11 +302,12 @@ void applier::serviceescalation::_expand_services(
 
   // Host groups.
   for (std::list<std::string>::const_iterator it(hg.begin()), end(hg.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Find host group.
     configuration::set_hostgroup::iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw engine_error() << "Could not resolve host group '" << *it << "'";
+      throw error("Could not resolve host group '{}'", *it);
 
     // Add host group members.
     all_hosts.insert(it_group->members().begin(), it_group->members().end());
@@ -301,25 +316,29 @@ void applier::serviceescalation::_expand_services(
   // Hosts * services.
   for (std::set<std::string>::const_iterator it_host(all_hosts.begin()),
        end_host(all_hosts.end());
-       it_host != end_host; ++it_host)
+       it_host != end_host;
+       ++it_host)
     for (std::list<std::string>::const_iterator it_service(svc.begin()),
          end_service(svc.end());
-         it_service != end_service; ++it_service)
+         it_service != end_service;
+         ++it_service)
       expanded.insert({*it_host, *it_service});
 
   // Service groups.
   for (std::list<std::string>::const_iterator it(sg.begin()), end(sg.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Find service group.
     configuration::set_servicegroup::iterator it_group(
         s.servicegroups_find(*it));
     if (it_group == s.servicegroups().end())
-      throw engine_error() << "Could not resolve service group '" << *it << "'";
+      throw error("Could not resolve service group '{}'", *it);
 
     // Add service group members.
     for (set_pair_string::const_iterator it_member(it_group->members().begin()),
          end_member(it_group->members().end());
-         it_member != end_member; ++it_member)
+         it_member != end_member;
+         ++it_member)
       expanded.insert(*it_member);
   }
 }
@@ -340,11 +359,11 @@ void applier::serviceescalation::_inherits_special_vars(
     configuration::set_service::const_iterator it{s.services_find(
         obj.hosts().front(), obj.service_description().front())};
     if (it == s.services().end())
-      throw engine_error() << "Could not inherit special "
-                           << "variables from service '"
-                           << obj.service_description().front() << "' of host '"
-                           << obj.hosts().front()
-                           << "': service does not exist";
+      throw error(
+          "Could not inherit special variables from service '{}' of host '{}': "
+          "service does not exist",
+          obj.service_description().front(),
+          obj.hosts().front());
 
     // Inherits variables.
     if (!obj.contactgroups_defined())

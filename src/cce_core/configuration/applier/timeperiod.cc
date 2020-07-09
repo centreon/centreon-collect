@@ -22,9 +22,10 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -64,8 +65,8 @@ applier::timeperiod& applier::timeperiod::operator=(
  */
 void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Creating new time period '" << obj.timeperiod_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Creating new time period '"
+                                             << obj.timeperiod_name() << "'.";
 
   // Add time period to the global configuration set.
   config->timeperiods().insert(obj);
@@ -78,8 +79,12 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, tp.get(), CMD_NONE, &tv);
+  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_ADD,
+                                  NEBFLAG_NONE,
+                                  NEBATTR_NONE,
+                                  tp.get(),
+                                  CMD_NONE,
+                                  &tv);
 
   // Fill time period structure.
   _add_time_ranges(obj.timeranges(), tp.get());
@@ -95,9 +100,7 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
  *
  *  @param[in] s  Unused.
  */
-void applier::timeperiod::expand_objects(configuration::state& s) {
-  (void)s;
-}
+void applier::timeperiod::expand_objects(configuration::state& s) { (void)s; }
 
 /**
  *  Modify time period.
@@ -106,22 +109,21 @@ void applier::timeperiod::expand_objects(configuration::state& s) {
  */
 void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Modifying time period '" << obj.timeperiod_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Modifying time period '"
+                                             << obj.timeperiod_name() << "'.";
 
   // Find old configuration.
   set_timeperiod::iterator it_cfg(config->timeperiods_find(obj.key()));
   if (it_cfg == config->timeperiods().end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "time period '" << obj.timeperiod_name() << "'");
+    throw error("Could not modify non-existing time period '{}'",
+                obj.timeperiod_name());
 
   // Find time period object.
   timeperiod_map::iterator it_obj(
       engine::timeperiod::timeperiods.find(obj.key()));
   if (it_obj == engine::timeperiod::timeperiods.end() || !it_obj->second)
-    throw(engine_error() << "Could not modify non-existing "
-                         << "time period object '" << obj.timeperiod_name()
-                         << "'");
+    throw error("Could not modify non-existing time period object '",
+                obj.timeperiod_name());
   engine::timeperiod* tp(it_obj->second.get());
 
   // Update the global configuration set.
@@ -162,8 +164,8 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, tp, CMD_NONE, &tv);
+  broker_adaptive_timeperiod_data(
+      NEBTYPE_TIMEPERIOD_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, tp, CMD_NONE, &tv);
 }
 
 /**
@@ -173,16 +175,19 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Removing time period '" << obj.timeperiod_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Removing time period '"
+                                             << obj.timeperiod_name() << "'.";
 
   // Find time period.
   timeperiod_map::iterator it(engine::timeperiod::timeperiods.find(obj.key()));
   if (it != engine::timeperiod::timeperiods.end() && it->second) {
     // Notify event broker.
     timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_DELETE, NEBFLAG_NONE,
-                                    NEBATTR_NONE, it->second.get(), CMD_NONE,
+    broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_DELETE,
+                                    NEBFLAG_NONE,
+                                    NEBATTR_NONE,
+                                    it->second.get(),
+                                    CMD_NONE,
                                     &tv);
 
     // Erase time period (will effectively delete the object).
@@ -203,14 +208,14 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Resolving time period '" << obj.timeperiod_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Resolving time period '"
+                                             << obj.timeperiod_name() << "'.";
 
   // Find time period.
   timeperiod_map::iterator it{engine::timeperiod::timeperiods.find(obj.key())};
   if (engine::timeperiod::timeperiods.end() == it || !it->second)
-    throw engine_error() << "Cannot resolve non-existing "
-                         << "time period '" << obj.timeperiod_name() << "'";
+    throw error("Cannot resolve non-existing time period '{}'",
+                obj.timeperiod_name());
 
   // Resolve time period.
   it->second->resolve(config_warnings, config_errors);
@@ -226,7 +231,8 @@ void applier::timeperiod::_add_exclusions(
     std::set<std::string> const& exclusions,
     engine::timeperiod* tp) {
   for (set_string::const_iterator it(exclusions.begin()), end(exclusions.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     tp->get_exclusions().insert({*it, nullptr});
 }
 
@@ -242,24 +248,35 @@ void applier::timeperiod::_add_exceptions(
   for (std::vector<std::list<daterange> >::const_iterator
            it(exceptions.begin()),
        end(exceptions.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     for (std::list<daterange>::const_iterator it2(it->begin()), end2(it->end());
-         it2 != end2; ++it2) {
-      std::shared_ptr<engine::daterange> dr{new engine::daterange(
-          it2->type(), it2->year_start(), it2->month_start(),
-          it2->month_day_start(), it2->week_day_start(),
-          it2->week_day_start_offset(), it2->year_end(), it2->month_end(),
-          it2->month_day_end(), it2->week_day_end(), it2->week_day_end_offset(),
-          it2->skip_interval())};
+         it2 != end2;
+         ++it2) {
+      std::shared_ptr<engine::daterange> dr{
+          new engine::daterange(it2->type(),
+                                it2->year_start(),
+                                it2->month_start(),
+                                it2->month_day_start(),
+                                it2->week_day_start(),
+                                it2->week_day_start_offset(),
+                                it2->year_end(),
+                                it2->month_end(),
+                                it2->month_day_end(),
+                                it2->week_day_end(),
+                                it2->week_day_end_offset(),
+                                it2->skip_interval())};
       tp->exceptions[it2->type()].push_back(dr);
       for (std::list<timerange>::const_iterator it3(it2->timeranges().begin()),
            end3(it2->timeranges().end());
-           it3 != end3; ++it3) {
+           it3 != end3;
+           ++it3) {
         std::shared_ptr<engine::timerange> tr{
             new engine::timerange(it3->start(), it3->end())};
         for (daterange_list::iterator it4(tp->exceptions[it2->type()].begin()),
              end4(tp->exceptions[it2->type()].end());
-             it4 != end4; ++it4)
+             it4 != end4;
+             ++it4)
           (*it4)->times.push_back(tr);
       }
     }
@@ -277,9 +294,11 @@ void applier::timeperiod::_add_time_ranges(
   unsigned short day(0);
   for (std::vector<std::list<timerange> >::const_iterator it(ranges.begin()),
        end(ranges.end());
-       it != end; ++it, ++day)
+       it != end;
+       ++it, ++day)
     for (std::list<timerange>::const_iterator it2(it->begin()), end2(it->end());
-         it2 != end2; ++it2) {
+         it2 != end2;
+         ++it2) {
       std::shared_ptr<engine::timerange> tr{
           new engine::timerange(it2->start(), it2->end())};
       tp->days[day].push_back(tr);

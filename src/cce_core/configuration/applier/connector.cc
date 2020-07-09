@@ -21,11 +21,12 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -45,8 +46,8 @@ applier::connector::~connector() throw() {}
  */
 void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Creating new connector '" << obj.connector_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Creating new connector '"
+                                             << obj.connector_name() << "'.";
 
   // Expand command line.
   nagios_macros* macros(get_global_macros());
@@ -71,9 +72,7 @@ void applier::connector::add_object(configuration::connector const& obj) {
  *
  *  @param[in] s  Unused.
  */
-void applier::connector::expand_objects(configuration::state& s) {
-  (void)s;
-}
+void applier::connector::expand_objects(configuration::state& s) { (void)s; }
 
 /**
  *  Modify connector.
@@ -82,22 +81,21 @@ void applier::connector::expand_objects(configuration::state& s) {
  */
 void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Modifying connector '" << obj.connector_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Modifying connector '"
+                                             << obj.connector_name() << "'.";
 
   // Find old configuration.
   set_connector::iterator it_cfg(config->connectors_find(obj.key()));
   if (it_cfg == config->connectors().end())
-    throw(engine_error() << "Cannot modify non-existing connector '"
-                         << obj.connector_name() << "'");
+    throw error("Cannot modify non-existing connector '{}'",
+                obj.connector_name());
 
   // Find connector object.
   connector_map::iterator it_obj(
       commands::connector::connectors.find(obj.key()));
   if (it_obj == commands::connector::connectors.end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "connector object '" << obj.connector_name()
-                         << "'");
+    throw error("Could not modify non-existing connector object '{}'",
+                obj.connector_name());
   commands::connector* c(it_obj->second.get());
 
   // Update the global configuration set.
@@ -122,8 +120,8 @@ void applier::connector::modify_object(configuration::connector const& obj) {
  */
 void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Removing connector '" << obj.connector_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Removing connector '"
+                                             << obj.connector_name() << "'.";
 
   // Find connector.
   connector_map::iterator it(commands::connector::connectors.find(obj.key()));

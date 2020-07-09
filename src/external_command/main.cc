@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <exception>
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/modules/external_commands/utils.hh"
@@ -30,6 +30,7 @@
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/engine/nebstructs.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::logging;
 
 /**************************************
@@ -74,7 +75,8 @@ int callback_external_command(int callback_type, void* data) {
 
   try {
     check_for_external_commands();
-  } catch (...) {
+  }
+  catch (...) {
   }
   return (0);
 }
@@ -108,10 +110,12 @@ extern "C" int nebmodule_deinit(int flags, int reason) {
     // Close and delete the external command file FIFO.
     shutdown_command_file_worker_thread();
     close_command_file();
-  } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
-        << "external command runtime error `" << e.what() << "'.";
-  } catch (...) {
+  }
+  catch (std::exception const& e) {
+    logger(log_runtime_error, basic) << "external command runtime error `"
+                                     << e.what() << "'.";
+  }
+  catch (...) {
     logger(log_runtime_error, basic)
         << "external command runtime error `unknown'";
   }
@@ -139,15 +143,17 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
   gl_mod_handle = handle;
 
   // Set module informations.
-  neb_set_module_info(gl_mod_handle, NEBMODULE_MODINFO_TITLE,
+  neb_set_module_info(gl_mod_handle,
+                      NEBMODULE_MODINFO_TITLE,
                       "Centreon-Engine's external command");
   neb_set_module_info(gl_mod_handle, NEBMODULE_MODINFO_AUTHOR, "Merethis");
-  neb_set_module_info(gl_mod_handle, NEBMODULE_MODINFO_COPYRIGHT,
-                      "Copyright 2011 Merethis");
+  neb_set_module_info(
+      gl_mod_handle, NEBMODULE_MODINFO_COPYRIGHT, "Copyright 2011 Merethis");
   neb_set_module_info(gl_mod_handle, NEBMODULE_MODINFO_VERSION, "1.0.0");
-  neb_set_module_info(gl_mod_handle, NEBMODULE_MODINFO_LICENSE,
-                      "GPL version 2");
-  neb_set_module_info(gl_mod_handle, NEBMODULE_MODINFO_DESC,
+  neb_set_module_info(
+      gl_mod_handle, NEBMODULE_MODINFO_LICENSE, "GPL version 2");
+  neb_set_module_info(gl_mod_handle,
+                      NEBMODULE_MODINFO_DESC,
                       "Centreon-Engine's external command provide system to "
                       "execute commands over a pipe.");
 
@@ -162,15 +168,19 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
     }
 
     // Register callbacks.
-    if (neb_register_callback(NEBCALLBACK_EXTERNAL_COMMAND_DATA, gl_mod_handle,
-                              0, callback_external_command)) {
-      throw(engine_error() << "register callback failed");
+    if (neb_register_callback(NEBCALLBACK_EXTERNAL_COMMAND_DATA,
+                              gl_mod_handle,
+                              0,
+                              callback_external_command)) {
+      throw error("register callback failed");
     }
-  } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
-        << "external command runtime error `" << e.what() << "'.";
+  }
+  catch (std::exception const& e) {
+    logger(log_runtime_error, basic) << "external command runtime error `"
+                                     << e.what() << "'.";
     return (1);
-  } catch (...) {
+  }
+  catch (...) {
     logger(log_runtime_error, basic)
         << "external command runtime error `unknown'.";
     return (1);
@@ -185,6 +195,4 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
  *  This function is a placeholder to prevent Centreon Engine from
  *  complaining about impossible module reload.
  */
-extern "C" int nebmodule_reload() {
-  return (0);
-}
+extern "C" int nebmodule_reload() { return (0); }

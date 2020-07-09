@@ -21,10 +21,11 @@
 #include <array>
 #include <fstream>
 #include <string>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/retention/state.hh"
 #include "com/centreon/engine/string.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::retention;
 
 parser::store parser::_store[] = {
@@ -54,15 +55,13 @@ parser::~parser() throw() {}
 void parser::parse(std::string const& path, state& retention) {
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw(engine_error() << "Parsing of retention file failed: "
-                            "Can't open file '"
-                         << path << "'");
+    throw error("Parsing of retention file failed: Can't open file '{}'", path);
 
   std::shared_ptr<object> obj;
   std::string input;
   unsigned int current_line(0);
   auto next_line = [](
-      std::ifstream& stream, std::string& input, uint32_t& line) -> bool {
+      std::ifstream & stream, std::string & input, uint32_t & line)->bool {
     while (std::getline(stream, input, '\n')) {
       ++line;
       size_t sstart = input.find_first_not_of(" \t");

@@ -25,7 +25,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "helper.hh"
 
@@ -90,14 +89,18 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntime) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_host->notify(notifier::reason_downtimestart, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_downtimestart,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   _host->set_scheduled_downtime_depth(2);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
   set_time(43500);
   _host->set_scheduled_downtime_depth(0);
-  ASSERT_EQ(_host->notify(notifier::reason_downtimeend, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_downtimeend,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
@@ -139,14 +142,18 @@ TEST_F(HostDowntimeNotification,
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_host->notify(notifier::reason_downtimestart, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_downtimestart,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   _host->set_scheduled_downtime_depth(2);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
   set_time(43500);
   _host->set_scheduled_downtime_depth(0);
-  ASSERT_EQ(_host->notify(notifier::reason_downtimeend, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_downtimeend,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());

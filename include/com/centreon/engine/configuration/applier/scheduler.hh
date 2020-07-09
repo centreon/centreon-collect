@@ -23,7 +23,7 @@
 #include <set>
 #include <vector>
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/configuration/state.hh"
 
 // Forward declaration.

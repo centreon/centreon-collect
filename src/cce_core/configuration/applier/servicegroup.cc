@@ -21,10 +21,11 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -67,16 +68,20 @@ applier::servicegroup& applier::servicegroup::operator=(
  */
 void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Creating new servicegroup '" << obj.servicegroup_name() << "'";
+  logger(logging::dbg_config, logging::more) << "Creating new servicegroup '"
+                                             << obj.servicegroup_name() << "'";
 
   // Add service group to the global configuration set.
   config->servicegroups().insert(obj);
 
   // Create servicegroup.
-  std::shared_ptr<engine::servicegroup> sg{new engine::servicegroup(
-      obj.servicegroup_id(), obj.servicegroup_name(), obj.alias(), obj.notes(),
-      obj.notes_url(), obj.action_url())};
+  std::shared_ptr<engine::servicegroup> sg{
+      new engine::servicegroup(obj.servicegroup_id(),
+                               obj.servicegroup_name(),
+                               obj.alias(),
+                               obj.notes(),
+                               obj.notes_url(),
+                               obj.action_url())};
 
   // Add  new items to the list.
   engine::servicegroup::servicegroups.insert({sg->get_group_name(), sg});
@@ -86,13 +91,14 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
-  broker_group(NEBTYPE_SERVICEGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE, sg.get(),
-               &tv);
+  broker_group(
+      NEBTYPE_SERVICEGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE, sg.get(), &tv);
 
   // Apply resolved services on servicegroup.
   for (set_pair_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
-       it != end; ++it)
+       it != end;
+       ++it)
     sg->members[{it->first, it->second}] = nullptr;
 }
 
@@ -107,13 +113,15 @@ void applier::servicegroup::expand_objects(configuration::state& s) {
   for (configuration::set_servicegroup::const_iterator
            it(s.servicegroups().begin()),
        end(s.servicegroups().end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _resolve_members(*it, s);
 
   // Save resolved groups in the configuration set.
   s.servicegroups().clear();
   for (resolved_set::const_iterator it(_resolved.begin()), end(_resolved.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     s.servicegroups().insert(it->second);
 }
 
@@ -126,24 +134,22 @@ void applier::servicegroup::expand_objects(configuration::state& s) {
 void applier::servicegroup::modify_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Modifying servicegroup '" << obj.servicegroup_name() << "'";
+  logger(logging::dbg_config, logging::more) << "Modifying servicegroup '"
+                                             << obj.servicegroup_name() << "'";
 
   // Find old configuration.
   set_servicegroup::iterator it_cfg(config->servicegroups_find(obj.key()));
   if (it_cfg == config->servicegroups().end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "service group '" << obj.servicegroup_name()
-                         << "'");
+    throw error("Could not modify non-existing service group '{}'",
+                obj.servicegroup_name());
 
   // Find service group object.
   servicegroup_map::iterator it_obj{
       engine::servicegroup::servicegroups.find(obj.key())};
 
   if (it_obj == engine::servicegroup::servicegroups.end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "service group object '" << obj.servicegroup_name()
-                         << "'");
+    throw error("Could not modify non-existing service group object '{}'",
+                obj.servicegroup_name());
   engine::servicegroup* sg(it_obj->second.get());
 
   // Update the global configuration set.
@@ -163,24 +169,30 @@ void applier::servicegroup::modify_object(
     // Delete all old service group members.
     for (service_map_unsafe::iterator it(it_obj->second->members.begin()),
          end(it_obj->second->members.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       timeval tv(get_broker_timestamp(NULL));
-      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, NEBFLAG_NONE,
-                          NEBATTR_NONE, it->second, sg, &tv);
+      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE,
+                          NEBFLAG_NONE,
+                          NEBATTR_NONE,
+                          it->second,
+                          sg,
+                          &tv);
     }
     it_obj->second->members.clear();
 
     // Create new service group members.
     for (set_pair_string::const_iterator it(obj.members().begin()),
          end(obj.members().end());
-         it != end; ++it)
+         it != end;
+         ++it)
       sg->members[{it->first, it->second}] = nullptr;
   }
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
-  broker_group(NEBTYPE_SERVICEGROUP_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, sg,
-               &tv);
+  broker_group(
+      NEBTYPE_SERVICEGROUP_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, sg, &tv);
 }
 
 /**
@@ -192,8 +204,8 @@ void applier::servicegroup::modify_object(
 void applier::servicegroup::remove_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Removing servicegroup '" << obj.servicegroup_name() << "'";
+  logger(logging::dbg_config, logging::more) << "Removing servicegroup '"
+                                             << obj.servicegroup_name() << "'";
 
   // Find service group.
   servicegroup_map::iterator it{
@@ -201,8 +213,11 @@ void applier::servicegroup::remove_object(
   if (it != engine::servicegroup::servicegroups.end()) {
     // Notify event broker.
     timeval tv(get_broker_timestamp(NULL));
-    broker_group(NEBTYPE_SERVICEGROUP_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                 it->second.get(), &tv);
+    broker_group(NEBTYPE_SERVICEGROUP_DELETE,
+                 NEBFLAG_NONE,
+                 NEBATTR_NONE,
+                 it->second.get(),
+                 &tv);
 
     // Remove service dependency from its list.
     engine::servicegroup::servicegroups.erase(it);
@@ -220,15 +235,15 @@ void applier::servicegroup::remove_object(
 void applier::servicegroup::resolve_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Removing service group '" << obj.servicegroup_name() << "'";
+  logger(logging::dbg_config, logging::more) << "Removing service group '"
+                                             << obj.servicegroup_name() << "'";
 
   // Find service group.
   servicegroup_map::const_iterator it{
       engine::servicegroup::servicegroups.find(obj.key())};
   if (it == engine::servicegroup::servicegroups.end())
-    throw engine_error() << "Cannot resolve non-existing "
-                         << "service group '" << obj.servicegroup_name() << "'";
+    throw error("Cannot resolve non-existing service group '{}'",
+                obj.servicegroup_name());
 
   // Resolve service group.
   it->second->resolve(config_warnings, config_errors);
@@ -260,13 +275,16 @@ void applier::servicegroup::_resolve_members(
     // Add servicegroup members.
     for (set_string::const_iterator it(obj.servicegroup_members().begin()),
          end(obj.servicegroup_members().end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       // Find servicegroup entry.
       set_servicegroup::iterator it2(s.servicegroups_find(*it));
       if (it2 == s.servicegroups().end())
-        throw(engine_error()
-              << "Could not add non-existing service group member '" << *it
-              << "' to service group '" << obj.servicegroup_name() << "'");
+        throw error(
+            "Could not add non-existing service group member '{}' to service "
+            "group '{}'",
+            *it,
+            obj.servicegroup_name());
 
       // Resolve servicegroup member.
       _resolve_members(*it2, s);
@@ -274,7 +292,8 @@ void applier::servicegroup::_resolve_members(
       // Add servicegroup member members to members.
       for (set_pair_string::const_iterator it3(it2->members().begin()),
            end3(it2->members().end());
-           it3 != end3; ++it3)
+           it3 != end3;
+           ++it3)
         resolved_obj.members().insert(*it3);
     }
   }

@@ -21,9 +21,10 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -46,8 +47,8 @@ void applier::hostescalation::add_object(
     configuration::hostescalation const& obj) {
   // Check host escalation.
   if (obj.hosts().size() != 1 || !obj.hostgroups().empty())
-    throw engine_error()
-        << "Could not create host escalation with multiple hosts / host groups";
+    throw error(
+        "Could not create host escalation with multiple hosts / host groups");
 
   // Logging.
   logger(logging::dbg_config, logging::more)
@@ -58,8 +59,11 @@ void applier::hostescalation::add_object(
 
   // Create host escalation.
   std::shared_ptr<engine::hostescalation> he{new engine::hostescalation(
-      *obj.hosts().begin(), obj.first_notification(), obj.last_notification(),
-      obj.notification_interval(), obj.escalation_period(),
+      *obj.hosts().begin(),
+      obj.first_notification(),
+      obj.last_notification(),
+      obj.notification_interval(),
+      obj.escalation_period(),
       ((obj.escalation_options() & configuration::hostescalation::down)
            ? notifier::down
            : notifier::none) |
@@ -77,13 +81,14 @@ void applier::hostescalation::add_object(
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_escalation_data(NEBTYPE_HOSTESCALATION_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, he.get(), &tv);
+  broker_adaptive_escalation_data(
+      NEBTYPE_HOSTESCALATION_ADD, NEBFLAG_NONE, NEBATTR_NONE, he.get(), &tv);
 
   // Add contact groups to host escalation.
   for (set_string::const_iterator it(obj.contactgroups().begin()),
        end(obj.contactgroups().end());
-       it != end; ++it)
+       it != end;
+       ++it)
     he->get_contactgroups().insert({*it, nullptr});
 }
 
@@ -98,7 +103,8 @@ void applier::hostescalation::expand_objects(configuration::state& s) {
   for (configuration::set_hostescalation::const_iterator
            it_esc(s.hostescalations().begin()),
        end_esc(s.hostescalations().end());
-       it_esc != end_esc; ++it_esc) {
+       it_esc != end_esc;
+       ++it_esc) {
     // Expanded hosts.
     std::set<std::string> expanded_hosts;
     _expand_hosts(it_esc->hosts(), it_esc->hostgroups(), s, expanded_hosts);
@@ -106,7 +112,8 @@ void applier::hostescalation::expand_objects(configuration::state& s) {
     // Browse all hosts.
     for (std::set<std::string>::const_iterator it(expanded_hosts.begin()),
          end(expanded_hosts.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       configuration::hostescalation hesc(*it_esc);
       hesc.hostgroups().clear();
       hesc.hosts().clear();
@@ -133,11 +140,11 @@ void applier::hostescalation::expand_objects(configuration::state& s) {
 void applier::hostescalation::modify_object(
     configuration::hostescalation const& obj) {
   (void)obj;
-  throw engine_error()
-      << "Could not modify a host escalation: "
-      << "host escalation objects can only be added or removed, "
-      << "this is likely a software bug that you should report to "
-      << "Centreon Engine developers";
+  throw error(
+      "Could not modify a host escalation: "
+      "host escalation objects can only be added or removed, "
+      "this is likely a software bug that you should report to "
+      "Centreon Engine developers");
 }
 
 /**
@@ -162,14 +169,14 @@ void applier::hostescalation::remove_object(
   /* ... and its escalations */
   if (hit == engine::host::hosts.end()) {
     logger(logging::dbg_config, logging::more)
-      << "Cannot find host '" << host_name << "' - already removed.";
+        << "Cannot find host '" << host_name << "' - already removed.";
     host_exists = false;
-  }
-  else
+  } else
     host_exists = true;
 
   for (hostescalation_mmap::iterator it{range.first}, end{range.second};
-       it != end; ++it) {
+       it != end;
+       ++it) {
     /* It's a pity but for now we don't have any possibility or key to verify
      * if the hostescalation is the good one. */
     if (it->second->get_first_notification() == obj.first_notification() &&
@@ -191,17 +198,21 @@ void applier::hostescalation::remove_object(
       // Notify event broker.
       timeval tv(get_broker_timestamp(nullptr));
       broker_adaptive_escalation_data(NEBTYPE_HOSTESCALATION_DELETE,
-                                      NEBFLAG_NONE, NEBATTR_NONE,
-                                      it->second.get(), &tv);
+                                      NEBFLAG_NONE,
+                                      NEBATTR_NONE,
+                                      it->second.get(),
+                                      &tv);
 
       if (host_exists) {
         logger(logging::dbg_config, logging::more)
-          << "Host '" << host_name << "' found - removing escalation from it.";
+            << "Host '" << host_name
+            << "' found - removing escalation from it.";
         std::list<escalation*>& escalations(hit->second->get_escalations());
         /* We need also to remove the escalation from the host */
         for (std::list<engine::escalation*>::iterator heit{escalations.begin()},
              heend{escalations.end()};
-             heit != heend; ++heit) {
+             heit != heend;
+             ++heit) {
           if (*heit == it->second.get()) {
             escalations.erase(heit);
             break;
@@ -234,8 +245,7 @@ void applier::hostescalation::resolve_object(
   auto p(engine::hostescalation::hostescalations.equal_range(hostname));
 
   if (p.first == p.second)
-    throw engine_error() << "Cannot find host escalations concerning host '"
-                         << hostname << "'";
+    throw error("Cannot find host escalations concerning host '{}'", hostname);
 
   for (hostescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
     /* It's a pity but for now we don't have any idea or key to verify if
@@ -248,7 +258,7 @@ void applier::hostescalation::resolve_object(
     }
   }
   if (!found)
-    throw engine_error() << "Cannot resolve non-existing host escalation";
+    throw error("Cannot resolve non-existing host escalation");
 }
 
 /**
@@ -269,12 +279,12 @@ void applier::hostescalation::_expand_hosts(
 
   // Browse host groups.
   for (set_string::const_iterator it(hostgroups.begin()), end(hostgroups.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Find host group.
     set_hostgroup::const_iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw engine_error() << "Could not expand non-existing host group '"
-                           << *it << "'";
+      throw error("Could not expand non-existing host group '{}'", *it);
 
     // Add host group members.
     expanded.insert(it_group->members().begin(), it_group->members().end());
@@ -297,8 +307,10 @@ void applier::hostescalation::_inherits_special_vars(
     configuration::set_host::const_iterator it(
         s.hosts_find(*obj.hosts().begin()));
     if (it == s.hosts().end())
-      throw engine_error() << "Could not inherit special variables from host '"
-                           << *obj.hosts().begin() << "': host does not exist";
+      throw error(
+          "Could not inherit special variables from host '{}': host does not "
+          "exist",
+          *obj.hosts().begin());
 
     // Inherits variables.
     if (!obj.contactgroups_defined())
