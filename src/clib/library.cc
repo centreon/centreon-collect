@@ -20,6 +20,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/library.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon;
 
 /**************************************
@@ -66,7 +67,7 @@ void library::load() {
   if (_handle)
     return;
   if (!(_handle = dlopen(_filename.c_str(), RTLD_NOW | RTLD_GLOBAL)))
-    throw basic_error() << "load library failed: " << dlerror();
+    throw basic_error("load library failed: {}", dlerror());
 }
 
 /**
@@ -78,14 +79,14 @@ void library::load() {
  */
 void* library::resolve(char const* symbol) {
   if (!_handle)
-    throw basic_error() << "could not find symbol '" << symbol
-                        << "': library not loaded";
+    throw basic_error("could not find symbol '{}': library not loaded", symbol);
   dlerror();
   void* sym(dlsym(_handle, symbol));
   if (!sym) {
     char const* msg(dlerror());
-    throw basic_error() << "could not find symbol '" << symbol
-                        << "': " << (msg ? msg : "unknown error");
+    throw basic_error("could not find symbol '{}': {}",
+                      symbol,
+                      (msg ? msg : "unknown error"));
   }
   return sym;
 }
@@ -131,6 +132,6 @@ void library::unload() {
   if (!_handle)
     return;
   if (dlclose(_handle))
-    throw basic_error() << "unload library failed: " << dlerror();
+    throw basic_error("unload library failed: {}", dlerror());
   _handle = NULL;
 }

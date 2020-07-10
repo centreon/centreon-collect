@@ -19,7 +19,7 @@
 #ifndef CC_EXCEPTIONS_INTERRUPTION_HH
 #define CC_EXCEPTIONS_INTERRUPTION_HH
 
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -34,18 +34,20 @@ namespace exceptions {
  *  fail. This is mostly used to warn users of an errno of EINTR
  *  during a syscall.
  */
-class interruption : public basic {
+class interruption : public msg_fmt {
  public:
   interruption();
   interruption(char const* file, char const* function, int line);
   interruption(interruption const& other);
-  virtual ~interruption() throw();
+  ~interruption() noexcept {}
   interruption& operator=(interruption const& other);
-  template <typename T>
+  /*template <typename T>
   interruption& operator<<(T t) {
     basic::operator<<(t);
-    return (*this);
-  }
+    return (*this);*/
+  template <typename... Args>
+  explicit interruption(std::string const& str, const Args&... args)
+      : msg_fmt(fmt::format(str, args...)) {}
 };
 }
 
@@ -60,10 +62,23 @@ CC_END()
 #endif  // GCC, Visual or other.
 
 #ifndef NDEBUG
-#define interruption_error() \
+/*#define interruption_error() \
   com::centreon::exceptions::basic(__FILE__, FUNCTION, __LINE__)
 #else
-#define interruption_error() com::centreon::exceptions::basic()
+#define interruption_error() com::centreon::exceptions::basic()*/
+
+#define interruption_error(format, ...) \
+  com::centreon::exceptions::interruption(format, __VA_ARGS__)
+#define interruption_error_1(format) \
+  com::centreon::exceptions::interruption(format)
+#else
+#define interruption_error(format, ...)    \
+  com::centreon::exceptions::interruption( \
+      "[{}:{}:{}] " format, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define interruption_error_1(format)       \
+  com::centreon::exceptions::interruption( \
+      "[{}:{}:{}] {}", __FILE__, __func__, __LINE__, format)
+
 #endif  // !NDEBUG
 
 #endif  // !CC_EXCEPTIONS_INTERRUPTION_HH

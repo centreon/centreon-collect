@@ -35,6 +35,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "engine-version.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 
 #define STATUS_NO_DATA 0
@@ -242,7 +243,7 @@ int main(int argc, char* argv[]) {
     // Get all command line arguments.
     int c;
     while (!error) {
-      // Get next flag.
+// Get next flag.
 #ifdef HAVE_GETOPT_H
       c = getopt_long(argc, argv, "+hVLc:s:", long_options, NULL);
 #else
@@ -328,22 +329,22 @@ int main(int argc, char* argv[]) {
       if (stats_file) {
         if (read_stats_file() == ERROR) {
           char const* msg(strerror(errno));
-          throw(basic_error()
-                << "Error reading stats file '" << stats_file << "': " << msg);
+          throw basic_error(
+              "Error reading stats file '{}': {}", stats_file, msg);
         }
       }
       // Else read the normal status file.
       else {
         // Read main config file.
         if (read_config_file() == ERROR)
-          throw(basic_error()
-                << "Error processing config file '" << main_config_file);
+          throw basic_error("Error processing config file '{}'",
+                            main_config_file);
 
         // Read status file.
         if (read_status_file() == ERROR) {
           char const* msg(strerror(errno));
-          throw(basic_error() << "Error reading status file '" << status_file
-                              << "': " << msg);
+          throw basic_error(
+              "Error reading status file '{}': {}", status_file, msg);
         }
       }
 
@@ -353,9 +354,11 @@ int main(int argc, char* argv[]) {
       // Successful execution.
       retval = EXIT_SUCCESS;
     }
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     std::cout << "error: " << e.what() << std::endl;
-  } catch (...) {
+  }
+  catch (...) {
     std::cout << "error: unknown exception" << std::endl;
   }
 
@@ -386,17 +389,24 @@ int display_stats() {
          (stats_file != NULL) ? stats_file : status_file);
   time_difference = (current_time - status_creation_date);
   get_time_breakdown(time_difference, &days, &hours, &minutes, &seconds);
-  printf("Status File Age:                        %dd %dh %dm %ds\n", days,
-         hours, minutes, seconds);
+  printf("Status File Age:                        %dd %dh %dm %ds\n",
+         days,
+         hours,
+         minutes,
+         seconds);
   printf("Status File Version:                    %s\n", status_version);
   printf("\n");
   time_difference = (current_time - program_start);
   get_time_breakdown(time_difference, &days, &hours, &minutes, &seconds);
-  printf("Program Running Time:                   %dd %dh %dm %ds\n", days,
-         hours, minutes, seconds);
+  printf("Program Running Time:                   %dd %dh %dm %ds\n",
+         days,
+         hours,
+         minutes,
+         seconds);
   printf("Centreon Engine PID:                    %lu\n", nagios_pid);
   printf("Used/High/Total Command Buffers:        %d / %d / %d\n",
-         used_external_command_buffer_slots, high_external_command_buffer_slots,
+         used_external_command_buffer_slots,
+         high_external_command_buffer_slots,
          total_external_command_buffer_slots);
   printf("\n");
   printf("Total Services:                         %d\n",
@@ -407,33 +417,44 @@ int display_stats() {
   printf("Services Passively Checked:             %d\n",
          passive_service_checks);
   printf("Total Service State Change:             %.3f / %.3f / %.3f %%\n",
-         min_service_state_change, max_service_state_change,
+         min_service_state_change,
+         max_service_state_change,
          average_service_state_change);
   printf("Active Service Latency:                 %.3f / %.3f / %.3f sec\n",
-         min_active_service_latency, max_active_service_latency,
+         min_active_service_latency,
+         max_active_service_latency,
          average_active_service_latency);
   printf("Active Service Execution Time:          %.3f / %.3f / %.3f sec\n",
-         min_active_service_execution_time, max_active_service_execution_time,
+         min_active_service_execution_time,
+         max_active_service_execution_time,
          average_active_service_execution_time);
   printf("Active Service State Change:            %.3f / %.3f / %.3f %%\n",
-         min_active_service_state_change, max_active_service_state_change,
+         min_active_service_state_change,
+         max_active_service_state_change,
          average_active_service_state_change);
   printf("Active Services Last 1/5/15/60 min:     %d / %d / %d / %d\n",
-         active_services_checked_last_1min, active_services_checked_last_5min,
+         active_services_checked_last_1min,
+         active_services_checked_last_5min,
          active_services_checked_last_15min,
          active_services_checked_last_1hour);
   printf("Passive Service Latency:                %.3f / %.3f / %.3f sec\n",
-         min_passive_service_latency, max_passive_service_latency,
+         min_passive_service_latency,
+         max_passive_service_latency,
          average_passive_service_latency);
   printf("Passive Service State Change:           %.3f / %.3f / %.3f %%\n",
-         min_passive_service_state_change, max_passive_service_state_change,
+         min_passive_service_state_change,
+         max_passive_service_state_change,
          average_passive_service_state_change);
   printf("Passive Services Last 1/5/15/60 min:    %d / %d / %d / %d\n",
-         passive_services_checked_last_1min, passive_services_checked_last_5min,
+         passive_services_checked_last_1min,
+         passive_services_checked_last_5min,
          passive_services_checked_last_15min,
          passive_services_checked_last_1hour);
   printf("Services Ok/Warn/Unk/Crit:              %d / %d / %d / %d\n",
-         services_ok, services_warning, services_unknown, services_critical);
+         services_ok,
+         services_warning,
+         services_unknown,
+         services_critical);
   printf("Services Flapping:                      %d\n", services_flapping);
   printf("Services In Downtime:                   %d\n", services_in_downtime);
   printf("\n");
@@ -443,36 +464,49 @@ int display_stats() {
   printf("Hosts Actively Checked:                 %d\n", active_host_checks);
   printf("Host Passively Checked:                 %d\n", passive_host_checks);
   printf("Total Host State Change:                %.3f / %.3f / %.3f %%\n",
-         min_host_state_change, max_host_state_change,
+         min_host_state_change,
+         max_host_state_change,
          average_host_state_change);
   printf("Active Host Latency:                    %.3f / %.3f / %.3f sec\n",
-         min_active_host_latency, max_active_host_latency,
+         min_active_host_latency,
+         max_active_host_latency,
          average_active_host_latency);
   printf("Active Host Execution Time:             %.3f / %.3f / %.3f sec\n",
-         min_active_host_execution_time, max_active_host_execution_time,
+         min_active_host_execution_time,
+         max_active_host_execution_time,
          average_active_host_execution_time);
   printf("Active Host State Change:               %.3f / %.3f / %.3f %%\n",
-         min_active_host_state_change, max_active_host_state_change,
+         min_active_host_state_change,
+         max_active_host_state_change,
          average_active_host_state_change);
   printf("Active Hosts Last 1/5/15/60 min:        %d / %d / %d / %d\n",
-         active_hosts_checked_last_1min, active_hosts_checked_last_5min,
-         active_hosts_checked_last_15min, active_hosts_checked_last_1hour);
+         active_hosts_checked_last_1min,
+         active_hosts_checked_last_5min,
+         active_hosts_checked_last_15min,
+         active_hosts_checked_last_1hour);
   printf("Passive Host Latency:                   %.3f / %.3f / %.3f sec\n",
-         min_passive_host_latency, max_passive_host_latency,
+         min_passive_host_latency,
+         max_passive_host_latency,
          average_passive_host_latency);
   printf("Passive Host State Change:              %.3f / %.3f / %.3f %%\n",
-         min_passive_host_state_change, max_passive_host_state_change,
+         min_passive_host_state_change,
+         max_passive_host_state_change,
          average_passive_host_state_change);
   printf("Passive Hosts Last 1/5/15/60 min:       %d / %d / %d / %d\n",
-         passive_hosts_checked_last_1min, passive_hosts_checked_last_5min,
-         passive_hosts_checked_last_15min, passive_hosts_checked_last_1hour);
-  printf("Hosts Up/Down/Unreach:                  %d / %d / %d\n", hosts_up,
-         hosts_down, hosts_unreachable);
+         passive_hosts_checked_last_1min,
+         passive_hosts_checked_last_5min,
+         passive_hosts_checked_last_15min,
+         passive_hosts_checked_last_1hour);
+  printf("Hosts Up/Down/Unreach:                  %d / %d / %d\n",
+         hosts_up,
+         hosts_down,
+         hosts_unreachable);
   printf("Hosts Flapping:                         %d\n", hosts_flapping);
   printf("Hosts In Downtime:                      %d\n", hosts_in_downtime);
   printf("\n");
   printf("Active Host Checks Last 1/5/15 min:     %d / %d / %d\n",
-         active_host_checks_last_1min, active_host_checks_last_5min,
+         active_host_checks_last_1min,
+         active_host_checks_last_5min,
          active_host_checks_last_15min);
   printf("   Scheduled:                           %d / %d / %d\n",
          active_scheduled_host_checks_last_1min,
@@ -483,21 +517,25 @@ int display_stats() {
          active_ondemand_host_checks_last_5min,
          active_ondemand_host_checks_last_15min);
   printf("   Parallel:                            %d / %d / %d\n",
-         parallel_host_checks_last_1min, parallel_host_checks_last_5min,
+         parallel_host_checks_last_1min,
+         parallel_host_checks_last_5min,
          parallel_host_checks_last_15min);
   printf("   Serial:                              %d / %d / %d\n",
-         serial_host_checks_last_1min, serial_host_checks_last_5min,
+         serial_host_checks_last_1min,
+         serial_host_checks_last_5min,
          serial_host_checks_last_15min);
   printf("   Cached:                              %d / %d / %d\n",
          active_cached_host_checks_last_1min,
          active_cached_host_checks_last_5min,
          active_cached_host_checks_last_15min);
   printf("Passive Host Checks Last 1/5/15 min:    %d / %d / %d\n",
-         passive_host_checks_last_1min, passive_host_checks_last_5min,
+         passive_host_checks_last_1min,
+         passive_host_checks_last_5min,
          passive_host_checks_last_15min);
 
   printf("Active Service Checks Last 1/5/15 min:  %d / %d / %d\n",
-         active_service_checks_last_1min, active_service_checks_last_5min,
+         active_service_checks_last_1min,
+         active_service_checks_last_5min,
          active_service_checks_last_15min);
   printf("   Scheduled:                           %d / %d / %d\n",
          active_scheduled_service_checks_last_1min,
@@ -512,11 +550,13 @@ int display_stats() {
          active_cached_service_checks_last_5min,
          active_cached_service_checks_last_15min);
   printf("Passive Service Checks Last 1/5/15 min: %d / %d / %d\n",
-         passive_service_checks_last_1min, passive_service_checks_last_5min,
+         passive_service_checks_last_1min,
+         passive_service_checks_last_5min,
          passive_service_checks_last_15min);
   printf("\n");
   printf("External Commands Last 1/5/15 min:      %d / %d / %d\n",
-         external_commands_last_1min, external_commands_last_5min,
+         external_commands_last_1min,
+         external_commands_last_5min,
          external_commands_last_15min);
   printf("\n");
   printf("\n");

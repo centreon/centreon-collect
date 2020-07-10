@@ -49,13 +49,17 @@ class file_info {
   bool operator!=(file_info const& right) const noexcept {
     return !operator==(right);
   }
-  friend exceptions::error& operator<<(exceptions::error& err,
-                                       file_info const& info) {
+  << << << < Updated upstream friend exceptions::error& operator<<(
+                 exceptions::error& err,
+                 file_info const& info) {
     err << "in file '" << info.path() << "' on line " << info.line();
     return err;
   }
   unsigned int line() const noexcept { return _line; }
-  void line(unsigned int line) noexcept { _line = line; }
+  == == == = uint32_t line() const noexcept { return _line; }
+  >>>>>>> Stashed changes void line(unsigned int line) noexcept {
+    _line = line;
+  }
   std::string const& path() const noexcept { return _path; }
   void path(std::string const& path) { _path = path; }
 };

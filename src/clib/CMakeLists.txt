@@ -26,8 +26,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include/)
 add_library(centreon_clib
   SHARED
   ${CMAKE_SOURCE_DIR}/src/clib/clib/version.cc
-  ${CMAKE_SOURCE_DIR}/src/clib/exceptions/basic.cc
-  ${CMAKE_SOURCE_DIR}/src/clib/exceptions/interruption.cc
   ${CMAKE_SOURCE_DIR}/src/clib/io/directory_entry.cc
   ${CMAKE_SOURCE_DIR}/src/clib/io/file_entry.cc
   ${CMAKE_SOURCE_DIR}/src/clib/io/file_stream.cc
@@ -51,7 +49,7 @@ add_library(centreon_clib
 
 target_include_directories(centreon_clib PUBLIC ${CMAKE_BINARY_DIR})
 target_include_directories(centreon_clib PUBLIC ${CMAKE_SOURCE_DIR}/include/)
-target_link_libraries(centreon_clib PUBLIC dl pthread)
+target_link_libraries(centreon_clib PUBLIC dl pthread CONAN_PKG::fmt)
 target_compile_features(centreon_clib PUBLIC cxx_std_11)
 
 install(TARGETS centreon_clib COMPONENT clib DESTINATION ${CMAKE_INSTALL_LIBDIR})

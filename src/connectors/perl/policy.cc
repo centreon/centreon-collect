@@ -32,6 +32,7 @@
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
@@ -66,14 +67,17 @@ policy::~policy() throw() {
   try {
     multiplexer::instance().handle_manager::remove(&_sin);
     multiplexer::instance().handle_manager::remove(&_sout);
-  } catch (...) {
+  }
+  catch (...) {
   }
 
   // Close checks.
   for (auto it = _checks.begin(), end = _checks.end(); it != end; ++it) {
     try {
       it->second->unlisten(this);
-    } catch (...) { }
+    }
+    catch (...) {
+    }
     delete it->second;
   }
   _checks.clear();
@@ -111,7 +115,8 @@ void policy::on_execute(unsigned long long cmd_id,
   try {
     pid_t child(chk->execute(cmd_id, cmd, timeout));
     _checks[child] = chk.release();
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     log::core()->info("execution of check {0} failed {1}", cmd_id, e.what());
     checks::result r;
     r.set_command_id(cmd_id);
@@ -148,7 +153,8 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  log::core()->info("monitoring engine requested protocol version, sending 1.0");
+  log::core()->info(
+      "monitoring engine requested protocol version, sending 1.0");
   _reporter.send_version(1, 0);
 }
 
@@ -168,7 +174,7 @@ bool policy::run() {
     // Is there some terminated child ?
     int status;
     pid_t child(waitpid(0, &status, WNOHANG));
-    while (child != 0 && child != (pid_t)-1) {
+    while (child != 0 && child != (pid_t) - 1) {
       // Handle process termination.
       log::core()->info("process {0} exited with status {1}", status);
       std::map<pid_t, checks::check*>::iterator it;
@@ -177,7 +183,9 @@ bool policy::run() {
         std::unique_ptr<checks::check> chk(it->second);
         _checks.erase(it);
         if (WIFSIGNALED(status)) {
-          log::core()->error("process {0} exited because of a signal {1}", child, WTERMSIG(status));
+          log::core()->error("process {0} exited because of a signal {1}",
+                             child,
+                             WTERMSIG(status));
         }
 
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);
@@ -189,9 +197,9 @@ bool policy::run() {
     }
 
     // Check for error.
-    if (child == (pid_t)-1 && errno != ECHILD) {
+    if (child == (pid_t) - 1 && errno != ECHILD) {
       char const* msg(strerror(errno));
-      throw basic_error() << "waitpid failed: " << msg;
+      throw basic_error("waitpid failed: {}", msg);
     }
   }
 

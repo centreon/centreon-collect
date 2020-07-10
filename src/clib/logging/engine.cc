@@ -24,6 +24,7 @@
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/logging/engine.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::logging;
 
 /**
@@ -49,11 +50,12 @@ unsigned long engine::add(backend* obj,
                           unsigned long long types,
                           unsigned int verbose) {
   if (!obj)
-    throw(basic_error() << "add backend on the logging engine "
-                           "failed: bad argument (null pointer)");
+    throw basic_error_1(
+        "add backend on the logging engine failed: bad argument (null "
+        "pointer)");
   if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-    throw(basic_error() << "add backend on the logging engine "
-                           "failed: invalid verbose");
+    throw basic_error_1(
+        "add backend on the logging engine failed: invalid verbose");
 
   std::unique_ptr<backend_info> info(new backend_info);
   info->obj = obj;
@@ -127,8 +129,9 @@ bool engine::remove(unsigned long id) {
  */
 unsigned int engine::remove(backend* obj) {
   if (!obj)
-    throw(basic_error() << "remove backend on the logging engine "
-                           "failed:bad argument (null pointer)");
+    throw basic_error_1(
+        "remove backend on the logging engine failed:bad argument (null "
+        "pointer)");
 
   // Lock engine.
   std::lock_guard<std::mutex> lock(_mtx);

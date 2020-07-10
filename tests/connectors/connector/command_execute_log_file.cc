@@ -28,6 +28,7 @@
 #define LOG_FILE "/tmp/toto"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 
 #define CMD1      \
   "2\0"           \
@@ -110,27 +111,29 @@ int main() {
 
   try {
     if (retval)
-      throw(basic_error() << "invalid return code: " << retval);
+      throw basic_error("invalid return code: {}", retval);
     if (output.size() != (sizeof(RESULT) - 1) ||
         memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw(basic_error() << "invalid output: size=" << output.size()
-                          << ", output=" << replace_null(output));
+      throw basic_error("invalid output: size={}, output={}",
+                        output.size(),
+                        replace_null(output));
 
     std::string line;
     std::ifstream file(LOG_FILE);
     if (file.is_open()) {
       getline(file, line);
-      if (line.find(
-              "[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
-              " starting") == std::string::npos)
-        throw(basic_error()
-              << "bad content: the first line does not start with 'Centreon "
-                 "SSH Connector " CENTREON_CONNECTOR_VERSION " starting'");
+      if (line.find("[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
+                    " starting") == std::string::npos)
+        throw basic_error(
+            "bad content: the first line does not start with 'Centreon SSH "
+            "Connector {} starting'",
+            CENTREON_CONNECTOR_VERSION);
       file.close();
     } else {
-      throw(basic_error() << "the file " LOG_FILE " has not been created.");
+      throw basic_error("the file " LOG_FILE " has not been created.");
     }
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }
