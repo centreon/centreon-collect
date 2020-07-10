@@ -26,16 +26,20 @@ function build_image_name($base) {
 }
 
 // Replace all the elements of a file
-function replace_in_file($in, $out, $toReplace) {
-  $content = file_get_contents($in);
-  foreach ($toReplace as $from => $to) {
-    $content = str_replace($from, $to, $content);
-  }
-  $yaml = yaml_parse($content);
-  unset($yaml['services']['webdriver']);
-  file_put_contents($out, yaml_emit($yaml));
+function replace_in_file($in, $out, $toReplace)
+{
+    $content = file_get_contents($in);
+    foreach ($toReplace as $from => $to) {
+        $content = str_replace($from, $to, $content);
+    }
 
-  return true;
+    $opts = getopt('v:', ['api']);
+    $yaml = yaml_parse($content);
+    if (isset($opts['api'])) {
+        unset($yaml['services']['webdriver']);
+    }
+    file_put_contents($out, yaml_emit($yaml));
+    return true;
 }
 
 function call_exit(int $signo)
