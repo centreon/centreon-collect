@@ -120,7 +120,6 @@ add_library(cce_core
   ${CMAKE_SOURCE_DIR}/src/cce_core/daterange.cc
   ${CMAKE_SOURCE_DIR}/src/cce_core/dependency.cc
   ${CMAKE_SOURCE_DIR}/src/cce_core/diagnostic.cc
-  ${CMAKE_SOURCE_DIR}/src/cce_core/exceptions/error.cc
   ${CMAKE_SOURCE_DIR}/src/cce_core/flapping.cc
   ${CMAKE_SOURCE_DIR}/src/cce_core/escalation.cc
   ${CMAKE_SOURCE_DIR}/src/cce_core/globals.cc
