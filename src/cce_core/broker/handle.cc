@@ -213,7 +213,7 @@ void handle::open() {
 
     int api_version(*static_cast<int*>(_handle->resolve("__neb_api_version")));
     if (api_version != CURRENT_NEB_API_VERSION)
-      throw error(
+      throw engine_error_1(
           "Module is using an old or unspecified version of the event broker "
           "API");
 
@@ -222,7 +222,7 @@ void handle::open() {
 
     if (init(NEBMODULE_NORMAL_LOAD | NEBMODULE_ENGINE, _args.c_str(), this) !=
         OK)
-      throw error("Function nebmodule_init returned an error");
+      throw engine_error_1("Function nebmodule_init returned an error");
 
     broker::compatibility::instance().loaded_module(this);
   }

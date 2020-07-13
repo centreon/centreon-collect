@@ -69,7 +69,7 @@ void applier::command::add_object(configuration::command const& obj) {
           obj.command_name(), obj.command_line(), *found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
     } else
-      throw error("Could not register command '{}': unable to find '{}'",
+      throw engine_error("Could not register command '{}': unable to find '{}'",
                   obj.command_name(),
                   obj.connector());
   }
@@ -98,12 +98,12 @@ void applier::command::modify_object(configuration::command const& obj) {
   // Find old configuration.
   set_command::iterator it_cfg(config->commands_find(obj.key()));
   if (it_cfg == config->commands().end())
-    throw error("Cannot modify non-existing command '{}'", obj.command_name());
+    throw engine_error("Cannot modify non-existing command '{}'", obj.command_name());
 
   // Find command object.
   command_map::iterator it_obj(commands::command::commands.find(obj.key()));
   if (it_obj == commands::command::commands.end())
-    throw error("Could not modify non-existing command object '{}'",
+    throw engine_error("Could not modify non-existing command object '{}'",
                 obj.command_name());
   commands::command* c(it_obj->second.get());
 
@@ -133,7 +133,7 @@ void applier::command::modify_object(configuration::command const& obj) {
           obj.command_name(), obj.command_line(), *found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
     } else
-      throw error("Could not register command '{}': unable to find '{}'",
+      throw engine_error("Could not register command '{}': unable to find '{}'",
                   obj.command_name(),
                   obj.connector());
   }
@@ -167,7 +167,7 @@ void applier::command::remove_object(configuration::command const& obj) {
     // Erase command (will effectively delete the object).
     commands::command::commands.erase(it);
   } else
-    throw error("Could not remove command '{}': it does not exist", obj.key());
+    throw engine_error("Could not remove command '{}': it does not exist", obj.key());
 
   // Remove command from the global configuration set.
   config->commands().erase(obj);
@@ -186,6 +186,6 @@ void applier::command::resolve_object(configuration::command const& obj) {
     connector_map::iterator found{
         commands::connector::connectors.find(obj.connector())};
     if (found == commands::connector::connectors.end() || !found->second)
-      throw error("unknow command {}", obj.connector());
+      throw engine_error("unknow command {}", obj.connector());
   }
 }

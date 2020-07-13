@@ -57,7 +57,7 @@ contactgroup::contactgroup(configuration::contactgroup const& obj)
       _name(obj.contactgroup_name()) {
   // Make sure we have the data we need.
   if (_name.empty())
-    throw error("contactgroup: Contact group name is empty");
+    throw engine_error_1("contactgroup: Contact group name is empty");
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
@@ -134,5 +134,5 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
 
   e += errors;
   if (errors)
-    throw error("Error: Cannot resolve contact group {}", _name);
+    throw engine_error("Error: Cannot resolve contact group {}", _name);
 }

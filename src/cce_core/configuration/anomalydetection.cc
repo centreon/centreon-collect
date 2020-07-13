@@ -669,18 +669,18 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
  */
 void anomalydetection::check_validity() const {
   if (_service_description.empty())
-    throw error("Service has no description (property 'service_description')");
+    throw engine_error_1("Service has no description (property 'service_description')");
   if (_host_name.empty())
-    throw error(
+    throw engine_error(
         "Service '{}' is not attached to any host (property 'host_name')",
         _service_description);
   if (_metric_name.empty())
-    throw error(
+    throw engine_error(
         "Anomaly detection service '{}' has no metric name specified (property "
         "'metric_name')",
         _service_description);
   if (_thresholds_file.empty())
-    throw error(
+    throw engine_error(
         "Anomaly detection service '{}' has no thresholds file specified "
         "(property 'thresholds_file')",
         _service_description);
@@ -716,7 +716,7 @@ void anomalydetection::merge(configuration::serviceextinfo const& tmpl) {
  */
 void anomalydetection::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge anomalydetection with '{}'", obj.type());
+    throw engine_error("Cannot merge anomalydetection with '{}'", obj.type());
   anomalydetection const& tmpl(static_cast<anomalydetection const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);

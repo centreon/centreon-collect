@@ -233,7 +233,7 @@ void environment::_internal_copy(environment const& right) {
  */
 void environment::_realoc_buffer(uint32_t size) {
   if (_size_buffer >= size)
-    throw error(
+    throw engine_error_1(
         "Invalid size for command environment reallocation: Buffer size is "
         "greater than the requested size");
   char* new_buffer(new char[size]);
@@ -253,7 +253,7 @@ void environment::_realoc_buffer(uint32_t size) {
  */
 void environment::_realoc_env(uint32_t size) {
   if (_size_env >= size)
-    throw error(
+    throw engine_error_1(
         "Invalid size for command environment reallocation: Environment size "
         "is greater than the requested size");
   char** new_env(new char* [size]);

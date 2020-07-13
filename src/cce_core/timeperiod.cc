@@ -50,7 +50,7 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   if (name.empty() || alias.empty()) {
     logger(log_config_error, basic)
         << "Error: Name or alias for timeperiod is NULL";
-    throw error("Could not register time period '{}'", name);
+    throw engine_error("Could not register time period '{}'", name);
   }
 
   // Check if the timeperiod already exist.
@@ -58,7 +58,7 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   if (it != timeperiod::timeperiods.end()) {
     logger(log_config_error, basic) << "Error: Timeperiod '" << name
                                     << "' has already been defined";
-    throw error("Could not register time period '{}'", name);
+    throw engine_error("Could not register time period '{}'", name);
   }
 }
 
@@ -1160,7 +1160,7 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw error("Cannot resolve time period '{}'", _name);
+    throw engine_error("Cannot resolve time period '{}'", _name);
   }
 }
 

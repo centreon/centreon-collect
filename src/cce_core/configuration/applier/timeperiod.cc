@@ -115,14 +115,14 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Find old configuration.
   set_timeperiod::iterator it_cfg(config->timeperiods_find(obj.key()));
   if (it_cfg == config->timeperiods().end())
-    throw error("Could not modify non-existing time period '{}'",
+    throw engine_error("Could not modify non-existing time period '{}'",
                 obj.timeperiod_name());
 
   // Find time period object.
   timeperiod_map::iterator it_obj(
       engine::timeperiod::timeperiods.find(obj.key()));
   if (it_obj == engine::timeperiod::timeperiods.end() || !it_obj->second)
-    throw error("Could not modify non-existing time period object '",
+    throw engine_error("Could not modify non-existing time period object '",
                 obj.timeperiod_name());
   engine::timeperiod* tp(it_obj->second.get());
 
@@ -214,7 +214,7 @@ void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
   // Find time period.
   timeperiod_map::iterator it{engine::timeperiod::timeperiods.find(obj.key())};
   if (engine::timeperiod::timeperiods.end() == it || !it->second)
-    throw error("Cannot resolve non-existing time period '{}'",
+    throw engine_error("Cannot resolve non-existing time period '{}'",
                 obj.timeperiod_name());
 
   // Resolve time period.

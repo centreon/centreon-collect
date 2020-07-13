@@ -47,7 +47,7 @@ void applier::hostescalation::add_object(
     configuration::hostescalation const& obj) {
   // Check host escalation.
   if (obj.hosts().size() != 1 || !obj.hostgroups().empty())
-    throw error(
+    throw engine_error_1(
         "Could not create host escalation with multiple hosts / host groups");
 
   // Logging.
@@ -140,7 +140,7 @@ void applier::hostescalation::expand_objects(configuration::state& s) {
 void applier::hostescalation::modify_object(
     configuration::hostescalation const& obj) {
   (void)obj;
-  throw error(
+  throw engine_error_1(
       "Could not modify a host escalation: "
       "host escalation objects can only be added or removed, "
       "this is likely a software bug that you should report to "
@@ -245,7 +245,7 @@ void applier::hostescalation::resolve_object(
   auto p(engine::hostescalation::hostescalations.equal_range(hostname));
 
   if (p.first == p.second)
-    throw error("Cannot find host escalations concerning host '{}'", hostname);
+    throw engine_error("Cannot find host escalations concerning host '{}'", hostname);
 
   for (hostescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
     /* It's a pity but for now we don't have any idea or key to verify if
@@ -258,7 +258,7 @@ void applier::hostescalation::resolve_object(
     }
   }
   if (!found)
-    throw error("Cannot resolve non-existing host escalation");
+    throw engine_error_1("Cannot resolve non-existing host escalation");
 }
 
 /**
@@ -284,7 +284,7 @@ void applier::hostescalation::_expand_hosts(
     // Find host group.
     set_hostgroup::const_iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw error("Could not expand non-existing host group '{}'", *it);
+      throw engine_error("Could not expand non-existing host group '{}'", *it);
 
     // Add host group members.
     expanded.insert(it_group->members().begin(), it_group->members().end());
@@ -307,7 +307,7 @@ void applier::hostescalation::_inherits_special_vars(
     configuration::set_host::const_iterator it(
         s.hosts_find(*obj.hosts().begin()));
     if (it == s.hosts().end())
-      throw error(
+      throw engine_error(
           "Could not inherit special variables from host '{}': host does not "
           "exist",
           *obj.hosts().begin());

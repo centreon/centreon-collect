@@ -481,7 +481,7 @@ bool dump::save(std::string const& path) {
   try {
     std::ofstream stream(path.c_str(), std::ios::binary | std::ios::trunc);
     if (!stream.is_open())
-      throw error("Cannot open retention file '{}'",
+      throw engine_error("Cannot open retention file '{}'",
                   config->state_retention_file());
     dump::header(stream);
     dump::info(stream);

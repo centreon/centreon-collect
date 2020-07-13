@@ -140,7 +140,7 @@ void applier::servicegroup::modify_object(
   // Find old configuration.
   set_servicegroup::iterator it_cfg(config->servicegroups_find(obj.key()));
   if (it_cfg == config->servicegroups().end())
-    throw error("Could not modify non-existing service group '{}'",
+    throw engine_error("Could not modify non-existing service group '{}'",
                 obj.servicegroup_name());
 
   // Find service group object.
@@ -148,7 +148,7 @@ void applier::servicegroup::modify_object(
       engine::servicegroup::servicegroups.find(obj.key())};
 
   if (it_obj == engine::servicegroup::servicegroups.end())
-    throw error("Could not modify non-existing service group object '{}'",
+    throw engine_error("Could not modify non-existing service group object '{}'",
                 obj.servicegroup_name());
   engine::servicegroup* sg(it_obj->second.get());
 
@@ -242,7 +242,7 @@ void applier::servicegroup::resolve_object(
   servicegroup_map::const_iterator it{
       engine::servicegroup::servicegroups.find(obj.key())};
   if (it == engine::servicegroup::servicegroups.end())
-    throw error("Cannot resolve non-existing service group '{}'",
+    throw engine_error("Cannot resolve non-existing service group '{}'",
                 obj.servicegroup_name());
 
   // Resolve service group.
@@ -280,7 +280,7 @@ void applier::servicegroup::_resolve_members(
       // Find servicegroup entry.
       set_servicegroup::iterator it2(s.servicegroups_find(*it));
       if (it2 == s.servicegroups().end())
-        throw error(
+        throw engine_error(
             "Could not add non-existing service group member '{}' to service "
             "group '{}'",
             *it,

@@ -49,14 +49,14 @@ void applier::hostdependency::add_object(
   if ((obj.hosts().size() != 1) || !obj.hostgroups().empty() ||
       (obj.dependent_hosts().size() != 1) ||
       !obj.dependent_hostgroups().empty())
-    throw error(
+    throw engine_error_1(
         "Could not create host dependency with multiple (dependent) host / "
         "host groups");
   if ((obj.dependency_type() !=
        configuration::hostdependency::execution_dependency) &&
       (obj.dependency_type() !=
        configuration::hostdependency::notification_dependency))
-    throw error("Could not create unexpanded host dependency of '{}' on '{}'",
+    throw engine_error("Could not create unexpanded host dependency of '{}' on '{}'",
                 *obj.dependent_hosts().begin(),
                 *obj.hosts().begin());
 
@@ -193,7 +193,7 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
 void applier::hostdependency::modify_object(
     configuration::hostdependency const& obj) {
   (void)obj;
-  throw error(
+  throw engine_error_1(
       "Could not modify a host dependency: "
       "Host dependency objects can only be added or removed, "
       "this is likely a software bug that you should report to "
@@ -248,7 +248,7 @@ void applier::hostdependency::resolve_object(
       engine::hostdependency::hostdependencies_find(obj.key())};
 
   if (engine::hostdependency::hostdependencies.end() == it)
-    throw error("Cannot resolve non-existing host escalation");
+    throw engine_error_1("Cannot resolve non-existing host escalation");
 
   // Resolve host dependency.
   it->second->resolve(config_warnings, config_errors);
@@ -277,7 +277,7 @@ void applier::hostdependency::_expand_hosts(
     // Find host group.
     set_hostgroup::iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw error("Could not expand non-existing host group '{}'", *it);
+      throw engine_error("Could not expand non-existing host group '{}'", *it);
 
     // Add host group members.
     expanded.insert(it_group->members().begin(), it_group->members().end());

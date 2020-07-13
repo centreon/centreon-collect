@@ -416,9 +416,9 @@ bool host::operator<(host const& other) const throw() {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw error("Host has no name (property 'host_name')");
+    throw engine_error_1("Host has no name (property 'host_name')");
   if (_address.empty())
-    throw error("Host '{}' has no address (property 'address')", _host_name);
+    throw engine_error("Host '{}' has no address (property 'address')", _host_name);
   return;
 }
 
@@ -453,7 +453,7 @@ void host::merge(configuration::hostextinfo const& tmpl) {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge host with '{}'", obj.type());
+    throw engine_error("Cannot merge host with '{}'", obj.type());
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);

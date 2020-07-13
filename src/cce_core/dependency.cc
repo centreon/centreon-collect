@@ -44,7 +44,7 @@ dependency::dependency(std::string const& dependent_hostname,
   if (dependent_hostname.empty() || hostname.empty()) {
     logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
-    throw error("Could not create execution dependency of '{}' on '{}'",
+    throw engine_error("Could not create execution dependency of '{}' on '{}'",
                 dependent_hostname,
                 hostname);
   }

@@ -420,7 +420,7 @@ downtime* downtime_manager::add_new_host_downtime(std::string const& host_name,
                                                   unsigned long duration,
                                                   uint64_t* downtime_id) {
   if (host_name.empty())
-    throw error("can not create a host downtime on host with empty name");
+    throw engine_error_1("can not create a host downtime on host with empty name");
 
   /* find the next valid downtime id */
   uint64_t new_downtime_id{get_next_downtime_id()};
@@ -476,7 +476,7 @@ downtime* downtime_manager::add_new_service_downtime(
     unsigned long duration,
     uint64_t* downtime_id) {
   if (host_name.empty() || service_description.empty())
-    throw error(
+    throw engine_error_1(
         "can not create a service downtime on host with empty name or service "
         "with empty description");
 

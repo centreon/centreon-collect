@@ -115,11 +115,11 @@ bool serviceextinfo::operator!=(serviceextinfo const& right) const throw() {
  */
 void serviceextinfo::check_validity() const {
   if (_service_description.empty())
-    throw error(
+    throw engine_error_1(
         "Service extended information is not attached to a service (property "
         "'service_description')");
   if (_hosts->empty() && _hostgroups->empty())
-    throw error(
+    throw engine_error(
         "Service extended information of service '{}' is not attached to any "
         "host or host group (properties 'host_name' or 'hostgroup_name', "
         "respectively)",
@@ -134,7 +134,7 @@ void serviceextinfo::check_validity() const {
  */
 void serviceextinfo::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge service extended information with '{}'",
+    throw engine_error("Cannot merge service extended information with '{}'",
                 obj.type());
   serviceextinfo const& tmpl(static_cast<serviceextinfo const&>(obj));
 

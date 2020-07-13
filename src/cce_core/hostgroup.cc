@@ -60,7 +60,7 @@ hostgroup::hostgroup(uint64_t id,
   // Make sure we have the data we need.
   if (name.empty()) {
     logger(log_config_error, basic) << "Error: Hostgroup name is NULL";
-    throw error("Could not register host group '{}'", name);
+    throw engine_error("Could not register host group '{}'", name);
   }
 
   // Check if the host group already exist.
@@ -68,7 +68,7 @@ hostgroup::hostgroup(uint64_t id,
   if (found != hostgroup::hostgroups.end()) {
     logger(log_config_error, basic) << "Error: Hostgroup '" << name
                                     << "' has already been defined";
-    throw error("Could not register host group '{}", name);
+    throw engine_error("Could not register host group '{}", name);
   }
 }
 
@@ -173,6 +173,6 @@ void hostgroup::resolve(int& w, int& e) {
 
   if (errors) {
     e += errors;
-    throw error("Cannot resolve host group '{}'", get_group_name());
+    throw engine_error("Cannot resolve host group '{}'", get_group_name());
   }
 }

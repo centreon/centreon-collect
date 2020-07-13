@@ -137,7 +137,7 @@ notifier::notifier(notifier::notifier_type notifier_type,
     logger(log_config_error, basic)
         << "Error: Invalid notification_interval value for notifier '"
         << display_name << "'";
-    throw error("Could not register notifier '{}'", display_name);
+    throw engine_error("Could not register notifier '{}'", display_name);
   }
 }
 
@@ -1227,7 +1227,7 @@ void notifier::resolve(int& w, int& e) {
   e += errors;
 
   if (e)
-    throw error("Cannot resolve host '{}'", get_display_name());
+    throw engine_error("Cannot resolve host '{}'", get_display_name());
 }
 
 std::array<int, MAX_STATE_HISTORY_ENTRIES> const& notifier::get_state_history()

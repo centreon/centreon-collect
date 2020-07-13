@@ -188,7 +188,7 @@ void string::split(std::string const& data,
        ++it) {
     std::list<std::string>::const_iterator first(it++);
     if (it == end)
-      throw error("Not enough elements in the line to make pairs");
+      throw engine_error_1("Not enough elements in the line to make pairs");
     out.insert(std::make_pair(*first, *it));
   }
 }

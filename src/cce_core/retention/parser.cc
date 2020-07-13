@@ -55,7 +55,7 @@ parser::~parser() throw() {}
 void parser::parse(std::string const& path, state& retention) {
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw error("Parsing of retention file failed: Can't open file '{}'", path);
+    throw engine_error("Parsing of retention file failed: Can't open file '{}'", path);
 
   std::shared_ptr<object> obj;
   std::string input;

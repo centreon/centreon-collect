@@ -130,7 +130,7 @@ uint64_t connector::run(std::string const& processed_cmd,
       // Start connector if is not running.
       if (!_is_running) {
         if (!_try_to_restart)
-          throw error("Connector '{}' failed to restart", _name);
+          throw engine_error("Connector '{}' failed to restart", _name);
         _queries[command_id] = info;
         try {
           if (!_restart)
@@ -195,7 +195,7 @@ void connector::run(std::string const& processed_cmd,
       // Start connector if is not running.
       if (!_is_running) {
         if (!_try_to_restart)
-          throw error("Connector '{}' failed to restart", _name);
+          throw engine_error("Connector '{}' failed to restart", _name);
         lock.unlock();
         _connector_start();
         lock.lock();
@@ -442,8 +442,8 @@ void connector::_connector_start() {
       _process.kill();
       _try_to_restart = false;
       if (is_timeout)
-        throw error("Cannot start connector '{}': Timeout", _name);
-      throw error("Cannot start connector '{}': Bad protocol version", _name);
+        throw engine_error("Cannot start connector '{}': Timeout", _name);
+      throw engine_error("Cannot start connector '{}': Bad protocol version", _name);
     }
     _is_running = true;
   }
@@ -510,7 +510,7 @@ void connector::_recv_query_error(char const* data) {
     char* endptr(nullptr);
     int code(strtol(data, &endptr, 10));
     if (data == endptr)
-      throw error("Invalid query for connector '{}': Bad number of arguments",
+      throw engine_error("Invalid query for connector '{}': Bad number of arguments",
                   _name);
     char const* message(endptr + 1);
 
@@ -551,15 +551,15 @@ void connector::_recv_query_execute(char const* data) {
     char* endptr(nullptr);
     uint64_t command_id(strtol(data, &endptr, 10));
     if (data == endptr)
-      throw error("Invalid execution result: Invalid command ID");
+      throw engine_error_1("Invalid execution result: Invalid command ID");
     data = endptr + 1;
     bool is_executed(strtol(data, &endptr, 10));
     if (data == endptr)
-      throw error("Invalid execution result: Invalid executed flag");
+      throw engine_error_1("Invalid execution result: Invalid executed flag");
     data = endptr + 1;
     int exit_code(strtol(data, &endptr, 10));
     if (data == endptr)
-      throw error("Invalid execution result: Invalid exit code");
+      throw engine_error_1("Invalid execution result: Invalid exit code");
     char const* std_err(endptr + 1);
     char const* std_out(std_err + strlen(std_err) + 1);
 
@@ -670,7 +670,7 @@ void connector::_recv_query_version(char const* data) {
     for (uint32_t i(0); i < 2; ++i) {
       version[i] = strtol(data, &endptr, 10);
       if (data == endptr)
-        throw error("Invalid version query: Bad format");
+        throw engine_error_1("Invalid version query: Bad format");
       data = endptr + 1;
     }
 

@@ -62,7 +62,7 @@ servicegroup::servicegroup(uint64_t id,
   if (is_servicegroup_exist(group_name)) {
     logger(log_config_error, basic) << "Error: Servicegroup '" << group_name
                                     << "' has already been defined";
-    throw error("Could not register service group '{}'", group_name);
+    throw engine_error("Could not register service group '{}'", group_name);
   }
 }
 
@@ -179,6 +179,6 @@ void servicegroup::resolve(int& w, int& e) {
 
   if (errors) {
     e += errors;
-    throw error("Cannot resolve servicegroup {}", _group_name);
+    throw engine_error("Cannot resolve servicegroup {}", _group_name);
   }
 }

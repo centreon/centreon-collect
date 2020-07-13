@@ -153,7 +153,7 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
 
   if (errors) {
     e += errors;
-    throw error("Cannot resolve notifier escalation");
+    throw engine_error_1("Cannot resolve notifier escalation");
   }
 }
 

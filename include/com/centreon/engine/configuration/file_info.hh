@@ -49,17 +49,7 @@ class file_info {
   bool operator!=(file_info const& right) const noexcept {
     return !operator==(right);
   }
-
-  /*friend exceptions::error& operator<<(file_info const& info) {
-    return error("in file '{}' on line {}", info.path(), info.line());
-  }*/
-
-  // previous code
-  /*friend exceptions::error& operator<<(exceptions::error& err, file_info
-const& info) {
-    err << "in file '" << info.path() << "' on line " << info.line();
-    return err;
-}*/
+  
   uint32_t line() const noexcept { return _line; }
   void line(unsigned int line) noexcept { _line = line; }
   std::string const& path() const noexcept { return _path; }

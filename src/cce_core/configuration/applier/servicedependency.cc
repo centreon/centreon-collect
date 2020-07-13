@@ -55,7 +55,7 @@ void applier::servicedependency::add_object(
       !obj.dependent_hostgroups().empty() ||
       obj.dependent_service_description().size() != 1 ||
       !obj.dependent_servicegroups().empty())
-    throw error(
+    throw engine_error_1(
         "Could not create service dependency with multiple (dependent) hosts / "
         "host groups / services / service groups");
 
@@ -63,7 +63,7 @@ void applier::servicedependency::add_object(
           configuration::servicedependency::execution_dependency &&
       obj.dependency_type() !=
           configuration::servicedependency::notification_dependency)
-    throw error(
+    throw engine_error(
         "Could not create unexpanded dependency of service '{}' of host '{}' "
         "on service '{}' of host '{}'",
         obj.dependent_service_description().front(),
@@ -239,7 +239,7 @@ void applier::servicedependency::expand_objects(configuration::state& s) {
 void applier::servicedependency::modify_object(
     configuration::servicedependency const& obj) {
   (void)obj;
-  throw error(
+  throw engine_error_1(
       "Could not modify a service dependency: service dependency objects can "
       "only be added or removed, this is likely a software bug that you should "
       "report to Centreon Engine developers");
@@ -292,7 +292,7 @@ void applier::servicedependency::resolve_object(
   servicedependency_mmap::iterator it(
       engine::servicedependency::servicedependencies_find(obj.key()));
   if (engine::servicedependency::servicedependencies.end() == it)
-    throw error("Cannot resolve non-existing service dependency");
+    throw engine_error_1("Cannot resolve non-existing service dependency");
 
   // Resolve service dependency.
   it->second->resolve(config_warnings, config_errors);
@@ -328,7 +328,7 @@ void applier::servicedependency::_expand_services(
     // Find host group.
     configuration::set_hostgroup::iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw error("Could not resolve host group '{}'", *it);
+      throw engine_error("Could not resolve host group '{}'", *it);
 
     // Add host group members.
     all_hosts.insert(it_group->members().begin(), it_group->members().end());
@@ -353,7 +353,7 @@ void applier::servicedependency::_expand_services(
     configuration::set_servicegroup::iterator it_group(
         s.servicegroups_find(*it));
     if (it_group == s.servicegroups().end())
-      throw error("Could not resolve service group '{}'", *it);
+      throw engine_error("Could not resolve service group '{}'", *it);
 
     // Add service group members.
     for (set_pair_string::const_iterator it_member(it_group->members().begin()),

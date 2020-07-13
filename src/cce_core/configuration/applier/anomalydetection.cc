@@ -93,7 +93,7 @@ void applier::anomalydetection::add_object(
     configuration::anomalydetection const& obj) {
   // Check anomalydetection.
   if (!obj.host_id())
-    throw error(
+    throw engine_error(
         "No host_id available for the host '{}' - unable to create "
         "anomalydetection '",
         obj.host_name(),
@@ -176,7 +176,7 @@ void applier::anomalydetection::add_object(
       obj.obsess_over_service(),
       obj.timezone())};
   if (!ad)
-    throw error("Could not register anomalydetection '{}' of host '{}'",
+    throw engine_error("Could not register anomalydetection '{}' of host '{}'",
                 obj.service_description(),
                 obj.host_name());
   ad->set_initial_notif_time(0);
@@ -281,7 +281,7 @@ void applier::anomalydetection::modify_object(
   set_anomalydetection::iterator it_cfg(
       config->anomalydetections_find(obj.key()));
   if (it_cfg == config->anomalydetections().end())
-    throw error(
+    throw engine_error(
         "Cannot modify non-existing anomaly detection service '{}' of host "
         "'{}'",
         service_description,
@@ -291,7 +291,7 @@ void applier::anomalydetection::modify_object(
   service_id_map::iterator it_obj(
       engine::anomalydetection::services_by_id.find(obj.key()));
   if (it_obj == engine::anomalydetection::services_by_id.end())
-    throw error(
+    throw engine_error(
         "Could not modify non-existing anomalydetection object '{}' of host "
         "'{}'",
         service_description,
@@ -561,7 +561,7 @@ void applier::anomalydetection::resolve_object(
   service_id_map::iterator it(
       engine::anomalydetection::services_by_id.find(obj.key()));
   if (engine::anomalydetection::services_by_id.end() == it)
-    throw error(
+    throw engine_error(
         "Cannot resolve non-existing anomalydetection '{}' of host '{}'",
         obj.service_description(),
         obj.host_name());
@@ -600,7 +600,7 @@ void applier::anomalydetection::_expand_service_memberships(
     configuration::set_servicegroup::iterator it_group(
         s.servicegroups_find(*it));
     if (it_group == s.servicegroups().end())
-      throw error(
+      throw engine_error(
           "Could not add anomalydetection '{}' of host '{}' to non-existing "
           "anomalydetection group '{}'",
           obj.service_description(),
@@ -642,7 +642,7 @@ void applier::anomalydetection::_inherits_special_vars(
     // Find host.
     configuration::set_host::const_iterator it(s.hosts_find(obj.host_name()));
     if (it == s.hosts().end())
-      throw error(
+      throw engine_error(
           "Could not inherit special variables for anomalydetection '{}': host "
           "'{}' does not exist",
           obj.service_description(),

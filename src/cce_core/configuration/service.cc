@@ -658,14 +658,14 @@ bool service::operator<(service const& other) const throw() {
  */
 void service::check_validity() const {
   if (_service_description.empty())
-    throw error("Service has no description (property 'service_description')");
+    throw engine_error_1("Service has no description (property 'service_description')");
   if (_hosts->empty() && _hostgroups->empty())
-    throw error(
+    throw engine_error(
         "Service '{}' is not attached to any host or host group (properties "
         "'host_name' or 'hostgroup_name', respectively)",
         _service_description);
   if (_check_command.empty())
-    throw error("Service '{}' has no check command (property 'check_command')",
+    throw engine_error("Service '{}' has no check command (property 'check_command')",
                 _service_description);
 }
 
@@ -699,7 +699,7 @@ void service::merge(configuration::serviceextinfo const& tmpl) {
  */
 void service::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge service with '{}'", obj.type());
+    throw engine_error("Cannot merge service with '{}'", obj.type());
   service const& tmpl(static_cast<service const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);

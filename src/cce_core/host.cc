@@ -242,13 +242,13 @@ host::host(uint64_t host_id,
   if (name.empty() || address.empty()) {
     logger(log_config_error, logging::basic)
         << "Error: Host name or address is nullptr";
-    throw error("Could not register host '{}'", name);
+    throw engine_error("Could not register host '{}'", name);
   }
   if (host_id == 0) {
     logger(log_config_error, logging::basic)
         << "Error: Host must contain a host id "
            "because it comes from a database";
-    throw error("Could not register host '{}'", name);
+    throw engine_error("Could not register host '{}'", name);
   }
 
   // Check if the host already exists.
@@ -256,7 +256,7 @@ host::host(uint64_t host_id,
   if (is_host_exist(id)) {
     logger(log_config_error, logging::basic) << "Error: Host '" << name
                                              << "' has already been defined";
-    throw error("Could not register host '{}'", name);
+    throw engine_error("Could not register host '{}'", name);
   }
 
   // Duplicate string vars.
@@ -278,7 +278,7 @@ void host::set_host_id(uint64_t id) { _id = id; }
 void host::add_child_host(host* child) {
   // Make sure we have the data we need.
   if (!child)
-    throw error("add child link called with nullptr ptr");
+    throw engine_error_1("add child link called with nullptr ptr");
 
   child_hosts.insert({child->get_name(), child});
 
@@ -299,14 +299,14 @@ void host::add_parent_host(std::string const& host_name) {
   if (host_name.empty()) {
     logger(log_config_error, logging::basic)
         << "add child link called with bad host_name";
-    throw error("add child link called with bad host_name");
+    throw engine_error_1("add child link called with bad host_name");
   }
 
   // A host cannot be a parent/child of itself.
   if (_name == host_name) {
     logger(log_config_error, logging::basic)
         << "Error: Host '" << _name << "' cannot be a child/parent of itself";
-    throw error("host is child/parent itself");
+    throw engine_error_1("host is child/parent itself");
   }
 
   parent_hosts.insert({host_name, nullptr});
@@ -982,7 +982,7 @@ int number_of_total_parent_hosts(com::centreon::engine::host* hst) {
 host& engine::find_host(uint64_t host_id) {
   host_id_map::const_iterator it{host::hosts_by_id.find(host_id)};
   if (it == host::hosts_by_id.end())
-    throw error("Host '{}' was not found", host_id);
+    throw engine_error("Host '{}' was not found", host_id);
   return *it->second;
 }
 
@@ -3737,7 +3737,7 @@ void host::resolve(int& w, int& e) {
   e += errors;
 
   if (errors)
-    throw error("Cannot resolve host '{}", _name);
+    throw engine_error("Cannot resolve host '{}", _name);
 }
 
 bool host::get_is_volatile() const { return false; }

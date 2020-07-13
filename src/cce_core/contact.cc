@@ -1180,7 +1180,7 @@ void contact::resolve(int& w, int& e) {
   e += errors;
 
   if (errors)
-    throw error("Cannot resolve contact '{}'", _name);
+    throw engine_error("Cannot resolve contact '{}'", _name);
 }
 
 timeperiod* contact::get_host_notification_period_ptr() const {

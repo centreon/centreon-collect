@@ -87,14 +87,14 @@ void applier::connector::modify_object(configuration::connector const& obj) {
   // Find old configuration.
   set_connector::iterator it_cfg(config->connectors_find(obj.key()));
   if (it_cfg == config->connectors().end())
-    throw error("Cannot modify non-existing connector '{}'",
+    throw engine_error("Cannot modify non-existing connector '{}'",
                 obj.connector_name());
 
   // Find connector object.
   connector_map::iterator it_obj(
       commands::connector::connectors.find(obj.key()));
   if (it_obj == commands::connector::connectors.end())
-    throw error("Could not modify non-existing connector object '{}'",
+    throw engine_error("Could not modify non-existing connector object '{}'",
                 obj.connector_name());
   commands::connector* c(it_obj->second.get());
 

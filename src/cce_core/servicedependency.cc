@@ -329,7 +329,7 @@ void servicedependency::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw error("Cannot resolve service dependency");
+    throw engine_error_1("Cannot resolve service dependency");
   }
 }
 

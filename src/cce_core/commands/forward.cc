@@ -46,9 +46,9 @@ forward::forward(std::string const& command_name,
                  command& cmd)
     : command(command_name, command_line, nullptr), _command(&cmd) {
   if (_name.empty())
-    throw error("Could not create a command with an empty name");
+    throw engine_error_1("Could not create a command with an empty name");
   if (_command_line.empty())
-    throw error("Could not create '{}' command: command line is empty", _name);
+    throw engine_error("Could not create '{}' command: command line is empty", _name);
 }
 
 /**

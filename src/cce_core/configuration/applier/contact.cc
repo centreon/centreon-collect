@@ -121,7 +121,7 @@ void applier::contact::add_object(configuration::contact const& obj) {
       obj.retain_status_information(),
       obj.retain_nonstatus_information()));
   if (!c)
-    throw error("Could not register contact '{}'", obj.contact_name());
+    throw engine_error("Could not register contact '{}'", obj.contact_name());
   c->set_timezone(obj.timezone());
 
   // Add new items to the configuration state.
@@ -182,7 +182,7 @@ void applier::contact::expand_objects(configuration::state& s) {
       configuration::set_contactgroup::iterator group(
           s.contactgroups_find(*it_group));
       if (group == s.contactgroups().end())
-        throw error(
+        throw engine_error(
             "Could not add contact '{}' to non-existing contact group '{}'",
             it_contact->contact_name(),
             *it_group);
@@ -213,12 +213,12 @@ void applier::contact::modify_object(configuration::contact const& obj) {
   // Find old configuration.
   set_contact::iterator it_cfg(config->contacts_find(obj.key()));
   if (it_cfg == config->contacts().end())
-    throw error("Cannot modify non-existing contact '{}'", obj.contact_name());
+    throw engine_error("Cannot modify non-existing contact '{}'", obj.contact_name());
 
   // Find contact object.
   contact_map::iterator it_obj(engine::contact::contacts.find(obj.key()));
   if (it_obj == engine::contact::contacts.end())
-    throw error("Could not modify non-existing contact object '{}'",
+    throw engine_error("Could not modify non-existing contact object '{}'",
                 obj.contact_name());
   engine::contact* c(it_obj->second.get());
 
@@ -304,7 +304,7 @@ void applier::contact::modify_object(configuration::contact const& obj) {
       if (itt != commands::command::commands.end())
         c->get_host_notification_commands().push_back(itt->second);
       else
-        throw error(
+        throw engine_error(
             "Could not add host notification command '{}' to contact '{}': the "
             "command does not exist",
             *it,
@@ -326,7 +326,7 @@ void applier::contact::modify_object(configuration::contact const& obj) {
       if (itt != commands::command::commands.end())
         c->get_service_notification_commands().push_back(itt->second);
       else
-        throw error(
+        throw engine_error(
             "Could not add service notification command '{}' to contact '{}': "
             "the command does not exist",
             *it,
@@ -437,7 +437,7 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
   contact_map::const_iterator ct_it{
       engine::contact::contacts.find(obj.contact_name())};
   if (ct_it == engine::contact::contacts.end() || !ct_it->second)
-    throw error("Cannot resolve non-existing contact '{}'", obj.contact_name());
+    throw engine_error("Cannot resolve non-existing contact '{}'", obj.contact_name());
 
   ct_it->second->get_host_notification_commands().clear();
 
@@ -451,7 +451,7 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
       ct_it->second->get_host_notification_commands().push_back(itt->second);
     else {
       ++config_errors;
-      throw error(
+      throw engine_error(
           "Could not add host notification command '{}' to contact '{}': the "
           "command does not exist",
           *it,
@@ -472,7 +472,7 @@ void applier::contact::resolve_object(configuration::contact const& obj) {
       ct_it->second->get_service_notification_commands().push_back(itt->second);
     else {
       ++config_errors;
-      throw error(
+      throw engine_error(
           "Could not add service notification command '{}' to contact '{}': "
           "the command does not exist",
           *it,

@@ -45,7 +45,7 @@ commands::command::command(std::string const& name,
                            command_listener* listener)
     : _command_line(command_line), _listener(listener), _name(name) {
   if (_name.empty())
-    throw error("Could not create a command with an empty name");
+    throw engine_error_1("Could not create a command with an empty name");
 }
 
 /**

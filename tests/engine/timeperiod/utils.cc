@@ -331,7 +331,7 @@ time_t strtotimet(std::string const& str) {
   tm t;
   memset(&t, 0, sizeof(t));
   if (!strptime(str.c_str(), "%Y-%m-%d %H:%M:%S", &t))
-    throw error("invalid date format");
+    throw engine_error_1("invalid date format");
   t.tm_isdst = -1;
   return (mktime(&t));
 }

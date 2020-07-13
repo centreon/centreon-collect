@@ -236,7 +236,7 @@ bool contact::operator<(contact const& other) const throw() {
  */
 void contact::check_validity() const {
   if (_contact_name.empty())
-    throw error("Contact has no name (property 'contact_name')");
+    throw engine_error_1("Contact has no name (property 'contact_name')");
   return;
 }
 
@@ -254,7 +254,7 @@ contact::key_type const& contact::key() const throw() { return _contact_name; }
  */
 void contact::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge contact with '{}'", obj.type());
+    throw engine_error("Cannot merge contact with '{}'", obj.type());
   contact const& tmpl(static_cast<contact const&>(obj));
 
   MRG_TAB(_address);

@@ -220,7 +220,7 @@ void applier::host::expand_objects(configuration::state& s) {
       configuration::set_hostgroup::iterator group(
           s.hostgroups_find(*it_group));
       if (group == s.hostgroups().end())
-        throw error("Could not add host '{}' to non-existing host group '{}'",
+        throw engine_error("Could not add host '{}' to non-existing host group '{}'",
                     it_host->host_name(),
                     *it_group);
 
@@ -250,12 +250,12 @@ void applier::host::modify_object(configuration::host const& obj) {
   // Find the configuration object.
   set_host::iterator it_cfg(config->hosts_find(obj.key()));
   if (it_cfg == config->hosts().end())
-    throw error("Cannot modify non-existing host '{}'", obj.host_name());
+    throw engine_error("Cannot modify non-existing host '{}'", obj.host_name());
 
   // Find host object.
   host_id_map::iterator it_obj(engine::host::hosts_by_id.find(obj.key()));
   if (it_obj == engine::host::hosts_by_id.end())
-    throw error("Could not modify non-existing host object '{}'",
+    throw engine_error("Could not modify non-existing host object '{}'",
                 obj.host_name());
 
   // Update the global configuration set.
@@ -553,7 +553,7 @@ void applier::host::resolve_object(configuration::host const& obj) {
   // Find host.
   host_id_map::iterator it(engine::host::hosts_by_id.find(obj.key()));
   if (engine::host::hosts_by_id.end() == it)
-    throw error("Cannot resolve non-existing host '{}'", obj.host_name());
+    throw engine_error("Cannot resolve non-existing host '{}'", obj.host_name());
 
   // Remove service backlinks.
   it->second->services.clear();

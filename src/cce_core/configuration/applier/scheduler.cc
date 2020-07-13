@@ -798,7 +798,7 @@ std::vector<com::centreon::engine::host*> applier::scheduler::_get_hosts(
     host_id_map::const_iterator hst(hosts.find(host_id));
     if (hst == hosts.end()) {
       if (throw_if_not_found)
-        throw error("Could not schedule non-existing host '{}'", host_name);
+        throw engine_error("Could not schedule non-existing host '{}'", host_name);
     } else
       retval.push_back(&*hst->second);
   }
@@ -826,7 +826,7 @@ std::vector<com::centreon::engine::service*> applier::scheduler::_get_services(
     service_id_map::const_iterator svc(services.find({host_id, service_id}));
     if (svc == services.end()) {
       if (throw_if_not_found)
-        throw error("Cannot schedule non-existing service '{}' on host '",
+        throw engine_error("Cannot schedule non-existing service '{}' on host '",
                     service_description,
                     host_name);
     } else
@@ -856,7 +856,7 @@ applier::scheduler::_get_anomalydetections(set_anomalydetection const& ad_cfg,
     service_id_map::const_iterator svc(services.find({host_id, service_id}));
     if (svc == services.end()) {
       if (throw_if_not_found)
-        throw error(
+        throw engine_error(
             "Cannot schedule non-existing anomalydetection '{}' on host '{}'",
             service_description,
             host_name);

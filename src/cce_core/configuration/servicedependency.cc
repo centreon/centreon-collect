@@ -226,12 +226,12 @@ void servicedependency::check_validity() const {
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())
-      throw error(
+      throw engine_error_1(
           "Service dependency is not attached to any service or service group "
           "(properties 'service_description' or 'servicegroup_name', "
           "respectively)");
     else if (_hosts->empty() && _hostgroups->empty())
-      throw error(
+      throw engine_error_1(
           "Service dependency is not attached to any host or host group "
           "(properties 'host_name' or 'hostgroup_name', respectively)");
   }
@@ -239,12 +239,12 @@ void servicedependency::check_validity() const {
   // Check dependent service(s).
   if (_dependent_servicegroups->empty()) {
     if (_dependent_service_description->empty())
-      throw error(
+      throw engine_error_1(
           "Service dependency is not attached to any dependent service or "
           "dependent service group (properties 'dependent_service_description' "
           "or 'dependent_servicegroup_name', respectively)");
     else if (_dependent_hosts->empty() && _dependent_hostgroups->empty())
-      throw error(
+      throw engine_error_1(
           "Service dependency is not attached to any dependent host or "
           "dependent host group (properties 'dependent_host_name' or "
           "'dependent_hostgroup_name', respectively)");
@@ -296,7 +296,7 @@ servicedependency::key_type const& servicedependency::key() const throw() {
  */
 void servicedependency::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge service dependency with '{}'", obj.type());
+    throw engine_error("Cannot merge service dependency with '{}'", obj.type());
   servicedependency const& tmpl(static_cast<servicedependency const&>(obj));
 
   MRG_DEFAULT(_dependency_period);

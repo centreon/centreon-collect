@@ -172,7 +172,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
                               gl_mod_handle,
                               0,
                               callback_external_command)) {
-      throw error("register callback failed");
+      throw engine_error_1("register callback failed");
     }
   }
   catch (std::exception const& e) {

@@ -58,7 +58,7 @@ hostescalation::hostescalation(std::string const& host_name,
                  escalation_period,  escalate_on,       uuid},
       _hostname{host_name} {
   if (host_name.empty())
-    throw error("Could not create escalation on host '{}'", host_name);
+    throw engine_error("Could not create escalation on host '{}'", host_name);
 }
 
 hostescalation::~hostescalation() {}
@@ -117,6 +117,6 @@ void hostescalation::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw error("Cannot resolve host escalation");
+    throw engine_error_1("Cannot resolve host escalation");
   }
 }

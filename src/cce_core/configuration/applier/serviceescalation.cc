@@ -48,7 +48,7 @@ void applier::serviceescalation::add_object(
   // Check service escalation.
   if ((obj.hosts().size() != 1) || !obj.hostgroups().empty() ||
       obj.service_description().size() != 1 || !obj.servicegroups().empty())
-    throw error(
+    throw engine_error_1(
         "Could not create service escalation with multiple hosts / host groups "
         "/ services / service groups");
 
@@ -162,7 +162,7 @@ void applier::serviceescalation::expand_objects(configuration::state& s) {
 void applier::serviceescalation::modify_object(
     configuration::serviceescalation const& obj) {
   (void)obj;
-  throw error(
+  throw engine_error_1(
       "Could not modify a service escalation: service escalation objects can "
       "only be added or removed, this is likely a software bug that you should "
       "report to Centreon Engine developers");
@@ -261,7 +261,7 @@ void applier::serviceescalation::resolve_object(
   auto p(engine::serviceescalation::serviceescalations.equal_range(
       {hostname, desc}));
   if (p.first == p.second)
-    throw error(
+    throw engine_error(
         "Cannot find service escalations concerning host '{}' and service '{}'",
         hostname,
         desc);
@@ -274,7 +274,7 @@ void applier::serviceescalation::resolve_object(
     }
   }
   if (!found)
-    throw error("Cannot resolve non-existing service escalation");
+    throw engine_error_1("Cannot resolve non-existing service escalation");
 }
 
 /**
@@ -307,7 +307,7 @@ void applier::serviceescalation::_expand_services(
     // Find host group.
     configuration::set_hostgroup::iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw error("Could not resolve host group '{}'", *it);
+      throw engine_error("Could not resolve host group '{}'", *it);
 
     // Add host group members.
     all_hosts.insert(it_group->members().begin(), it_group->members().end());
@@ -332,7 +332,7 @@ void applier::serviceescalation::_expand_services(
     configuration::set_servicegroup::iterator it_group(
         s.servicegroups_find(*it));
     if (it_group == s.servicegroups().end())
-      throw error("Could not resolve service group '{}'", *it);
+      throw engine_error("Could not resolve service group '{}'", *it);
 
     // Add service group members.
     for (set_pair_string::const_iterator it_member(it_group->members().begin()),
@@ -359,7 +359,7 @@ void applier::serviceescalation::_inherits_special_vars(
     configuration::set_service::const_iterator it{s.services_find(
         obj.hosts().front(), obj.service_description().front())};
     if (it == s.services().end())
-      throw error(
+      throw engine_error(
           "Could not inherit special variables from service '{}' of host '{}': "
           "service does not exist",
           obj.service_description().front(),

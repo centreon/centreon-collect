@@ -88,17 +88,17 @@ applier::service& applier::service::operator=(applier::service const& right) {
 void applier::service::add_object(configuration::service const& obj) {
   // Check service.
   if (obj.hosts().size() < 1)
-    throw error("Could not create service '{}' with no host defined",
+    throw engine_error("Could not create service '{}' with no host defined",
                 obj.service_description());
   else if (obj.hosts().size() > 1)
-    throw error("Could not create service '{}' with multiple hosts defined",
+    throw engine_error("Could not create service '{}' with multiple hosts defined",
                 obj.service_description());
   else if (!obj.hostgroups().empty())
-    throw error(
+    throw engine_error(
         "Could not create service '{}' with multiple host groups defined",
         obj.service_description());
   else if (!obj.host_id())
-    throw error(
+    throw engine_error(
         "No host_id available for the host '{}' - unable to create service "
         "'{}'",
         *obj.hosts().begin(),
@@ -178,7 +178,7 @@ void applier::service::add_object(configuration::service const& obj) {
       obj.obsess_over_service(),
       obj.timezone())};
   if (!svc)
-    throw error("Could not register service '{}' of host '{}'",
+    throw engine_error("Could not register service '{}' of host '{}'",
                 obj.service_description(),
                 *obj.hosts().begin());
   svc->set_initial_notif_time(0);
@@ -273,14 +273,14 @@ void applier::service::expand_objects(configuration::state& s) {
       // Find host group.
       set_hostgroup::iterator it2(s.hostgroups_find(*it));
       if (it2 == s.hostgroups().end())
-        throw error(
+        throw engine_error(
             "Could not find host group '{}' on which to apply service '{}'",
             *it,
             it_svc->service_description());
 
       // Check host group and user configuration.
       if (it2->members().empty() && !s.allow_empty_hostgroup_assignment())
-        throw error(
+        throw engine_error(
             "Could not expand host group '{}' specified in service '{}'",
             *it,
             it_svc->service_description());
@@ -333,7 +333,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   // Find the configuration object.
   set_service::iterator it_cfg(config->services_find(obj.key()));
   if (it_cfg == config->services().end())
-    throw error("Cannot modify non-existing service '{}' of host '{}'",
+    throw engine_error("Cannot modify non-existing service '{}' of host '{}'",
                 service_description,
                 host_name);
 
@@ -341,7 +341,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   service_id_map::iterator it_obj(
       engine::service::services_by_id.find(obj.key()));
   if (it_obj == engine::service::services_by_id.end())
-    throw error(
+    throw engine_error(
         "Could not modify non-existing service object '{}' of host '{}'",
         service_description,
         host_name);
@@ -612,7 +612,7 @@ void applier::service::resolve_object(configuration::service const& obj) {
   // Find service.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));
   if (engine::service::services_by_id.end() == it)
-    throw error("Cannot resolve non-existing service '{}' of host '{}'",
+    throw engine_error("Cannot resolve non-existing service '{}' of host '{}'",
                 obj.service_description(),
                 *obj.hosts().begin());
 
@@ -649,7 +649,7 @@ void applier::service::_expand_service_memberships(configuration::service& obj,
     configuration::set_servicegroup::iterator it_group(
         s.servicegroups_find(*it));
     if (it_group == s.servicegroups().end())
-      throw error(
+      throw engine_error(
           "Could not add service '{}' of host '{}' to non-existing service "
           "group '{}'",
           obj.service_description(),
@@ -689,7 +689,7 @@ void applier::service::_inherits_special_vars(configuration::service& obj,
     configuration::set_host::const_iterator it(
         s.hosts_find(obj.hosts().begin()->c_str()));
     if (it == s.hosts().end())
-      throw error(
+      throw engine_error(
           "Could not inherit special variables for service '{}': on host '{}' "
           "does not exist",
           obj.service_description(),

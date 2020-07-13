@@ -44,9 +44,9 @@ serviceescalation::serviceescalation(std::string const& hostname,
       _hostname{hostname},
       _description{description} {
   if (hostname.empty())
-    throw error("Could not create escalation on a host without name");
+    throw engine_error_1("Could not create escalation on a host without name");
   if (description.empty())
-    throw error("Could not create escalation on a service without description");
+    throw engine_error_1("Could not create escalation on a service without description");
 }
 
 serviceescalation::~serviceescalation() {}
@@ -114,6 +114,6 @@ void serviceescalation::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw error("Cannot resolve service escalation");
+    throw engine_error_1("Cannot resolve service escalation");
   }
 }

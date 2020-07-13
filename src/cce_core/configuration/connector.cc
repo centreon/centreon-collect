@@ -115,9 +115,9 @@ bool connector::operator<(connector const& right) const throw() {
  */
 void connector::check_validity() const {
   if (_connector_name.empty())
-    throw error("Connector has no name (property 'connector_name')");
+    throw engine_error_1("Connector has no name (property 'connector_name')");
   if (_connector_line.empty())
-    throw error(
+    throw engine_error(
         "Connector '{}' has no command line (property 'connector_line')",
         _connector_name);
   return;
@@ -139,7 +139,7 @@ connector::key_type const& connector::key() const throw() {
  */
 void connector::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge connector with '{}'", obj.type());
+    throw engine_error("Cannot merge connector with '{}'", obj.type());
   connector const& tmpl(static_cast<connector const&>(obj));
 
   MRG_DEFAULT(_connector_line);

@@ -67,11 +67,11 @@ downtime::downtime(downtime::type type,
   /* don't add triggered downtimes that don't have a valid parent */
   if (triggered_by > 0 && !downtime_manager::instance().find_downtime(
                                downtime::any_downtime, triggered_by))
-    throw error("can not add triggered host downtime without a valid parent");
+    throw engine_error_1("can not add triggered host downtime without a valid parent");
 
   /* we don't have enough info */
   if (host_name.empty())
-    throw error("can not create a host downtime on host with empty name");
+    throw engine_error_1("can not create a host downtime on host with empty name");
 }
 
 downtime::~downtime() {}

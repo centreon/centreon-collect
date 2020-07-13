@@ -48,7 +48,7 @@ raw::raw(std::string const& name,
          command_listener* listener)
     : command(name, command_line, listener), process_listener() {
   if (_command_line.empty())
-    throw error("Could not create '{}' command: command line is empty", _name);
+    throw engine_error("Could not create '{}' command: command line is empty", _name);
 }
 
 /**

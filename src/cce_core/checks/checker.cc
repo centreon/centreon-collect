@@ -224,9 +224,9 @@ void checker::run_sync(host* hst,
 
   // Preamble.
   if (!hst)
-    throw error("Attempt to run synchronous check on invalid host");
+    throw engine_error_1("Attempt to run synchronous check on invalid host");
   if (!hst->get_check_command_ptr())
-    throw error(
+    throw engine_error(
         "Attempt to run synchronous active check on host '{}' with no check "
         "command",
         hst->get_name());
@@ -435,9 +435,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Preamble.
   if (!hst)
-    throw error("Attempt to run synchronous check on invalid host");
+    throw engine_error_1("Attempt to run synchronous check on invalid host");
   if (!hst->get_check_command_ptr())
-    throw error(
+    throw engine_error(
         "Attempt to run synchronous active check on host '{}' with no check "
         "command",
         hst->get_name());

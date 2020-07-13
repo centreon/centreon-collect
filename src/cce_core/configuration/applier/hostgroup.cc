@@ -121,13 +121,13 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   // Find old configuration.
   set_hostgroup::iterator it_cfg(config->hostgroups_find(obj.key()));
   if (it_cfg == config->hostgroups().end())
-    throw error("Could not modify non-existing host group '{}'",
+    throw engine_error("Could not modify non-existing host group '{}'",
                 obj.hostgroup_name());
 
   // Find host group object.
   hostgroup_map::iterator it_obj(engine::hostgroup::hostgroups.find(obj.key()));
   if (it_obj == engine::hostgroup::hostgroups.end())
-    throw error("Could not modify non-existing host group object '{}'",
+    throw engine_error("Could not modify non-existing host group object '{}'",
                 obj.hostgroup_name());
 
   // Update the global configuration set.
@@ -216,7 +216,7 @@ void applier::hostgroup::resolve_object(configuration::hostgroup const& obj) {
   // Find host group.
   hostgroup_map::iterator it{engine::hostgroup::hostgroups.find(obj.key())};
   if (it == engine::hostgroup::hostgroups.end())
-    throw error("Cannot resolve non-existing host group '{}'",
+    throw engine_error("Cannot resolve non-existing host group '{}'",
                 obj.hostgroup_name());
 
   // Resolve host group.

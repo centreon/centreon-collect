@@ -145,7 +145,7 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  */
 void servicegroup::check_validity() const {
   if (_servicegroup_name.empty())
-    throw error("Service group has no name (property 'servicegroup_name')");
+    throw engine_error_1("Service group has no name (property 'servicegroup_name')");
   return;
 }
 
@@ -165,7 +165,7 @@ servicegroup::key_type const& servicegroup::key() const throw() {
  */
 void servicegroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge service group with '{}'", obj.type());
+    throw engine_error("Cannot merge service group with '{}'", obj.type());
   servicegroup const& tmpl(static_cast<servicegroup const&>(obj));
 
   MRG_DEFAULT(_action_url);

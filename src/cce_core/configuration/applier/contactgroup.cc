@@ -76,7 +76,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
 
   if (engine::contactgroup::contactgroups.find(name) !=
       engine::contactgroup::contactgroups.end())
-    throw error("Contactgroup '{}' has already been defined", name);
+    throw engine_error("Contactgroup '{}' has already been defined", name);
 
   // Add contact group to the global configuration set.
   config->contactgroups().insert(obj);
@@ -93,7 +93,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
       logger(log_verification_error, basic)
           << "Error: Contact '" << *it << "' specified in contact group '"
           << cg->get_name() << "' is not defined anywhere!";
-      throw error("Error: Cannot resolve contact group '{}'",
+      throw engine_error("Error: Cannot resolve contact group '{}'",
                   obj.contactgroup_name());
     } else {
       cg->get_members().insert({ct_it->first, ct_it->second.get()});
@@ -143,14 +143,14 @@ void applier::contactgroup::modify_object(
   // Find old configuration.
   set_contactgroup::iterator it_cfg(config->contactgroups_find(obj.key()));
   if (it_cfg == config->contactgroups().end())
-    throw error("Error: Could not modify non-existing contact group '{}'",
+    throw engine_error("Error: Could not modify non-existing contact group '{}'",
                 obj.contactgroup_name());
 
   // Find contact group object.
   contactgroup_map::iterator it_obj(
       engine::contactgroup::contactgroups.find(obj.key()));
   if (it_obj == engine::contactgroup::contactgroups.end())
-    throw error(
+    throw engine_error(
         "Error: Could not modify non-existing contact group object '{}'",
         obj.contactgroup_name());
 
@@ -176,7 +176,7 @@ void applier::contactgroup::modify_object(
         logger(log_verification_error, basic)
             << "Error: Contact '" << *it << "' specified in contact group '"
             << it_obj->second->get_name() << "' is not defined anywhere!";
-        throw error("Error: Cannot resolve contact group '{}'",
+        throw engine_error("Error: Cannot resolve contact group '{}'",
                     obj.contactgroup_name());
       } else {
         it_obj->second->get_members().insert(
@@ -250,7 +250,7 @@ void applier::contactgroup::resolve_object(
   contactgroup_map::iterator it{
       engine::contactgroup::contactgroups.find(obj.key())};
   if (engine::contactgroup::contactgroups.end() == it || !it->second)
-    throw error("Error: Cannot resolve non-existing contact group '{}'",
+    throw engine_error("Error: Cannot resolve non-existing contact group '{}'",
                 obj.contactgroup_name());
 
   // Resolve contact group.
@@ -288,7 +288,7 @@ void applier::contactgroup::_resolve_members(
       // Find contactgroup entry.
       set_contactgroup::iterator it2(s.contactgroups_find(*it));
       if (it2 == s.contactgroups().end())
-        throw error(
+        throw engine_error(
             "Error: Could not add non-existing contact group member '{}' to "
             "contactgroup '{}'",
             *it,

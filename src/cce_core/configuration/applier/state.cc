@@ -625,7 +625,7 @@ void applier::state::_check_serviceescalations() const {
             << "Error on serviceescalation !!! The service "
             << srv->get_hostname() << "/" << srv->get_description()
             << " contains a non existing service escalation";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
     if (s.size() != srv->get_escalations().size()) {
@@ -634,7 +634,7 @@ void applier::state::_check_serviceescalations() const {
              "several times in service " << srv->get_hostname() << "/"
           << srv->get_description() << "set size: " << s.size()
           << " ; list size: " << srv->get_escalations().size();
-      throw error("This is a bug");
+      throw engine_error_1("This is a bug");
     }
   }
 
@@ -652,7 +652,7 @@ void applier::state::_check_serviceescalations() const {
               << "Host name given by the escalation is " << se->get_hostname()
               << " whereas the hostname from the notifier is "
               << p.second->get_hostname() << ".";
-          throw error("This is a bug");
+          throw engine_error_1("This is a bug");
         }
         if (se->get_description() != p.second->get_description()) {
           logger(log_config_error, basic)
@@ -662,7 +662,7 @@ void applier::state::_check_serviceescalations() const {
               << se->get_description()
               << " whereas the service description from the notifier is "
               << p.second->get_description() << ".";
-          throw error("This is a bug");
+          throw engine_error_1("This is a bug");
         }
         break;
       }
@@ -673,7 +673,7 @@ void applier::state::_check_serviceescalations() const {
              "escalation is wrong "
           << "The bug is detected on escalation concerning host "
           << se->get_hostname() << " and service " << se->get_description();
-      throw error("This is a bug");
+      throw engine_error_1("This is a bug");
     }
   }
 }
@@ -700,7 +700,7 @@ void applier::state::_check_hostescalations() const {
         logger(log_config_error, basic)
             << "Error on hostescalation !!! The host " << hst->get_name()
             << " contains a non existing host escalation";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -719,7 +719,7 @@ void applier::state::_check_hostescalations() const {
               << "Host name given by the escalation is " << he->get_hostname()
               << " whereas the hostname from the notifier is "
               << p.second->get_name() << ".";
-          throw error("This is a bug");
+          throw engine_error_1("This is a bug");
         }
         break;
       }
@@ -730,7 +730,7 @@ void applier::state::_check_hostescalations() const {
              "is wrong "
           << "The bug is detected on escalation concerning host "
           << he->get_hostname();
-      throw error("This is a bug");
+      throw engine_error_1("This is a bug");
     }
   }
 }
@@ -752,7 +752,7 @@ void applier::state::_check_contacts() const {
                                         << pp.first << " used in contactgroup "
                                         << p.first
                                         << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -767,7 +767,7 @@ void applier::state::_check_contacts() const {
                                         << p.second->get_hostname() << '/'
                                         << p.second->get_description()
                                         << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -781,7 +781,7 @@ void applier::state::_check_contacts() const {
                                         << pp.first << " used in service "
                                         << p.second->get_name()
                                         << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -805,7 +805,7 @@ void applier::state::_check_contactgroups() const {
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in service " << p.first.first << '/' << p.first.second
             << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -819,7 +819,7 @@ void applier::state::_check_contactgroups() const {
         logger(log_config_error, basic)
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in host " << p.first << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -834,7 +834,7 @@ void applier::state::_check_contactgroups() const {
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in serviceescalation " << p.second->get_uuid().to_string()
             << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -849,7 +849,7 @@ void applier::state::_check_contactgroups() const {
             << "Error on contactgroup !!! The contactgroup " << pp.first
             << " used in hostescalation " << p.second->get_uuid().to_string()
             << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -878,7 +878,7 @@ void applier::state::_check_services() const {
                                         << p.first.first << '/'
                                         << p.first.second
                                         << " is not or badly defined";
-        throw error("This is a bug");
+        throw engine_error_1("This is a bug");
       }
     }
   }
@@ -892,7 +892,7 @@ void applier::state::_check_services() const {
           << "Error on service !!! The service " << p.first.first << '/'
           << p.first.second
           << " defined in services is not defined in services_by_id";
-      throw error("This is a bug");
+      throw engine_error_1("This is a bug");
     }
   }
 
@@ -913,7 +913,7 @@ void applier::state::_check_services() const {
               << "Error on service !!! The service " << p.first.first << '/'
               << p.first.second
               << " defined in services has a wrong check command";
-          throw error("This is a bug");
+          throw engine_error_1("This is a bug");
         }
       }
     }
@@ -926,7 +926,7 @@ void applier::state::_check_services() const {
            "services. The first one size is "
         << engine::service::services.size() << "  the second size is "
         << engine::service::services.size();
-    throw error("This is a bug");
+    throw engine_error_1("This is a bug");
   }
 }
 
@@ -944,7 +944,7 @@ void applier::state::_check_hosts() const {
       logger(log_config_error, basic)
           << "Error on host !!! The host " << hst->get_name() << " used in "
           << where << " is not defined or badly defined in hosts";
-      throw error("This is a bug");
+      throw engine_error_1("This is a bug");
     }
   };
 
@@ -975,7 +975,7 @@ void applier::state::_check_hosts() const {
           logger(log_config_error, basic)
               << "Error on host !!! The host " << p.first
               << " defined in hosts has a wrong check command";
-          throw error("This is a bug");
+          throw engine_error_1("This is a bug");
         }
       }
     }
@@ -986,7 +986,7 @@ void applier::state::_check_hosts() const {
         << "Error on host !!! hosts_by_id contains hosts that are not in "
            "hosts. The first one size is " << engine::service::services.size()
         << " whereas the second size is " << engine::service::services.size();
-    throw error("This is a bug");
+    throw engine_error_1("This is a bug");
   }
 
   for (auto const& p : engine::service::services)

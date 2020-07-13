@@ -265,7 +265,7 @@ void hostdependency::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw error("Cannot resolve host dependency");
+    throw engine_error_1("Cannot resolve host dependency");
   }
 }
 

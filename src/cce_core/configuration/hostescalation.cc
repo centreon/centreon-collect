@@ -158,7 +158,7 @@ bool hostescalation::operator<(hostescalation const& right) const {
  */
 void hostescalation::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw error(
+    throw engine_error_1(
         "Host escalation is not attached to any host or host group (properties "
         "'host_name' or 'hostgroup_name', respectively)");
 }
@@ -179,7 +179,7 @@ hostescalation::key_type const& hostescalation::key() const throw() {
  */
 void hostescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw error("Cannot merge host escalation with '{}'", obj.type());
+    throw engine_error("Cannot merge host escalation with '{}'", obj.type());
   hostescalation const& tmpl(static_cast<hostescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);
