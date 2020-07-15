@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <thread>
 
+#include <fstream>
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -32,6 +33,7 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
+#include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
@@ -59,6 +61,8 @@ class EngineRpc : public TestEngine {
 
     // Do not unload this in the tear down function, it is done by the
     // other unload function... :-(
+
+    config->execute_service_checks(true);
 
     /* contact */
     configuration::applier::contact ct_aply;
@@ -104,8 +108,14 @@ class EngineRpc : public TestEngine {
     /* service */
     configuration::service svc{
         new_configuration_service("test_host", "test_svc", "admin")};
+    configuration::command cmd("cmd");
+    cmd.parse("command_line", "/bin/sh -c 'echo \"test_cmd\"'");
+    svc.parse("check_command", "cmd");
+    configuration::applier::command cmd_aply;
+
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
+    cmd_aply.add_object(cmd);
 
     svc_aply.resolve_object(svc);
 
@@ -1103,6 +1113,44 @@ TEST_F(EngineRpc, ScheduleAndPropagateTriggeredHostDowntime) {
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
   erpc.shutdown();
 }
+
+/*TEST_F(EngineRpc, ScheduleServiceCheck) {
+  std::condition_variable condvar;
+  std::mutex mutex;
+  engine::service* temp_svc = _svc.get();
+  ASSERT_EQ(_svc->get_plugin_output(), "");
+
+  auto fn = [&condvar, temp_svc, &mutex]() {
+    std::unique_lock<std::mutex> lock(mutex);
+    enginerpc erpc("0.0.0.0", 40001);
+    condvar.notify_one();
+    lock.unlock();
+    set_time(20000);
+    time_t now = time(nullptr);
+    while (now < 2000000) {
+      //now++;
+
+      events::loop::instance().run();
+
+      if (temp_svc->get_plugin_output() != "")
+         break;
+    }
+    std::cout << "now egal = " << now << std::endl;
+    erpc.shutdown();
+  };
+
+  std::thread th(fn);
+  std::unique_lock<std::mutex> lock(mutex);
+  condvar.wait(lock);
+  std::string cmd("ScheduleServiceCheck test_host test_svc 0");
+  auto output = execute(cmd);
+
+  th.join();
+
+  std::cout << "cmd" <<  _svc->get_plugin_output() << std::endl;
+  std::cout << output.back() << std::endl;
+}
+*/
 
 TEST_F(EngineRpc, DeleteHostDowntime) {
   enginerpc erpc("0.0.0.0", 40001);
