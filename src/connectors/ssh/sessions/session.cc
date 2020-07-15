@@ -36,6 +36,7 @@
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::ssh::sessions;
 
@@ -59,7 +60,7 @@ session::session(credentials const& creds)
   // Create session instance.
   _session = libssh2_session_init();
   if (!_session)
-    throw basic_error() << "SSH session creation failed (out of memory ?)";
+    throw basic_error_1("SSH session creation failed (out of memory ?)");
 }
 
 /**
@@ -68,7 +69,8 @@ session::session(credentials const& creds)
 session::~session() noexcept {
   try {
     this->close();
-  } catch (...) {
+  }
+  catch (...) {
   }
 
   // Delete session.
@@ -154,11 +156,12 @@ void session::connect(bool use_ipv6) {
     addrinfo* res(nullptr);
     int retval(getaddrinfo(host_ptr, nullptr, &hint, &res));
     if (retval)
-      throw basic_error() << "lookup of host '" << host_ptr
-                          << "' failed: " << gai_strerror(retval);
+      throw basic_error(
+          "lookup of host '{}' failed: ", host_ptr, gai_strerror(retval));
     else if (!res)
-      throw basic_error() << "no IPv" << (use_ipv6 ? "6" : "4")
-                          << " address found for host '" << host_ptr << "'";
+      throw basic_error("no IPv {} address found for host '{}'",
+                        (use_ipv6 ? "6" : "4"),
+                        host_ptr);
 
     // Log message.
     log::core()->debug("found host {} address through name resolution",
@@ -180,7 +183,7 @@ void session::connect(bool use_ipv6) {
   mysocket = ::socket((use_ipv6 ? AF_INET6 : AF_INET), SOCK_STREAM, 0);
   if (mysocket < 0) {
     char const* msg(strerror(errno));
-    throw basic_error() << "socket creation failed: " << msg;
+    throw basic_error("socket creation failed: {}", msg);
   }
 
   // Set socket non-blocking.
@@ -188,13 +191,13 @@ void session::connect(bool use_ipv6) {
   if (flags < 0) {
     char const* msg(strerror(errno));
     ::close(mysocket);
-    throw basic_error() << "could not get socket flags: " << msg;
+    throw basic_error("could not get socket flags: {}", msg);
   }
   flags |= O_NONBLOCK;
   if (fcntl(mysocket, F_SETFL, flags) == -1) {
     char const* msg(strerror(errno));
     ::close(mysocket);
-    throw basic_error() << "could not make socket non blocking: " << msg;
+    throw basic_error("could not make socket non blocking: {}", msg);
   }
 
   // Connect to remote host.
@@ -202,7 +205,7 @@ void session::connect(bool use_ipv6) {
       (errno != EINPROGRESS)) {
     char const* msg(strerror(errno));
     ::close(mysocket);
-    throw basic_error() << "could not connect to '" << host_ptr << "': " << msg;
+    throw basic_error("could not connect to '{}': {}", host_ptr, msg);
   }
 
   _socket.set_native_handle(mysocket);
@@ -213,7 +216,9 @@ void session::connect(bool use_ipv6) {
   // Launch the connection process.
   log::core()->debug(
       "manually launching the connection process of session {0}@{1}:{2}",
-      _creds.get_user(), _creds.get_host(), _creds.get_port());
+      _creds.get_user(),
+      _creds.get_host(),
+      _creds.get_port());
   _startup();
 }
 
@@ -238,7 +243,9 @@ void session::error() {
 void session::error([[maybe_unused]] handle& h) {
   log::core()->error(
       "error detected on socket, shutting down session {0}@{1}:{2}",
-      _creds.get_user(), _creds.get_host(), _creds.get_port());
+      _creds.get_user(),
+      _creds.get_host(),
+      _creds.get_port());
   this->close();
 }
 
@@ -247,9 +254,7 @@ void session::error([[maybe_unused]] handle& h) {
  *
  *  @return Credentials associated to this session.
  */
-credentials const& session::get_credentials() const noexcept {
-  return _creds;
-}
+credentials const& session::get_credentials() const noexcept { return _creds; }
 
 /**
  *  Get the libssh2 session object.
@@ -265,9 +270,7 @@ LIBSSH2_SESSION* session::get_libssh2_session() const noexcept {
  *
  *  @return Socket handle.
  */
-socket_handle* session::get_socket_handle() noexcept {
-  return &_socket;
-}
+socket_handle* session::get_socket_handle() noexcept { return &_socket; }
 
 /**
  *  Check if session is connected.
@@ -283,9 +286,7 @@ bool session::is_connected() const noexcept {
  *
  *  @param[in] listnr New listener.
  */
-void session::listen(listener* listnr) {
-  _listnrs.insert(listnr);
-}
+void session::listen(listener* listnr) { _listnrs.insert(listnr); }
 
 /**
  *  Get a new channel.
@@ -309,7 +310,7 @@ LIBSSH2_CHANNEL* session::new_channel() {
     if (ret != LIBSSH2_ERROR_EAGAIN) {
       if (ret == LIBSSH2_ERROR_SOCKET_SEND)
         error();
-      throw basic_error() << "could not open SSH channel: " << msg;
+      throw basic_error("could not open SSH channel: {}", msg);
     }
   }
 
@@ -324,14 +325,17 @@ LIBSSH2_CHANNEL* session::new_channel() {
  */
 void session::read([[maybe_unused]] handle& h) {
   static void (session::*const redirector[])() = {
-      &session::_startup, &session::_passwd, &session::_key,
-      &session::_available};
+      &session::_startup, &session::_passwd,
+      &session::_key,     &session::_available};
 
   try {
     (this->*redirector[_step])();
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     log::core()->error("session {0}@{1}:{2} encountered an error: {3}",
-                       _creds.get_user(), _creds.get_host(), _creds.get_port(),
+                       _creds.get_user(),
+                       _creds.get_host(),
+                       _creds.get_port(),
                        e.what());
     this->close();
   }
@@ -353,7 +357,9 @@ void session::unlisten(listener* listnr) {
 
   log::core()->debug(
       "session {0} removed listener {1} (there was {2}, there is {3})",
-      static_cast<void*>(this), static_cast<void*>(listnr), size,
+      static_cast<void*>(this),
+      static_cast<void*>(listnr),
+      size,
       _listnrs.size());
 }
 
@@ -366,8 +372,11 @@ bool session::want_read([[maybe_unused]] handle& h) {
   bool retval(_session && (libssh2_session_block_directions(_session) &
                            LIBSSH2_SESSION_BLOCK_INBOUND));
   log::core()->debug("session {0}@{1}:{2} want to read (step {3} {4})",
-                     _creds.get_user(), _creds.get_host(), _creds.get_port(),
-                     (retval ? "" : " do not"), _step_string);
+                     _creds.get_user(),
+                     _creds.get_host(),
+                     _creds.get_port(),
+                     (retval ? "" : " do not"),
+                     _step_string);
   return retval;
 }
 
@@ -381,8 +390,11 @@ bool session::want_write([[maybe_unused]] handle& h) {
                             LIBSSH2_SESSION_BLOCK_OUTBOUND) ||
                            _needed_new_chan));
   log::core()->debug("session {0}@{1}:{2} want to write (step {3} {4})",
-                     _creds.get_user(), _creds.get_host(), _creds.get_port(),
-                     (retval ? "" : " do not"), _step_string);
+                     _creds.get_user(),
+                     _creds.get_host(),
+                     _creds.get_port(),
+                     (retval ? "" : " do not"),
+                     _step_string);
   return retval;
 }
 
@@ -407,7 +419,8 @@ void session::write(handle& h) {
  */
 void session::_available() {
   log::core()->debug("session {0} is available and has {1} listeners",
-                     static_cast<void*>(this), _listnrs.size());
+                     static_cast<void*>(this),
+                     _listnrs.size());
   for (auto& l : _listnrs)
     l->on_available(*this);
 }
@@ -418,7 +431,9 @@ void session::_available() {
 void session::_key() {
   // Log message.
   log::core()->info("launching key-based authentication on session {0}@{1}:{2}",
-                    _creds.get_user(), _creds.get_host(), _creds.get_port());
+                    _creds.get_user(),
+                    _creds.get_host(),
+                    _creds.get_port());
 
   // Build key paths.
   std::string priv;
@@ -441,17 +456,22 @@ void session::_key() {
   }
 
   // Try public key authentication.
-  int retval(libssh2_userauth_publickey_fromfile(
-      _session, _creds.get_user().c_str(), pub.c_str(), priv.c_str(),
-      _creds.get_password().c_str()));
+  int retval(
+      libssh2_userauth_publickey_fromfile(_session,
+                                          _creds.get_user().c_str(),
+                                          pub.c_str(),
+                                          priv.c_str(),
+                                          _creds.get_password().c_str()));
   if (retval < 0) {
     if (retval != LIBSSH2_ERROR_EAGAIN)
-      throw basic_error() << "user authentication failed";
+      throw basic_error_1("user authentication failed");
   } else {
     // Log message.
     log::core()->info(
         "successful key-based authentication on session {0}@{1}:{2}",
-        _creds.get_user(), _creds.get_host(), _creds.get_port());
+        _creds.get_user(),
+        _creds.get_host(),
+        _creds.get_port());
 
     // Enable non-blocking mode.
     libssh2_session_set_blocking(_session, 0);
@@ -473,11 +493,13 @@ void session::_passwd() {
   // Log message.
   log::core()->info(
       "launching password-based authentication on session {0}@{1}:{2}",
-      _creds.get_user(), _creds.get_host(), _creds.get_port());
+      _creds.get_user(),
+      _creds.get_host(),
+      _creds.get_port());
 
   // Try password.
-  int retval(libssh2_userauth_password(_session, _creds.get_user().c_str(),
-                                       _creds.get_password().c_str()));
+  int retval(libssh2_userauth_password(
+      _session, _creds.get_user().c_str(), _creds.get_password().c_str()));
   if (retval != 0) {
 #if LIBSSH2_VERSION_NUM >= 0x010203
     if (retval == LIBSSH2_ERROR_AUTHENTICATION_FAILED) {
@@ -487,21 +509,25 @@ void session::_passwd() {
 #endif /* libssh2 version >= 1.2.3 */
       log::core()->info(
           "could not authenticate with password on session {0}@{1}:{2}",
-          _creds.get_user(), _creds.get_host(), _creds.get_port());
+          _creds.get_user(),
+          _creds.get_host(),
+          _creds.get_port());
       _step = session_key;
       _step_string = "public key authentication";
       _key();
     } else if (retval != LIBSSH2_ERROR_EAGAIN) {
       char* msg;
       libssh2_session_last_error(_session, &msg, nullptr, 0);
-      throw basic_error() << "password authentication failed: " << msg
-                          << " (error " << retval << ")";
+      throw basic_error(
+          "password authentication failed: {} (error {})", msg, retval);
     }
   } else {
     // Log message.
     log::core()->info(
         "successful password authentication on session {0}@{1}:{2}",
-        _creds.get_user(), _creds.get_host(), _creds.get_port());
+        _creds.get_user(),
+        _creds.get_host(),
+        _creds.get_port());
 
     // We're now connected.
     _step = session_keepalive;
@@ -519,12 +545,14 @@ void session::_passwd() {
 void session::_startup() {
   // Log message.
   log::core()->info("attempting to initialize SSH session {0}@{1}:{2}",
-                    _creds.get_user(), _creds.get_host(), _creds.get_port());
+                    _creds.get_user(),
+                    _creds.get_host(),
+                    _creds.get_port());
 
   // Enable non-blocking mode.
   libssh2_session_set_blocking(_session, 0);
 
-  // Exchange banners, keys, setup crypto, compression, ...
+// Exchange banners, keys, setup crypto, compression, ...
 #if LIBSSH2_VERSION_NUM >= 0x010208
   // libssh2_session_startup deprecated in version 1.2.8 and later
   int retval(libssh2_session_handshake(_session, _socket.get_native_handle()));
@@ -535,13 +563,15 @@ void session::_startup() {
     if (retval != LIBSSH2_ERROR_EAGAIN) {  // Fatal failure.
       char* msg;
       int code(libssh2_session_last_error(_session, &msg, nullptr, 0));
-      throw basic_error() << "failure establishing SSH session: " << msg
-                          << " (error " << code << ")";
+      throw basic_error(
+          "failure establishing SSH session: {} (error {})", msg, code);
     }
   } else {  // Successful startup.
     // Log message.
     log::core()->info("SSH session {0}@{1}:{2} successfully initialized",
-                      _creds.get_user(), _creds.get_host(), _creds.get_port());
+                      _creds.get_user(),
+                      _creds.get_host(),
+                      _creds.get_port());
 
 #ifdef WITH_KNOWN_HOSTS_CHECK
     // Initialize known hosts list.
@@ -549,7 +579,7 @@ void session::_startup() {
     if (!known_hosts) {
       char* msg;
       libssh2_session_last_error(_session, &msg, nullptr, 0);
-      throw basic_error() << "could not create known hosts list: " << msg;
+      throw basic_error("could not create known hosts list: {}", msg);
     }
 
     // Get home directory.
@@ -562,19 +592,20 @@ void session::_startup() {
       known_hosts_file.append("/.ssh/");
     }
     known_hosts_file.append("known_hosts");
-    int rh(libssh2_knownhost_readfile(known_hosts, known_hosts_file.c_str(),
-                                      LIBSSH2_KNOWNHOST_FILE_OPENSSH));
+    int rh(libssh2_knownhost_readfile(
+        known_hosts, known_hosts_file.c_str(), LIBSSH2_KNOWNHOST_FILE_OPENSSH));
     if (rh < 0)
-      throw basic_error() << "parsing of known_hosts file " << known_hosts_file
-                          << " failed: error " << -rh;
+      throw basic_error("parsing of known_hosts file {} failed: error {}",
+                        known_hosts_file,
+                        -rh);
     else
-      log_info(logging::medium)
-          << rh << " hosts found in known_hosts file " << known_hosts_file;
+      log_info(logging::medium) << rh << " hosts found in known_hosts file "
+                                << known_hosts_file;
 
     // Check host fingerprint against known hosts.
-    log_info(logging::high)
-        << "checking fingerprint on session " << _creds.get_user() << "@"
-        << _creds.get_host() << ":" << _creds.get_port();
+    log_info(logging::high) << "checking fingerprint on session "
+                            << _creds.get_user() << "@" << _creds.get_host()
+                            << ":" << _creds.get_port();
 
     // Get peer fingerprint.
     size_t len;
@@ -584,7 +615,7 @@ void session::_startup() {
       char* msg;
       libssh2_session_last_error(_session, &msg, nullptr, 0);
       libssh2_knownhost_free(known_hosts);
-      throw basic_error() << "failed to get remote host fingerprint: " << msg;
+      throw basic_error("failed to get remote host fingerprint: {}", msg);
     }
 
     // Check fingerprint.
@@ -592,13 +623,22 @@ void session::_startup() {
 #if LIBSSH2_VERSION_NUM >= 0x010206
     // Introduced in 1.2.6.
     int check(libssh2_knownhost_checkp(
-        known_hosts, _creds.get_host().c_str(), -1, fingerprint, len,
-        LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW, &kh));
+        known_hosts,
+        _creds.get_host().c_str(),
+        -1,
+        fingerprint,
+        len,
+        LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW,
+        &kh));
 #else
     // 1.2.5 or older.
     int check(libssh2_knownhost_check(
-        known_hosts, creds.get_host().c_str(), fingerprint, len,
-        LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW, &kh));
+        known_hosts,
+        creds.get_host().c_str(),
+        fingerprint,
+        len,
+        LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW,
+        &kh));
 #endif  // LIBSSH2_VERSION_NUM
 
     // Free known hosts list.
@@ -606,16 +646,15 @@ void session::_startup() {
 
     // Check fingerprint.
     if (check != LIBSSH2_KNOWNHOST_CHECK_MATCH) {
-      exceptions::basic e(basic_error());
-      e << "host '" << _creds.get_host()
-        << "' is not known or could not be validated: ";
+      exceptions::basic e("host '{}' is not known or could not be validated: ",
+                          _creds.get_host());
       if (LIBSSH2_KNOWNHOST_CHECK_NOTFOUND == check)
-        e << "host was not found in known_hosts file " << known_hosts_file;
+        e("host was not found in known_hosts file {}", known_hosts_file);
       else if (LIBSSH2_KNOWNHOST_CHECK_MISMATCH == check)
-        e << "host fingerprint mismatch with known_hosts file "
-          << known_hosts_file;
+        e("host fingerprint mismatch with known_hosts file {}",
+          known_hosts_file);
       else
-        e << "unknown error";
+        e("unknown error");
       throw e;
     }
     log_info(logging::medium) << "fingerprint on session " << _creds.get_user()

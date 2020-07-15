@@ -49,7 +49,6 @@ class file_info {
   bool operator!=(file_info const& right) const noexcept {
     return !operator==(right);
   }
-  
   uint32_t line() const noexcept { return _line; }
   void line(unsigned int line) noexcept { _line = line; }
   std::string const& path() const noexcept { return _path; }
