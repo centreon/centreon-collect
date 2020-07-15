@@ -66,25 +66,38 @@ service Engine {
   rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {}
   rpc DelayServiceNotification(ServiceDelayIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleHostDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleHostDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleServiceDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleServiceDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleHostServicesDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleHostServicesDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleHostGroupHostsDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleHostGroupHostsDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleHostGroupServicesDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleHostGroupServicesDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleServiceGroupHostsDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleServiceGroupHostsDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleServiceGroupServicesDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleServiceGroupServicesDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleAndPropagateHostDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleAndPropagateHostDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleAndPropagateTriggeredHostDowntime(ScheduleDowntimeIdentifier) 
+  rpc ScheduleAndPropagateTriggeredHostDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-
+  rpc ScheduleHostCheck(HostCheckIdentifier)
+      returns (CommandSuccess) {}
+  rpc ScheduleForcedHostCheck(HostCheckIdentifier)
+      returns (CommandSuccess) {}
+  rpc ScheduleHostServiceCheck(HostCheckIdentifier)
+      returns (CommandSuccess) {}
+  rpc ScheduleForcedHostServiceCheck(HostCheckIdentifier)
+      returns (CommandSuccess) {}
+  rpc ScheduleServiceCheck(ServiceCheckIdentifier)
+      returns (CommandSuccess) {}
+  rpc ScheduleForcedServiceCheck(ServiceCheckIdentifier)
+      returns (CommandSuccess) {}
+  rpc SignalProcess(EngineSignalProcess)
+      returns (CommandSuccess) {}
 }
 
 message GenericString {
@@ -407,4 +420,20 @@ message ScheduleDowntimeIdentifier {
   string author = 10;
   string comment_data  = 11;
   uint32 entry_time = 12;
+}
+
+message HostCheckIdentifier {
+  string host_name = 1;
+  uint32 delay_time = 2;
+}
+
+message ServiceCheckIdentifier {
+  string host_name = 1;
+  string service_desc = 2;
+  uint32 delay_time = 3;
+}
+
+message EngineSignalProcess {
+  string process = 1;
+  uint32 scheduled_time = 2;
 }

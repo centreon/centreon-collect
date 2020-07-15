@@ -29,12 +29,14 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
+#include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostdependency.hh"
@@ -46,6 +48,7 @@
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/statistics.hh"
 #include "engine-version.hh"
+#include <fstream>
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -1052,6 +1055,231 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
   response->set_value(!result.get());
   return grpc::Status::OK;
 }
+
+grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
+                                            __attribute__((unused)),
+                                            const HostCheckIdentifier* request,
+                                            CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    temp_host->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleForcedHostCheck(
+    grpc::ServerContext* context __attribute__((unused)),
+    const HostCheckIdentifier* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    temp_host->schedule_check(request->delay_time(),
+                              CHECK_OPTION_FORCE_EXECUTION);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleHostServiceCheck(
+    grpc::ServerContext* context __attribute__((unused)),
+    const HostCheckIdentifier* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+
+    for (service_map_unsafe::iterator it(temp_host->services.begin()),
+         end(temp_host->services.end());
+         it != end; ++it) {
+      if (!it->second)
+        continue;
+      it->second->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleForcedHostServiceCheck(
+    grpc::ServerContext* context __attribute__((unused)),
+    const HostCheckIdentifier* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+
+    for (service_map_unsafe::iterator it(temp_host->services.begin()),
+         end(temp_host->services.end());
+         it != end; ++it) {
+      if (!it->second)
+        continue;
+      it->second->schedule_check(request->delay_time(),
+                                 CHECK_OPTION_FORCE_EXECUTION);
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ScheduleServiceCheck(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ServiceCheckIdentifier* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+  
+  if (request->service_desc().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "service description must not be empty");
+  
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::service> temp_service;
+    auto it =
+        service::services.find({request->host_name(), request->service_desc()});
+    if (it != service::services.end())
+      temp_service = it->second;
+    if (temp_service == nullptr)
+      return 1;
+    temp_service->schedule_check(request->delay_time(),
+                                       CHECK_OPTION_NONE);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+
+}
+
+grpc::Status engine_impl::ScheduleForcedServiceCheck(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ServiceCheckIdentifier* request,
+    CommandSuccess* response) {
+  if (!(request->host_name().empty()))
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+  
+  if (!(request->service_desc().empty()))
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "service description must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::service> temp_service;
+    auto it =
+        service::services.find({request->host_name(), request->service_desc()});
+    if (it != service::services.end())
+      temp_service = it->second;
+    if (temp_service == nullptr)
+      return 1;
+    temp_service->schedule_check(request->delay_time(),
+                                       CHECK_OPTION_FORCE_EXECUTION);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+
+}
+
+grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
+                                             __attribute__((unused)),
+                                             const EngineSignalProcess* request,
+                                             CommandSuccess* response) {
+
+  if (request->process().empty())
+    	return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "the process must be defined");
+
+	auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    timed_event* evt;
+	  if (request->process() == "shutdown") {
+		  /* add a scheduled program shutdown or restart to the event list */
+	    evt = new timed_event(timed_event::EVENT_PROGRAM_SHUTDOWN,
+		      request->scheduled_time(), false, 0, nullptr, false, nullptr, nullptr, 0);
+	  } 
+	 	else if (request->process() == "restart")  { 
+	    evt = new timed_event(timed_event::EVENT_PROGRAM_RESTART,
+		      request->scheduled_time(), false, 0, nullptr, false, nullptr, nullptr, 0);
+	  } else { return 1; }
+	    
+	  events::loop::instance().schedule(evt, true);
+	  return 0;
+  });
+
+	std::future<int32_t> result = fn.get_future();
+	command_manager::instance().enqueue(std::move(fn));
+
+	response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
 
 grpc::Status engine_impl::DeleteHostDowntime(grpc::ServerContext* context
                                              __attribute__((unused)),

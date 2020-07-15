@@ -136,6 +136,7 @@ void loop::_dispatching() {
     // See if we should exit or restart (a signal was encountered).
     if (sigshutdown)
       break;
+    command_manager::instance().execute();
 
     // If we don't have any events to handle, exit.
     if (_event_list_high.empty() && _event_list_low.empty()) {

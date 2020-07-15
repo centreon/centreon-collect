@@ -129,6 +129,33 @@ class engine_impl final : public Engine::Service {
       grpc::ServerContext* context,
       const ScheduleDowntimeIdentifier* request,
       CommandSuccess* response) override;
+  grpc::Status ScheduleHostCheck(
+      grpc::ServerContext* context,
+      const HostCheckIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleForcedHostCheck(
+      grpc::ServerContext* context,
+      const HostCheckIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleHostServiceCheck(
+      grpc::ServerContext* context,
+      const HostCheckIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleForcedHostServiceCheck(
+      grpc::ServerContext* context,
+      const HostCheckIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleServiceCheck(
+      grpc::ServerContext* context,
+      const ServiceCheckIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status ScheduleForcedServiceCheck(
+      grpc::ServerContext* context,
+      const ServiceCheckIdentifier* request,
+      CommandSuccess* response) override;
+  grpc::Status SignalProcess(grpc::ServerContext* context,
+                                  const EngineSignalProcess* request,
+                                  CommandSuccess* response) override;
 
   grpc::Status DeleteHostDowntime(grpc::ServerContext* context,
                                   const GenericValue* request,

@@ -286,6 +286,22 @@ class EngineRPCClient {
     return true;
   }
 
+  bool SignalProcess(std::string const& process,
+                      uint32_t& scheduledtime,
+                       CommandSuccess* response) {
+    grpc::ClientContext context;
+    EngineSignalProcess request;
+    request.set_process(process);
+    request.set_scheduled_time(scheduledtime);
+
+    grpc::Status status = _stub->SignalProcess(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "SignalProcess failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool DeleteComment(uint32_t& req, CommandSuccess* response) {
     GenericValue request;
     grpc::ClientContext context;
@@ -722,7 +738,111 @@ class EngineRPCClient {
     return true;
   }
 
-  bool DeleteHostDowntime(uint32_t& downtime_id, CommandSuccess* response) {
+  bool ScheduleHostCheck(std::string const& hostname, uint32_t delaytime, CommandSuccess* response) {
+  HostCheckIdentifier request;
+  grpc::ClientContext context;
+  request.set_host_name(hostname);
+  request.set_delay_time(delaytime);
+
+  grpc::Status status = _stub->ScheduleHostCheck(
+        &context, request, response);
+    if (!status.ok()) {
+      std::cout << "ScheduleHostCheck"
+                   "rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+  
+  bool ScheduleForcedHostCheck(std::string const& hostname, uint32_t delaytime, CommandSuccess* response) {
+  HostCheckIdentifier request;
+  grpc::ClientContext context;
+  request.set_host_name(hostname);
+  request.set_delay_time(delaytime);
+
+  grpc::Status status = _stub->ScheduleForcedHostCheck(
+        &context, request, response);
+    if (!status.ok()) {
+      std::cout << "ScheduleForcedHostCheck"
+                   "rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ScheduleHostServiceCheck(std::string const& hostname, uint32_t delaytime, CommandSuccess* response) {
+  HostCheckIdentifier request;
+  grpc::ClientContext context;
+  request.set_host_name(hostname);
+  request.set_delay_time(delaytime);
+
+  grpc::Status status = _stub->ScheduleHostServiceCheck(
+        &context, request, response);
+    if (!status.ok()) {
+      std::cout << "ScheduleHostServiceCheck"
+                   "rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ScheduleForcedHostServiceCheck(std::string const& hostname, uint32_t delaytime, CommandSuccess* response) {
+  HostCheckIdentifier request;
+  grpc::ClientContext context;
+  request.set_host_name(hostname);
+  request.set_delay_time(delaytime);
+
+  grpc::Status status = _stub->ScheduleForcedHostServiceCheck(
+        &context, request, response);
+    if (!status.ok()) {
+      std::cout << "ScheduleForcedHostServiceCheck"
+                   "rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+  
+  bool ScheduleServiceCheck(std::string const& hostname, std::string const& servicename, uint32_t delaytime, CommandSuccess* response) {
+  ServiceCheckIdentifier request;
+  grpc::ClientContext context;
+  request.set_host_name(hostname);
+  request.set_service_desc(servicename);
+  request.set_delay_time(delaytime);
+
+  grpc::Status status = _stub->ScheduleServiceCheck(
+        &context, request, response);
+    if (!status.ok()) {
+      std::cout << "ScheduleServiceCheck"
+                   "rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ScheduleForcedServiceCheck(std::string const& hostname, std::string const& servicename, uint32_t delaytime, CommandSuccess* response) {
+  ServiceCheckIdentifier request;
+  grpc::ClientContext context;
+  request.set_host_name(hostname);
+  request.set_service_desc(servicename);
+  request.set_delay_time(delaytime);
+
+  grpc::Status status = _stub->ScheduleForcedServiceCheck(
+        &context, request, response);
+    if (!status.ok()) {
+      std::cout << "ScheduleForcedServiceCheck"
+                   "rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+  
+    bool DeleteHostDowntime(uint32_t& downtime_id, CommandSuccess* response) {
     GenericValue request;
     grpc::ClientContext context;
     request.set_value(downtime_id);
@@ -1629,6 +1749,57 @@ int main(int argc, char** argv) {
         hostname, start, end, fixed, triggeredby, duration, author, commentdata,
         entrytime, &response);
     std::cout << "ScheduleAndPropagateTriggeredHostDowntime" << std::endl;
+  } else if (strcmp(argv[1], "ScheduleHostCheck") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    uint32_t delaytime = atoi(argv[3]);
+
+    status = client.ScheduleHostCheck(hostname, delaytime, &response);
+    std::cout << "ScheduleHostCheck" << std::endl;
+  } else if (strcmp(argv[1], "ScheduleForcedHostCheck") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    uint32_t delaytime = atoi(argv[3]);
+
+    status = client.ScheduleForcedHostCheck(hostname, delaytime, &response);
+    std::cout << "ScheduleForcedHostCheck" << std::endl;
+  } else if (strcmp(argv[1], "ScheduleHostServiceCheck") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    uint32_t delaytime = atoi(argv[3]);
+
+    status = client.ScheduleHostServiceCheck(hostname, delaytime, &response);
+    std::cout << "ScheduleHostServiceCheck" << std::endl;
+  } else if (strcmp(argv[1], "ScheduleForcedHostServiceCheck") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    uint32_t delaytime = atoi(argv[3]);
+
+    status = client.ScheduleForcedHostServiceCheck(hostname, delaytime, &response);
+    std::cout << "ScheduleForcedHostServiceCheck" << std::endl;
+  } else if (strcmp(argv[1], "ScheduleServiceCheck") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string servicedesc(argv[3]);
+    uint32_t delaytime = atoi(argv[4]);
+
+    status = client.ScheduleServiceCheck(hostname, servicedesc, delaytime, &response);
+    std::cout << "ScheduleServiceCheck" << std::endl;
+  } else if (strcmp(argv[1], "ScheduleForcedServiceCheck") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string servicedesc(argv[3]);
+    uint32_t delaytime = atoi(argv[4]);
+
+    status = client.ScheduleForcedServiceCheck(hostname, servicedesc, delaytime, &response);
+    std::cout << "ScheduleForcedServiceCheck" << std::endl;
+  } else if (strcmp(argv[1], "SignalProcess") == 0) {
+    CommandSuccess response;
+    std::string process(argv[2]);
+    uint32_t scheduledtime = atoi(argv[3]);
+
+    status = client.SignalProcess(process, scheduledtime, &response);
+    std::cout << "SignalProcess" << std::endl;
   }
 
   else
