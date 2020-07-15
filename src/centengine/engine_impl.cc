@@ -108,7 +108,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
         /* checking identifier hostname (by name or by id) */
         switch (request->identifier_case()) {
           case HostIdentifier::kName: {
-           /* get the host */
+            /* get the host */
             auto ithostname = host::hosts.find(request->name());
             if (ithostname != host::hosts.end())
               selectedhost = ithostname->second;
@@ -116,7 +116,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
               return 1;
           } break;
           case HostIdentifier::kId: {
-           /* get the host */
+            /* get the host */
             auto ithostid = host::hosts_by_id.find(request->id());
             if (ithostid != host::hosts_by_id.end())
               selectedhost = ithostid->second;
@@ -133,7 +133,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
         host->set_address(selectedhost->get_address());
         host->set_check_period(selectedhost->get_check_period());
         host->set_current_state(
-            static_cast<EngineHost::State>(selectedhost->get_current_state()));
+            static_cast<EngineHost::tate>(selectedhost->get_current_state()));
         host->set_id(selectedhost->get_host_id());
         return 0;
       });
@@ -1295,7 +1295,7 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
-    /* get the main host */ 
+    /* get the main host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -1352,47 +1352,11 @@ grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    temp_host->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
-
-    return 0;
-  });
-
-  std::future<int32_t> result = fn.get_future();
-  command_manager::instance().enqueue(std::move(fn));
-
-  response->set_value(!result.get());
-  return grpc::Status::OK;
-}
-
-/**
- * @brief Schedules a forced host check at particular time
- *
- * @param context gRPC context
- * @param request HostCheckIdentifier. HostCheckIdentifier is a host name
- * and a delay time.
- * @param response Command answer
- *
- * @return Status::OK
- */
-grpc::Status engine_impl::ScheduleForcedHostCheck(
-    grpc::ServerContext* context __attribute__((unused)),
-    const HostCheckIdentifier* request,
-    CommandSuccess* response) {
-  if (request->host_name().empty())
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "host_name must not be empty");
-
-  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<engine::host> temp_host;
-
-    /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
-    if (temp_host == nullptr)
-      return 1;
-    temp_host->schedule_check(request->delay_time(),
-                              CHECK_OPTION_FORCE_EXECUTION);
+    if (!request->force())
+      temp_host->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
+    else
+      temp_host->schedule_check(request->delay_time(),
+                                CHECK_OPTION_FORCE_EXECUTION);
     return 0;
   });
 
@@ -1436,53 +1400,11 @@ grpc::Status engine_impl::ScheduleHostServiceCheck(
          it != end; ++it) {
       if (!it->second)
         continue;
-      it->second->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
-    }
-    return 0;
-  });
-
-  std::future<int32_t> result = fn.get_future();
-  command_manager::instance().enqueue(std::move(fn));
-
-  response->set_value(!result.get());
-  return grpc::Status::OK;
-}
-
-/**
- * @brief Schedules forced all services check from a host at particular time
- *
- * @param context gRPC context
- * @param request HostCheckIdentifier. HostCheckIdentifier is a host name
- * and a delay time.
- * @param response Command answer
- *
- * @return Status::OK
- */
-grpc::Status engine_impl::ScheduleForcedHostServiceCheck(
-    grpc::ServerContext* context __attribute__((unused)),
-    const HostCheckIdentifier* request,
-    CommandSuccess* response) {
-  if (request->host_name().empty())
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "host_name must not be empty");
-
-  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<engine::host> temp_host;
-    /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
-    if (temp_host == nullptr)
-      return 1;
-
-    /* iterate through services of the current host */
-    for (service_map_unsafe::iterator it(temp_host->services.begin()),
-         end(temp_host->services.end());
-         it != end; ++it) {
-      if (!it->second)
-        continue;
-      it->second->schedule_check(request->delay_time(),
-                                 CHECK_OPTION_FORCE_EXECUTION);
+      if (!request->force())
+        it->second->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
+      else
+        it->second->schedule_check(request->delay_time(),
+                                   CHECK_OPTION_FORCE_EXECUTION);
     }
     return 0;
   });
@@ -1525,9 +1447,11 @@ grpc::Status engine_impl::ScheduleServiceCheck(
       temp_service = it->second;
     if (temp_service == nullptr)
       return 1;
-    temp_service->schedule_check(request->delay_time(),
-                                       CHECK_OPTION_NONE);
-
+    if (!request->force())
+      temp_service->schedule_check(request->delay_time(), CHECK_OPTION_NONE);
+    else
+      temp_service->schedule_check(request->delay_time(),
+                                   CHECK_OPTION_FORCE_EXECUTION);
     return 0;
   });
 
@@ -1536,51 +1460,6 @@ grpc::Status engine_impl::ScheduleServiceCheck(
 
   response->set_value(!result.get());
   return grpc::Status::OK;
-
-}
-
-/**
- * @brief Schedules a forced service check at particular time
- *
- * @param context gRPC context
- * @param request ServiceCheckIdentifier. HostCheckIdentifier is a host name,
- *  a service description and a delay time.
- * @param response Command answer
- *
- * @return Status::OK
- */
-grpc::Status engine_impl::ScheduleForcedServiceCheck(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ServiceCheckIdentifier* request,
-    CommandSuccess* response) {
-  if (!(request->host_name().empty()))
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "host_name must not be empty");
-
-  if (!(request->service_desc().empty()))
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "service description must not be empty");
-
-  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::shared_ptr<engine::service> temp_service;
-    /* get the service */
-    auto it =
-        service::services.find({request->host_name(), request->service_desc()});
-    if (it != service::services.end())
-      temp_service = it->second;
-    if (temp_service == nullptr)
-      return 1;
-    temp_service->schedule_check(request->delay_time(),
-                                       CHECK_OPTION_FORCE_EXECUTION);
-    return 0;
-  });
-
-  std::future<int32_t> result = fn.get_future();
-  command_manager::instance().enqueue(std::move(fn));
-
-  response->set_value(!result.get());
-  return grpc::Status::OK;
-
 }
 
 /**
@@ -1594,34 +1473,33 @@ grpc::Status engine_impl::ScheduleForcedServiceCheck(
  * @return Status::OK
  */
 grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
-                                             __attribute__((unused)),
-                                             const EngineSignalProcess* request,
-                                             CommandSuccess* response) {
-
-  if (request->process().empty())
-    	return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "the process must be defined");
-
-	auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+                                        __attribute__((unused)),
+                                        const EngineSignalProcess* request,
+                                        CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     timed_event* evt;
-	  if (request->process() == "shutdown") {
-		  /* add a scheduled program shutdown or restart to the event list */
-	    evt = new timed_event(timed_event::EVENT_PROGRAM_SHUTDOWN,
-		      request->scheduled_time(), false, 0, nullptr, false, nullptr, nullptr, 0);
-	  }
-	 	else if (request->process() == "restart")  {
-	    evt = new timed_event(timed_event::EVENT_PROGRAM_RESTART,
-		      request->scheduled_time(), false, 0, nullptr, false, nullptr, nullptr, 0);
-	  } else { return 1; }
+    if (EngineSignalProcess::Process_Name(request->process()) == "SHUTDOWN") {
+      /* add a scheduled program shutdown or restart to the event list */
+      evt = new timed_event(timed_event::EVENT_PROGRAM_SHUTDOWN,
+                            request->scheduled_time(), false, 0, nullptr, false,
+                            nullptr, nullptr, 0);
+    } else if (EngineSignalProcess::Process_Name(request->process()) ==
+               "RESTART") {
+      evt = new timed_event(timed_event::EVENT_PROGRAM_RESTART,
+                            request->scheduled_time(), false, 0, nullptr, false,
+                            nullptr, nullptr, 0);
+    } else {
+      return 1;
+    }
 
-	  events::loop::instance().schedule(evt, true);
-	  return 0;
+    events::loop::instance().schedule(evt, true);
+    return 0;
   });
 
-	std::future<int32_t> result = fn.get_future();
-	command_manager::instance().enqueue(std::move(fn));
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
 
-	response->set_value(!result.get());
+  response->set_value(!result.get());
   return grpc::Status::OK;
 }
 

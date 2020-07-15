@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <thread>
 
+#include <fstream>
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -32,8 +33,8 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
-#include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
+#include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
@@ -46,7 +47,6 @@
 #include "com/centreon/engine/timezone_manager.hh"
 #include "engine-version.hh"
 #include "helper.hh"
-#include <fstream>
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
