@@ -48,7 +48,6 @@
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/statistics.hh"
 #include "engine-version.hh"
-#include <fstream>
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
