@@ -106,9 +106,10 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
   auto fn =
       std::packaged_task<int(void)>([request, host = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::host> selectedhost;
-
+        /* checking identifier hostname (by name or by id) */
         switch (request->identifier_case()) {
           case HostIdentifier::kName: {
+           /* get the host */
             auto ithostname = host::hosts.find(request->name());
             if (ithostname != host::hosts.end())
               selectedhost = ithostname->second;
@@ -116,6 +117,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
               return 1;
           } break;
           case HostIdentifier::kId: {
+           /* get the host */
             auto ithostid = host::hosts_by_id.find(request->id());
             if (ithostid != host::hosts_by_id.end())
               selectedhost = ithostid->second;
@@ -163,12 +165,13 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
   auto fn =
       std::packaged_task<int(void)>([request, contact = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::contact> selectedcontact;
+        /* get the contact by his name */
         auto itcontactname = contact::contacts.find(request->name());
         if (itcontactname != contact::contacts.end())
           selectedcontact = itcontactname->second;
         else
           return 1;
-
+        /* recovering contact's information */
         contact->set_name(selectedcontact->get_name());
         contact->set_alias(selectedcontact->get_alias());
         contact->set_email(selectedcontact->get_email());
@@ -202,9 +205,11 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
       std::packaged_task<int(void)>([request, service = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::service> selectedservice;
 
+        /* checking identifier sesrname (by names or by ids) */
         switch (request->identifier_case()) {
           case ServiceIdentifier::kNames: {
             NameIdentifier names = request->names();
+            /* get the service */
             auto itservicenames = service::services.find(
                 std::make_pair(names.host_name(), names.service_name()));
             if (itservicenames != service::services.end())
@@ -214,6 +219,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
           } break;
           case ServiceIdentifier::kIds: {
             IdIdentifier ids = request->ids();
+            /* get the service */
             auto itserviceids = service::services_by_id.find(
                 std::make_pair(ids.host_id(), ids.service_id()));
             if (itserviceids != service::services_by_id.end())
@@ -226,6 +232,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context,
             break;
         }
 
+        /* recovering service's information */
         service->set_host_id(selectedservice->get_host_id());
         service->set_service_id(selectedservice->get_service_id());
         service->set_host_name(selectedservice->get_hostname());
@@ -434,6 +441,21 @@ grpc::Status engine_impl::GetHostDependenciesCount(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Add a comment into a host.
+ *
+ * @param context gRPC context
+ * @param request EngineComment. EngineComment requires differents
+ * fields to add a host comment. theses fields are :
+ *    host name
+ *    user name
+ *    the comment
+ *    persistent value
+ *    entry time value
+ * @param response Command Success
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
                                          __attribute__((unused)),
                                          const EngineComment* request,
@@ -441,7 +463,7 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     int32_t persistent;
-
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -467,6 +489,22 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Add a comment into a service.
+ *
+ * @param context gRPC context
+ * @param request EngineComment. EngineComment requires differents
+ * fields to add a service comment. theses fields are :
+ *    host name
+ *    service description
+ *    user name
+ *    the comment
+ *    persistent value
+ *    entry time value
+ * @param response Command Success
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
                                             __attribute__((unused)),
                                             const EngineComment* request,
@@ -475,7 +513,7 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
     std::shared_ptr<engine::host> temp_host;
     std::shared_ptr<engine::service> temp_service;
     int32_t persistent;
-
+    /* get the service */
     auto it =
         service::services.find({request->host_name(), request->svc_desc()});
     if (it != service::services.end())
@@ -508,6 +546,15 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Remove a host or service comment from the status log.
+ *
+ * @param context gRPC context
+ * @param request GenericValue. Id of the comment
+ * @param response Command Success
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
                                         __attribute__((unused)),
                                         const GenericValue* request,
@@ -530,7 +577,7 @@ grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
 }
 
 /**
- * @brief Remove all comments from a host.
+ * @brief Removes all comments from a host.
  *
  * @param context gRPC context
  * @param request Host's identifier (it can be a hostname or a hostid)
@@ -544,8 +591,10 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
                                                 CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
+    /* checking the host identifer (by name or id) */
     switch (request->identifier_case()) {
       case HostIdentifier::kName: {
+        /* get the host */
         auto it = host::hosts.find(request->name());
         if (it != host::hosts.end())
           temp_host = it->second;
@@ -553,6 +602,7 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
           return 1;
       } break;
       case HostIdentifier::kId: {
+        /* get the host */
         auto it = host::hosts_by_id.find(request->id());
         if (it != host::hosts_by_id.end())
           temp_host = it->second;
@@ -575,7 +625,7 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
 }
 
 /**
- * @brief Remove all comments from a service.
+ * @brief Removes all comments from a service.
  *
  * @param context gRPC context
  * @param request Service's identifier (it can be a hostname & servicename or a
@@ -591,9 +641,11 @@ grpc::Status engine_impl::DeleteAllServiceComments(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
 
+    /* checking the service identifer (by names or ids) */
     switch (request->identifier_case()) {
       case ServiceIdentifier::kNames: {
         NameIdentifier names = request->names();
+        /* get the service */
         auto it =
             service::services.find({names.host_name(), names.service_name()});
         if (it != service::services.end())
@@ -603,6 +655,7 @@ grpc::Status engine_impl::DeleteAllServiceComments(
       } break;
       case ServiceIdentifier::kIds: {
         IdIdentifier ids = request->ids();
+        /* get the service */
         auto it =
             service::services_by_id.find({ids.host_id(), ids.service_id()});
         if (it != service::services_by_id.end())
@@ -625,6 +678,15 @@ grpc::Status engine_impl::DeleteAllServiceComments(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Removes a host acknowledgement.
+ *
+ * @param context gRPC context
+ * @param request Host's identifier (it can be a hostname or hostid)
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::RemoveHostAcknowledgement(
     grpc::ServerContext* context __attribute__((unused)),
     const HostIdentifier* request,
@@ -632,8 +694,10 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
 
+    /* checking the host identifer (by name or id) */
     switch (request->identifier_case()) {
       case HostIdentifier::kName: {
+        /* get the host */
         auto it = host::hosts.find(request->name());
         if (it != host::hosts.end())
           temp_host = it->second;
@@ -641,6 +705,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
           return 1;
       } break;
       case HostIdentifier::kId: {
+        /* get the host */
         auto it = host::hosts_by_id.find(request->id());
         if (it != host::hosts_by_id.end())
           temp_host = it->second;
@@ -668,6 +733,16 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Removes a service acknowledgement.
+ *
+ * @param context gRPC context
+ * @param request Service's identifier (it can be a hostname & servicename or a
+ * hostid & serviceid)
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::RemoveServiceAcknowledgement(
     grpc::ServerContext* context __attribute__((unused)),
     const ServiceIdentifier* request,
@@ -675,9 +750,11 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
 
+    /* checking the service identifer (by names or ids) */
     switch (request->identifier_case()) {
       case ServiceIdentifier::kNames: {
         NameIdentifier names = request->names();
+        /* get the service */
         auto it =
             service::services.find({names.host_name(), names.service_name()});
         if (it != service::services.end())
@@ -687,6 +764,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
       } break;
       case ServiceIdentifier::kIds: {
         IdIdentifier ids = request->ids();
+        /* get the service */
         auto it =
             service::services_by_id.find({ids.host_id(), ids.service_id()});
         if (it != service::services_by_id.end())
@@ -715,6 +793,25 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for a specific host.
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields for a host are :
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -723,6 +820,7 @@ grpc::Status engine_impl::ScheduleHostDowntime(
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
     unsigned long duration;
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -734,6 +832,7 @@ grpc::Status engine_impl::ScheduleHostDowntime(
       duration = static_cast<unsigned long>(request->end() - request->start());
     else
       duration = static_cast<unsigned long>(request->duration());
+    /* scheduling downtime */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
         request->entry_time(), request->author().c_str(),
@@ -750,6 +849,26 @@ grpc::Status engine_impl::ScheduleHostDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for a specific service.
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields for a service are :
+ *  host name
+ *  service description
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleServiceDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -757,6 +876,7 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
     uint64_t downtime_id(0);
+    /* get the service */
     auto it =
         service::services.find({request->host_name(), request->service_desc()});
     if (it != service::services.end())
@@ -765,7 +885,7 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
       return 1;
     if (request->author().empty() || request->comment_data().empty())
       return 1;
-
+    /* scheduling downtime */
     downtime_manager::instance().schedule_downtime(
         downtime::service_downtime, request->host_name(),
         request->service_desc(), request->entry_time(),
@@ -782,6 +902,25 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for all services from a specific host.
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleHostServicesDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -789,7 +928,7 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
-
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -803,6 +942,7 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
          it != end; ++it) {
       if (!it->second)
         continue;
+      /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
           downtime::service_downtime, request->host_name(),
           it->second->get_description(), request->entry_time(),
@@ -820,6 +960,26 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for all hosts from a specific host group name.
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  host group name
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -831,7 +991,7 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     uint64_t downtime_id(0);
     hostgroup* hg{nullptr};
-
+    /* get the host group */
     hostgroup_map::const_iterator it(
         hostgroup::hostgroups.find(request->host_group_name()));
     if (it == hostgroup::hostgroups.end() || !it->second)
@@ -839,9 +999,11 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     hg = it->second.get();
     if (request->author().empty() || request->comment_data().empty())
       return 1;
+    /* iterate through host group members(hosts) */
     for (host_map_unsafe::iterator it(hg->members.begin()),
          end(hg->members.end());
          it != end; ++it)
+      /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
           downtime::host_downtime, it->first, "", request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
@@ -857,6 +1019,27 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for all services belonging
+ * to the hosts of the host group name.
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  host group name
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -868,7 +1051,7 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     uint64_t downtime_id(0);
     hostgroup* hg{nullptr};
-
+    /* get the hostgroup */
     hostgroup_map::const_iterator it(
         hostgroup::hostgroups.find(request->host_group_name()));
     if (it == hostgroup::hostgroups.end() || !it->second)
@@ -877,16 +1060,19 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     if (request->author().empty() || request->comment_data().empty())
       return 1;
 
+    /* iterate through host group members(hosts) */
     for (host_map_unsafe::iterator it(hg->members.begin()),
          end(hg->members.end());
          it != end; ++it) {
       if (!it->second)
         continue;
+      /* iterate through services of the current host */
       for (service_map_unsafe::iterator it2(it->second->services.begin()),
            end2(it->second->services.end());
            it2 != end2; ++it2) {
         if (!it2->second)
           continue;
+        /* scheduling downtime */
         downtime_manager::instance().schedule_downtime(
             downtime::service_downtime, it2->second->get_hostname(),
             it2->second->get_description(), request->entry_time(),
@@ -905,6 +1091,26 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for all host from a service group name
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  service group name
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -925,12 +1131,14 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
     for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
          end(sg_it->second->members.end());
          it != end; ++it) {
+      /* get the host to schedule */
       host_map::const_iterator found(host::hosts.find(it->first.first));
       if (found == host::hosts.end() || !found->second)
         continue;
       temp_host = found->second.get();
       if (last_host == temp_host)
         continue;
+      /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
           downtime::host_downtime, it->first.first, "", request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
@@ -948,6 +1156,26 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for all services from a service group name
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  service group name
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -962,9 +1190,11 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return 1;
+    /* iterate through the services of service group */
     for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
          end(sg_it->second->members.end());
          it != end; ++it)
+      /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
           downtime::service_downtime, it->first.first, it->first.second,
           request->entry_time(), request->author().c_str(),
@@ -981,6 +1211,25 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for a specific host and his childrens
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -988,7 +1237,7 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
-
+    /* get the main host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -996,7 +1245,7 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
       return 1;
     if (request->author().empty() || request->comment_data().empty())
       return 1;
-
+    /* scheduling the parent host */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
         request->entry_time(), request->author().c_str(),
@@ -1019,6 +1268,27 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules downtime for a specific host and his childrens with a
+ * triggered id
+ *
+ * @param context gRPC context
+ * @param request ScheduleDowntime's identifier. This type requires fields
+ * to complete a downtime. Theses fields are :
+ *  host name
+ *  start time value
+ *  end time value
+ *  fixed value
+ *  triggered by value
+ *  duration value
+ *  author name
+ *  the comment
+ *  entry time value
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
+
 grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
@@ -1026,7 +1296,7 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
-
+    /* get the main host */ 
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -1034,13 +1304,14 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
       return 1;
     if (request->author().empty() || request->comment_data().empty())
       return 1;
+    /* scheduling the parent host */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
         request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
         request->fixed(), request->triggered_by(), request->duration(),
         &downtime_id);
-
+    /* scheduling his childs */
     command_manager::schedule_and_propagate_downtime(
         temp_host.get(), request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
@@ -1056,6 +1327,16 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules a host check at particular time
+ *
+ * @param context gRPC context
+ * @param request HostCheckIdentifier. HostCheckIdentifier is a host name
+ * and a delay time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
                                             __attribute__((unused)),
                                             const HostCheckIdentifier* request,
@@ -1066,7 +1347,7 @@ grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
-
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -1084,6 +1365,16 @@ grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules a forced host check at particular time
+ *
+ * @param context gRPC context
+ * @param request HostCheckIdentifier. HostCheckIdentifier is a host name
+ * and a delay time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleForcedHostCheck(
     grpc::ServerContext* context __attribute__((unused)),
     const HostCheckIdentifier* request,
@@ -1095,6 +1386,7 @@ grpc::Status engine_impl::ScheduleForcedHostCheck(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
 
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
@@ -1112,6 +1404,16 @@ grpc::Status engine_impl::ScheduleForcedHostCheck(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules all services check from a host at particular time
+ *
+ * @param context gRPC context
+ * @param request HostCheckIdentifier. HostCheckIdentifier is a host name
+ * and a delay time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleHostServiceCheck(
     grpc::ServerContext* context __attribute__((unused)),
     const HostCheckIdentifier* request,
@@ -1123,12 +1425,13 @@ grpc::Status engine_impl::ScheduleHostServiceCheck(
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
 
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-
+    /* iterate through services of the current host */
     for (service_map_unsafe::iterator it(temp_host->services.begin()),
          end(temp_host->services.end());
          it != end; ++it) {
@@ -1146,6 +1449,16 @@ grpc::Status engine_impl::ScheduleHostServiceCheck(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules forced all services check from a host at particular time
+ *
+ * @param context gRPC context
+ * @param request HostCheckIdentifier. HostCheckIdentifier is a host name
+ * and a delay time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleForcedHostServiceCheck(
     grpc::ServerContext* context __attribute__((unused)),
     const HostCheckIdentifier* request,
@@ -1156,13 +1469,14 @@ grpc::Status engine_impl::ScheduleForcedHostServiceCheck(
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
-
+    /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
 
+    /* iterate through services of the current host */
     for (service_map_unsafe::iterator it(temp_host->services.begin()),
          end(temp_host->services.end());
          it != end; ++it) {
@@ -1181,6 +1495,16 @@ grpc::Status engine_impl::ScheduleForcedHostServiceCheck(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Schedules a service check at particular time
+ *
+ * @param context gRPC context
+ * @param request ServiceCheckIdentifier. HostCheckIdentifier is a host name,
+ *  a service description and a delay time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleServiceCheck(
     grpc::ServerContext* context __attribute__((unused)),
     const ServiceCheckIdentifier* request,
@@ -1188,13 +1512,14 @@ grpc::Status engine_impl::ScheduleServiceCheck(
   if (request->host_name().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "host_name must not be empty");
-  
+
   if (request->service_desc().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "service description must not be empty");
-  
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
+    /* get the service */
     auto it =
         service::services.find({request->host_name(), request->service_desc()});
     if (it != service::services.end())
@@ -1215,6 +1540,16 @@ grpc::Status engine_impl::ScheduleServiceCheck(
 
 }
 
+/**
+ * @brief Schedules a forced service check at particular time
+ *
+ * @param context gRPC context
+ * @param request ServiceCheckIdentifier. HostCheckIdentifier is a host name,
+ *  a service description and a delay time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::ScheduleForcedServiceCheck(
     grpc::ServerContext* context __attribute__((unused)),
     const ServiceCheckIdentifier* request,
@@ -1222,13 +1557,14 @@ grpc::Status engine_impl::ScheduleForcedServiceCheck(
   if (!(request->host_name().empty()))
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "host_name must not be empty");
-  
+
   if (!(request->service_desc().empty()))
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "service description must not be empty");
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
+    /* get the service */
     auto it =
         service::services.find({request->host_name(), request->service_desc()});
     if (it != service::services.end())
@@ -1248,6 +1584,16 @@ grpc::Status engine_impl::ScheduleForcedServiceCheck(
 
 }
 
+/**
+ * @brief  Schedules a program shutdown or restart
+ *
+ * @param context gRPC context
+ * @param request EngineSignalProcess. HostCheckIdentifier is a process name
+ * and a scheduled time.
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
                                              __attribute__((unused)),
                                              const EngineSignalProcess* request,
@@ -1263,12 +1609,12 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
 		  /* add a scheduled program shutdown or restart to the event list */
 	    evt = new timed_event(timed_event::EVENT_PROGRAM_SHUTDOWN,
 		      request->scheduled_time(), false, 0, nullptr, false, nullptr, nullptr, 0);
-	  } 
-	 	else if (request->process() == "restart")  { 
+	  }
+	 	else if (request->process() == "restart")  {
 	    evt = new timed_event(timed_event::EVENT_PROGRAM_RESTART,
 		      request->scheduled_time(), false, 0, nullptr, false, nullptr, nullptr, 0);
 	  } else { return 1; }
-	    
+
 	  events::loop::instance().schedule(evt, true);
 	  return 0;
   });
@@ -1280,7 +1626,15 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
-
+/**
+ * @brief  Deletes scheduled host downtime
+ *
+ * @param context gRPC context
+ * @param request GenericValue. GenericValue is a downtime id
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteHostDowntime(grpc::ServerContext* context
                                              __attribute__((unused)),
                                              const GenericValue* request,
@@ -1302,6 +1656,15 @@ grpc::Status engine_impl::DeleteHostDowntime(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief  Deletes scheduled service downtime
+ *
+ * @param context gRPC context
+ * @param request GenericValue. GenericValue is a downtime id
+ * @param response Command answer
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteServiceDowntime(grpc::ServerContext* context
                                                 __attribute__((unused)),
                                                 const GenericValue* request,
@@ -1514,6 +1877,18 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Deletes scheduled host and service downtime based on hostgroupname
+ * and optionnaly other filter arguments.
+ *
+ * @param context gRPC context
+ * @param request DowntimeHostIdentifier (it's a hostname and optionally other
+ * filter arguments like service description, start time and downtime's
+ * comment
+ * @param Command response
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
     grpc::ServerContext* context __attribute__((unused)),
     const DowntimeHostGroupIdentifier* request,
@@ -1569,6 +1944,18 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Deletes scheduled host and service downtime based on start time,
+ * the comment and optionnaly other filter arguments.
+ *
+ * @param context gRPC context
+ * @param request DowntimeHostIdentifier (it's a hostname and optionally other
+ * filter arguments like service description, start time and downtime's
+ * comment
+ * @param Command response
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
     grpc::ServerContext* context __attribute__((unused)),
     const DowntimeStartTimeIdentifier* request,
@@ -1603,6 +1990,16 @@ grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Delays a host notification for given number of minutes
+ *
+ * @param context gRPC context
+ * @param request HostDelayIdentifier. HostDelayIdentifier is a host name or a
+ * host id and a delay time
+ * @param Command response
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DelayHostNotification(
     grpc::ServerContext* context __attribute__((unused)),
     const HostDelayIdentifier* request,
@@ -1641,6 +2038,16 @@ grpc::Status engine_impl::DelayHostNotification(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Delays a service notification for given number of minutes
+ *
+ * @param context gRPC context
+ * @param request ServiceDelayIdentifier. ServiceDelayIdentifier is
+ * a {host name and service name} or a {host id, service id} and delay time
+ * @param Command response
+ *
+ * @return Status::OK
+ */
 grpc::Status engine_impl::DelayServiceNotification(
     grpc::ServerContext* context __attribute__((unused)),
     const ServiceDelayIdentifier* request,
