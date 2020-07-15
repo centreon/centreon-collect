@@ -28,7 +28,6 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "helper.hh"
 
@@ -39,19 +38,16 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierAnomalydetection : public TestEngine {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given an AD configuration with a host not defined
 // Then the applier add_object throws an exception because it needs a service
 // command.
-TEST_F(ApplierAnomalydetection, NewAnomalydetectionWithHostNotDefinedFromConfig) {
+TEST_F(ApplierAnomalydetection,
+       NewAnomalydetectionWithHostNotDefinedFromConfig) {
   configuration::applier::anomalydetection ad_aply;
   configuration::anomalydetection ad;
   ASSERT_TRUE(ad.parse("host_name", "test_host"));
@@ -108,7 +104,8 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
   ASSERT_TRUE(ad.parse("host_id", "12"));
   ASSERT_TRUE(ad.parse("host_name", "test_host"));
   ASSERT_TRUE(ad.parse("metric_name", "foo"));
-  ASSERT_TRUE(ad.parse("thresholds_file", "/etc/centreon-broker/thresholds.json"));
+  ASSERT_TRUE(
+      ad.parse("thresholds_file", "/etc/centreon-broker/thresholds.json"));
 
   // No need here to call ad_aply.expand_objects(*config) because the
   // configuration service is not stored in configuration::state. We just have

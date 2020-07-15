@@ -21,13 +21,14 @@
 #include <array>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::logging;
@@ -76,17 +77,13 @@ bool hostdependency::get_fail_on(int state) const {
   return retval[state];
 }
 
-bool hostdependency::get_fail_on_up() const {
-  return _fail_on_up;
-}
+bool hostdependency::get_fail_on_up() const { return _fail_on_up; }
 
 void hostdependency::set_fail_on_up(bool fail_on_up) {
   _fail_on_up = fail_on_up;
 }
 
-bool hostdependency::get_fail_on_down() const {
-  return _fail_on_down;
-}
+bool hostdependency::get_fail_on_down() const { return _fail_on_down; }
 
 void hostdependency::set_fail_on_down(bool fail_on_down) {
   _fail_on_down = fail_on_down;
@@ -114,38 +111,27 @@ std::ostream& operator<<(std::ostream& os, hostdependency const& obj) {
     dependency_period_str = obj.dependency_period_ptr->get_name();
 
   os << "hostdependency {\n"
-        "  dependency_type:        "
-     << obj.get_dependency_type()
+        "  dependency_type:        " << obj.get_dependency_type()
      << "\n"
-        "  dependent_hostname:    "
-     << obj.get_dependent_hostname()
+        "  dependent_hostname:    " << obj.get_dependent_hostname()
      << "\n"
-        "  hostname:               "
-     << obj.get_hostname()
+        "  hostname:               " << obj.get_hostname()
      << "\n"
-        "  dependency_period:      "
-     << obj.get_dependency_period()
+        "  dependency_period:      " << obj.get_dependency_period()
      << "\n"
-        "  inherits_parent:        "
-     << obj.get_inherits_parent()
+        "  inherits_parent:        " << obj.get_inherits_parent()
      << "\n"
-        "  fail_on_up:             "
-     << obj.get_fail_on_up()
+        "  fail_on_up:             " << obj.get_fail_on_up()
      << "\n"
-        "  fail_on_down:           "
-     << obj.get_fail_on_down()
+        "  fail_on_down:           " << obj.get_fail_on_down()
      << "\n"
-        "  fail_on_unreachable:    "
-     << obj.get_fail_on_unreachable()
+        "  fail_on_unreachable:    " << obj.get_fail_on_unreachable()
      << "\n"
-        "  fail_on_pending:        "
-     << obj.get_fail_on_pending()
+        "  fail_on_pending:        " << obj.get_fail_on_pending()
      << "\n"
-        "  circular_path_checked:  "
-     << obj.get_circular_path_checked()
+        "  circular_path_checked:  " << obj.get_circular_path_checked()
      << "\n"
-        "  contains_circular_path: "
-     << obj.get_contains_circular_path()
+        "  contains_circular_path: " << obj.get_contains_circular_path()
      << "\n"
         "  master_host_ptr:        "
      << (obj.master_host_ptr ? obj.master_host_ptr->get_name() : "\"NULL\"")
@@ -154,10 +140,8 @@ std::ostream& operator<<(std::ostream& os, hostdependency const& obj) {
      << (obj.dependent_host_ptr ? obj.dependent_host_ptr->get_name()
                                 : "\"NULL\"")
      << "\n"
-        "  dependency_period_ptr:  "
-     << dependency_period_str
-     << "\n"
-        "}\n";
+        "  dependency_period_ptr:  " << dependency_period_str << "\n"
+                                                                 "}\n";
   return os;
 }
 
@@ -214,7 +198,8 @@ bool hostdependency::check_for_circular_hostdependency_path(
   for (hostdependency_mmap::iterator
            it(hostdependency::hostdependencies.begin()),
        end(hostdependency::hostdependencies.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Only check parent dependencies.
     if (dep->master_host_ptr != it->second->dependent_host_ptr)
       continue;
@@ -236,8 +221,7 @@ void hostdependency::resolve(int& w, int& e) {
   if (it == host::hosts.end() || !it->second) {
     logger(log_verification_error, basic)
         << "Error: Dependent host specified in host dependency for "
-           "host '"
-        << _dependent_hostname << "' is not defined anywhere!";
+           "host '" << _dependent_hostname << "' is not defined anywhere!";
     errors++;
     dependent_host_ptr = nullptr;
   } else
@@ -281,7 +265,7 @@ void hostdependency::resolve(int& w, int& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw engine_error() << "Cannot resolve host dependency";
+    throw engine_error_1("Cannot resolve host dependency");
   }
 }
 

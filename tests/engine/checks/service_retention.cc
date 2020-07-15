@@ -40,7 +40,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
@@ -48,6 +48,7 @@
 #include "helper.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
@@ -555,10 +556,18 @@ TEST_F(ServiceRetention, RetentionWithMultilineOutput) {
           "performance_data='time'=0.123s;0:3;0:5;0; 'size'=81439B;;;0;\n"),
       std::string::npos);
 
-  std::shared_ptr<comment> cmt = std::make_shared<comment>(
-      comment::service, comment::flapping, _svc->get_host_id(),
-      _svc->get_service_id(), time(nullptr), "test1", "test2", false,
-      comment::internal, false, (time_t)0);
+  std::shared_ptr<comment> cmt =
+      std::make_shared<comment>(comment::service,
+                                comment::flapping,
+                                _svc->get_host_id(),
+                                _svc->get_service_id(),
+                                time(nullptr),
+                                "test1",
+                                "test2",
+                                false,
+                                comment::internal,
+                                false,
+                                (time_t)0);
 
   comment::comments.insert({cmt->get_comment_id(), cmt});
 

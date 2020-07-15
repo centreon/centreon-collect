@@ -32,7 +32,6 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "helper.hh"
 
@@ -103,9 +102,15 @@ TEST_F(LoopTest, ServiceCheck) {
   time_t now = tv.tv_sec;
   uint32_t options = 0;
   set_time(now);
-  timed_event* new_event =
-      new timed_event(timed_event::EVENT_SERVICE_CHECK, now, false, 0L, nullptr,
-                      true, _svc.get(), nullptr, options);
+  timed_event* new_event = new timed_event(timed_event::EVENT_SERVICE_CHECK,
+                                           now,
+                                           false,
+                                           0L,
+                                           nullptr,
+                                           true,
+                                           _svc.get(),
+                                           nullptr,
+                                           options);
   ASSERT_EQ(new_event->name(), "EVENT_SERVICE_CHECK");
   events::loop::instance().reschedule_event(new_event, events::loop::low);
   /* The interest of this test is just to verify that the timed_event is
@@ -122,9 +127,15 @@ TEST_F(LoopTest, HostCheck) {
   time_t now = tv.tv_sec;
   uint32_t options = 0;
   set_time(now);
-  timed_event* new_event =
-      new timed_event(timed_event::EVENT_HOST_CHECK, now, false, 0L, nullptr,
-                      true, _host.get(), nullptr, options);
+  timed_event* new_event = new timed_event(timed_event::EVENT_HOST_CHECK,
+                                           now,
+                                           false,
+                                           0L,
+                                           nullptr,
+                                           true,
+                                           _host.get(),
+                                           nullptr,
+                                           options);
   ASSERT_EQ(new_event->name(), "EVENT_HOST_CHECK");
   events::loop::instance().reschedule_event(new_event, events::loop::low);
   /* The interest of this test is just to verify that the timed_event is
@@ -141,12 +152,26 @@ TEST_F(LoopTest, ScheduledDowntime) {
   time_t now = tv.tv_sec;
   set_time(now);
   timed_event* new_event =
-      new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, now, false, 0L,
-                      nullptr, false, new_downtime_id, nullptr, 0);
+      new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME,
+                      now,
+                      false,
+                      0L,
+                      nullptr,
+                      false,
+                      new_downtime_id,
+                      nullptr,
+                      0);
   ASSERT_EQ(new_event->name(), "EVENT_SCHEDULED_DOWNTIME");
   events::loop::instance().schedule(new_event, true);
-  new_event = new timed_event(timed_event::EVENT_EXPIRE_DOWNTIME, now, false, 0,
-                              nullptr, false, nullptr, nullptr, 0);
+  new_event = new timed_event(timed_event::EVENT_EXPIRE_DOWNTIME,
+                              now,
+                              false,
+                              0,
+                              nullptr,
+                              false,
+                              nullptr,
+                              nullptr,
+                              0);
   events::loop::instance().schedule(new_event, true);
   /* The interest of this test is just to verify that the timed_event is
    * consumed by the loop. */

@@ -18,10 +18,11 @@
 */
 
 #include "com/centreon/engine/configuration/hostgroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
@@ -175,8 +176,7 @@ bool hostgroup::operator<(hostgroup const& right) const throw() {
  */
 void hostgroup::check_validity() const {
   if (_hostgroup_name.empty())
-    throw(engine_error() << "Host group has no name "
-                            "(property 'hostgroup_name')");
+    throw engine_error_1("Host group has no name (property 'hostgroup_name')");
   return;
 }
 
@@ -196,8 +196,7 @@ hostgroup::key_type const& hostgroup::key() const throw() {
  */
 void hostgroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host group with '" << obj.type()
-                         << "'");
+    throw engine_error("Cannot merge host group with '{}'", obj.type());
   hostgroup const& tmpl(static_cast<hostgroup const&>(obj));
   MRG_DEFAULT(_action_url);
   MRG_DEFAULT(_alias);
@@ -228,27 +227,21 @@ bool hostgroup::parse(char const* key, char const* value) {
  *
  *  @return The action_url.
  */
-std::string const& hostgroup::action_url() const throw() {
-  return _action_url;
-}
+std::string const& hostgroup::action_url() const throw() { return _action_url; }
 
 /**
  *  Get alias.
  *
  *  @return The alias.
  */
-std::string const& hostgroup::alias() const throw() {
-  return _alias;
-}
+std::string const& hostgroup::alias() const throw() { return _alias; }
 
 /**
  *  Get hostgroup id.
  *
  *  @return  The hostgroup id.
  */
-unsigned int hostgroup::hostgroup_id() const throw() {
-  return _hostgroup_id;
-}
+unsigned int hostgroup::hostgroup_id() const throw() { return _hostgroup_id; }
 
 /**
  *  Get hostgroup_name.
@@ -264,36 +257,28 @@ std::string const& hostgroup::hostgroup_name() const throw() {
  *
  *  @return The members.
  */
-set_string& hostgroup::members() throw() {
-  return *_members;
-}
+set_string& hostgroup::members() throw() { return *_members; }
 
 /**
  *  Get members.
  *
  *  @return The members.
  */
-set_string const& hostgroup::members() const throw() {
-  return *_members;
-}
+set_string const& hostgroup::members() const throw() { return *_members; }
 
 /**
  *  Get notes.
  *
  *  @return The notes.
  */
-std::string const& hostgroup::notes() const throw() {
-  return _notes;
-}
+std::string const& hostgroup::notes() const throw() { return _notes; }
 
 /**
  *  Get notes_url.
  *
  *  @return The notes_url.
  */
-std::string const& hostgroup::notes_url() const throw() {
-  return _notes_url;
-}
+std::string const& hostgroup::notes_url() const throw() { return _notes_url; }
 
 /**
  *  Set action_url value.

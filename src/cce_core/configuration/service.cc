@@ -20,7 +20,7 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
@@ -29,6 +29,7 @@ extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
@@ -122,9 +123,12 @@ static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
 static unsigned int const default_notification_interval(30);
-static unsigned short const default_notification_options(
-    service::ok | service::warning | service::critical | service::unknown |
-    service::flapping | service::downtime);
+static unsigned short const default_notification_options(service::ok |
+                                                         service::warning |
+                                                         service::critical |
+                                                         service::unknown |
+                                                         service::flapping |
+                                                         service::downtime);
 static std::string const default_notification_period;
 static bool const default_obsess_over_service(true);
 static bool const default_process_perf_data(true);
@@ -654,16 +658,15 @@ bool service::operator<(service const& other) const throw() {
  */
 void service::check_validity() const {
   if (_service_description.empty())
-    throw(engine_error() << "Service has no description (property "
-                         << "'service_description')");
+    throw engine_error_1("Service has no description (property 'service_description')");
   if (_hosts->empty() && _hostgroups->empty())
-    throw engine_error()
-          << "Service '" << _service_description
-          << "' is not attached to any host or host group (properties "
-          << "'host_name' or 'hostgroup_name', respectively)";
+    throw engine_error(
+        "Service '{}' is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)",
+        _service_description);
   if (_check_command.empty())
-    throw engine_error() << "Service '" << _service_description
-                         << "' has no check command (property 'check_command')";
+    throw engine_error("Service '{}' has no check command (property 'check_command')",
+                _service_description);
 }
 
 /**
@@ -696,7 +699,7 @@ void service::merge(configuration::serviceextinfo const& tmpl) {
  */
 void service::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service with '" << obj.type() << "'");
+    throw engine_error("Cannot merge service with '{}'", obj.type());
   service const& tmpl(static_cast<service const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -775,27 +778,21 @@ bool service::parse(char const* key, char const* value) {
  *
  *  @return The action_url.
  */
-std::string const& service::action_url() const throw() {
-  return _action_url;
-}
+std::string const& service::action_url() const throw() { return _action_url; }
 
 /**
  *  Get checks_active.
  *
  *  @return The checks_active.
  */
-bool service::checks_active() const throw() {
-  return _checks_active;
-}
+bool service::checks_active() const throw() { return _checks_active; }
 
 /**
  *  Get checks_passive.
  *
  *  @return The checks_passive.
  */
-bool service::checks_passive() const throw() {
-  return _checks_passive;
-}
+bool service::checks_passive() const throw() { return _checks_passive; }
 
 /**
  *  Get check_command.
@@ -820,18 +817,14 @@ bool service::check_command_is_important() const throw() {
  *
  *  @return The check_freshness.
  */
-bool service::check_freshness() const throw() {
-  return _check_freshness;
-}
+bool service::check_freshness() const throw() { return _check_freshness; }
 
 /**
  *  Get check_interval.
  *
  *  @return The check_interval.
  */
-unsigned int service::check_interval() const throw() {
-  return _check_interval;
-}
+unsigned int service::check_interval() const throw() { return _check_interval; }
 
 /**
  *  Get check_period.
@@ -847,9 +840,7 @@ std::string const& service::check_period() const throw() {
  *
  *  @return The contactgroups.
  */
-set_string& service::contactgroups() throw() {
-  return *_contactgroups;
-}
+set_string& service::contactgroups() throw() { return *_contactgroups; }
 
 /**
  *  Get contactgroups.
@@ -874,27 +865,21 @@ bool service::contactgroups_defined() const throw() {
  *
  *  @return The contacts.
  */
-set_string& service::contacts() throw() {
-  return *_contacts;
-}
+set_string& service::contacts() throw() { return *_contacts; }
 
 /**
  *  Get contacts.
  *
  *  @return The contacts.
  */
-set_string const& service::contacts() const throw() {
-  return *_contacts;
-}
+set_string const& service::contacts() const throw() { return *_contacts; }
 
 /**
  *  Check if contacts were defined.
  *
  *  @return True if contacts were defined.
  */
-bool service::contacts_defined() const throw() {
-  return _contacts.is_set();
-}
+bool service::contacts_defined() const throw() { return _contacts.is_set(); }
 
 /**
  *  Get customvariables.
@@ -992,54 +977,42 @@ unsigned int service::high_flap_threshold() const throw() {
  *
  *  @return The hostgroups.
  */
-set_string& service::hostgroups() throw() {
-  return *_hostgroups;
-}
+set_string& service::hostgroups() throw() { return *_hostgroups; }
 
 /**
  *  Get hostgroups.
  *
  *  @return The hostgroups.
  */
-set_string const& service::hostgroups() const throw() {
-  return *_hostgroups;
-}
+set_string const& service::hostgroups() const throw() { return *_hostgroups; }
 
 /**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-set_string& service::hosts() throw() {
-  return *_hosts;
-}
+set_string& service::hosts() throw() { return *_hosts; }
 
 /**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-set_string const& service::hosts() const throw() {
-  return *_hosts;
-}
+set_string const& service::hosts() const throw() { return *_hosts; }
 
 /**
  *  Get host ID.
  *
  *  @return Service's host's ID.
  */
-uint64_t service::host_id() const throw() {
-  return _host_id;
-}
+uint64_t service::host_id() const throw() { return _host_id; }
 
 /**
  *  Get icon_image.
  *
  *  @return The icon_image.
  */
-std::string const& service::icon_image() const throw() {
-  return _icon_image;
-}
+std::string const& service::icon_image() const throw() { return _icon_image; }
 
 /**
  *  Get icon_image_alt.
@@ -1055,18 +1028,14 @@ std::string const& service::icon_image_alt() const throw() {
  *
  *  @return The initial_state.
  */
-unsigned int service::initial_state() const throw() {
-  return _initial_state;
-}
+unsigned int service::initial_state() const throw() { return _initial_state; }
 
 /**
  *  Get is_volatile.
  *
  *  @return The is_volatile.
  */
-bool service::is_volatile() const throw() {
-  return _is_volatile;
-}
+bool service::is_volatile() const throw() { return _is_volatile; }
 
 /**
  *  Get low_flap_threshold.
@@ -1091,18 +1060,14 @@ unsigned int service::max_check_attempts() const throw() {
  *
  *  @return The notes.
  */
-std::string const& service::notes() const throw() {
-  return _notes;
-}
+std::string const& service::notes() const throw() { return _notes; }
 
 /**
  *  Get notes_url.
  *
  *  @return The notes_url.
  */
-std::string const& service::notes_url() const throw() {
-  return _notes_url;
-}
+std::string const& service::notes_url() const throw() { return _notes_url; }
 
 /**
  *  Get notifications_enabled.
@@ -1192,9 +1157,7 @@ bool service::obsess_over_service() const throw() {
  *
  *  @return The process_perf_data.
  */
-bool service::process_perf_data() const throw() {
-  return _process_perf_data;
-}
+bool service::process_perf_data() const throw() { return _process_perf_data; }
 
 /**
  *  Get retain_nonstatus_information.
@@ -1219,9 +1182,7 @@ bool service::retain_status_information() const throw() {
  *
  *  @return The retry_interval.
  */
-unsigned int service::retry_interval() const throw() {
-  return _retry_interval;
-}
+unsigned int service::retry_interval() const throw() { return _retry_interval; }
 
 /**
  *  Get recovery_notification_delay.
@@ -1237,9 +1198,7 @@ unsigned int service::recovery_notification_delay() const throw() {
  *
  *  @return The service groups.
  */
-set_string& service::servicegroups() throw() {
-  return *_servicegroups;
-}
+set_string& service::servicegroups() throw() { return *_servicegroups; }
 
 /**
  *  Get servicegroups.
@@ -1273,9 +1232,7 @@ std::string const& service::service_description() const throw() {
  *
  *  @return  The service id.
  */
-uint64_t service::service_id() const throw() {
-  return _service_id;
-}
+uint64_t service::service_id() const throw() { return _service_id; }
 
 /**
  *  Get stalking_options.
@@ -1301,18 +1258,14 @@ void service::timezone(std::string const& time_zone) {
  *
  *  @return This service timezone.
  */
-std::string const& service::timezone() const throw() {
-  return _timezone;
-}
+std::string const& service::timezone() const throw() { return _timezone; }
 
 /**
  *  Check if service timezone has been defined.
  *
  *  @return True if service timezone is already defined.
  */
-bool service::timezone_defined() const throw() {
-  return _timezone.is_set();
-}
+bool service::timezone_defined() const throw() { return _timezone.is_set(); }
 
 /**
  *  Get acknowledgement timeout.
@@ -1555,7 +1508,8 @@ bool service::_set_flap_detection_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "ok")
       options |= ok;
@@ -1757,7 +1711,8 @@ bool service::_set_notification_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "u" || *it == "unknown")
       options |= unknown;
@@ -1944,7 +1899,8 @@ bool service::_set_stalking_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "ok")
       options |= ok;
@@ -1982,6 +1938,4 @@ bool service::_set_timezone(std::string const& value) {
  *
  * @param value The host id.
  */
-void service::set_host_id(uint64_t value) {
-  _host_id = value;
-}
+void service::set_host_id(uint64_t value) { _host_id = value; }

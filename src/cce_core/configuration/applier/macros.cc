@@ -21,12 +21,13 @@
 #include <cassert>
 #include <cstring>
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/string.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
@@ -78,7 +79,8 @@ void applier::macros::apply(configuration::state& config) {
   for (std::unordered_map<std::string, std::string>::const_iterator
            it = users.begin(),
            end = users.end();
-       it != end; ++it) {
+       it != end;
+       ++it) {
     unsigned int val(1);
     if (is_old_style_user_macro(it->first, val))
       _set_macros_user(val - 1, it->second);
@@ -140,7 +142,7 @@ applier::macros::~macros() throw() {
  */
 void applier::macros::_set_macro(unsigned int type, std::string const& value) {
   if (type >= MACRO_X_COUNT)
-    throw(engine_error() << "Invalid type of global macro: " << type);
+    throw engine_error("Invalid type of global macro: {}", type);
   if (_mac->x[type] != value)
     _mac->x[type] = value;
 }
@@ -154,7 +156,7 @@ void applier::macros::_set_macro(unsigned int type, std::string const& value) {
 void applier::macros::_set_macros_user(unsigned int idx,
                                        std::string const& value) {
   if (idx >= MAX_USER_MACROS)
-    throw(engine_error() << "Invalid index of user macro: " << idx);
+    throw engine_error("Invalid index of user macro: {}", idx);
   if (macro_user[idx] != value)
     macro_user[idx] = value;
 }

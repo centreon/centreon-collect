@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -26,39 +26,42 @@ extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
 #define SETTER(type, method) \
   &object::setter<hostdependency, type, &hostdependency::method>::generic
 
-std::unordered_map<std::string,
-                   hostdependency::setter_func> const hostdependency::_setters{
-    {"hostgroup", SETTER(std::string const&, _set_hostgroups)},
-    {"hostgroups", SETTER(std::string const&, _set_hostgroups)},
-    {"hostgroup_name", SETTER(std::string const&, _set_hostgroups)},
-    {"host", SETTER(std::string const&, _set_hosts)},
-    {"host_name", SETTER(std::string const&, _set_hosts)},
-    {"master_host", SETTER(std::string const&, _set_hosts)},
-    {"master_host_name", SETTER(std::string const&, _set_hosts)},
-    {"dependent_hostgroup",
-     SETTER(std::string const&, _set_dependent_hostgroups)},
-    {"dependent_hostgroups",
-     SETTER(std::string const&, _set_dependent_hostgroups)},
-    {"dependent_hostgroup_name",
-     SETTER(std::string const&, _set_dependent_hostgroups)},
-    {"dependent_host", SETTER(std::string const&, _set_dependent_hosts)},
-    {"dependent_host_name", SETTER(std::string const&, _set_dependent_hosts)},
-    {"dependency_period", SETTER(std::string const&, _set_dependency_period)},
-    {"inherits_parent", SETTER(bool, _set_inherits_parent)},
-    {"notification_failure_options",
-     SETTER(std::string const&, _set_notification_failure_options)},
-    {"notification_failure_criteria",
-     SETTER(std::string const&, _set_notification_failure_options)},
-    {"execution_failure_options",
-     SETTER(std::string const&, _set_execution_failure_options)},
-    {"execution_failure_criteria",
-     SETTER(std::string const&, _set_execution_failure_options)}};
+std::unordered_map<std::string, hostdependency::setter_func> const
+    hostdependency::_setters{
+        {"hostgroup", SETTER(std::string const&, _set_hostgroups)},
+        {"hostgroups", SETTER(std::string const&, _set_hostgroups)},
+        {"hostgroup_name", SETTER(std::string const&, _set_hostgroups)},
+        {"host", SETTER(std::string const&, _set_hosts)},
+        {"host_name", SETTER(std::string const&, _set_hosts)},
+        {"master_host", SETTER(std::string const&, _set_hosts)},
+        {"master_host_name", SETTER(std::string const&, _set_hosts)},
+        {"dependent_hostgroup",
+         SETTER(std::string const&, _set_dependent_hostgroups)},
+        {"dependent_hostgroups",
+         SETTER(std::string const&, _set_dependent_hostgroups)},
+        {"dependent_hostgroup_name",
+         SETTER(std::string const&, _set_dependent_hostgroups)},
+        {"dependent_host", SETTER(std::string const&, _set_dependent_hosts)},
+        {"dependent_host_name",
+         SETTER(std::string const&, _set_dependent_hosts)},
+        {"dependency_period",
+         SETTER(std::string const&, _set_dependency_period)},
+        {"inherits_parent", SETTER(bool, _set_inherits_parent)},
+        {"notification_failure_options",
+         SETTER(std::string const&, _set_notification_failure_options)},
+        {"notification_failure_criteria",
+         SETTER(std::string const&, _set_notification_failure_options)},
+        {"execution_failure_options",
+         SETTER(std::string const&, _set_execution_failure_options)},
+        {"execution_failure_criteria",
+         SETTER(std::string const&, _set_execution_failure_options)}};
 
 // Default values.
 static unsigned short const default_execution_failure_options(
@@ -178,15 +181,14 @@ bool hostdependency::operator<(hostdependency const& right) const {
  */
 void hostdependency::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host dependency is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+    throw engine_error_1(
+        "Host dependency is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)");
   if (_dependent_hosts->empty() && _dependent_hostgroups->empty())
-    throw(engine_error()
-          << "Host dependency is not attached to any "
-          << "dependent host or dependent host group (properties "
-          << "'dependent_host_name' or 'dependent_hostgroup_name', "
-          << "respectively)");
+    throw engine_error_1(
+        "Host dependency is not attached to any dependent host or dependent "
+        "host group (properties 'dependent_host_name' or "
+        "'dependent_hostgroup_name', respectively)");
 
   if (!_execution_failure_options && !_notification_failure_options) {
     ++config_warnings;
@@ -219,8 +221,7 @@ hostdependency::key_type const& hostdependency::key() const throw() {
  */
 void hostdependency::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host dependency with '" << obj.type()
-                         << "'");
+    throw engine_error("Cannot merge host dependency with '{}'", obj.type());
   hostdependency const& tmpl(static_cast<hostdependency const&>(obj));
 
   MRG_DEFAULT(_dependency_period);
@@ -349,9 +350,7 @@ unsigned int hostdependency::execution_failure_options() const throw() {
  *
  *  @return The host groups.
  */
-set_string& hostdependency::hostgroups() throw() {
-  return *_hostgroups;
-}
+set_string& hostdependency::hostgroups() throw() { return *_hostgroups; }
 
 /**
  *  Get hostgroups.
@@ -367,18 +366,14 @@ set_string const& hostdependency::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string& hostdependency::hosts() throw() {
-  return *_hosts;
-}
+set_string& hostdependency::hosts() throw() { return *_hosts; }
 
 /**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-set_string const& hostdependency::hosts() const throw() {
-  return *_hosts;
-}
+set_string const& hostdependency::hosts() const throw() { return *_hosts; }
 
 /**
  *  Set parent inheritance.
@@ -467,7 +462,8 @@ bool hostdependency::_set_execution_failure_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "up")
       options |= up;
@@ -537,7 +533,8 @@ bool hostdependency::_set_notification_failure_options(
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "up")
       options |= up;

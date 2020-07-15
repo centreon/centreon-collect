@@ -21,14 +21,14 @@
 #include <cassert>
 #include <cstdlib>
 #include <map>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::exceptions;
 using namespace com::centreon::engine::broker;
 using namespace com::centreon::engine::logging;
 
@@ -61,7 +61,8 @@ std::shared_ptr<broker::handle> loader::add_module(std::string const& filename,
 void loader::del_module(std::shared_ptr<handle> const& module) {
   for (std::list<std::shared_ptr<handle> >::iterator it(_modules.begin()),
        end(_modules.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (it->get() == module.get()) {
       _modules.erase(it);
       break;
@@ -103,7 +104,8 @@ unsigned int loader::load_directory(std::string const& dir) {
   std::multimap<std::string, io::file_entry> sort_files;
   for (std::list<io::file_entry>::const_iterator it(files.begin()),
        end(files.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     sort_files.insert(std::make_pair(it->file_name(), *it));
 
   // Load modules.
@@ -111,7 +113,8 @@ unsigned int loader::load_directory(std::string const& dir) {
   for (std::multimap<std::string, io::file_entry>::const_iterator
            it(sort_files.begin()),
        end(sort_files.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     io::file_entry const& f(it->second);
     std::string config_file(dir + "/" + f.base_name() + ".cfg");
     if (io::file_stream::exists(config_file.c_str()) == false)
@@ -120,11 +123,12 @@ unsigned int loader::load_directory(std::string const& dir) {
     try {
       module = add_module(dir + "/" + f.file_name(), config_file);
       module->open();
-      logger(log_info_message, basic)
-          << "Event broker module '" << f.file_name()
-          << "' initialized successfully.";
+      logger(log_info_message, basic) << "Event broker module '"
+                                      << f.file_name()
+                                      << "' initialized successfully.";
       ++loaded;
-    } catch (error const& e) {
+    }
+    catch (error const& e) {
       del_module(module);
       logger(log_runtime_error, basic) << "Error: Could not load module '"
                                        << f.file_name() << "' -> " << e.what();
@@ -139,13 +143,15 @@ unsigned int loader::load_directory(std::string const& dir) {
 void loader::unload_modules() {
   for (std::list<std::shared_ptr<handle> >::iterator it(_modules.begin()),
        end(_modules.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     try {
       (*it)->close();
-    } catch (...) {
     }
-    logger(dbg_eventbroker, basic)
-        << "Module '" << (*it)->get_filename() << "' unloaded successfully.";
+    catch (...) {
+    }
+    logger(dbg_eventbroker, basic) << "Module '" << (*it)->get_filename()
+                                   << "' unloaded successfully.";
   }
   _modules.clear();
 }
@@ -167,6 +173,7 @@ loader::loader() {}
 loader::~loader() noexcept {
   try {
     unload_modules();
-  } catch (...) {
+  }
+  catch (...) {
   }
 }

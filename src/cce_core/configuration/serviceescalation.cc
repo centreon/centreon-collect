@@ -18,11 +18,12 @@
 */
 
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
@@ -237,15 +238,14 @@ bool serviceescalation::operator<(serviceescalation const& right) const {
 void serviceescalation::check_validity() const {
   if (_servicegroups->empty()) {
     if (_service_description->empty())
-      throw(engine_error() << "Service escalation is not attached to "
-                           << "any service or service group (properties "
-                           << "'service_description' and 'servicegroup_name', "
-                           << "respectively)");
+      throw engine_error_1(
+          "Service escalation is not attached to any service or service group "
+          "(properties 'service_description' and 'servicegroup_name', "
+          "respectively)");
     else if (_hosts->empty() && _hostgroups->empty())
-      throw(
-          engine_error() << "Service escalation is not attached to "
-                         << "any host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+      throw engine_error_1(
+          "Service escalation is not attached to any host or host group "
+          "(properties 'host_name' or 'hostgroup_name', respectively)");
   }
   return;
 }
@@ -266,8 +266,7 @@ serviceescalation::key_type const& serviceescalation::key() const throw() {
  */
 void serviceescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service escalation with '"
-                         << obj.type() << "'");
+    throw engine_error("Cannot merge service escalation with '{}'", obj.type());
   serviceescalation const& tmpl(static_cast<serviceescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);
@@ -292,8 +291,8 @@ void serviceescalation::merge(object const& obj) {
  */
 bool serviceescalation::parse(char const* key, char const* value) {
   std::unordered_map<std::string,
-                     serviceescalation::setter_func>::const_iterator it{
-      _setters.find(key)};
+                     serviceescalation::setter_func>::const_iterator
+      it{_setters.find(key)};
   if (it != _setters.end())
     return (it->second)(*this, value);
   return false;
@@ -397,9 +396,7 @@ unsigned int serviceescalation::first_notification() const throw() {
  *
  *  @return Host groups.
  */
-list_string& serviceescalation::hostgroups() throw() {
-  return *_hostgroups;
-}
+list_string& serviceescalation::hostgroups() throw() { return *_hostgroups; }
 
 /**
  *  Get hostgroups.
@@ -415,18 +412,14 @@ list_string const& serviceescalation::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-list_string& serviceescalation::hosts() throw() {
-  return *_hosts;
-}
+list_string& serviceescalation::hosts() throw() { return *_hosts; }
 
 /**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-list_string const& serviceescalation::hosts() const throw() {
-  return *_hosts;
-}
+list_string const& serviceescalation::hosts() const throw() { return *_hosts; }
 
 /**
  *  Set the last notification number.
@@ -535,7 +528,8 @@ bool serviceescalation::_set_escalation_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "w" || *it == "warning")
       options |= warning;
@@ -657,6 +651,4 @@ bool serviceescalation::_set_service_description(std::string const& value) {
  *
  *  @return uuid.
  */
-Uuid const& serviceescalation::uuid(void) const {
-  return _uuid;
-}
+Uuid const& serviceescalation::uuid(void) const { return _uuid; }

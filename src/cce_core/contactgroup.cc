@@ -24,12 +24,13 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
@@ -56,7 +57,7 @@ contactgroup::contactgroup(configuration::contactgroup const& obj)
       _name(obj.contactgroup_name()) {
   // Make sure we have the data we need.
   if (_name.empty())
-    throw engine_error() << "contactgroup: Contact group name is empty";
+    throw engine_error_1("contactgroup: Contact group name is empty");
 
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
@@ -133,6 +134,5 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
 
   e += errors;
   if (errors)
-    throw engine_error() << "Error: Cannot resolve contact group " << _name
-                         << "'";
+    throw engine_error("Error: Cannot resolve contact group {}", _name);
 }

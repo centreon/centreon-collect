@@ -39,7 +39,6 @@
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/timezone_manager.hh"
@@ -104,9 +103,10 @@ TEST_F(HostNotification, SimpleNormalHostNotification) {
   _host->set_last_state(engine::host::state_down);
   _host->set_last_hard_state_change(43200);
   _host->set_state_type(checkable::hard);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
 
@@ -127,9 +127,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -150,9 +151,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notifications_enabled(false);
   _host->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -163,17 +165,18 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i]
+        .push_back(std::make_shared<engine::timerange>(43200, 86400));
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -186,15 +189,17 @@ TEST_F(HostNotification,
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i]
+        .push_back(std::make_shared<engine::timerange>(43200, 86400));
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_normal,
+                          "",
+                          "",
                           notifier::notification_option_forced),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
@@ -207,15 +212,17 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
 
   uint64_t id{_host->get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
-    tperiod->days[i].push_back(
-        std::make_shared<engine::timerange>(43200, 86400));
+    tperiod->days[i]
+        .push_back(std::make_shared<engine::timerange>(43200, 86400));
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_normal,
+                          "",
+                          "",
                           notifier::notification_option_forced),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
@@ -236,9 +243,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -257,9 +265,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -278,9 +287,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -300,9 +310,10 @@ TEST_F(HostNotification,
 
   _host->set_problem_has_been_acknowledged(true);
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -322,9 +333,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
   _host->set_problem_has_been_acknowledged(true);
   ASSERT_TRUE(host_escalation);
   _host->set_last_notification(19999);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -347,9 +359,10 @@ TEST_F(HostNotification,
   _host->set_last_notification(19500);
   _host->set_notification_number(1);
   _host->set_notification_interval(0);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -370,9 +383,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
   ASSERT_TRUE(host_escalation);
   _host->remove_notify_on(notifier::down);
   _host->set_current_state(engine::host::state_down);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -396,9 +410,10 @@ TEST_F(HostNotification,
   _host->set_last_hard_state_change(20000 - 200);
   /* It is multiplicated by config->interval_length(): we set 5 for 5*60 */
   _host->set_first_notification_delay(5);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
 
@@ -421,9 +436,10 @@ TEST_F(HostNotification,
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state_change(20000 - 400);
   _host->set_first_notification_delay(5);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
 
@@ -449,9 +465,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   _host->set_last_state(engine::host::state_down);
   _host->set_last_hard_state_change(43200);
   _host->set_state_type(checkable::hard);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 
   /* Only 100 seconds since the previous notification. */
@@ -459,9 +476,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   id = _host->get_next_notification_id();
   /* Because of the notification not totally implemented, we must force the
    * notification number to be greater than 0 */
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
-            OK);
+  ASSERT_EQ(
+      _host->notify(
+          notifier::reason_normal, "", "", notifier::notification_option_none),
+      OK);
 
   /* No notification, because the delay is too short */
   ASSERT_EQ(id, _host->get_next_notification_id());
@@ -482,8 +500,12 @@ TEST_F(HostNotification, SimpleCheck) {
     _host->set_last_state(_host->get_current_state());
     if (notifier::hard == _host->get_state_type())
       _host->set_last_hard_state(_host->get_current_state());
-    _host->process_check_result_3x(engine::host::state_down, "The host is down",
-                                   CHECK_OPTION_NONE, 0, true, 0);
+    _host->process_check_result_3x(engine::host::state_down,
+                                   "The host is down",
+                                   CHECK_OPTION_NONE,
+                                   0,
+                                   true,
+                                   0);
   }
 
   for (int i = 0; i < 2; i++) {
@@ -493,8 +515,12 @@ TEST_F(HostNotification, SimpleCheck) {
     _host->set_last_state(_host->get_current_state());
     if (notifier::hard == _host->get_state_type())
       _host->set_last_hard_state(_host->get_current_state());
-    _host->process_check_result_3x(engine::host::state_up, "The host is up",
-                                   CHECK_OPTION_NONE, 0, true, 0);
+    _host->process_check_result_3x(engine::host::state_up,
+                                   "The host is up",
+                                   CHECK_OPTION_NONE,
+                                   0,
+                                   true,
+                                   0);
   }
   std::string out{testing::internal::GetCapturedStdout()};
   // Only sent when i == 2
@@ -528,8 +554,12 @@ TEST_F(HostNotification, CheckFirstNotificationDelay) {
     _host->set_last_state(_host->get_current_state());
     if (notifier::hard == _host->get_state_type())
       _host->set_last_hard_state(_host->get_current_state());
-    _host->process_check_result_3x(engine::host::state_down, "The host is down",
-                                   CHECK_OPTION_NONE, 0, true, 0);
+    _host->process_check_result_3x(engine::host::state_down,
+                                   "The host is down",
+                                   CHECK_OPTION_NONE,
+                                   0,
+                                   true,
+                                   0);
   }
 
   for (int i = 0; i < 3; i++) {
@@ -540,8 +570,12 @@ TEST_F(HostNotification, CheckFirstNotificationDelay) {
     _host->set_last_state(_host->get_current_state());
     if (notifier::hard == _host->get_state_type())
       _host->set_last_hard_state(_host->get_current_state());
-    _host->process_check_result_3x(engine::host::state_up, "The host is up",
-                                   CHECK_OPTION_NONE, 0, true, 0);
+    _host->process_check_result_3x(engine::host::state_up,
+                                   "The host is up",
+                                   CHECK_OPTION_NONE,
+                                   0,
+                                   true,
+                                   0);
   }
   std::string out{testing::internal::GetCapturedStdout()};
   size_t m1{out.find("Step 5:")};
@@ -630,57 +664,57 @@ TEST_F(HostNotification, HostEscalation) {
   std::cout << out << std::endl;
   size_t step1{out.find("NOW = 50300")};
   ASSERT_NE(step1, std::string::npos);
-  size_t step2{
-      out.find("HOST NOTIFICATION: "
-               "admin;test_host;DOWN;cmd;Down host",
-               step1 + 1)};
+  size_t step2{out.find(
+      "HOST NOTIFICATION: "
+      "admin;test_host;DOWN;cmd;Down host",
+      step1 + 1)};
   ASSERT_NE(step2, std::string::npos);
   size_t step3{out.find("NOW = 50600", step2 + 1)};
   ASSERT_NE(step3, std::string::npos);
-  size_t step4{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step3 + 1)};
+  size_t step4{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step3 + 1)};
   ASSERT_NE(step4, std::string::npos);
   size_t step5{out.find("NOW = 51200", step4 + 1)};
   ASSERT_NE(step5, std::string::npos);
-  size_t step6{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step5 + 1)};
+  size_t step6{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step5 + 1)};
   ASSERT_NE(step6, std::string::npos);
   size_t step7{out.find("NOW = 51800", step6 + 1)};
   ASSERT_NE(step7, std::string::npos);
-  size_t step8{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step7 + 1)};
+  size_t step8{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step7 + 1)};
   ASSERT_NE(step8, std::string::npos);
   size_t step9{out.find("NOW = 52400", step8 + 1)};
   ASSERT_NE(step9, std::string::npos);
-  size_t step10{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step9 + 1)};
+  size_t step10{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step9 + 1)};
   ASSERT_NE(step10, std::string::npos);
   size_t step11{out.find("NOW = 53000", step10 + 1)};
   ASSERT_NE(step11, std::string::npos);
-  size_t step12{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step11 + 1)};
+  size_t step12{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step11 + 1)};
   ASSERT_NE(step12, std::string::npos);
   size_t step13{out.find("NOW = 53600", step12 + 1)};
   ASSERT_NE(step13, std::string::npos);
-  size_t step14{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step13 + 1)};
+  size_t step14{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step13 + 1)};
   ASSERT_NE(step14, std::string::npos);
-  size_t step15{
-      out.find("HOST NOTIFICATION: test_contact;test_host;RECOVERY "
-               "(UP);cmd;Host up",
-               step14 + 1)};
+  size_t step15{out.find(
+      "HOST NOTIFICATION: test_contact;test_host;RECOVERY "
+      "(UP);cmd;Host up",
+      step14 + 1)};
   ASSERT_NE(step15, std::string::npos);
 }
 
@@ -894,20 +928,20 @@ TEST_F(HostNotification, HostEscalationOneTime) {
   std::cout << out << std::endl;
   size_t step1{out.find("NOW = 50300")};
   ASSERT_NE(step1, std::string::npos);
-  size_t step2{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step1 + 1)};
+  size_t step2{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step1 + 1)};
   ASSERT_NE(step2, std::string::npos);
-  size_t step3{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;RECOVERY (UP);cmd;Host up",
-               step2 + 1)};
+  size_t step3{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;RECOVERY (UP);cmd;Host up",
+      step2 + 1)};
   ASSERT_NE(step3, std::string::npos);
-  size_t step4{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;UP;cmd;Host up",
-               step3 + 1)};
+  size_t step4{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;UP;cmd;Host up",
+      step3 + 1)};
   ASSERT_EQ(step4, std::string::npos);
 }
 
@@ -986,20 +1020,20 @@ TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
   std::cout << out << std::endl;
   size_t step1{out.find("NOW = 50300")};
   ASSERT_NE(step1, std::string::npos);
-  size_t step2{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;DOWN;cmd;Down host",
-               step1 + 1)};
+  size_t step2{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;DOWN;cmd;Down host",
+      step1 + 1)};
   ASSERT_NE(step2, std::string::npos);
-  size_t step3{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;RECOVERY (UP);cmd;Host up",
-               step2 + 1)};
+  size_t step3{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;RECOVERY (UP);cmd;Host up",
+      step2 + 1)};
   ASSERT_NE(step3, std::string::npos);
-  size_t step4{
-      out.find("HOST NOTIFICATION: "
-               "test_contact;test_host;UP;cmd;Host up",
-               step3 + 1)};
+  size_t step4{out.find(
+      "HOST NOTIFICATION: "
+      "test_contact;test_host;UP;cmd;Host up",
+      step3 + 1)};
   ASSERT_EQ(step4, std::string::npos);
 }
 

@@ -18,10 +18,11 @@
 */
 
 #include "com/centreon/engine/configuration/hostextinfo.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
@@ -130,10 +131,9 @@ bool hostextinfo::operator!=(hostextinfo const& right) const throw() {
  */
 void hostextinfo::check_validity() const {
   if (_hostgroups->empty() && _hosts->empty())
-    throw(engine_error()
-          << "Host extended information is not attached"
-          << " to any host or host group (properties 'host_name' or "
-          << "'hostgroup_name', respectively)");
+    throw engine_error_1(
+        "Host extended information is not attached to any host or host group "
+        "(properties 'host_name' or 'hostgroup_name', respectively)");
   return;
 }
 
@@ -144,8 +144,7 @@ void hostextinfo::check_validity() const {
  */
 void hostextinfo::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host extended information with '"
-                         << obj.type() << "'");
+    throw engine_error("Cannot merge host extended information with '{}'", obj.type());
   hostextinfo const& tmpl(static_cast<hostextinfo const&>(obj));
 
   MRG_DEFAULT(_action_url);
@@ -218,9 +217,7 @@ set_string const& hostextinfo::hostgroups() const throw() {
  *
  *  @return The hosts.
  */
-set_string const& hostextinfo::hosts() const throw() {
-  return *_hosts;
-}
+set_string const& hostextinfo::hosts() const throw() { return *_hosts; }
 
 /**
  *  Get icon_image.
@@ -245,18 +242,14 @@ std::string const& hostextinfo::icon_image_alt() const throw() {
  *
  *  @return The notes.
  */
-std::string const& hostextinfo::notes() const throw() {
-  return _notes;
-}
+std::string const& hostextinfo::notes() const throw() { return _notes; }
 
 /**
  *  Get notes_url.
  *
  *  @return The notes_url.
  */
-std::string const& hostextinfo::notes_url() const throw() {
-  return _notes_url;
-}
+std::string const& hostextinfo::notes_url() const throw() { return _notes_url; }
 
 /**
  *  Get statusmap_image.

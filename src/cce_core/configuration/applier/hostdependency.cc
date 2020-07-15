@@ -21,9 +21,10 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -48,16 +49,16 @@ void applier::hostdependency::add_object(
   if ((obj.hosts().size() != 1) || !obj.hostgroups().empty() ||
       (obj.dependent_hosts().size() != 1) ||
       !obj.dependent_hostgroups().empty())
-    throw engine_error() << "Could not create host dependency "
-                            "with multiple (dependent) host / host groups";
+    throw engine_error_1(
+        "Could not create host dependency with multiple (dependent) host / "
+        "host groups");
   if ((obj.dependency_type() !=
        configuration::hostdependency::execution_dependency) &&
       (obj.dependency_type() !=
        configuration::hostdependency::notification_dependency))
-    throw engine_error() << "Could not create unexpanded "
-                         << "host dependency of '"
-                         << *obj.dependent_hosts().begin() << "' on '"
-                         << *obj.hosts().begin() << "'";
+    throw engine_error("Could not create unexpanded host dependency of '{}' on '{}'",
+                *obj.dependent_hosts().begin(),
+                *obj.hosts().begin());
 
   // Logging.
   logger(logging::dbg_config, logging::more)
@@ -74,7 +75,8 @@ void applier::hostdependency::add_object(
       configuration::hostdependency::execution_dependency)
     // Create executon dependency.
     hd = std::make_shared<engine::hostdependency>(
-        *obj.dependent_hosts().begin(), *obj.hosts().begin(),
+        *obj.dependent_hosts().begin(),
+        *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.execution_failure_options() &
@@ -89,7 +91,8 @@ void applier::hostdependency::add_object(
   else
     // Create notification dependency.
     hd = std::make_shared<engine::hostdependency>(
-        *obj.dependent_hosts().begin(), *obj.hosts().begin(),
+        *obj.dependent_hosts().begin(),
+        *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.notification_failure_options() &
@@ -106,8 +109,8 @@ void applier::hostdependency::add_object(
       {*obj.dependent_hosts().begin(), hd});
 
   timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, hd.get(), &tv);
+  broker_adaptive_dependency_data(
+      NEBTYPE_HOSTDEPENDENCY_ADD, NEBFLAG_NONE, NEBATTR_NONE, hd.get(), &tv);
 }
 
 /**
@@ -121,7 +124,8 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
   for (configuration::set_hostdependency::const_iterator
            it_dep(s.hostdependencies().begin()),
        end_dep(s.hostdependencies().end());
-       it_dep != end_dep; ++it_dep) {
+       it_dep != end_dep;
+       ++it_dep) {
     // Expand host dependency instances.
     if ((it_dep->hosts().size() != 1) || !it_dep->hostgroups().empty() ||
         (it_dep->dependent_hosts().size() != 1) ||
@@ -133,16 +137,20 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
 
       // Expanded dependent hosts.
       std::set<std::string> dependent_hosts;
-      _expand_hosts(it_dep->dependent_hosts(), it_dep->dependent_hostgroups(),
-                    s, dependent_hosts);
+      _expand_hosts(it_dep->dependent_hosts(),
+                    it_dep->dependent_hostgroups(),
+                    s,
+                    dependent_hosts);
 
       // Browse all depended and dependent hosts.
       for (std::set<std::string>::const_iterator it1(depended_hosts.begin()),
            end1(depended_hosts.end());
-           it1 != end1; ++it1)
+           it1 != end1;
+           ++it1)
         for (std::set<std::string>::const_iterator it2(dependent_hosts.begin()),
              end2(dependent_hosts.end());
-             it2 != end2; ++it2)
+             it2 != end2;
+             ++it2)
           for (int i(0); i < 2; ++i) {
             // Create host dependency instance.
             configuration::hostdependency hdep(*it_dep);
@@ -185,11 +193,11 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
 void applier::hostdependency::modify_object(
     configuration::hostdependency const& obj) {
   (void)obj;
-  throw engine_error()
-      << "Could not modify a host dependency: "
-      << "Host dependency objects can only be added or removed, "
-      << "this is likely a software bug that you should report to "
-      << "Centreon Engine developers";
+  throw engine_error_1(
+      "Could not modify a host dependency: "
+      "Host dependency objects can only be added or removed, "
+      "this is likely a software bug that you should report to "
+      "Centreon Engine developers");
 }
 
 /**
@@ -211,8 +219,11 @@ void applier::hostdependency::remove_object(
 
     // Notify event broker.
     timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, NEBFLAG_NONE,
-                                    NEBATTR_NONE, dependency, &tv);
+    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE,
+                                    NEBFLAG_NONE,
+                                    NEBATTR_NONE,
+                                    dependency,
+                                    &tv);
 
     // Remove host dependency from its list.
     engine::hostdependency::hostdependencies.erase(it);
@@ -237,7 +248,7 @@ void applier::hostdependency::resolve_object(
       engine::hostdependency::hostdependencies_find(obj.key())};
 
   if (engine::hostdependency::hostdependencies.end() == it)
-    throw engine_error() << "Cannot resolve non-existing host escalation";
+    throw engine_error_1("Cannot resolve non-existing host escalation");
 
   // Resolve host dependency.
   it->second->resolve(config_warnings, config_errors);
@@ -261,12 +272,12 @@ void applier::hostdependency::_expand_hosts(
 
   // Browse host groups.
   for (set_string::const_iterator it(hostgroups.begin()), end(hostgroups.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // Find host group.
     set_hostgroup::iterator it_group(s.hostgroups_find(*it));
     if (it_group == s.hostgroups().end())
-      throw engine_error() << "Could not expand non-existing host group '"
-                           << *it << "'";
+      throw engine_error("Could not expand non-existing host group '{}'", *it);
 
     // Add host group members.
     expanded.insert(it_group->members().begin(), it_group->members().end());

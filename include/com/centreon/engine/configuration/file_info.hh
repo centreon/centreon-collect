@@ -21,7 +21,7 @@
 #define CCE_CONFIGURATION_FILE_INFO_HH
 
 #include <string>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()

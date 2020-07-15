@@ -18,21 +18,23 @@
 */
 
 #include "com/centreon/engine/configuration/contactgroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
   &object::setter<contactgroup, type, &contactgroup::method>::generic
 
-std::unordered_map<std::string,
-                   contactgroup::setter_func> const contactgroup::_setters{
-    {"contactgroup_name", SETTER(std::string const&, _set_contactgroup_name)},
-    {"alias", SETTER(std::string const&, _set_alias)},
-    {"members", SETTER(std::string const&, _set_members)},
-    {"contactgroup_members",
-     SETTER(std::string const&, _set_contactgroup_members)}};
+std::unordered_map<std::string, contactgroup::setter_func> const
+    contactgroup::_setters{
+        {"contactgroup_name",
+         SETTER(std::string const&, _set_contactgroup_name)},
+        {"alias", SETTER(std::string const&, _set_alias)},
+        {"members", SETTER(std::string const&, _set_members)},
+        {"contactgroup_members",
+         SETTER(std::string const&, _set_contactgroup_members)}};
 
 /**
  *  Constructor.
@@ -123,8 +125,7 @@ bool contactgroup::operator<(contactgroup const& right) const throw() {
  */
 void contactgroup::check_validity() const {
   if (_contactgroup_name.empty())
-    throw(engine_error() << "Contact group has no name "
-                            "(property 'contactgroup_name')");
+    throw engine_error_1("Contact group has no name (property 'contactgroup_name')");
   return;
 }
 
@@ -144,8 +145,7 @@ contactgroup::key_type const& contactgroup::key() const throw() {
  */
 void contactgroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge contact group with '" << obj.type()
-                         << "'");
+    throw engine_error("Cannot merge contact group with '{}'", obj.type());
   contactgroup const& tmpl(static_cast<contactgroup const&>(obj));
 
   MRG_DEFAULT(_alias);
@@ -175,9 +175,7 @@ bool contactgroup::parse(char const* key, char const* value) {
  *
  *  @return The alias.
  */
-std::string const& contactgroup::alias() const throw() {
-  return (_alias);
-}
+std::string const& contactgroup::alias() const throw() { return (_alias); }
 
 /**
  *  Get contactgroup_members.
@@ -211,18 +209,14 @@ std::string const& contactgroup::contactgroup_name() const throw() {
  *
  *  @return The members.
  */
-set_string& contactgroup::members() throw() {
-  return (*_members);
-}
+set_string& contactgroup::members() throw() { return (*_members); }
 
 /**
  *  Get members.
  *
  *  @return The members.
  */
-set_string const& contactgroup::members() const throw() {
-  return (*_members);
-}
+set_string const& contactgroup::members() const throw() { return (*_members); }
 
 /**
  *  Set alias value.
