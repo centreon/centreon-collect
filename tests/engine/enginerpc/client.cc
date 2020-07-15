@@ -841,8 +841,8 @@ class EngineRPCClient {
     }
     return true;
   }
-  
-    bool DeleteHostDowntime(uint32_t& downtime_id, CommandSuccess* response) {
+
+  bool DeleteHostDowntime(uint32_t& downtime_id, CommandSuccess* response) {
     GenericValue request;
     grpc::ClientContext context;
     request.set_value(downtime_id);

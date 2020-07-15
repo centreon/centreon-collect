@@ -45,7 +45,6 @@
 #include "com/centreon/exceptions/interruption.hh"
 #include "compatibility/xpddefault.h"
 
-#include <iostream>
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
@@ -2555,7 +2554,6 @@ void service::schedule_check(time_t check_time, int options) {
 
   // Update the status log.
   this->update_status(false);
-  std::cout << "test" << std::endl; 
 }
 
 void service::set_flap(double percent_change,
