@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostextinfo.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
@@ -28,6 +28,7 @@ extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 
@@ -168,9 +169,7 @@ host::host(host::key_type const& key)
  *
  *  @param[in] other  The host to copy.
  */
-host::host(host const& other) : object(other) {
-  operator=(other);
-}
+host::host(host const& other) : object(other) { operator=(other); }
 
 /**
  *  Destructor.
@@ -417,10 +416,9 @@ bool host::operator<(host const& other) const throw() {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw(engine_error() << "Host has no name (property 'host_name')");
+    throw engine_error_1("Host has no name (property 'host_name')");
   if (_address.empty())
-    throw(engine_error() << "Host '" << _host_name
-                         << "' has no address (property 'address')");
+    throw engine_error("Host '{}' has no address (property 'address')", _host_name);
   return;
 }
 
@@ -429,9 +427,7 @@ void host::check_validity() const {
  *
  *  @return Host name.
  */
-host::key_type host::key() const throw() {
-  return _host_id;
-}
+host::key_type host::key() const throw() { return _host_id; }
 
 /**
  *  Merge object.
@@ -457,7 +453,7 @@ void host::merge(configuration::hostextinfo const& tmpl) {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host with '" << obj.type() << "'");
+    throw engine_error("Cannot merge host with '{}'", obj.type());
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -539,45 +535,35 @@ bool host::parse(char const* key, char const* value) {
  *
  *  @return The action_url.
  */
-std::string const& host::action_url() const throw() {
-  return _action_url;
-}
+std::string const& host::action_url() const throw() { return _action_url; }
 
 /**
  *  Get address.
  *
  *  @return The address.
  */
-std::string const& host::address() const throw() {
-  return _address;
-}
+std::string const& host::address() const throw() { return _address; }
 
 /**
  *  Get alias.
  *
  *  @return The alias.
  */
-std::string const& host::alias() const throw() {
-  return _alias;
-}
+std::string const& host::alias() const throw() { return _alias; }
 
 /**
  *  Get checks_active.
  *
  *  @return The checks_active.
  */
-bool host::checks_active() const throw() {
-  return _checks_active;
-}
+bool host::checks_active() const throw() { return _checks_active; }
 
 /**
  *  Get checks_passive.
  *
  *  @return The checks_passive.
  */
-bool host::checks_passive() const throw() {
-  return _checks_passive;
-}
+bool host::checks_passive() const throw() { return _checks_passive; }
 
 /**
  *  Get check_command.
@@ -593,27 +579,21 @@ std::string const& host::check_command() const throw() {
  *
  *  @return The check_freshness.
  */
-bool host::check_freshness() const throw() {
-  return _check_freshness;
-}
+bool host::check_freshness() const throw() { return _check_freshness; }
 
 /**
  *  Get check_interval.
  *
  *  @return The check_interval.
  */
-unsigned int host::check_interval() const throw() {
-  return _check_interval;
-}
+unsigned int host::check_interval() const throw() { return _check_interval; }
 
 /**
  *  Get check_period.
  *
  *  @return The check_period.
  */
-std::string const& host::check_period() const throw() {
-  return _check_period;
-}
+std::string const& host::check_period() const throw() { return _check_period; }
 
 /**
  *  Get contactgroups.
@@ -629,27 +609,21 @@ set_string const& host::contactgroups() const throw() {
  *
  *  @return The contacts.
  */
-set_string const& host::contacts() const throw() {
-  return *_contacts;
-}
+set_string const& host::contacts() const throw() { return *_contacts; }
 
 /**
  *  Get coords_2d.
  *
  *  @return The coords_2d.
  */
-point_2d const& host::coords_2d() const throw() {
-  return _coords_2d.get();
-}
+point_2d const& host::coords_2d() const throw() { return _coords_2d.get(); }
 
 /**
  *  Get coords_3d.
  *
  *  @return The coords_3d.
  */
-point_3d const& host::coords_3d() const throw() {
-  return _coords_3d.get();
-}
+point_3d const& host::coords_3d() const throw() { return _coords_3d.get(); }
 
 /**
  *  Get customvariables.
@@ -674,9 +648,7 @@ engine::map_customvar& host::customvariables() throw() {
  *
  *  @return The display_name.
  */
-std::string const& host::display_name() const throw() {
-  return _display_name;
-}
+std::string const& host::display_name() const throw() { return _display_name; }
 
 /**
  *  Get event_handler.
@@ -737,18 +709,14 @@ unsigned int host::freshness_threshold() const throw() {
  *
  *  @return True if coords 2d exist, otherwise false.
  */
-bool host::have_coords_2d() const throw() {
-  return _coords_2d.is_set();
-}
+bool host::have_coords_2d() const throw() { return _coords_2d.is_set(); }
 
 /**
  *  Get if host has coords 3d.
  *
  *  @return True if coords 3d exist, otherwise false.
  */
-bool host::have_coords_3d() const throw() {
-  return _coords_3d.is_set();
-}
+bool host::have_coords_3d() const throw() { return _coords_3d.is_set(); }
 
 /**
  *  Get high_flap_threshold.
@@ -764,45 +732,35 @@ unsigned int host::high_flap_threshold() const throw() {
  *
  *  @return The host groups.
  */
-set_string& host::hostgroups() throw() {
-  return *_hostgroups;
-}
+set_string& host::hostgroups() throw() { return *_hostgroups; }
 
 /**
  *  Get hostgroups.
  *
  *  @return The hostgroups.
  */
-set_string const& host::hostgroups() const throw() {
-  return *_hostgroups;
-}
+set_string const& host::hostgroups() const throw() { return *_hostgroups; }
 
 /**
  *  Get host id.
  *
  *  @return  The host id.
  */
-uint64_t host::host_id() const throw() {
-  return _host_id;
-}
+uint64_t host::host_id() const throw() { return _host_id; }
 
 /**
  *  Get host_name.
  *
  *  @return The host_name.
  */
-std::string const& host::host_name() const throw() {
-  return _host_name;
-}
+std::string const& host::host_name() const throw() { return _host_name; }
 
 /**
  *  Get icon_image.
  *
  *  @return The icon_image.
  */
-std::string const& host::icon_image() const throw() {
-  return _icon_image;
-}
+std::string const& host::icon_image() const throw() { return _icon_image; }
 
 /**
  *  Get icon_image_alt.
@@ -818,9 +776,7 @@ std::string const& host::icon_image_alt() const throw() {
  *
  *  @return The initial_state.
  */
-unsigned int host::initial_state() const throw() {
-  return _initial_state;
-}
+unsigned int host::initial_state() const throw() { return _initial_state; }
 
 /**
  *  Get low_flap_threshold.
@@ -845,18 +801,14 @@ unsigned int host::max_check_attempts() const throw() {
  *
  *  @return The notes.
  */
-std::string const& host::notes() const throw() {
-  return _notes;
-}
+std::string const& host::notes() const throw() { return _notes; }
 
 /**
  *  Get notes_url.
  *
  *  @return The notes_url.
  */
-std::string const& host::notes_url() const throw() {
-  return _notes_url;
-}
+std::string const& host::notes_url() const throw() { return _notes_url; }
 
 /**
  *  Get notifications_enabled.
@@ -899,36 +851,28 @@ std::string const& host::notification_period() const throw() {
  *
  *  @return The obsess_over_host.
  */
-bool host::obsess_over_host() const throw() {
-  return _obsess_over_host;
-}
+bool host::obsess_over_host() const throw() { return _obsess_over_host; }
 
 /**
  *  Get parents.
  *
  *  @return The parents.
  */
-set_string& host::parents() throw() {
-  return *_parents;
-}
+set_string& host::parents() throw() { return *_parents; }
 
 /**
  *  Get parents.
  *
  *  @return The parents.
  */
-set_string const& host::parents() const throw() {
-  return *_parents;
-}
+set_string const& host::parents() const throw() { return *_parents; }
 
 /**
  *  Get process_perf_data.
  *
  *  @return The process_perf_data.
  */
-bool host::process_perf_data() const throw() {
-  return _process_perf_data;
-}
+bool host::process_perf_data() const throw() { return _process_perf_data; }
 
 /**
  *  Get retain_nonstatus_information.
@@ -953,9 +897,7 @@ bool host::retain_status_information() const throw() {
  *
  *  @return The retry_interval.
  */
-unsigned int host::retry_interval() const throw() {
-  return _retry_interval;
-}
+unsigned int host::retry_interval() const throw() { return _retry_interval; }
 
 /**
  *  Get recovery_notification_delay.
@@ -989,18 +931,14 @@ std::string const& host::statusmap_image() const throw() {
  *
  *  @return The timezone.
  */
-std::string const& host::timezone() const throw() {
-  return _timezone;
-}
+std::string const& host::timezone() const throw() { return _timezone; }
 
 /**
  *  Get vrml_image.
  *
  *  @return The vrml_image.
  */
-std::string const& host::vrml_image() const throw() {
-  return _vrml_image;
-}
+std::string const& host::vrml_image() const throw() { return _vrml_image; }
 
 /**
  *  Get acknowledgement timeout.
@@ -1318,7 +1256,8 @@ bool host::_set_flap_detection_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "up")
       options |= up;
@@ -1528,7 +1467,8 @@ bool host::_set_notification_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "d" || *it == "down")
       options |= down;
@@ -1659,7 +1599,8 @@ bool host::_set_stalking_options(std::string const& value) {
   std::list<std::string> values;
   string::split(value, values, ',');
   for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     string::trim(*it);
     if (*it == "o" || *it == "up")
       options |= up;

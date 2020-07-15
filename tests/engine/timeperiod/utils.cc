@@ -20,12 +20,13 @@
 #include "timeperiod/utils.hh"
 #include <cstring>
 #include <memory>
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/timerange.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 // Global time.
-static time_t gl_now((time_t)-1);
+static time_t gl_now((time_t) - 1);
 
 /**
  *  Create new timeperiod creator.
@@ -35,9 +36,7 @@ timeperiod_creator::timeperiod_creator() {}
 /**
  *  Delete timeperiod creator and associated timeperiods.
  */
-timeperiod_creator::~timeperiod_creator() {
-  _timeperiods.clear();
-}
+timeperiod_creator::~timeperiod_creator() { _timeperiods.clear(); }
 
 /**
  *  Get generated timeperiods.
@@ -100,9 +99,18 @@ daterange* timeperiod_creator::new_calendar_date(int start_year,
   if (!target)
     target = _timeperiods.begin()->get();
 
-  std::shared_ptr<daterange> dr{
-      new daterange(DATERANGE_CALENDAR_DATE, start_year, start_month, start_day,
-                    0, 0, end_year, end_month, end_day, 0, 0, 0)};
+  std::shared_ptr<daterange> dr{new daterange(DATERANGE_CALENDAR_DATE,
+                                              start_year,
+                                              start_month,
+                                              start_day,
+                                              0,
+                                              0,
+                                              end_year,
+                                              end_month,
+                                              end_day,
+                                              0,
+                                              0,
+                                              0)};
 
   target->exceptions[DATERANGE_CALENDAR_DATE].push_back(dr);
   return dr.get();
@@ -127,9 +135,18 @@ daterange* timeperiod_creator::new_specific_month_date(int start_month,
   if (!target)
     target = _timeperiods.begin()->get();
 
-  std::shared_ptr<daterange> dr{new daterange(DATERANGE_MONTH_DATE, 0,
-                                              start_month, start_day, 0, 0, 0,
-                                              end_month, end_day, 0, 0, 0)};
+  std::shared_ptr<daterange> dr{new daterange(DATERANGE_MONTH_DATE,
+                                              0,
+                                              start_month,
+                                              start_day,
+                                              0,
+                                              0,
+                                              0,
+                                              end_month,
+                                              end_day,
+                                              0,
+                                              0,
+                                              0)};
 
   target->exceptions[DATERANGE_MONTH_DATE].push_back(dr);
   return dr.get();
@@ -181,9 +198,18 @@ daterange* timeperiod_creator::new_offset_weekday_of_specific_month(
   if (!target)
     target = _timeperiods.begin()->get();
 
-  std::shared_ptr<daterange> dr{
-      new daterange(DATERANGE_MONTH_WEEK_DAY, 0, start_month, 0, start_wday,
-                    start_offset, 0, end_month, 0, end_wday, end_offset, 0)};
+  std::shared_ptr<daterange> dr{new daterange(DATERANGE_MONTH_WEEK_DAY,
+                                              0,
+                                              start_month,
+                                              0,
+                                              start_wday,
+                                              start_offset,
+                                              0,
+                                              end_month,
+                                              0,
+                                              end_wday,
+                                              end_offset,
+                                              0)};
 
   target->exceptions[DATERANGE_MONTH_WEEK_DAY].push_back(dr);
   return dr.get();
@@ -209,9 +235,18 @@ daterange* timeperiod_creator::new_offset_weekday_of_generic_month(
   if (!target)
     target = _timeperiods.begin()->get();
 
-  std::shared_ptr<daterange> dr{new daterange(DATERANGE_WEEK_DAY, 0, 0, 0,
-                                              start_wday, start_offset, 0, 0, 0,
-                                              end_wday, end_offset, 0)};
+  std::shared_ptr<daterange> dr{new daterange(DATERANGE_WEEK_DAY,
+                                              0,
+                                              0,
+                                              0,
+                                              start_wday,
+                                              start_offset,
+                                              0,
+                                              0,
+                                              0,
+                                              end_wday,
+                                              end_offset,
+                                              0)};
 
   target->exceptions[DATERANGE_WEEK_DAY].push_back(dr);
   return dr.get();
@@ -273,9 +308,7 @@ void timeperiod_creator::new_timerange(int start_hour,
  *
  *  @return The number of seconds.
  */
-int hmtos(int h, int m) {
-  return h * 60 * 60 + m * 60;
-}
+int hmtos(int h, int m) { return h * 60 * 60 + m * 60; }
 
 /**
  *  Set system time for testing purposes.
@@ -285,9 +318,7 @@ int hmtos(int h, int m) {
  *
  *  @param now  New system time.
  */
-void set_time(time_t now) {
-  gl_now = now;
-}
+void set_time(time_t now) { gl_now = now; }
 
 /**
  *  Convert a string to time_t.
@@ -300,7 +331,7 @@ time_t strtotimet(std::string const& str) {
   tm t;
   memset(&t, 0, sizeof(t));
   if (!strptime(str.c_str(), "%Y-%m-%d %H:%M:%S", &t))
-    throw(engine_error() << "invalid date format");
+    throw engine_error_1("invalid date format");
   t.tm_isdst = -1;
   return (mktime(&t));
 }
@@ -319,7 +350,7 @@ extern "C" time_t time(time_t* t) __THROW {
   return (gl_now);
 }
 
-extern "C" int gettimeofday(struct timeval* tv, struct timezone *tz) __THROW {
+extern "C" int gettimeofday(struct timeval* tv, struct timezone* tz) __THROW {
   if (tv) {
     tv->tv_sec = gl_now;
     tv->tv_usec = 0;

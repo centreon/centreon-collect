@@ -39,7 +39,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"

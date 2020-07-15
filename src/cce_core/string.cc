@@ -21,8 +21,9 @@
 
 #include <cassert>
 
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 
 static char const* whitespaces(" \t\r\n");
@@ -183,10 +184,11 @@ void string::split(std::string const& data,
   split(data, elements, delim);
   for (std::list<std::string>::const_iterator it(elements.begin()),
        end(elements.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::list<std::string>::const_iterator first(it++);
     if (it == end)
-      throw(engine_error() << "Not enough elements in the line to make pairs");
+      throw engine_error_1("Not enough elements in the line to make pairs");
     out.insert(std::make_pair(*first, *it));
   }
 }
@@ -355,7 +357,7 @@ std::string string::check_string_utf8(std::string const& str) noexcept {
       bool is_cp1252 = true, is_iso8859 = true;
       auto itt = it;
 
-      auto iso8859_to_utf8 = [&str, &it]() -> std::string {
+      auto iso8859_to_utf8 = [&str, &it ]()->std::string {
         /* Strings are both cp1252 and iso8859-15 */
         std::string out;
         std::size_t d = it - str.begin();
