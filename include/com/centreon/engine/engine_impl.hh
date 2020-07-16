@@ -94,6 +94,12 @@ class engine_impl final : public Engine::Service {
   grpc::Status RemoveServiceAcknowledgement(grpc::ServerContext* context,
                                             const ServiceIdentifier* request,
                                             CommandSuccess* response) override;
+  grpc::Status AcknowledgementHostProblem(grpc::ServerContext* context,
+                                            const EngineAcknowledgement* request,
+                                            CommandSuccess* response) override;
+  grpc::Status AcknowledgementServiceProblem(grpc::ServerContext* context,
+                                            const EngineAcknowledgement* request,
+                                            CommandSuccess* response) override;
   grpc::Status ScheduleHostDowntime(grpc::ServerContext* context,
                                     const ScheduleDowntimeIdentifier* request,
                                     CommandSuccess* response) override;

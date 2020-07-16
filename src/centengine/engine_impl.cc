@@ -27,6 +27,7 @@
 #include <future>
 
 #include "com/centreon/engine/anomalydetection.hh"
+#include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/common.hh"
@@ -133,7 +134,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
         host->set_address(selectedhost->get_address());
         host->set_check_period(selectedhost->get_check_period());
         host->set_current_state(
-            static_cast<EngineHost::tate>(selectedhost->get_current_state()));
+            static_cast<EngineHost::State>(selectedhost->get_current_state()));
         host->set_id(selectedhost->get_host_id());
         return 0;
       });
@@ -785,6 +786,130 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     return 0;
   });
 
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::AcknowledgementHostProblem(
+    grpc::ServerContext* context __attribute__((unused)),
+    const EngineAcknowledgement* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    /* get the host */
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    /* cannot acknowledge a non-existent problem */
+    if (temp_host->get_current_state() == host::state_up)
+      return 1;
+    /* set the acknowledgement flag */
+    temp_host->set_problem_has_been_acknowledged(true);
+    /* set the acknowledgement type */
+    if (EngineAcknowledgement::Type_Name(request->type()) == "STICKY")
+      temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
+    else
+      temp_host->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+    /* schedule acknowledgement expiration */
+    time_t current_time(time(nullptr));
+    temp_host->set_last_acknowledgement(current_time);
+    temp_host->schedule_acknowledgement_expiration();
+    /* send data to event broker */
+    char* ack_author = strdup(request->ack_author().c_str());
+    char* ack_data = strdup(request->ack_data().c_str());
+    broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
+                                NEBATTR_NONE, HOST_ACKNOWLEDGEMENT,
+                                static_cast<void*>(temp_host.get()), ack_author,
+                                ack_data, request->type(), request->notify(),
+                                request->persistent(), nullptr);
+    /* send out an acknowledgement notification */
+    if (request->notify())
+      temp_host->notify(notifier::reason_acknowledgement, ack_author, ack_data,
+                        notifier::notification_option_none);
+    /* update the status log with the host info */
+    temp_host->update_status(false);
+    /* add a comment for the acknowledgement */
+    std::shared_ptr<comment> com{new comment(
+        comment::host, comment::acknowledgment, temp_host->get_host_id(), 0,
+        current_time, ack_author, ack_data, request->persistent(),
+        comment::internal, false, (time_t)0)};
+    comment::comments.insert({com->get_comment_id(), com});
+
+    delete ack_author;
+    delete ack_data;
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::AcknowledgementServiceProblem(
+    grpc::ServerContext* context __attribute__((unused)),
+    const EngineAcknowledgement* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::service> temp_service;
+    auto it = service::services.find({request->host_name(), 
+                request->service_desc()});
+    if (it != service::services.end())
+      temp_service = it->second;
+    if (temp_service == nullptr)
+      return 1;
+    /* cannot acknowledge a non-existent problem */
+    if (temp_service->get_current_state() == service::state_ok)
+      return 1;
+    /* set the acknowledgement flag */
+    temp_service->set_problem_has_been_acknowledged(true);
+    /* set the acknowledgement type */
+    if (EngineAcknowledgement::Type_Name(request->type()) == "STICKY")
+      temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_STICKY);
+    else
+      temp_service->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+    /* schedule acknowledgement expiration */
+    time_t current_time(time(nullptr));
+    temp_service->set_last_acknowledgement(current_time);
+    temp_service->schedule_acknowledgement_expiration();
+    /* send data to event broker */
+    char* ack_author = strdup(request->ack_author().c_str());
+    char* ack_data = strdup(request->ack_data().c_str());
+
+    /* send data to event broker */
+    broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
+                              NEBATTR_NONE, SERVICE_ACKNOWLEDGEMENT, 
+                              static_cast<void*> (temp_service.get()),
+                              ack_author, ack_data, request->type(), 
+                              request->notify(), request->persistent(), 
+                              nullptr);
+    /* send out an acknowledgement notification */
+    if (request->notify())
+      temp_service->notify(notifier::reason_acknowledgement, ack_author, 
+          ack_data, notifier::notification_option_none);
+    /* update the status log with the service info */
+    temp_service->update_status(false);
+
+    /* add a comment for the acknowledgement */
+    std::shared_ptr<comment> com{new comment(
+        comment::service, comment::acknowledgment, temp_service->get_host_id(),
+        temp_service->get_service_id(), current_time, ack_author, ack_data, 
+        request->persistent(), comment::internal, false, (time_t)0)};
+    comment::comments.insert({com->get_comment_id(), com});
+    
+    delete ack_author;
+    delete ack_data;
+
+    std::cout <<  "ahah" << std::endl;
+    return 0;
+  });
+  
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
