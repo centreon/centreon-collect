@@ -131,7 +131,7 @@ class EngineRpc : public TestEngine {
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
-    _host->set_current_state(engine::host::state_up);
+    _host->set_current_state(engine::host::state_down);
     _host->set_state_type(checkable::hard);
     _host->set_problem_has_been_acknowledged(false);
     _host->set_notify_on(static_cast<uint32_t>(-1));
@@ -144,6 +144,10 @@ class EngineRpc : public TestEngine {
       else
         _svc = svc;
     }
+    _svc->set_current_state(engine::service::state_critical);
+    _svc->set_state_type(checkable::hard);
+    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_notify_on(static_cast<uint32_t>(-1));
 
     contact_map const& cm{engine::contact::contacts};
     _contact = cm.begin()->second;
@@ -769,6 +773,55 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   ASSERT_EQ(comment::comments.size(), 0u);
   erpc.shutdown();
 }
+
+TEST_F(EngineRpc, AcknowledgementHostProblem) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+
+  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
+  oss << "AcknowledgementHostProblem test_host admin test 1 0 0";
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(_host->get_problem_has_been_acknowledged(), true);
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, AcknowledgementServiceProblem) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  std::ostringstream oss;
+  bool continuerunning = false;
+  
+  ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
+  oss << "AcknowledgementServiceProblem test_host test_svc admin test 1 0 0";
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(oss.str());
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), true);
+  erpc.shutdown();
+}
+
 
 TEST_F(EngineRpc, ScheduleHostDowntime) {
   enginerpc erpc("0.0.0.0", 40001);
