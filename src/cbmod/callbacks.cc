@@ -216,36 +216,30 @@ int neb::callback_comment(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_comment_data const* comment_data;
-    std::shared_ptr<neb::comment> comment(new neb::comment);
-
-    // Fill output var.
     comment_data = static_cast<nebstruct_comment_data*>(data);
-    if (comment_data->author_name)
-      comment->author = comment_data->author_name;
-    if (comment_data->comment_data)
-      comment->data = comment_data->comment_data;
-    comment->comment_type = comment_data->comment_type;
-    if (NEBTYPE_COMMENT_DELETE == comment_data->type)
-      comment->deletion_time = time(nullptr);
-    comment->entry_time = comment_data->entry_time;
-    comment->entry_type = comment_data->entry_type;
-    comment->expire_time = comment_data->expire_time;
-    comment->expires = comment_data->expires;
+    auto comment = std::make_shared<neb::comment>(
+        comment_data->comment_type,
+        comment_data->author_name ? comment_data->author_name : "",
+        comment_data->comment_data ? comment_data->comment_data : "",
+        config::applier::state::instance().poller_id(),
+        comment_data->host_id,
+        comment_data->service_id,
+        comment_data->entry_time,
+        comment_data->entry_type,
+        comment_data->expire_time,
+        comment_data->expires,
+        comment_data->comment_id,
+        comment_data->persistent,
+        comment_data->source,
+        comment_data->type == NEBTYPE_COMMENT_DELETE ? time(nullptr) : 0);
     if (comment_data->service_id) {
-      comment->host_id = comment_data->host_id;
-      comment->service_id = comment_data->service_id;
       if (!comment->host_id || !comment->service_id)
         throw msg_fmt(
             "comment created from a service with host_id/service_id 0");
     } else {
-      comment->host_id = comment_data->host_id;
       if (comment->host_id == 0)
         throw msg_fmt("comment created from a host with host_id 0");
     }
-    comment->poller_id = config::applier::state::instance().poller_id();
-    comment->internal_id = comment_data->comment_id;
-    comment->persistent = comment_data->persistent;
-    comment->source = comment_data->source;
 
     // Send event.
     gl_publisher.write(comment);

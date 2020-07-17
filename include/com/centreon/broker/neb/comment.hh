@@ -38,35 +38,46 @@ namespace neb {
  *  Some user can make a comment on whatever objects he wants.
  */
 class comment : public io::data {
+
  public:
   comment();
+  comment(short comment_type,
+          std::string const& author,
+          std::string const& data,
+          uint32_t poller_id,
+          uint32_t host_id,
+          uint32_t service_id,
+          timestamp entry_time,
+          short entry_type,
+          timestamp expire_time,
+          bool expires,
+          uint32_t internal_id,
+          bool persistent,
+          short source,
+          timestamp deletion_time = 0);
   comment(comment const& other);
   ~comment();
-  comment& operator=(comment const& other);
+  comment& operator=(comment const& other) = delete;
   constexpr static uint32_t static_type() {
     return io::events::data_type<io::events::neb, neb::de_comment>::value;
   }
-
-  std::string author;
   short comment_type;
+  std::string author;
   std::string data;
+  uint32_t poller_id;
+  uint32_t host_id;
+  uint32_t service_id;
   timestamp deletion_time;
   timestamp entry_time;
   short entry_type;
   timestamp expire_time;
   bool expires;
-  uint32_t host_id;
   uint32_t internal_id;
   bool persistent;
-  uint32_t poller_id;
-  uint32_t service_id;
   short source;
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
-
- private:
-  void _internal_copy(comment const& other);
 };
 }  // namespace neb
 
