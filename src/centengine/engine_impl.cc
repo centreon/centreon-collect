@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  *
  */
-
 #include "com/centreon/engine/engine_impl.hh"
 
 #include <google/protobuf/util/time_util.h>
@@ -820,28 +819,25 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->set_last_acknowledgement(current_time);
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    char* ack_author = strdup(request->ack_author().c_str());
-    char* ack_data = strdup(request->ack_data().c_str());
-    broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
-                                NEBATTR_NONE, HOST_ACKNOWLEDGEMENT,
-                                static_cast<void*>(temp_host.get()), ack_author,
-                                ack_data, request->type(), request->notify(),
-                                request->persistent(), nullptr);
+    broker_acknowledgement_data(
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+        HOST_ACKNOWLEDGEMENT, static_cast<void*>(temp_host.get()),
+        request->ack_author().c_str(), request->ack_data().c_str(),
+        request->type(), request->notify(), request->persistent(), nullptr);
     /* send out an acknowledgement notification */
     if (request->notify())
-      temp_host->notify(notifier::reason_acknowledgement, ack_author, ack_data,
+      temp_host->notify(notifier::reason_acknowledgement, request->ack_author(),
+                        request->ack_data(),
                         notifier::notification_option_none);
     /* update the status log with the host info */
     temp_host->update_status(false);
     /* add a comment for the acknowledgement */
-    std::shared_ptr<comment> com{new comment(
+    auto com = std::make_shared<comment>(
         comment::host, comment::acknowledgment, temp_host->get_host_id(), 0,
-        current_time, ack_author, ack_data, request->persistent(),
-        comment::internal, false, (time_t)0)};
+        current_time, request->ack_author(), request->ack_data(),
+        request->persistent(), comment::internal, false, (time_t)0);
     comment::comments.insert({com->get_comment_id(), com});
 
-    delete ack_author;
-    delete ack_data;
     return 0;
   });
 
@@ -858,8 +854,8 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
-    auto it = service::services.find({request->host_name(), 
-                request->service_desc()});
+    auto it =
+        service::services.find({request->host_name(), request->service_desc()});
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr)
@@ -879,37 +875,29 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->set_last_acknowledgement(current_time);
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    char* ack_author = strdup(request->ack_author().c_str());
-    char* ack_data = strdup(request->ack_data().c_str());
-
-    /* send data to event broker */
-    broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
-                              NEBATTR_NONE, SERVICE_ACKNOWLEDGEMENT, 
-                              static_cast<void*> (temp_service.get()),
-                              ack_author, ack_data, request->type(), 
-                              request->notify(), request->persistent(), 
-                              nullptr);
+    broker_acknowledgement_data(
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+        SERVICE_ACKNOWLEDGEMENT, static_cast<void*>(temp_service.get()),
+        request->ack_author().c_str(), request->ack_data().c_str(),
+        request->type(), request->notify(), request->persistent(), nullptr);
     /* send out an acknowledgement notification */
     if (request->notify())
-      temp_service->notify(notifier::reason_acknowledgement, ack_author, 
-          ack_data, notifier::notification_option_none);
+      temp_service->notify(notifier::reason_acknowledgement,
+                           request->ack_author(), request->ack_data(),
+                           notifier::notification_option_none);
     /* update the status log with the service info */
     temp_service->update_status(false);
 
     /* add a comment for the acknowledgement */
-    std::shared_ptr<comment> com{new comment(
+    auto com = std::make_shared<comment>(
         comment::service, comment::acknowledgment, temp_service->get_host_id(),
-        temp_service->get_service_id(), current_time, ack_author, ack_data, 
-        request->persistent(), comment::internal, false, (time_t)0)};
+        temp_service->get_service_id(), current_time, request->ack_author(),
+        request->ack_data(), request->persistent(), comment::internal, false,
+        (time_t)0);
     comment::comments.insert({com->get_comment_id(), com});
-    
-    delete ack_author;
-    delete ack_data;
-
-    std::cout <<  "ahah" << std::endl;
     return 0;
   });
-  
+
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 

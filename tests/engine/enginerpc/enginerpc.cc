@@ -779,14 +779,12 @@ TEST_F(EngineRpc, AcknowledgementHostProblem) {
   std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
-  std::ostringstream oss;
   bool continuerunning = false;
 
   ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
-  oss << "AcknowledgementHostProblem test_host admin test 1 0 0";
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute(oss.str());
+  auto output = execute("AcknowledgementHostProblem test_host admin test 1 0 0");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -803,14 +801,13 @@ TEST_F(EngineRpc, AcknowledgementServiceProblem) {
   std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
-  std::ostringstream oss;
   bool continuerunning = false;
-  
+
   ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
-  oss << "AcknowledgementServiceProblem test_host test_svc admin test 1 0 0";
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute(oss.str());
+  auto output = execute("AcknowledgementServiceProblem test_host test_svc admin test 1 0 0");
+;
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
