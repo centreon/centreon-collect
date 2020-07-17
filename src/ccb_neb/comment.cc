@@ -62,20 +62,20 @@ comment::comment(short comment_type,
                  short source,
                  timestamp deletion_time)
     : io::data(comment::static_type()),
-      comment_type(0),
+      comment_type(comment_type),
       author(author),
       data(data),
-      poller_id(0),
-      host_id(0),
-      service_id(0),
-      entry_time(0),
-      entry_type(0),
-      expire_time(0),
-      expires(false),
-      internal_id(0),
-      persistent(false),
-      source(0),
-      deletion_time(0) {}
+      poller_id(poller_id),
+      host_id(host_id),
+      service_id(service_id),
+      entry_time(entry_time),
+      entry_type(entry_type),
+      expire_time(expire_time),
+      expires(expires),
+      internal_id(internal_id),
+      persistent(persistent),
+      source(source),
+      deletion_time(deletion_time) {}
 
 /**
  *  @brief Copy constructor.
@@ -136,5 +136,5 @@ mapping::entry const comment::entries[] = {
     mapping::entry(&comment::source, "source"), mapping::entry()};
 
 // Operations.
-static io::data* new_comment() { return new comment(); }
+static io::data* new_comment() { return new comment; }
 io::event_info::event_operations const comment::operations = {&new_comment};
