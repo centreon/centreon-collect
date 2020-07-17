@@ -1265,6 +1265,78 @@ TEST_F(DatabaseStorageTest, HostGroupMemberStatement) {
   ms->commit();
 }
 
+// Test Hostgroup
+TEST_F(DatabaseStorageTest, HostGroupMember) {
+  modules::loader l;
+  l.load_file("./neb/10-neb.so");
+  database_config db_cfg("MySQL",
+                         "127.0.0.1",
+                         3306,
+                         "root",
+                         "root",
+                         "centreon_storage",
+                         5,
+                         true,
+                         5);
+  std::unique_ptr<mysql> ms(new mysql(db_cfg));
+
+  ms->run_query("DELETE FROM hostgroups");
+  ms->run_query("DELETE FROM hosts_hostgroups");
+  ms->commit();
+
+  query_preparator::event_unique unique;
+  unique.insert("hostgroup_id");
+  unique.insert("host_id");
+  query_preparator qp(neb::host_group_member::static_type(), unique);
+  mysql_stmt host_group_member_insert(qp.prepare_insert(*ms));
+
+  query_preparator::event_unique unique1;
+  unique1.insert("hostgroup_id");
+  query_preparator qp1(neb::host_group::static_type(), unique1);
+  mysql_stmt host_group_insupdate(qp1.prepare_insert_or_update(*ms));
+
+  neb::host_group_member hgm(
+  hgm.enabled = true,
+  hgm.group_id = 8,
+  hgm.group_name = "Test host group",
+  hgm.host_id = 24,
+  hgm.poller_id = 1);
+
+  host_group_member_insert << hgm;
+  std::cout << host_group_member_insert.get_query() << std::endl;
+
+  std::promise<mysql_result> promise;
+
+  int thread_id(
+      ms->run_statement_and_get_result(host_group_member_insert, &promise));
+  try {
+    promise.get_future().get();
+  }
+  catch (std::exception const& e) {
+    neb::host_group hg(
+    hg.id = 8,
+    hg.name = "Test hostgroup",
+    hg.enabled = true,
+    hg.poller_id = 1);
+
+    host_group_insupdate << hg;
+
+    std::cout << host_group_insupdate.get_query() << std::endl;
+
+    ms->run_statement(host_group_insupdate,
+                      "Error: Unable to create host group",
+                      true,
+                      thread_id);
+
+    host_group_member_insert << hgm;
+    ms->run_statement(host_group_member_insert,
+                      "Error: host group not defined",
+                      true,
+                      thread_id);
+  }
+  ms->commit();
+}
+
 TEST_F(DatabaseStorageTest, HostParentStatement) {
   modules::loader l;
   l.load_file("./neb/10-neb.so");

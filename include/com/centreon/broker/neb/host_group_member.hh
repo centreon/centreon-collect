@@ -42,6 +42,11 @@ namespace neb {
 class host_group_member : public group_member {
  public:
   host_group_member();
+  host_group_member(std::string const& group_name,
+                    uint32_t group_id,
+                    uint32_t poller_id,
+                    uint32_t host_id,
+                    bool enabled);
   host_group_member(host_group_member const& other);
   virtual ~host_group_member();
   host_group_member& operator=(host_group_member const& other);
