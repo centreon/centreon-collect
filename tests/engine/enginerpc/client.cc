@@ -445,6 +445,60 @@ class EngineRPCClient {
     return true;
   }
 
+  bool AcknowledgementHostProblem(std::string const& hostname,
+                                  std::string const& ackauthor,
+                                  std::string const& ackdata,
+                                  int type,
+                                  bool notify,
+                                  bool persistent,
+                                  CommandSuccess* response) {
+    EngineAcknowledgement request;
+    grpc::ClientContext context;
+    request.set_host_name(hostname);
+    request.set_ack_author(ackauthor);
+    request.set_ack_data(ackdata);
+    request.set_type(static_cast<EngineAcknowledgement::Type>(type));
+    request.set_notify(notify);
+    request.set_persistent(persistent);
+
+    grpc::Status status =
+        _stub->AcknowledgementHostProblem(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "AcknowledgementHostProblem rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+  
+  bool AcknowledgementServiceProblem(std::string const& hostname,
+                                  std::string const& servicedesc,
+                                  std::string const& ackauthor,
+                                  std::string const& ackdata,
+                                  int type,
+                                  bool notify,
+                                  bool persistent,
+                                  CommandSuccess* response) {
+    EngineAcknowledgement request;
+    grpc::ClientContext context;
+    request.set_host_name(hostname);
+    request.set_service_desc(servicedesc);
+    request.set_ack_author(ackauthor);
+    request.set_ack_data(ackdata);
+    request.set_type(static_cast<EngineAcknowledgement::Type>(type));
+    request.set_notify(notify);
+    request.set_persistent(persistent);
+
+    grpc::Status status =
+        _stub->AcknowledgementServiceProblem(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "AcknowledgementServiceProblem rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool ScheduleHostDowntime(std::string const& hostname,
                             std::string const& hostgroupname,
                             std::string const& servicegroupname,
@@ -1733,9 +1787,36 @@ int main(int argc, char** argv) {
 
     status = client.SignalProcess(process, scheduledtime, &response);
     std::cout << "SignalProcess" << std::endl;
+  } else if (strcmp(argv[1], "AcknowledgementHostProblem") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string ackauthor(argv[3]);
+    std::string ackdata(argv[4]);
+    int type = atoi(argv[5]);
+    bool notify = atoi(argv[6]);
+    bool persistent = atoi(argv[7]);
+    
+    status = client.AcknowledgementHostProblem(hostname, ackauthor, 
+        ackdata, type, notify, persistent, &response);
+    std::cout << "AcknowledgementHostProblem" << std::endl;
+  } else if (strcmp(argv[1], "AcknowledgementServiceProblem") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string servicedesc(argv[3]);
+    std::string ackauthor(argv[4]);
+    std::string ackdata(argv[5]);
+    int type = atoi(argv[6]);
+    bool notify = atoi(argv[7]);
+    bool persistent = atoi(argv[8]);
+
+    status = client.AcknowledgementServiceProblem(hostname, servicedesc, ackauthor, 
+        ackdata, type, notify, persistent, &response);
+    std::cout << "AcknowledgementServiceProblem" << std::endl;
   }
 
-  else
+  else {
     std::cout << "unknown command" << std::endl;
+    status = EXIT_FAILURE;
+  }
   exit(status);
 }

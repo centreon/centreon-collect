@@ -53,6 +53,10 @@ service Engine {
   rpc RemoveHostAcknowledgement(HostIdentifier) returns (CommandSuccess) {}
   rpc RemoveServiceAcknowledgement(ServiceIdentifier)
       returns (CommandSuccess) {}
+  rpc AcknowledgementHostProblem(EngineAcknowledgement) 
+      returns (CommandSuccess) {}
+  rpc AcknowledgementServiceProblem(EngineAcknowledgement) 
+      returns (CommandSuccess) {}
   rpc DeleteHostDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteServiceDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
@@ -436,4 +440,18 @@ message EngineSignalProcess {
   }
   Process process = 1;
   uint32 scheduled_time = 2;
+}
+
+message EngineAcknowledgement {
+  string host_name = 1;
+  string service_desc = 2;
+  string ack_author = 3;
+  string ack_data = 4;
+  enum Type {
+    NORMAL = 0;
+    STICKY = 1;
+  }
+  Type type = 5;
+  bool notify = 6;
+  bool persistent = 7;
 }
