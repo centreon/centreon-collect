@@ -116,7 +116,7 @@ bool instance_configuration::is_empty() const noexcept {
  *
  *  @return[in]  The name of this instance.
  */
-std::string const& instance_configuration::get_name() const throw() {
+std::string const& instance_configuration::get_name() const noexcept {
   return _name;
 }
 
@@ -125,7 +125,7 @@ std::string const& instance_configuration::get_name() const throw() {
  *
  *  @return[in]  The configuration file for this instance.
  */
-std::string const& instance_configuration::get_config_file() const throw() {
+std::string const& instance_configuration::get_config_file() const noexcept {
   return _config_file;
 }
 
@@ -134,7 +134,7 @@ std::string const& instance_configuration::get_config_file() const throw() {
  *
  *  @return[in]  The executable to launch for this instance.
  */
-std::string const& instance_configuration::get_executable() const throw() {
+std::string const& instance_configuration::get_executable() const noexcept {
   return _executable;
 }
 
