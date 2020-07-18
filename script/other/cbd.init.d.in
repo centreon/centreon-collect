@@ -43,7 +43,7 @@ config_dir="@PREFIX_CONF@"
 cbwd="@PREFIX_BIN@/cbwd"
 pid_path="@PREFIX_VAR@/run"
 stop_timeout=10
-user="@USER@"
+user="@USER_BROKER@"
 debug=0
 pidfile="${pid_path}/cbwd.pid"
 

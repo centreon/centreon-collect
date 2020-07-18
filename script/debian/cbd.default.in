@@ -4,4 +4,4 @@
 RUN_AT_STARTUP="YES"
 
 # Centreon Broker user : default centreon-broker
-USER="@USER@"
+USER="@USER_BROKER@"
