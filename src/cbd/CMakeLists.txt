@@ -5,11 +5,11 @@ include_directories(${CMAKE_BINARY_DIR})
 configure_file(${CMAKE_SOURCE_DIR}/config/poller-module.json.in
   ${CMAKE_BINARY_DIR}/poller-module.json
   @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/config/central-broker.json.in
-  ${CMAKE_BINARY_DIR}/central-broker.json
+configure_file(${CMAKE_SOURCE_DIR}/config/central-broker-master.json.in
+  ${CMAKE_BINARY_DIR}/central-broker-master.json
   @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/config/central-rrd.json.in
-  ${CMAKE_BINARY_DIR}/central-rrd.json
+configure_file(${CMAKE_SOURCE_DIR}/config/central-rrd-master.json.in
+  ${CMAKE_BINARY_DIR}/central-rrd-master.json
   @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/script/systemd/cbd.service.in
   ${CMAKE_BINARY_DIR}/cbd.service
@@ -22,8 +22,8 @@ add_executable(cbd
   ${CMAKE_SOURCE_DIR}/src/cbd/config/applier/logger.cc
   ${CMAKE_SOURCE_DIR}/src/cbd/broker_impl.cc
   ${CMAKE_SOURCE_DIR}/src/cbd/brokerrpc.cc
-  ${CMAKE_BINARY_DIR}/central-broker.json
-  ${CMAKE_BINARY_DIR}/central-rrd.json
+  ${CMAKE_BINARY_DIR}/central-broker-master.json
+  ${CMAKE_BINARY_DIR}/central-rrd-master.json
   ${CMAKE_BINARY_DIR}/poller-module.json
   )
 
@@ -35,7 +35,7 @@ target_link_libraries(cbd
 set_target_properties(cbd PROPERTIES COMPILE_FLAGS "-fPIC")
 
 install(FILES ${CMAKE_BINARY_DIR}/cbd.service COMPONENT cbd DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
-install(FILES ${CMAKE_BINARY_DIR}/central-broker.json COMPONENT cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
-install(FILES ${CMAKE_BINARY_DIR}/central-rrd.json COMPONENT cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/central-broker-master.json COMPONENT cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
+install(FILES ${CMAKE_BINARY_DIR}/central-rrd-master.json COMPONENT cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 install(FILES ${CMAKE_BINARY_DIR}/poller-module.json DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 install(TARGETS cbd COMPONENT cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})
