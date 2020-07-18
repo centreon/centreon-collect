@@ -8,8 +8,8 @@
         "log_timestamp": true,
         "log_thread_id": false,
         "event_queue_max_size": 100000,
-        "command_file": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/lib/centreon-broker/command.sock",
-        "cache_directory": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/lib/centreon-broker",
+        "command_file": "@CMAKE_INSTALL_FULL_LOCALSTATEDIR@/lib/centreon-broker/command.sock",
+        "cache_directory": "@CMAKE_INSTALL_FULL_LOCALSTATEDIR@/lib/centreon-broker",
         "input": [
             {
                 "name": "central-broker-input",
@@ -26,7 +26,7 @@
         ],
         "logger": [
             {
-                "name": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/log/centreon-broker/central-broker.log",
+                "name": "@CMAKE_INSTALL_FULL_LOCALSTATEDIR@/log/centreon-broker/central-broker.log",
                 "config": "yes",
                 "debug": "no",
                 "error": "yes",
@@ -83,7 +83,7 @@
             {
                 "type": "stats",
                 "name": "central-broker-stats",
-                "json_fifo": "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LOCALSTATEDIR@/lib/centreon-broker/central-broker-stats.json"
+                "json_fifo": "@CMAKE_INSTALL_FULL_LOCALSTATEDIR@/lib/centreon-broker/central-broker-stats.json"
             }
         ]
     }
