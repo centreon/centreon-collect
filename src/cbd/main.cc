@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <iostream>
 #include <thread>
 
 #include "com/centreon/broker/brokerrpc.hh"
@@ -317,11 +318,13 @@ int main(int argc, char* argv[]) {
   // Standard exception.
   catch (std::exception const& e) {
     logging::error(logging::high) << e.what();
+    std::cout << "Error: " << e.what() << "\n";
     retval = EXIT_FAILURE;
   }
   // Unknown exception.
   catch (...) {
     logging::error(logging::high) << "main: unknown error, aborting execution";
+    std::cout << "Fatal error\n";
     retval = EXIT_FAILURE;
   }
 

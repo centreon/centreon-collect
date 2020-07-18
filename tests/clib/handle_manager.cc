@@ -27,6 +27,7 @@ using namespace com::centreon;
 
 class     listener : public handle_listener {
  public:
+  listener() = delete;
   listener(
       handle& ref_h,
       bool want_read,
