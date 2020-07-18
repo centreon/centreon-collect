@@ -19,6 +19,11 @@ else()
   message(WARNING "The file conanbuildinfo.cmake doesn't exist, you have to run conan install first")
 endif()
 
+############ CONSTANTS ###########
+set(USER_BROKER centreon-broker)
+set(USER_ENGINE centreon-engine)
+##################################
+
 add_subdirectory(src/10-neb)
 add_subdirectory(src/15-stats)
 add_subdirectory(src/20-bam)

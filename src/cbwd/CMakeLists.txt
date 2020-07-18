@@ -19,6 +19,16 @@
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR}/)
 
+set(WITH_DAEMONS
+    central-broker
+    central-rrd
+)
+
+foreach (DAEMON_NAME IN LISTS WITH_DAEMONS)
+  set(DAEMONS_CONFIGURATION
+   "${DAEMONS_CONFIGURATION}        \"cbd\": [ \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
+endforeach ()
+
 configure_file(${CMAKE_SOURCE_DIR}/config/watchdog.json.in
   ${CMAKE_BINARY_DIR}/watchdog.json
   @ONLY)
