@@ -154,33 +154,30 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
     // In/Out variables.
     nebstruct_acknowledgement_data const* ack_data;
     std::shared_ptr<neb::acknowledgement> ack(new neb::acknowledgement);
-
-    // Fill output var.
     ack_data = static_cast<nebstruct_acknowledgement_data*>(data);
-    ack->acknowledgement_type = ack_data->acknowledgement_type;
-    if (ack_data->author_name)
-      ack->author = ack_data->author_name;
-    if (ack_data->comment_data)
-      ack->comment = ack_data->comment_data;
-    ack->entry_time = time(nullptr);
+    auto acknowledgement = std::make_shared<neb::acknowledgement>(
+        ack_data->acknowledgement_type,
+        ack_data->author_name ? ack_data->author_name : "",
+        ack_data->comment_data ? ack_data->comment_data : "",
+        ack->entry_time = time(nullptr),
+        ack_data->host_id,
+        ack_data->service_id,
+        config::applier::state::instance().poller_id(),
+        ack_data->is_sticky,
+        ack_data->notify_contacts,
+        ack_data->persistent_comment,
+        ack_data->state);
+
     if (!ack_data->host_id)
       throw msg_fmt("unnamed host");
     if (ack_data->service_id) {
-      ack->host_id = ack_data->host_id;
-      ack->service_id = ack_data->service_id;
       if (!ack->host_id || !ack->service_id)
         throw msg_fmt(
             "acknowledgement on service with host_id or service_id 0");
     } else {
-      ack->host_id = ack_data->host_id;
       if (ack->host_id == 0)
         throw msg_fmt("acknowledgement on host with id 0");
     }
-    ack->poller_id = config::applier::state::instance().poller_id();
-    ack->is_sticky = ack_data->is_sticky;
-    ack->notify_contacts = ack_data->notify_contacts;
-    ack->persistent_comment = ack_data->persistent_comment;
-    ack->state = ack_data->state;
     gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = *ack;
 
     // Send event.
