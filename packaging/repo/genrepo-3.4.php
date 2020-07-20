@@ -8,7 +8,7 @@ $reporelease = '4';
 $repos = array(
     '' => array(
         'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
-        'path' => 'standard'
+        'path' => 'centreon-lts/1c0143e9c46ef424bc0c1ae9ba77203c17abf1cda7e'
     ),
     'bam' => array(
         'name' => 'Centreon Entreprise Linux reposistory contains software to use with Centreon.',
