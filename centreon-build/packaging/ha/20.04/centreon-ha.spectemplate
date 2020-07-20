@@ -18,11 +18,6 @@ Requires:       centreon-gorgone-centreon-config >= %{thismajor}
 Requires:       centreon-gorgone-centreon-config < %{nextmajor}
 Requires:       centreon-web >= %{thismajor}
 Requires:       centreon-web < %{nextmajor}
-Requires:       corosync
-Requires:       corosync-qdevice
-Requires:       corosync-qnetd
-Requires:       pacemaker
-Requires:       pcs
 Requires:       perl-common-sense
 Requires:       perl-Linux-Inotify2
 Requires:       resource-agents
