@@ -9,6 +9,7 @@
         "snmp_standard/mode/cpudetailed.pm",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
+	"snmp_standard/mode/resources/",
         "snmp_standard/mode/liststorages.pm",
         "snmp_standard/mode/loadaverage.pm",
         "snmp_standard/mode/memory.pm",

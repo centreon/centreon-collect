@@ -12,6 +12,7 @@
         "snmp_standard/mode/processcount.pm",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
+	"snmp_standard/mode/resources/",
         "snmp_standard/mode/uptime.pm",
         "network/arkoon/"
     ]
