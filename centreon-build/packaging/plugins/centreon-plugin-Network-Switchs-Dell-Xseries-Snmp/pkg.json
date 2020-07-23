@@ -8,6 +8,7 @@
         "centreon/common/radlan/",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
+	"snmp_standard/mode/resources/",
         "snmp_standard/mode/uptime.pm",
         "network/dell/xseries/snmp/"
     ]

@@ -5,9 +5,10 @@
     "files": [
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
-        "network/ruckus/icx/snmp/",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
-        "centreon/common/foundry/snmp/"
+	"snmp_standard/mode/resources/",
+        "centreon/common/foundry/snmp/",
+        "network/ruckus/icx/snmp/"
     ]
 }

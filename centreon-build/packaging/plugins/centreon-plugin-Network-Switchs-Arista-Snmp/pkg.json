@@ -9,6 +9,7 @@
         "snmp_standard/mode/entity.pm",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
+	"snmp_standard/mode/resources/",
         "snmp_standard/mode/storage.pm",
         "snmp_standard/mode/tcpcon.pm",
         "snmp_standard/mode/uptime.pm",

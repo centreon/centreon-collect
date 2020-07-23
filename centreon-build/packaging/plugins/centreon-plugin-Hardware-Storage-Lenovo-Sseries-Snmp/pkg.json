@@ -8,6 +8,7 @@
         "snmp_standard/mode/hardwarefibrealliance.pm",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
+	"snmp_standard/mode/resources/",
         "storage/lenovo/sseries/snmp/"
     ]
 }
