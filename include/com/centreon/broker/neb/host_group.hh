@@ -38,9 +38,10 @@ namespace neb {
 class host_group : public group {
  public:
   host_group();
+  host_group(uint32_t poller_id, uint32_t id, bool enabled, std::string name);
   host_group(host_group const& other);
   ~host_group();
-  host_group& operator=(host_group const& other);
+  host_group& operator=(host_group const& other) = delete;
   constexpr static uint32_t static_type() {
     return io::events::data_type<io::events::neb, neb::de_host_group>::value;
   }

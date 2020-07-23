@@ -34,6 +34,12 @@ using namespace com::centreon::broker::neb;
  */
 service_group::service_group() : group(service_group::static_type()) {}
 
+service_group::service_group(uint32_t poller_id,
+                             uint32_t id,
+                             bool enabled,
+                             std::string name)
+    : group(service_group::static_type()) {}
+
 /**
  *  @brief Copy constructor.
  *
@@ -59,10 +65,10 @@ service_group::~service_group() {}
  *
  *  @return This object.
  */
-service_group& service_group::operator=(service_group const& other) {
+/*service_group& service_group::operator=(service_group const& other) {
   group::operator=(other);
   return *this;
-}
+}*/
 
 /**************************************
  *                                     *
@@ -83,8 +89,6 @@ mapping::entry const service_group::entries[] = {
     mapping::entry()};
 
 // Operations.
-static io::data* new_service_group() {
-  return new service_group;
-}
+static io::data* new_service_group() { return new service_group; }
 io::event_info::event_operations const service_group::operations = {
     &new_service_group};
