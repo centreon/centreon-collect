@@ -174,7 +174,6 @@ class EngineRpc : public TestEngine {
     char path[1024];
     std::ostringstream oss;
     oss << "bin/engine_rpc_client " << command;
-
     FILE* fp = popen(oss.str().c_str(), "r");
     while (fgets(path, sizeof(path), fp) != nullptr) {
       size_t count = strlen(path);
@@ -784,7 +783,8 @@ TEST_F(EngineRpc, AcknowledgementHostProblem) {
   ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute("AcknowledgementHostProblem test_host admin test 1 0 0");
+  auto output =
+      execute("AcknowledgementHostProblem test_host admin test 1 0 0");
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -806,8 +806,9 @@ TEST_F(EngineRpc, AcknowledgementServiceProblem) {
   ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute("AcknowledgementServiceProblem test_host test_svc admin test 1 0 0");
-;
+  auto output = execute(
+      "AcknowledgementServiceProblem test_host test_svc admin test 1 0 0");
+  ;
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -819,6 +820,91 @@ TEST_F(EngineRpc, AcknowledgementServiceProblem) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, ChangeHostObjectIntVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute("ChangeHostObjectIntVar test_host 0 1 1.0");
+  ASSERT_EQ(_host->get_check_interval(), 1);
+  output = execute("ChangeHostObjectIntVar test_host 1 1 2.0");
+  ASSERT_EQ(_host->get_retry_interval(), 2);
+  output = execute("ChangeHostObjectIntVar test_host 2 1 1.0");
+  ASSERT_EQ(_host->get_max_attempts(), 1);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ChangeServiceObjectIntVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(
+      "ChangeServiceObjectIntVar"
+      " test_host test_svc 0 1 1.0");
+  ASSERT_EQ(_svc->get_check_interval(), 1);
+  output = execute(
+      "ChangeServiceObjectIntVar"
+      " test_host test_svc 1 1 2.0");
+  ASSERT_EQ(_svc->get_retry_interval(), 2);
+  output = execute(
+      "ChangeServiceObjectIntVar"
+      " test_host test_svc 2 1 1.0");
+  ASSERT_EQ(_svc->get_max_attempts(), 1);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ChangeContactObjectIntVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(
+      "ChangeContactObjectIntVar"
+      " admin 0 1 1.0");
+  ASSERT_EQ(_contact->get_modified_attributes(), 1);
+  output = execute(
+      "ChangeContactObjectIntVar"
+      " admin 1 2 1.0");
+  ASSERT_EQ(_contact->get_modified_host_attributes(), 2);
+  output = execute(
+      "ChangeContactObjectIntVar"
+      " admin 2 3 1.0");
+  ASSERT_EQ(_contact->get_modified_service_attributes(), 3);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  erpc.shutdown();
+}
 
 TEST_F(EngineRpc, ScheduleHostDowntime) {
   enginerpc erpc("0.0.0.0", 40001);

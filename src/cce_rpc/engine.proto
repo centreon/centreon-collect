@@ -29,7 +29,6 @@ package com.centreon.engine;
 service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(GenericString) returns (Stats) {}
-
   rpc GetHost(HostIdentifier) returns (EngineHost) {}
   rpc GetContact(ContactIdentifier) returns (EngineContact) {}
   rpc GetService(ServiceIdentifier) returns (EngineService) {}
@@ -95,6 +94,12 @@ service Engine {
   rpc ScheduleServiceCheck(ServiceCheckIdentifier)
       returns (CommandSuccess) {}
   rpc SignalProcess(EngineSignalProcess)
+      returns (CommandSuccess) {}
+  rpc ChangeHostObjectIntVar(ChangeObject) 
+      returns (CommandSuccess) {}
+  rpc ChangeServiceObjectIntVar(ChangeObject) 
+      returns (CommandSuccess) {}
+  rpc ChangeContactObjectIntVar(ChangeContactObject) 
       returns (CommandSuccess) {}
 }
 
@@ -454,4 +459,30 @@ message EngineAcknowledgement {
   Type type = 5;
   bool notify = 6;
   bool persistent = 7;
+}
+
+message ChangeObject {
+  string host_name = 1;
+  string service_desc = 2;
+  enum Mode {
+    NORMAL_CHECK_INTERVAL = 0;
+    RETRY_CHECK_INTERVAL = 1;
+    MAX_ATTEMPTS = 2;
+    MODATTR = 3;
+  }
+  Mode mode = 3;
+  uint32 intval = 4;
+  double dval = 5;
+}
+
+message ChangeContactObject {
+  string contact_name = 1;
+  enum Mode {
+    MODATTR   = 0;
+    MODHATTR  = 1;
+    MODSATTR  = 2;
+  }
+  Mode mode = 2;
+  uint32 intval = 3;
+  double dval = 4;
 }
