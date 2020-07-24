@@ -15,3 +15,8 @@ COPY web/20.04/install-centreon-module.php /tmp/install-centreon-module.php
 COPY autodisco/20.04/install.sh /tmp/install.sh
 RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
     /tmp/install.sh
+
+# Install license file.
+COPY lm/20.04/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
+COPY lm/20.04/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
+COPY ppm/epp.license.offline /etc/centreon/license.d/epp.license

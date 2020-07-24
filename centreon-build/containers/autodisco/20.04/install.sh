@@ -4,6 +4,7 @@ set -e
 set -x
 
 service mysql start
-/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-pp-manager
-/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-autodiscovery-server
+su -s /bin/bash -c "/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-license-manager" apache
+su -s /bin/bash -c "/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-pp-manager" apache
+su -s /bin/bash -c "/tmp/install-centreon-module.php -b /usr/share/centreon/bootstrap.php -m centreon-autodiscovery-server" apache
 service mysql stop
