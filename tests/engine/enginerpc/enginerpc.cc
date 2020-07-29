@@ -906,6 +906,84 @@ TEST_F(EngineRpc, ChangeContactObjectIntVar) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, ChangeHostObjectCustomVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  ASSERT_EQ(_host->custom_variables.size(), 0);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output = execute(
+      "ChangeHostObjectCustomVar"
+      " test_host test_var test_val");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(_host->custom_variables.size(), 1u);
+  ASSERT_EQ(_host->custom_variables["TEST_VAR"].get_value(), "test_val");
+  _host->custom_variables.clear();
+  ASSERT_EQ(_host->custom_variables.size(), 0);
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ChangeServiceObjectCustomVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  _svc->custom_variables.clear();
+  ASSERT_EQ(_svc->custom_variables.size(), 0);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output = execute(
+      "ChangeServiceObjectCustomVar"
+      " test_host test_svc test_var test_val");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(_svc->custom_variables.size(), 1u);
+  ASSERT_EQ(_svc->custom_variables["TEST_VAR"].get_value(), "test_val");
+  _svc->custom_variables.clear();
+  ASSERT_EQ(_svc->custom_variables.size(), 0);
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ChangeContactObjectCustomVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+  ASSERT_EQ(_contact->get_custom_variables().size(), 0);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output = execute(
+      "ChangeContactObjectCustomVar"
+      " admin test_var test_val");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+  ASSERT_EQ(_contact->get_custom_variables().size(), 1u);
+  ASSERT_EQ(_contact->get_custom_variables()["TEST_VAR"].get_value(),
+            "test_val");
+
+  erpc.shutdown();
+}
+
 TEST_F(EngineRpc, ScheduleHostDowntime) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;

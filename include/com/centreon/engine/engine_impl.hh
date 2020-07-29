@@ -178,14 +178,36 @@ class engine_impl final : public Engine::Service {
                                         const ServiceDelayIdentifier* request,
                                         CommandSuccess* response) override;
   grpc::Status ChangeHostObjectIntVar(grpc::ServerContext* context,
-                                      const ChangeObject* request,
+                                      const ChangeObjectInt* request,
                                       CommandSuccess* response) override;
   grpc::Status ChangeServiceObjectIntVar(grpc::ServerContext* context,
-                                         const ChangeObject* request,
+                                         const ChangeObjectInt* request,
                                          CommandSuccess* response) override;
   grpc::Status ChangeContactObjectIntVar(grpc::ServerContext* context,
-                                         const ChangeContactObject* request,
+                                         const ChangeContactObjectInt* request,
                                          CommandSuccess* response) override;
+  grpc::Status ChangeHostObjectCharVar(grpc::ServerContext* context,
+                                       const ChangeObjectChar* request,
+                                       CommandSuccess* response) override;
+  grpc::Status ChangeServiceObjectCharVar(grpc::ServerContext* context,
+                                          const ChangeObjectChar* request,
+                                          CommandSuccess* response) override;
+  grpc::Status ChangeContactObjectCharVar(
+      grpc::ServerContext* context,
+      const ChangeContactObjectChar* request,
+      CommandSuccess* response) override;
+  grpc::Status ChangeHostObjectCustomVar(grpc::ServerContext* context
+                                         __attribute__((unused)),
+                                         const ChangeObjectCustomVar* request,
+                                         CommandSuccess* response) override;
+  grpc::Status ChangeServiceObjectCustomVar(
+      grpc::ServerContext* context __attribute__((unused)),
+      const ChangeObjectCustomVar* request,
+      CommandSuccess* response) override;
+  grpc::Status ChangeContactObjectCustomVar(
+      grpc::ServerContext* context __attribute__((unused)),
+      const ChangeObjectCustomVar* request,
+      CommandSuccess* response) override;
 };
 
 CCE_END()

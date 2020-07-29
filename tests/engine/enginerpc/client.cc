@@ -1097,11 +1097,11 @@ class EngineRPCClient {
                               uint32_t& intval,
                               double& dval,
                               CommandSuccess* response) {
-    ChangeObject request;
+    ChangeObjectInt request;
     grpc::ClientContext context;
 
     request.set_host_name(hostname);
-    request.set_mode(static_cast<ChangeObject::Mode>(mode));
+    request.set_mode(static_cast<ChangeObjectInt::Mode>(mode));
     request.set_intval(intval);
     request.set_dval(dval);
 
@@ -1120,12 +1120,12 @@ class EngineRPCClient {
                                  uint32_t& intval,
                                  double& dval,
                                  CommandSuccess* response) {
-    ChangeObject request;
+    ChangeObjectInt request;
     grpc::ClientContext context;
 
     request.set_host_name(hostname);
     request.set_service_desc(servicedesc);
-    request.set_mode(static_cast<ChangeObject::Mode>(mode));
+    request.set_mode(static_cast<ChangeObjectInt::Mode>(mode));
     request.set_intval(intval);
     request.set_dval(dval);
 
@@ -1143,17 +1143,78 @@ class EngineRPCClient {
                                  uint32_t& intval,
                                  double& dval,
                                  CommandSuccess* response) {
-    ChangeContactObject request;
+    ChangeContactObjectInt request;
     grpc::ClientContext context;
 
     request.set_contact_name(contactname);
-    request.set_mode(static_cast<ChangeContactObject::Mode>(mode));
+    request.set_mode(static_cast<ChangeContactObjectInt::Mode>(mode));
     request.set_intval(intval);
     request.set_dval(dval);
     grpc::Status status =
         _stub->ChangeContactObjectIntVar(&context, request, response);
     if (!status.ok()) {
       std::cout << "ChangeContactObjectIntVar rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ChangeHostObjectCustomVar(std::string const& hostname,
+                                 std::string const& varname,
+                                 std::string const& varvalue,
+                                 CommandSuccess* response) {
+    ChangeObjectCustomVar request;
+    grpc::ClientContext context;
+
+    request.set_host_name(hostname);
+    request.set_varname(varname);
+    request.set_varvalue(varvalue);
+    grpc::Status status =
+        _stub->ChangeHostObjectCustomVar(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "ChangeHostObjectCustomVar rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ChangeServiceObjectCustomVar(std::string const& hostname,
+                                    std::string const& servicedesc,
+                                    std::string const& varname,
+                                    std::string const& varvalue,
+                                    CommandSuccess* response) {
+    ChangeObjectCustomVar request;
+    grpc::ClientContext context;
+
+    request.set_host_name(hostname);
+    request.set_service_desc(servicedesc);
+    request.set_varname(varname);
+    request.set_varvalue(varvalue);
+    grpc::Status status =
+        _stub->ChangeServiceObjectCustomVar(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "ChangeServiceObjectCustomVar rpc engine failed"
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ChangeContactObjectCustomVar(std::string const& contact,
+                                    std::string const& varname,
+                                    std::string const& varvalue,
+                                    CommandSuccess* response) {
+    ChangeObjectCustomVar request;
+    grpc::ClientContext context;
+
+    request.set_contact(contact);
+    request.set_varname(varname);
+    request.set_varvalue(varvalue);
+    grpc::Status status =
+        _stub->ChangeContactObjectCustomVar(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "ChangeContactObjectCustomVar rpc engine failed"
+                << std::endl;
       return false;
     }
     return true;
@@ -1910,6 +1971,34 @@ int main(int argc, char** argv) {
     status = client.ChangeContactObjectIntVar(contactname, mode, intval, dval,
                                               &response);
     std::cout << "ChangeContactObjectIntVar" << std::endl;
+  } else if (strcmp(argv[1], "ChangeHostObjectCustomVar") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string varname(argv[3]);
+    std::string varvalue(argv[4]);
+
+    status = client.ChangeHostObjectCustomVar(hostname, varname, varvalue,
+                                              &response);
+    std::cout << "ChangeHostObjectCustomVar" << std::endl;
+  } else if (strcmp(argv[1], "ChangeServiceObjectCustomVar") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string servicedesc(argv[3]);
+    std::string varname(argv[4]);
+    std::string varvalue(argv[5]);
+
+    status = client.ChangeServiceObjectCustomVar(hostname, servicedesc, varname,
+                                                 varvalue, &response);
+    std::cout << "ChangeServiceObjectCustomVar" << std::endl;
+  } else if (strcmp(argv[1], "ChangeContactObjectCustomVar") == 0) {
+    CommandSuccess response;
+    std::string contact(argv[2]);
+    std::string varname(argv[3]);
+    std::string varvalue(argv[4]);
+
+    status = client.ChangeContactObjectCustomVar(contact, varname, varvalue,
+                                                 &response);
+    std::cout << "ChangeContactObjectCustomVar" << std::endl;
   } else {
     std::cout << "unknown command" << std::endl;
     status = EXIT_FAILURE;

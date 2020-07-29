@@ -21,7 +21,7 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <algorithm>
 #include <functional>
 #include <future>
 
@@ -2082,7 +2082,7 @@ grpc::Status engine_impl::DelayServiceNotification(
 
 grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
                                                  __attribute__((unused)),
-                                                 const ChangeObject* request,
+                                                 const ChangeObjectInt* request,
                                                  CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
@@ -2093,7 +2093,8 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (ChangeObject::Mode_Name(request->mode()) == "NORMAL_CHECK_INTERVAL") {
+    if (ChangeObjectInt::Mode_Name(request->mode()) ==
+        "NORMAL_CHECK_INTERVAL") {
       /* save the old check interval */
       double old_dval = temp_host->get_check_interval();
 
@@ -2124,11 +2125,11 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
           temp_host->schedule_check(temp_host->get_next_check(),
                                     CHECK_OPTION_NONE);
       }
-    } else if (ChangeObject::Mode_Name(request->mode()) ==
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) ==
                "RETRY_CHECK_INTERVAL") {
       temp_host->set_retry_interval(request->dval());
       attr = MODATTR_RETRY_CHECK_INTERVAL;
-    } else if (ChangeObject::Mode_Name(request->mode()) == "MAX_ATTEMPTS") {
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MAX_ATTEMPTS") {
       temp_host->set_max_attempts(request->intval());
       attr = MODATTR_MAX_CHECK_ATTEMPTS;
 
@@ -2137,13 +2138,13 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
           temp_host->get_current_state() != host::state_up &&
           temp_host->get_current_attempt() > 1)
         temp_host->set_current_attempt(temp_host->get_max_attempts());
-    } else if (ChangeObject::Mode_Name(request->mode()) == "MODATTR") {
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR") {
       attr = request->intval();
     } else {
       return 1;
     }
 
-    if (ChangeObject::Mode_Name(request->mode()) == "MODATTR")
+    if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
       temp_host->set_modified_attributes(attr);
     else
       temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
@@ -2166,10 +2167,10 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
-grpc::Status engine_impl::ChangeServiceObjectIntVar(grpc::ServerContext* context
-                                                    __attribute__((unused)),
-                                                    const ChangeObject* request,
-                                                    CommandSuccess* response) {
+grpc::Status engine_impl::ChangeServiceObjectIntVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectInt* request,
+    CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
     unsigned long attr = MODATTR_NONE;
@@ -2180,7 +2181,8 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(grpc::ServerContext* context
       temp_service = it->second;
     if (temp_service == nullptr)
       return 1;
-    if (ChangeObject::Mode_Name(request->mode()) == "NORMAL_CHECK_INTERVAL") {
+    if (ChangeObjectInt::Mode_Name(request->mode()) ==
+        "NORMAL_CHECK_INTERVAL") {
       /* save the old check interval */
       double old_dval = temp_service->get_check_interval();
 
@@ -2212,11 +2214,11 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(grpc::ServerContext* context
           temp_service->schedule_check(temp_service->get_next_check(),
                                        CHECK_OPTION_NONE);
       }
-    } else if (ChangeObject::Mode_Name(request->mode()) ==
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) ==
                "RETRY_CHECK_INTERVAL") {
       temp_service->set_retry_interval(request->dval());
       attr = MODATTR_RETRY_CHECK_INTERVAL;
-    } else if (ChangeObject::Mode_Name(request->mode()) == "MAX_ATTEMPTS") {
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MAX_ATTEMPTS") {
       temp_service->set_max_attempts(request->intval());
       attr = MODATTR_MAX_CHECK_ATTEMPTS;
 
@@ -2225,13 +2227,13 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(grpc::ServerContext* context
           temp_service->get_current_state() != service::state_ok &&
           temp_service->get_current_attempt() > 1)
         temp_service->set_current_attempt(temp_service->get_max_attempts());
-    } else if (ChangeObject::Mode_Name(request->mode()) == "MODATTR")
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
       attr = request->intval();
     else {
       return 1;
     }
 
-    if (ChangeObject::Mode_Name(request->mode()) == "MODATTR")
+    if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
       temp_service->set_modified_attributes(attr);
     else
       temp_service->set_modified_attributes(
@@ -2256,7 +2258,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(grpc::ServerContext* context
 
 grpc::Status engine_impl::ChangeContactObjectIntVar(
     grpc::ServerContext* context __attribute__((unused)),
-    const ChangeContactObject* request,
+    const ChangeContactObjectInt* request,
     CommandSuccess* response) {
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<com::centreon::engine::contact> temp_contact;
@@ -2271,13 +2273,15 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
       return 1;
     }
 
-    if (ChangeContactObject::Mode_Name(request->mode()) == "MODATTR") {
+    if (ChangeContactObjectInt::Mode_Name(request->mode()) == "MODATTR") {
       attr = request->intval();
       temp_contact->set_modified_attributes(attr);
-    } else if (ChangeContactObject::Mode_Name(request->mode()) == "MODHATTR") {
+    } else if (ChangeContactObjectInt::Mode_Name(request->mode()) ==
+               "MODHATTR") {
       hattr = request->intval();
       temp_contact->set_modified_host_attributes(hattr);
-    } else if (ChangeContactObject::Mode_Name(request->mode()) == "MODSATTR") {
+    } else if (ChangeContactObjectInt::Mode_Name(request->mode()) ==
+               "MODSATTR") {
       sattr = request->intval();
       temp_contact->set_modified_service_attributes(sattr);
     } else {
@@ -2296,6 +2300,167 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
     temp_contact->update_status_info(false);
     return 0;
   });
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeHostObjectCharVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectChar* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    if (ChangeObjectChar::Mode_Name(request->mode()) == "") {
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeServiceObjectCharVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectChar* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    if (ChangeObjectChar::Mode_Name(request->mode()) == "") {
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeContactObjectCharVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeContactObjectChar* request,
+    CommandSuccess* response) {
+  auto fn =
+      std::packaged_task<int32_t(void)>([request]() -> int32_t { return 0; });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeHostObjectCustomVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectCustomVar* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    // std::shared_ptr<engine::host> temp_host;
+    host* temp_host{nullptr};
+    std::string varname(request->varname());
+
+    std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
+    host_map::const_iterator it_h(host::hosts.find(request->host_name()));
+    if (it_h != host::hosts.end())
+      temp_host = it_h->second.get();
+    if (temp_host == nullptr)
+      return 1;
+    map_customvar::iterator it(temp_host->custom_variables.find(varname));
+    if (it == temp_host->custom_variables.end())
+      temp_host->custom_variables[varname] =
+          customvariable(request->varvalue());
+    else
+      it->second.update(request->varvalue());
+    /* set the modified attributes and update the status of the object */
+    temp_host->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
+    temp_host->update_status(false);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeServiceObjectCustomVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectCustomVar* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+  if (request->service_desc().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "service description must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    service* temp_service{nullptr};
+    std::string varname(request->varname());
+
+    std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
+    service_map::const_iterator it_s(service::services.find(
+        {request->host_name(), request->service_desc()}));
+    if (it_s != service::services.end())
+      temp_service = it_s->second.get();
+    if (temp_service == nullptr)
+      return 1;
+    map_customvar::iterator it(temp_service->custom_variables.find(varname));
+    if (it == temp_service->custom_variables.end())
+      temp_service->custom_variables[varname] =
+          customvariable(request->varvalue());
+    else
+      it->second.update(request->varvalue());
+    temp_service->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
+    temp_service->update_status(false);
+    std::cout << "aaa" << std::endl;
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeContactObjectCustomVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectCustomVar* request,
+    CommandSuccess* response) {
+  if (request->contact().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    contact* temp_contact{nullptr};
+    std::string varname(request->varname());
+
+    std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
+    contact_map::iterator cnct_it = contact::contacts.find(request->contact());
+    if (cnct_it != contact::contacts.end())
+      temp_contact = cnct_it->second.get();
+    if (temp_contact == nullptr)
+      return 1;
+    map_customvar::iterator it(
+        temp_contact->get_custom_variables().find(varname));
+    if (it == temp_contact->get_custom_variables().end())
+      temp_contact->get_custom_variables()[varname] =
+          customvariable(request->varvalue());
+    else
+      it->second.update(request->varvalue());
+    return 0;
+  });
+
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
