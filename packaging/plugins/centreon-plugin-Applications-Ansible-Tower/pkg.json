@@ -4,6 +4,8 @@
     "plugin_name": "centreon_ansible_tower.pl",
     "files": [
         "centreon/plugins/script_custom.pm",
+	"centreon/plugins/http.pm",
+	"centreon/plugins/backend/http/",
         "apps/automation/ansible/tower/"
     ]
 }
