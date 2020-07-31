@@ -1159,6 +1159,68 @@ class EngineRPCClient {
     return true;
   }
 
+  bool ChangeHostObjectCharVar(std::string const& hostname,
+                                 uint32_t mode,
+                                 std::string charval,
+                                 CommandSuccess* response) {
+    ChangeObjectChar request;
+    grpc::ClientContext context;
+    
+    request.set_host_name(hostname);
+    request.set_mode(static_cast<ChangeObjectChar::Mode>(mode));
+    request.set_charval(charval);
+
+    grpc::Status status =
+        _stub->ChangeHostObjectCharVar(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "ChangeHostObjectCharVar rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+  
+  bool ChangeServiceObjectCharVar(std::string const& hostname,
+                                  std::string const& servicedesc,
+                                  uint32_t mode,
+                                  std::string charval,
+                                  CommandSuccess* response) {
+    ChangeObjectChar request;
+    grpc::ClientContext context;
+    
+    request.set_host_name(hostname);
+    request.set_service_desc(servicedesc);
+    request.set_mode(static_cast<ChangeObjectChar::Mode>(mode));
+    request.set_charval(charval);
+
+    grpc::Status status =
+        _stub->ChangeServiceObjectCharVar(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "ChangeServiceObjectCharVar rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool ChangeContactObjectCharVar(std::string const& contact,
+                                  uint32_t mode,
+                                  std::string charval,
+                                  CommandSuccess* response) {
+    ChangeContactObjectChar request;
+    grpc::ClientContext context;
+    
+    request.set_contact(contact);
+    request.set_mode(static_cast<ChangeContactObjectChar::Mode>(mode));
+    request.set_charval(charval);
+
+    grpc::Status status =
+        _stub->ChangeContactObjectCharVar(&context, request, response);
+    if (!status.ok()) {
+      std::cout << "ChangeContactObjectCharVar rpc engine failed" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool ChangeHostObjectCustomVar(std::string const& hostname,
                                  std::string const& varname,
                                  std::string const& varvalue,
@@ -1999,6 +2061,34 @@ int main(int argc, char** argv) {
     status = client.ChangeContactObjectCustomVar(contact, varname, varvalue,
                                                  &response);
     std::cout << "ChangeContactObjectCustomVar" << std::endl;
+  } else if (strcmp(argv[1], "ChangeHostObjectCharVar") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    uint32_t mode = atoi(argv[3]);
+    std::string charval(argv[4]);
+
+    status = client.ChangeHostObjectCharVar(hostname, mode, charval,
+                                                 &response);
+    std::cout << "ChangeHostObjectCharVar " << status  << std::endl;
+  } else if (strcmp(argv[1], "ChangeServiceObjectCharVar") == 0) {
+    CommandSuccess response;
+    std::string hostname(argv[2]);
+    std::string servicedesc(argv[3]);
+    uint32_t mode = atoi(argv[4]);
+    std::string charval(argv[5]);
+
+    status = client.ChangeServiceObjectCharVar(hostname, servicedesc, 
+        mode, charval, &response);
+    std::cout << "ChangeServiceObjectCharVar " << status  << std::endl;
+  } else if (strcmp(argv[1], "ChangeContactObjectCharVar") == 0) {
+    CommandSuccess response;
+    std::string contact(argv[2]);
+    uint32_t mode = atoi(argv[3]);
+    std::string charval(argv[4]);
+
+    status = client.ChangeContactObjectCharVar(contact, 
+        mode, charval, &response);
+    std::cout << "ChangeContactObjectCharVar " << status  << std::endl;
   } else {
     std::cout << "unknown command" << std::endl;
     status = EXIT_FAILURE;

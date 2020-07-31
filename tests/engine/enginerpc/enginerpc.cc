@@ -906,6 +906,118 @@ TEST_F(EngineRpc, ChangeContactObjectIntVar) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, ChangeHostObjectCharVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+  
+  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(
+      "ChangeHostObjectCharVar"
+      " null 0 cmd");
+  ASSERT_EQ(output.back(), "ChangeHostObjectCharVar 1");
+  output = execute(
+      "ChangeHostObjectCharVar"
+      " test_host 1 cmd");
+  ASSERT_EQ(_host->get_event_handler(), "cmd");
+  output = execute(
+      "ChangeHostObjectCharVar"
+      " test_host 2 cmd");
+  ASSERT_EQ(_host->get_check_command(), "cmd");
+  output = execute(
+      "ChangeHostObjectCharVar"
+      " test_host 3 24x7");
+  ASSERT_EQ(_host->get_check_period(), "24x7");
+  output = execute(
+      "ChangeHostObjectCharVar"
+      " test_host 4 24x7");
+  ASSERT_EQ(_host->get_notification_period(), "24x7");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+  
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+  
+  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(
+      "ChangeServiceObjectCharVar"
+      " null null 0 cmd");
+  ASSERT_EQ(output.back(), "ChangeServiceObjectCharVar 1");
+  output = execute(
+      "ChangeServiceObjectCharVar"
+      " test_host test_svc 1 cmd");
+  ASSERT_EQ(_svc->get_event_handler(), "cmd");
+  output = execute(
+      "ChangeServiceObjectCharVar"
+      " test_host test_svc 2 cmd");
+  ASSERT_EQ(_svc->get_check_command(), "cmd");
+  output = execute(
+      "ChangeServiceObjectCharVar"
+      " test_host test_svc 3 24x7");
+  ASSERT_EQ(_svc->get_check_period(), "24x7");
+  output = execute(
+      "ChangeServiceObjectCharVar"
+      " test_host test_svc 4 24x7");
+  ASSERT_EQ(_svc->get_notification_period(), "24x7");
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+  
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ChangeContactObjectCharVar) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+
+  auto output = execute(
+      "ChangeContactObjectCharVar"
+      " admin 0 24x7");
+  ASSERT_EQ(_contact->get_host_notification_period(), "24x7");
+  output = execute(
+      "ChangeContactObjectCharVar"
+      " admin 1 24x7");
+  ASSERT_EQ(_contact->get_service_notification_period(), "24x7");
+
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  erpc.shutdown();
+}
+
 TEST_F(EngineRpc, ChangeHostObjectCustomVar) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;
