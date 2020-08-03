@@ -29,7 +29,6 @@ package com.centreon.engine;
 service Engine {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(GenericString) returns (Stats) {}
-
   rpc GetHost(HostIdentifier) returns (EngineHost) {}
   rpc GetContact(ContactIdentifier) returns (EngineContact) {}
   rpc GetService(ServiceIdentifier) returns (EngineService) {}
@@ -96,6 +95,25 @@ service Engine {
       returns (CommandSuccess) {}
   rpc SignalProcess(EngineSignalProcess)
       returns (CommandSuccess) {}
+  rpc ChangeHostObjectIntVar(ChangeObjectInt) 
+      returns (CommandSuccess) {}
+  rpc ChangeServiceObjectIntVar(ChangeObjectInt) 
+      returns (CommandSuccess) {}
+  rpc ChangeContactObjectIntVar(ChangeContactObjectInt) 
+      returns (CommandSuccess) {}
+  rpc ChangeHostObjectCharVar(ChangeObjectChar) 
+      returns (CommandSuccess) {}
+  rpc ChangeServiceObjectCharVar(ChangeObjectChar) 
+      returns (CommandSuccess) {}
+  rpc ChangeContactObjectCharVar(ChangeContactObjectChar) 
+      returns (CommandSuccess) {}
+  rpc ChangeHostObjectCustomVar(ChangeObjectCustomVar) 
+      returns (CommandSuccess) {}
+  rpc ChangeServiceObjectCustomVar(ChangeObjectCustomVar) 
+      returns (CommandSuccess) {}
+  rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar) 
+      returns (CommandSuccess) {}
+
 }
 
 message GenericString {
@@ -454,4 +472,66 @@ message EngineAcknowledgement {
   Type type = 5;
   bool notify = 6;
   bool persistent = 7;
+}
+
+/* used for a host or a service */
+message ChangeObjectInt {
+  string host_name = 1;
+  string service_desc = 2;
+  enum Mode {
+    NORMAL_CHECK_INTERVAL = 0;
+    RETRY_CHECK_INTERVAL = 1;
+    MAX_ATTEMPTS = 2;
+    MODATTR = 3;
+  }
+  Mode mode = 3;
+  uint32 intval = 4;
+  double dval = 5;
+}
+
+/* used for a contact */
+message ChangeContactObjectInt {
+  string contact_name = 1;
+  enum Mode {
+    MODATTR   = 0;
+    MODHATTR  = 1;
+    MODSATTR  = 2;
+  }
+  Mode mode = 2;
+  uint32 intval = 3;
+  double dval = 4;
+}
+
+/* used for a host or a service */
+message ChangeObjectChar {
+  string host_name = 1;
+  string service_desc = 2;
+  enum Mode {
+     CHANGE_GLOBAL_EVENT_HANDLER = 0;
+     CHANGE_EVENT_HANDLER = 1;
+     CHANGE_CHECK_COMMAND = 2;
+     CHANGE_CHECK_TIMEPERIOD = 3;
+     CHANGE_NOTIFICATION_TIMEPERIOD = 4;
+  }
+  Mode mode = 3;
+  string charval = 4;
+}
+
+/* used for a contact */
+message ChangeContactObjectChar {
+  string contact = 1;
+  enum Mode {
+    CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD = 0;
+    CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD = 1;
+  }
+  Mode mode = 2;
+  string charval = 3;
+}
+
+message ChangeObjectCustomVar {
+  string host_name = 1;
+  string service_desc = 2;
+  string contact = 3;
+  string varname = 4;
+  string varvalue = 5;
 }

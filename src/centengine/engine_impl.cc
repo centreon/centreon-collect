@@ -21,10 +21,11 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <algorithm>
 #include <functional>
 #include <future>
 
+#include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
@@ -1704,7 +1705,6 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
                         .end();
          it != end; ++it) {
       auto dt = it->second;
-      std::cout << dt->get_hostname() << std::endl;
       if (!(request->host_name().empty()) &&
           dt->get_hostname() != request->host_name())
         continue;
@@ -2070,6 +2070,639 @@ grpc::Status engine_impl::DelayServiceNotification(
     }
 
     temp_service->set_next_notification(request->delay_time());
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
+                                                 __attribute__((unused)),
+                                                 const ChangeObjectInt* request,
+                                                 CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    unsigned long attr = MODATTR_NONE;
+
+    auto it = host::hosts.find(request->host_name());
+    if (it != host::hosts.end())
+      temp_host = it->second;
+    if (temp_host == nullptr)
+      return 1;
+    if (ChangeObjectInt::Mode_Name(request->mode()) ==
+        "NORMAL_CHECK_INTERVAL") {
+      /* save the old check interval */
+      double old_dval = temp_host->get_check_interval();
+
+      /* modify the check interval */
+      temp_host->set_check_interval(request->dval());
+      attr = MODATTR_NORMAL_CHECK_INTERVAL;
+
+      /* schedule a host check if previous interval was 0 (checks were not
+       * regularly scheduled) */
+      if (old_dval == 0 && temp_host->get_checks_enabled()) {
+        time_t preferred_time(0);
+        time_t next_valid_time(0);
+        /* set the host check flag */
+        temp_host->set_should_be_scheduled(true);
+
+        /* schedule a check for right now (or as soon as possible) */
+        time(&preferred_time);
+        if (!check_time_against_period(preferred_time,
+                                       temp_host->check_period_ptr)) {
+          get_next_valid_time(preferred_time, &next_valid_time,
+                              temp_host->check_period_ptr);
+          temp_host->set_next_check(next_valid_time);
+        } else
+          temp_host->set_next_check(preferred_time);
+
+        /* schedule a check if we should */
+        if (temp_host->get_should_be_scheduled())
+          temp_host->schedule_check(temp_host->get_next_check(),
+                                    CHECK_OPTION_NONE);
+      }
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) ==
+               "RETRY_CHECK_INTERVAL") {
+      temp_host->set_retry_interval(request->dval());
+      attr = MODATTR_RETRY_CHECK_INTERVAL;
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MAX_ATTEMPTS") {
+      temp_host->set_max_attempts(request->intval());
+      attr = MODATTR_MAX_CHECK_ATTEMPTS;
+
+      /* adjust current attempt number if in a hard state */
+      if (temp_host->get_state_type() == notifier::hard &&
+          temp_host->get_current_state() != host::state_up &&
+          temp_host->get_current_attempt() > 1)
+        temp_host->set_current_attempt(temp_host->get_max_attempts());
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR") {
+      attr = request->intval();
+    } else return 1;
+
+    if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
+      temp_host->set_modified_attributes(attr);
+    else
+      temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
+                                         attr);
+
+    /* send data to event broker */
+    broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
+                              NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
+                              temp_host->get_modified_attributes(), nullptr);
+
+    /* update the status log with the host info */
+    temp_host->update_status(false);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeServiceObjectIntVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectInt* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::service> temp_service;
+    unsigned long attr = MODATTR_NONE;
+
+    auto it =
+        service::services.find({request->host_name(), request->service_desc()});
+    if (it != service::services.end())
+      temp_service = it->second;
+    if (temp_service == nullptr)
+      return 1;
+    if (ChangeObjectInt::Mode_Name(request->mode()) ==
+        "NORMAL_CHECK_INTERVAL") {
+      /* save the old check interval */
+      double old_dval = temp_service->get_check_interval();
+
+      /* modify the check interval */
+      temp_service->set_check_interval(request->dval());
+      attr = MODATTR_NORMAL_CHECK_INTERVAL;
+
+      /* schedule a service check if previous interval was 0 (checks were not
+       * regularly scheduled) */
+      if (old_dval == 0 && temp_service->get_checks_enabled() &&
+          temp_service->get_check_interval() != 0) {
+        time_t preferred_time(0);
+        time_t next_valid_time(0);
+        /* set the service check flag */
+        temp_service->set_should_be_scheduled(true);
+
+        /* schedule a check for right now (or as soon as possible) */
+        time(&preferred_time);
+        if (!check_time_against_period(preferred_time,
+                                       temp_service->check_period_ptr)) {
+          get_next_valid_time(preferred_time, &next_valid_time,
+                              temp_service->check_period_ptr);
+          temp_service->set_next_check(next_valid_time);
+        } else
+          temp_service->set_next_check(preferred_time);
+
+        /* schedule a check if we should */
+        if (temp_service->get_should_be_scheduled())
+          temp_service->schedule_check(temp_service->get_next_check(),
+                                       CHECK_OPTION_NONE);
+      }
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) ==
+               "RETRY_CHECK_INTERVAL") {
+      temp_service->set_retry_interval(request->dval());
+      attr = MODATTR_RETRY_CHECK_INTERVAL;
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MAX_ATTEMPTS") {
+      temp_service->set_max_attempts(request->intval());
+      attr = MODATTR_MAX_CHECK_ATTEMPTS;
+
+      /* adjust current attempt number if in a hard state */
+      if (temp_service->get_state_type() == notifier::hard &&
+          temp_service->get_current_state() != service::state_ok &&
+          temp_service->get_current_attempt() > 1)
+        temp_service->set_current_attempt(temp_service->get_max_attempts());
+    } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
+      attr = request->intval();
+    else return 1;
+
+    if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
+      temp_service->set_modified_attributes(attr);
+    else
+      temp_service->set_modified_attributes(
+          temp_service->get_modified_attributes() | attr);
+    /* send data to event broker */
+    broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                 NEBATTR_NONE, temp_service.get(), CMD_NONE,
+                                 attr, temp_service->get_modified_attributes(),
+                                 nullptr);
+
+    /* update the status log with the service info */
+    temp_service->update_status(false);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeContactObjectIntVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeContactObjectInt* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contact> temp_contact;
+    unsigned long attr = MODATTR_NONE;
+    unsigned long hattr = MODATTR_NONE;
+    unsigned long sattr = MODATTR_NONE;
+
+    auto itcontactname = contact::contacts.find(request->contact_name());
+    if (itcontactname != contact::contacts.end())
+      temp_contact = itcontactname->second;
+    else {
+      return 1;
+    }
+
+    if (ChangeContactObjectInt::Mode_Name(request->mode()) == "MODATTR") {
+      attr = request->intval();
+      temp_contact->set_modified_attributes(attr);
+    } else if (ChangeContactObjectInt::Mode_Name(request->mode()) ==
+               "MODHATTR") {
+      hattr = request->intval();
+      temp_contact->set_modified_host_attributes(hattr);
+    } else if (ChangeContactObjectInt::Mode_Name(request->mode()) ==
+               "MODSATTR") {
+      sattr = request->intval();
+      temp_contact->set_modified_service_attributes(sattr);
+    } else return 1;
+
+    /* send data to event broker */
+    broker_adaptive_contact_data(
+        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+        temp_contact.get(), CMD_NONE, attr,
+        temp_contact->get_modified_attributes(), hattr,
+        temp_contact->get_modified_host_attributes(), sattr,
+        temp_contact->get_modified_service_attributes(), nullptr);
+
+    /* update the status log with the contact info */
+    temp_contact->update_status_info(false);
+    return 0;
+  });
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeHostObjectCharVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectChar* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::host> temp_host;
+    timeperiod* temp_timeperiod{nullptr};
+    command_map::iterator cmd_found;
+    unsigned long attr{MODATTR_NONE};
+
+    /* For these cases, we verify that the host is valid */
+    if (ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_EVENT_HANDLER"           ||
+        ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_CHECK_COMMAND"           ||
+        ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_CHECK_TIMEPERIOD"        ||
+        ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_NOTIFICATION_TIMEPERIOD") {
+      auto it = host::hosts.find(request->host_name());
+      if (it != host::hosts.end())
+        temp_host = it->second;
+      if (temp_host == nullptr)
+        return 1;
+    }
+
+    /* make sure the timeperiod is valid */
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+        "CHANGE_CHECK_TIMEPERIOD" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+        "CHANGE_NOTIFICATION_TIMEPERIOD") {
+      auto found = timeperiod::timeperiods.find(request->charval());
+      if (found != timeperiod::timeperiods.end())
+        temp_timeperiod = found->second.get();
+      if (temp_timeperiod == nullptr)
+        return 1;
+    }
+    /* make sure the command exists */
+    else {
+      cmd_found = commands::command::commands.find(request->charval());
+      if (cmd_found == commands::command::commands.end() ||
+          !cmd_found->second)
+        return 1;
+    }
+
+    /* update the variable */
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_GLOBAL_EVENT_HANDLER") {
+      config->global_host_event_handler(request->charval());
+      global_host_event_handler_ptr = cmd_found->second.get();
+      attr = MODATTR_EVENT_HANDLER_COMMAND;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_EVENT_HANDLER") {
+      temp_host->set_event_handler(request->charval());
+      temp_host->set_event_handler_ptr(cmd_found->second.get());
+      attr = MODATTR_EVENT_HANDLER_COMMAND;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_CHECK_COMMAND") {
+      temp_host->set_check_command(request->charval());
+      temp_host->set_check_command_ptr(cmd_found->second.get());
+      attr = MODATTR_CHECK_COMMAND;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_CHECK_TIMEPERIOD") {
+      temp_host->set_check_period(request->charval());
+      temp_host->check_period_ptr = temp_timeperiod;
+      attr = MODATTR_CHECK_TIMEPERIOD;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_NOTIFICATION_TIMEPERIOD") {
+      temp_host->set_notification_period(request->charval());
+      temp_host->set_notification_period_ptr(temp_timeperiod);
+      attr = MODATTR_NOTIFICATION_TIMEPERIOD;
+    }
+    else return 1;
+
+    /* send data to event broker and update status file */
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_GLOBAL_EVENT_HANDLER") {
+      /* set the modified host attribute */
+      modified_host_process_attributes |= attr;
+
+      /* send data to event broker */
+      broker_adaptive_program_data(
+          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          CMD_NONE, attr, modified_host_process_attributes, MODATTR_NONE,
+          modified_service_process_attributes, nullptr);
+      /* update program status */
+      update_program_status(false);
+    }
+    else {
+      /* set the modified host attribute */
+      temp_host->add_modified_attributes(attr);
+
+      /* send data to event broker */
+      broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
+                                NEBATTR_NONE, temp_host.get(), CMD_NONE, attr,
+                                temp_host->get_modified_attributes(), nullptr);
+
+      /* update the status log with the host info */
+      temp_host->update_status(false);
+    }
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeServiceObjectCharVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectChar* request,
+    CommandSuccess* response) {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    std::shared_ptr<engine::service> temp_service;
+    timeperiod* temp_timeperiod{nullptr};
+    command_map::iterator cmd_found;
+    unsigned long attr{MODATTR_NONE};
+
+    /* For these cases, we verify that the host is valid */
+    if (ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_EVENT_HANDLER"           ||
+        ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_CHECK_COMMAND"           ||
+        ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_CHECK_TIMEPERIOD"        ||
+        ChangeObjectChar::Mode_Name(request->mode())
+        == "CHANGE_NOTIFICATION_TIMEPERIOD") {
+      /* verify that the service is valid */
+      auto it = service::services.find({request->host_name(),
+          request->service_desc()});
+      if (it != service::services.end())
+        temp_service = it->second;
+      if (temp_service == nullptr)
+        return 1;
+    }
+    /* make sure the timeperiod is valid */
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+        "CHANGE_CHECK_TIMEPERIOD" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+        "CHANGE_NOTIFICATION_TIMEPERIOD") {
+      auto found = timeperiod::timeperiods.find(request->charval());
+      if (found != timeperiod::timeperiods.end())
+        temp_timeperiod = found->second.get();
+      if (temp_timeperiod == nullptr)
+        return 1;
+    }
+    /* make sure the command exists */
+    else {
+      cmd_found = commands::command::commands.find(request->charval());
+      if (cmd_found == commands::command::commands.end() ||
+          !cmd_found->second) {
+        return 1;
+      }
+    }
+
+    /* update the variable */
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_GLOBAL_EVENT_HANDLER") {
+      config->global_service_event_handler(request->charval());
+      global_service_event_handler_ptr = cmd_found->second.get();
+      attr = MODATTR_EVENT_HANDLER_COMMAND;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_EVENT_HANDLER") {
+      temp_service->set_event_handler(request->charval());
+      temp_service->set_event_handler_ptr(cmd_found->second.get());
+      attr = MODATTR_EVENT_HANDLER_COMMAND;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_CHECK_COMMAND") {
+      temp_service->set_check_command(request->charval());
+      temp_service->set_check_command_ptr(cmd_found->second.get());
+      attr = MODATTR_CHECK_COMMAND;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_CHECK_TIMEPERIOD") {
+      temp_service->set_check_period(request->charval());
+      temp_service->check_period_ptr = temp_timeperiod;
+      attr = MODATTR_CHECK_TIMEPERIOD;
+    }
+    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_NOTIFICATION_TIMEPERIOD") {
+      temp_service->set_notification_period(request->charval());
+      temp_service->set_notification_period_ptr(temp_timeperiod);
+      attr = MODATTR_NOTIFICATION_TIMEPERIOD;
+    }
+    else return 1;
+
+    /* send data to event broker and update status file */
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_GLOBAL_EVENT_HANDLER") {
+      /* set the modified service attribute */
+      modified_service_process_attributes |= attr;
+
+      /* send data to event broker */
+      broker_adaptive_program_data(
+          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, CMD_NONE,
+          MODATTR_NONE, modified_host_process_attributes, attr,
+          modified_service_process_attributes, nullptr);
+
+      /* update program status */
+      update_program_status(false);
+    }
+    else {
+      /* set the modified service attribute */
+      temp_service->add_modified_attributes(attr);
+
+      /* send data to event broker */
+      broker_adaptive_service_data(
+          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          temp_service.get(), CMD_NONE, attr,
+          temp_service->get_modified_attributes(), nullptr);
+
+      /* update the status log with the service info */
+      temp_service->update_status(false);
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeContactObjectCharVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeContactObjectChar* request,
+    CommandSuccess* response) {
+  if (request->contact().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact must not be empty");
+
+  auto fn =
+      std::packaged_task<int32_t(void)>([request](void) -> int32_t {
+    std::shared_ptr<engine::contact> temp_contact;
+    timeperiod* temp_timeperiod{nullptr};
+    unsigned long hattr{MODATTR_NONE};
+    unsigned long sattr{MODATTR_NONE};
+
+    auto it = contact::contacts.find(request->contact());
+    if (it != contact::contacts.end())
+      temp_contact= it->second;
+    if (temp_contact == nullptr)
+      return 1;
+
+    auto found = timeperiod::timeperiods.find(request->charval());
+    if (found != timeperiod::timeperiods.end())
+      temp_timeperiod = found->second.get();
+    if (temp_timeperiod == nullptr)
+        return 1;
+    if (ChangeContactObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_HOST_NOTIFICATION_TIMEPERIOD") {
+      temp_contact->set_host_notification_period(request->charval());
+      temp_contact->set_host_notification_period_ptr(temp_timeperiod);
+      hattr = MODATTR_NOTIFICATION_TIMEPERIOD;
+    }
+    else if (ChangeContactObjectChar::Mode_Name(request->mode()) ==
+       "CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD"){
+      temp_contact->set_service_notification_period(request->charval());
+      temp_contact->set_service_notification_period_ptr(temp_timeperiod);
+      hattr = MODATTR_NOTIFICATION_TIMEPERIOD;
+    }
+    else return 1;
+
+    /* set the modified attributes */
+    temp_contact->set_modified_host_attributes(
+          temp_contact->get_modified_host_attributes() | hattr);
+    temp_contact->set_modified_service_attributes(
+          temp_contact->get_modified_service_attributes() | sattr);
+
+    /* send data to event broker */
+    broker_adaptive_contact_data(
+          NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+          temp_contact.get(), CMD_NONE, MODATTR_NONE,
+          temp_contact->get_modified_attributes(), hattr,
+          temp_contact->get_modified_host_attributes(), sattr,
+          temp_contact->get_modified_service_attributes(), nullptr);
+
+    /* update the status log with the contact info */
+    temp_contact->update_status_info(false);
+
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeHostObjectCustomVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectCustomVar* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    // std::shared_ptr<engine::host> temp_host;
+    host* temp_host{nullptr};
+    std::string varname(request->varname());
+
+    std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
+    host_map::const_iterator it_h(host::hosts.find(request->host_name()));
+    if (it_h != host::hosts.end())
+      temp_host = it_h->second.get();
+    if (temp_host == nullptr)
+      return 1;
+    map_customvar::iterator it(temp_host->custom_variables.find(varname));
+    if (it == temp_host->custom_variables.end())
+      temp_host->custom_variables[varname] =
+          customvariable(request->varvalue());
+    else
+      it->second.update(request->varvalue());
+    /* set the modified attributes and update the status of the object */
+    temp_host->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
+    temp_host->update_status(false);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeServiceObjectCustomVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectCustomVar* request,
+    CommandSuccess* response) {
+  if (request->host_name().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name must not be empty");
+  if (request->service_desc().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "service description must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    service* temp_service{nullptr};
+    std::string varname(request->varname());
+
+    std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
+    service_map::const_iterator it_s(service::services.find(
+        {request->host_name(), request->service_desc()}));
+    if (it_s != service::services.end())
+      temp_service = it_s->second.get();
+    if (temp_service == nullptr)
+      return 1;
+    map_customvar::iterator it(temp_service->custom_variables.find(varname));
+    if (it == temp_service->custom_variables.end())
+      temp_service->custom_variables[varname] =
+          customvariable(request->varvalue());
+    else
+      it->second.update(request->varvalue());
+    temp_service->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
+    temp_service->update_status(false);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  response->set_value(!result.get());
+  return grpc::Status::OK;
+}
+
+grpc::Status engine_impl::ChangeContactObjectCustomVar(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ChangeObjectCustomVar* request,
+    CommandSuccess* response) {
+  if (request->contact().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact must not be empty");
+
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
+    contact* temp_contact{nullptr};
+    std::string varname(request->varname());
+
+    std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
+    contact_map::iterator cnct_it = contact::contacts.find(request->contact());
+    if (cnct_it != contact::contacts.end())
+      temp_contact = cnct_it->second.get();
+    if (temp_contact == nullptr)
+      return 1;
+    map_customvar::iterator it(
+        temp_contact->get_custom_variables().find(varname));
+    if (it == temp_contact->get_custom_variables().end())
+      temp_contact->get_custom_variables()[varname] =
+          customvariable(request->varvalue());
+    else
+      it->second.update(request->varvalue());
     return 0;
   });
 

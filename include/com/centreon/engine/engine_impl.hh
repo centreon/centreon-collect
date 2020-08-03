@@ -95,11 +95,12 @@ class engine_impl final : public Engine::Service {
                                             const ServiceIdentifier* request,
                                             CommandSuccess* response) override;
   grpc::Status AcknowledgementHostProblem(grpc::ServerContext* context,
-                                            const EngineAcknowledgement* request,
-                                            CommandSuccess* response) override;
-  grpc::Status AcknowledgementServiceProblem(grpc::ServerContext* context,
-                                            const EngineAcknowledgement* request,
-                                            CommandSuccess* response) override;
+                                          const EngineAcknowledgement* request,
+                                          CommandSuccess* response) override;
+  grpc::Status AcknowledgementServiceProblem(
+      grpc::ServerContext* context,
+      const EngineAcknowledgement* request,
+      CommandSuccess* response) override;
   grpc::Status ScheduleHostDowntime(grpc::ServerContext* context,
                                     const ScheduleDowntimeIdentifier* request,
                                     CommandSuccess* response) override;
@@ -176,6 +177,37 @@ class engine_impl final : public Engine::Service {
   grpc::Status DelayServiceNotification(grpc::ServerContext* context,
                                         const ServiceDelayIdentifier* request,
                                         CommandSuccess* response) override;
+  grpc::Status ChangeHostObjectIntVar(grpc::ServerContext* context,
+                                      const ChangeObjectInt* request,
+                                      CommandSuccess* response) override;
+  grpc::Status ChangeServiceObjectIntVar(grpc::ServerContext* context,
+                                         const ChangeObjectInt* request,
+                                         CommandSuccess* response) override;
+  grpc::Status ChangeContactObjectIntVar(grpc::ServerContext* context,
+                                         const ChangeContactObjectInt* request,
+                                         CommandSuccess* response) override;
+  grpc::Status ChangeHostObjectCharVar(grpc::ServerContext* context,
+                                       const ChangeObjectChar* request,
+                                       CommandSuccess* response) override;
+  grpc::Status ChangeServiceObjectCharVar(grpc::ServerContext* context,
+                                          const ChangeObjectChar* request,
+                                          CommandSuccess* response) override;
+  grpc::Status ChangeContactObjectCharVar(
+      grpc::ServerContext* context,
+      const ChangeContactObjectChar* request,
+      CommandSuccess* response) override;
+  grpc::Status ChangeHostObjectCustomVar(grpc::ServerContext* context
+                                         __attribute__((unused)),
+                                         const ChangeObjectCustomVar* request,
+                                         CommandSuccess* response) override;
+  grpc::Status ChangeServiceObjectCustomVar(
+      grpc::ServerContext* context __attribute__((unused)),
+      const ChangeObjectCustomVar* request,
+      CommandSuccess* response) override;
+  grpc::Status ChangeContactObjectCustomVar(
+      grpc::ServerContext* context __attribute__((unused)),
+      const ChangeObjectCustomVar* request,
+      CommandSuccess* response) override;
 };
 
 CCE_END()
