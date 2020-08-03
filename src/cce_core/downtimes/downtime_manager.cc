@@ -26,6 +26,7 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include <iostream>
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -57,27 +58,28 @@ void downtime_manager::delete_downtime(downtime::type type,
 
 /* unschedules a host or service downtime */
 int downtime_manager::unschedule_downtime(downtime::type type, uint64_t downtime_id) {
-  std::shared_ptr<downtime> temp_downtime{find_downtime(type, downtime_id)};
+  auto found = std::find_if(_scheduled_downtimes.begin(),
+      _scheduled_downtimes.end(),
+      [&type, &downtime_id](std::pair<time_t, std::shared_ptr<downtime>> d) {
+        return downtime_id == d.second->get_downtime_id();
+      });
 
   logger(dbg_functions, basic) << "unschedule_downtime()";
   logger(dbg_downtime, basic)
     << "unschedule downtime(type:" << type << ", id: " << downtime_id << ")";
 
   /* find the downtime entry in the list in memory */
-  if (!temp_downtime)
+  if (found == _scheduled_downtimes.end())
     return ERROR;
 
-  if (temp_downtime->unschedule() == ERROR)
+  if (found->second->unschedule() == ERROR)
     return ERROR;
 
   /* remove scheduled entry from event queue */
   events::loop::instance().remove_downtime(downtime_id);
 
   /* delete downtime entry */
-  if (temp_downtime->get_type() == downtime::host_downtime)
-    delete_downtime(downtime::host_downtime, downtime_id);
-  else
-    delete_downtime(downtime::service_downtime, downtime_id);
+  _scheduled_downtimes.erase(found);
 
   /* unschedule all downtime entries that were triggered by this one */
   std::list<uint64_t> lst;
