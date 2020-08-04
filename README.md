@@ -80,11 +80,6 @@ For the projet compilation you need to have conan installed. To install conan yo
 
     $> pip3 install conan
 
-You will need to use cmake3, if you already had cmake just do those commands to use cmake3 instead of cmake by renaming it like so :
-
-    $> mv /usr/bin/cmake /usr/bin/cmake.old
-    $> ln -s /usr/bin/cmake3 /usr/bin/cmake
-
 If you are on a Centos 7 distribution, follow these steps :
    
     $> git clone https://github.com/centreon/centreon-collect
