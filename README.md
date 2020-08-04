@@ -90,10 +90,18 @@ If you are on a Centos 7 distribution, follow these steps :
     $> git clone https://github.com/centreon/centreon-collect
     $> cd centreon-collect
     $> mkdir build
+
+You will need to use cmake3, if you already had cmake just do those commands to use cmake3 instead of cmake by renaming it like so :
+
+    $> mv /usr/bin/cmake /usr/bin/cmake.old
+    $> ln -s /usr/bin/cmake3 /usr/bin/cmake
+
+Then continue the installation steps :
+
     $> cd build
     $> conan remote add centreon https://api.bintray.com/conan/centreon/centreon
     $> conan install --remote centreon --build missing ..
-    $> cmake3 ..
+    $> cmake ..
     $> make & make install
 
 If you are on an other distribution, then follow the steps below.	 
