@@ -849,28 +849,13 @@ class EngineRPCClient {
     return true;
   }
 
-  bool DeleteHostDowntime(uint32_t& downtime_id, CommandSuccess* response) {
+  bool DeleteDowntime(uint32_t& downtime_id, CommandSuccess* response) {
     GenericValue request;
     grpc::ClientContext context;
     request.set_value(downtime_id);
 
     grpc::Status status =
-        _stub->DeleteHostDowntime(&context, request, response);
-    if (!status.ok()) {
-      std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
-                << std::endl;
-      return false;
-    }
-    return true;
-  }
-
-  bool DeleteServiceDowntime(uint32_t& downtime_id, CommandSuccess* response) {
-    GenericValue request;
-    grpc::ClientContext context;
-    request.set_value(downtime_id);
-
-    grpc::Status status =
-        _stub->DeleteServiceDowntime(&context, request, response);
+        _stub->DeleteDowntime(&context, request, response);
     if (!status.ok()) {
       std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
                 << std::endl;
@@ -1598,16 +1583,11 @@ int main(int argc, char** argv) {
     status = client.AddServiceComment(hostname, svcdsc, entrytime, user,
                                       commentdata, persistent, &response);
     std::cout << "AddServiceComment" << std::endl;
-  } else if (strcmp(argv[1], "DeleteHostDowntime") == 0) {
+  } else if (strcmp(argv[1], "DeleteDowntime") == 0) {
     CommandSuccess response;
     uint32_t downtimeid = atoi(argv[2]);
-    status = client.DeleteHostDowntime(downtimeid, &response);
-    std::cout << "DeleteHostDowntime" << std::endl;
-  } else if (strcmp(argv[1], "DeleteServiceDowntime") == 0) {
-    CommandSuccess response;
-    uint32_t downtimeid = atoi(argv[2]);
-    status = client.DeleteServiceDowntime(downtimeid, &response);
-    std::cout << "DeleteServiceDowntime" << std::endl;
+    status = client.DeleteDowntime(downtimeid, &response);
+    std::cout << "DeleteDowntime" << std::endl;
   } else if (strcmp(argv[1], "DelayHostNotification") == 0) {
     if (argc != 5) {
       std::cout

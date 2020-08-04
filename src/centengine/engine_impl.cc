@@ -1618,7 +1618,7 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
 }
 
 /**
- * @brief  Deletes scheduled host downtime
+ * @brief  Deletes scheduled downtime
  *
  * @param context gRPC context
  * @param request GenericValue. GenericValue is a downtime id
@@ -1626,45 +1626,15 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::DeleteHostDowntime(grpc::ServerContext* context
+grpc::Status engine_impl::DeleteDowntime(grpc::ServerContext* context
                                              __attribute__((unused)),
                                              const GenericValue* request,
                                              CommandSuccess* response) {
   uint32_t downtime_id = request->value();
   auto fn = std::packaged_task<int32_t(void)>([&downtime_id]() -> int32_t {
-    /* deletes scheduled host downtime */
+    /* deletes scheduled  downtime */
     if (downtime_manager::instance().unschedule_downtime(
-            downtime::host_downtime, downtime_id) == ERROR)
-      return 1;
-    else
-      return 0;
-  });
-
-  std::future<int32_t> result = fn.get_future();
-  command_manager::instance().enqueue(std::move(fn));
-
-  response->set_value(!result.get());
-  return grpc::Status::OK;
-}
-
-/**
- * @brief  Deletes scheduled service downtime
- *
- * @param context gRPC context
- * @param request GenericValue. GenericValue is a downtime id
- * @param response Command answer
- *
- * @return Status::OK
- */
-grpc::Status engine_impl::DeleteServiceDowntime(grpc::ServerContext* context
-                                                __attribute__((unused)),
-                                                const GenericValue* request,
-                                                CommandSuccess* response) {
-  uint32_t downtime_id = request->value();
-  auto fn = std::packaged_task<int32_t(void)>([&downtime_id]() -> int32_t {
-    /* deletes scheduled service downtime */
-    if (downtime_manager::instance().unschedule_downtime(
-            downtime::service_downtime, downtime_id) == ERROR)
+            downtime_id) == ERROR)
       return 1;
     else
       return 0;
@@ -1730,8 +1700,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
     }
 
     for (auto& d : dtlist)
-      downtime_manager::instance().unschedule_downtime(downtime_type,
-                                                       d->get_downtime_id());
+      downtime_manager::instance().unschedule_downtime(d->get_downtime_id());
 
     return 0;
   });
@@ -1803,8 +1772,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
 
     /* deleting downtime(s) */
     for (auto& d : dtlist)
-      downtime_manager::instance().unschedule_downtime(downtime_type,
-                                                       d->get_downtime_id());
+      downtime_manager::instance().unschedule_downtime(d->get_downtime_id());
     return 0;
   });
 

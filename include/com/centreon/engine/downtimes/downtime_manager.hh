@@ -35,8 +35,8 @@ class downtime_manager {
   std::multimap<time_t, std::shared_ptr<downtime>> const&
   get_scheduled_downtimes() const;
 
-  void delete_downtime(downtime::type type, uint64_t downtime_id);
-  int unschedule_downtime(downtime::type type, uint64_t downtime_id);
+  void delete_downtime(uint64_t downtime_id);
+  int unschedule_downtime(uint64_t downtime_id);
   std::shared_ptr<downtime> find_downtime(downtime::type type, uint64_t downtime_id);
   int check_pending_flex_host_downtime(host* hst);
   int check_pending_flex_service_downtime(service* svc);
