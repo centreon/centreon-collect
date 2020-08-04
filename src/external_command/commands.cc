@@ -169,7 +169,7 @@ void process_external_command(const char* cmd) {
 /*************** EXTERNAL COMMAND IMPLEMENTATIONS  ****************/
 /******************************************************************/
 
-// done (moved to grpc)
+
 /* adds a host or service comment to the status log */
 int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   char* temp_ptr(nullptr);
@@ -235,7 +235,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* removes a host or service comment from the status log */
 int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   uint64_t comment_id{0};
@@ -250,7 +250,7 @@ int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* removes all comments associated with a host or service from the status log */
 int cmd_delete_all_comments(int cmd, char* args) {
   char* host_name(nullptr);
@@ -295,7 +295,7 @@ int cmd_delete_all_comments(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* delays a host or service notification for given number of minutes */
 int cmd_delay_notification(int cmd, char* args) {
   char* temp_ptr(nullptr);
@@ -346,7 +346,7 @@ int cmd_delay_notification(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* schedules a host check at a particular time */
 int cmd_schedule_check(int cmd, char* args) {
   char* temp_ptr(nullptr);
@@ -458,7 +458,7 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* schedules a program shutdown or restart */
 void cmd_signal_process(int cmd, char* args) {
   time_t scheduled_time(0);
@@ -478,7 +478,7 @@ void cmd_signal_process(int cmd, char* args) {
   events::loop::instance().schedule(evt, true);
 }
 
-// done (moved to grpc)
+
 /**
  *  Processes results of an external service check.
  *
@@ -607,7 +607,7 @@ int process_passive_service_check(time_t check_time,
   return OK;
 }
 
-// done (moved to grpc)
+
 /**
  *  Processes results of an external host check.
  *
@@ -713,7 +713,7 @@ int process_passive_host_check(time_t check_time,
   return OK;
 }
 
-// done (moved to grpc)
+
 /* acknowledges a host or service problem */
 int cmd_acknowledge_problem(int cmd, char* args) {
   char* host_name(nullptr);
@@ -791,7 +791,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* removes a host or service acknowledgement */
 int cmd_remove_acknowledgement(int cmd, char* args) {
   char* host_name(nullptr);
@@ -831,7 +831,7 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* schedules downtime for a specific host or service */
 int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   host* temp_host{nullptr};
@@ -1070,7 +1070,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* deletes scheduled host or service downtime */
 int cmd_delete_downtime(int cmd, char* args) {
   uint64_t downtime_id(0);
@@ -1088,7 +1088,7 @@ int cmd_delete_downtime(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /**
  *  Delete scheduled host or service downtime, according to some criterias.
  *
@@ -1165,7 +1165,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /*
 ** Some of these commands are now "distributable" as no downtime ids are
 ** used. Deletes scheduled host and service downtime based on hostname
@@ -1219,7 +1219,7 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* Deletes scheduled host and service downtime based on hostgroup and optionally
  * other filter arguments. */
 int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
@@ -1311,7 +1311,7 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* Delete downtimes based on start time and/or comment. */
 int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
   char* downtime_comment(nullptr);
@@ -1346,7 +1346,7 @@ int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* changes a host or service (integer) variable */
 int cmd_change_object_int_var(int cmd, char* args) {
   host* temp_host(nullptr);
@@ -1630,7 +1630,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* changes a host or service (char) variable */
 int cmd_change_object_char_var(int cmd, char* args) {
   host* temp_host{nullptr};
@@ -1950,7 +1950,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
   return OK;
 }
 
-// done (moved to grpc)
+
 /* changes a custom host or service variable */
 int cmd_change_object_custom_var(int cmd, char* args) {
   /* get the host or contact name */

@@ -63,7 +63,7 @@ int downtime_manager::unschedule_downtime(uint64_t downtime_id) {
 
   logger(dbg_functions, basic) << "unschedule_downtime()";
   logger(dbg_downtime, basic)
-    << "unschedule downtime(type:id: " << downtime_id << ")";
+    << "unschedule downtime(id: " << downtime_id << ")";
 
   /* find the downtime entry in the list in memory */
   if (found == _scheduled_downtimes.end())
@@ -279,13 +279,8 @@ int downtime_manager::
   else
     range = {_scheduled_downtimes.begin(), _scheduled_downtimes.end()};
 
-  std::map<time_t, std::shared_ptr<downtime>>::iterator it,
-      next_it{range.first};
-  std::map<time_t, std::shared_ptr<downtime>>::iterator end{range.second};
-
-  for (it = next_it; it != end; it = next_it) {
-    ++next_it;
-
+  std::list<uint64_t> lst; 
+  for (auto it = range.first,  end = range.second; it != end; it++) {
     if (!comment.empty() && it->second->get_comment() != comment)
       continue;
     if (downtime::host_downtime == it->second->get_type()) {
@@ -305,10 +300,13 @@ int downtime_manager::
           continue;
       }
     }
-
-    unschedule_downtime(it->second->get_downtime_id());
+    lst.push_back(it->second->get_downtime_id());
     ++deleted;
   }
+
+  for (auto id : lst)
+    unschedule_downtime(id);
+
   return deleted;
 }
 
