@@ -17,12 +17,13 @@
  *
  */
 #include <gtest/gtest.h>
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/cfile.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/logging/manager.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 class FileSplitterResume : public ::testing::Test {
@@ -42,22 +43,23 @@ class FileSplitterResume : public ::testing::Test {
       memset(buffer, i, sizeof(buffer));
       std::ostringstream oss;
       oss << _path << i;
-      f.reset(new file::cfile(oss.str(), file::fs_file::open_read_write_truncate));
+      f.reset(
+          new file::cfile(oss.str(), file::fs_file::open_read_write_truncate));
       f->write(buffer, sizeof(buffer));
     }
 
     // Create the last file.
     std::string last_file(_path);
     last_file.append("10");
-    f.reset(new file::cfile(last_file, file::fs_file::open_read_write_truncate));
+    f.reset(
+        new file::cfile(last_file, file::fs_file::open_read_write_truncate));
     memset(buffer, 10, sizeof(buffer));
     f->write(buffer, 108);
     f.reset();
 
     // Create new splitter.
-    _file.reset(new file::splitter(_path,
-                                   file::fs_file::open_read_write_truncate,
-                                   10000, true));
+    _file.reset(new file::splitter(
+        _path, file::fs_file::open_read_write_truncate, 10000, true));
   }
 
  protected:
@@ -106,7 +108,7 @@ TEST_F(FileSplitterResume, AutoDelete) {
   char buffer[10000];
   for (int i(2); i <= 10; ++i)
     _file->read(buffer, sizeof(buffer));
-  ASSERT_THROW(_file->read(buffer, 1), exceptions::shutdown);
+  ASSERT_THROW(_file->read(buffer, 1), shutdown);
 
   // Then
   for (int i(2); i <= 10; ++i) {

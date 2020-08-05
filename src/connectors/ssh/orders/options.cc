@@ -101,9 +101,7 @@ std::list<std::string> const& options::get_commands() const noexcept {
  *
  *  @return A string.
  */
-std::string const& options::get_host() const noexcept {
-  return (_host);
-}
+std::string const& options::get_host() const noexcept { return (_host); }
 
 /**
  *  Get identity of an authorized key.
@@ -128,27 +126,21 @@ options::ip_protocol options::get_ip_protocol() const noexcept {
  *
  *  @return The port number.
  */
-unsigned short options::get_port() const noexcept {
-  return (_port);
-}
+unsigned short options::get_port() const noexcept { return (_port); }
 
 /**
  *  Get timeout connection.
  *
  *  @return The timeout.
  */
-unsigned int options::get_timeout() const noexcept {
-  return (_timeout);
-}
+unsigned int options::get_timeout() const noexcept { return (_timeout); }
 
 /**
  *  Get user use to connect on remote host.
  *
  *  @return The user name.
  */
-std::string const& options::get_user() const noexcept {
-  return (_user);
-}
+std::string const& options::get_user() const noexcept { return (_user); }
 
 /**
  *  Get the help string.
@@ -229,7 +221,7 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case '1':  // Enable SSH v1.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw basic_error("'{}' option is not supported", c);
         break;
 
       case '2':  // Enable SSH v2.
@@ -241,7 +233,7 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'f':  // Fork ssh.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw basic_error("'{}' option is not supported", c);
         break;
 
       case 'i':  // Set Identity file.
@@ -249,19 +241,19 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'n':  // Host name for monitoring engine.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw basic_error("'{}' option is not supported", c);
         break;
 
       case 'o':  // Set ssh-option.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw basic_error("'{}' option is not supported", c);
         break;
 
       case 'O':  // Set output file.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw basic_error("'{}' option is not supported", c);
         break;
 
       case 's':  // Services.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw basic_error("'{}' option is not supported", c);
         break;
 
       case 'S':  // Skip stdout.
@@ -280,10 +272,10 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case '?':  // Missing argument.
-        throw basic_error() << "option '" << c << "' requires an argument";
+        throw basic_error("option '{}' requires an argument", c);
 
       default:  // Unknown argument.
-        throw basic_error() << "unrecognized option '" << c << "'";
+        throw basic_error("unrecognized option '{}'", c);
     }
   }
   if (_user.empty())
@@ -295,18 +287,14 @@ void options::parse(std::string const& cmdline) {
  *
  *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-int options::skip_stderr() const noexcept {
-  return _skip_stderr;
-}
+int options::skip_stderr() const noexcept { return _skip_stderr; }
 
 /**
  *  Disable standard output.
  *
  *  @return 0 to drop all data, n to keep n line, otherwise -1.
  */
-int options::skip_stdout() const noexcept {
-  return _skip_stdout;
-}
+int options::skip_stdout() const noexcept { return _skip_stdout; }
 
 /**
  *  Get the current login name.
@@ -318,7 +306,7 @@ std::string options::_get_user_name() {
   passwd* pwd(getpwuid(getuid()));
   if (!pwd || !pwd->pw_name) {
     char const* msg(strerror(errno));
-    throw basic_error() << "cannot get current user name: " << msg;
+    throw basic_error("cannot get current user name: {}", msg);
   }
   return pwd->pw_name;
 }

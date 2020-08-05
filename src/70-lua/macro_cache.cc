@@ -20,10 +20,11 @@
 
 #include <unordered_set>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::logging;
 using namespace com::centreon::broker::lua;
@@ -51,7 +52,8 @@ macro_cache::~macro_cache() {
   if (_cache != nullptr) {
     try {
       _save_to_disk();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       logging::error(logging::medium)
           << "lua: macro cache couldn't save data to disk: '" << e.what()
           << "'";
@@ -66,12 +68,11 @@ macro_cache::~macro_cache() {
  *
  *  @return               The status mapping.
  */
-storage::index_mapping const& macro_cache::get_index_mapping(
-    uint32_t index_id) const {
+storage::index_mapping const& macro_cache::get_index_mapping(uint32_t index_id)
+    const {
   auto found = _index_mappings.find(index_id);
   if (found == _index_mappings.end())
-    throw exceptions::msg()
-        << "lua: could not find host/service of index " << index_id;
+    throw msg_fmt("lua: could not find host/service of index {}", index_id);
   return *found->second;
 }
 
@@ -86,8 +87,7 @@ storage::metric_mapping const& macro_cache::get_metric_mapping(
     uint32_t metric_id) const {
   auto found = _metric_mappings.find(metric_id);
   if (found == _metric_mappings.end())
-    throw exceptions::msg()
-        << "lua: could not find index of metric " << metric_id;
+    throw msg_fmt("lua: could not find index of metric {}", metric_id);
   return *found->second;
 }
 
@@ -102,8 +102,7 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
   auto found = _hosts.find(host_id);
 
   if (found == _hosts.end())
-    throw exceptions::msg()
-        << "lua: could not find information on host " << host_id;
+    throw msg_fmt("lua: could not find information on host {}", host_id);
   return found->second->host_name;
 }
 
@@ -118,9 +117,10 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
 int32_t macro_cache::get_severity(uint64_t host_id, uint64_t service_id) const {
   auto found = _custom_vars.find({host_id, service_id});
   if (found == _custom_vars.end())
-    throw exceptions::msg()
-        << "lua: could not find the severity of the object (host_id: "
-        << host_id << ", " << service_id << ")";
+    throw msg_fmt(
+        "lua: could not find the severity of the object (host_id: {}, {})",
+        host_id,
+        service_id);
   return atoi(found->second->value.c_str());
 }
 
@@ -138,15 +138,15 @@ std::string const& macro_cache::get_notes_url(uint64_t host_id,
     auto found = _services.find({host_id, service_id});
 
     if (found == _services.end())
-      throw exceptions::msg() << "lua: could not find information on service ("
-                              << host_id << ", " << service_id << ")";
+      throw msg_fmt("lua: could not find information on service ({}, {})",
+                    host_id,
+                    service_id);
     return found->second->notes_url;
   } else {
     auto found = _hosts.find(host_id);
 
     if (found == _hosts.end())
-      throw exceptions::msg()
-          << "lua: could not find information on host " << host_id;
+      throw msg_fmt("lua: could not find information on host {}", host_id);
     return found->second->notes_url;
   }
 }
@@ -165,15 +165,15 @@ std::string const& macro_cache::get_action_url(uint64_t host_id,
     auto found = _services.find({host_id, service_id});
 
     if (found == _services.end())
-      throw exceptions::msg() << "lua: could not find information on service ("
-                              << host_id << ", " << service_id << ")";
+      throw msg_fmt("lua: could not find information on service ({}, {})",
+                    host_id,
+                    service_id);
     return found->second->action_url;
   } else {
     auto found = _hosts.find(host_id);
 
     if (found == _hosts.end())
-      throw exceptions::msg()
-          << "lua: could not find information on host " << host_id;
+      throw msg_fmt("lua: could not find information on host {}", host_id);
     return found->second->action_url;
   }
 }
@@ -192,16 +192,16 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
     auto found = _services.find({host_id, service_id});
 
     if (found == _services.end())
-      throw exceptions::msg() << "lua: cound not find information on service ("
-                              << host_id << ", " << service_id << ")";
+      throw msg_fmt("lua: cound not find information on service ({}, {})",
+                    host_id,
+                    service_id);
 
     return found->second->notes;
   } else {
     auto found = _hosts.find(host_id);
 
     if (found == _hosts.end())
-      throw exceptions::msg()
-          << "lua: could not find information on host " << host_id;
+      throw msg_fmt("lua: could not find information on host {}", host_id);
     return found->second->notes;
   }
 }
@@ -228,8 +228,7 @@ std::string const& macro_cache::get_host_group_name(uint64_t id) const {
   auto const found = _host_groups.find(id);
 
   if (found == _host_groups.end())
-    throw exceptions::msg()
-        << "lua: could not find information on host group " << id;
+    throw msg_fmt("lua: could not find information on host group {}", id);
   return found->second->name;
 }
 
@@ -241,13 +240,14 @@ std::string const& macro_cache::get_host_group_name(uint64_t id) const {
  *
  *  @return             The description of the service.
  */
-std::string const& macro_cache::get_service_description(
-    uint64_t host_id,
-    uint64_t service_id) const {
+std::string const& macro_cache::get_service_description(uint64_t host_id,
+                                                        uint64_t service_id)
+    const {
   auto const found = _services.find({host_id, service_id});
   if (found == _services.end())
-    throw exceptions::msg() << "lua: could not find information on service ("
-                            << host_id << ", " << service_id << ")";
+    throw msg_fmt("lua: could not find information on service ({}, {})",
+                  host_id,
+                  service_id);
   return found->second->service_description;
 }
 
@@ -276,8 +276,7 @@ std::string const& macro_cache::get_service_group_name(uint64_t id) const {
   auto found = _service_groups.find(id);
 
   if (found == _service_groups.end())
-    throw exceptions::msg()
-        << "lua: could not find information on service group " << id;
+    throw msg_fmt("lua: could not find information on service group {}", id);
   return found->second->name;
 }
 
@@ -291,8 +290,8 @@ std::string const& macro_cache::get_service_group_name(uint64_t id) const {
 std::string const& macro_cache::get_instance(uint64_t instance_id) const {
   auto const found = _instances.find(instance_id);
   if (found == _instances.end())
-    throw exceptions::msg()
-        << "lua: could not find information on instance " << instance_id;
+    throw msg_fmt("lua: could not find information on instance {}",
+                  instance_id);
   return found->second->name;
 }
 
@@ -320,8 +319,8 @@ bam::dimension_ba_event const& macro_cache::get_dimension_ba_event(
     uint64_t ba_id) const {
   auto const found = _dimension_ba_events.find(ba_id);
   if (found == _dimension_ba_events.end())
-    throw exceptions::msg()
-        << "lua: could not find information on dimension ba event " << ba_id;
+    throw msg_fmt("lua: could not find information on dimension ba event {}",
+                  ba_id);
   return *found->second;
 }
 
@@ -336,8 +335,8 @@ bam::dimension_bv_event const& macro_cache::get_dimension_bv_event(
     uint64_t bv_id) const {
   auto const found = _dimension_bv_events.find(bv_id);
   if (found == _dimension_bv_events.end())
-    throw exceptions::msg()
-        << "lua: could not find information on dimension bv event " << bv_id;
+    throw msg_fmt("lua: could not find information on dimension bv event {}",
+                  bv_id);
   return *found->second;
 }
 
@@ -351,46 +350,46 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     return;
 
   switch (data->type()) {
-    case neb::instance::static_type():
+    case neb::instance::static_type() :
       _process_instance(data);
       break;
-    case neb::host::static_type():
+    case neb::host::static_type() :
       _process_host(data);
       break;
-    case neb::host_group::static_type():
+    case neb::host_group::static_type() :
       _process_host_group(data);
       break;
-    case neb::host_group_member::static_type():
+    case neb::host_group_member::static_type() :
       _process_host_group_member(data);
       break;
-    case neb::service::static_type():
+    case neb::service::static_type() :
       _process_service(data);
       break;
-    case neb::service_group::static_type():
+    case neb::service_group::static_type() :
       _process_service_group(data);
       break;
-    case neb::service_group_member::static_type():
+    case neb::service_group_member::static_type() :
       _process_service_group_member(data);
       break;
-    case neb::custom_variable::static_type():
+    case neb::custom_variable::static_type() :
       _process_custom_variable(data);
       break;
-    case storage::index_mapping::static_type():
+    case storage::index_mapping::static_type() :
       _process_index_mapping(data);
       break;
-    case storage::metric_mapping::static_type():
+    case storage::metric_mapping::static_type() :
       _process_metric_mapping(data);
       break;
-    case bam::dimension_ba_event::static_type():
+    case bam::dimension_ba_event::static_type() :
       _process_dimension_ba_event(data);
       break;
-    case bam::dimension_ba_bv_relation_event::static_type():
+    case bam::dimension_ba_bv_relation_event::static_type() :
       _process_dimension_ba_bv_relation_event(data);
       break;
-    case bam::dimension_bv_event::static_type():
+    case bam::dimension_bv_event::static_type() :
       _process_dimension_bv_event(data);
       break;
-    case bam::dimension_truncate_table_signal::static_type():
+    case bam::dimension_truncate_table_signal::static_type() :
       _process_dimension_truncate_table_signal(data);
       break;
     default:
@@ -444,8 +443,8 @@ void macro_cache::_process_instance(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host> const& h =
       std::static_pointer_cast<neb::host>(data);
-  logging::debug(logging::medium)
-      << "lua: processing host '" << h->host_name << "' of id " << h->host_id;
+  logging::debug(logging::medium) << "lua: processing host '" << h->host_name
+                                  << "' of id " << h->host_id;
   _hosts[h->host_id] = h;
 }
 
@@ -457,8 +456,8 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group> const& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  logging::debug(logging::medium)
-      << "lua: processing host group '" << hg->name << "' of id " << hg->id;
+  logging::debug(logging::medium) << "lua: processing host group '" << hg->name
+                                  << "' of id " << hg->id;
   if (hg->enabled)
     _host_groups[hg->id] = hg;
 }
@@ -489,10 +488,10 @@ void macro_cache::_process_host_group_member(
  */
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
-  logging::debug(logging::medium)
-      << "lua: processing service (" << s->host_id << ", " << s->service_id
-      << ") "
-      << "(description: " << s->service_description << ")";
+  logging::debug(logging::medium) << "lua: processing service (" << s->host_id
+                                  << ", " << s->service_id << ") "
+                                  << "(description: " << s->service_description
+                                  << ")";
   _services[{s->host_id, s->service_id}] = s;
 }
 
@@ -504,8 +503,8 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_service_group(
     std::shared_ptr<io::data> const& data) {
   auto const& sg = std::static_pointer_cast<neb::service_group>(data);
-  logging::debug(logging::medium)
-      << "lua: processing service group '" << sg->name << "' of id " << sg->id;
+  logging::debug(logging::medium) << "lua: processing service group '"
+                                  << sg->name << "' of id " << sg->id;
   if (sg->enabled)
     _service_groups[sg->id] = sg;
 }
@@ -518,14 +517,14 @@ void macro_cache::_process_service_group(
 void macro_cache::_process_service_group_member(
     std::shared_ptr<io::data> const& data) {
   auto const& sgm = std::static_pointer_cast<neb::service_group_member>(data);
-  logging::debug(logging::medium)
-      << "lua: processing service group member "
-      << " (group_name: '" << sgm->group_name
-      << "', group_id: " << sgm->group_id << ", host_id: " << sgm->host_id
-      << ", service_id: " << sgm->service_id << ")";
+  logging::debug(logging::medium) << "lua: processing service group member "
+                                  << " (group_name: '" << sgm->group_name
+                                  << "', group_id: " << sgm->group_id
+                                  << ", host_id: " << sgm->host_id
+                                  << ", service_id: " << sgm->service_id << ")";
   if (sgm->enabled)
-    _service_group_members[std::make_tuple(sgm->host_id, sgm->service_id,
-                                           sgm->group_id)] = sgm;
+    _service_group_members
+        [std::make_tuple(sgm->host_id, sgm->service_id, sgm->group_id)] = sgm;
   else
     _service_group_members.erase(
         std::make_tuple(sgm->host_id, sgm->service_id, sgm->group_id));
@@ -540,10 +539,10 @@ void macro_cache::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
   std::shared_ptr<storage::index_mapping> const& im =
       std::static_pointer_cast<storage::index_mapping>(data);
-  logging::debug(logging::medium)
-      << "lua: processing index mapping (index_id: " << im->index_id
-      << ", host_id: " << im->host_id << ", service_id: " << im->service_id
-      << ")";
+  logging::debug(logging::medium) << "lua: processing index mapping (index_id: "
+                                  << im->index_id
+                                  << ", host_id: " << im->host_id
+                                  << ", service_id: " << im->service_id << ")";
   _index_mappings[im->index_id] = im;
 }
 
@@ -569,8 +568,8 @@ void macro_cache::_process_metric_mapping(
 void macro_cache::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
   auto const& dbae = std::static_pointer_cast<bam::dimension_ba_event>(data);
-  logging::debug(logging::medium)
-      << "lua: processing dimension ba event of id " << dbae->ba_id;
+  logging::debug(logging::medium) << "lua: processing dimension ba event of id "
+                                  << dbae->ba_id;
   _dimension_ba_events[dbae->ba_id] = dbae;
 }
 
@@ -598,8 +597,8 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
 void macro_cache::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
   auto const& dbve = std::static_pointer_cast<bam::dimension_bv_event>(data);
-  logging::debug(logging::medium)
-      << "lua: processing dimension bv event of id " << dbve->bv_id;
+  logging::debug(logging::medium) << "lua: processing dimension bv event of id "
+                                  << dbve->bv_id;
   _dimension_bv_events[dbve->bv_id] = dbve;
 }
 
@@ -636,7 +635,9 @@ void macro_cache::_process_custom_variable(
     log_v2::lua()->debug(
         "lua: processing custom variable representing a criticality level for "
         "host_id {} and service_id {} and level {}",
-        cv->host_id, cv->service_id, cv->value);
+        cv->host_id,
+        cv->service_id,
+        cv->value);
     int32_t value = std::atoi(cv->value.c_str());
     if (value)
       _custom_vars[{cv->host_id, cv->service_id}] = cv;
@@ -659,7 +660,8 @@ void macro_cache::_save_to_disk() {
     _cache->add(it->second);
 
   for (auto it(_host_group_members.begin()), end(_host_group_members.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _cache->add(it->second);
 
   for (auto it(_services.begin()), end(_services.end()); it != end; ++it)
@@ -671,7 +673,8 @@ void macro_cache::_save_to_disk() {
 
   for (auto it = _service_group_members.begin(),
             end = _service_group_members.end();
-       it != end; ++it)
+       it != end;
+       ++it)
     _cache->add(it->second);
 
   for (auto it(_index_mappings.begin()), end(_index_mappings.end()); it != end;
@@ -679,20 +682,24 @@ void macro_cache::_save_to_disk() {
     _cache->add(it->second);
 
   for (auto it(_metric_mappings.begin()), end(_metric_mappings.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _cache->add(it->second);
 
   for (auto it(_dimension_ba_events.begin()), end(_dimension_ba_events.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _cache->add(it->second);
 
   for (auto it(_dimension_ba_bv_relation_events.begin()),
        end(_dimension_ba_bv_relation_events.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _cache->add(it->second);
 
   for (auto it(_dimension_bv_events.begin()), end(_dimension_bv_events.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     _cache->add(it->second);
 
   for (auto it = _custom_vars.begin(), end = _custom_vars.end(); it != end;

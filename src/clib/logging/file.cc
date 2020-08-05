@@ -23,6 +23,7 @@
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/misc/stringifier.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::logging;
 
 /**
@@ -165,8 +166,7 @@ void file::open() {
     return;
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw(basic_error() << "failed to open file '" << _path
-                        << "': " << strerror(errno));
+    throw basic_error("failed to open file '{}': {}", _path, strerror(errno));
   _size = ftell(_out);
 
   return;
@@ -187,8 +187,7 @@ void file::reopen() {
   } while (ret == -1 && errno == EINTR);
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw(basic_error() << "failed to open file '" << _path
-                        << "': " << strerror(errno));
+    throw basic_error("failed to open file '{}': {}", _path, strerror(errno));
   _size = ftell(_out);
 
   return;
@@ -209,7 +208,6 @@ void file::_max_size_reached() {
   remove(_path.c_str());
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw(basic_error() << "failed to open file '" << _path
-                        << "': " << strerror(errno));
+    throw basic_error("failed to open file '{}': {}", _path, strerror(errno));
   _size = ftell(_out);
 }

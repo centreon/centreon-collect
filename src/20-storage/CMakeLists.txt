@@ -54,3 +54,4 @@ add_library(20-storage SHARED
 target_link_libraries(20-storage CONAN_PKG::spdlog ccb_conflict_manager ccb_sql)
 set_target_properties(20-storage PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
 set_target_properties(20-storage PROPERTIES PREFIX "")
+install(TARGETS 20-storage COMPONENT storage DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

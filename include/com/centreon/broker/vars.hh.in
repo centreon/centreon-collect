@@ -24,7 +24,7 @@
 CCB_BEGIN()
 
 // Paths.
-#  define PREFIX_BIN "@PREFIX_BIN@"
+#  define PREFIX_BIN "@CMAKE_INSTALL_FULL_SBINDIR@"
 #  define PREFIX_VAR "@PREFIX_VAR@"
 
 CCB_END()

@@ -30,6 +30,7 @@
 #include "com/centreon/process_listener.hh"
 #include "com/centreon/process_manager.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon;
 
 // Default varibale.
@@ -50,12 +51,12 @@ static int const DEFAULT_TIMEOUT = 200;
 void process_manager::add(process* p) {
   // Check viability pointer.
   if (!p)
-    throw basic_error() << "invalid process: null pointer";
+    throw basic_error_1("invalid process: null pointer");
 
   std::lock_guard<std::mutex> lock_process(p->_lock_process);
   // Check if the process need to be managed.
   if (p->_process == static_cast<pid_t>(-1))
-    throw basic_error() << "invalid process: not running";
+    throw basic_error_1("invalid process: not running");
 
   std::lock_guard<std::mutex> lock(_lock_processes);
   // Add pid process to use waitpid.
@@ -104,7 +105,7 @@ process_manager::process_manager()
   // Create pipe to notify ending to the process manager thread.
   if (::pipe(_fds_exit)) {
     char const* msg(strerror(errno));
-    throw basic_error() << "pipe creation failed: " << msg;
+    throw basic_error("pipe creation failed: {}", msg);
   }
 
   process::_set_cloexec(_fds_exit[1]);
@@ -124,7 +125,8 @@ process_manager::~process_manager() noexcept {
   {
     std::lock_guard<std::mutex> lock(_lock_processes);
     for (auto it = _processes_pid.begin(), end = _processes_pid.end();
-         it != end; ++it) {
+         it != end;
+         ++it) {
       try {
         it->second->kill();
       }
@@ -188,8 +190,7 @@ void process_manager::_close_stream(int fd) noexcept {
       std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw basic_error() << "invalid fd: "
-                               "not found into processes fd list";
+        throw basic_error_1("invalid fd: not found into processes fd list");
       }
       p = it->second;
       _processes_fd.erase(it);
@@ -231,7 +232,8 @@ void process_manager::_kill_processes_timeout() noexcept {
   std::time_t now(time(nullptr));
 
   // Kill process who timeout and remove it from timeout list.
-  for (auto it = _processes_timeout.begin(), end = _processes_timeout.end(); it != end && it->first <= now; ) {
+  for (auto it = _processes_timeout.begin(), end = _processes_timeout.end();
+       it != end && it->first <= now;) {
     process* p = it->second;
     try {
       p->kill();
@@ -260,7 +262,7 @@ unsigned int process_manager::_read_stream(int fd) noexcept {
       std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
       if (it == _processes_fd.end()) {
         _update = true;
-        throw basic_error() << "invalid fd: not found into processes fd list";
+        throw basic_error_1("invalid fd: not found into processes fd list");
       }
       p = it->second;
     }
@@ -292,7 +294,7 @@ void process_manager::_run() {
         ret = 0;
       else if (ret < 0) {
         char const* msg(strerror(errno));
-        throw basic_error() << "poll failed: " << msg;
+        throw basic_error("poll failed: {}", msg);
       }
       for (unsigned int i = 0, checked = 0;
            checked < static_cast<unsigned int>(ret) && i < _fds_size;
@@ -379,8 +381,8 @@ void process_manager::_update_list() {
   }
   // Set file descriptor to wait event.
   _fds_size = 0;
-  for (auto it = _processes_fd.begin(), end = _processes_fd.end();
-       it != end; ++it) {
+  for (auto it = _processes_fd.begin(), end = _processes_fd.end(); it != end;
+       ++it) {
     _fds[_fds_size].fd = it->first;
     _fds[_fds_size].events = POLLIN | POLLPRI | POLL_HUP;
     _fds[_fds_size].revents = 0;

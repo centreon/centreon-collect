@@ -33,6 +33,7 @@
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::ssh;
 
@@ -84,7 +85,8 @@ int main(int argc, char* argv[]) {
     options opts;
     try {
       opts.parse(argc - 1, argv + 1);
-    } catch (exceptions::basic const& e) {
+    }
+    catch (exceptions::basic const& e) {
       std::cout << e.what() << std::endl << opts.usage() << std::endl;
       return EXIT_FAILURE;
     }
@@ -118,30 +120,31 @@ int main(int argc, char* argv[]) {
       // Version check should be the very first call because it
       // makes sure that important subsystems are initialized.
       if (!gcry_check_version(GCRYPT_VERSION))
-        throw basic_error() << "libgcrypt version mismatch: ";
+        throw basic_error_1("libgcrypt version mismatch: ");
       gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 #endif  // LIBSSH2_WITH_LIBGCRYPT
       if (libssh2_init(0))
-        throw basic_error() << "libssh2 initialization failed";
+        throw basic_error_1("libssh2 initialization failed");
       {
         char const* version(libssh2_version(LIBSSH2_VERSION_NUM));
         if (!version)
-          throw basic_error() << "libssh2 version is too old (>= "
-                              << LIBSSH2_VERSION << " required)";
-        log::core()->info( "libssh2 version {} successfully loaded", version);
+          throw basic_error("libssh2 version is too old (>= {} required)",
+                            LIBSSH2_VERSION);
+        log::core()->info("libssh2 version {} successfully loaded", version);
       }
 #endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
-      log::core()->debug( "installing termination handler");
+      log::core()->debug("installing termination handler");
       signal(SIGTERM, term_handler);
 
       // Program policy.
       policy p;
       retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
-  } catch (std::exception const& e) {
-    log::core()->error( "installing termination handler");
+  }
+  catch (std::exception const& e) {
+    log::core()->error("installing termination handler");
   }
 
 #if LIBSSH2_VERSION_NUM >= 0x010205

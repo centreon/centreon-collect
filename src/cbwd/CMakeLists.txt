@@ -18,6 +18,24 @@
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_BINARY_DIR}/)
+
+set(WITH_DAEMONS
+    central-broker-master
+    central-rrd-master
+)
+
+foreach (DAEMON_NAME IN LISTS WITH_DAEMONS)
+  if (NOT ${DAEMONS_CONFIGURATION} STREQUAL "")
+    set(DAEMONS_CONFIGURATION "${DAEMONS_CONFIGURATION},\n")
+  endif ()
+  set(DAEMONS_CONFIGURATION
+   "${DAEMONS_CONFIGURATION}        { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true }")
+endforeach ()
+
+configure_file(${CMAKE_SOURCE_DIR}/config/watchdog.json.in
+  ${CMAKE_BINARY_DIR}/watchdog.json
+  @ONLY)
+
 # Global options.
 add_executable(cbwd
   # Sources.
@@ -27,4 +45,6 @@ add_executable(cbwd
   ${CMAKE_SOURCE_DIR}/src/cbwd/instance.cc
   ${CMAKE_SOURCE_DIR}/src/cbwd/instance_configuration.cc
 )
-target_link_libraries(cbwd ccb_core CONAN_PKG::json11)
+target_link_libraries(cbwd CONAN_PKG::spdlog CONAN_PKG::json11)
+install(FILES ${CMAKE_BINARY_DIR}/watchdog.json COMPONENT cbd DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
+install(TARGETS cbwd COMPONENT cbd DESTINATION ${CMAKE_INSTALL_SBINDIR})

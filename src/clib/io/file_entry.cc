@@ -23,6 +23,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_entry.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::io;
 
 /**
@@ -182,7 +183,7 @@ void file_entry::refresh() {
     memset(&_sbuf, 0, sizeof(_sbuf));
   else if (stat(_path.c_str(), &_sbuf)) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "get file information failed: " << msg);
+    throw basic_error("get file information failed: {}", msg);
   }
 }
 

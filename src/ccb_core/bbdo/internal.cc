@@ -21,11 +21,12 @@
 #include "com/centreon/broker/bbdo/ack.hh"
 #include "com/centreon/broker/bbdo/factory.hh"
 #include "com/centreon/broker/bbdo/version_response.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
@@ -50,22 +51,25 @@ void bbdo::load() {
         "BBDO: category {} is already registered whereas it should be reserved "
         "for the BBDO core",
         io::events::bbdo);
-    throw(exceptions::msg() << "BBDO: category " << io::events::bbdo
-                            << " is already registered whereas it should be "
-                            << "reserved for the BBDO core");
+    throw msg_fmt(
+        "BBDO: category {} is already registered whereas it should be reserved "
+        "for the BBDO core",
+        io::events::bbdo);
   }
 
   // Register BBDO events.
-  e.register_event(
-      io::events::bbdo, bbdo::de_version_response,
-      io::event_info("version_response", &version_response::operations,
-                     version_response::entries));
-  e.register_event(io::events::bbdo, bbdo::de_ack,
+  e.register_event(io::events::bbdo,
+                   bbdo::de_version_response,
+                   io::event_info("version_response",
+                                  &version_response::operations,
+                                  version_response::entries));
+  e.register_event(io::events::bbdo,
+                   bbdo::de_ack,
                    io::event_info("ack", &ack::operations, ack::entries));
 
   // Register BBDO protocol.
-  io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
-                                7);
+  io::protocols::instance().reg(
+      "BBDO", std::make_shared<bbdo::factory>(), 7, 7);
 }
 
 /**

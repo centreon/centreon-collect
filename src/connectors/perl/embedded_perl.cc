@@ -16,7 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-
 #include "com/centreon/connector/perl/pipe_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/connector/log.hh"
@@ -72,9 +71,7 @@ embedded_perl::~embedded_perl() {
  *
  *  @return Embedded Perl instance.
  */
-embedded_perl& embedded_perl::instance() {
-  return *_instance;
-}
+embedded_perl& embedded_perl::instance() { return *_instance; }
 
 /**
  *  Load Embedded Perl.
@@ -103,8 +100,8 @@ void embedded_perl::load(int* argc,
 pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   // Check arguments.
   if (!fds)
-    throw basic_error() << "cannot run Perl script without "
-                           "fetching process' descriptors";
+    throw basic_error_1(
+        "cannot run Perl script without fetching process' descriptors");
 
   // Extract arguments.
   size_t pos(cmd.find(' '));
@@ -131,14 +128,15 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
       argv[0] = file.c_str();
       argv[1] = "0";
       argv[2] = nullptr;
-      if (call_argv("Embed::Persistent::eval_file", G_EVAL | G_SCALAR,
+      if (call_argv("Embed::Persistent::eval_file",
+                    G_EVAL | G_SCALAR,
                     (char**)argv) != 1)
-        throw basic_error() << "could not compile Perl script " << file;
+        throw basic_error("could not compile Perl script {}", file);
     }
     SPAGAIN;
     handle = POPs;
     if (SvTRUE(ERRSV))
-      throw basic_error() << "Embedded Perl error: " << SvPV_nolen(ERRSV);
+      throw basic_error("Embedded Perl error: {}", SvPV_nolen(ERRSV));
 
     // Insert in parsed file list.
     _parsed.insert(std::make_pair(file, handle));
@@ -153,12 +151,12 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
   int out_pipe[2];
   if (pipe(in_pipe)) {
     char const* msg(strerror(errno));
-    throw basic_error() << msg;
+    throw basic_error("{}", msg);
   } else if (pipe(err_pipe)) {
     char const* msg(strerror(errno));
     close(in_pipe[0]);
     close(in_pipe[1]);
-    throw basic_error() << msg;
+    throw basic_error("{}", msg);
   }
   if (pipe(out_pipe)) {
     char const* msg(strerror(errno));
@@ -166,7 +164,7 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     close(in_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw basic_error() << msg;
+    throw basic_error("{}", msg);
   }
 
   // Execute Perl file.
@@ -182,11 +180,13 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     // Close existing file descriptors.
     try {
       pipe_handle::close_all_handles();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       std::cerr << "could not close all inherited FDs: " << e.what()
                 << std::endl;
       exit(3);
-    } catch (...) {
+    }
+    catch (...) {
       std::cerr << "could not close all inherited FDs" << std::endl;
       exit(3);
     }
@@ -241,7 +241,7 @@ pid_t embedded_perl::run(std::string const& cmd, int fds[3]) {
     close(out_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw basic_error() << msg;
+    throw basic_error("{}", msg);
   }
 
   return child;
@@ -284,7 +284,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int* argc,
     int script_fd(mkstemp(script_path));
     if (script_fd < 0) {
       char const* msg(strerror(errno));
-      throw basic_error() << "could not create temporary file: " << msg;
+      throw basic_error("could not create temporary file: {}", msg);
     }
     log::core()->info("temporary script path is {}", script_path);
 
@@ -296,7 +296,8 @@ embedded_perl::embedded_perl([[maybe_unused]] int* argc,
       l.push_back("\n");
     }
     for (std::list<char const*>::const_iterator it(l.begin()), end(l.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       char const* data(*it);
       size_t len(strlen(data));
       while (len > 0) {
@@ -305,7 +306,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int* argc,
           char const* msg(strerror(errno));
           close(script_fd);
           unlink(script_path);
-          throw basic_error() << "could not write embedded script: " << msg;
+          throw basic_error("could not write embedded script: {}", msg);
         }
         len -= wb;
         data += wb;
@@ -320,7 +321,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int* argc,
 
   if (!(my_perl = perl_alloc())) {
     log::core()->error("could not allocate Perl interpreter");
-    throw basic_error() << "could not allocate Perl interpreter";
+    throw basic_error_1("could not allocate Perl interpreter");
   }
   perl_construct(my_perl);
   PL_origalen = 1;
@@ -330,10 +331,13 @@ embedded_perl::embedded_perl([[maybe_unused]] int* argc,
   char const* embedding[2];
   embedding[0] = "";
   embedding[1] = script_path;
-  if (perl_parse(my_perl, &xs_init, sizeof(embedding) / sizeof(*embedding),
-                 (char**)embedding, nullptr)) {
+  if (perl_parse(my_perl,
+                 &xs_init,
+                 sizeof(embedding) / sizeof(*embedding),
+                 (char**)embedding,
+                 nullptr)) {
     log::core()->error("could not parse embedded Perl script");
-    throw basic_error() << "could not parse embedded Perl script";
+    throw basic_error_1("could not parse embedded Perl script");
   }
   PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
   perl_run(my_perl);

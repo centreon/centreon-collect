@@ -34,4 +34,4 @@ add_executable(ccc_ut
   ${CMAKE_SOURCE_DIR}/tests/connectors/sessions.cc)
 
 add_dependencies(ccc_ut xs_init)
-target_link_libraries(ccc_ut CONAN_PKG::gtest CONAN_PKG::spdlog CONAN_PKG::libssh2 ${PERL_LIBRARIES} centreon-clib)
+target_link_libraries(ccc_ut CONAN_PKG::gtest CONAN_PKG::spdlog CONAN_PKG::libssh2 ${PERL_LIBRARIES} centreon_clib)

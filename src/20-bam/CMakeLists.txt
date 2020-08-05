@@ -59,7 +59,6 @@ add_library(20-bam SHARED
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/bool_expression.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/kpi.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/meta_service.cc
-  ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/reader_exception.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/reader_v2.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/configuration/state.cc
   ${CMAKE_SOURCE_DIR}/src/20-bam/connector.cc
@@ -103,4 +102,4 @@ add_library(20-bam SHARED
 target_link_libraries(20-bam CONAN_PKG::spdlog)
 set_target_properties(20-bam PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
 set_target_properties(20-bam PROPERTIES PREFIX "")
-install(TARGETS 20-bam DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
+install(TARGETS 20-bam COMPONENT core DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

@@ -22,11 +22,12 @@
 #include <cmath>
 #include <functional>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
@@ -42,7 +43,8 @@ mysql_stmt::mysql_stmt(std::string const& query, bool named) {
     char open(0);
     int size(0);
     for (std::string::const_iterator it(query.begin()), end(query.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       if (in_string) {
         if (*it == '\\') {
           q.push_back(*it);
@@ -97,7 +99,7 @@ mysql_stmt::mysql_stmt(std::string const& query, bool named) {
 
 mysql_stmt::mysql_stmt(std::string const& query,
                        mysql_bind_mapping const& bind_mapping)
-    : _id(std::hash<std::string>{}(query)),
+    : _id(std::hash<std::string> {}(query)),
       _query(query),
       _bind_mapping(bind_mapping) {
   if (bind_mapping.empty())
@@ -130,7 +132,8 @@ int mysql_stmt::_compute_param_count(std::string const& query) {
   int retval(0);
   bool in_string(false), jocker(false);
   for (std::string::const_iterator it(query.begin()), end(query.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (!in_string) {
       if (*it == '?')
         ++retval;
@@ -148,13 +151,9 @@ int mysql_stmt::_compute_param_count(std::string const& query) {
   return retval;
 }
 
-bool mysql_stmt::prepared() const {
-  return _id != 0;
-}
+bool mysql_stmt::prepared() const { return _id != 0; }
 
-int mysql_stmt::get_id() const {
-  return _id;
-}
+int mysql_stmt::get_id() const { return _id; }
 
 std::unique_ptr<database::mysql_bind> mysql_stmt::get_bind() {
   return std::move(_bind);
@@ -165,7 +164,8 @@ void mysql_stmt::operator<<(io::data const& d) {
   io::event_info const* info(io::events::instance().get_event_info(d.type()));
   if (info) {
     for (mapping::entry const* current_entry(info->get_mapping());
-         !current_entry->is_null(); ++current_entry) {
+         !current_entry->is_null();
+         ++current_entry) {
       char const* entry_name = current_entry->get_name_v2();
       if (entry_name && entry_name[0]) {
         std::string field(":");
@@ -239,7 +239,7 @@ void mysql_stmt::operator<<(io::data const& d) {
                 bind_value_as_u32(field, v);
                 break;
               case mapping::entry::invalid_on_minus_one:
-                if (v == (uint32_t)-1)
+                if (v == (uint32_t) - 1)
                   bind_value_as_null(field);
                 else
                   bind_value_as_u32(field, v);
@@ -249,16 +249,19 @@ void mysql_stmt::operator<<(io::data const& d) {
             }
           } break;
           default:  // Error in one of the mappings.
-            throw(exceptions::msg() << "invalid mapping for object "
-                                    << "of type '" << info->get_name()
-                                    << "': " << current_entry->get_type()
-                                    << " is not a known type ID");
+            throw msg_fmt(
+                "invalid mapping for object of type '{}': {} is not a known "
+                "type ID",
+                info->get_name(),
+                current_entry->get_type());
         };
       }
     }
   } else
-    throw(exceptions::msg() << "cannot bind object of type " << d.type()
-                            << " to database query: mapping does not exist");
+    throw msg_fmt(
+        "cannot bind object of type {} to database query: mapping does not "
+        "exist",
+        d.type());
 }
 
 void mysql_stmt::bind_value_as_i32(int range, int value) {
@@ -527,10 +530,6 @@ void mysql_stmt::bind_value_as_null(std::string const& name) {
   }
 }
 
-std::string const& mysql_stmt::get_query() const {
-  return _query;
-}
+std::string const& mysql_stmt::get_query() const { return _query; }
 
-int mysql_stmt::get_param_count() const {
-  return _param_count;
-}
+int mysql_stmt::get_param_count() const { return _param_count; }

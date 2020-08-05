@@ -36,7 +36,6 @@
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "helper.hh"
 
@@ -69,7 +68,11 @@ class AnomalydetectionCheck : public TestEngine {
     svc_aply.resolve_object(svc);
 
     configuration::anomalydetection ad{new_configuration_anomalydetection(
-        "test_host", "test_ad", "admin", 9, 8,
+        "test_host",
+        "test_ad",
+        "admin",
+        9,
+        8,
         "/tmp/thresholds_status_change.json")};
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
@@ -181,8 +184,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   int latency = 0;
   bool time_is_valid;
   time_t preferred_time;
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -209,8 +212,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_warning);
   ASSERT_EQ(_svc->get_last_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 2);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -237,8 +240,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_critical);
   ASSERT_EQ(_svc->get_last_hard_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 3);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
   ASSERT_EQ(_ad->get_last_hard_state_change(), now);
@@ -265,8 +268,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_warning);
   ASSERT_EQ(_svc->get_last_hard_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 3);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -296,8 +299,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_attempt(), 3);
   ASSERT_EQ(_svc->get_plugin_output(), "service warning");
   ASSERT_EQ(_svc->get_perf_data(), "metric=35%;25;60");
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);
@@ -324,8 +327,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
   ASSERT_EQ(_svc->get_last_hard_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 1);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
@@ -351,8 +354,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
   ASSERT_EQ(_svc->get_last_hard_state_change(), previous);
   ASSERT_EQ(_svc->get_current_attempt(), 1);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
@@ -378,8 +381,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_last_hard_state_change(), now - 1000);
   ASSERT_EQ(_svc->get_last_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 1);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_unknown);
@@ -403,8 +406,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
   ASSERT_EQ(_svc->get_last_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 2);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
@@ -430,8 +433,8 @@ TEST_F(AnomalydetectionCheck, StatusChanges) {
   ASSERT_EQ(_svc->get_current_state(), engine::service::state_ok);
   ASSERT_EQ(_svc->get_last_hard_state_change(), now);
   ASSERT_EQ(_svc->get_current_attempt(), 1);
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::hard);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_ok);
@@ -493,8 +496,8 @@ TEST_F(AnomalydetectionCheck, MetricWithQuotes) {
   int latency = 0;
   bool time_is_valid;
   time_t preferred_time;
-  _ad->run_async_check(check_options, latency, true, true, &time_is_valid,
-                       &preferred_time);
+  _ad->run_async_check(
+      check_options, latency, true, true, &time_is_valid, &preferred_time);
   checks::checker::instance().reap();
   ASSERT_EQ(_ad->get_state_type(), checkable::soft);
   ASSERT_EQ(_ad->get_current_state(), engine::service::state_critical);

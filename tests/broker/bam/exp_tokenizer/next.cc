@@ -18,8 +18,9 @@
 
 #include <gtest/gtest.h>
 #include "com/centreon/broker/bam/exp_tokenizer.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 // Given an exp_tokenizer object
@@ -230,12 +231,11 @@ TEST(BamExpTokenizerNext, Copy) {
 // Then next() will throw when the invalid syntax is parsed
 TEST(BamExpTokenizerNext, UnterminatedSingleQuote) {
   bam::exp_tokenizer toknzr("{'MyHost' 'MyService} {IS} {'OK'}");
-  ASSERT_THROW(
-      {
-        for (int i(0); i < 100; ++i)
-          toknzr.next();
-      },
-      exceptions::msg);
+  ASSERT_THROW({
+                 for (int i(0); i < 100; ++i)
+                   toknzr.next();
+               },
+               msg_fmt);
 }
 
 // Given an exp_tokenizer object
@@ -243,12 +243,11 @@ TEST(BamExpTokenizerNext, UnterminatedSingleQuote) {
 // Then next() will throw when the invalid syntax is parsed
 TEST(BamExpTokenizerNext, UnterminatedDoubleQuote) {
   bam::exp_tokenizer toknzr("{\"MyHost\" \"MyService} {IS} {\"OK\"}");
-  ASSERT_THROW(
-      {
-        for (int i(0); i < 100; ++i)
-          toknzr.next();
-      },
-      exceptions::msg);
+  ASSERT_THROW({
+                 for (int i(0); i < 100; ++i)
+                   toknzr.next();
+               },
+               msg_fmt);
 }
 
 // Given an exp_tokenizer object
@@ -256,12 +255,11 @@ TEST(BamExpTokenizerNext, UnterminatedDoubleQuote) {
 // Then next() will throw when the invalid syntax is parsed
 TEST(BamExpTokenizerNext, UnterminatedBrace1) {
   bam::exp_tokenizer toknzr("{MyHost Service} {IS} {OK");
-  ASSERT_THROW(
-      {
-        for (int i(0); i < 100; ++i)
-          toknzr.next();
-      },
-      exceptions::msg);
+  ASSERT_THROW({
+                 for (int i(0); i < 100; ++i)
+                   toknzr.next();
+               },
+               msg_fmt);
 }
 
 // Given an exp_tokenizer object
@@ -269,12 +267,11 @@ TEST(BamExpTokenizerNext, UnterminatedBrace1) {
 // Then next() will throw when the invalid syntax is parsed
 TEST(BamExpTokenizerNext, UnterminatedBrace2) {
   bam::exp_tokenizer toknzr("{MyHost Service} {IS {OK}");
-  ASSERT_THROW(
-      {
-        for (int i(0); i < 100; ++i)
-          toknzr.next();
-      },
-      exceptions::msg);
+  ASSERT_THROW({
+                 for (int i(0); i < 100; ++i)
+                   toknzr.next();
+               },
+               msg_fmt);
 }
 
 // Given an exp_tokenizer object

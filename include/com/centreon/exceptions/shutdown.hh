@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2011,2017,2020 Centreon
+** Copyright 2011,2017,2020 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,43 +16,33 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_EXCEPTIONS_CORRUPTION_HH
-#define CCB_EXCEPTIONS_CORRUPTION_HH
+#ifndef CC_EXCEPTIONS_SHUTDOWN_HH
+#define CC_EXCEPTIONS_SHUTDOWN_HH
 
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/namespace.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/namespace.hh"
 
-CCB_BEGIN()
+CC_BEGIN()
 
 namespace exceptions {
 /**
- *  @class corruption corruption.hh
- * "com/centreon/broker/exceptions/corruption.hh"
+ *  @class shutdown shutdown.hh "com/centreon/exceptions/shutdown.hh"
  *  @brief Shutdown exception class.
  *
  *  This exception is thrown when someone attemps to read from a
- *  stream that has been corruption.
+ *  stream that has been shutdown.
  */
-class corruption : public msg {
+class shutdown : public msg_fmt {
  public:
-  corruption() = default;
-  corruption(corruption const&) = default;
-  ~corruption() noexcept {}
-  corruption& operator=(const corruption&) = delete;
-
-  /**
-   *  Insert data in message.
-   *
-   *  @param[in] t Data to insert.
-   */
-  template <typename T>
-  corruption& operator<<(T t) noexcept {
-    *(misc::stringifier*)this << t;
-    return *this;
-  }
+  template <typename... Args>
+  explicit shutdown(std::string const& str, const Args&... args)
+      : msg_fmt(str, args...) {}
+  shutdown() = delete;
+  ~shutdown() noexcept {}
+  shutdown& operator=(const shutdown&) = delete;
 };
 }  // namespace exceptions
 
-CCB_END()
+CC_END()
 
-#endif  // !CCB_EXCEPTIONS_CORRUPTION_HH
+#endif  // !CC_EXCEPTIONS_SHUTDOWN_HH

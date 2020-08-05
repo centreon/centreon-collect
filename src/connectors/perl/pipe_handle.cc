@@ -29,6 +29,7 @@
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
@@ -52,16 +53,12 @@ static std::mutex gl_fdsm;
  *
  *  @param[in] fd File descriptor.
  */
-pipe_handle::pipe_handle(int fd) : _fd(-1) {
-  set_fd(fd);
-}
+pipe_handle::pipe_handle(int fd) : _fd(-1) { set_fd(fd); }
 
 /**
  *  Destructor.
  */
-pipe_handle::~pipe_handle() noexcept {
-  close();
-}
+pipe_handle::~pipe_handle() noexcept { close(); }
 
 /**
  *  Close the file descriptor.
@@ -95,7 +92,7 @@ void pipe_handle::close_all_handles() {
     if (retval != 0) {
       char const* msg(strerror(errno));
       gl_fds.erase(gl_fds.begin(), it);
-      throw basic_error() << msg;
+      throw basic_error("{}", msg);
     }
   }
   gl_fds.clear();
@@ -106,9 +103,7 @@ void pipe_handle::close_all_handles() {
  *
  *  @return Pipe FD.
  */
-int pipe_handle::get_native_handle() noexcept {
-  return _fd;
-}
+int pipe_handle::get_native_handle() noexcept { return _fd; }
 
 /**
  *  Read data from the file descriptor.
@@ -122,7 +117,7 @@ unsigned long pipe_handle::read(void* data, unsigned long size) {
   ssize_t rb(::read(_fd, data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
-    throw basic_error() << "could not read from pipe: " << msg;
+    throw basic_error("could not read from pipe: {}", msg);
   }
   return rb;
 }
@@ -153,7 +148,7 @@ unsigned long pipe_handle::write(void const* data, unsigned long size) {
   ssize_t wb(::write(_fd, data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
-    throw basic_error() << "could not write to pipe: " << msg;
+    throw basic_error("could not write to pipe: {}", msg);
   }
   return wb;
 }

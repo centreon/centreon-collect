@@ -31,5 +31,5 @@ add_library(
   ${hw_grpc_hdrs}
 )
 
-target_link_libraries(cce_rpc PUBLIC CONAN_PKG::protobuf CONAN_PKG::grpc centreon-clib)
+target_link_libraries(cce_rpc PUBLIC CONAN_PKG::protobuf CONAN_PKG::grpc centreon_clib)
 target_compile_features(cce_rpc PUBLIC cxx_std_11)

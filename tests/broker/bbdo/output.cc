@@ -26,7 +26,6 @@
 
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
@@ -43,7 +42,7 @@ class into_memory : public io::stream {
   ~into_memory() override {}
 
   bool read(std::shared_ptr<io::data>& d,
-            time_t deadline = (time_t)-1) override {
+            time_t deadline = (time_t) - 1) override {
     (void)deadline;
     std::shared_ptr<io::raw> raw(new io::raw);
     raw->get_buffer() = _memory;
@@ -68,7 +67,8 @@ class OutputTest : public ::testing::Test {
     io::data::broker_id = 0;
     try {
       config::applier::init();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
     }
     std::shared_ptr<persistent_cache> pcache(
@@ -305,7 +305,6 @@ TEST_F(OutputTest, LongPersistentFile) {
 
   std::shared_ptr<io::data> e;
   mf.reset();
-
 
   mf.reset(new persistent_file("/tmp/long_output"));
   mf->read(e, 0);

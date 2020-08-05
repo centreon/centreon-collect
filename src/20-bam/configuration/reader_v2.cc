@@ -38,6 +38,7 @@
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
 
@@ -69,7 +70,8 @@ void reader_v2::read(state& st) {
     _load(st.get_bool_exps());
     _load(st.get_meta_services());
     _load(st.get_hst_svc_mapping());
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     st.clear();
     throw;
   }
@@ -152,9 +154,10 @@ void reader_v2::_load(state::kpis& kpis) {
           kpis[kpi_id].set_opened_event(e);
         }
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "BAM: could not retrieve KPI configuration from DB: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM: could not retrieve KPI configuration from DB: {}",
+                    e.what());
     }
 
     // Load host ID/service ID of meta-services (temporary fix until
@@ -175,23 +178,25 @@ void reader_v2::_load(state::kpis& kpis) {
         try {
           database::mysql_result res(promise.get_future().get());
           if (!_mysql.fetch_row(res))
-            throw(exceptions::msg() << "virtual service of meta-service "
-                                    << it->first << " does not exist");
+            throw msg_fmt("virtual service of meta-service {} does not exist",
+                          it->first);
           it->second.set_host_id(res.value_as_u32(0));
           it->second.set_service_id(res.value_as_u32(1));
-        } catch (std::exception const& e) {
-          throw exceptions::msg()
-              << "could not retrieve virtual meta-service's service: "
-              << e.what();
+        }
+        catch (std::exception const& e) {
+          throw msg_fmt("could not retrieve virtual meta-service's service: {}",
+                        e.what());
         }
       }
     }
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve KPI configuration from DB: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception(
+        "BAM: could not retrieve KPI configuration from DB: {}", e.what());
   }
 }
 
@@ -241,16 +246,19 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
             bas[ba_id].set_opened_event(e);
           }
         }
-      } catch (std::exception const& e) {
-        throw exceptions::msg() << "BAM: " << e.what();
+      }
+      catch (std::exception const& e) {
+        throw msg_fmt("BAM: {}", e.what());
       }
     }
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve BA configuration from DB: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception(
+        "BAM: could not retrieve BA configuration from DB: {}", e.what());
   }
 
   // Load host_id/service_id of virtual BA services. All the associated
@@ -288,7 +296,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
           found->second.set_host_id(host_id);
           found->second.set_service_id(service_id);
           mapping.set(ba_id, res.value_as_str(0), res.value_as_str(1));
-        } catch (std::exception const& e) {
+        }
+        catch (std::exception const& e) {
           logging::info(logging::medium)
               << "BAM: service '" << res.value_as_str(1) << "' of host '"
               << res.value_as_str(0) << "' is not a valid virtual BA service";
@@ -296,20 +305,22 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
         }
       }
     }
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve BA service IDs from DB: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception("BAM: could not retrieve BA service IDs from DB: {}",
+                           e.what());
   }
 
   // Test for BA without service ID.
   for (state::bas::const_iterator it(bas.begin()), end(bas.end()); it != end;
        ++it)
     if (it->second.get_service_id() == 0)
-      throw(reader_exception() << "BAM: BA " << it->second.get_id()
-                               << " has no associated service");
+      throw reader_exception("BAM: BA {} has no associated service",
+                             it->second.get_id());
 
   return;
 }
@@ -342,12 +353,15 @@ void reader_v2::_load(state::bool_exps& bool_exps) {
                           res.value_as_str(2),    // Expression.
                           res.value_as_bool(3));  // Impact if.
     }
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception() << "BAM: could not retrieve boolean expression "
-                             << "configuration from DB: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception(
+        "BAM: could not retrieve boolean expression configuration from DB: {}",
+        e.what());
   }
 }
 
@@ -369,18 +383,23 @@ void reader_v2::_load(state::meta_services& meta_services) {
     database::mysql_result res(promise.get_future().get());
     while (_mysql.fetch_row(res)) {
       uint32_t meta_id(res.value_as_u32(0));
-      meta_services[meta_id] = meta_service(
-          res.value_as_u32(0), res.value_as_str(1), res.value_as_str(2),
-          res.value_as_f64(3), res.value_as_f64(4),
-          (res.value_as_i32(5) == 2 ? res.value_as_str(6) : ""),
-          (res.value_as_i32(5) == 2 ? res.value_as_str(7) : ""));
+      meta_services[meta_id] =
+          meta_service(res.value_as_u32(0),
+                       res.value_as_str(1),
+                       res.value_as_str(2),
+                       res.value_as_f64(3),
+                       res.value_as_f64(4),
+                       (res.value_as_i32(5) == 2 ? res.value_as_str(6) : ""),
+                       (res.value_as_i32(5) == 2 ? res.value_as_str(7) : ""));
     }
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve meta-services: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception("BAM: could not retrieve meta-services: {}",
+                           e.what());
   }
 
   // Load host_id/service_id of virtual meta-service services. All
@@ -410,7 +429,8 @@ void reader_v2::_load(state::meta_services& meta_services) {
               << "' references an unknown meta-service (" << meta_id << ")";
           continue;
         }
-      } catch (std::exception const& e) {
+      }
+      catch (std::exception const& e) {
         logging::info(logging::medium)
             << "BAM: service '" << res.value_as_str(1) << "' of host '"
             << res.value_as_str(0)
@@ -418,23 +438,26 @@ void reader_v2::_load(state::meta_services& meta_services) {
         continue;
       }
     }
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve meta-services' service IDs from DB: "
-          << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception(
+        "BAM: could not retrieve meta-services' service IDs from DB: {}",
+        e.what());
   }
 
   // Check for meta-services without service ID.
   for (state::meta_services::const_iterator it(meta_services.begin()),
        end(meta_services.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // std::pair<std::string, std::string>
     //   svc(mapping.get_service(it->first));
     // if (svc.first.empty() || svc.second.empty())
-    //   throw (reader_exception() << "BAM: meta-service "
+    //   throw  reader_exception("BAM: meta-service "
     //          << it->first << " has no associated service");
   }
 
@@ -442,7 +465,8 @@ void reader_v2::_load(state::meta_services& meta_services) {
   std::unique_ptr<mysql> storage_mysql;
   for (state::meta_services::iterator it(meta_services.begin()),
        end(meta_services.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     // SQL LIKE mode.
     if (!it->second.get_service_filter().empty() &&
         !it->second.get_metric_name().empty()) {
@@ -459,23 +483,26 @@ void reader_v2::_load(state::meta_services& meta_services) {
       if (!storage_mysql)
         try {
           storage_mysql.reset(new mysql(_storage_cfg));
-        } catch (std::exception const& e) {
-          throw(reader_exception()
-                << "BAM: could not initialize storage database to "
-                   "retrieve metrics associated with some "
-                   "meta-service: "
-                << e.what());
         }
+      catch (std::exception const& e) {
+        throw reader_exception(
+            "BAM: could not initialize storage database to "
+            "retrieve metrics associated with some "
+            "meta-service: {}",
+            e.what());
+      }
       std::promise<database::mysql_result> promise;
       storage_mysql->run_query_and_get_result(query.str(), &promise);
       try {
         database::mysql_result res(promise.get_future().get());
         while (storage_mysql->fetch_row(res))
           it->second.add_metric(res.value_as_u32(0));
-      } catch (std::exception const& e) {
-        throw(reader_exception()
-              << "BAM: could not retrieve members of meta-service '"
-              << it->second.get_name() << "': " << e.what());
+      }
+      catch (std::exception const& e) {
+        throw reader_exception(
+            "BAM: could not retrieve members of meta-service '{}': {}",
+            it->second.get_name(),
+            e.what());
       }
     }
     // Service list mode.
@@ -491,13 +518,16 @@ void reader_v2::_load(state::meta_services& meta_services) {
         database::mysql_result res(promise.get_future().get());
         while (_mysql.fetch_row(res))
           it->second.add_metric(res.value_as_u32(0));
-      } catch (reader_exception const& e) {
+      }
+      catch (reader_exception const& e) {
         (void)e;
         throw;
-      } catch (std::exception const& e) {
-        throw(reader_exception()
-              << "BAM: could not retrieve members of meta-service '"
-              << it->second.get_name() << "': " << e.what());
+      }
+      catch (std::exception const& e) {
+        throw reader_exception(
+            "BAM: could not retrieve members of meta-service '{}': {}",
+            it->second.get_name(),
+            e.what());
       }
     }
   }
@@ -523,15 +553,19 @@ void reader_v2::_load(bam::hst_svc_mapping& mapping) {
         &promise);
     database::mysql_result res(promise.get_future().get());
     while (_mysql.fetch_row(res))
-      mapping.set_service(res.value_as_str(2), res.value_as_str(3),
-                          res.value_as_u32(0), res.value_as_u32(1),
+      mapping.set_service(res.value_as_str(2),
+                          res.value_as_str(3),
+                          res.value_as_u32(0),
+                          res.value_as_u32(1),
                           res.value_as_str(4) == "1");
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve host/service IDs: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception("BAM: could not retrieve host/service IDs: {}",
+                           e.what());
   }
 
   try {
@@ -549,12 +583,15 @@ void reader_v2::_load(bam::hst_svc_mapping& mapping) {
     storage_mysql.run_query_and_get_result(query.str(), &promise);
     database::mysql_result res(promise.get_future().get());
     while (storage_mysql.fetch_row(res)) {
-      mapping.register_metric(res.value_as_u32(0), res.value_as_str(1),
-                              res.value_as_u32(2), res.value_as_u32(3));
+      mapping.register_metric(res.value_as_u32(0),
+                              res.value_as_str(1),
+                              res.value_as_u32(2),
+                              res.value_as_u32(3));
     }
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not retrieve known metrics: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception("BAM: could not retrieve known metrics: {}",
+                           e.what());
   }
 }
 
@@ -609,9 +646,10 @@ void reader_v2::_load_dimensions() {
         tp->saturday = res.value_as_str(9);
         datas.push_back(std::static_pointer_cast<io::data>(tp));
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not load timeperiods from the database: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("could not load timeperiods from the database: {}",
+                    e.what());
     }
 
     // Load the BAs.
@@ -650,9 +688,9 @@ void reader_v2::_load_dimensions() {
           datas.push_back(dbtr);
         }
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not retrieve BAs from the database" << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("could not retrieve BAs from the database {}", e.what());
     }
     // Load the BVs.
     promise = std::promise<database::mysql_result>();
@@ -669,9 +707,9 @@ void reader_v2::_load_dimensions() {
         bv->bv_description = res.value_as_str(2);
         datas.push_back(std::static_pointer_cast<io::data>(bv));
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not retrieve BVs from the database: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("could not retrieve BVs from the database: {}", e.what());
     }
     // Load the BA BV relations.
     {
@@ -696,9 +734,9 @@ void reader_v2::_load_dimensions() {
           babv->bv_id = res.value_as_u32(1);
           datas.push_back(std::static_pointer_cast<io::data>(babv));
         }
-      } catch (std::exception const& e) {
-        throw exceptions::msg()
-            << "could not retrieve BV memberships of BAs: " << e.what();
+      }
+      catch (std::exception const& e) {
+        throw msg_fmt("could not retrieve BV memberships of BAs: {}", e.what());
       }
     }
 
@@ -788,9 +826,9 @@ void reader_v2::_load_dimensions() {
           }
           datas.push_back(std::static_pointer_cast<io::data>(k));
         }
-      } catch (std::exception const& e) {
-        throw exceptions::msg()
-            << "could not retrieve KPI dimensions: " << e.what();
+      }
+      catch (std::exception const& e) {
+        throw msg_fmt("could not retrieve KPI dimensions: {}", e.what());
       }
     }
 
@@ -808,10 +846,11 @@ void reader_v2::_load_dimensions() {
         dbtr->is_default = false;
         datas.push_back(dbtr);
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "could not retrieve the timeperiods associated with the BAs: "
-          << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt(
+          "could not retrieve the timeperiods associated with the BAs: {}",
+          e.what());
     }
 
     // End the update.
@@ -823,13 +862,16 @@ void reader_v2::_load_dimensions() {
     // Write all the cached data to the publisher.
     for (std::vector<std::shared_ptr<io::data> >::iterator it(datas.begin()),
          end(datas.end());
-         it != end; ++it)
+         it != end;
+         ++it)
       out->write(*it);
-  } catch (reader_exception const& e) {
+  }
+  catch (reader_exception const& e) {
     (void)e;
     throw;
-  } catch (std::exception const& e) {
-    throw(reader_exception()
-          << "BAM: could not load some dimension table: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw reader_exception("BAM: could not load some dimension table: {}",
+                           e.what());
   }
 }

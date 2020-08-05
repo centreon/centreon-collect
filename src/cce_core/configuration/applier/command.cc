@@ -25,11 +25,12 @@
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -49,8 +50,8 @@ applier::command::~command() throw() {}
  */
 void applier::command::add_object(configuration::command const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Creating new command '" << obj.command_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Creating new command '"
+                                             << obj.command_name() << "'.";
 
   // Add command to the global configuration set.
   config->commands().insert(obj);
@@ -68,9 +69,9 @@ void applier::command::add_object(configuration::command const& obj) {
           obj.command_name(), obj.command_line(), *found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
     } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
+      throw engine_error("Could not register command '{}': unable to find '{}'",
+                  obj.command_name(),
+                  obj.connector());
   }
 }
 
@@ -82,9 +83,7 @@ void applier::command::add_object(configuration::command const& obj) {
  *
  *  @param[in] s  Unused.
  */
-void applier::command::expand_objects(configuration::state& s) {
-  (void)s;
-}
+void applier::command::expand_objects(configuration::state& s) { (void)s; }
 
 /**
  *  Modified command.
@@ -93,20 +92,19 @@ void applier::command::expand_objects(configuration::state& s) {
  */
 void applier::command::modify_object(configuration::command const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Modifying command '" << obj.command_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Modifying command '"
+                                             << obj.command_name() << "'.";
 
   // Find old configuration.
   set_command::iterator it_cfg(config->commands_find(obj.key()));
   if (it_cfg == config->commands().end())
-    throw(engine_error() << "Cannot modify non-existing "
-                         << "command '" << obj.command_name() << "'");
+    throw engine_error("Cannot modify non-existing command '{}'", obj.command_name());
 
   // Find command object.
   command_map::iterator it_obj(commands::command::commands.find(obj.key()));
   if (it_obj == commands::command::commands.end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "command object '" << obj.command_name() << "'");
+    throw engine_error("Could not modify non-existing command object '{}'",
+                obj.command_name());
   commands::command* c(it_obj->second.get());
 
   // Update the global configuration set.
@@ -135,14 +133,14 @@ void applier::command::modify_object(configuration::command const& obj) {
           obj.command_name(), obj.command_line(), *found_con->second)};
       commands::command::commands[forward->get_name()] = forward;
     } else
-      throw engine_error() << "Could not register command '"
-                           << obj.command_name() << "': unable to find '"
-                           << obj.connector() << "'";
+      throw engine_error("Could not register command '{}': unable to find '{}'",
+                  obj.command_name(),
+                  obj.connector());
   }
   // Notify event broker.
   timeval tv(get_broker_timestamp(NULL));
-  broker_command_data(NEBTYPE_COMMAND_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, c,
-                      &tv);
+  broker_command_data(
+      NEBTYPE_COMMAND_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, c, &tv);
 }
 
 /**
@@ -152,8 +150,8 @@ void applier::command::modify_object(configuration::command const& obj) {
  */
 void applier::command::remove_object(configuration::command const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
-      << "Removing command '" << obj.command_name() << "'.";
+  logger(logging::dbg_config, logging::more) << "Removing command '"
+                                             << obj.command_name() << "'.";
 
   // Find command.
   std::unordered_map<std::string, std::shared_ptr<commands::command> >::iterator
@@ -163,14 +161,13 @@ void applier::command::remove_object(configuration::command const& obj) {
 
     // Notify event broker.
     timeval tv(get_broker_timestamp(NULL));
-    broker_command_data(NEBTYPE_COMMAND_DELETE, NEBFLAG_NONE, NEBATTR_NONE, cmd,
-                        &tv);
+    broker_command_data(
+        NEBTYPE_COMMAND_DELETE, NEBFLAG_NONE, NEBATTR_NONE, cmd, &tv);
 
     // Erase command (will effectively delete the object).
     commands::command::commands.erase(it);
   } else
-    throw engine_error() << "Could not remove command '" << obj.key()
-                         << "': it does not exist";
+    throw engine_error("Could not remove command '{}': it does not exist", obj.key());
 
   // Remove command from the global configuration set.
   config->commands().erase(obj);
@@ -189,6 +186,6 @@ void applier::command::resolve_object(configuration::command const& obj) {
     connector_map::iterator found{
         commands::connector::connectors.find(obj.connector())};
     if (found == commands::connector::connectors.end() || !found->second)
-      throw(engine_error() << "unknow command " << obj.connector());
+      throw engine_error("unknow command {}", obj.connector());
   }
 }

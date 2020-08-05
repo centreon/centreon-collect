@@ -17,8 +17,9 @@
 */
 
 #include "com/centreon/broker/influxdb/column.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
 
@@ -75,36 +76,28 @@ column& column::operator=(column const& c) {
  *
  *  @return  The name of this column.
  */
-std::string const& column::get_name() const {
-  return (_name);
-}
+std::string const& column::get_name() const { return (_name); }
 
 /**
  *  Get the value of this column.
  *
  *  @return  The value of this column.
  */
-std::string const& column::get_value() const {
-  return (_value);
-}
+std::string const& column::get_value() const { return (_value); }
 
 /**
  *  Is this column a flag?
  *
  *  @return  True if this column is a flag.
  */
-bool column::is_flag() const {
-  return (_is_flag);
-}
+bool column::is_flag() const { return (_is_flag); }
 
 /**
  *  Get the type of this column.
  *
  *  @return  The type of this column.
  */
-column::type column::get_type() const {
-  return (_type);
-}
+column::type column::get_type() const { return (_type); }
 
 /**
  *  Parse a string containing a type.
@@ -118,6 +111,5 @@ column::type column::parse_type(std::string const& type) {
     return (string);
   else if (type == "number")
     return (number);
-  throw(exceptions::msg() << "influxdb: couldn't parse column type '" << type
-                          << "'");
+  throw msg_fmt("influxdb: couldn't parse column type '{}'", type);
 }

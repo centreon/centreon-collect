@@ -66,3 +66,4 @@ add_library(cbmod SHARED
 
 target_link_libraries(cbmod CONAN_PKG::spdlog CONAN_PKG::asio CONAN_PKG::json11 CONAN_PKG::spdlog ccb_neb ccb_core)
 set_target_properties(cbmod PROPERTIES PREFIX "")
+install(TARGETS cbmod DESTINATION ${CMAKE_INSTALL_LIBDIR}/nagios)

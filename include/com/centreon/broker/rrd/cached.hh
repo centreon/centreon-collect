@@ -42,7 +42,11 @@ namespace rrd {
  */
 class cached : public backend {
  public:
-  enum cached_type { uninitialized, local, tcp };
+  enum cached_type {
+    uninitialized,
+    local,
+    tcp
+  };
   cached(std::string const& tmpl_path, uint32_t cache_size, cached_type type);
   cached(cached const& c) = delete;
   cached& operator=(cached const& c) = delete;

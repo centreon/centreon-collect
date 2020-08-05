@@ -21,40 +21,35 @@
 #include <array>
 #include <iomanip>
 #include "com/centreon/engine/daterange.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
 timerange::timerange(uint64_t start, uint64_t end) {
   // Make sure we have the data we need.
   if (start > 86400) {
-    logger(log_config_error, basic)
-        << "Error: Start time " << start << " is not valid for timeperiod";
-    throw engine_error() << "Could not create timerange "
-                         << "start'" << start << "' end '" << end << "'";
+    logger(log_config_error, basic) << "Error: Start time " << start
+                                    << " is not valid for timeperiod";
+    throw engine_error("Could not create timerange start'{}' end '{}'", start, end);
   }
   if (end > 86400) {
-    logger(log_config_error, basic)
-        << "Error: End time " << end << " is not value for timeperiod";
-    throw engine_error() << "Could not create timerange "
-                         << "start'" << start << "' end '" << end << "'";
+    logger(log_config_error, basic) << "Error: End time " << end
+                                    << " is not value for timeperiod";
+    throw engine_error("Could not create timerange start'{}' e,d '{}'", start, end);
   }
 
   _range_start = start;
   _range_end = end;
 }
 
-uint64_t timerange::get_range_start() const {
-  return _range_start;
-}
+uint64_t timerange::get_range_start() const { return _range_start; }
 
-uint64_t timerange::get_range_end() const {
-  return _range_end;
-}
+uint64_t timerange::get_range_end() const { return _range_end; }
 
 /**
  *  Equal operator.
@@ -114,7 +109,8 @@ std::ostream& operator<<(std::ostream& os, timerange const& obj) {
  */
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj) {
   for (timerange_list::const_iterator it(obj.begin()), end(obj.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     os << **it << ((next(it) == obj.end()) ? "" : ", ");
   return os;
 }

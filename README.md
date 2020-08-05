@@ -99,6 +99,16 @@ Now, the *command conan remote list* should list two repositories:
     conan-center: https://conan.bintray.com [Verify SSL: True]
     centreon: https://api.bintray.com/conan/centreon/centreon [Verify SSL: True]
 
+.. important::
+
+    If you are using **GCC compiler >= 5.1**, Conan will set the ``compiler.libcxx`` to the old
+    ABI for backwards compatibility. You can change this with the following commands:
+
+    .. code-block:: bash
+
+        $ conan profile new default --detect  # Generates default profile detecting GCC and sets old ABI
+        $ conan profile update settings.compiler.libcxx=libstdc++11 default  # Sets libcxx to C++11 ABI
+
 Once the sources of Centreon Broker extracted, execute the following commands:
     
     $> git clone https://github.com/centreon/centreon-collect 

@@ -15,11 +15,12 @@
 **
 ** For more information : contact@centreon.com
 */
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/mysql_manager.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
@@ -44,7 +45,14 @@ mysql::mysql(database_config const& db_cfg)
  */
 mysql::~mysql() {
   log_v2::sql()->debug("mysql: destruction");
-  commit();
+  try {
+    commit();
+  }
+  catch (const std::exception& e) {
+    log_v2::sql()->warn(
+        "Unable to commit on the database server. Probably not connected: {}",
+        e.what());
+  }
   _connection.clear();
   mysql_manager::instance().update_connections();
   logging::info(logging::low) << "mysql: mysql library closed.";
@@ -64,10 +72,11 @@ void mysql::commit(int thread_id) {
   std::atomic_int ko;
   if (thread_id < 0) {
     ko = _connection.size();
-    for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
+    for (std::vector<std::shared_ptr<mysql_connection> >::const_iterator
              it(_connection.begin()),
          end(_connection.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       (*it)->commit(&promise, ko);
     }
   } else {
@@ -78,9 +87,9 @@ void mysql::commit(int thread_id) {
   try {
     if (future.get())
       _pending_queries = 0;
-  } catch (std::exception const& e) {
-    throw exceptions::msg()
-        << "mysql: Unable to commit transactions: " << e.what();
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt("mysql: Unable to commit transactions: {}", e.what());
   }
 }
 
@@ -125,7 +134,7 @@ void mysql::_check_errors() {
   if (mysql_manager::instance().is_in_error()) {
     database::mysql_error err(mysql_manager::instance().get_error());
     if (err.is_fatal())
-      throw exceptions::msg() << err.get_message();
+      throw msg_fmt(err.get_message());
     else
       logging::error(logging::medium) << "mysql: " << err.get_message();
   }
@@ -271,10 +280,11 @@ int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
  * @param stmt The statement to prepare.
  */
 void mysql::prepare_statement(mysql_stmt const& stmt) {
-  for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
+  for (std::vector<std::shared_ptr<mysql_connection> >::const_iterator
            it(_connection.begin()),
        end(_connection.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     (*it)->prepare_query(stmt.get_id(), stmt.get_query());
 }
 
@@ -302,18 +312,14 @@ mysql_stmt mysql::prepare_query(std::string const& query,
  *
  *  @return  A version as mysql::version.
  */
-mysql::version mysql::schema_version() const {
-  return _version;
-}
+mysql::version mysql::schema_version() const { return _version; }
 
 /**
  *  Returns the connections count used by this mysql object.
  *
  * @return an integer.
  */
-int mysql::connections_count() const {
-  return _connection.size();
-}
+int mysql::connections_count() const { return _connection.size(); }
 
 /**
  *  choose_best_connection

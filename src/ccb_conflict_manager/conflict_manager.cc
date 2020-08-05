@@ -21,7 +21,7 @@
 #include <cstring>
 
 #include "com/centreon/broker/database/mysql_result.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -30,6 +30,7 @@
 #include "com/centreon/broker/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/perfdata.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::storage;
@@ -39,35 +40,34 @@ std::mutex conflict_manager::_init_m;
 std::condition_variable conflict_manager::_init_cv;
 
 void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
-    std::shared_ptr<io::data>) = {
-    nullptr,
-    &conflict_manager::_process_acknowledgement,
-    &conflict_manager::_process_comment,
-    &conflict_manager::_process_custom_variable,
-    &conflict_manager::_process_custom_variable_status,
-    &conflict_manager::_process_downtime,
-    &conflict_manager::_process_event_handler,
-    &conflict_manager::_process_flapping_status,
-    &conflict_manager::_process_host_check,
-    &conflict_manager::_process_host_dependency,
-    &conflict_manager::_process_host_group,
-    &conflict_manager::_process_host_group_member,
-    &conflict_manager::_process_host,
-    &conflict_manager::_process_host_parent,
-    &conflict_manager::_process_host_status,
-    &conflict_manager::_process_instance,
-    &conflict_manager::_process_instance_status,
-    &conflict_manager::_process_log,
-    &conflict_manager::_process_module,
-    &conflict_manager::_process_service_check,
-    &conflict_manager::_process_service_dependency,
-    &conflict_manager::_process_service_group,
-    &conflict_manager::_process_service_group_member,
-    &conflict_manager::_process_service,
-    &conflict_manager::_process_service_status,
-    &conflict_manager::_process_instance_configuration,
-    &conflict_manager::_process_responsive_instance,
-};
+    std::shared_ptr<io::data>) =
+    {nullptr,
+     &conflict_manager::_process_acknowledgement,
+     &conflict_manager::_process_comment,
+     &conflict_manager::_process_custom_variable,
+     &conflict_manager::_process_custom_variable_status,
+     &conflict_manager::_process_downtime,
+     &conflict_manager::_process_event_handler,
+     &conflict_manager::_process_flapping_status,
+     &conflict_manager::_process_host_check,
+     &conflict_manager::_process_host_dependency,
+     &conflict_manager::_process_host_group,
+     &conflict_manager::_process_host_group_member,
+     &conflict_manager::_process_host,
+     &conflict_manager::_process_host_parent,
+     &conflict_manager::_process_host_status,
+     &conflict_manager::_process_instance,
+     &conflict_manager::_process_instance_status,
+     &conflict_manager::_process_log,
+     &conflict_manager::_process_module,
+     &conflict_manager::_process_service_check,
+     &conflict_manager::_process_service_dependency,
+     &conflict_manager::_process_service_group,
+     &conflict_manager::_process_service_group_member,
+     &conflict_manager::_process_service,
+     &conflict_manager::_process_service_status,
+     &conflict_manager::_process_instance_configuration,
+     &conflict_manager::_process_responsive_instance, };
 
 conflict_manager& conflict_manager::instance() {
   assert(_singleton);
@@ -116,8 +116,9 @@ bool conflict_manager::init_storage(bool store_in_db,
 
   for (;;) {
     /* The loop is waiting for 1s or for _mysql to be initialized */
-    if (_init_cv.wait_for(lk, std::chrono::seconds(1),
-                          [&]() { return _singleton != nullptr; })) {
+    if (_init_cv.wait_for(lk, std::chrono::seconds(1), [&]() {
+          return _singleton != nullptr;
+        })) {
       std::lock_guard<std::mutex> lk(_singleton->_loop_m);
       _singleton->_store_in_db = store_in_db;
       _singleton->_rrd_len = rrd_len;
@@ -164,9 +165,9 @@ void conflict_manager::_load_deleted_instances() {
     mysql_result res(promise.get_future().get());
     while (_mysql.fetch_row(res))
       _cache_deleted_instance_id.insert(res.value_as_u32(0));
-  } catch (std::exception const& e) {
-    throw exceptions::msg()
-        << "could not get list of deleted instances: " << e.what();
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt("could not get list of deleted instances: {}", e.what());
   }
 }
 
@@ -192,10 +193,11 @@ void conflict_manager::_load_caches() {
         stored_timestamp& ts = _stored_timestamps[instance_id];
         ts.set_timestamp(timestamp(std::numeric_limits<time_t>::max()));
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "conflict_manager: could not get the list of outdated instances: "
-          << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt(
+          "conflict_manager: could not get the list of outdated instances: {}",
+          e.what());
     }
   }
 
@@ -225,19 +227,23 @@ void conflict_manager::_load_caches() {
         uint32_t service_id(res.value_as_u32(2));
         log_v2::perfdata()->debug(
             "storage: loaded index {} of ({}, {}) with rrd_len={}",
-            info.index_id, host_id, service_id, info.rrd_retention);
+            info.index_id,
+            host_id,
+            service_id,
+            info.rrd_retention);
         _index_cache[{host_id, service_id}] = std::move(info);
 
         // Create the metric mapping.
         std::shared_ptr<storage::index_mapping> im{
-            std::make_shared<storage::index_mapping>(info.index_id, host_id,
-                                                     service_id)};
+            std::make_shared<storage::index_mapping>(
+                info.index_id, host_id, service_id)};
         multiplexing::publisher pblshr;
         pblshr.write(im);
       }
-    } catch (std::exception const& e) {
-      throw broker::exceptions::msg()
-          << "storage: could not fetch index list from data DB: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("storage: could not fetch index list from data DB: {}",
+                    e.what());
     }
   }
 
@@ -253,9 +259,10 @@ void conflict_manager::_load_caches() {
       mysql_result res(promise.get_future().get());
       while (_mysql.fetch_row(res))
         _cache_host_instance[res.value_as_u32(0)] = res.value_as_u32(1);
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "SQL: could not get the list of host/instance pairs: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("SQL: could not get the list of host/instance pairs: {}",
+                    e.what());
     }
   }
 
@@ -271,9 +278,10 @@ void conflict_manager::_load_caches() {
       mysql_result res(promise.get_future().get());
       while (_mysql.fetch_row(res))
         _hostgroup_cache.insert(res.value_as_u32(0));
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "SQL: could not get the list of hostgroups id: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("SQL: could not get the list of hostgroups id: {}",
+                    e.what());
     }
   }
 
@@ -289,9 +297,10 @@ void conflict_manager::_load_caches() {
       mysql_result res(promise.get_future().get());
       while (_mysql.fetch_row(res))
         _servicegroup_cache.insert(res.value_as_u32(0));
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "SQL: could not get the list of servicegroups id: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
+                    e.what());
     }
   }
 
@@ -330,10 +339,10 @@ void conflict_manager::_load_caches() {
         info.type = res.value_as_str(13)[0] - '0';
         _metric_cache[{res.value_as_u32(1), res.value_as_str(2)}] = info;
       }
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "conflict_manager: could not get the list of metrics: "
-          << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("conflict_manager: could not get the list of metrics: {}",
+                    e.what());
     }
   }
 }
@@ -347,7 +356,9 @@ void conflict_manager::update_metric_info_cache(uint32_t index_id,
     log_v2::perfdata()->info(
         "conflict_manager: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
-        metric_name, metric_id, index_id,
+        metric_name,
+        metric_id,
+        index_id,
         perfdata::data_type_name[metric_type]);
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     it->second.type = metric_type;
@@ -361,7 +372,8 @@ void conflict_manager::update_metric_info_cache(uint32_t index_id,
 void conflict_manager::_callback() {
   try {
     _load_caches();
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     logging::error(logging::high) << "error while loading caches: " << e.what();
     _broken = true;
   }
@@ -370,7 +382,8 @@ void conflict_manager::_callback() {
     /* Are there index_data to remove? */
     try {
       _check_deleted_index();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       logging::error(logging::high)
           << "conflict_manager: error while checking deleted indexes: "
           << e.what();
@@ -398,8 +411,9 @@ void conflict_manager::_callback() {
         std::chrono::system_clock::time_point previous_time(now0);
 
         /* Let's wait for some events before entering in the loop */
-        if (_loop_cv.wait_for(lk, std::chrono::seconds(1),
-                              [this]() { return !_events.empty(); }))
+        if (_loop_cv.wait_for(lk, std::chrono::seconds(1), [this]() {
+              return !_events.empty();
+            }))
           log_v2::sql()->trace(
               "conflict_manager: new events to send to the database.");
         else
@@ -449,9 +463,8 @@ void conflict_manager::_callback() {
           std::chrono::system_clock::time_point now1 =
               std::chrono::system_clock::now();
 
-          timeout =
-              std::chrono::duration_cast<std::chrono::milliseconds>(now1 - now0)
-                  .count();
+          timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+              now1 - now0).count();
           lk.lock();
           if (!_exit && _events.empty()) {
             log_v2::sql()->debug(
@@ -460,7 +473,8 @@ void conflict_manager::_callback() {
             /* There is no more events to send to the DB, let's wait for new
              * ones. */
             if (_loop_cv.wait_for(
-                    lk, std::chrono::milliseconds(timeout_limit - timeout),
+                    lk,
+                    std::chrono::milliseconds(timeout_limit - timeout),
                     [this]() { return _exit || !_events.empty(); }))
               log_v2::sql()->trace(
                   "conflict_manager: new events to send to the database.");
@@ -472,15 +486,13 @@ void conflict_manager::_callback() {
 
           /* Get some stats every seconds */
           if (std::chrono::duration_cast<std::chrono::milliseconds>(
-                  now1 - previous_time)
-                  .count() > 1000) {
+                  now1 - previous_time).count() > 1000) {
             previous_time = now1;
             std::lock_guard<std::mutex> lk(_stat_m);
             _still_pending_events = _events.size();
             _loop_duration =
-                std::chrono::duration_cast<std::chrono::milliseconds>(now1 -
-                                                                      now0)
-                    .count();
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    now1 - now0).count();
             if (_loop_duration > 0)
               _speed = (count * 1000.0) / _loop_duration;
             else
@@ -521,7 +533,8 @@ void conflict_manager::_callback() {
             _speed = 0;
         }
       }
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       logging::error(logging::high)
           << "conflict_manager: error in the main loop: " << e.what();
       if (strstr(e.what(), "server has gone away")) {
@@ -565,10 +578,10 @@ bool conflict_manager::_should_exit() const {
  * @return The number of events to ack.
  */
 int32_t conflict_manager::send_event(conflict_manager::stream_type c,
-                                  std::shared_ptr<io::data> const& e) {
+                                     std::shared_ptr<io::data> const& e) {
   assert(e);
   if (_broken)
-    throw exceptions::msg() << "conflict_manager: events loop interrupted";
+    throw msg_fmt("conflict_manager: events loop interrupted");
 
   log_v2::sql()->trace(
       "conflict_manager: send_event category:{}, element:{} from {}",
@@ -701,7 +714,8 @@ void conflict_manager::unload() {
     } else {
       log_v2::sql()->info(
           "conflict_manager: still {} stream{} using the conflict manager.",
-          count, count > 1 ? "s" : "");
+          count,
+          count > 1 ? "s" : "");
     }
   }
 }

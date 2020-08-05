@@ -24,6 +24,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/directory_entry.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::io;
 
 /**
@@ -96,7 +97,7 @@ directory_entry::~directory_entry() noexcept {}
 std::string directory_entry::current_path() {
   char* buffer(getcwd(NULL, 0));
   if (!buffer)
-    throw(basic_error() << "current path failed");
+    throw basic_error_1("current path failed");
   std::string path(buffer);
   free(buffer);
   return path;
@@ -124,7 +125,7 @@ std::list<file_entry> const& directory_entry::entry_list(
   DIR* dir(opendir(_entry.path().c_str()));
   if (!dir) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "open directory failed: " << msg);
+    throw basic_error("open directory failed: {}", msg);
   }
 
   dirent entry;
@@ -132,7 +133,7 @@ std::list<file_entry> const& directory_entry::entry_list(
   while (true) {
     if (readdir_r(dir, &entry, &result)) {
       closedir(dir);
-      throw(basic_error() << "parse directory failed");
+      throw basic_error_1("parse directory failed");
     }
     if (!result)
       break;

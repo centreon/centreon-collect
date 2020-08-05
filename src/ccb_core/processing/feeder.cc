@@ -19,13 +19,14 @@
 #include "com/centreon/broker/processing/feeder.hh"
 #include <unistd.h>
 #include <cassert>
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
 
@@ -64,9 +65,7 @@ feeder::feeder(std::string const& name,
 /**
  *  Destructor.
  */
-feeder::~feeder() {
-  exit();
-}
+feeder::~feeder() { exit(); }
 
 void feeder::exit() {
   std::unique_lock<std::mutex> lock(_stopped_m);
@@ -121,9 +120,7 @@ void feeder::start() {
   std::unique_lock<std::mutex> lock(_started_m);
   _stopped = false;
   if (!_client)
-      throw exceptions::msg()
-            << "could not process '" << _name << "' with no client stream";
-
+    throw msg_fmt("could not process '{}' with no client stream", _name);
   if (!_started) {
     _should_exit = false;
     _thread = std::thread(&feeder::_callback, this);
@@ -133,8 +130,8 @@ void feeder::start() {
 
 void feeder::_callback() noexcept {
   assert(_client);
-  logging::info(logging::medium)
-      << "feeder: thread of client '" << _name << "' is starting";
+  logging::info(logging::medium) << "feeder: thread of client '" << _name
+                                 << "' is starting";
   time_t fill_stats_time = time(nullptr);
   std::unique_lock<std::mutex> lock(_started_m);
 
@@ -160,7 +157,8 @@ void feeder::_callback() noexcept {
         try {
           misc::read_lock lock(_client_m);
           timed_out_stream = !_client->read(d, 0);
-        } catch (exceptions::shutdown const& e) {
+        }
+        catch (shutdown const& e) {
           stream_can_read = false;
         }
         if (d) {
@@ -179,9 +177,10 @@ void feeder::_callback() noexcept {
       if (muxer_can_read)
         try {
           timed_out_muxer = !_subscriber.get_muxer().read(d, 0);
-        } catch (exceptions::shutdown const& e) {
-          muxer_can_read = false;
         }
+      catch (shutdown const& e) {
+        muxer_can_read = false;
+      }
       if (d) {
         {
           misc::read_lock lock(_client_m);
@@ -196,15 +195,18 @@ void feeder::_callback() noexcept {
       if (timed_out_stream && timed_out_muxer)
         ::usleep(100000);
     }
-  } catch (exceptions::shutdown const& e) {
+  }
+  catch (shutdown const& e) {
     // Normal termination.
     (void)e;
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     logging::error(logging::medium)
         << "feeder: error occured while processing client '" << _name
         << "': " << e.what();
     set_last_error(e.what());
-  } catch (...) {
+  }
+  catch (...) {
     logging::error(logging::high)
         << "feeder: unknown error occured while processing client '" << _name
         << "'";
@@ -221,6 +223,6 @@ void feeder::_callback() noexcept {
     set_state("disconnected");
     _subscriber.get_muxer().remove_queue_files();
   }
-  logging::info(logging::medium)
-      << "feeder: thread of client '" << _name << "' will exit";
+  logging::info(logging::medium) << "feeder: thread of client '" << _name
+                                 << "' will exit";
 }

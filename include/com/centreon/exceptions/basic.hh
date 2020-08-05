@@ -19,10 +19,8 @@
 #ifndef CC_EXCEPTIONS_BASIC_HH
 #define CC_EXCEPTIONS_BASIC_HH
 
-#include <exception>
-#include <string>
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/namespace.hh"
-#include "com/centreon/misc/stringifier.hh"
 
 CC_BEGIN()
 
@@ -33,42 +31,32 @@ namespace exceptions {
  *
  *  Simple exception class containing an basic error message.
  */
-class basic : public std::exception {
+class basic : public msg_fmt {
  public:
-  basic();
-  basic(char const* file, char const* function, int line);
-  basic(basic const& other);
-  virtual ~basic() throw();
-  virtual basic& operator=(basic const& other);
-  template <typename T>
-  basic& operator<<(T t) {
-    _buffer << t;
-    return (*this);
-  }
-  virtual char const* what() const throw();
+  template <typename... Args>
+  explicit basic(std::string const& str, const Args&... args)
+      : msg_fmt(fmt::format(str, args...)) {}
 
- private:
-  void _internal_copy(basic const& other);
-
-  misc::stringifier _buffer;
+  basic() = delete;
+  ~basic() noexcept {}
+  basic& operator=(const basic&) = delete;
 };
-}
+
+}  // namespace exceptions
 
 CC_END()
 
-#if defined(__GNUC__)
-#define FUNCTION __PRETTY_FUNCTION__
-#elif defined(_MSC_VER)
-#define FUNCTION __FUNCSIG__
+#ifdef NDEBUG
+#define basic_error(format, ...) \
+  com::centreon::exceptions::basic(format, __VA_ARGS__)
+#define basic_error_1(format) com::centreon::exceptions::basic(format)
 #else
-#define FUNCTION __func__
-#endif  // GCC, Visual or other.
-
-#ifndef NDEBUG
-#define basic_error() \
-  com::centreon::exceptions::basic(__FILE__, FUNCTION, __LINE__)
-#else
-#define basic_error() com::centreon::exceptions::basic()
+#define basic_error(format, ...)    \
+  com::centreon::exceptions::basic( \
+      "[{}:{}:{}] " format, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define basic_error_1(format)       \
+  com::centreon::exceptions::basic( \
+      "[{}:{}:{}] {}", __FILE__, __func__, __LINE__, format)
 #endif  // !NDEBUG
 
 #endif  // !CC_EXCEPTIONS_BASIC_HH

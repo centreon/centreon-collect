@@ -20,7 +20,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "memory_stream.hh"
 
@@ -31,7 +31,8 @@ class CompressionStreamRead : public ::testing::Test {
   void SetUp() override {
     try {
       config::applier::init();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
     }
     _stream.reset(new compression::stream(-1, 20000));
@@ -130,7 +131,7 @@ TEST_F(CompressionStreamRead, Shutdown) {
   _stream->read(d);
 
   // When, Then
-  ASSERT_THROW(_stream->read(d), exceptions::shutdown);
+  ASSERT_THROW(_stream->read(d), com::centreon::exceptions::shutdown);
 }
 
 // Given a compression stream

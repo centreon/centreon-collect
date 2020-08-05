@@ -27,7 +27,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "helper.hh"
@@ -100,18 +99,24 @@ TEST_F(HostFlappingNotification, SimpleHostFlapping) {
   _host->set_notification_period_ptr(tperiod.get());
   _host->set_is_flapping(true);
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstart,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
   set_time(43500);
   _host->set_is_flapping(false);
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstop,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
 
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_recovery,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
 
@@ -149,14 +154,18 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   _host->set_is_flapping(true);
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstart,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 
   set_time(43050);
   /* Notification already sent, no notification should be sent. */
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstart,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
@@ -188,21 +197,27 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   _host->set_is_flapping(true);
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstart,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 
   set_time(43050);
   /* Flappingstop notification: sent. */
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstop,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
 
   set_time(43100);
   /* Second flappingstop notification: not sent. */
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
+  ASSERT_EQ(_host->notify(notifier::reason_flappingstop,
+                          "",
+                          "",
                           notifier::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
@@ -229,8 +244,12 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
     _host->set_last_state(_host->get_current_state());
     if (notifier::hard == _host->get_state_type())
       _host->set_last_hard_state(_host->get_current_state());
-    _host->process_check_result_3x(engine::host::state_up, "The host is up",
-                                   CHECK_OPTION_NONE, 0, true, 0);
+    _host->process_check_result_3x(engine::host::state_up,
+                                   "The host is up",
+                                   CHECK_OPTION_NONE,
+                                   0,
+                                   true,
+                                   0);
   }
   testing::internal::CaptureStdout();
   for (int i = 1; i < 8; i++) {
@@ -244,7 +263,11 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
       _host->set_last_hard_state(_host->get_current_state());
     _host->process_check_result_3x(
         i % 2 == 0 ? engine::host::state_up : engine::host::state_down,
-        "The host is flapping", CHECK_OPTION_NONE, 0, true, 0);
+        "The host is flapping",
+        CHECK_OPTION_NONE,
+        0,
+        true,
+        0);
   }
 
   for (int i = 1; i < 18; i++) {
@@ -257,8 +280,11 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
     if (notifier::hard == _host->get_state_type())
       _host->set_last_hard_state(_host->get_current_state());
     _host->process_check_result_3x(engine::host::state_down,
-                                   "The host is flapping", CHECK_OPTION_NONE, 0,
-                                   true, 0);
+                                   "The host is flapping",
+                                   CHECK_OPTION_NONE,
+                                   0,
+                                   true,
+                                   0);
   }
 
   std::string out{testing::internal::GetCapturedStdout()};

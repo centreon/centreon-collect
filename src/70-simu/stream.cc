@@ -17,11 +17,12 @@
 */
 #include "com/centreon/broker/simu/stream.hh"
 #include <sstream>
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/simu/luabinding.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::simu;
@@ -46,9 +47,7 @@ stream::stream(std::string const& lua_script,
 /**
  *  Destructor.
  */
-stream::~stream() {
-  delete _luabinding;
-}
+stream::~stream() { delete _luabinding; }
 
 /**
  *  Write to the connector.
@@ -59,7 +58,7 @@ stream::~stream() {
  */
 int stream::write(std::shared_ptr<io::data> const& d) {
   (void)d;
-  throw exceptions::shutdown() << "cannot write from simu connector";
+  throw shutdown("cannot write from simu connector");
   return 0;
 }
 
@@ -71,6 +70,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
  *
  *  @return This method will throw.
  */
-bool stream::read(std::shared_ptr<io::data>& d, time_t deadline __attribute__((unused))) {
+bool stream::read(std::shared_ptr<io::data>& d,
+                  time_t deadline __attribute__((unused))) {
   return _luabinding->read(d);
 }

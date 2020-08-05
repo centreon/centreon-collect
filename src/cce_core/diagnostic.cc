@@ -28,12 +28,13 @@
 #include <vector>
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "engine-version.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon;
 using namespace com::centreon::engine;
 
@@ -47,9 +48,7 @@ diagnostic::diagnostic() {}
  *
  *  @param[in] right Object to copy.
  */
-diagnostic::diagnostic(diagnostic const& right) {
-  (void)right;
-}
+diagnostic::diagnostic(diagnostic const& right) { (void)right; }
 
 /**
  *  Destructor.
@@ -81,8 +80,7 @@ void diagnostic::generate(std::string const& cfg_file,
   {
     char tmp_dir_ptr[] = "/tmp/brokerXXXXXX";
     if (!mkdtemp(tmp_dir_ptr))
-      throw(engine_error()
-            << "Cannot generate diagnostic temporary directory path.");
+      throw engine_error_1("Cannot generate diagnostic temporary directory path.");
     tmp_dir = tmp_dir_ptr;
   }
 
@@ -172,7 +170,8 @@ void diagnostic::generate(std::string const& cfg_file,
   try {
     configuration::parser parsr;
     parsr.parse(cfg_file, conf);
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     logger(logging::log_runtime_error, logging::basic)
         << "Diagnostic: configuration file '" << cfg_file
         << "' parsing failed: " << e.what();
@@ -182,8 +181,9 @@ void diagnostic::generate(std::string const& cfg_file,
   std::string tmp_cfg_dir(tmp_dir + "/cfg/");
   if (mkdir(tmp_cfg_dir.c_str(), S_IRWXU)) {
     char const* msg(strerror(errno));
-    throw(engine_error() << "Cannot create temporary configuration directory '"
-                         << tmp_cfg_dir << "': " << msg);
+    throw engine_error("Cannot create temporary configuration directory '{}': {}",
+                tmp_cfg_dir,
+                msg);
   }
 
   // Copy base configuration file.
@@ -198,7 +198,8 @@ void diagnostic::generate(std::string const& cfg_file,
   // Copy other configuration files.
   for (std::list<std::string>::const_iterator it(conf.cfg_file().begin()),
        end(conf.cfg_file().end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     std::string target_path(_build_target_path(tmp_cfg_dir, *it));
     to_remove.push_back(target_path);
     _exec_cp(*it, target_path);
@@ -208,8 +209,8 @@ void diagnostic::generate(std::string const& cfg_file,
   std::string tmp_log_dir(tmp_dir + "/log/");
   if (mkdir(tmp_log_dir.c_str(), S_IRWXU)) {
     char const* msg(strerror(errno));
-    throw(engine_error() << "Cannot create temporary log directory '"
-                         << tmp_log_dir << "': " << msg);
+    throw engine_error(
+        "Cannot create temporary log directory '{}': {}", tmp_log_dir, msg);
   }
 
   // Log file.
@@ -271,7 +272,8 @@ void diagnostic::generate(std::string const& cfg_file,
   // Cleanup.
   for (std::vector<std::string>::const_iterator it(to_remove.begin()),
        end(to_remove.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     ::remove(it->c_str());
   rmdir(tmp_log_dir.c_str());
   rmdir(tmp_cfg_dir.c_str());

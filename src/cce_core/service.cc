@@ -26,7 +26,6 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostdependency.hh"
@@ -42,6 +41,7 @@
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/exceptions/interruption.hh"
 #include "compatibility/xpddefault.h"
 
@@ -815,8 +815,8 @@ com::centreon::engine::service& engine::find_service(uint64_t host_id,
   service_id_map::const_iterator it(
       service::services_by_id.find({host_id, service_id}));
   if (it == service::services_by_id.end())
-    throw(engine_error() << "Service '" << service_id << "' on host '"
-                         << host_id << "' was not found");
+    throw engine_error("Service '{}' on host '{}' was not found", service_id,
+                       host_id);
   return *it->second;
 }
 
@@ -2422,7 +2422,7 @@ int service::run_async_check(int check_options,
       check_result_info->set_early_timeout(false);
       check_result_info->set_return_code(service::state_unknown);
       check_result_info->set_exited_ok(true);
-      check_result_info->set_output("(Execute command failed)");
+      check_result_info->set_output("(Execute command failed)", false);
 
       // Queue check result.
       checks::checker::instance().add_check_result_to_reap(
@@ -3475,8 +3475,8 @@ void service::resolve(int& w, int& e) {
   e += errors;
 
   if (errors)
-    throw engine_error() << "Cannot resolve service '" << _description
-                         << "' of host '" << _hostname << "'";
+    throw engine_error("Cannot resolve service '{}' of host '{}'", _description,
+                       _hostname);
 }
 
 bool service::get_host_problem_at_last_check() const {

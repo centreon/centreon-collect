@@ -23,6 +23,7 @@
 #include "test/connector/binary.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 
 #define CMD "0\0\0\0\0"
 #define RESULT "1\0001\0000\0\0\0\0"
@@ -69,12 +70,13 @@ int main() {
 
   try {
     if (retval)
-      throw basic_error() << "invalid return code: " << retval;
+      throw basic_error("invalid return code: {}", retval);
     if (output.size() != sizeof(RESULT) - 1 ||
         memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw basic_error() << "invalid output: size=" << output.size()
-                          << ", output=" << output;
-  } catch (std::exception const& e) {
+      throw basic_error(
+          "invalid output: size={}, output={}", output.size(), output);
+  }
+  catch (std::exception const& e) {
     retval = 1;
     std::cerr << "error: " << e.what() << std::endl;
   }

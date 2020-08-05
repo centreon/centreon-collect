@@ -25,7 +25,7 @@
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/logger.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/logging/file.hh"
@@ -34,6 +34,7 @@
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "vars.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config::applier;
 
@@ -62,33 +63,39 @@ void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
   static char const* const allowed_chars(
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_");
   if (!s.poller_id() || s.poller_name().empty())
-    throw(exceptions::msg()
-          << "state applier: poller information are "
-          << "not set: please fill poller_id and poller_name");
+    throw msg_fmt(
+        "state applier: poller information are not set: please fill poller_id "
+        "and poller_name");
   if (!s.broker_id() || s.broker_name().empty())
-    throw(exceptions::msg()
-          << "state applier: instance information "
-          << "are not set: please fill broker_id and broker_name");
+    throw msg_fmt(
+        "state applier: instance information are not set: please fill "
+        "broker_id and broker_name");
   for (std::string::const_iterator it(s.broker_name().begin()),
        end(s.broker_name().end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (!strchr(allowed_chars, *it))
-      throw(exceptions::msg()
-            << "state applier: broker_name is not "
-            << " valid: allowed characters are " << allowed_chars);
+      throw msg_fmt(
+          "state applier: broker_name is not valid: allowed characters are {}",
+          allowed_chars);
   for (std::list<config::endpoint>::const_iterator it(s.endpoints().begin()),
        end(s.endpoints().end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (it->name.empty())
-      throw(exceptions::msg() << "state applier: endpoint name is not set: "
-                              << "please fill name of all endpoints");
+      throw msg_fmt(
+          "state applier: endpoint name is not set: please fill name of all "
+          "endpoints");
     for (std::string::const_iterator it_name(it->name.begin()),
          end_name(it->name.end());
-         it_name != end_name; ++it_name)
+         it_name != end_name;
+         ++it_name)
       if (!strchr(allowed_chars, *it_name))
-        throw(exceptions::msg()
-              << "state applier: endpoint name '" << *it_name
-              << "' is not valid: allowed characters are " << allowed_chars);
+        throw msg_fmt(
+            "state applier: endpoint name '{}' is not valid: allowed "
+            "characters are {}",
+            *it_name,
+            allowed_chars);
   }
 
   // Set Broker instance ID.
@@ -131,11 +138,12 @@ void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
     uint32_t module_count(0);
     for (modules::iterator it(modules::instance().begin()),
          end(modules::instance().end());
-         it != end; ++it)
+         it != end;
+         ++it)
       ++module_count;
     if (module_count)
-      logging::config(logging::high)
-          << "applier: " << module_count << " modules loaded";
+      logging::config(logging::high) << "applier: " << module_count
+                                     << " modules loaded";
     else
       logging::config(logging::high)
           << "applier: no module loaded, "
@@ -148,16 +156,16 @@ void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
 
   com::centreon::broker::config::state st = s;
 
-//  // Create command file input.
-//  if (!s.command_file().empty()) {
-//    config::endpoint ept;
-//    ept.name = "(external commands)";
-//    ept.type = "extcmd";
-//    ept.params.insert({"extcmd", s.command_file()});
-//    ept.params.insert({"command_protocol", s.command_protocol()});
-//    ept.read_filters.insert("all");
-//    st.endpoints().push_back(ept);
-//  }
+  //  // Create command file input.
+  //  if (!s.command_file().empty()) {
+  //    config::endpoint ept;
+  //    ept.name = "(external commands)";
+  //    ept.type = "extcmd";
+  //    ept.params.insert({"extcmd", s.command_file()});
+  //    ept.params.insert({"command_protocol", s.command_protocol()});
+  //    ept.read_filters.insert("all");
+  //    st.endpoints().push_back(ept);
+  //  }
 
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints());
@@ -180,18 +188,14 @@ void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
  *
  *  @return Cache directory.
  */
-std::string const& state::cache_dir() const throw() {
-  return _cache_dir;
-}
+std::string const& state::cache_dir() const throw() { return _cache_dir; }
 
 /**
  *  Get the instance of this object.
  *
  *  @return Class instance.
  */
-state& state::instance() {
-  return *gl_state;
-}
+state& state::instance() { return *gl_state; }
 
 /**
  *  Load singleton.
@@ -206,18 +210,14 @@ void state::load() {
  *
  *  @return Poller ID of this Broker instance.
  */
-uint32_t state::poller_id() const throw() {
-  return _poller_id;
-}
+uint32_t state::poller_id() const throw() { return _poller_id; }
 
 /**
  *  Get the poller name.
  *
  *  @return Poller name of this Broker instance.
  */
-std::string const& state::poller_name() const throw() {
-  return _poller_name;
-}
+std::string const& state::poller_name() const throw() { return _poller_name; }
 
 /**
  *  Unload singleton.

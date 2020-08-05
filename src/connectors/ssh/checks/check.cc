@@ -26,6 +26,7 @@
 #include "com/centreon/connector/ssh/multiplexer.hh"
 #include "com/centreon/exceptions/basic.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::connector::ssh::checks;
 
 /**************************************
@@ -78,7 +79,8 @@ check::~check() noexcept {
       // Free channel.
       libssh2_channel_free(_channel);
     }
-  } catch (...) {
+  }
+  catch (...) {
   }
 }
 
@@ -118,7 +120,8 @@ void check::execute(sessions::session& sess,
  *  @param[in] listnr Listener.
  */
 void check::listen(checks::listener* listnr) {
-  log::core()->debug("check {0} is listened by {1}", static_cast<void*>(this),
+  log::core()->debug("check {0} is listened by {1}",
+                     static_cast<void*>(this),
                      static_cast<void*>(listnr));
   _listnr = listnr;
 }
@@ -165,20 +168,25 @@ void check::on_available(sessions::session& sess) {
         }
       } break;
       default:
-        throw basic_error() << "channel requested to run at invalid step";
+        throw basic_error_1("channel requested to run at invalid step");
     }
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     log::core()->error(
         "error occured while executing check {0} on session {1}@{2}: {3}",
-        _cmd_id, sess.get_credentials().get_user(),
-        sess.get_credentials().get_host(), e.what());
+        _cmd_id,
+        sess.get_credentials().get_user(),
+        sess.get_credentials().get_host(),
+        e.what());
     result r;
     r.set_command_id(_cmd_id);
     _send_result_and_unregister(r);
-  } catch (...) {
+  }
+  catch (...) {
     log::core()->error(
         "unknown error occured while executing check {0} on session {1}@{2}",
-        _cmd_id, sess.get_credentials().get_user(),
+        _cmd_id,
+        sess.get_credentials().get_user(),
         sess.get_credentials().get_host());
     result r;
     r.set_command_id(_cmd_id);
@@ -231,7 +239,8 @@ void check::on_timeout() {
  */
 void check::unlisten(checks::listener* listnr) {
   log::core()->debug("listener {0} stops listening check {1}",
-                     static_cast<void*>(listnr), static_cast<void*>(this));
+                     static_cast<void*>(listnr),
+                     static_cast<void*>(this));
   _listnr = nullptr;
 }
 
@@ -256,11 +265,11 @@ bool check::_close() {
     if (ret) {
       if (ret != LIBSSH2_ERROR_EAGAIN) {
         char* msg;
-        libssh2_session_last_error(_session->get_libssh2_session(), &msg,
-                                   nullptr, 0);
+        libssh2_session_last_error(
+            _session->get_libssh2_session(), &msg, nullptr, 0);
         if (ret == LIBSSH2_ERROR_SOCKET_SEND)
           _session->error();
-        throw basic_error() << "could not close channel: " << msg;
+        throw basic_error("could not close channel: {}", msg);
       }
       retval = true;
     }
@@ -298,8 +307,7 @@ bool check::_close() {
   }
   // Attempt to close a closed channel.
   else
-    throw basic_error()
-        << "channel requested to close whereas it wasn't opened";
+    throw basic_error_1("channel requested to close whereas it wasn't opened");
 
   return retval;
 }
@@ -316,12 +324,12 @@ bool check::_exec() {
   // Check that we can try again later.
   if (ret && (ret != LIBSSH2_ERROR_EAGAIN)) {
     char* msg;
-    libssh2_session_last_error(_session->get_libssh2_session(), &msg, nullptr,
-                               0);
+    libssh2_session_last_error(
+        _session->get_libssh2_session(), &msg, nullptr, 0);
     if (ret == LIBSSH2_ERROR_SOCKET_SEND)
       _session->error();
-    throw basic_error() << "could not execute command on SSH channel: " << msg
-                        << " (error " << ret << ")";
+    throw basic_error(
+        "could not execute command on SSH channel: {} (error {})", msg, ret);
   }
 
   // Check whether command succeeded or if we can try again later.
@@ -360,11 +368,11 @@ bool check::_read() {
     // Only throw is error is fatal.
     if (orb != LIBSSH2_ERROR_EAGAIN) {
       char* msg;
-      libssh2_session_last_error(_session->get_libssh2_session(), &msg, nullptr,
-                                 0);
+      libssh2_session_last_error(
+          _session->get_libssh2_session(), &msg, nullptr, 0);
       if (orb == LIBSSH2_ERROR_SOCKET_SEND)
         _session->error();
-      throw basic_error() << "failed to read command output: " << msg;
+      throw basic_error("failed to read command output: {}", msg);
     }
   }
   // Append data.
@@ -392,7 +400,8 @@ void check::_send_result_and_unregister(result const& r) {
   if (_timeout) {
     try {
       multiplexer::instance().com::centreon::task_manager::remove(_timeout);
-    } catch (...) {
+    }
+    catch (...) {
     }
     _timeout = 0;
   }
@@ -401,7 +410,8 @@ void check::_send_result_and_unregister(result const& r) {
   if (_session) {
     // Unregister from session.
     log::core()->debug("check {0} is unregistering from session {1}",
-                       static_cast<void*>(this), static_cast<void*>(_session));
+                       static_cast<void*>(this),
+                       static_cast<void*>(_session));
 
     // Unregister from session.
     _session->unlisten(this);

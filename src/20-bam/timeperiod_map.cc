@@ -17,8 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/timeperiod_map.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -90,8 +91,7 @@ com::centreon::broker::time::timeperiod::ptr timeperiod_map::get_timeperiod(
  *  @param[in] id   The id of the timeperiod.
  *  @param[in] ptr  A ptr to the timeperiod to add.
  */
-void timeperiod_map::add_timeperiod(uint32_t id,
-                                    time::timeperiod::ptr ptr) {
+void timeperiod_map::add_timeperiod(uint32_t id, time::timeperiod::ptr ptr) {
   _map[id] = ptr;
 }
 
@@ -130,16 +130,15 @@ timeperiod_map::get_timeperiods_by_ba_id(uint32_t ba_id) const {
   std::vector<std::pair<com::centreon::broker::time::timeperiod::ptr, bool> >
       res;
   std::pair<timeperiod_relation_map::const_iterator,
-            timeperiod_relation_map::const_iterator>
-      found = _timeperiod_relations.equal_range(ba_id);
+            timeperiod_relation_map::const_iterator> found =
+      _timeperiod_relations.equal_range(ba_id);
 
   for (; found.first != found.second; ++found.first) {
     uint32_t tp_id = found.first->second.first;
     bool is_default = found.first->second.second;
     time::timeperiod::ptr tp = get_timeperiod(tp_id);
     if (!tp)
-      throw exceptions::msg()
-          << "BAM-BI: could not find the timeperiod " << tp_id << " in cache";
+      throw msg_fmt("BAM-BI: could not find the timeperiod {} in cache", tp_id);
     res.push_back(std::make_pair(tp, is_default));
   }
 
