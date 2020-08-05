@@ -205,6 +205,9 @@ class engine_impl final : public Engine::Service {
       grpc::ServerContext* context __attribute__((unused)),
       const ChangeObjectCustomVar* request,
       CommandSuccess* response) override;
+  grpc::Status ShutdownProgram(grpc::ServerContext* context,
+                             const ::google::protobuf::Empty*,
+                             ::google::protobuf::Empty*) override;
 };
 
 CCE_END()

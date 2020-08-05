@@ -2681,6 +2681,29 @@ grpc::Status engine_impl::ChangeContactObjectCustomVar(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Shutdown Program.
+ *
+ * @param context gRPC context
+ * @param unused
+ * @param response Command success 
+ *
+ * @return Status::OK
+ */
+grpc::Status engine_impl::ShutdownProgram(grpc::ServerContext* context
+                                        __attribute__((unused)),
+                                        const ::google::protobuf::Empty* request
+                                        __attribute__((unused)),
+                                         ::google::protobuf::Empty* response) {
+  auto fn = std::packaged_task<int32_t(void)>(
+      []() -> int32_t { exit(0); return 0; });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  return grpc::Status::OK;
+}
+
 grpc::Status engine_impl::ProcessServiceCheckResult(grpc::ServerContext* context
                                                     __attribute__((unused)),
                                                     const Check* request,
