@@ -56,8 +56,7 @@ service Engine {
       returns (CommandSuccess) {}
   rpc AcknowledgementServiceProblem(EngineAcknowledgement) 
       returns (CommandSuccess) {}
-  rpc DeleteHostDowntime(GenericValue) returns (CommandSuccess) {}
-  rpc DeleteServiceDowntime(GenericValue) returns (CommandSuccess) {}
+  rpc DeleteDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
   rpc DeleteServiceDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
   rpc DeleteDowntimeByHostName(DowntimeHostIdentifier)

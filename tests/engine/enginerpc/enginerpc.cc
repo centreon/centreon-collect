@@ -1121,7 +1121,7 @@ TEST_F(EngineRpc, ScheduleHostDowntime) {
                     .get_scheduled_downtimes()
                     .begin()
                     ->second->get_downtime_id();
-  oss2 << "DeleteHostDowntime " << id;
+  oss2 << "DeleteDowntime " << id;
   output = execute(oss2.str());
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1160,7 +1160,7 @@ TEST_F(EngineRpc, ScheduleServiceDowntime) {
                     .get_scheduled_downtimes()
                     .begin()
                     ->second->get_downtime_id();
-  oss2 << "DeleteServiceDowntime " << id;
+  oss2 << "DeleteDowntime " << id;
   output = execute(oss2.str());
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1233,7 +1233,7 @@ TEST_F(EngineRpc, ScheduleHostGroupHostsDowntime) {
                     .get_scheduled_downtimes()
                     .begin()
                     ->second->get_downtime_id();
-  oss2 << "DeleteHostDowntime " << id;
+  oss2 << "DeleteDowntime " << id;
   output = execute(oss2.str());
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1304,7 +1304,7 @@ TEST_F(EngineRpc, ScheduleServiceGroupHostsDowntime) {
                     .get_scheduled_downtimes()
                     .begin()
                     ->second->get_downtime_id();
-  oss2 << "DeleteHostDowntime " << id;
+  oss2 << "DeleteDowntime " << id;
 
   output = execute(oss2.str());
   {
@@ -1341,7 +1341,7 @@ TEST_F(EngineRpc, ScheduleServiceGroupServicesDowntime) {
                     .get_scheduled_downtimes()
                     .begin()
                     ->second->get_downtime_id();
-  oss2 << "DeleteServiceDowntime " << id;
+  oss2 << "DeleteDowntime " << id;
   output = execute(oss2.str());
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1427,7 +1427,7 @@ TEST_F(EngineRpc, ScheduleAndPropagateTriggeredHostDowntime) {
   ASSERT_EQ(3u, downtime_manager::instance().get_scheduled_downtimes().size());
 
   oss.str("");
-  oss << "DeleteHostDowntime " << id;
+  oss << "DeleteDowntime " << id;
   output = execute(oss.str());
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1478,7 +1478,7 @@ TEST_F(EngineRpc, ScheduleAndPropagateTriggeredHostDowntime) {
 }
 */
 
-TEST_F(EngineRpc, DeleteHostDowntime) {
+TEST_F(EngineRpc, DeleteDowntime) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
@@ -1502,44 +1502,7 @@ TEST_F(EngineRpc, DeleteHostDowntime) {
                     .get_scheduled_downtimes()
                     .begin()
                     ->second->get_downtime_id();
-  oss << "DeleteHostDowntime " << id;
-  auto output = execute(oss.str());
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    continuerunning = true;
-  }
-  condvar.notify_one();
-  th->join();
-
-  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
-  erpc.shutdown();
-}
-
-TEST_F(EngineRpc, DeleteServiceDowntime) {
-  enginerpc erpc("0.0.0.0", 40001);
-  std::unique_ptr<std::thread> th;
-  std::condition_variable condvar;
-  std::mutex mutex;
-  std::ostringstream oss;
-  bool continuerunning = false;
-
-  set_time(20000);
-
-  time_t now = time(nullptr);
-  std::stringstream s;
-  s << "test_host;test_svc;" << now << ";" << now + 1 << ";1;0;1;admin;host";
-  ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
-
-  ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_SVC_DOWNTIME, now,
-                                  const_cast<char*>(s.str().c_str())),
-            OK);
-  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
-  call_command_manager(th, &condvar, &mutex, &continuerunning);
-  uint64_t id = downtime_manager::instance()
-                    .get_scheduled_downtimes()
-                    .begin()
-                    ->second->get_downtime_id();
-  oss << "DeleteServiceDowntime " << id;
+  oss << "DeleteDowntime " << id;
   auto output = execute(oss.str());
   {
     std::lock_guard<std::mutex> lock(mutex);

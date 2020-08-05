@@ -40,16 +40,14 @@ using namespace com::centreon::engine::logging;
  * @param downtime_id The downtime's id
  *
  */
-void downtime_manager::delete_downtime(downtime::type type,
-                                       uint64_t downtime_id) {
+void downtime_manager::delete_downtime(uint64_t downtime_id) {
   /* find the downtime we should remove */
   for (auto it = _scheduled_downtimes.begin(), end = _scheduled_downtimes.end();
        it != end;
        ++it) {
-    if (it->second->get_downtime_id() == downtime_id &&
-        it->second->get_type() == type) {
-      logger(dbg_downtime, basic) << "delete downtime(type:" << type
-                                  << ", id: " << downtime_id << ")";
+    if (it->second->get_downtime_id() == downtime_id) {
+      logger(dbg_downtime, basic)
+        << "delete downtime(id: " << downtime_id << ")";
       _scheduled_downtimes.erase(it);
       break;
     }
@@ -57,29 +55,29 @@ void downtime_manager::delete_downtime(downtime::type type,
 }
 
 /* unschedules a host or service downtime */
-int downtime_manager::unschedule_downtime(downtime::type type,
-                                          uint64_t downtime_id) {
-  std::shared_ptr<downtime> temp_downtime{find_downtime(type, downtime_id)};
+int downtime_manager::unschedule_downtime(uint64_t downtime_id) {
+  auto found = std::find_if(_scheduled_downtimes.begin(),
+      _scheduled_downtimes.end(),
+      [&downtime_id](std::pair<time_t, std::shared_ptr<downtime>> d) {
+        return downtime_id == d.second->get_downtime_id();
+      });
 
   logger(dbg_functions, basic) << "unschedule_downtime()";
-  logger(dbg_downtime, basic) << "unschedule downtime(type:" << type
-                              << ", id: " << downtime_id << ")";
+  logger(dbg_downtime, basic)
+    << "unschedule downtime(id: " << downtime_id << ")";
 
   /* find the downtime entry in the list in memory */
-  if (!temp_downtime)
+  if (found == _scheduled_downtimes.end())
     return ERROR;
 
-  if (temp_downtime->unschedule() == ERROR)
+  if (found->second->unschedule() == ERROR)
     return ERROR;
 
   /* remove scheduled entry from event queue */
   events::loop::instance().remove_downtime(downtime_id);
 
   /* delete downtime entry */
-  if (temp_downtime->get_type() == downtime::host_downtime)
-    delete_downtime(downtime::host_downtime, downtime_id);
-  else
-    delete_downtime(downtime::service_downtime, downtime_id);
+  _scheduled_downtimes.erase(found);
 
   /* unschedule all downtime entries that were triggered by this one */
   std::list<uint64_t> lst;
@@ -89,12 +87,12 @@ int downtime_manager::unschedule_downtime(downtime::type type,
     if (it->second->get_triggered_by() == downtime_id)
       lst.push_back(it->second->get_downtime_id());
   }
-  for (uint64_t id : lst) {
-    logger(dbg_downtime, basic) << "Unschedule triggered downtime (id: " << id
-                                << ")";
-    unschedule_downtime(downtime::any_downtime, id);
-  }
 
+  for (uint64_t id : lst) {
+    logger(dbg_downtime, basic)
+      << "Unschedule triggered downtime (id: " << id << ")";
+    unschedule_downtime(id);
+  }
   return OK;
 }
 
@@ -255,10 +253,7 @@ int downtime_manager::check_for_expired_downtime() {
                                   << ")...";
 
       /* delete the downtime entry */
-      if (dt.get_type() == downtime::host_downtime)
-        delete_downtime(downtime::host_downtime, dt.get_downtime_id());
-      else
-        delete_downtime(downtime::service_downtime, dt.get_downtime_id());
+      delete_downtime(dt.get_downtime_id());
     }
   }
   return OK;
@@ -296,13 +291,8 @@ int downtime_manager::
   else
     range = {_scheduled_downtimes.begin(), _scheduled_downtimes.end()};
 
-  std::map<time_t, std::shared_ptr<downtime> >::iterator it,
-      next_it{range.first};
-  std::map<time_t, std::shared_ptr<downtime> >::iterator end{range.second};
-
-  for (it = next_it; it != end; it = next_it) {
-    ++next_it;
-
+  std::list<uint64_t> lst;
+  for (auto it = range.first,  end = range.second; it != end; ++it) {
     if (!comment.empty() && it->second->get_comment() != comment)
       continue;
     if (downtime::host_downtime == it->second->get_type()) {
@@ -322,10 +312,13 @@ int downtime_manager::
           continue;
       }
     }
-
-    unschedule_downtime(it->second->get_type(), it->second->get_downtime_id());
+    lst.push_back(it->second->get_downtime_id());
     ++deleted;
   }
+
+  for (auto id : lst)
+    unschedule_downtime(id);
+
   return deleted;
 }
 
