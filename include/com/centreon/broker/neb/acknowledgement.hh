@@ -44,8 +44,8 @@ class acknowledgement : public io::data {
  public:
   acknowledgement();
   acknowledgement(short acknowledgement_type,
-                  std::string author,
-                  std::string comment,
+                  std::string const& author,
+                  std::string const& comment,
                   timestamp entry_time,
                   uint32_t host_id,
                   uint32_t service_id,
