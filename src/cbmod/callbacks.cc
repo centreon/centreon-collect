@@ -908,13 +908,11 @@ int neb::callback_group(int callback_type, void* data) {
       engine::hostgroup const* host_group(
           static_cast<engine::hostgroup*>(group_data->object_ptr));
       if (!host_group->get_group_name().empty()) {
-        std::shared_ptr<neb::host_group> new_hg(new neb::host_group);
-        auto h_g = std::make_shared<neb::host_group>(
+        std::shared_ptr<neb::host_group> new_hg = std::make_shared<neb::host_group>(
             config::applier::state::instance().poller_id(),
-            new_hg->id = host_group->get_id(),
-            new_hg->enabled = (group_data->type != NEBTYPE_HOSTGROUP_DELETE &&
-                               !host_group->members.empty()),
-            new_hg->name = host_group->get_group_name());
+            host_group->get_id(),
+            (group_data->type != NEBTYPE_HOSTGROUP_DELETE && !host_group->members.empty()),
+            host_group->get_group_name());
 
         // Send host group event.
         if (new_hg->id) {
