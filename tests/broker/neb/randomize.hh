@@ -25,7 +25,7 @@
 #include <cstring>
 #include <list>
 #include <vector>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/mapping/property.hh"

@@ -26,40 +26,34 @@ using namespace com::centreon::exceptions;
 TEST(ClibException, BasicCtor) {
   const unsigned int line = __LINE__;
 
-  basic ex1;
-  basic ex2(__FILE__, FUNCTION, line);
+  basic ex1(__FILE__, __func__, line);  // __func__ <-- FUNCTION
 
   std::ostringstream oss;
-  oss << "[" << __FILE__ << ":" << line << "(" << FUNCTION << ")] ";
-  ASSERT_STREQ(ex1.what(), "");
-  ASSERT_STREQ(ex2.what(), oss.str().c_str());
+  oss << "[" << __FILE__ << ":" << line << "(" << __func__
+      << ")] ";  // __func__ <-- FUNCTION
+  ASSERT_STREQ(ex1.what(), oss.str().c_str());
 }
 
 TEST(ClibException, BasicCopy) {
   static char const message[] = "Centreon Clib";
   const unsigned int line = __LINE__;
 
-  basic ex(__FILE__, FUNCTION, line);
-  ex << message;
+  basic ex(__FILE__, __func__, line, message);  // __func__ <-- FUNCTION
 
   std::ostringstream oss;
-  oss << "[" << __FILE__ << ":" << line << "(" << FUNCTION << ")] " << message;
+  oss << "[" << __FILE__ << ":" << line << "(" << __func__ << ")] " << message;
   ASSERT_STREQ(ex.what(), oss.str().c_str());
 }
 
 TEST(ClibException, BasicInsertChar) {
-  basic ex;
-  ex << static_cast<char>(CHAR_MIN);
-  ex << static_cast<char>(CHAR_MAX);
+  basic ex("{}{}", static_cast<char>(CHAR_MIN), static_cast<char>(CHAR_MAX));
 
   char ref[] = {CHAR_MIN, CHAR_MAX, 0};
   ASSERT_STREQ(ex.what(), ref);
 }
 
 TEST(ClibException, BasicInsertInt) {
-  basic ex;
-  ex << static_cast<int>(INT_MIN);
-  ex << static_cast<int>(INT_MAX);
+  basic ex("{}{}", static_cast<int>(INT_MIN), static_cast<int>(INT_MAX));
 
   std::ostringstream oss;
   oss << INT_MIN << INT_MAX;
@@ -67,9 +61,7 @@ TEST(ClibException, BasicInsertInt) {
 }
 
 TEST(ClibException, BasicInsertLong) {
-  basic ex;
-  ex << static_cast<long>(LONG_MIN);
-  ex << static_cast<long>(LONG_MAX);
+  basic ex("{}{}", static_cast<long>(LONG_MIN), static_cast<long>(LONG_MAX));
 
   std::ostringstream oss;
   oss << LONG_MIN << LONG_MAX;
@@ -77,9 +69,9 @@ TEST(ClibException, BasicInsertLong) {
 }
 
 TEST(ClibException, BasicInsertLongLong) {
-  basic ex;
-  ex << static_cast<long long>(LLONG_MIN);
-  ex << static_cast<long long>(LLONG_MAX);
+  basic ex("{}{}",
+           static_cast<long long>(LLONG_MIN),
+           static_cast<long long>(LLONG_MAX));
 
   std::ostringstream oss;
   oss << LLONG_MIN << LLONG_MAX;
@@ -87,15 +79,14 @@ TEST(ClibException, BasicInsertLongLong) {
 }
 
 TEST(ClibException, BasicInsertPChar) {
-  basic ex;
-  ex << __FILE__;
+  basic ex(__FILE__);
   ASSERT_STREQ(ex.what(), __FILE__);
 }
 
 TEST(ClibException, BasicInsertUInt) {
-  basic ex;
-  ex << static_cast<unsigned int>(0);
-  ex << static_cast<unsigned int>(UINT_MAX);
+  basic ex("{}{}",
+           static_cast<unsigned int>(0),
+           static_cast<unsigned int>(UINT_MAX));
 
   std::ostringstream oss;
   oss << 0 << UINT_MAX;
@@ -103,9 +94,9 @@ TEST(ClibException, BasicInsertUInt) {
 }
 
 TEST(ClibException, BasicInsertULong) {
-  basic ex;
-  ex << static_cast<unsigned long>(0);
-  ex << static_cast<unsigned long>( ULONG_MAX);
+  basic ex("{}{}",
+           static_cast<unsigned long>(0),
+           static_cast<unsigned long>(ULONG_MAX));
 
   std::ostringstream oss;
   oss << 0 << ULONG_MAX;
@@ -113,9 +104,9 @@ TEST(ClibException, BasicInsertULong) {
 }
 
 TEST(ClibException, BasicInsertULongLong) {
-  basic ex;
-  ex << static_cast<unsigned long long>(0);
-  ex << static_cast<unsigned long long>(ULLONG_MAX);
+  basic ex("{}{}",
+           static_cast<unsigned long long>(0),
+           static_cast<unsigned long long>(ULLONG_MAX));
 
   std::ostringstream oss;
   oss << 0 << ULLONG_MAX;

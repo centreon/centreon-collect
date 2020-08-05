@@ -34,4 +34,4 @@ add_library(80-sql SHARED
 target_link_libraries(80-sql CONAN_PKG::spdlog)
 set_target_properties(80-sql PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS} -fPIC")
 set_target_properties(80-sql PROPERTIES PREFIX "")
-install(TARGETS 80-sql DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
+install(TARGETS 80-sql COMPONENT core DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

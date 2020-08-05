@@ -25,6 +25,7 @@
 #include "com/centreon/handle_listener.hh"
 #include "com/centreon/task_manager.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon;
 
 /**
@@ -44,8 +45,9 @@ handle_manager::~handle_manager() noexcept {
       if (_task_manager)
         _task_manager->remove(it->second);
       delete it->second;
-    } catch (...) {
     }
+  catch (...) {
+  }
   delete[] _array;
 }
 
@@ -60,15 +62,16 @@ handle_manager::~handle_manager() noexcept {
 void handle_manager::add(handle* h, handle_listener* hl, bool is_threadable) {
   // Check parameters.
   if (!h)
-    throw(basic_error() << "attempt to add null handle in handle manager");
+    throw basic_error_1("attempt to add null handle in handle manager");
   if (!hl)
-    throw(basic_error() << "attempt to add null listener in handle manager");
+    throw basic_error_1("attempt to add null listener in handle manager");
 
   // Check native handle.
   native_handle nh(h->get_native_handle());
   if (nh == native_handle_null)
-    throw basic_error() << "attempt to add handle with invalid native "
-                           "handle in the handle manager";
+    throw basic_error_1(
+        "attempt to add handle with invalid native handle in the handle "
+        "manager");
 
   // Check that handle isn't already registered.
   if (_handles.find(nh) == _handles.end()) {
@@ -77,8 +80,8 @@ void handle_manager::add(handle* h, handle_listener* hl, bool is_threadable) {
     _handles.insert(item);
     _recreate_array = true;
   } else
-    throw basic_error() << "attempt to add handle "
-                           "already monitored by handle manager";
+    throw basic_error_1(
+        "attempt to add handle already monitored by handle manager");
 }
 
 /**
@@ -92,8 +95,9 @@ void handle_manager::link(task_manager* tm) {
     for (auto it = _handles.begin(), end = _handles.end(); it != end; ++it)
       try {
         _task_manager->remove(it->second);
-      } catch (...) {
       }
+  catch (...) {
+  }
 
   // Set new task manager.
   _task_manager = tm;
@@ -139,8 +143,10 @@ unsigned int handle_manager::remove(handle_listener* hl) {
   // Loop through map.
   unsigned int count_erase(0);
   for (std::map<native_handle, handle_action*>::iterator it(_handles.begin()),
-       next(it), end(_handles.end());
-       it != end; it = next) {
+       next(it),
+       end(_handles.end());
+       it != end;
+       it = next) {
     ++(next = it);
     if (it->second->get_handle_listener() == hl) {
       if (_task_manager)
@@ -161,7 +167,7 @@ unsigned int handle_manager::remove(handle_listener* hl) {
 void handle_manager::multiplex() {
   // Check that task manager is present.
   if (!_task_manager)
-    throw basic_error() << "cannot multiplex handles with no task manager";
+    throw basic_error_1("cannot multiplex handles with no task manager");
 
   // Create or update pollfd.
   _setup_array();
@@ -183,7 +189,7 @@ void handle_manager::multiplex() {
   int ret = _poll(_array, _handles.size(), timeout);
   if (ret == -1) {
     char const* msg(strerror(errno));
-    throw basic_error() << "handle multiplexing failed: " << msg;
+    throw basic_error("handle multiplexing failed: {}", msg);
   }
 
   // Dispatch events.

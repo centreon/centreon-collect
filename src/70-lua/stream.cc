@@ -19,7 +19,7 @@
 #include <cmath>
 #include <sstream>
 #include <sstream>
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -28,6 +28,7 @@
 #include "com/centreon/broker/lua/stream.hh"
 #include "com/centreon/broker/misc/math.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::lua;
@@ -94,25 +95,26 @@ stream::stream(std::string const& lua_script,
 
     for (;;) {
       log_v2::lua()->trace("stream: waiting for an event...");
-       if (has_flush) {
-         _loop_cv.wait(lock, [this] { return _exit || _flush || !_events.empty(); });
+      if (has_flush) {
+        _loop_cv.wait(lock,
+                      [this] { return _exit || _flush || !_events.empty(); });
 
-         if (_flush) {
-           log_v2::lua()->debug("stream: flush event");
-           lock.unlock();
-           int32_t res = lb->flush();
-           {
-             std::lock_guard<std::mutex> lock(_acks_count_m);
-             log_v2::lua()->trace("stream: {} events acknowledged by the script flush", res);
-             _acks_count += res;
-             log_v2::lua()->debug("stream: events to ack size: {}", _acks_count);
-           }
-           _flush = false;
-           lock.lock();
-         }
-       }
-       else
-         _loop_cv.wait(lock, [this] { return _exit || !_events.empty(); });
+        if (_flush) {
+          log_v2::lua()->debug("stream: flush event");
+          lock.unlock();
+          int32_t res = lb->flush();
+          {
+            std::lock_guard<std::mutex> lock(_acks_count_m);
+            log_v2::lua()->trace(
+                "stream: {} events acknowledged by the script flush", res);
+            _acks_count += res;
+            log_v2::lua()->debug("stream: events to ack size: {}", _acks_count);
+          }
+          _flush = false;
+          lock.lock();
+        }
+      } else
+        _loop_cv.wait(lock, [this] { return _exit || !_events.empty(); });
 
       if (!_events.empty()) {
         log_v2::lua()->debug("stream: there are events to send to lua");
@@ -122,13 +124,13 @@ stream::stream(std::string const& lua_script,
         uint32_t res = lb->write(d);
         {
           std::lock_guard<std::mutex> lock(_acks_count_m);
-          log_v2::lua()->trace("stream: {} events acknowledged by the script write", res);
+          log_v2::lua()->trace(
+              "stream: {} events acknowledged by the script write", res);
           _acks_count += res;
           log_v2::lua()->debug("stream: events to ack size: {}", _acks_count);
         }
         lock.lock();
-      }
-      else if (_exit) {
+      } else if (_exit) {
         /* We exit only if the events queue is empty */
         log_v2::lua()->debug("stream: exit");
         break;
@@ -142,7 +144,7 @@ stream::stream(std::string const& lua_script,
   _loop_cv.wait(lock);
   if (fail) {
     _thread.join();
-    throw exceptions::msg() << fail_msg;
+    throw msg_fmt("{}", fail_msg);
   }
 }
 
@@ -170,7 +172,7 @@ stream::~stream() {
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw exceptions::shutdown() << "cannot read from lua generic connector";
+  throw shutdown("cannot read from lua generic connector");
 }
 
 /**
@@ -201,14 +203,14 @@ int stream::write(std::shared_ptr<io::data> const& data) {
       if (!res) {
         _a = NAN;
         _b = NAN;
-      }
-      else {
+      } else {
         _next_stat += 30;
         if (_a > _a_min) {
           _a_min = _a;
-          logging::debug(logging::high) << "LUA: The streamconnector looks "
-            "quite slow, waiting events are increasing at the speed of "
-            << _a << "events/s";
+          logging::debug(logging::high)
+              << "LUA: The streamconnector looks "
+                 "quite slow, waiting events are increasing at the speed of "
+              << _a << "events/s";
         }
       }
     }
@@ -217,7 +219,10 @@ int stream::write(std::shared_ptr<io::data> const& data) {
 
   {
     std::lock_guard<std::mutex> lock(_acks_count_m);
-    log_v2::lua()->debug("stream: {} events will be acknowledged at the end of the write function", _acks_count);
+    log_v2::lua()->debug(
+        "stream: {} events will be acknowledged at the end of the write "
+        "function",
+        _acks_count);
     int retval = _acks_count;
     _acks_count = 0;
     return retval;

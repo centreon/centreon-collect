@@ -1,5 +1,5 @@
 ##
-## Copyright 2015 Centreon
+## Copyright 2015-2020 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -24,10 +24,10 @@ ReloadPropagatedFrom=centreon.service
 After=mariadb.service
 
 [Service]
-ExecStart=@PREFIX_BIN@/cbwd @PREFIX_CONF@/watchdog.json
+ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/cbwd @CMAKE_INSTALL_FULL_SYSCONFDIR@/centreon-broker/watchdog.json
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
-User=centreon-broker
+User=@USER_BROKER@
 UMask=0002
 
 [Install]

@@ -1,4 +1,4 @@
-FROM ci.int.centreon.com:5000/centos:7
+FROM registry.centreon.com/centos:7
 
 # Install Centreon repository.
 RUN yum install --nogpgcheck -y http://yum.centreon.com/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el7.centos.noarch.rpm

@@ -12,64 +12,17 @@ set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 add_definitions(-DCENTREON_BROKER_VERSION=\"${COLLECT_VERSION}\")
 
-project (my_project)
-cmake_minimum_required (VERSION 2.8)
-
-set(CPACK_RPM_COMPONENT_INSTALL IGNORE)
-set(CPACK_COMPONENTS_ALL broker clib connector-perl connector-ssh engine-daemon engine-extcommands)
-set(CPACK_COMPONENTS_GROUPING "IGNORE")
-set(CPACK_PACKAGE_VERSION ${COLLECT_VERSION})
-set(CPACK_GENERATOR "RPM")
-set(CPACK_RPM_COMPONENT_INSTALL "ON")
-set(CPACK_PACKAGE_RELEASE 1)
-set(CPACK_PACKAGE_CONTACT "David Boucher")
-set(CPACK_PACKAGE_VENDOR "Centreon")
-set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
-
-#centreon-clib
-set(CPACK_PACKAGE_CLIB_PACKAGE_NAME "centreon-clib")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/clib.spec.in" "${CMAKE_BINARY_DIR}/clib.spec" @ONLY IMMEDIATE)
-set(CPACK_RPM_CLIB_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/clib.spec")
-set(CPACK_RPM_CLIB_FILE_NAME ${CPACK_PACKAGE_CLIB_PACKAGE_NAME}.rpm)
-
-#centreon-connector-perl
-set(CPACK_PACKAGE_CONNECTOR-PERL_PACKAGE_NAME "centreon-connector-perl")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/connector-perl.spec.in" "${CMAKE_BINARY_DIR}/connector-perl.spec" @ONLY IMMEDIATE)
-set(CPACK_RPM_CONNECTOR-PERL_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/connector-perl.spec")
-set(CPACK_RPM_CONNECTOR-PERL_FILE_NAME ${CPACK_PACKAGE_CONNECTOR-PERL_PACKAGE_NAME}.rpm)
-
-#centreon-connector-ssh
-set(CPACK_PACKAGE_CONNECTOR-SSH_PACKAGE_NAME "centreon-connector-ssh")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/connector-ssh.spec.in" "${CMAKE_BINARY_DIR}/connector-ssh.spec" @ONLY IMMEDIATE)
-set(CPACK_RPM_CONNECTOR-SSH_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/connector-ssh.spec")
-set(CPACK_RPM_CONNECTOR-SSH_FILE_NAME ${CPACK_PACKAGE_CONNECTOR-SSH_PACKAGE_NAME}.rpm)
-
-#centreon-engine-daemon
-set(CPACK_PACKAGE_ENGINE-DAEMON_PACKAGE_NAME "centreon-engine-daemon")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/engine-daemon.spec.in" "${CMAKE_BINARY_DIR}/engine-daemon.spec" @ONLY IMMEDIATE)
-set(CPACK_RPM_ENGINE-DAEMON_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/engine-daemon.spec")
-set(CPACK_RPM_ENGINE-DAEMON_FILE_NAME ${CPACK_PACKAGE_ENGINE-DAEMON_PACKAGE_NAME}.rpm)
-
-#centreon-engine-extcommands
-set(CPACK_PACKAGE_ENGINE-EXTCOMMANDS_PACKAGE_NAME "centreon-engine-extcommands")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/engine-extcommands.spec.in" "${CMAKE_BINARY_DIR}/engine-extcommands.spec" @ONLY IMMEDIATE)
-set(CPACK_RPM_ENGINE-EXTCOMMANDS_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/engine-extcommands.spec")
-set(CPACK_RPM_ENGINE-EXTCOMMANDS_FILE_NAME ${CPACK_PACKAGE_ENGINE-EXTCOMMANDS_PACKAGE_NAME}.rpm)
-
-#centreon-broker
-set(CPACK_PACKAGE_BROKER_PACKAGE_NAME "centreon-broker")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/script/redhat/broker.spec.in" "${CMAKE_BINARY_DIR}/broker.spec" @ONLY IMMEDIATE)
-set(CPACK_RPM_BROKER_USER_BINARY_SPECFILE "${CMAKE_BINARY_DIR}/broker.spec")
-set(CPACK_RPM_BROKER_FILE_NAME ${CPACK_PACKAGE_BROKER_PACKAGE_NAME}.rpm)
-
-include(CPack)
-
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   conan_basic_setup(TARGETS)
 else()
   message(WARNING "The file conanbuildinfo.cmake doesn't exist, you have to run conan install first")
 endif()
+
+############ CONSTANTS ###########
+set(USER_BROKER centreon-broker)
+set(USER_ENGINE centreon-engine)
+##################################
 
 add_subdirectory(src/10-neb)
 add_subdirectory(src/15-stats)
@@ -107,3 +60,14 @@ add_subdirectory(src/connectors)
   add_subdirectory(tests/connectors)
   add_subdirectory(tests/engine)
 #endif()
+
+install(FILES ${CMAKE_SOURCE_DIR}/script/centreon-broker.logrotate COMPONENT core RENAME cbd DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/logrotate.d")
+install(DIRECTORY COMPONENT broker DESTINATION ${CMAKE_INSTALL_CONFDIR}/centreon-broker)
+install(DIRECTORY COMPONENT broker DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/log/centreon-broker)
+install(DIRECTORY COMPONENT broker DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/lib/centreon-broker)
+
+install(DIRECTORY COMPONENT core DESTINATION ${CMAKE_INSTALL_DATADIR}/centreon-broker/lua)
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE COMPONENT clib DESTINATION  ${CMAKE_INSTALL_DATAROOTDIR}/doc/centreon-clib-${COLLECT_VERSION})
+
+include(CMakeCPack.cmake)
+

@@ -22,7 +22,6 @@
 #include <cstring>
 #include <iostream>
 
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -126,13 +125,9 @@ mysql_column& mysql_column::operator=(mysql_column const& other) {
   return *this;
 }
 
-int mysql_column::get_type() const {
-  return _type;
-}
+int mysql_column::get_type() const { return _type; }
 
-void* mysql_column::get_buffer() {
-  return _vector;
-}
+void* mysql_column::get_buffer() { return _vector; }
 
 void mysql_column::set_length(int len) {
   assert(_type == MYSQL_TYPE_STRING);
@@ -155,7 +150,8 @@ void mysql_column::set_value(std::string const& str) {
     log_v2::sql()->warn(
         "mysql_column: Text column too short to contain a string of {} "
         "characters starting with '{}...'",
-        size, str.substr(0, 30));
+        size,
+        str.substr(0, 30));
     size = tmp.size();
     content = tmp.c_str();
   }
@@ -166,21 +162,13 @@ void mysql_column::set_value(std::string const& str) {
   strncpy(vector[0], content, _length[0] + 1);
 }
 
-bool mysql_column::is_null() const {
-  return _is_null[0];
-}
+bool mysql_column::is_null() const { return _is_null[0]; }
 
-my_bool* mysql_column::is_null_buffer() {
-  return &_is_null[0];
-}
+my_bool* mysql_column::is_null_buffer() { return &_is_null[0]; }
 
-my_bool* mysql_column::error_buffer() {
-  return &_error[0];
-}
+my_bool* mysql_column::error_buffer() { return &_error[0]; }
 
-unsigned long* mysql_column::length_buffer() {
-  return &_length[0];
-}
+unsigned long* mysql_column::length_buffer() { return &_length[0]; }
 
 void mysql_column::set_type(int type) {
   _type = type;

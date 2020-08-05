@@ -23,12 +23,13 @@
 #include <cstring>
 #include <sstream>
 #include <string>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
+using namespace com::centreon::exceptions;
 namespace misc {
 template <typename T>
 /**
@@ -75,15 +76,15 @@ class tokenizer {
     arg = std::string(_index, position - _index);
 
     if (arg.empty() && !optional)
-      throw(exceptions::msg() << "expected non optional argument " << _pos
-                              << " empty or not found");
+      throw msg_fmt("expected non optional argument {} empty or not found",
+                    _pos);
 
     std::stringstream ss;
     ss << arg;
     T ret = from_string_stream<T>(ss);
     if (ss.fail())
-      throw(exceptions::msg() << "can't convert '" << ss.str()
-                              << "' to expected type for pos " << _pos);
+      throw msg_fmt(
+          "can't convert '{}' to expected type for pos {}", ss.str(), _pos);
 
     _index = *position ? position + 1 : position;
     ++_pos;

@@ -20,9 +20,10 @@
 #include <cstring>
 #include <json11.hpp>
 #include <memory>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/lua/connector.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace json11;
@@ -39,8 +40,7 @@ static std::string find_param(config::endpoint const& cfg,
                               std::string const& key) {
   std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
   if (cfg.params.end() == it)
-    throw exceptions::msg()
-        << "lua: no '" << key << "' defined for endpoint '" << cfg.name << "'";
+    throw msg_fmt("lua: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
 }
 
@@ -69,10 +69,10 @@ bool factory::has_endpoint(config::endpoint& cfg) const {
  *
  *  @return New endpoint.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache)
+    const {
   std::map<std::string, misc::variant> conf_map;
   std::string err;
 
@@ -80,7 +80,7 @@ io::endpoint* factory::new_endpoint(
   Json const& js{cfg.cfg["lua_parameter"]};
 
   if (!err.empty())
-    throw exceptions::msg() << "lua: couldn't read a configuration json";
+    throw msg_fmt("lua: couldn't read a configuration json");
 
   if (js.is_object()) {
     Json const& name{js["name"]};
@@ -88,13 +88,12 @@ io::endpoint* factory::new_endpoint(
     Json const& value{js["value"]};
 
     if (name.string_value().empty())
-      throw exceptions::msg()
-          << "lua: couldn't read a configuration field because"
-          << " its name is empty";
+      throw msg_fmt(
+          "lua: couldn't read a configuration field because its name is empty");
     if (value.string_value().empty())
-      throw exceptions::msg()
-          << "lua: couldn't read a configuration field because"
-          << "' configuration field because its value is empty";
+      throw msg_fmt(
+          "lua: couldn't read a configuration field because' configuration "
+          "field because its value is empty");
     std::string t((type.string_value().empty()) ? "string"
                                                 : type.string_value());
     if (t == "string" || t == "password")
@@ -110,7 +109,8 @@ io::endpoint* factory::new_endpoint(
           conf_map.insert({name.string_value(), misc::variant(val)});
         else
           ko = true;
-      } catch (std::exception const& e) {
+      }
+      catch (std::exception const& e) {
         ko = true;
       }
       // Second attempt using floating point numbers
@@ -121,14 +121,15 @@ io::endpoint* factory::new_endpoint(
             conf_map.insert({name.string_value(), misc::variant(val)});
           else
             ko = true;
-        } catch (std::exception const& e) {
+        }
+        catch (std::exception const& e) {
           ko = true;
         }
       }
       if (ko)
-        throw exceptions::msg()
-            << "lua: unable to read '" << name.string_value() << "' content ("
-            << value.string_value() << ") as a number";
+        throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
+                      name.string_value(),
+                      value.string_value());
     }
   } else if (js.is_array()) {
     for (Json const& obj : js.array_items()) {
@@ -137,13 +138,13 @@ io::endpoint* factory::new_endpoint(
       Json const& value{obj["value"]};
 
       if (name.string_value().empty())
-        throw exceptions::msg()
-            << "lua: couldn't read a configuration field because"
-            << " its name is empty";
+        throw msg_fmt(
+            "lua: couldn't read a configuration field because its name is "
+            "empty");
       if (value.string_value().empty())
-        throw exceptions::msg()
-            << "lua: couldn't read a configuration field because"
-            << "' configuration field because its value is empty";
+        throw msg_fmt(
+            "lua: couldn't read a configuration field because' configuration "
+            "field because its value is empty");
       std::string t((type.string_value().empty()) ? "string"
                                                   : type.string_value());
       if (t == "string" || t == "password")
@@ -153,10 +154,11 @@ io::endpoint* factory::new_endpoint(
         try {
           int val = std::stol(value.string_value());
           conf_map.insert({name.string_value(), misc::variant(val)});
-        } catch (std::exception const& e) {
-          throw exceptions::msg()
-              << "lua: unable to read '" << name.string_value() << "' content ("
-              << value.string_value() << ") as a number";
+        }
+        catch (std::exception const& e) {
+          throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
+                        name.string_value(),
+                        value.string_value());
         }
       }
     }

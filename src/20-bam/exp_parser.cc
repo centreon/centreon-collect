@@ -21,8 +21,9 @@
 #include <sstream>
 #include <stack>
 #include "com/centreon/broker/bam/exp_tokenizer.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
@@ -60,9 +61,7 @@ exp_parser::exp_parser(std::string const& expression) : _exp(expression) {
  *
  *  @param[in] other  Object to copy.
  */
-exp_parser::exp_parser(exp_parser const& other) {
-  _internal_copy(other);
-}
+exp_parser::exp_parser(exp_parser const& other) { _internal_copy(other); }
 
 /**
  *  Destructor.
@@ -132,15 +131,18 @@ exp_parser::notation const& exp_parser::get_postfix() {
         stack.pop();
       }
       if (stack.empty()) {
-        throw(exceptions::msg() << "mismatched parentheses found while parsing "
-                                << "the following expression: " << _exp);
+        throw msg_fmt(
+            "mismatched parentheses found while parsing the following "
+            "expression: {}",
+            _exp);
       }
 
       // Increment function arity.
       if (arity.empty()) {
-        throw(exceptions::msg()
-              << "found comma outside function call while parsing "
-              << "the following expression: " << _exp);
+        throw msg_fmt(
+            "found comma outside function call while parsing the following "
+            "expression: {}",
+            _exp);
       }
       ++arity.top();
 
@@ -156,10 +158,10 @@ exp_parser::notation const& exp_parser::get_postfix() {
         stack.push("!");
       } else {
         // While there is an operator token o2 at the top of the stack...
-        while (!stack.empty() &&
-               is_operator(stack.top())
+        while (!stack.empty() && is_operator(stack.top())
                // And o1's precedence is less than or equal to that of o2
-               && (_precedence[token] <= (_precedence[stack.top()]))) {
+               &&
+               (_precedence[token] <= (_precedence[stack.top()]))) {
           // Pop o2 off the operator stack, onto the output queue.
           _postfix.push_back(stack.top());
           stack.pop();
@@ -183,8 +185,10 @@ exp_parser::notation const& exp_parser::get_postfix() {
         stack.pop();
       }
       if (stack.empty()) {
-        throw(exceptions::msg() << "mismatched parentheses found while parsing "
-                                << "the following expression: " << _exp);
+        throw msg_fmt(
+            "mismatched parentheses found while parsing the following "
+            "expression: {}",
+            _exp);
       }
 
       // Pop left parenthesis off the stack.
@@ -217,8 +221,10 @@ exp_parser::notation const& exp_parser::get_postfix() {
     std::string token(stack.top());
     stack.pop();
     if (token == "(") {
-      throw(exceptions::msg() << "mismatched parentheses found while parsing "
-                              << "the following expression: " << _exp);
+      throw msg_fmt(
+          "mismatched parentheses found while parsing the following "
+          "expression: {}",
+          _exp);
     }
     // Or pop the operator onto the output queue.
     _postfix.push_back(token);

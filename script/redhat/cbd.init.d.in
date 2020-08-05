@@ -38,7 +38,7 @@ cbwd="@PREFIX_BIN@/cbwd"
 pid_path=/var/run
 lockfile=/var/lock/subsys/cbd
 stop_timeout=10
-user="@USER@"
+user="@USER_BROKER@"
 pidfile="${pid_path}/cbwd.pid"
 debug=0
 

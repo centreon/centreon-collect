@@ -26,7 +26,7 @@
 #include <memory>
 
 #include "com/centreon/broker/bbdo/internal.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
@@ -35,6 +35,7 @@
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/misc.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
@@ -96,8 +97,8 @@ static void get_string(io::data const& t,
                        mapping::entry const& member,
                        std::vector<char>& buffer) {
   std::string const& tmp(member.get_string(t));
-  std::copy(tmp.c_str(), tmp.c_str() + tmp.size() + 1,
-            std::back_inserter(buffer));
+  std::copy(
+      tmp.c_str(), tmp.c_str() + tmp.size() + 1, std::back_inserter(buffer));
 }
 
 /**
@@ -149,7 +150,8 @@ static io::raw* serialize(io::data const& e) {
 
     // Serialize properties of the object.
     for (mapping::entry const* current_entry(info->get_mapping());
-         !current_entry->is_null(); ++current_entry) {
+         !current_entry->is_null();
+         ++current_entry) {
       // Skip entries that should not be serialized.
       if (current_entry->get_serialize())
         switch (current_entry->get_type()) {
@@ -178,11 +180,13 @@ static io::raw* serialize(io::data const& e) {
             log_v2::bbdo()->error(
                 "BBDO: invalid mapping for object of type '{0}': {1} is not a "
                 "known type ID",
-                info->get_name(), current_entry->get_type());
-            throw exceptions::msg() << "BBDO: invalid mapping for object"
-                                    << " of type '" << info->get_name()
-                                    << "': " << current_entry->get_type()
-                                    << " is not a known type ID";
+                info->get_name(),
+                current_entry->get_type());
+            throw msg_fmt(
+                "BBDO: invalid mapping for object of type '{}': {} is not a "
+                "known type ID",
+                info->get_name(),
+                current_entry->get_type());
         }
 
       // Packet splitting.
@@ -294,10 +298,11 @@ int output::write(std::shared_ptr<io::data> const& e) {
   std::shared_ptr<io::raw> serialized(serialize(*e));
   if (serialized) {
     log_v2::bbdo()->debug("BBDO: serialized event of type {0} to {1} bytes",
-                          e->type(), serialized->size());
-    logging::debug(logging::medium)
-        << "BBDO: serialized event of type " << e->type() << " to "
-        << serialized->size() << " bytes";
+                          e->type(),
+                          serialized->size());
+    logging::debug(logging::medium) << "BBDO: serialized event of type "
+                                    << e->type() << " to " << serialized->size()
+                                    << " bytes";
     _substream->write(serialized);
   }
 

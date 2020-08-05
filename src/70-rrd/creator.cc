@@ -44,17 +44,15 @@ using namespace com::centreon::broker::rrd;
  */
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
     : _cache_size(cache_size), _tmpl_path(tmpl_path) {
-  logging::debug(logging::medium)
-      << "RRD: file creator will maintain at most " << _cache_size
-      << " templates in '" << _tmpl_path << "'";
+  logging::debug(logging::medium) << "RRD: file creator will maintain at most "
+                                  << _cache_size << " templates in '"
+                                  << _tmpl_path << "'";
 }
 
 /**
  *  Destructor.
  */
-creator::~creator() {
-  clear();
-}
+creator::~creator() { clear(); }
 
 /**
  *  Clear cache and remove template file.
@@ -62,7 +60,8 @@ creator::~creator() {
 void creator::clear() {
   for (std::map<tmpl_info, fd_info>::const_iterator it(_fds.begin()),
        end(_fds.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     tmpl_info info(it->first);
     ::close(it->second.fd);
     std::ostringstream oss;
@@ -119,16 +118,16 @@ void creator::create(std::string const& filename,
     struct stat s;
     if (stat(tmpl_filename.c_str(), &s) < 0) {
       char const* msg(strerror(errno));
-      throw(exceptions::open() << "RRD: could not create template file '"
-                               << tmpl_filename << "': " << msg);
+      throw exceptions::open(
+          "RRD: could not create template file '{}': {}", tmpl_filename, msg);
     }
 
     // Get template file fd.
     int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
     if (in_fd < 0) {
       char const* msg(strerror(errno));
-      throw(exceptions::open() << "RRD: could not open template file '"
-                               << tmpl_filename << "': " << msg);
+      throw exceptions::open(
+          "RRD: could not open template file '{}'", tmpl_filename, msg);
     }
 
     // Store fd informations into the cache.
@@ -154,12 +153,13 @@ void creator::_duplicate(std::string const& filename, fd_info const& in_fd) {
   // Remove previous file.
   remove(filename.c_str());
 
-  int out_fd(open(filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY,
+  int out_fd(open(filename.c_str(),
+                  O_CREAT | O_TRUNC | O_WRONLY,
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH));
   if (out_fd < 0) {
     char const* msg(strerror(errno));
-    throw(exceptions::open()
-          << "RRD: could not create file '" << filename << "': " << msg);
+    throw exceptions::open(
+        "RRD: could not create file '{}': {}", filename, msg);
   }
 
 #ifdef __linux__
@@ -174,8 +174,8 @@ void creator::_duplicate(std::string const& filename, fd_info const& in_fd) {
   if (!fallback) {
     if (ret < 0) {
       char const* msg(strerror(errno));
-      throw(exceptions::open()
-            << "RRD: could not create file '" << filename << "': " << msg);
+      throw exceptions::open(
+          "RRD: could not create file '{}': {}", filename, msg);
     }
     // Good to go with the sendfile syscall.
     _sendfile(out_fd, in_fd.fd, ret, in_fd.size, filename);
@@ -263,16 +263,16 @@ void creator::_open(std::string const& filename,
 
   // Debug message.
   argv[argc] = nullptr;
-  logging::debug(logging::high)
-      << "RRD: opening file '" << filename << "' (" << argv[0] << ", "
-      << argv[1] << ", " << (argv[2] ? argv[2] : "(null)") << ", step 1, from "
-      << from << ")";
+  logging::debug(logging::high) << "RRD: opening file '" << filename << "' ("
+                                << argv[0] << ", " << argv[1] << ", "
+                                << (argv[2] ? argv[2] : "(null)")
+                                << ", step 1, from " << from << ")";
 
   // Create RRD file.
   rrd_clear_error();
   if (rrd_create_r(filename.c_str(), 1, from, argc, argv))
-    throw(exceptions::open() << "RRD: could not create file '" << filename
-                             << "': " << rrd_get_error());
+    throw exceptions::open(
+        "RRD: could not create file '{}': {}", filename, rrd_get_error());
 }
 
 /**
@@ -288,10 +288,10 @@ void creator::_read_write(int out_fd,
                           ssize_t size,
                           std::string const& filename) {
   // Reset position of in_fd.
-  if (lseek(in_fd, 0, SEEK_SET) == (off_t)-1) {
+  if (lseek(in_fd, 0, SEEK_SET) == (off_t) - 1) {
     char const* msg(strerror(errno));
-    throw(exceptions::open()
-          << "RRD: could not create file '" << filename << "': " << msg);
+    throw exceptions::open(
+        "RRD: could not create file '{}': {}", filename, msg);
   }
 
   char buffer[4096];
@@ -302,8 +302,8 @@ void creator::_read_write(int out_fd,
     if (rb <= 0) {
       if (errno != EAGAIN) {
         char const* msg(strerror(errno));
-        throw(exceptions::open()
-              << "RRD: could not create file '" << filename << "': " << msg);
+        throw exceptions::open(
+            "RRD: could not create file '{}': {}", filename, msg);
       }
       continue;
     }
@@ -315,8 +315,8 @@ void creator::_read_write(int out_fd,
       if (ret <= 0) {
         if (errno != EAGAIN) {
           char const* msg(strerror(errno));
-          throw(exceptions::open()
-                << "RRD: could not create file '" << filename << "': " << msg);
+          throw exceptions::open(
+              "RRD: could not create file '{}': {}", filename, msg);
         }
       } else
         wb += ret;
@@ -345,12 +345,12 @@ void creator::_sendfile(int out_fd,
   ssize_t total(already_transfered);
   while (total < size) {
     already_transfered = total;
-    ssize_t ret = ::sendfile(out_fd, in_fd, &already_transfered,
-                             size - already_transfered);
+    ssize_t ret = ::sendfile(
+        out_fd, in_fd, &already_transfered, size - already_transfered);
     if ((ret <= 0) && (errno != EAGAIN)) {
       char const* msg(strerror(errno));
-      throw(exceptions::open()
-            << "RRD: could not create file '" << filename << "': " << msg);
+      throw exceptions::open(
+          "RRD: could not create file '{}': {}", filename, msg);
     } else if (ret > 0)
       total += ret;
   }

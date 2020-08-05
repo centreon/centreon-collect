@@ -34,8 +34,7 @@
 #include "com/centreon/broker/bam/meta_service_status.hh"
 #include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
@@ -50,6 +49,7 @@
 #include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/timestamp.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
@@ -94,9 +94,10 @@ monitoring_stream::~monitoring_stream() {
   // save cache
   try {
     _write_cache();
-  } catch (std::exception const& e) {
-    logging::error(logging::medium)
-        << "BAM: can't save cache: '" << e.what() << "'";
+  }
+  catch (std::exception const& e) {
+    logging::error(logging::medium) << "BAM: can't save cache: '" << e.what()
+                                    << "'";
   }
 }
 
@@ -134,7 +135,7 @@ void monitoring_stream::initialize() {
 bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
-  throw(exceptions::shutdown() << "cannot read from BAM monitoring stream");
+  throw shutdown("cannot read from BAM monitoring stream");
   return true;
 }
 /**
@@ -161,9 +162,9 @@ void monitoring_stream::update() {
     _meta_mapping = s.get_meta_svc_mapping();
     _rebuild();
     initialize();
-  } catch (std::exception const& e) {
-    throw(exceptions::msg()
-          << "BAM: could not process configuration update: " << e.what());
+  }
+  catch (std::exception const& e) {
+    throw msg_fmt("BAM: could not process configuration update: {}", e.what());
   }
 }
 
@@ -183,62 +184,71 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
 
   // Process service status events.
   switch (data->type()) {
-    case neb::service_status::static_type():
-    case neb::service::static_type(): {
+    case neb::service_status::static_type() :
+    case neb::service::static_type() : {
       std::shared_ptr<neb::service_status> ss(
           std::static_pointer_cast<neb::service_status>(data));
       log_v2::bam()->trace(
           "BAM: processing service status (host {}, service {}, hard state {}, "
           "current state {})",
-          ss->host_id, ss->service_id, ss->last_hard_state, ss->current_state);
+          ss->host_id,
+          ss->service_id,
+          ss->last_hard_state,
+          ss->current_state);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(ss, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
-    case neb::acknowledgement::static_type(): {
+    case neb::acknowledgement::static_type() : {
       std::shared_ptr<neb::acknowledgement> ack(
           std::static_pointer_cast<neb::acknowledgement>(data));
       log_v2::bam()->trace(
-          "BAM: processing acknowledgement (host {}, service {})", ack->host_id,
+          "BAM: processing acknowledgement (host {}, service {})",
+          ack->host_id,
           ack->service_id);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(ack, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
-    case neb::downtime::static_type(): {
+    case neb::downtime::static_type() : {
       std::shared_ptr<neb::downtime> dt(
           std::static_pointer_cast<neb::downtime>(data));
       log_v2::bam()->trace("BAM: processing downtime (host {}, service {})",
-                           dt->host_id, dt->service_id);
+                           dt->host_id,
+                           dt->service_id);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
-    case storage::metric::static_type(): {
+    case storage::metric::static_type() : {
       std::shared_ptr<storage::metric> m(
           std::static_pointer_cast<storage::metric>(data));
       log_v2::bam()->trace("BAM: processing metric (id {}, time {}, value {})",
-                           m->metric_id, m->ctime, m->value);
+                           m->metric_id,
+                           m->ctime,
+                           m->value);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_metric().update(m, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
-    case bam::ba_status::static_type(): {
+    case bam::ba_status::static_type() : {
       ba_status* status(static_cast<ba_status*>(data.get()));
-      logging::debug(logging::low)
-          << "BAM: processing BA status (id " << status->ba_id << ", level "
-          << status->level_nominal << ", acknowledgement "
-          << status->level_acknowledgement << ", downtime "
-          << status->level_downtime << ")";
+      logging::debug(logging::low) << "BAM: processing BA status (id "
+                                   << status->ba_id << ", level "
+                                   << status->level_nominal
+                                   << ", acknowledgement "
+                                   << status->level_acknowledgement
+                                   << ", downtime " << status->level_downtime
+                                   << ")";
       _ba_update.bind_value_as_f64(0, status->level_nominal);
       _ba_update.bind_value_as_f64(1, status->level_acknowledgement);
       _ba_update.bind_value_as_f64(2, status->level_downtime);
       _ba_update.bind_value_as_u32(6, status->ba_id);
-      if (status->last_state_change == (time_t)-1 ||
+      if (status->last_state_change == (time_t) - 1 ||
           status->last_state_change == 0)
         _ba_update.bind_value_as_null(3);
       else
@@ -267,20 +277,22 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
         }
       }
     } break;
-    case bam::kpi_status::static_type(): {
+    case bam::kpi_status::static_type() : {
       kpi_status* status(static_cast<kpi_status*>(data.get()));
-      logging::debug(logging::low)
-          << "BAM: processing KPI status (id " << status->kpi_id << ", level "
-          << status->level_nominal_hard << ", acknowledgement "
-          << status->level_acknowledgement_hard << ", downtime "
-          << status->level_downtime_hard << ")";
+      logging::debug(logging::low) << "BAM: processing KPI status (id "
+                                   << status->kpi_id << ", level "
+                                   << status->level_nominal_hard
+                                   << ", acknowledgement "
+                                   << status->level_acknowledgement_hard
+                                   << ", downtime "
+                                   << status->level_downtime_hard << ")";
 
       _kpi_update.bind_value_as_f64(0, status->level_acknowledgement_hard);
       _kpi_update.bind_value_as_i32(1, status->state_hard);
       _kpi_update.bind_value_as_f64(2, status->level_downtime_hard);
       _kpi_update.bind_value_as_f64(3, status->level_nominal_hard);
       _kpi_update.bind_value_as_i32(4, 1 + 1);
-      if (status->last_state_change == (time_t)-1 ||
+      if (status->last_state_change == (time_t) - 1 ||
           status->last_state_change == 0)
         _kpi_update.bind_value_as_null(5);
       else
@@ -295,7 +307,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       oss_err << "BAM: could not update KPI " << status->kpi_id << ": ";
       _mysql.run_statement(_kpi_update, oss_err.str(), true);
     } break;
-    case inherited_downtime::static_type(): {
+    case inherited_downtime::static_type() : {
       std::ostringstream oss;
       timestamp now = timestamp::now();
       inherited_downtime const& dwn =
@@ -365,9 +377,10 @@ void monitoring_stream::_rebuild() {
       mysql_result res(promise.get_future().get());
       while (_mysql.fetch_row(res))
         bas_to_rebuild.push_back(res.value_as_u32(0));
-    } catch (std::exception const& e) {
-      throw exceptions::msg()
-          << "BAM: could not select the list of BAs to rebuild: " << e.what();
+    }
+    catch (std::exception const& e) {
+      throw msg_fmt("BAM: could not select the list of BAs to rebuild: {}",
+                    e.what());
     }
   }
 
@@ -383,7 +396,8 @@ void monitoring_stream::_rebuild() {
     std::ostringstream oss;
     for (std::vector<uint32_t>::const_iterator it(bas_to_rebuild.begin()),
          end(bas_to_rebuild.end());
-         it != end; ++it)
+         it != end;
+         ++it)
       oss << *it << ", ";
     r->bas_to_rebuild = oss.str();
     r->bas_to_rebuild.resize(r->bas_to_rebuild.size() - 2);
@@ -430,8 +444,8 @@ void monitoring_stream::_write_external_command(std::string cmd) {
           << "BAM: could not write BA check result to command file '"
           << _ext_cmd_file << "'";
     else
-      logging::debug(logging::medium)
-          << "BAM: sent external command '" << cmd << "'";
+      logging::debug(logging::medium) << "BAM: sent external command '" << cmd
+                                      << "'";
     ofs.close();
   }
 }

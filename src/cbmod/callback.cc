@@ -18,10 +18,11 @@
 
 #include "com/centreon/broker/neb/callback.hh"
 #include <cstdlib>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::neb;
 
 /**************************************
@@ -40,13 +41,10 @@ using namespace com::centreon::broker::neb;
 callback::callback(int id, void* handle, int (*function)(int, void*))
     : _function(function), _id(id) {
   if (neb_register_callback(_id, handle, 0, _function) != OK)
-    throw(exceptions::msg()
-          << "callbacks: registration of callback " << id << " failed");
+    throw msg_fmt("callbacks: registration of callback {} failed", id);
 }
 
 /**
  *  Destructor.
  */
-callback::~callback() throw() {
-  neb_deregister_callback(_id, _function);
-}
+callback::~callback() throw() { neb_deregister_callback(_id, _function); }

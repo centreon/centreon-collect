@@ -20,8 +20,9 @@
 #include <list>
 #include <string>
 #include "com/centreon/broker/bam/exp_parser.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 /**
@@ -52,11 +53,10 @@ TEST(BamExpParserGetPostfix, Valid2) {
       "AVERAGE(METRICS('ping'), METRIC(\"my_ping\", Host, "
       "Service)) >= (SUM(METRICS('limit'), METRICS('limit_offset')) + 42)");
   char const* expected[] = {
-      "ping",    "METRICS", "1", "my_ping",      "Host",
-      "Service", "METRIC",  "3", "AVERAGE",      "2",
-      "limit",   "METRICS", "1", "limit_offset", "METRICS",
-      "1",       "SUM",     "2", "42",           "+",
-      ">=",      nullptr};
+      "ping",   "METRICS",      "1",       "my_ping", "Host",  "Service",
+      "METRIC", "3",            "AVERAGE", "2",       "limit", "METRICS",
+      "1",      "limit_offset", "METRICS", "1",       "SUM",   "2",
+      "42",     "+",            ">=",      nullptr};
   ASSERT_EQ(p.get_postfix(), array_to_list(expected));
 }
 
@@ -67,9 +67,8 @@ TEST(BamExpParserGetPostfix, Valid3) {
   bam::exp_parser p(
       "{Host1 Service1} {IS} {OK} {AND} {Host2 Service2} {IS} {OK}");
   char const* expected[] = {
-      "Host1", "Service1", "SERVICESTATUS", "2", "OK", "IS",
-      "Host2", "Service2", "SERVICESTATUS", "2", "OK", "IS",
-      "AND",   nullptr};
+      "Host1",    "Service1",      "SERVICESTATUS", "2",  "OK", "IS",  "Host2",
+      "Service2", "SERVICESTATUS", "2",             "OK", "IS", "AND", nullptr};
   ASSERT_EQ(p.get_postfix(), array_to_list(expected));
 }
 
@@ -80,12 +79,11 @@ TEST(BamExpParserGetPostfix, Valid4) {
   bam::exp_parser p(
       "SERVICESTATUS('MyHost1','MyService1')!=OK||(42+36==SERVICESTATUS('"
       "MyHost2',\"MyService2\"))");
-  char const* expected[] = {"MyHost1", "MyService1", "SERVICESTATUS",
-                            "2",       "OK",         "!=",
-                            "42",      "36",         "+",
-                            "MyHost2", "MyService2", "SERVICESTATUS",
-                            "2",       "==",         "||",
-                            nullptr};
+  char const* expected[] = {
+      "MyHost1", "MyService1", "SERVICESTATUS", "2",
+      "OK",      "!=",         "42",            "36",
+      "+",       "MyHost2",    "MyService2",    "SERVICESTATUS",
+      "2",       "==",         "||",            nullptr};
   ASSERT_EQ(p.get_postfix(), array_to_list(expected));
 }
 
@@ -99,27 +97,12 @@ TEST(BamExpParserGetPostfix, Valid5) {
       "{poller-paris Disk-/} {NOT} {OK}\n"
       "{OR}\n"
       "{poller-paris Load} {NOT} {OK}\n");
-  char const* expected[] = {"poller-paris",
-                            "Cpu",
-                            "SERVICESTATUS",
-                            "2",
-                            "OK",
-                            "NOT",
-                            "poller-paris",
-                            "Disk-/",
-                            "SERVICESTATUS",
-                            "2",
-                            "OK",
-                            "NOT",
-                            "OR",
-                            "poller-paris",
-                            "Load",
-                            "SERVICESTATUS",
-                            "2",
-                            "OK",
-                            "NOT",
-                            "OR",
-                            nullptr};
+  char const* expected[] = {
+      "poller-paris",  "Cpu",          "SERVICESTATUS", "2",             "OK",
+      "NOT",           "poller-paris", "Disk-/",        "SERVICESTATUS", "2",
+      "OK",            "NOT",          "OR",            "poller-paris",  "Load",
+      "SERVICESTATUS", "2",            "OK",            "NOT",           "OR",
+      nullptr};
   ASSERT_EQ(p.get_postfix(), array_to_list(expected));
 }
 
@@ -131,9 +114,8 @@ TEST(BamExpParserGetPostfix, Valid6) {
       "{Host1 Service1} {IS} {OK} {XOR} {Host2 Service2} {IS} "
       "{OK}");
   char const* expected[] = {
-      "Host1", "Service1", "SERVICESTATUS", "2", "OK", "IS",
-      "Host2", "Service2", "SERVICESTATUS", "2", "OK", "IS",
-      "XOR",   nullptr};
+      "Host1",    "Service1",      "SERVICESTATUS", "2",  "OK", "IS",  "Host2",
+      "Service2", "SERVICESTATUS", "2",             "OK", "IS", "XOR", nullptr};
   ASSERT_EQ(p.get_postfix(), array_to_list(expected));
 }
 
@@ -177,7 +159,7 @@ TEST(BamExpParserGetPostfix, Copy) {
 // Then get_postfix() throw an exception
 TEST(BamExpParserGetPostfix, MissingParenthesis1) {
   bam::exp_parser p("HOSTSTATUS(Host, Service) IS OK(");
-  ASSERT_THROW(p.get_postfix(), exceptions::msg);
+  ASSERT_THROW(p.get_postfix(), msg_fmt);
 }
 
 // Given an exp_parser object
@@ -185,7 +167,7 @@ TEST(BamExpParserGetPostfix, MissingParenthesis1) {
 // Then get_postfix() throw an exception
 TEST(BamExpParserGetPostfix, MissingParenthesis2) {
   bam::exp_parser p("HOSTSTATUS(Host, Service)) IS OK");
-  ASSERT_THROW(p.get_postfix(), exceptions::msg);
+  ASSERT_THROW(p.get_postfix(), msg_fmt);
 }
 
 // Given an exp_parser object
@@ -193,7 +175,7 @@ TEST(BamExpParserGetPostfix, MissingParenthesis2) {
 // Then get_postfix() throw an exception
 TEST(BamExpParserGetPostfix, BadComma1) {
   bam::exp_parser p("HOSTSTATUS(Host, Service), IS OK");
-  ASSERT_THROW(p.get_postfix(), exceptions::msg);
+  ASSERT_THROW(p.get_postfix(), msg_fmt);
 }
 
 // Given an exp_parser object
@@ -201,7 +183,7 @@ TEST(BamExpParserGetPostfix, BadComma1) {
 // Then get_postfix() throw an exception
 TEST(BamExpParserGetPostfix, BadComma2) {
   bam::exp_parser p("HOSTSTATUS(Host, Service) IS OK,");
-  ASSERT_THROW(p.get_postfix(), exceptions::msg);
+  ASSERT_THROW(p.get_postfix(), msg_fmt);
 }
 
 // Given an exp_parser object
@@ -209,5 +191,5 @@ TEST(BamExpParserGetPostfix, BadComma2) {
 // Then get_postfix() throw an exception
 TEST(BamExpParserGetPostfix, BadComma3) {
   bam::exp_parser p("(OK,OK)");
-  ASSERT_THROW(p.get_postfix(), exceptions::msg);
+  ASSERT_THROW(p.get_postfix(), msg_fmt);
 }

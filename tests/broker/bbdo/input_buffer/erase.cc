@@ -18,8 +18,9 @@
  */
 #include <gtest/gtest.h>
 #include "com/centreon/broker/bbdo/input_buffer.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 class BbdoInputBufferErase : public ::testing::Test {
@@ -97,7 +98,7 @@ TEST_F(BbdoInputBufferErase, EraseAll) {
   // Then
   ASSERT_EQ(_buffer.size(), 0);
   std::string output;
-  ASSERT_THROW(_buffer.extract(output, 0, 1), exceptions::msg);
+  ASSERT_THROW(_buffer.extract(output, 0, 1), msg_fmt);
 }
 
 // Given a bbdo::input_buffer object filled with data
@@ -111,5 +112,5 @@ TEST_F(BbdoInputBufferErase, EraseMore) {
   // Then
   ASSERT_EQ(_buffer.size(), 0);
   std::string output;
-  ASSERT_THROW(_buffer.extract(output, 0, 1), exceptions::msg);
+  ASSERT_THROW(_buffer.extract(output, 0, 1), msg_fmt);
 }

@@ -25,7 +25,7 @@
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_service.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -562,7 +562,6 @@ TEST_F(BamBA, DtInheritOneOK) {
   }
 }
 
-
 TEST_F(BamBA, IgnoreDt) {
   std::shared_ptr<bam::ba> test_ba(new bam::ba);
   test_ba->set_state_source(bam::configuration::ba::state_source_ratio_percent);
@@ -819,7 +818,6 @@ TEST_F(BamBA, DtIgnoreKpiBest) {
     results.pop();
   }
 }
-
 
 TEST_F(BamBA, DtIgnoreKpiWorst) {
   std::shared_ptr<bam::ba> test_ba(new bam::ba);

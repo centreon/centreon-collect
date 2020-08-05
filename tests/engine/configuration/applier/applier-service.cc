@@ -28,24 +28,21 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/engine/service.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierService : public TestEngine {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given service configuration with an host not defined
@@ -272,18 +269,18 @@ TEST_F(ApplierService, ServicesCheckValidity) {
   configuration::service csvc;
 
   // No service description
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(), error);
 
   ASSERT_TRUE(csvc.parse("service_description", "check description"));
   ASSERT_TRUE(csvc.parse("service_id", "53"));
 
   // No host attached to
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(), error);
 
   ASSERT_TRUE(csvc.parse("hosts", "test_host"));
 
   // No check command attached to
-  ASSERT_THROW(csvc.check_validity(), engine::exceptions::error);
+  ASSERT_THROW(csvc.check_validity(), error);
 
   configuration::applier::command cmd_aply;
   configuration::command cmd("cmd");
@@ -362,10 +359,10 @@ TEST_F(ApplierService, ServicesStalkingOptions) {
             configuration::service::critical | configuration::service::warning);
 
   ASSERT_TRUE(csvc.parse("stalking_options", "a"));
-  ASSERT_EQ(csvc.stalking_options(), configuration::service::ok |
-                                         configuration::service::warning |
-                                         configuration::service::unknown |
-                                         configuration::service::critical);
+  ASSERT_EQ(csvc.stalking_options(),
+            configuration::service::ok | configuration::service::warning |
+                configuration::service::unknown |
+                configuration::service::critical);
 }
 
 // Given a viable contact
@@ -495,4 +492,3 @@ TEST_F(ApplierService, StalkingOptionsWhenServiceIsModified) {
   ASSERT_TRUE(serv->get_notify_on(engine::service::critical));
   ASSERT_TRUE(serv->get_notify_on(engine::service::unknown));
 }
-

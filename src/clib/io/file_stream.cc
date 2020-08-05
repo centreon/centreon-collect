@@ -26,6 +26,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/io/file_stream.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::io;
 
 /**************************************
@@ -106,7 +107,7 @@ bool file_stream::exists(std::string const& path) {
 void file_stream::flush() {
   if (fflush(_stream)) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot flush stream: " << msg);
+    throw basic_error("cannot flush stream: {}", msg);
   }
   return;
 }
@@ -124,8 +125,8 @@ com::centreon::native_handle file_stream::get_native_handle() {
     retval = fileno(_stream);
     if (retval < 0) {
       char const* msg(strerror(errno));
-      throw(basic_error() << "could not get native handle from "
-                             "file stream: " << msg);
+      throw basic_error("could not get native handle from file stream: {}",
+                        msg);
     }
   }
   return retval;
@@ -136,16 +137,16 @@ com::centreon::native_handle file_stream::get_native_handle() {
  */
 void file_stream::open(char const* path, char const* mode) {
   if (!path)
-    throw(basic_error() << "invalid argument path: null pointer");
+    throw basic_error_1("invalid argument path: null pointer");
   if (!mode)
-    throw(basic_error() << "invalid argument mode: null pointer");
+    throw basic_error_1("invalid argument mode: null pointer");
 
   close();
   _auto_close = true;
   _stream = fopen(path, mode);
   if (!_stream) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "could not open file '" << path << "': " << msg);
+    throw basic_error("could not open file '{}': {}", path, msg);
   }
   int fd(fileno(_stream));
   int flags(0);
@@ -180,14 +181,14 @@ void file_stream::open(std::string const& path, char const* mode) {
  */
 unsigned long file_stream::read(void* data, unsigned long size) {
   if (!_stream)
-    throw(basic_error() << "attempt to read from closed file stream");
+    throw basic_error_1("attempt to read from closed file stream");
   if (!data || !size)
-    throw(basic_error() << "attempt to read from "
-                           "file stream but do not except any result");
+    throw basic_error_1(
+        "attempt to read from file stream but do not except any result");
   ssize_t rb(::read(get_native_handle(), data, size));
   if (rb < 0) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "could not read from file stream: " << msg);
+    throw basic_error("could not read from file stream: {}", msg);
   }
   return static_cast<unsigned long>(rb);
 }
@@ -263,20 +264,20 @@ unsigned long file_stream::size() {
   long original_offset(ftell(_stream));
   if (-1 == original_offset) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot tell position within file: " << msg);
+    throw basic_error("cannot tell position within file: {}", msg);
   }
 
   // Seek to end of file.
   if (fseek(_stream, 0, SEEK_END)) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot seek to end of file: " << msg);
+    throw basic_error("cannot seek to end of file: {}", msg);
   }
 
   // Get position (size).
   long size(ftell(_stream));
   if (size < 0) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "cannot get file size: " << msg);
+    throw basic_error("cannot get file size: {}", msg);
   }
 
   // Get back to original position.
@@ -293,7 +294,7 @@ unsigned long file_stream::size() {
 char* file_stream::temp_path() {
   char* ret(::tmpnam(static_cast<char*>(NULL)));
   if (!ret)
-    throw basic_error() << "could not generate temporary file name";
+    throw basic_error_1("could not generate temporary file name");
   return ret;
 }
 
@@ -307,13 +308,13 @@ char* file_stream::temp_path() {
  */
 unsigned long file_stream::write(void const* data, unsigned long size) {
   if (!_stream)
-    throw(basic_error() << "attempt to write to a closed file stream");
+    throw basic_error_1("attempt to write to a closed file stream");
   if (!data || !size)
-    throw(basic_error() << "attempt to write no data to file stream");
+    throw basic_error_1("attempt to write no data to file stream");
   ssize_t wb(::write(get_native_handle(), data, size));
   if (wb <= 0) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "could not write to file stream: " << msg);
+    throw basic_error("could not write to file stream: {}", msg);
   }
   return static_cast<unsigned long>(wb);
 }

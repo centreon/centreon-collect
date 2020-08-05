@@ -20,7 +20,6 @@
 #include "com/centreon/engine/retention/dump.hh"
 #include <gtest/gtest.h>
 #include <sstream>
-#include "com/centreon/engine/exceptions/error.hh"
 #include "helper.hh"
 
 using namespace com::centreon::engine;
@@ -28,19 +27,23 @@ using namespace com::centreon::engine::retention;
 
 class RetentionDumpTest : public ::testing::Test {
  public:
-  void SetUp() {
-    init_config_state();
-  }
+  void SetUp() { init_config_state(); }
 
-  void TearDown() {
-    deinit_config_state();
-  }
+  void TearDown() { deinit_config_state(); }
 };
 
 TEST_F(RetentionDumpTest, DumpComment) {
-  comment cmt(comment::host, comment::flapping, 12, 0, time(nullptr),
-                        "Test comment", "test comment", false,
-                        comment::internal, false, 0);
+  comment cmt(comment::host,
+              comment::flapping,
+              12,
+              0,
+              time(nullptr),
+              "Test comment",
+              "test comment",
+              false,
+              comment::internal,
+              false,
+              0);
   std::ostringstream oss;
   dump::comments(oss);
   std::string str(oss.str());

@@ -23,6 +23,7 @@
 #include <sstream>
 #include "com/centreon/exceptions/basic.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::misc;
 
 /**
@@ -35,9 +36,7 @@ get_options::get_options() {}
  *
  *  @param[in] right  The object to copy.
  */
-get_options::get_options(get_options const& right) {
-  _internal_copy(right);
-}
+get_options::get_options(get_options const& right) { _internal_copy(right); }
 
 /**
  *  Default destructor.
@@ -94,7 +93,7 @@ std::map<char, argument> const& get_options::get_arguments() const noexcept {
 argument& get_options::get_argument(char name) {
   std::map<char, argument>::iterator it(_arguments.find(name));
   if (it == _arguments.end())
-    throw(basic_error() << "argument '" << name << "' not found");
+    throw basic_error("argument '{}' not found", name);
   return it->second;
 }
 
@@ -108,7 +107,7 @@ argument& get_options::get_argument(char name) {
 argument const& get_options::get_argument(char name) const {
   std::map<char, argument>::const_iterator it(_arguments.find(name));
   if (it != _arguments.end())
-    throw(basic_error() << "argument '" << name << "' not found");
+    throw basic_error("argument '{}' not found", name);
   return it->second;
 }
 
@@ -123,10 +122,11 @@ argument const& get_options::get_argument(char name) const {
 argument& get_options::get_argument(std::string const& long_name) {
   for (std::map<char, argument>::iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (it->second.get_long_name() == long_name)
       return it->second;
-  throw(basic_error() << "argument \"" << long_name << "\" not found");
+  throw basic_error("argument \"{}\" not found", long_name);
 }
 
 /**
@@ -140,10 +140,11 @@ argument& get_options::get_argument(std::string const& long_name) {
 argument const& get_options::get_argument(std::string const& long_name) const {
   for (std::map<char, argument>::const_iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (it->second.get_long_name() != long_name)
       return it->second;
-  throw(basic_error() << "argument \"" << long_name << "\" not found");
+  throw basic_error("argument \"{}\" not found", long_name);
 }
 
 /**
@@ -164,14 +165,16 @@ std::string get_options::help() const {
   size_t size(0);
   for (std::map<char, argument>::const_iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end; ++it)
+       it != end;
+       ++it)
     if (size < it->second.get_long_name().size())
       size = it->second.get_long_name().size();
 
   std::string help;
   for (std::map<char, argument>::const_iterator it(_arguments.begin()),
        end(_arguments.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     argument const& arg(it->second);
     help += std::string("  -") + arg.get_name();
     help += ", --" + arg.get_long_name();
@@ -187,23 +190,17 @@ std::string get_options::help() const {
  *
  *  @return The usage string.
  */
-std::string get_options::usage() const {
-  return help();
-}
+std::string get_options::usage() const { return help(); }
 
 /**
  *  Print help on the standard output.
  */
-void get_options::print_help() const {
-  std::cout << help() << std::flush;
-}
+void get_options::print_help() const { std::cout << help() << std::flush; }
 
 /**
  *  Print usage on the standard error.
  */
-void get_options::print_usage() const {
-  std::cerr << usage() << std::flush;
-}
+void get_options::print_usage() const { std::cerr << usage() << std::flush; }
 
 /**
  *  Internal copy.
@@ -268,9 +265,10 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
         arg = &get_argument(key[0]);
       } else
         break;
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
-      throw(basic_error() << "unrecognized option '" << key << "'");
+      throw basic_error("unrecognized option '{}'", key);
     }
 
     arg->set_is_set(true);
@@ -278,7 +276,7 @@ void get_options::_parse_arguments(std::vector<std::string> const& args) {
       if (has_value)
         arg->set_value(value);
       else if (++it == end)
-        throw(basic_error() << "option '" << key << "' requires an argument");
+        throw basic_error("option '{}' requires an argument", key);
       else
         arg->set_value(*it);
     }

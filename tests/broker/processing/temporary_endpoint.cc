@@ -18,7 +18,6 @@
  */
 
 #include "temporary_endpoint.hh"
-#include "com/centreon/broker/exceptions/msg.hh"
 #include "temporary_stream.hh"
 
 using namespace com::centreon::broker;
@@ -48,9 +47,7 @@ temporary_endpoint::temporary_endpoint(temporary_endpoint const& se)
 /**
  *  Destructor.
  */
-temporary_endpoint::~temporary_endpoint() {
-  this->close();
-}
+temporary_endpoint::~temporary_endpoint() { this->close(); }
 
 /**
  *  Assignment operator.

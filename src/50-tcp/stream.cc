@@ -27,13 +27,14 @@
 #include <sstream>
 #include <system_error>
 
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 
@@ -66,8 +67,8 @@ stream::stream(std::shared_ptr<asio::ip::tcp::socket> sock,
     struct timeval t;
     t.tv_sec = _write_timeout;
     t.tv_usec = 0;
-    ::setsockopt(_socket->native_handle(), SOL_SOCKET, SO_SNDTIMEO, &t,
-                 sizeof(t));
+    ::setsockopt(
+        _socket->native_handle(), SOL_SOCKET, SO_SNDTIMEO, &t, sizeof(t));
   }
 }
 
@@ -120,7 +121,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   if (socket_closed) {
     _socket_gone = true;
     log_v2::tcp()->error("TCP peer '{}'connection reset ", _name);
-    throw exceptions::msg() << "TCP peer '" << _name << "'connection reset ";
+    throw msg_fmt("TCP peer '{}' connection reset", _name);
   }
 
   if (timeout) {
@@ -138,9 +139,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @param[in,out] parent  Parent socket.
  */
-void stream::set_parent(acceptor* parent) {
-  _parent = parent;
-}
+void stream::set_parent(acceptor* parent) { _parent = parent; }
 
 /**
  *  Set read timeout.
@@ -180,8 +179,8 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
   if (d->type() == io::raw::static_type()) {
     std::shared_ptr<io::raw> r(std::static_pointer_cast<io::raw>(d));
-    log_v2::tcp()->debug("TCP: write request of {0} bytes to peer '{1}'",
-                         r->size(), _name);
+    log_v2::tcp()->debug(
+        "TCP: write request of {0} bytes to peer '{1}'", r->size(), _name);
     logging::debug(logging::low) << "TCP: write request of " << r->size()
                                  << " bytes to peer '" << _name << "'";
 
@@ -191,10 +190,10 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
     if (err) {
       _socket_gone = true;
-      log_v2::tcp()->error("TCP: error while writing to peer '{0}' : {1}",
-                           _name, err.message());
-      throw exceptions::msg() << "TCP: error while writing to peer '" << _name
-                              << "': " << err.message();
+      log_v2::tcp()->error(
+          "TCP: error while writing to peer '{0}' : {1}", _name, err.message());
+      throw msg_fmt(
+          "TCP: error while writing to peer '{}': {}", _name, err.message());
     }
   }
 

@@ -20,9 +20,10 @@
 #include <cassert>
 #include <cerrno>
 #include <cstring>
-#include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::file;
 
 /**************************************
@@ -45,9 +46,7 @@ cfile::cfile(std::string const& path, fs_file::open_mode mode)
 /**
  *  Destructor.
  */
-cfile::~cfile() {
-  close();
-}
+cfile::~cfile() { close(); }
 
 /**
  *  Open the file following mode given in constructor.
@@ -73,8 +72,7 @@ void cfile::_open() {
   _stream = fopen(_path.c_str(), cfile_mode);
   if (!_stream) {
     char const* msg(strerror(errno));
-    throw exceptions::msg() << "cannot open '" << _path << "' (mode "
-                            << cfile_mode << "): " << msg;
+    throw msg_fmt("cannot open '{}' (mode {}): {}", _path, cfile_mode, msg);
   }
 }
 
@@ -101,12 +99,12 @@ long cfile::read(void* buffer, long max_size) {
   size_t retval(fread(buffer, 1, max_size, _stream));
   if (retval == 0) {
     if (feof(_stream))
-      throw(exceptions::shutdown() << "end of file reached");
+      throw shutdown("end of file reached");
     else if ((EAGAIN == errno) || (EINTR == errno))
       retval = 0;
     else {
       char const* msg(strerror(errno));
-      throw(exceptions::msg() << "error while reading file: " << msg);
+      throw msg_fmt("error while reading file: {}", msg);
     }
   }
   return retval;
@@ -140,8 +138,10 @@ void cfile::seek(long offset, fs_file::seek_whence whence) {
     ;
   if (retval) {
     char const* msg(strerror(errno));
-    throw(exceptions::msg() << "cannot seek in file to position ("
-                            << seek_whence << ", " << offset << "): " << msg);
+    throw msg_fmt("cannot seek in file to position ({}, {}): {}",
+                  seek_whence,
+                  offset,
+                  msg);
   }
 
   return;
@@ -157,7 +157,7 @@ long cfile::tell() {
   long retval(ftell(_stream));
   if (-1 == retval) {
     char const* msg(strerror(errno));
-    throw(exceptions::msg() << "cannot tell position in file: " << msg);
+    throw msg_fmt("cannot tell position in file: {}", msg);
   }
   return retval;
 }
@@ -175,8 +175,7 @@ long cfile::write(void const* buffer, long size) {
   size_t retval(fwrite(buffer, 1, size, _stream));
   if (ferror(_stream)) {
     char const* msg(strerror(errno));
-    throw exceptions::msg()
-          << "cannot write " << size << " bytes to file: " << msg;
+    throw msg_fmt("cannot write {} bytes to file: {}", size, msg);
   }
   return retval;
 }
@@ -184,6 +183,4 @@ long cfile::write(void const* buffer, long size) {
 /**
  *  Flush the opened stream.
  */
-void cfile::flush() {
-  fflush(_stream);
-}
+void cfile::flush() { fflush(_stream); }

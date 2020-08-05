@@ -47,6 +47,36 @@ comment::comment()
       service_id(0),
       source(0) {}
 
+comment::comment(short comment_type,
+                 std::string const& author,
+                 std::string const& data,
+                 uint32_t poller_id,
+                 uint32_t host_id,
+                 uint32_t service_id,
+                 timestamp entry_time,
+                 short entry_type,
+                 timestamp expire_time,
+                 bool expires,
+                 uint32_t internal_id,
+                 bool persistent,
+                 short source,
+                 timestamp deletion_time)
+    : io::data(comment::static_type()),
+      comment_type(comment_type),
+      author(author),
+      data(data),
+      poller_id(poller_id),
+      host_id(host_id),
+      service_id(service_id),
+      entry_time(entry_time),
+      entry_type(entry_type),
+      expire_time(expire_time),
+      expires(expires),
+      internal_id(internal_id),
+      persistent(persistent),
+      source(source),
+      deletion_time(deletion_time) {}
+
 /**
  *  @brief Copy constructor.
  *
@@ -54,74 +84,27 @@ comment::comment()
  *
  *  @param[in] other  Object to copy.
  */
-comment::comment(comment const& other) : io::data(other) {
-  _internal_copy(other);
-}
+comment::comment(comment const& other)
+    : io::data(other),
+      author(other.author),
+      comment_type(other.comment_type),
+      data(other.data),
+      deletion_time(other.deletion_time),
+      entry_time(other.entry_time),
+      entry_type(other.entry_type),
+      expire_time(other.expire_time),
+      expires(other.expires),
+      host_id(other.host_id),
+      internal_id(other.internal_id),
+      persistent(other.persistent),
+      poller_id(other.poller_id),
+      service_id(other.service_id),
+      source(other.source) {}
 
 /**
  *  Destructor.
  */
 comment::~comment() {}
-
-/**
- *  @brief Assignment operator.
- *
- *  Copy data from the given comment to the current instance.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-comment& comment::operator=(comment const& other) {
-  if (this != &other) {
-    io::data::operator=(other);
-    _internal_copy(other);
-  }
-  return *this;
-}
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
-
-/**
- *  @brief Copy internal data of the given object to the current
- *         instance.
- *
- *  This internal method is used to copy data defined inside the comment
- *  class from an object to the current instance. This means that no
- *  superclass data are copied. This method is used in comment copy
- *  constructor and in the assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @see comment(comment const&)
- *  @see operator=(comment const&)
- */
-void comment::_internal_copy(comment const& other) {
-  author = other.author;
-  comment_type = other.comment_type;
-  data = other.data;
-  deletion_time = other.deletion_time;
-  entry_time = other.entry_time;
-  entry_type = other.entry_type;
-  expire_time = other.expire_time;
-  expires = other.expires;
-  host_id = other.host_id;
-  internal_id = other.internal_id;
-  persistent = other.persistent;
-  poller_id = other.poller_id;
-  service_id = other.service_id;
-  source = other.source;
-}
-
-/**************************************
- *                                     *
- *           Static Objects            *
- *                                     *
- **************************************/
 
 // Mapping.
 mapping::entry const comment::entries[] = {

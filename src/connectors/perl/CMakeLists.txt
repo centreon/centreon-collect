@@ -43,5 +43,5 @@ add_executable(centreon_connector_perl
   ${CMAKE_BINARY_DIR}/xs_init.cc
   )
 
-target_link_libraries(centreon_connector_perl ${PERL_LIBRARIES} centreon-clib CONAN_PKG::spdlog pthread)
+target_link_libraries(centreon_connector_perl ${PERL_LIBRARIES} centreon_clib CONAN_PKG::spdlog pthread)
 install(TARGETS centreon_connector_perl COMPONENT connector-perl DESTINATION ${CMAKE_INSTALL_LIBDIR}/centreon-connector)

@@ -24,6 +24,7 @@
 #include "com/centreon/connector/perl/checks/result.hh"
 #include "com/centreon/exceptions/basic.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
@@ -42,8 +43,8 @@ reporter::reporter() : _can_report(true), _reported(0) {}
  *  Destructor.
  */
 reporter::~reporter() noexcept {
-  log::core()->info(
-      "connector reporter {} check results to monitoring engine", _reported);
+  log::core()->info("connector reporter {} check results to monitoring engine",
+                    _reported);
 }
 
 /**
@@ -51,9 +52,7 @@ reporter::~reporter() noexcept {
  *
  *  @return true if reporter can report.
  */
-bool reporter::can_report() const noexcept {
-  return _can_report;
-}
+bool reporter::can_report() const noexcept { return _can_report; }
 
 /**
  *  Error event on the handle.
@@ -62,8 +61,8 @@ bool reporter::can_report() const noexcept {
  */
 void reporter::error([[maybe_unused]] handle& h) {
   _can_report = false;
-  throw basic_error() << "error detected on the handle used"
-                         " to report to the monitoring engine";
+  throw basic_error_1(
+      "error detected on the handle used to report to the monitoring engine");
 }
 
 /**
@@ -74,8 +73,8 @@ void reporter::error([[maybe_unused]] handle& h) {
 void reporter::send_result(checks::result const& r) {
   // Update statistics.
   ++_reported;
-  log::core()->debug("reporting check result #{0} (check {1})", _reported,
-                        r.get_command_id());
+  log::core()->debug(
+      "reporting check result #{0} (check {1})", _reported, r.get_command_id());
 
   // Build packet.
   std::ostringstream oss;
@@ -117,7 +116,8 @@ void reporter::send_result(checks::result const& r) {
  */
 void reporter::send_version(unsigned int major, unsigned int minor) {
   // Build packet.
-  log::core()->debug("sending protocol version {0}.{1} to monitoring engine", major, minor);
+  log::core()->debug(
+      "sending protocol version {0}.{1} to monitoring engine", major, minor);
   std::ostringstream oss;
   oss << "1";
   oss.put('\0');

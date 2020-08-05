@@ -19,8 +19,9 @@
 
 #include "com/centreon/broker/influxdb/factory.hh"
 #include <gtest/gtest.h>
-#include "com/centreon/broker/exceptions/msg.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 TEST(InfluxDBFactory, HasEndpoint) {
@@ -41,25 +42,25 @@ TEST(InfluxDBFactory, MissingParams) {
   std::shared_ptr<persistent_cache> cache;
   bool is_acceptor;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["db_user"] = "admin";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["db_password"] = "pass";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["db_host"] = "host";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["db_name"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["db_port"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["db_port"] = "4242";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["queries_per_transaction"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["queries_per_transaction"] = "100";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
   cfg.params["status_timeseries"] = "host_status";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 }
 
 TEST(InfluxDBFactory, StatusException) {
@@ -84,89 +85,61 @@ TEST(InfluxDBFactory, StatusException) {
   std::unique_ptr<io::endpoint> ep;
   ASSERT_NO_THROW(ep.reset(fact.new_endpoint(cfg, is_acceptor, cache)));
 
-  json11::Json js1 {
-      json11::Json::object{
-          {"name", json11::Json{nullptr}},
-          {"value", json11::Json{nullptr}},
-          {"is_tag", json11::Json{nullptr}},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js1{json11::Json::object{{"name", json11::Json{nullptr}},
+                                        {"value", json11::Json{nullptr}},
+                                        {"is_tag", json11::Json{nullptr}},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["status_column"] = js1;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js2 {
-      json11::Json::object{
-          {"name", "host"},
-          {"value", json11::Json{nullptr}},
-          {"is_tag", json11::Json{nullptr}},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js2{json11::Json::object{{"name", "host"},
+                                        {"value", json11::Json{nullptr}},
+                                        {"is_tag", json11::Json{nullptr}},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["status_column"] = js2;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js3 {
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", json11::Json{nullptr}},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js3{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", json11::Json{nullptr}},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["status_column"] = js3;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js4{
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js4{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["status_column"] = js4;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js5{
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", "bad"},
-      }
-  };
+  json11::Json js5{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", "bad"}, }};
   conf["status_column"] = js5;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js6{
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", "number"},
-      }
-  };
+  json11::Json js6{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", "number"}, }};
   conf["status_column"] = js6;
   cfg.cfg = json11::Json{conf};
   ASSERT_NO_THROW(delete fact.new_endpoint(cfg, is_acceptor, cache));
 
-  json11::Json js7{
-      json11::Json::object{
-          {"name", ""},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", "number"},
-      }
-  };
+  json11::Json js7{json11::Json::object{{"name", ""},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", "number"}, }};
   conf["status_column"] = js7;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
   json11::Json::array array;
   array.push_back(js6);
@@ -200,89 +173,61 @@ TEST(InfluxDBFactory, MetricException) {
   std::unique_ptr<io::endpoint> ep;
   ASSERT_NO_THROW(ep.reset(fact.new_endpoint(cfg, is_acceptor, cache)));
 
-  json11::Json js1 {
-      json11::Json::object{
-          {"name", json11::Json{nullptr}},
-          {"value", json11::Json{nullptr}},
-          {"is_tag", json11::Json{nullptr}},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js1{json11::Json::object{{"name", json11::Json{nullptr}},
+                                        {"value", json11::Json{nullptr}},
+                                        {"is_tag", json11::Json{nullptr}},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["metrics_column"] = js1;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js2 {
-      json11::Json::object{
-          {"name", "host"},
-          {"value", json11::Json{nullptr}},
-          {"is_tag", json11::Json{nullptr}},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js2{json11::Json::object{{"name", "host"},
+                                        {"value", json11::Json{nullptr}},
+                                        {"is_tag", json11::Json{nullptr}},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["metrics_column"] = js2;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js3 {
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", json11::Json{nullptr}},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js3{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", json11::Json{nullptr}},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["metrics_column"] = js3;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js4{
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", json11::Json{nullptr}},
-      }
-  };
+  json11::Json js4{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", json11::Json{nullptr}}, }};
   conf["metrics_column"] = js4;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js5{
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", "bad"},
-      }
-  };
+  json11::Json js5{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", "bad"}, }};
   conf["metrics_column"] = js5;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
-  json11::Json js6{
-      json11::Json::object{
-          {"name", "host"},
-          {"value", "val"},
-          {"is_tag", "true"},
-          {"type", "number"},
-      }
-  };
+  json11::Json js6{json11::Json::object{{"name", "host"},
+                                        {"value", "val"},
+                                        {"is_tag", "true"},
+                                        {"type", "number"}, }};
   conf["metrics_column"] = js6;
   cfg.cfg = json11::Json{conf};
   ASSERT_NO_THROW(delete fact.new_endpoint(cfg, is_acceptor, cache));
 
-  json11::Json js7{
-      json11::Json::object{
-          {"name", ""},
-          {"value", "val"},
-          {"is_tag", "false"},
-          {"type", "number"},
-      }
-  };
+  json11::Json js7{json11::Json::object{{"name", ""},
+                                        {"value", "val"},
+                                        {"is_tag", "false"},
+                                        {"type", "number"}, }};
   conf["metrics_column"] = js7;
   cfg.cfg = json11::Json{conf};
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), exceptions::msg);
+  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
 
   json11::Json::array array;
   array.push_back(js6);

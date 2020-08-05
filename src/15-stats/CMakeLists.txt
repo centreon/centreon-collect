@@ -35,4 +35,4 @@ add_library(15-stats
 set_target_properties(15-stats PROPERTIES COMPILE_FLAGS ${MYSQL_CFLAGS})
 target_link_libraries(15-stats CONAN_PKG::spdlog CONAN_PKG::asio)
 set_target_properties(15-stats PROPERTIES PREFIX "")
-install(TARGETS 15-stats DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)
+install(TARGETS 15-stats COMPONENT core DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/centreon/lib/centreon-broker)

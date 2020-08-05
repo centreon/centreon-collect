@@ -21,6 +21,7 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::misc;
 
 /**************************************
@@ -206,7 +207,7 @@ void command_line::parse(char const* cmdline, unsigned int size) {
   // Not-terminated quote.
   if (sep) {
     delete[] str;
-    throw(basic_error() << "missing separator '" << sep << "'");
+    throw basic_error("missing separator '{}'", sep);
   }
 
   // Terminate string if not already done so.

@@ -17,7 +17,9 @@
 */
 
 #include "com/centreon/broker/misc/tokenizer.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::misc;
 
 /**
@@ -30,16 +32,14 @@ tokenizer::tokenizer(std::string const& line, char separator /*= ';'*/)
     : _separator(separator), _pos(0), _index(nullptr) {
   _line = ::strdup(line.c_str());
   if (_line == nullptr)
-    throw(exceptions::msg() << "can't allocate line for tokenizer");
+    throw msg_fmt("can't allocate line for tokenizer");
   _index = _line;
 }
 
 /**
  *  Destructor.
  */
-tokenizer::~tokenizer() {
-  ::free(_line);
-}
+tokenizer::~tokenizer() { ::free(_line); }
 
 template <>
 /**
