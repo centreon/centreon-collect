@@ -37,7 +37,7 @@ service_group::service_group() : group(service_group::static_type()) {}
 service_group::service_group(uint32_t poller_id,
                              uint32_t id,
                              bool enabled,
-                             std::string name)
+                             std::string const& name)
     : group(service_group::static_type()) {}
 
 /**
@@ -65,10 +65,6 @@ service_group::~service_group() {}
  *
  *  @return This object.
  */
-/*service_group& service_group::operator=(service_group const& other) {
-  group::operator=(other);
-  return *this;
-}*/
 
 /**************************************
  *                                     *

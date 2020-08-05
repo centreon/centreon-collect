@@ -37,7 +37,7 @@ host_group::host_group() : group(host_group::static_type()) {}
 host_group::host_group(uint32_t poller_id,
                        uint32_t id,
                        bool enabled,
-                       std::string name)
+                       std::string const& name)
     : group(host_group::static_type()) {}
 
 /**
