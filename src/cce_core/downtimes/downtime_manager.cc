@@ -279,8 +279,8 @@ int downtime_manager::
   else
     range = {_scheduled_downtimes.begin(), _scheduled_downtimes.end()};
 
-  std::list<uint64_t> lst; 
-  for (auto it = range.first,  end = range.second; it != end; it++) {
+  std::list<uint64_t> lst;
+  for (auto it = range.first,  end = range.second; it != end; ++it) {
     if (!comment.empty() && it->second->get_comment() != comment)
       continue;
     if (downtime::host_downtime == it->second->get_type()) {
