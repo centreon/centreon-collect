@@ -89,6 +89,7 @@ add_executable(ccb_ut
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/host.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/host_check.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/host_dependency.cc
+  ${CMAKE_SOURCE_DIR}/tests/broker/neb/host_group.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/host_parent.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/host_status.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/instance.cc
@@ -97,6 +98,7 @@ add_executable(ccb_ut
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/module.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/randomize.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/service.cc
+  ${CMAKE_SOURCE_DIR}/tests/broker/neb/service_group.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/service_check.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/service_dependency.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/service_status.cc
