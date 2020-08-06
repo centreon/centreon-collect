@@ -64,10 +64,6 @@ host_group::~host_group() {}
  *
  *  @return This object.
  */
-/*host_group& host_group::operator=(host_group const& other) {
-  group::operator=(other);
-  return *this;
-}*/
 
 /**************************************
  *                                     *
