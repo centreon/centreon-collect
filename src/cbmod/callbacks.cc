@@ -930,13 +930,11 @@ int neb::callback_group(int callback_type, void* data) {
       engine::servicegroup const* service_group(
           static_cast<engine::servicegroup*>(group_data->object_ptr));
       if (!service_group->get_group_name().empty()) {
-        std::shared_ptr<neb::service_group> new_sg(new neb::service_group);
-        auto s_g = std::make_shared<neb::service_group>(
-            new_sg->name = service_group->get_group_name(),
+        std::shared_ptr<neb::service_group> new_sg = std::make_shared<neb::service_group>(
+            service_group->get_group_name(),
             config::applier::state::instance().poller_id(),
-            new_sg->id = service_group->get_id(),
-            new_sg->enabled =
-                (group_data->type != NEBTYPE_SERVICEGROUP_DELETE &&
+            service_group->get_id(),
+            (group_data->type != NEBTYPE_SERVICEGROUP_DELETE &&
                  !service_group->members.empty()));
 
         // Send service group event.

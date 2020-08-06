@@ -32,13 +32,13 @@ using namespace com::centreon::broker::neb;
  *
  *  Set all members to their default value (0, NULL or equivalent).
  */
-service_group::service_group() : group(service_group::static_type()) {}
+service_group::service_group() : group(service_group::static_type(), "", 0, 0, true) {}
 
-service_group::service_group(uint32_t poller_id,
+service_group::service_group(std::string const& name,
+                             uint32_t poller_id,
                              uint32_t id,
-                             bool enabled,
-                             std::string const& name)
-    : group(service_group::static_type()) {}
+                             bool enabled)
+    : group(service_group::static_type(), name, poller_id, id, enabled) {}
 
 /**
  *  @brief Copy constructor.

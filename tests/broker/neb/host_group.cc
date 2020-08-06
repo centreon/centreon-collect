@@ -23,13 +23,13 @@
 using namespace com::centreon::broker;
 
 TEST(HostGroup, Constructor) {
-  neb::host_group hg(1,
+  neb::host_group hg("test host_group",
+                     1,
                      2,
-                     true,
-                     "test host_group");
+                     true);
 
+  ASSERT_EQ(hg.name, "test host_group");
   ASSERT_EQ(hg.poller_id, 1);
   ASSERT_EQ(hg.id, 2);
   ASSERT_EQ(hg.enabled, true);
-  ASSERT_EQ(hg.name, "test host_group");
 }
