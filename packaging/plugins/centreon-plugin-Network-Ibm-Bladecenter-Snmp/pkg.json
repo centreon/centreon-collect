@@ -10,7 +10,7 @@
 	"snmp_standard/mode/interfaces.pm",
 	"snmp_standard/mode/listinterfaces.pm",
 	"snmp_standard/mode/ntp.pm",
-	"snmp_standard/mode/uptime.pm"
-
+	"snmp_standard/mode/uptime.pm",
+	"snmp_standard/mode/storage.pm"
     ]
 }
