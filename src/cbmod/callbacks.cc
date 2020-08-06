@@ -989,8 +989,8 @@ int neb::callback_group_member(int callback_type, void* data) {
         uint32_t host_id = engine::get_host_id(hst->get_name());
         std::shared_ptr<neb::host_group_member> hgm =
             std::make_shared<neb::host_group_member>(
-                hg->get_id(),
                 hg->get_group_name(),
+                hg->get_id(),
                 config::applier::state::instance().poller_id(),
                 host_id,
                 member_data->type != NEBTYPE_HOSTGROUPMEMBER_DELETE);
@@ -1016,8 +1016,8 @@ int neb::callback_group_member(int callback_type, void* data) {
                                             svc->get_description());
         std::shared_ptr<neb::service_group_member> sgm =
             std::make_shared<neb::service_group_member>(
-                sg->get_id(),
                 sg->get_group_name(),
+                sg->get_id(),
                 config::applier::state::instance().poller_id(),
                 p.first,
                 p.second,
