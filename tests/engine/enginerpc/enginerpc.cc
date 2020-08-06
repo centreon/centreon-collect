@@ -782,7 +782,6 @@ TEST_F(EngineRpc, AcknowledgementHostProblem) {
 
   ASSERT_EQ(_host->get_problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-
   auto output =
       execute("AcknowledgementHostProblem test_host admin test 1 0 0");
   {
@@ -805,7 +804,6 @@ TEST_F(EngineRpc, AcknowledgementServiceProblem) {
 
   ASSERT_EQ(_svc->get_problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-
   auto output = execute(
       "AcknowledgementServiceProblem test_host test_svc admin test 1 0 0");
   ;
