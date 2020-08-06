@@ -112,7 +112,8 @@ service Engine {
       returns (CommandSuccess) {}
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar) 
       returns (CommandSuccess) {}
-
+  rpc ShutdownProgram(google.protobuf.Empty) 
+      returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
