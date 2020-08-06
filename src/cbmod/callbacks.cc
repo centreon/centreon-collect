@@ -908,12 +908,11 @@ int neb::callback_group(int callback_type, void* data) {
       engine::hostgroup const* host_group(
           static_cast<engine::hostgroup*>(group_data->object_ptr));
       if (!host_group->get_group_name().empty()) {
-        std::shared_ptr<neb::host_group> new_hg(new neb::host_group);
-        new_hg->poller_id = config::applier::state::instance().poller_id();
-        new_hg->id = host_group->get_id();
-        new_hg->enabled = (group_data->type != NEBTYPE_HOSTGROUP_DELETE &&
-                           !host_group->members.empty());
-        new_hg->name = host_group->get_group_name();
+        std::shared_ptr<neb::host_group> new_hg = std::make_shared<neb::host_group>(
+            host_group->get_group_name(),
+            config::applier::state::instance().poller_id(),
+            host_group->get_id(),
+            (group_data->type != NEBTYPE_HOSTGROUP_DELETE && !host_group->members.empty()));
 
         // Send host group event.
         if (new_hg->id) {
@@ -931,12 +930,12 @@ int neb::callback_group(int callback_type, void* data) {
       engine::servicegroup const* service_group(
           static_cast<engine::servicegroup*>(group_data->object_ptr));
       if (!service_group->get_group_name().empty()) {
-        std::shared_ptr<neb::service_group> new_sg(new neb::service_group);
-        new_sg->poller_id = config::applier::state::instance().poller_id();
-        new_sg->id = service_group->get_id();
-        new_sg->enabled = (group_data->type != NEBTYPE_SERVICEGROUP_DELETE &&
-                           !service_group->members.empty());
-        new_sg->name = service_group->get_group_name();
+        std::shared_ptr<neb::service_group> new_sg = std::make_shared<neb::service_group>(
+            service_group->get_group_name(),
+            config::applier::state::instance().poller_id(),
+            service_group->get_id(),
+            (group_data->type != NEBTYPE_SERVICEGROUP_DELETE &&
+                 !service_group->members.empty()));
 
         // Send service group event.
         if (new_sg->id) {

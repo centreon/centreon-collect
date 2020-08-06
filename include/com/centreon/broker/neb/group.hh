@@ -40,15 +40,19 @@ namespace neb {
 class group : public io::data {
  public:
   group() = delete;
-  group(uint32_t type);
+  group(uint32_t type,
+        std::string const& name,
+        uint32_t poller_id,
+        uint32_t id,
+        bool enabled);
   group(group const& other);
   virtual ~group();
   group& operator=(group const& other);
-
-  bool enabled;
-  uint32_t id;
+  
   std::string name;
   uint32_t poller_id;
+  uint32_t id;
+  bool enabled;
 
  private:
   void _internal_copy(group const& other);

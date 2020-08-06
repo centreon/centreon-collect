@@ -32,7 +32,14 @@ using namespace com::centreon::broker::neb;
  *
  *  Set all members to their default value (0, NULL or equivalent).
  */
-host_group::host_group() : group(host_group::static_type()) {}
+host_group::host_group() : group(host_group::static_type(), "", 0, 0, true) {}
+
+host_group::host_group(std::string const& name,
+                       uint32_t poller_id,
+                       uint32_t id,
+                       bool enabled)
+    : group(host_group::static_type(), name, poller_id, id, enabled)
+     {}
 
 /**
  *  @brief Copy constructor.
@@ -57,10 +64,6 @@ host_group::~host_group() {}
  *
  *  @return This object.
  */
-host_group& host_group::operator=(host_group const& other) {
-  group::operator=(other);
-  return *this;
-}
 
 /**************************************
  *                                     *
@@ -81,8 +84,6 @@ mapping::entry const host_group::entries[] = {
     mapping::entry()};
 
 // Operations.
-static io::data* new_host_group() {
-  return new host_group;
-}
+static io::data* new_host_group() { return new host_group; }
 io::event_info::event_operations const host_group::operations = {
     &new_host_group};
