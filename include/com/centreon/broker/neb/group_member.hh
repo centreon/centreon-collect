@@ -38,16 +38,21 @@ namespace neb {
 class group_member : public io::data {
  public:
   group_member() = delete;
-  group_member(uint32_t type);
+  group_member(uint32_t type,
+               std::string const& group_name,
+               uint32_t group_id,
+               uint32_t poller_id,
+               uint32_t host_id,
+               bool enabled);
   group_member(group_member const& other);
   virtual ~group_member();
   group_member& operator=(group_member const& other);
 
-  bool enabled;
-  uint32_t group_id;
   std::string group_name;
-  uint32_t host_id;
+  uint32_t group_id;
   uint32_t poller_id;
+  uint32_t host_id;
+  bool enabled;
 
  private:
   void _internal_copy(group_member const& other);

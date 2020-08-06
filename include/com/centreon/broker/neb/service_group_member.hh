@@ -43,6 +43,12 @@ namespace neb {
 class service_group_member : public group_member {
  public:
   service_group_member();
+  service_group_member(std::string const& group_name,
+                       uint32_t group_id,
+                       uint32_t poller_id,
+                       uint32_t host_id,
+                       bool enabled,
+                       uint32_t service_id);
   service_group_member(service_group_member const& other);
   virtual ~service_group_member();
   service_group_member& operator=(service_group_member const& other);

@@ -986,27 +986,15 @@ int neb::callback_group_member(int callback_type, void* data) {
           static_cast<engine::hostgroup*>(member_data->group_ptr));
       if (!hst->get_name().empty() && !hg->get_group_name().empty()) {
         // Output variable.
-        std::shared_ptr<neb::host_group_member> hgm(new neb::host_group_member);
-        hgm->group_id = hg->get_id();
-        hgm->group_name = hg->get_group_name();
-        hgm->poller_id = config::applier::state::instance().poller_id();
         uint32_t host_id = engine::get_host_id(hst->get_name());
+        std::shared_ptr<neb::host_group_member> hgm =
+            std::make_shared<neb::host_group_member>(
+                hg->get_group_name(),
+                hg->get_id(),
+                config::applier::state::instance().poller_id(),
+                host_id,
+                member_data->type != NEBTYPE_HOSTGROUPMEMBER_DELETE);
         if (host_id != 0 && hgm->group_id != 0) {
-          hgm->host_id = host_id;
-          if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
-            logging::info(logging::low) << "callbacks: host " << hgm->host_id
-                                        << " is not a member of group "
-                                        << hgm->group_id << " on instance "
-                                        << hgm->poller_id << " anymore";
-            hgm->enabled = false;
-          } else {
-            logging::info(logging::low) << "callbacks: host " << hgm->host_id
-                                        << " is a member of group "
-                                        << hgm->group_id << " on instance "
-                                        << hgm->poller_id;
-            hgm->enabled = true;
-          }
-
           // Send host group member event.
           if (hgm->host_id && hgm->group_id)
             neb::gl_publisher.write(hgm);
@@ -1023,35 +1011,19 @@ int neb::callback_group_member(int callback_type, void* data) {
       if (!svc->get_description().empty() && !sg->get_group_name().empty() &&
           !svc->get_hostname().empty()) {
         // Output variable.
-        std::shared_ptr<neb::service_group_member> sgm(
-            new neb::service_group_member);
-        sgm->group_id = sg->get_id();
-        sgm->group_name = sg->get_group_name();
-        sgm->poller_id = config::applier::state::instance().poller_id();
         std::pair<uint32_t, uint32_t> p;
         p = engine::get_host_and_service_id(svc->get_hostname(),
                                             svc->get_description());
-        sgm->host_id = p.first;
-        sgm->service_id = p.second;
-        if (sgm->host_id && sgm->service_id && sgm->group_id) {
-          if (member_data->type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
-            logging::info(logging::low) << "callbacks: service ("
-                                        << sgm->host_id << ", "
-                                        << sgm->service_id
-                                        << ") is not a member of group "
-                                        << sgm->group_id << " on instance "
-                                        << sgm->poller_id << " anymore";
-            sgm->enabled = false;
-          } else {
-            logging::info(logging::low) << "callbacks: service ("
-                                        << sgm->host_id << ", "
-                                        << sgm->service_id
-                                        << ") is a member of group "
-                                        << sgm->group_id << " on instance "
-                                        << sgm->poller_id;
-            sgm->enabled = true;
-          }
+        std::shared_ptr<neb::service_group_member> sgm =
+            std::make_shared<neb::service_group_member>(
+                sg->get_group_name(),
+                sg->get_id(),
+                config::applier::state::instance().poller_id(),
+                p.first,   // host_id parameter
+                member_data->type != NEBTYPE_SERVICEGROUPMEMBER_DELETE,
+                p.second); // service_id parameter
 
+        if (sgm->host_id && sgm->service_id && sgm->group_id) {
           // Send service group member event.
           if (sgm->host_id && sgm->service_id && sgm->group_id)
             neb::gl_publisher.write(sgm);
