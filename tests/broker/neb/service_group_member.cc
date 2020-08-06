@@ -27,12 +27,13 @@ TEST(ServiceGroupMember, Constructor) {
                     10,
                     5,
                     2,
-                    20,
-                    true);
+                    true,
+                    20);
   
   ASSERT_EQ(sgm.group_name, "service_group_member");
   ASSERT_EQ(sgm.group_id, 10);
   ASSERT_EQ(sgm.poller_id, 5);
   ASSERT_EQ(sgm.host_id, 2);
   ASSERT_EQ(sgm.enabled, true);
+  ASSERT_EQ(sgm.service_id, 20);
 }

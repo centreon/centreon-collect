@@ -1019,9 +1019,9 @@ int neb::callback_group_member(int callback_type, void* data) {
                 sg->get_group_name(),
                 sg->get_id(),
                 config::applier::state::instance().poller_id(),
-                p.first,
-                p.second,
-                member_data->type != NEBTYPE_SERVICEGROUPMEMBER_DELETE);
+                p.first,   // host_id parameter
+                member_data->type != NEBTYPE_SERVICEGROUPMEMBER_DELETE,
+                p.second); // service_id parameter
 
         if (sgm->host_id && sgm->service_id && sgm->group_id) {
           // Send service group member event.

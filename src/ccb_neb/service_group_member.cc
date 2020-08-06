@@ -31,15 +31,22 @@ using namespace com::centreon::broker::neb;
  *  Default constructor.
  */
 service_group_member::service_group_member()
-    : group_member(service_group_member::static_type()), service_id(0) {}
+    : group_member(service_group_member::static_type(), "", 0, 0, 0, true), service_id(0) {}
 
 service_group_member::service_group_member(std::string const& group_name,
                                            uint32_t group_id,
                                            uint32_t poller_id,
                                            uint32_t host_id,
-                                           uint32_t service_id,
-                                           bool enabled)
-    : group_member(service_group_member::static_type()) {}
+                                           bool enabled,
+                                           uint32_t service_id)
+    : group_member(
+      service_group_member::static_type(),
+      group_name,
+      group_id,
+      poller_id,
+      host_id,
+      enabled),
+      service_id(service_id) {}
 /**
  *  Copy constructor.
  *
