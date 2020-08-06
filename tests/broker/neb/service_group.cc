@@ -23,13 +23,14 @@
 using namespace com::centreon::broker;
 
 TEST(ServiceGroup, Constructor) {
-  neb::service_group sg(3,
+  neb::service_group sg("test service_group",
+                     3,
                      5,
-                     true,
-                     "test service_group");
+                     true);
 
+  ASSERT_EQ(sg.name, "test service_group");
   ASSERT_EQ(sg.poller_id, 3);
   ASSERT_EQ(sg.id, 5);
   ASSERT_EQ(sg.enabled, true);
-  ASSERT_EQ(sg.name, "test service_group");
+  
 }

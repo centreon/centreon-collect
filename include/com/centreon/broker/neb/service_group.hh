@@ -39,10 +39,10 @@ namespace neb {
 class service_group : public group {
  public:
   service_group();
-  service_group(uint32_t poller_id,
+  service_group(std::string const& name,
+                uint32_t poller_id,
                 uint32_t id,
-                bool enabled,
-                std::string const& name);
+                bool enabled);
   service_group(service_group const& other);
   ~service_group();
   service_group& operator=(service_group const&) = delete;

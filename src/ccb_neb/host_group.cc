@@ -32,13 +32,14 @@ using namespace com::centreon::broker::neb;
  *
  *  Set all members to their default value (0, NULL or equivalent).
  */
-host_group::host_group() : group(host_group::static_type()) {}
+host_group::host_group() : group(host_group::static_type(), "", 0, 0, true) {}
 
-host_group::host_group(uint32_t poller_id,
+host_group::host_group(std::string const& name,
+                       uint32_t poller_id,
                        uint32_t id,
-                       bool enabled,
-                       std::string const& name)
-    : group(host_group::static_type()) {}
+                       bool enabled)
+    : group(host_group::static_type(), name, poller_id, id, enabled)
+     {}
 
 /**
  *  @brief Copy constructor.
