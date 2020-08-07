@@ -47,6 +47,30 @@ acknowledgement::acknowledgement()
       service_id(0),
       state(0) {}
 
+acknowledgement::acknowledgement(short acknowledgement_type,
+                                 std::string const& author,
+                                 std::string const& comment,
+                                 timestamp entry_time,
+                                 uint32_t host_id,
+                                 uint32_t service_id,
+                                 uint32_t poller_id,
+                                 bool is_sticky,
+                                 bool notify_contacts,
+                                 bool persistent_comment,
+                                 short state)
+    : io::data(acknowledgement::static_type()),
+      acknowledgement_type(acknowledgement_type),
+      author(author),
+      comment(comment),
+      entry_time(entry_time),
+      host_id(host_id),
+      service_id(service_id),
+      poller_id(poller_id),
+      is_sticky(is_sticky),
+      notify_contacts(notify_contacts),
+      persistent_comment(persistent_comment),
+      state(state) {}
+
 /**
  *  @brief acknowledgement copy constructor.
  *
@@ -150,7 +174,5 @@ mapping::entry const acknowledgement::entries[] = {
     mapping::entry()};
 
 // Operations.
-static io::data* new_ack() {
-  return new acknowledgement;
-}
+static io::data* new_ack() { return new acknowledgement; }
 io::event_info::event_operations const acknowledgement::operations = {&new_ack};

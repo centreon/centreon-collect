@@ -43,9 +43,21 @@ namespace neb {
 class acknowledgement : public io::data {
  public:
   acknowledgement();
+  acknowledgement(short acknowledgement_type,
+                  std::string const& author,
+                  std::string const& comment,
+                  timestamp entry_time,
+                  uint32_t host_id,
+                  uint32_t service_id,
+                  uint32_t poller_id,
+                  bool is_sticky,
+                  bool notify_contacts,
+                  bool persistent_comment,
+                  short state);
   acknowledgement(acknowledgement const& other);
   ~acknowledgement();
   acknowledgement& operator=(acknowledgement const& other);
+  // cannot delete operator, used in /src/cbmod/callbacks.cc:184:72
 
   /**
    *  Get the type of this event.

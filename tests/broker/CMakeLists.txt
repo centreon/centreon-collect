@@ -82,6 +82,7 @@ add_executable(ccb_ut
   ${CMAKE_SOURCE_DIR}/tests/broker/multiplexing/publisher/read.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/multiplexing/publisher/write.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/multiplexing/subscriber/ctor_default.cc
+  ${CMAKE_SOURCE_DIR}/tests/broker/neb/acknowledgement.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/custom_variable.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/custom_variable_status.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/neb/event_handler.cc
