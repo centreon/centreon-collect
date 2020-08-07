@@ -39,9 +39,13 @@ namespace neb {
 class service_group : public group {
  public:
   service_group();
+  service_group(std::string const& name,
+                uint32_t poller_id,
+                uint32_t id,
+                bool enabled);
   service_group(service_group const& other);
   ~service_group();
-  service_group& operator=(service_group const& other);
+  service_group& operator=(service_group const&) = delete;
   constexpr static uint32_t static_type() {
     return io::events::data_type<io::events::neb, neb::de_service_group>::value;
   }
