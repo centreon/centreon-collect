@@ -17,13 +17,13 @@
  *
  */
 
-#include "com/centreon/broker/neb/host_group_member.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 #include <gtest/gtest.h>
 
 using namespace com::centreon::broker;
 
 TEST(Acknowledgement, Constructor) {
-  neb::acknowledgement ack(1, // short acknowledgement_type
+  neb::acknowledgement ack(33, // short acknowledgement_type
                            "author",
                            "comment",
                            time(nullptr), // entry_time
@@ -35,7 +35,7 @@ TEST(Acknowledgement, Constructor) {
                            true, // persistent_comment
                            44); // state
                     
-  ASSERT_EQ(ack.acknowledgement_type, 1);
+  ASSERT_EQ(ack.acknowledgement_type, 33);
   ASSERT_EQ(ack.author, "author");
   ASSERT_EQ(ack.comment, "comment");
   ASSERT_EQ(ack.entry_time, time(nullptr));
