@@ -428,14 +428,14 @@ message ScheduleDowntimeIdentifier {
   string host_group_name = 2;
   string service_group_name = 3;
   string service_desc = 4;
-  uint32 start = 5;
-  uint32 end = 6;
-  bool fixed = 7;
-  uint32 triggered_by = 8;
-  uint32 duration = 9;
+  google.protobuf.UInt32Value start = 5;
+  google.protobuf.UInt32Value end = 6;
+  google.protobuf.BoolValue fixed = 7;
+  google.protobuf.UInt32Value triggered_by = 8;
+  google.protobuf.UInt32Value duration = 9;
   string author = 10;
   string comment_data  = 11;
-  uint32 entry_time = 12;
+  google.protobuf.UInt32Value entry_time = 12;
 }
 
 message HostCheckIdentifier {
