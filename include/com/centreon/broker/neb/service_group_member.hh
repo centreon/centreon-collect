@@ -47,8 +47,8 @@ class service_group_member : public group_member {
                        uint32_t group_id,
                        uint32_t poller_id,
                        uint32_t host_id,
-                       bool enabled,
-                       uint32_t service_id);
+                       uint32_t service_id,
+                       bool enabled);
   service_group_member(service_group_member const& other);
   virtual ~service_group_member();
   service_group_member& operator=(service_group_member const& other);
