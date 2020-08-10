@@ -56,8 +56,7 @@ class acknowledgement : public io::data {
                   short state);
   acknowledgement(acknowledgement const& other);
   ~acknowledgement();
-  acknowledgement& operator=(acknowledgement const& other);
-  // cannot delete operator, used in /src/cbmod/callbacks.cc:184:72
+  acknowledgement& operator=(acknowledgement const& other) = delete;
 
   /**
    *  Get the type of this event.

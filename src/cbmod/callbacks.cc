@@ -168,15 +168,12 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
 
     if (!ack_data->host_id)
       throw msg_fmt("unnamed host");
-    if (ack_data->service_id) {
-      if (!ack->host_id || !ack->service_id)
-        throw msg_fmt(
-            "acknowledgement on service with host_id or service_id 0");
-    } else {
-      if (ack->host_id == 0)
-        throw msg_fmt("acknowledgement on host with id 0");
-    }
-    gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = *ack;
+    if (ack_data->service_id && !ack->host_id)
+      throw msg_fmt(
+          "acknowledgement on service with host_id or service_id 0");
+    if (ack_data->host_id == 0)
+      throw msg_fmt("acknowledgement on host with id 0");
+    gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)];
 
     // Send event.
     gl_publisher.write(ack);

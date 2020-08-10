@@ -95,11 +95,6 @@ acknowledgement::~acknowledgement() {}
  *
  *  @return This object.
  */
-acknowledgement& acknowledgement::operator=(acknowledgement const& other) {
-  io::data::operator=(other);
-  _internal_copy(other);
-  return *this;
-}
 
 /**************************************
  *                                     *
