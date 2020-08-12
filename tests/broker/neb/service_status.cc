@@ -80,6 +80,107 @@ TEST_F(ServiceStatus, CopyCtor) {
 }
 
 /**
+ *  Check service_status' constructor with parameters.
+ */
+TEST_F(ServiceStatus, ParamCtor) {
+  neb::service_status ss("host_name", // host_name,
+                         true,        // acknowledged,
+                         2,           // acknowledgement_type,
+                         false,       // active_checks_enabled,
+                         "check_cmd", // check_command
+                         0.5,         // check_interval,
+                         "chk_priod", // check_period
+                         7,           // check_type,
+                         8,           // current_check_attempt,
+                         9,           // current_state,
+                         10,           // downtime_depth,
+                         "evnt_hdlr", // event_handler,
+                         "true",      // event_handler_enabled
+                         1.3,         // execution_time,
+                         true,        // flap_detection_enabled,
+                         false,       // has_been_checked,
+                         16,          // host_id,
+                         true,        // is_flapping,
+                         18,          // last_check
+                         19,          // last_hard_state
+                         20,          // last_hard_state_change
+                         21,          // last_notification
+                         22,          // last_state_change
+                         23,          // last_time_critical
+                         24,          // last_time_ok
+                         25,          // last_time_unknown
+                         26,          // last_time_warning
+                         27,          // last_update
+                         2.8,         // latency
+                         29,          // max_check_attempts
+                         30,          // next_check
+                         31,          // next_notification
+                         false,       // no_more_notifications
+                         33,          // notification_number
+                         true,        // obsess_over
+                         "output",    // output
+                         false,       // passive_checks_enabled
+                         3.7,         // percent_state_change
+                         "perf_data", // perf_data
+                         3.9,         // retry_interval
+                         "srvc_dscpt",// service_description
+                         true,        // should_be_scheduled
+                         42);         // state_type
+
+ASSERT_EQ(ss.host_name, "host_name");
+ASSERT_EQ(ss.acknowledged, true);
+ASSERT_EQ(ss.acknowledgement_type, 2);
+ASSERT_EQ(ss.active_checks_enabled, false);
+ASSERT_EQ(ss.check_command, "check_cmd");
+ASSERT_EQ(ss.check_interval, 0.5);
+ASSERT_EQ(ss.check_period, "chk_priod");
+ASSERT_EQ(ss.check_type, 7);
+ASSERT_EQ(ss.current_check_attempt, 8);
+ASSERT_EQ(ss.current_state, 9);
+ASSERT_EQ(ss.downtime_depth, 10);
+ASSERT_EQ(ss.event_handler, "evnt_hdlr");
+ASSERT_EQ(ss.event_handler_enabled, true);
+ASSERT_EQ(ss.execution_time, 1.3);
+ASSERT_EQ(ss.flap_detection_enabled, true);
+ASSERT_EQ(ss.has_been_checked, false);
+ASSERT_EQ(ss.host_id, 16);
+ASSERT_EQ(ss.is_flapping, true);
+ASSERT_EQ(ss.last_check, 18);
+ASSERT_EQ(ss.last_hard_state, 19);
+ASSERT_EQ(ss.last_hard_state_change, 20);
+ASSERT_EQ(ss.last_notification, 21);
+ASSERT_EQ(ss.last_state_change, 22);
+ASSERT_EQ(ss.last_time_critical, 23);
+ASSERT_EQ(ss.last_time_ok, 24);
+ASSERT_EQ(ss.last_time_unknown, 25);
+ASSERT_EQ(ss.last_time_warning, 26);
+ASSERT_EQ(ss.last_update, 27);
+ASSERT_EQ(ss.latency, 2.8);
+ASSERT_EQ(ss.max_check_attempts, 29);
+ASSERT_EQ(ss.next_check, 30);
+ASSERT_EQ(ss.next_notification, 31);
+ASSERT_EQ(ss.no_more_notifications, false);
+ASSERT_EQ(ss.notification_number, 33);
+ASSERT_EQ(ss.obsess_over, true);
+ASSERT_EQ(ss.output, "output");
+ASSERT_EQ(ss.passive_checks_enabled, false);
+ASSERT_EQ(ss.percent_state_change, 3.7);
+ASSERT_EQ(ss.perf_data, "perf_data");
+ASSERT_EQ(ss.retry_interval, 3.9);
+ASSERT_EQ(ss.service_description, "srvc_dscpt");
+ASSERT_EQ(ss.should_be_scheduled, true);
+ASSERT_EQ(ss.state_type, 42);
+/*
+ASSERT_EQ(ss., 43);
+ASSERT_EQ(ss., 44);
+ASSERT_EQ(ss., 45);
+ASSERT_EQ(ss., 46);
+ASSERT_EQ(ss., 47);*/
+
+}
+
+
+/**
  *  Check service_status' default constructor.
  */
 TEST_F(ServiceStatus, DefaultCtor) {

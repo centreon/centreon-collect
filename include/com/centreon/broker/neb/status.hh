@@ -40,6 +40,10 @@ class status : public io::data {
  public:
   status() = delete;
   status(uint32_t type);
+  status(uint32_t type,
+         bool event_handler_enabled,
+         bool flap_detection_enabled,
+         bool notifications_enabled);
   status(status const& s);
   virtual ~status();
   status& operator=(status const& s);
