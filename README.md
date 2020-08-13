@@ -86,7 +86,7 @@ If you are on a Centos 7 distribution, follow these steps :
     $> cd centreon-collect
     $> mkdir build
 
-You will need to use cmake3, if you already had cmake just do those commands to use cmake3 instead of cmake by renaming it like so :
+Because of several packages provided by conan, you need the version 3 of cmake executable to be named cmake. But on some distributions like centos7, the version 3 of cmake is called cmake3. For a such distribution, execute the following procedure :
 
     $> mv /usr/bin/cmake /usr/bin/cmake.old
     $> ln -s /usr/bin/cmake3 /usr/bin/cmake
