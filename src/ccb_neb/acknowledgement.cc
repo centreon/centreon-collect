@@ -47,6 +47,11 @@ acknowledgement::acknowledgement()
       service_id(0),
       state(0) {}
 
+acknowledgement& acknowledgement::operator=(acknowledgement const& other) {	
+  io::data::operator=(other);
+  return *this;	
+}
+
 acknowledgement::acknowledgement(short acknowledgement_type,
                                  std::string const& author,
                                  std::string const& comment,
@@ -79,9 +84,18 @@ acknowledgement::acknowledgement(short acknowledgement_type,
  *  @param[in] other  Object to copy.
  */
 acknowledgement::acknowledgement(acknowledgement const& other)
-    : io::data(other) {
-  _internal_copy(other);
-}
+    : io::data(other),
+      acknowledgement_type(other.acknowledgement_type),
+      author(other.author),
+      comment(other.comment),
+      entry_time(other.entry_time),
+      host_id(other.host_id),
+      service_id(other.service_id),
+      poller_id(other.poller_id),
+      is_sticky(other.is_sticky),
+      notify_contacts(other.notify_contacts),
+      persistent_comment(other.persistent_comment),
+      state(other.state) {}
 
 /**
  *  Destructor.
@@ -116,7 +130,7 @@ acknowledgement::~acknowledgement() {}
  *  @see acknowledgement(acknowledgement const&)
  *  @see operator=(acknowledgement const&)
  */
-void acknowledgement::_internal_copy(acknowledgement const& other) {
+/*void acknowledgement::_internal_copy(acknowledgement const& other) {
   acknowledgement_type = other.acknowledgement_type;
   author = other.author;
   comment = other.comment;
@@ -132,7 +146,7 @@ void acknowledgement::_internal_copy(acknowledgement const& other) {
   service_id = other.service_id;
   state = other.state;
   return;
-}
+}*/
 
 /**************************************
  *                                     *

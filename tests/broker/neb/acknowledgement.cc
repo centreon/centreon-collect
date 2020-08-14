@@ -23,10 +23,11 @@
 using namespace com::centreon::broker;
 
 TEST(Acknowledgement, Constructor) {
+  auto t = time(nullptr);
   neb::acknowledgement ack(33, // short acknowledgement_type
                            "author",
                            "comment",
-                           time(nullptr), // entry_time
+                           t, // entry_time
                            2, // host id
                            5, // service id
                            10, // poller id
@@ -38,7 +39,7 @@ TEST(Acknowledgement, Constructor) {
   ASSERT_EQ(ack.acknowledgement_type, 33);
   ASSERT_EQ(ack.author, "author");
   ASSERT_EQ(ack.comment, "comment");
-  ASSERT_EQ(ack.entry_time, time(nullptr));
+  ASSERT_EQ(ack.entry_time, t);
   ASSERT_EQ(ack.host_id, 2);
   ASSERT_EQ(ack.service_id, 5);
   ASSERT_EQ(ack.poller_id, 10);
@@ -46,4 +47,30 @@ TEST(Acknowledgement, Constructor) {
   ASSERT_EQ(ack.notify_contacts, true);
   ASSERT_EQ(ack.persistent_comment, true);
   ASSERT_EQ(ack.state, 44);
+}
+
+TEST(Acknowledgement, CopyCtor) {
+  neb::acknowledgement a(33, // short acknowledgement_type
+                         "author",
+                         "comment",
+                         time(nullptr), // entry_time
+                         2, // host id
+                         5, // service id
+                         10, // poller id
+                         false, // is_sticky
+                         true, // notify_contacts
+                         true, // persistent_comment
+                         44);
+  neb::acknowledgement b(a);
+  ASSERT_EQ(b.acknowledgement_type, 33);
+  ASSERT_EQ(b.author, "author");
+  ASSERT_EQ(b.comment, "comment");
+  ASSERT_EQ(b.entry_time, time(nullptr));
+  ASSERT_EQ(b.host_id, 2);
+  ASSERT_EQ(b.service_id, 5);
+  ASSERT_EQ(b.poller_id, 10);
+  ASSERT_EQ(b.is_sticky, false);
+  ASSERT_EQ(b.notify_contacts, true);
+  ASSERT_EQ(b.persistent_comment, true);
+  ASSERT_EQ(b.state, 44);
 }

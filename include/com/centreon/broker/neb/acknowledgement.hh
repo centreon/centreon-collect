@@ -56,7 +56,7 @@ class acknowledgement : public io::data {
                   short state);
   acknowledgement(acknowledgement const& other);
   ~acknowledgement();
-  acknowledgement& operator=(acknowledgement const& other) = delete;
+  acknowledgement& operator=(acknowledgement const&);
 
   /**
    *  Get the type of this event.
@@ -84,9 +84,9 @@ class acknowledgement : public io::data {
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
-
+/*
  private:
-  void _internal_copy(acknowledgement const& other);
+  void _internal_copy(acknowledgement const& other);*/
 };
 }  // namespace neb
 

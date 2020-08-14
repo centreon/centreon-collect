@@ -153,6 +153,7 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
   try {
     // In/Out variables.
     nebstruct_acknowledgement_data const* ack_data;
+    ack_data = static_cast<nebstruct_acknowledgement_data*>(data);
     std::shared_ptr<neb::acknowledgement> ack = std::make_shared<neb::acknowledgement>(
         ack_data->acknowledgement_type,
         ack_data->author_name ? ack_data->author_name : "",
@@ -173,7 +174,7 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
           "acknowledgement on service with host_id or service_id 0");
     if (ack_data->host_id == 0)
       throw msg_fmt("acknowledgement on host with id 0");
-    gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)];
+    gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = *ack;
 
     // Send event.
     gl_publisher.write(ack);
