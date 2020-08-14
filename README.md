@@ -72,22 +72,34 @@ refer to the [online documentation](https://documentation.centreon.com/docs/cent
 
 First of all, check if you have these packages installed (Note that packages names come from Centos 7 distribution, so if some packages names don't match on your distribution try to find their equivalent names) : 
 	
-    git, make, cmake, gcc-c++, python3, python3-pip3, lua-devel, rrdtool-devel, gnutls-devel.
+    git, make, cmake3, gcc-c++, python3, python3-pip3, lua-devel, rrdtool-devel, gnutls-devel, mariadb-devel, perl-ExtUtils-Embed.
 
 If they are not installed, please install them.
-
-If you are on a Centos 7 distribution, follow these steps :
-   
-    $> git clone https://github.com/centreon/centreon-collect
-    $> cd centreon-collect && ./cmake.sh
-    $> cd build
-    $> make & make install
-
-If you are on an other distribution, then follow the steps below.	 
 
 For the projet compilation you need to have conan installed. To install conan you need pip3 if you are using python3 (python package manager). You can install conan like that.
 
     $> pip3 install conan
+
+If you are on a Centos 7 distribution, follow these steps :
+   
+    $> git clone https://github.com/centreon/centreon-collect
+    $> cd centreon-collect
+    $> mkdir build
+
+Because of several packages provided by conan, you need the version 3 of cmake executable to be named cmake. But on some distributions like centos7, the version 3 of cmake is called cmake3. For a such distribution, execute the following procedure :
+
+    $> mv /usr/bin/cmake /usr/bin/cmake.old
+    $> ln -s /usr/bin/cmake3 /usr/bin/cmake
+
+Then continue the installation steps :
+
+    $> cd build
+    $> conan remote add centreon https://api.bintray.com/conan/centreon/centreon
+    $> conan install --remote centreon --build missing ..
+    $> cmake ..
+    $> make & make install
+
+If you are on an other distribution, then follow the steps below.	 
 
 All the dependencies pulled by conan are located in conanfile.txt. If you want to use a dependency from your package manager instead of conan, you need to remove it from conanfile.txt.
 Then you have to add a remote conan repository, for that enter the command:
