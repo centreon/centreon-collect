@@ -47,6 +47,7 @@ add_executable(ccb_ut
   ${CMAKE_SOURCE_DIR}/tests/broker/bbdo/output.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/bbdo/read.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/ceof/ceof_parser/parse.cc
+  ${CMAKE_SOURCE_DIR}/tests/broker/compression/opener.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/compression/stream/read.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/compression/stream/write.cc
   ${CMAKE_SOURCE_DIR}/tests/broker/compression/zlib/zlib.cc

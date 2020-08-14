@@ -92,9 +92,12 @@ io::endpoint* factory::new_endpoint(
     size = std::stoul(it->second);
 
   // Create compression object.
-  std::unique_ptr<compression::opener> openr(new compression::opener);
+  /*std::unique_ptr<compression::opener> openr(new compression::opener);
   openr->set_level(level);
   openr->set_size(size);
+  return openr.release();*/
+  
+  std::unique_ptr<compression::opener> openr(new compression::opener(level, size));
   return openr.release();
 }
 

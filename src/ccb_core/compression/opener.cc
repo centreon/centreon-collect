@@ -32,36 +32,17 @@ using namespace com::centreon::broker::compression;
 /**
  *  Default constructor.
  */
-opener::opener() : io::endpoint(false), _level(-1), _size(0) {}
+//opener::opener() : io::endpoint(false), _level(-1), _size(0) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] o Object to copy.
+ *  Constructor with parameters.
  */
-opener::opener(opener const& o)
-    : io::endpoint(o), _level(o._level), _size(o._size) {}
+opener::opener(int level, uint32_t size) 
+              : io::endpoint(false),
+              level(level),
+              size(size) {}
 
-/**
- *  Destructor.
- */
-opener::~opener() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] o Object to copy.
- *
- *  @return This object.
- */
-opener& opener::operator=(opener const& o) {
-  if (this != &o) {
-    io::endpoint::operator=(o);
-    _level = o._level;
-    _size = o._size;
-  }
-  return (*this);
-}
+opener::~opener() noexcept {}
 
 /**
  *  Open a compression stream.
@@ -73,27 +54,6 @@ std::shared_ptr<io::stream> opener::open() {
   if (_from)
     retval = _open(_from->open());
   return retval;
-}
-
-/**
- *  Set the compression level.
- *
- *  @param[in] level Compression level (between 1 and 9, default is -1).
- */
-void opener::set_level(int level) {
-  _level = level;
-  return;
-}
-
-/**
- *  Set the compression buffer size.
- *
- *  @param[in] size Compression buffer size (default is 0 which means no
- *                  buffering).
- */
-void opener::set_size(uint32_t size) {
-  _size = size;
-  return;
 }
 
 /**************************************
@@ -110,7 +70,7 @@ void opener::set_size(uint32_t size) {
 std::shared_ptr<io::stream> opener::_open(std::shared_ptr<io::stream> base) {
   std::shared_ptr<io::stream> retval;
   if (base) {
-    retval.reset(new stream(_level, _size));
+    retval.reset(new stream(level, size));
     retval->set_substream(base);
   }
   return retval;
