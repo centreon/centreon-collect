@@ -37,6 +37,15 @@ status::status(uint32_t type)
       flap_detection_enabled(false),
       notifications_enabled(false) {}
 
+status::status(uint32_t type,
+               bool event_handler_enabled,
+               bool flap_detection_enabled,
+               bool notifications_enabled)
+    : io::data(type),
+      event_handler_enabled(event_handler_enabled),
+      flap_detection_enabled(flap_detection_enabled),
+      notifications_enabled(notifications_enabled) {}
+
 /**
  *  @brief Copy constructor.
  *

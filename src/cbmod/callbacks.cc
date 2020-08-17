@@ -1021,7 +1021,6 @@ int neb::callback_group_member(int callback_type, void* data) {
                 p.first,   // host_id parameter
                 p.second, // service_id parameter
                 member_data->type != NEBTYPE_SERVICEGROUPMEMBER_DELETE);
-
         if (sgm->host_id && sgm->service_id && sgm->group_id) {
           // Send service group member event.
           if (sgm->host_id && sgm->service_id && sgm->group_id)
@@ -1961,68 +1960,65 @@ int neb::callback_service_status(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    std::shared_ptr<neb::service_status> service_status(
-        new neb::service_status);
-
-    // Fill output var.
     engine::service const* s{static_cast<engine::service*>(
         static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
-    service_status->acknowledged = s->get_problem_has_been_acknowledged();
-    service_status->acknowledgement_type = s->get_acknowledgement_type();
-    service_status->active_checks_enabled = s->get_checks_enabled();
-    if (!s->get_check_command().empty())
-      service_status->check_command = s->get_check_command();
-    service_status->check_interval = s->get_check_interval();
-    if (!s->get_check_period().empty())
-      service_status->check_period = s->get_check_period();
-    service_status->check_type = s->get_check_type();
-    service_status->current_check_attempt = s->get_current_attempt();
-    service_status->current_state =
-        (s->has_been_checked() ? s->get_current_state() : 4);  // Pending state.
-    service_status->downtime_depth = s->get_scheduled_downtime_depth();
-    if (!s->get_event_handler().empty())
-      service_status->event_handler = s->get_event_handler();
-    service_status->event_handler_enabled = s->get_event_handler_enabled();
-    service_status->execution_time = s->get_execution_time();
-    service_status->flap_detection_enabled = s->get_flap_detection_enabled();
-    service_status->has_been_checked = s->has_been_checked();
-    service_status->is_flapping = s->get_is_flapping();
-    service_status->last_check = s->get_last_check();
-    service_status->last_hard_state = s->get_last_hard_state();
-    service_status->last_hard_state_change = s->get_last_hard_state_change();
-    service_status->last_notification = s->get_last_notification();
-    service_status->notification_number = s->get_notification_number();
-    service_status->last_state_change = s->get_last_state_change();
-    service_status->last_time_critical = s->get_last_time_critical();
-    service_status->last_time_ok = s->get_last_time_ok();
-    service_status->last_time_unknown = s->get_last_time_unknown();
-    service_status->last_time_warning = s->get_last_time_warning();
-    service_status->last_update = time(nullptr);
-    service_status->latency = s->get_latency();
-    service_status->max_check_attempts = s->get_max_attempts();
-    service_status->next_check = s->get_next_check();
-    service_status->next_notification = s->get_next_notification();
-    service_status->no_more_notifications = s->get_no_more_notifications();
-    service_status->notifications_enabled = s->get_notifications_enabled();
-    service_status->obsess_over = s->get_obsess_over();
-    if (!s->get_plugin_output().empty()) {
-      service_status->output = s->get_plugin_output();
-      service_status->output.append("\n");
+    std::shared_ptr<neb::service_status> service_status = std::make_shared<neb::service_status>(
+      // Fill output var.
+      s->get_hostname(),
+      s->get_problem_has_been_acknowledged(),
+      s->get_acknowledgement_type(),
+      s->get_checks_enabled(),
+      s->get_check_command(),// ? s->get_check_command() : "",
+      s->get_check_interval(),
+      s->get_check_period(),
+      s->get_check_type(),
+      s->get_current_attempt(),
+      s->has_been_checked() ? s->get_current_state() : 4,
+      s->get_scheduled_downtime_depth(),
+      s->get_event_handler(),
+      s->get_event_handler_enabled(),
+      s->get_execution_time(),
+      s->get_flap_detection_enabled(),
+      s->has_been_checked(),
+      s->get_is_flapping(),
+      s->get_last_check(),
+      s->get_last_hard_state(),
+      s->get_last_hard_state_change(),
+      s->get_last_notification(),
+      s->get_notification_number(),
+      s->get_last_state_change(),
+      s->get_last_time_critical(),
+      s->get_last_time_ok(),
+      s->get_last_time_unknown(),
+      s->get_last_time_warning(),
+      time(nullptr), // last_update
+      s->get_latency(),
+      s->get_max_attempts(),
+      s->get_next_check(),
+      s->get_next_notification(),
+      s->get_no_more_notifications(),
+      s->get_notifications_enabled(),
+      s->get_obsess_over(),
+      s->get_plugin_output(),
+      s->get_accept_passive_checks(),
+      s->get_percent_state_change(),
+      s->get_perf_data(),
+      s->get_retry_interval(),
+      s->get_description(),
+      s->get_should_be_scheduled(),
+      s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
+    if (!s->get_plugin_output().empty()) {                      // wip //
+      //service_status->output = s->get_plugin_output(); 
+      //service_status->output.append("\n"); // fmt format
+      msg_fmt("{}\n", s->get_plugin_output());
     }
-    if (!s->get_long_plugin_output().empty())
-      service_status->output.append(s->get_long_plugin_output());
-
-    service_status->passive_checks_enabled = s->get_accept_passive_checks();
-    service_status->percent_state_change = s->get_percent_state_change();
-    if (!s->get_perf_data().empty())
-      service_status->perf_data = s->get_perf_data();
-    service_status->retry_interval = s->get_retry_interval();
+    if (!s->get_long_plugin_output().empty())                   // wip //
+      //service_status->output.append(s->get_long_plugin_output());
+      msg_fmt("{}\n", s->get_long_plugin_output());
     if (s->get_hostname().empty())
       throw msg_fmt("unnamed host");
     if (s->get_description().empty())
       throw msg_fmt("unnamed service");
-    service_status->host_name = s->get_hostname();
-    service_status->service_description = s->get_description();
     {
       std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
           s->get_hostname(), s->get_description())};
@@ -2033,10 +2029,6 @@ int neb::callback_service_status(int callback_type, void* data) {
                       s->get_hostname(),
                       s->get_description());
     }
-    service_status->should_be_scheduled = s->get_should_be_scheduled();
-    service_status->state_type =
-        (s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
-
     // Send event(s).
     gl_publisher.write(service_status);
 
