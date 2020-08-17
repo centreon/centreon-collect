@@ -30,17 +30,12 @@ using namespace com::centreon::broker::compression;
  **************************************/
 
 /**
- *  Default constructor.
- */
-//opener::opener() : io::endpoint(false), _level(-1), _size(0) {}
-
-/**
  *  Constructor with parameters.
  */
-opener::opener(int level, uint32_t size) 
+opener::opener(int32_t _level, uint32_t _size)
               : io::endpoint(false),
-              level(level),
-              size(size) {}
+              _level(_level),
+              _size(_size) {}
 
 opener::~opener() noexcept {}
 
@@ -70,7 +65,7 @@ std::shared_ptr<io::stream> opener::open() {
 std::shared_ptr<io::stream> opener::_open(std::shared_ptr<io::stream> base) {
   std::shared_ptr<io::stream> retval;
   if (base) {
-    retval.reset(new stream(level, size));
+    retval.reset(new stream(_level, _size));
     retval->set_substream(base);
   }
   return retval;

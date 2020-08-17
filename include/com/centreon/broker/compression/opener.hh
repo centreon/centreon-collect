@@ -34,12 +34,11 @@ namespace compression {
 class opener : public io::endpoint {
     
     std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
-    int level;
-    uint32_t size;
+    int32_t _level;
+    uint32_t _size;
 
   public:
-    //opener();
-    opener(int level, uint32_t size);
+    opener(int32_t _level, uint32_t _size);
     opener(opener const& o) = delete;
     ~opener() noexcept;
     opener& operator=(opener const& o) = delete;

@@ -89,14 +89,7 @@ io::endpoint* factory::new_endpoint(
   uint32_t size(0);
   it = cfg.params.find("compression_buffer");
   if (it != cfg.params.end())
-    size = std::stoul(it->second);
-
-  // Create compression object.
-  /*std::unique_ptr<compression::opener> openr(new compression::opener);
-  openr->set_level(level);
-  openr->set_size(size);
-  return openr.release();*/
-  
+    size = std::stoul(it->second);  
   std::unique_ptr<compression::opener> openr(new compression::opener(level, size));
   return openr.release();
 }
