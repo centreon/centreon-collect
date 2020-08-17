@@ -34,8 +34,8 @@ namespace compression {
 class opener : public io::endpoint {
     
     std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
-    int32_t _level;
-    uint32_t _size;
+    const int32_t _level;
+    const uint32_t _size;
 
   public:
     opener(int32_t _level, uint32_t _size);
