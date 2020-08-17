@@ -986,12 +986,12 @@ int neb::callback_group_member(int callback_type, void* data) {
       if (!hst->get_name().empty() && !hg->get_group_name().empty()) {
         // Output variable.
         uint32_t host_id = engine::get_host_id(hst->get_name());
-        std::shared_ptr<neb::host_group_member> hgm =	
-            std::make_shared<neb::host_group_member>(	
-                hg->get_group_name(),	
-                hg->get_id(),	
-                config::applier::state::instance().poller_id(),	
-                host_id,	
+        std::shared_ptr<neb::host_group_member> hgm =
+            std::make_shared<neb::host_group_member>(
+                hg->get_group_name(),
+                hg->get_id(),
+                config::applier::state::instance().poller_id(),
+                host_id,
                 member_data->type != NEBTYPE_HOSTGROUPMEMBER_DELETE);
         if (host_id != 0 && hgm->group_id != 0) {
           // Send host group member event.
@@ -1015,11 +1015,11 @@ int neb::callback_group_member(int callback_type, void* data) {
                                             svc->get_description());
         std::shared_ptr<neb::service_group_member> sgm =
             std::make_shared<neb::service_group_member>(
-                sg->get_group_name(),	
-                sg->get_id(),	
-                config::applier::state::instance().poller_id(),	
-                p.first,   // host_id parameter	
-                p.second, // service_id parameter	
+                sg->get_group_name(),
+                sg->get_id(),
+                config::applier::state::instance().poller_id(),
+                p.first,   // host_id parameter
+                p.second, // service_id parameter
                 member_data->type != NEBTYPE_SERVICEGROUPMEMBER_DELETE);
         if (sgm->host_id && sgm->service_id && sgm->group_id) {
           // Send service group member event.
