@@ -499,193 +499,236 @@ class EngineRPCClient {
   }
 
   bool ScheduleHostDowntime(std::string const& hostname,
-                            std::string const& hostgroupname,
-                            std::string const& servicegroupname,
-                            std::string const& svcdsc,
-                            uint32_t start,
-                            uint32_t end,
-                            bool fixed,
-                            uint32_t triggeredby,
-                            uint32_t duration,
+                            std::pair<bool, uint32_t> const& start,
+                            std::pair<bool, uint32_t> const& end,
+                            std::pair<bool, bool> const& fixed,
+                            std::pair<bool, uint32_t> const& triggeredby,
+                            std::pair<bool, uint32_t> const& duration,
                             std::string const& author,
                             std::string const& commentdata,
-                            uint32_t entrytime,
+                            std::pair<bool, uint32_t> const& entrytime,
                             CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleDowntime rpc engine failed" << std::endl;
       return false;
     }
+
     return true;
   }
 
   bool ScheduleServiceDowntime(std::string const& hostname,
                                std::string const& svcdsc,
-                               uint32_t start,
-                               uint32_t end,
-                               bool fixed,
-                               uint32_t triggeredby,
-                               uint32_t duration,
+                               std::pair<bool, uint32_t> const& start,
+                               std::pair<bool, uint32_t> const& end,
+                               std::pair<bool, bool> const& fixed,
+                               std::pair<bool, uint32_t> const& triggeredby,
+                               std::pair<bool, uint32_t> const& duration,
                                std::string const& author,
                                std::string const& commentdata,
-                               uint32_t entrytime,
+                               std::pair<bool, uint32_t> const& entrytime,
                                CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
     request.set_service_desc(svcdsc);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleServiceDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleDowntime rpc engine failed" << std::endl;
       return false;
     }
+
     return true;
   }
 
-  bool ScheduleHostServicesDowntime(std::string const& hostname,
-                                    uint32_t start,
-                                    uint32_t end,
-                                    bool fixed,
-                                    uint32_t triggeredby,
-                                    uint32_t duration,
-                                    std::string const& author,
-                                    std::string const& commentdata,
-                                    uint32_t entrytime,
-                                    CommandSuccess* response) {
+  bool ScheduleHostServicesDowntime(
+      std::string const& hostname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostServicesDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleHostServicesDowntime rpc engine failed"
                 << std::endl;
       return false;
     }
+
     return true;
   }
 
-  bool ScheduleHostGroupHostsDowntime(std::string const& hostgroupname,
-                                      uint32_t start,
-                                      uint32_t end,
-                                      bool fixed,
-                                      uint32_t triggeredby,
-                                      uint32_t duration,
-                                      std::string const& author,
-                                      std::string const& commentdata,
-                                      uint32_t entrytime,
-                                      CommandSuccess* response) {
+  bool ScheduleHostGroupHostsDowntime(
+      std::string const& hostgroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_group_name(hostgroupname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostGroupHostsDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleHostGroupHostsDowntimerpc engine failed"
                 << std::endl;
       return false;
     }
+
     return true;
   }
 
-  bool ScheduleHostGroupServicesDowntime(std::string const& hostgroupname,
-                                         uint32_t start,
-                                         uint32_t end,
-                                         bool fixed,
-                                         uint32_t triggeredby,
-                                         uint32_t duration,
-                                         std::string const& author,
-                                         std::string const& commentdata,
-                                         uint32_t entrytime,
-                                         CommandSuccess* response) {
+  bool ScheduleHostGroupServicesDowntime(
+      std::string const& hostgroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_group_name(hostgroupname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostGroupServicesDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleHostGroupServicesDowntimerpc engine failed"
                 << std::endl;
       return false;
     }
+
     return true;
   }
 
-  bool ScheduleServiceGroupHostsDowntime(std::string const& servicegroupname,
-                                         uint32_t start,
-                                         uint32_t end,
-                                         bool fixed,
-                                         uint32_t triggeredby,
-                                         uint32_t duration,
-                                         std::string const& author,
-                                         std::string const& commentdata,
-                                         uint32_t entrytime,
-                                         CommandSuccess* response) {
+  bool ScheduleServiceGroupHostsDowntime(
+      std::string const& servicegroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_service_group_name(servicegroupname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleServiceGroupHostsDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleServiceGroupHostsDowntim engine failed"
                 << std::endl;
       return false;
@@ -693,31 +736,38 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleServiceGroupServicesDowntime(std::string const& servicegroupname,
-                                            uint32_t start,
-                                            uint32_t end,
-                                            bool fixed,
-                                            uint32_t triggeredby,
-                                            uint32_t duration,
-                                            std::string const& author,
-                                            std::string const& commentdata,
-                                            uint32_t entrytime,
-                                            CommandSuccess* response) {
+  bool ScheduleServiceGroupServicesDowntime(
+      std::string const& servicegroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_service_group_name(servicegroupname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status = _stub->ScheduleServiceGroupServicesDowntime(
         &context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleServiceGroupServicesDowntime engine failed"
                 << std::endl;
       return false;
@@ -725,31 +775,39 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleAndPropagateHostDowntime(std::string const& hostname,
-                                        uint32_t start,
-                                        uint32_t end,
-                                        bool fixed,
-                                        uint32_t triggeredby,
-                                        uint32_t duration,
-                                        std::string const& author,
-                                        std::string const& commentdata,
-                                        uint32_t entrytime,
-                                        CommandSuccess* response) {
+  bool ScheduleAndPropagateHostDowntime(
+      std::string const& hostname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleAndPropagateHostDowntime(&context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleAndPropagateHostDowntime "
                    "rpc engine failed"
                 << std::endl;
@@ -758,31 +816,38 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleAndPropagateTriggeredHostDowntime(std::string const& hostname,
-                                                 uint32_t start,
-                                                 uint32_t end,
-                                                 bool fixed,
-                                                 uint32_t triggeredby,
-                                                 uint32_t duration,
-                                                 std::string const& author,
-                                                 std::string const& commentdata,
-                                                 uint32_t entrytime,
-                                                 CommandSuccess* response) {
+  bool ScheduleAndPropagateTriggeredHostDowntime(
+      std::string const& hostname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
-    request.set_start(start);
-    request.set_end(end);
-    request.set_fixed(fixed);
-    request.set_triggered_by(triggeredby);
-    request.set_duration(duration);
+    if (start.first)
+      request.set_start(start.second);
+    if (end.first)
+      request.set_end(end.second);
+    if (fixed.first)
+      request.set_fixed(fixed.second);
+    if (triggeredby.first)
+      request.set_triggered_by(triggeredby.second);
+    if (duration.first)
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
-    request.set_entry_time(entrytime);
+    if (entrytime.first)
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status = _stub->ScheduleAndPropagateTriggeredHostDowntime(
         &context, request, response);
-    if (!status.ok()) {
+    if (!status.ok() || !response->value()) {
       std::cout << "ScheduleAndPropagateTriggeredHostDowntime "
                    "rpc engine failed"
                 << std::endl;
@@ -854,8 +919,7 @@ class EngineRPCClient {
     grpc::ClientContext context;
     request.set_value(downtime_id);
 
-    grpc::Status status =
-        _stub->DeleteDowntime(&context, request, response);
+    grpc::Status status = _stub->DeleteDowntime(&context, request, response);
     if (!status.ok()) {
       std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
                 << std::endl;
@@ -1145,12 +1209,12 @@ class EngineRPCClient {
   }
 
   bool ChangeHostObjectCharVar(std::string const& hostname,
-                                 uint32_t mode,
-                                 std::string charval,
-                                 CommandSuccess* response) {
+                               uint32_t mode,
+                               std::string charval,
+                               CommandSuccess* response) {
     ChangeObjectChar request;
     grpc::ClientContext context;
-    
+
     request.set_host_name(hostname);
     request.set_mode(static_cast<ChangeObjectChar::Mode>(mode));
     request.set_charval(charval);
@@ -1163,7 +1227,7 @@ class EngineRPCClient {
     }
     return true;
   }
-  
+
   bool ChangeServiceObjectCharVar(std::string const& hostname,
                                   std::string const& servicedesc,
                                   uint32_t mode,
@@ -1171,7 +1235,7 @@ class EngineRPCClient {
                                   CommandSuccess* response) {
     ChangeObjectChar request;
     grpc::ClientContext context;
-    
+
     request.set_host_name(hostname);
     request.set_service_desc(servicedesc);
     request.set_mode(static_cast<ChangeObjectChar::Mode>(mode));
@@ -1192,7 +1256,7 @@ class EngineRPCClient {
                                   CommandSuccess* response) {
     ChangeContactObjectChar request;
     grpc::ClientContext context;
-    
+
     request.set_contact(contact);
     request.set_mode(static_cast<ChangeContactObjectChar::Mode>(mode));
     request.set_charval(charval);
@@ -1781,151 +1845,411 @@ int main(int argc, char** argv) {
   } else if (strcmp(argv[1], "ScheduleHostDowntime") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
-    std::string hostgroupname;
-    std::string servicegroupname;
-    std::string svcdsc;
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
-    status = client.ScheduleHostDowntime(
-        hostname, hostgroupname, servicegroupname, svcdsc, start, end, fixed,
-        triggeredby, duration, author, commentdata, entrytime, &response);
-    std::cout << "ScheduleHostDowntime" << std::endl;
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
+
+    status = client.ScheduleHostDowntime(hostname, start, end, fixed,
+                                         triggeredby, duration, author,
+                                         commentdata, entrytime, &response);
+    std::cout << "ScheduleHostDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleServiceDowntime") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
     std::string svcdsc(argv[3]);
-    uint32_t start = atoi(argv[4]);
-    uint32_t end = atoi(argv[5]);
-    bool fixed = atoi(argv[6]);
-    uint32_t triggeredby = atoi(argv[7]);
-    uint32_t duration = atoi(argv[8]);
-    std::string author(argv[9]);
-    std::string commentdata(argv[10]);
-    uint32_t entrytime = atoi(argv[11]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[4], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[8]));
+    if (strcmp(argv[9], "undef") != 0)
+      author = argv[9];
+    if (strcmp(argv[10], "undef") != 0)
+      commentdata = argv[10];
+    if (strcmp(argv[11], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[11]));
 
     status = client.ScheduleServiceDowntime(hostname, svcdsc, start, end, fixed,
                                             triggeredby, duration, author,
                                             commentdata, entrytime, &response);
-    std::cout << "ScheduleServiceDowntime" << std::endl;
+    std::cout << "ScheduleServiceDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleHostServicesDowntime") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleHostServicesDowntime(
         hostname, start, end, fixed, triggeredby, duration, author, commentdata,
         entrytime, &response);
-    std::cout << "ScheduleHostServicesDowntime" << std::endl;
+    std::cout << "ScheduleHostServicesDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleHostGroupHostsDowntime") == 0) {
     CommandSuccess response;
     std::string hostgroupname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleHostGroupHostsDowntime(
         hostgroupname, start, end, fixed, triggeredby, duration, author,
         commentdata, entrytime, &response);
-    std::cout << "ScheduleHostGroupHostsDowntime" << std::endl;
+    std::cout << "ScheduleHostGroupHostsDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleHostGroupServicesDowntime") == 0) {
     CommandSuccess response;
     std::string hostgroupname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleHostGroupServicesDowntime(
         hostgroupname, start, end, fixed, triggeredby, duration, author,
         commentdata, entrytime, &response);
-    std::cout << "ScheduleHostGroupServicesDowntime" << std::endl;
+    std::cout << "ScheduleHostGroupServicesDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleServiceGroupHostsDowntime") == 0) {
     CommandSuccess response;
     std::string servicegroupname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleServiceGroupHostsDowntime(
         servicegroupname, start, end, fixed, triggeredby, duration, author,
         commentdata, entrytime, &response);
-    std::cout << "ScheduleServiceGroupHostsDowntime" << std::endl;
+    std::cout << "ScheduleServiceGroupHostsDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleServiceGroupServicesDowntime") == 0) {
     CommandSuccess response;
     std::string servicegroupname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleServiceGroupServicesDowntime(
         servicegroupname, start, end, fixed, triggeredby, duration, author,
         commentdata, entrytime, &response);
-    std::cout << "ScheduleServiceGroupServicesDowntime" << std::endl;
+    std::cout << "ScheduleServiceGroupServicesDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleAndPropagateHostDowntime") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleAndPropagateHostDowntime(
         hostname, start, end, fixed, triggeredby, duration, author, commentdata,
         entrytime, &response);
-    std::cout << "ScheduleAndPropagateHostDowntime" << std::endl;
+    std::cout << "ScheduleAndPropagateHostDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleAndPropagateTriggeredHostDowntime") ==
              0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
-    uint32_t start = atoi(argv[3]);
-    uint32_t end = atoi(argv[4]);
-    bool fixed = atoi(argv[5]);
-    uint32_t triggeredby = atoi(argv[6]);
-    uint32_t duration = atoi(argv[7]);
-    std::string author(argv[8]);
-    std::string commentdata(argv[9]);
-    uint32_t entrytime = atoi(argv[10]);
+    std::pair<bool, uint32_t> start;
+    std::pair<bool, uint32_t> end;
+    std::pair<bool, bool> fixed;
+    std::pair<bool, uint32_t> triggeredby;
+    std::pair<bool, uint32_t> duration;
+    std::string author;
+    std::string commentdata;
+    std::pair<bool, uint32_t> entrytime;
+
+    if (strcmp(argv[3], "undef") == 0)
+      start = std::make_pair(false, 0);
+    else
+      start = std::make_pair(true, atoi(argv[3]));
+    if (strcmp(argv[4], "undef") == 0)
+      end = std::make_pair(false, 0);
+    else
+      end = std::make_pair(true, atoi(argv[4]));
+    if (strcmp(argv[5], "undef") == 0)
+      fixed = std::make_pair(false, 0);
+    else
+      fixed = std::make_pair(true, atoi(argv[5]));
+    if (strcmp(argv[6], "undef") == 0)
+      triggeredby = std::make_pair(false, 0);
+    else
+      triggeredby = std::make_pair(true, atoi(argv[6]));
+    if (strcmp(argv[7], "undef") == 0)
+      duration = std::make_pair(false, 0);
+    else
+      duration = std::make_pair(true, atoi(argv[7]));
+    if (strcmp(argv[8], "undef") != 0)
+      author = argv[8];
+    if (strcmp(argv[9], "undef") != 0)
+      commentdata = argv[9];
+    if (strcmp(argv[10], "undef") == 0)
+      entrytime = std::make_pair(false, 0);
+    else
+      entrytime = std::make_pair(true, atoi(argv[10]));
 
     status = client.ScheduleAndPropagateTriggeredHostDowntime(
         hostname, start, end, fixed, triggeredby, duration, author, commentdata,
         entrytime, &response);
-    std::cout << "ScheduleAndPropagateTriggeredHostDowntime" << std::endl;
+    std::cout << "ScheduleAndPropagateTriggeredHostDowntime " << status
+              << std::endl;
   } else if (strcmp(argv[1], "ScheduleHostCheck") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
@@ -2047,9 +2371,8 @@ int main(int argc, char** argv) {
     uint32_t mode = atoi(argv[3]);
     std::string charval(argv[4]);
 
-    status = client.ChangeHostObjectCharVar(hostname, mode, charval,
-                                                 &response);
-    std::cout << "ChangeHostObjectCharVar " << status  << std::endl;
+    status = client.ChangeHostObjectCharVar(hostname, mode, charval, &response);
+    std::cout << "ChangeHostObjectCharVar " << status << std::endl;
   } else if (strcmp(argv[1], "ChangeServiceObjectCharVar") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
@@ -2057,18 +2380,18 @@ int main(int argc, char** argv) {
     uint32_t mode = atoi(argv[4]);
     std::string charval(argv[5]);
 
-    status = client.ChangeServiceObjectCharVar(hostname, servicedesc, 
-        mode, charval, &response);
-    std::cout << "ChangeServiceObjectCharVar " << status  << std::endl;
+    status = client.ChangeServiceObjectCharVar(hostname, servicedesc, mode,
+                                               charval, &response);
+    std::cout << "ChangeServiceObjectCharVar " << status << std::endl;
   } else if (strcmp(argv[1], "ChangeContactObjectCharVar") == 0) {
     CommandSuccess response;
     std::string contact(argv[2]);
     uint32_t mode = atoi(argv[3]);
     std::string charval(argv[4]);
 
-    status = client.ChangeContactObjectCharVar(contact, 
-        mode, charval, &response);
-    std::cout << "ChangeContactObjectCharVar " << status  << std::endl;
+    status =
+        client.ChangeContactObjectCharVar(contact, mode, charval, &response);
+    std::cout << "ChangeContactObjectCharVar " << status << std::endl;
   } else {
     std::cout << "unknown command" << std::endl;
     status = EXIT_FAILURE;

@@ -50,11 +50,11 @@ service Engine {
   rpc DeleteAllHostComments(HostIdentifier) returns (CommandSuccess) {}
   rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
   rpc RemoveHostAcknowledgement(HostIdentifier) returns (CommandSuccess) {}
-  rpc RemoveServiceAcknowledgement(ServiceIdentifier)
+  rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {
+  }
+  rpc AcknowledgementHostProblem(EngineAcknowledgement)
       returns (CommandSuccess) {}
-  rpc AcknowledgementHostProblem(EngineAcknowledgement) 
-      returns (CommandSuccess) {}
-  rpc AcknowledgementServiceProblem(EngineAcknowledgement) 
+  rpc AcknowledgementServiceProblem(EngineAcknowledgement)
       returns (CommandSuccess) {}
   rpc DeleteDowntime(GenericValue) returns (CommandSuccess) {}
   rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
@@ -86,34 +86,25 @@ service Engine {
       returns (CommandSuccess) {}
   rpc ScheduleAndPropagateTriggeredHostDowntime(ScheduleDowntimeIdentifier)
       returns (CommandSuccess) {}
-  rpc ScheduleHostCheck(HostCheckIdentifier)
+  rpc ScheduleHostCheck(HostCheckIdentifier) returns (CommandSuccess) {}
+  rpc ScheduleHostServiceCheck(HostCheckIdentifier) returns (CommandSuccess) {}
+  rpc ScheduleServiceCheck(ServiceCheckIdentifier) returns (CommandSuccess) {}
+  rpc SignalProcess(EngineSignalProcess) returns (CommandSuccess) {}
+  rpc ChangeHostObjectIntVar(ChangeObjectInt) returns (CommandSuccess) {}
+  rpc ChangeServiceObjectIntVar(ChangeObjectInt) returns (CommandSuccess) {}
+  rpc ChangeContactObjectIntVar(ChangeContactObjectInt)
       returns (CommandSuccess) {}
-  rpc ScheduleHostServiceCheck(HostCheckIdentifier)
+  rpc ChangeHostObjectCharVar(ChangeObjectChar) returns (CommandSuccess) {}
+  rpc ChangeServiceObjectCharVar(ChangeObjectChar) returns (CommandSuccess) {}
+  rpc ChangeContactObjectCharVar(ChangeContactObjectChar)
       returns (CommandSuccess) {}
-  rpc ScheduleServiceCheck(ServiceCheckIdentifier)
+  rpc ChangeHostObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
-  rpc SignalProcess(EngineSignalProcess)
+  rpc ChangeServiceObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
-  rpc ChangeHostObjectIntVar(ChangeObjectInt) 
+  rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
-  rpc ChangeServiceObjectIntVar(ChangeObjectInt) 
-      returns (CommandSuccess) {}
-  rpc ChangeContactObjectIntVar(ChangeContactObjectInt) 
-      returns (CommandSuccess) {}
-  rpc ChangeHostObjectCharVar(ChangeObjectChar) 
-      returns (CommandSuccess) {}
-  rpc ChangeServiceObjectCharVar(ChangeObjectChar) 
-      returns (CommandSuccess) {}
-  rpc ChangeContactObjectCharVar(ChangeContactObjectChar) 
-      returns (CommandSuccess) {}
-  rpc ChangeHostObjectCustomVar(ChangeObjectCustomVar) 
-      returns (CommandSuccess) {}
-  rpc ChangeServiceObjectCustomVar(ChangeObjectCustomVar) 
-      returns (CommandSuccess) {}
-  rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar) 
-      returns (CommandSuccess) {}
-  rpc ShutdownProgram(google.protobuf.Empty) 
-      returns (google.protobuf.Empty) {}
+  rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -394,8 +385,8 @@ message ServiceDelayIdentifier {
 message DowntimeCriterias {
   string host_name = 1;
   string service_desc = 2;
-  google.protobuf.UInt32Value start = 3;
-  google.protobuf.UInt32Value end = 4;
+  google.protobuf.UInt64Value start = 3;
+  google.protobuf.UInt64Value end = 4;
   google.protobuf.BoolValue fixed = 5;
   google.protobuf.UInt32Value triggered_by = 6;
   google.protobuf.UInt32Value duration = 7;
@@ -428,13 +419,13 @@ message ScheduleDowntimeIdentifier {
   string host_group_name = 2;
   string service_group_name = 3;
   string service_desc = 4;
-  uint32 start = 5;
-  uint32 end = 6;
+  uint64 start = 5;
+  uint64 end = 6;
   bool fixed = 7;
   uint32 triggered_by = 8;
   uint32 duration = 9;
   string author = 10;
-  string comment_data  = 11;
+  string comment_data = 11;
   uint32 entry_time = 12;
 }
 
@@ -493,9 +484,9 @@ message ChangeObjectInt {
 message ChangeContactObjectInt {
   string contact_name = 1;
   enum Mode {
-    MODATTR   = 0;
-    MODHATTR  = 1;
-    MODSATTR  = 2;
+    MODATTR = 0;
+    MODHATTR = 1;
+    MODSATTR = 2;
   }
   Mode mode = 2;
   uint32 intval = 3;
@@ -507,11 +498,11 @@ message ChangeObjectChar {
   string host_name = 1;
   string service_desc = 2;
   enum Mode {
-     CHANGE_GLOBAL_EVENT_HANDLER = 0;
-     CHANGE_EVENT_HANDLER = 1;
-     CHANGE_CHECK_COMMAND = 2;
-     CHANGE_CHECK_TIMEPERIOD = 3;
-     CHANGE_NOTIFICATION_TIMEPERIOD = 4;
+    CHANGE_GLOBAL_EVENT_HANDLER = 0;
+    CHANGE_EVENT_HANDLER = 1;
+    CHANGE_CHECK_COMMAND = 2;
+    CHANGE_CHECK_TIMEPERIOD = 3;
+    CHANGE_NOTIFICATION_TIMEPERIOD = 4;
   }
   Mode mode = 3;
   string charval = 4;

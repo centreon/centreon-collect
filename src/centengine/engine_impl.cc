@@ -21,11 +21,11 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <algorithm>
 #include <functional>
 #include <future>
 
-#include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
@@ -48,6 +48,7 @@
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/statistics.hh"
+#include "com/centreon/engine/statusdata.hh"
 #include "engine-version.hh"
 
 using namespace com::centreon::engine;
@@ -929,17 +930,20 @@ grpc::Status engine_impl::ScheduleHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
+  if (request->host_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "all fieds must be defined");
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
-    uint64_t downtime_id(0);
+    uint64_t downtime_id = 0;
     unsigned long duration;
     /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
     if (temp_host == nullptr)
-      return 1;
-    if (request->author().empty() || request->comment_data().empty())
       return 1;
     if (request->fixed())
       duration = static_cast<unsigned long>(request->end() - request->start());
@@ -986,9 +990,15 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
+  if (request->host_name().empty() || request->service_desc().empty() ||
+      request->author().empty() || request->comment_data().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "all fieds must be defined");
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
     uint64_t downtime_id(0);
+    unsigned long duration;
     /* get the service */
     auto it =
         service::services.find({request->host_name(), request->service_desc()});
@@ -996,15 +1006,19 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
       temp_service = it->second;
     if (temp_service == nullptr)
       return 1;
-    if (request->author().empty() || request->comment_data().empty())
-      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+
     /* scheduling downtime */
     downtime_manager::instance().schedule_downtime(
         downtime::service_downtime, request->host_name(),
         request->service_desc(), request->entry_time(),
         request->author().c_str(), request->comment_data().c_str(),
         request->start(), request->end(), request->fixed(),
-        request->triggered_by(), request->duration(), &downtime_id);
+        request->triggered_by(), duration, &downtime_id);
+
     return 0;
   });
 
@@ -1038,17 +1052,25 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
+  if (request->host_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "all fieds must be defined");
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
+    unsigned long duration;
     /* get the host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->author().empty() || request->comment_data().empty())
-      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
 
     for (service_map_unsafe::iterator it(temp_host->services.begin()),
          end(temp_host->services.end());
@@ -1061,7 +1083,7 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
           it->second->get_description(), request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
           request->start(), request->end(), request->fixed(),
-          request->triggered_by(), request->duration(), &downtime_id);
+          request->triggered_by(), duration, &downtime_id);
     }
     return 0;
   });
@@ -1097,12 +1119,14 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
-  if (request->host_group_name().empty())
+  if (request->host_group_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "host_group_name must be defined");
+                        "all fieds must be defined");
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    uint64_t downtime_id(0);
+    uint64_t downtime_id = 0;
+    unsigned long duration;
     hostgroup* hg{nullptr};
     /* get the host group */
     hostgroup_map::const_iterator it(
@@ -1110,8 +1134,11 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     if (it == hostgroup::hostgroups.end() || !it->second)
       return 1;
     hg = it->second.get();
-    if (request->author().empty() || request->comment_data().empty())
-      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+
     /* iterate through host group members(hosts) */
     for (host_map_unsafe::iterator it(hg->members.begin()),
          end(hg->members.end());
@@ -1121,7 +1148,7 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
           downtime::host_downtime, it->first, "", request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
           request->start(), request->end(), request->fixed(),
-          request->triggered_by(), request->duration(), &downtime_id);
+          request->triggered_by(), duration, &downtime_id);
     return 0;
   });
 
@@ -1157,12 +1184,14 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
-  if (request->host_group_name().empty())
+  if (request->host_group_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "host_group_name must be defined");
+                        "all fieds must be defined");
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     uint64_t downtime_id(0);
+    unsigned long duration;
     hostgroup* hg{nullptr};
     /* get the hostgroup */
     hostgroup_map::const_iterator it(
@@ -1170,8 +1199,10 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     if (it == hostgroup::hostgroups.end() || !it->second)
       return 1;
     hg = it->second.get();
-    if (request->author().empty() || request->comment_data().empty())
-      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
 
     /* iterate through host group members(hosts) */
     for (host_map_unsafe::iterator it(hg->members.begin()),
@@ -1191,7 +1222,7 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
             it2->second->get_description(), request->entry_time(),
             request->author().c_str(), request->comment_data().c_str(),
             request->start(), request->end(), request->fixed(),
-            request->triggered_by(), request->duration(), &downtime_id);
+            request->triggered_by(), duration, &downtime_id);
       }
     }
     return 0;
@@ -1228,19 +1259,26 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
-  if (request->service_group_name().empty())
+  if (request->service_group_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "service_group_name must be defined");
+                        "all fieds must be defined");
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     host* temp_host{nullptr};
     host* last_host{nullptr};
     uint64_t downtime_id(0);
+    unsigned long duration;
     servicegroup_map::const_iterator sg_it;
     /* verify that the servicegroup is valid */
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+
     for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
          end(sg_it->second->members.end());
          it != end; ++it) {
@@ -1256,7 +1294,7 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
           downtime::host_downtime, it->first.first, "", request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
           request->start(), request->end(), request->fixed(),
-          request->triggered_by(), request->duration(), &downtime_id);
+          request->triggered_by(), duration, &downtime_id);
       last_host = temp_host;
     }
     return 0;
@@ -1293,16 +1331,24 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
-  if (request->service_group_name().empty())
+  if (request->service_group_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
-                        "service_group_name must be defined");
+                        "all fieds must be defined");
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     uint64_t downtime_id(0);
+    unsigned long duration;
     servicegroup_map::const_iterator sg_it;
     /* verify that the servicegroup is valid */
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+
     /* iterate through the services of service group */
     for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
          end(sg_it->second->members.end());
@@ -1312,8 +1358,7 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
           downtime::service_downtime, it->first.first, it->first.second,
           request->entry_time(), request->author().c_str(),
           request->comment_data().c_str(), request->start(), request->end(),
-          request->fixed(), request->triggered_by(), request->duration(),
-          &downtime_id);
+          request->fixed(), request->triggered_by(), duration, &downtime_id);
     return 0;
   });
 
@@ -1347,30 +1392,38 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
+  if (request->host_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "all fieds must be defined");
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
+    unsigned long duration;
     /* get the main host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->author().empty() || request->comment_data().empty())
-      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+
     /* scheduling the parent host */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
         request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
-        request->fixed(), request->triggered_by(), request->duration(),
-        &downtime_id);
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
 
     /* schedule (non-triggered) downtime for all child hosts */
     command_manager::schedule_and_propagate_downtime(
         temp_host.get(), request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
-        request->fixed(), 0, request->duration());
+        request->fixed(), 0, duration);
     return 0;
   });
 
@@ -1406,29 +1459,37 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
+  if (request->host_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
+                        "all fieds must be defined");
+
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     uint64_t downtime_id(0);
+    unsigned long duration;
     /* get the main host */
     auto it = host::hosts.find(request->host_name());
     if (it != host::hosts.end())
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->author().empty() || request->comment_data().empty())
-      return 1;
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
+    else
+      duration = static_cast<unsigned long>(request->duration());
+
     /* scheduling the parent host */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
         request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
-        request->fixed(), request->triggered_by(), request->duration(),
-        &downtime_id);
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
     /* scheduling his childs */
     command_manager::schedule_and_propagate_downtime(
         temp_host.get(), request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
-        request->fixed(), downtime_id, request->duration());
+        request->fixed(), downtime_id, duration);
 
     return 0;
   });
@@ -1627,14 +1688,13 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
  * @return Status::OK
  */
 grpc::Status engine_impl::DeleteDowntime(grpc::ServerContext* context
-                                             __attribute__((unused)),
-                                             const GenericValue* request,
-                                             CommandSuccess* response) {
+                                         __attribute__((unused)),
+                                         const GenericValue* request,
+                                         CommandSuccess* response) {
   uint32_t downtime_id = request->value();
   auto fn = std::packaged_task<int32_t(void)>([&downtime_id]() -> int32_t {
     /* deletes scheduled  downtime */
-    if (downtime_manager::instance().unschedule_downtime(
-            downtime_id) == ERROR)
+    if (downtime_manager::instance().unschedule_downtime(downtime_id) == ERROR)
       return 1;
     else
       return 0;
@@ -2108,7 +2168,8 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_current_attempt(temp_host->get_max_attempts());
     } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR") {
       attr = request->intval();
-    } else return 1;
+    } else
+      return 1;
 
     if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
       temp_host->set_modified_attributes(attr);
@@ -2195,7 +2256,8 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_current_attempt(temp_service->get_max_attempts());
     } else if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
       attr = request->intval();
-    else return 1;
+    else
+      return 1;
 
     if (ChangeObjectInt::Mode_Name(request->mode()) == "MODATTR")
       temp_service->set_modified_attributes(attr);
@@ -2248,7 +2310,8 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
                "MODSATTR") {
       sattr = request->intval();
       temp_contact->set_modified_service_attributes(sattr);
-    } else return 1;
+    } else
+      return 1;
 
     /* send data to event broker */
     broker_adaptive_contact_data(
@@ -2280,14 +2343,14 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     unsigned long attr{MODATTR_NONE};
 
     /* For these cases, we verify that the host is valid */
-    if (ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_EVENT_HANDLER"           ||
-        ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_CHECK_COMMAND"           ||
-        ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_CHECK_TIMEPERIOD"        ||
-        ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_NOTIFICATION_TIMEPERIOD") {
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_EVENT_HANDLER" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_CHECK_COMMAND" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_CHECK_TIMEPERIOD" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_NOTIFICATION_TIMEPERIOD") {
       auto it = host::hosts.find(request->host_name());
       if (it != host::hosts.end())
         temp_host = it->second;
@@ -2297,9 +2360,9 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
 
     /* make sure the timeperiod is valid */
     if (ChangeObjectChar::Mode_Name(request->mode()) ==
-        "CHANGE_CHECK_TIMEPERIOD" ||
+            "CHANGE_CHECK_TIMEPERIOD" ||
         ChangeObjectChar::Mode_Name(request->mode()) ==
-        "CHANGE_NOTIFICATION_TIMEPERIOD") {
+            "CHANGE_NOTIFICATION_TIMEPERIOD") {
       auto found = timeperiod::timeperiods.find(request->charval());
       if (found != timeperiod::timeperiods.end())
         temp_timeperiod = found->second.get();
@@ -2309,59 +2372,53 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     /* make sure the command exists */
     else {
       cmd_found = commands::command::commands.find(request->charval());
-      if (cmd_found == commands::command::commands.end() ||
-          !cmd_found->second)
+      if (cmd_found == commands::command::commands.end() || !cmd_found->second)
         return 1;
     }
 
     /* update the variable */
     if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_GLOBAL_EVENT_HANDLER") {
+        "CHANGE_GLOBAL_EVENT_HANDLER") {
       config->global_host_event_handler(request->charval());
       global_host_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_EVENT_HANDLER") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_EVENT_HANDLER") {
       temp_host->set_event_handler(request->charval());
       temp_host->set_event_handler_ptr(cmd_found->second.get());
       attr = MODATTR_EVENT_HANDLER_COMMAND;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_CHECK_COMMAND") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_CHECK_COMMAND") {
       temp_host->set_check_command(request->charval());
       temp_host->set_check_command_ptr(cmd_found->second.get());
       attr = MODATTR_CHECK_COMMAND;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_CHECK_TIMEPERIOD") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_CHECK_TIMEPERIOD") {
       temp_host->set_check_period(request->charval());
       temp_host->check_period_ptr = temp_timeperiod;
       attr = MODATTR_CHECK_TIMEPERIOD;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_NOTIFICATION_TIMEPERIOD") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_NOTIFICATION_TIMEPERIOD") {
       temp_host->set_notification_period(request->charval());
       temp_host->set_notification_period_ptr(temp_timeperiod);
       attr = MODATTR_NOTIFICATION_TIMEPERIOD;
-    }
-    else return 1;
+    } else
+      return 1;
 
     /* send data to event broker and update status file */
     if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_GLOBAL_EVENT_HANDLER") {
+        "CHANGE_GLOBAL_EVENT_HANDLER") {
       /* set the modified host attribute */
       modified_host_process_attributes |= attr;
 
       /* send data to event broker */
       broker_adaptive_program_data(
-          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          CMD_NONE, attr, modified_host_process_attributes, MODATTR_NONE,
+          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, CMD_NONE,
+          attr, modified_host_process_attributes, MODATTR_NONE,
           modified_service_process_attributes, nullptr);
       /* update program status */
       update_program_status(false);
-    }
-    else {
+    } else {
       /* set the modified host attribute */
       temp_host->add_modified_attributes(attr);
 
@@ -2395,17 +2452,17 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     unsigned long attr{MODATTR_NONE};
 
     /* For these cases, we verify that the host is valid */
-    if (ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_EVENT_HANDLER"           ||
-        ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_CHECK_COMMAND"           ||
-        ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_CHECK_TIMEPERIOD"        ||
-        ChangeObjectChar::Mode_Name(request->mode())
-        == "CHANGE_NOTIFICATION_TIMEPERIOD") {
+    if (ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_EVENT_HANDLER" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_CHECK_COMMAND" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_CHECK_TIMEPERIOD" ||
+        ChangeObjectChar::Mode_Name(request->mode()) ==
+            "CHANGE_NOTIFICATION_TIMEPERIOD") {
       /* verify that the service is valid */
-      auto it = service::services.find({request->host_name(),
-          request->service_desc()});
+      auto it = service::services.find(
+          {request->host_name(), request->service_desc()});
       if (it != service::services.end())
         temp_service = it->second;
       if (temp_service == nullptr)
@@ -2413,9 +2470,9 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     }
     /* make sure the timeperiod is valid */
     if (ChangeObjectChar::Mode_Name(request->mode()) ==
-        "CHANGE_CHECK_TIMEPERIOD" ||
+            "CHANGE_CHECK_TIMEPERIOD" ||
         ChangeObjectChar::Mode_Name(request->mode()) ==
-        "CHANGE_NOTIFICATION_TIMEPERIOD") {
+            "CHANGE_NOTIFICATION_TIMEPERIOD") {
       auto found = timeperiod::timeperiods.find(request->charval());
       if (found != timeperiod::timeperiods.end())
         temp_timeperiod = found->second.get();
@@ -2433,40 +2490,36 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
     /* update the variable */
     if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_GLOBAL_EVENT_HANDLER") {
+        "CHANGE_GLOBAL_EVENT_HANDLER") {
       config->global_service_event_handler(request->charval());
       global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_EVENT_HANDLER") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_EVENT_HANDLER") {
       temp_service->set_event_handler(request->charval());
       temp_service->set_event_handler_ptr(cmd_found->second.get());
       attr = MODATTR_EVENT_HANDLER_COMMAND;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_CHECK_COMMAND") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_CHECK_COMMAND") {
       temp_service->set_check_command(request->charval());
       temp_service->set_check_command_ptr(cmd_found->second.get());
       attr = MODATTR_CHECK_COMMAND;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_CHECK_TIMEPERIOD") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_CHECK_TIMEPERIOD") {
       temp_service->set_check_period(request->charval());
       temp_service->check_period_ptr = temp_timeperiod;
       attr = MODATTR_CHECK_TIMEPERIOD;
-    }
-    else if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_NOTIFICATION_TIMEPERIOD") {
+    } else if (ChangeObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_NOTIFICATION_TIMEPERIOD") {
       temp_service->set_notification_period(request->charval());
       temp_service->set_notification_period_ptr(temp_timeperiod);
       attr = MODATTR_NOTIFICATION_TIMEPERIOD;
-    }
-    else return 1;
+    } else
+      return 1;
 
     /* send data to event broker and update status file */
     if (ChangeObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_GLOBAL_EVENT_HANDLER") {
+        "CHANGE_GLOBAL_EVENT_HANDLER") {
       /* set the modified service attribute */
       modified_service_process_attributes |= attr;
 
@@ -2478,8 +2531,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
       /* update program status */
       update_program_status(false);
-    }
-    else {
+    } else {
       /* set the modified service attribute */
       temp_service->add_modified_attributes(attr);
 
@@ -2510,8 +2562,7 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "contact must not be empty");
 
-  auto fn =
-      std::packaged_task<int32_t(void)>([request](void) -> int32_t {
+  auto fn = std::packaged_task<int32_t(void)>([request](void) -> int32_t {
     std::shared_ptr<engine::contact> temp_contact;
     timeperiod* temp_timeperiod{nullptr};
     unsigned long hattr{MODATTR_NONE};
@@ -2519,7 +2570,7 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
 
     auto it = contact::contacts.find(request->contact());
     if (it != contact::contacts.end())
-      temp_contact= it->second;
+      temp_contact = it->second;
     if (temp_contact == nullptr)
       return 1;
 
@@ -2527,38 +2578,36 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
     if (found != timeperiod::timeperiods.end())
       temp_timeperiod = found->second.get();
     if (temp_timeperiod == nullptr)
-        return 1;
+      return 1;
     if (ChangeContactObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_HOST_NOTIFICATION_TIMEPERIOD") {
+        "CHANGE_HOST_NOTIFICATION_TIMEPERIOD") {
       temp_contact->set_host_notification_period(request->charval());
       temp_contact->set_host_notification_period_ptr(temp_timeperiod);
       hattr = MODATTR_NOTIFICATION_TIMEPERIOD;
-    }
-    else if (ChangeContactObjectChar::Mode_Name(request->mode()) ==
-       "CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD"){
+    } else if (ChangeContactObjectChar::Mode_Name(request->mode()) ==
+               "CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD") {
       temp_contact->set_service_notification_period(request->charval());
       temp_contact->set_service_notification_period_ptr(temp_timeperiod);
       hattr = MODATTR_NOTIFICATION_TIMEPERIOD;
-    }
-    else return 1;
+    } else
+      return 1;
 
     /* set the modified attributes */
     temp_contact->set_modified_host_attributes(
-          temp_contact->get_modified_host_attributes() | hattr);
+        temp_contact->get_modified_host_attributes() | hattr);
     temp_contact->set_modified_service_attributes(
-          temp_contact->get_modified_service_attributes() | sattr);
+        temp_contact->get_modified_service_attributes() | sattr);
 
     /* send data to event broker */
     broker_adaptive_contact_data(
-          NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          temp_contact.get(), CMD_NONE, MODATTR_NONE,
-          temp_contact->get_modified_attributes(), hattr,
-          temp_contact->get_modified_host_attributes(), sattr,
-          temp_contact->get_modified_service_attributes(), nullptr);
+        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+        temp_contact.get(), CMD_NONE, MODATTR_NONE,
+        temp_contact->get_modified_attributes(), hattr,
+        temp_contact->get_modified_host_attributes(), sattr,
+        temp_contact->get_modified_service_attributes(), nullptr);
 
     /* update the status log with the contact info */
     temp_contact->update_status_info(false);
-
 
     return 0;
   });
@@ -2686,17 +2735,18 @@ grpc::Status engine_impl::ChangeContactObjectCustomVar(
  *
  * @param context gRPC context
  * @param unused
- * @param response Command success 
+ * @param response Command success
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::ShutdownProgram(grpc::ServerContext* context
-                                        __attribute__((unused)),
-                                        const ::google::protobuf::Empty* request
-                                        __attribute__((unused)),
-                                         ::google::protobuf::Empty* response) {
-  auto fn = std::packaged_task<int32_t(void)>(
-      []() -> int32_t { exit(0); return 0; });
+grpc::Status engine_impl::ShutdownProgram(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    ::google::protobuf::Empty* response) {
+  auto fn = std::packaged_task<int32_t(void)>([]() -> int32_t {
+    exit(0);
+    return 0;
+  });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
