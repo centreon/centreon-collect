@@ -17,8 +17,10 @@
 */
 
 #include "com/centreon/broker/compression/factory.hh"
+
 #include <cstring>
 #include <memory>
+
 #include "com/centreon/broker/compression/opener.hh"
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/parser.hh"
@@ -91,10 +93,9 @@ io::endpoint* factory::new_endpoint(
   if (it != cfg.params.end())
     size = std::stoul(it->second);
 
-  // Create compression object.
-  std::unique_ptr<compression::opener> openr(new compression::opener);
-  openr->set_level(level);
-  openr->set_size(size);
+  /* Create compression object. */
+  std::unique_ptr<compression::opener> openr(
+      new compression::opener(level, size));
   return openr.release();
 }
 

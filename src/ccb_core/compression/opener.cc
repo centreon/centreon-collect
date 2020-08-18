@@ -17,51 +17,27 @@
 */
 
 #include "com/centreon/broker/compression/opener.hh"
+
 #include <memory>
+
 #include "com/centreon/broker/compression/stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
- *  Default constructor.
- */
-opener::opener() : io::endpoint(false), _level(-1), _size(0) {}
-
-/**
- *  Copy constructor.
+ * @brief Constructor
  *
- *  @param[in] o Object to copy.
+ * @param level Compression level
+ * @param size
  */
-opener::opener(opener const& o)
-    : io::endpoint(o), _level(o._level), _size(o._size) {}
+opener::opener(int32_t level, uint32_t size)
+    : io::endpoint(false), _level(level), _size(size) {}
 
 /**
- *  Destructor.
+ * @brief Destructor
  */
-opener::~opener() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] o Object to copy.
- *
- *  @return This object.
- */
-opener& opener::operator=(opener const& o) {
-  if (this != &o) {
-    io::endpoint::operator=(o);
-    _level = o._level;
-    _size = o._size;
-  }
-  return (*this);
-}
+opener::~opener() noexcept {}
 
 /**
  *  Open a compression stream.
@@ -74,33 +50,6 @@ std::shared_ptr<io::stream> opener::open() {
     retval = _open(_from->open());
   return retval;
 }
-
-/**
- *  Set the compression level.
- *
- *  @param[in] level Compression level (between 1 and 9, default is -1).
- */
-void opener::set_level(int level) {
-  _level = level;
-  return;
-}
-
-/**
- *  Set the compression buffer size.
- *
- *  @param[in] size Compression buffer size (default is 0 which means no
- *                  buffering).
- */
-void opener::set_size(uint32_t size) {
-  _size = size;
-  return;
-}
-
-/**************************************
- *                                     *
- *          Private Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Open a compression stream.
