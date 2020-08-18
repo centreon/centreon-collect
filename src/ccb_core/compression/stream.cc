@@ -44,17 +44,8 @@ int const stream::max_data_size = 100000000;
  *  @param[in] level Compression level.
  *  @param[in] size  Compression buffer size.
  */
-stream::stream(int level, size_t size)
+stream::stream(int32_t level, size_t size)
     : _level(level), _shutdown(false), _size(size) {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-stream::stream(stream const& other) : io::stream(other) {
-  _internal_copy(other);
-}
 
 /**
  *  Destructor.
@@ -66,21 +57,6 @@ stream::~stream() {
   // Ignore exception whatever the error might be.
   catch (...) {
   }
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-stream& stream::operator=(stream const& other) {
-  if (this != &other) {
-    io::stream::operator=(other);
-    _internal_copy(other);
-  }
-  return *this;
 }
 
 /**
@@ -331,16 +307,4 @@ void stream::_get_data(int size, time_t deadline) {
     (void)e;
     _shutdown = true;
   }
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] other  Object to copy.
- */
-void stream::_internal_copy(stream const& other) {
-  _level = other._level;
-  _rbuffer = other._rbuffer;
-  _size = other._size;
-  _wbuffer = other._wbuffer;
 }
