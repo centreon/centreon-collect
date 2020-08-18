@@ -18,23 +18,23 @@
  */
 
 #include "com/centreon/broker/compression/opener.hh"
+
 #include <gtest/gtest.h>
 
 using namespace com::centreon::broker;
 
 class test_opener : public io::endpoint {
-    public:
-      std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
-      int32_t _level;
-      uint32_t _size;
+ public:
+  int32_t _level;
+  uint32_t _size;
 };
 
 /**
  *  Check compression opener's constructor with parameters.
  */
 TEST(Opener, ParamCtor) {
-  compression::opener o(1,  // _level
-                        0); // _size
+  compression::opener o(1,   // _level
+                        0);  // _size
   test_opener* test_o = reinterpret_cast<test_opener*>(&o);
 
   ASSERT_EQ(test_o->_level, 1);

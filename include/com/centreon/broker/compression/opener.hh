@@ -32,17 +32,17 @@ namespace compression {
  *  Open a compression stream.
  */
 class opener : public io::endpoint {
-    
-    std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
-    const int32_t _level;
-    const uint32_t _size;
+  const int32_t _level;
+  const uint32_t _size;
 
-  public:
-    opener(int32_t _level, uint32_t _size);
-    opener(opener const& o) = delete;
-    ~opener() noexcept;
-    opener& operator=(opener const& o) = delete;
-    std::shared_ptr<io::stream> open();
+  std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
+
+ public:
+  opener(int32_t level, uint32_t size);
+  opener(opener const&) = delete;
+  ~opener() noexcept;
+  opener& operator=(opener const&) = delete;
+  std::shared_ptr<io::stream> open();
 };
 }  // namespace compression
 

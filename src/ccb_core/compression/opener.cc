@@ -17,26 +17,26 @@
 */
 
 #include "com/centreon/broker/compression/opener.hh"
+
 #include <memory>
+
 #include "com/centreon/broker/compression/stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+/**
+ * @brief Constructor
+ *
+ * @param level Compression level
+ * @param size
+ */
+opener::opener(int32_t level, uint32_t size)
+    : io::endpoint(false), _level(level), _size(size) {}
 
 /**
- *  Constructor with parameters.
+ * @brief Destructor
  */
-opener::opener(int32_t _level, uint32_t _size)
-              : io::endpoint(false),
-              _level(_level),
-              _size(_size) {}
-
 opener::~opener() noexcept {}
 
 /**
@@ -50,12 +50,6 @@ std::shared_ptr<io::stream> opener::open() {
     retval = _open(_from->open());
   return retval;
 }
-
-/**************************************
- *                                     *
- *          Private Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Open a compression stream.
