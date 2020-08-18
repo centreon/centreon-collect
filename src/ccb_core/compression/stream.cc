@@ -17,14 +17,15 @@
 */
 
 #include "com/centreon/broker/compression/stream.hh"
+
 #include "com/centreon/broker/compression/zlib.hh"
-#include "com/centreon/exceptions/corruption.hh"
 #include "com/centreon/broker/exceptions/interrupt.hh"
-#include "com/centreon/exceptions/shutdown.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/logging/logging.hh"
+#include "com/centreon/exceptions/corruption.hh"
+#include "com/centreon/exceptions/shutdown.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -45,7 +46,7 @@ int const stream::max_data_size = 100000000;
  *  @param[in] size  Compression buffer size.
  */
 stream::stream(int32_t level, size_t size)
-    : _level(level), _shutdown(false), _size(size) {}
+    : _level(level), _size(size), _shutdown(false) {}
 
 /**
  *  Destructor.
@@ -97,11 +98,10 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
         // Check if size is within bounds.
         if ((size <= 0) || (size > max_data_size)) {
           // Skip corrupted data, one byte at a time.
-          logging::error(logging::low) << "compression: " << this
-                                       << " got corrupted packet size of "
-                                       << size << " bytes, not in the 0-"
-                                       << max_data_size
-                                       << " range, skipping next byte";
+          logging::error(logging::low)
+              << "compression: " << this << " got corrupted packet size of "
+              << size << " bytes, not in the 0-" << max_data_size
+              << " range, skipping next byte";
           if (!skipped)
             logging::error(logging::high) << "compression: peer " << peer()
                                           << " is sending corrupted data";
@@ -125,8 +125,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
               zlib::uncompress(reinterpret_cast<unsigned char const*>(
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
-        }
-        catch (corruption const& e) {
+        } catch (corruption const& e) {
           logging::debug(logging::medium) << e.what();
         }
       }
@@ -136,16 +135,15 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
             << "compression: " << this
             << " got corrupted compressed data, skipping next byte";
         if (!skipped)
-          logging::error(logging::high) << "compression: peer " << peer()
-                                        << " is sending corrupted data";
+          logging::error(logging::high)
+              << "compression: peer " << peer() << " is sending corrupted data";
         ++skipped;
         _rbuffer.pop(1);
         corrupted = true;
       } else {
-        logging::debug(logging::low) << "compression: " << this
-                                     << " uncompressed "
-                                     << size + sizeof(int32_t) << " bytes to "
-                                     << r->size() << " bytes";
+        logging::debug(logging::low)
+            << "compression: " << this << " uncompressed "
+            << size + sizeof(int32_t) << " bytes to " << r->size() << " bytes";
         data = r;
         _rbuffer.pop(size + sizeof(int32_t));
         corrupted = false;
@@ -155,16 +153,13 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
       logging::info(logging::high)
           << "compression: peer " << peer() << " sent " << skipped
           << " corrupted compressed bytes, resuming processing";
-  }
-  catch (exceptions::interrupt const& e) {
+  } catch (exceptions::interrupt const& e) {
     (void)e;
     return true;
-  }
-  catch (exceptions::timeout const& e) {
+  } catch (exceptions::timeout const& e) {
     (void)e;
     return false;
-  }
-  catch (shutdown const& e) {
+  } catch (shutdown const& e) {
     _shutdown = true;
     if (!_wbuffer.empty()) {
       std::shared_ptr<io::raw> r(new io::raw);
@@ -174,7 +169,6 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
     } else
       throw;
   }
-
   return true;
 }
 
@@ -186,7 +180,6 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
 void stream::statistics(json11::Json::object& tree) const {
   if (_substream)
     _substream->statistics(tree);
-  return;
 }
 
 /**
@@ -229,8 +222,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
           max_data_size);
     else if (r.size() > 0) {
       // Append data to write buffer.
-      std::copy(r.get_buffer().begin(),
-                r.get_buffer().end(),
+      std::copy(r.get_buffer().begin(), r.get_buffer().end(),
                 std::back_inserter(_wbuffer));
 
       // Send compressed data if size limit is reached.
@@ -261,10 +253,10 @@ void stream::_flush() {
     std::shared_ptr<io::raw> compressed(new io::raw);
     std::vector<char>& data(compressed->get_buffer());
     data = std::move(zlib::compress(_wbuffer, _level));
-    logging::debug(logging::low) << "compression: " << this << " compressed "
-                                 << _wbuffer.size() << " bytes to "
-                                 << compressed->size() << " bytes (level "
-                                 << _level << ")";
+    logging::debug(logging::low)
+        << "compression: " << this << " compressed " << _wbuffer.size()
+        << " bytes to " << compressed->size() << " bytes (level " << _level
+        << ")";
     _wbuffer.clear();
 
     // Add compressed data size.

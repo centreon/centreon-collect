@@ -20,6 +20,7 @@
 #define CCB_COMPRESSION_STREAM_HH
 
 #include <vector>
+
 #include "com/centreon/broker/compression/stack_array.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -34,24 +35,24 @@ namespace compression {
  *  Compress and uncompress data.
  */
 class stream : public io::stream {
-  void _flush();
-  void _get_data(int size, time_t timeout);
-
-  int32_t _level;
+  const int32_t _level;
+  const size_t _size;
   stack_array _rbuffer;
   bool _shutdown;
-  size_t _size;
   std::vector<char> _wbuffer;
+
+  void _flush();
+  void _get_data(int size, time_t timeout);
 
  public:
   static int const max_data_size;
 
   stream(int32_t level = -1, size_t size = 0);
-  stream(stream const& other) = delete;
   ~stream();
-  stream& operator=(stream const& other) = delete;
+  stream(stream const&) = delete;
+  stream& operator=(stream const&) = delete;
   int flush();
-  bool read(std::shared_ptr<io::data>& d, time_t deadline = (time_t) - 1);
+  bool read(std::shared_ptr<io::data>& d, time_t deadline = (time_t)-1);
   void statistics(json11::Json::object& tree) const;
   int write(std::shared_ptr<io::data> const& d);
 };
