@@ -512,19 +512,19 @@ class EngineRPCClient {
     grpc::ClientContext context;
     request.set_host_name(hostname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostDowntime(&context, request, response);
@@ -552,19 +552,19 @@ class EngineRPCClient {
     request.set_host_name(hostname);
     request.set_service_desc(svcdsc);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleServiceDowntime(&context, request, response);
@@ -576,33 +576,34 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleHostServicesDowntime(std::string const& hostname,
-                                    std::pair<bool, uint32_t> const& start,
-                                    std::pair<bool, uint32_t> const& end,
-                                    std::pair<bool, bool> const& fixed,
-                                    std::pair<bool, uint32_t> const& triggeredby,
-                                    std::pair<bool, uint32_t> const& duration,
-                                    std::string const& author,
-                                    std::string const& commentdata,
-                                    std::pair<bool, uint32_t> const& entrytime,
-                                    CommandSuccess* response) {
+  bool ScheduleHostServicesDowntime(
+      std::string const& hostname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostServicesDowntime(&context, request, response);
@@ -615,33 +616,34 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleHostGroupHostsDowntime(std::string const& hostgroupname,
-                                      std::pair<bool, uint32_t> const& start,
-                                      std::pair<bool, uint32_t> const& end,
-                                      std::pair<bool, bool> const& fixed,
-                                      std::pair<bool, uint32_t> const& triggeredby,
-                                      std::pair<bool, uint32_t> const& duration,
-                                      std::string const& author,
-                                      std::string const& commentdata,
-                                      std::pair<bool, uint32_t> const& entrytime,
-                                      CommandSuccess* response) {
+  bool ScheduleHostGroupHostsDowntime(
+      std::string const& hostgroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_group_name(hostgroupname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostGroupHostsDowntime(&context, request, response);
@@ -654,33 +656,34 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleHostGroupServicesDowntime(std::string const& hostgroupname,
-                                        std::pair<bool, uint32_t> const& start,
-                                        std::pair<bool, uint32_t> const& end,
-                                        std::pair<bool, bool> const& fixed,
-                                        std::pair<bool, uint32_t> const& triggeredby,
-                                        std::pair<bool, uint32_t> const& duration,
-                                        std::string const& author,
-                                        std::string const& commentdata,
-                                        std::pair<bool, uint32_t> const& entrytime,
-                                         CommandSuccess* response) {
+  bool ScheduleHostGroupServicesDowntime(
+      std::string const& hostgroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_group_name(hostgroupname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleHostGroupServicesDowntime(&context, request, response);
@@ -693,34 +696,35 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleServiceGroupHostsDowntime(std::string const& servicegroupname,
-                                        std::pair<bool, uint32_t> const& start,
-                                        std::pair<bool, uint32_t> const& end,
-                                        std::pair<bool, bool> const& fixed,
-                                        std::pair<bool, uint32_t> const& triggeredby,
-                                        std::pair<bool, uint32_t> const& duration,
-                                        std::string const& author,
-                                        std::string const& commentdata,
-                                        std::pair<bool, uint32_t> const& entrytime,
-     
-                                        CommandSuccess* response) {
+  bool ScheduleServiceGroupHostsDowntime(
+      std::string const& servicegroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_service_group_name(servicegroupname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleServiceGroupHostsDowntime(&context, request, response);
@@ -732,33 +736,34 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleServiceGroupServicesDowntime(std::string const& servicegroupname,
-                                        std::pair<bool, uint32_t> const& start,
-                                        std::pair<bool, uint32_t> const& end,
-                                        std::pair<bool, bool> const& fixed,
-                                        std::pair<bool, uint32_t> const& triggeredby,
-                                        std::pair<bool, uint32_t> const& duration,
-                                        std::string const& author,
-                                        std::string const& commentdata,
-                                        std::pair<bool, uint32_t> const& entrytime,
-                                        CommandSuccess* response) {
+  bool ScheduleServiceGroupServicesDowntime(
+      std::string const& servicegroupname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_service_group_name(servicegroupname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status = _stub->ScheduleServiceGroupServicesDowntime(
         &context, request, response);
@@ -770,34 +775,35 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleAndPropagateHostDowntime(std::string const& hostname,
-                                        std::pair<bool, uint32_t> const& start,
-                                        std::pair<bool, uint32_t> const& end,
-                                        std::pair<bool, bool> const& fixed,
-                                        std::pair<bool, uint32_t> const& triggeredby,
-                                        std::pair<bool, uint32_t> const& duration,
-                                        std::string const& author,
-                                        std::string const& commentdata,
-                                        std::pair<bool, uint32_t> const& entrytime,
+  bool ScheduleAndPropagateHostDowntime(
+      std::string const& hostname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
 
-                                        CommandSuccess* response) {
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status =
         _stub->ScheduleAndPropagateHostDowntime(&context, request, response);
@@ -810,33 +816,34 @@ class EngineRPCClient {
     return true;
   }
 
-  bool ScheduleAndPropagateTriggeredHostDowntime(std::string const& hostname,
-                                                std::pair<bool, uint32_t> const& start,
-                                                std::pair<bool, uint32_t> const& end,
-                                                std::pair<bool, bool> const& fixed,
-                                                std::pair<bool, uint32_t> const& triggeredby,
-                                                std::pair<bool, uint32_t> const& duration,
-                                                std::string const& author,
-                                                std::string const& commentdata,
-                                                std::pair<bool, uint32_t> const& entrytime,
-                                                CommandSuccess* response) {
+  bool ScheduleAndPropagateTriggeredHostDowntime(
+      std::string const& hostname,
+      std::pair<bool, uint32_t> const& start,
+      std::pair<bool, uint32_t> const& end,
+      std::pair<bool, bool> const& fixed,
+      std::pair<bool, uint32_t> const& triggeredby,
+      std::pair<bool, uint32_t> const& duration,
+      std::string const& author,
+      std::string const& commentdata,
+      std::pair<bool, uint32_t> const& entrytime,
+      CommandSuccess* response) {
     ScheduleDowntimeIdentifier request;
     grpc::ClientContext context;
     request.set_host_name(hostname);
     if (start.first)
-      request.mutable_start()->set_value(start.second);
+      request.set_start(start.second);
     if (end.first)
-      request.mutable_end()->set_value(end.second);
+      request.set_end(end.second);
     if (fixed.first)
-      request.mutable_fixed()->set_value(fixed.second);
+      request.set_fixed(fixed.second);
     if (triggeredby.first)
-      request.mutable_triggered_by()->set_value(triggeredby.second);
+      request.set_triggered_by(triggeredby.second);
     if (duration.first)
-      request.mutable_duration()->set_value(duration.second);
+      request.set_duration(duration.second);
     request.set_author(author);
     request.set_comment_data(commentdata);
     if (entrytime.first)
-      request.mutable_entry_time()->set_value(entrytime.second);
+      request.set_entry_time(entrytime.second);
 
     grpc::Status status = _stub->ScheduleAndPropagateTriggeredHostDowntime(
         &context, request, response);
@@ -912,8 +919,7 @@ class EngineRPCClient {
     grpc::ClientContext context;
     request.set_value(downtime_id);
 
-    grpc::Status status =
-        _stub->DeleteDowntime(&context, request, response);
+    grpc::Status status = _stub->DeleteDowntime(&context, request, response);
     if (!status.ok()) {
       std::cout << "RemoveHostAcknowledgementByIds rpc engine failed"
                 << std::endl;
@@ -1203,12 +1209,12 @@ class EngineRPCClient {
   }
 
   bool ChangeHostObjectCharVar(std::string const& hostname,
-                                 uint32_t mode,
-                                 std::string charval,
-                                 CommandSuccess* response) {
+                               uint32_t mode,
+                               std::string charval,
+                               CommandSuccess* response) {
     ChangeObjectChar request;
     grpc::ClientContext context;
-    
+
     request.set_host_name(hostname);
     request.set_mode(static_cast<ChangeObjectChar::Mode>(mode));
     request.set_charval(charval);
@@ -1221,7 +1227,7 @@ class EngineRPCClient {
     }
     return true;
   }
-  
+
   bool ChangeServiceObjectCharVar(std::string const& hostname,
                                   std::string const& servicedesc,
                                   uint32_t mode,
@@ -1229,7 +1235,7 @@ class EngineRPCClient {
                                   CommandSuccess* response) {
     ChangeObjectChar request;
     grpc::ClientContext context;
-    
+
     request.set_host_name(hostname);
     request.set_service_desc(servicedesc);
     request.set_mode(static_cast<ChangeObjectChar::Mode>(mode));
@@ -1250,7 +1256,7 @@ class EngineRPCClient {
                                   CommandSuccess* response) {
     ChangeContactObjectChar request;
     grpc::ClientContext context;
-    
+
     request.set_contact(contact);
     request.set_mode(static_cast<ChangeContactObjectChar::Mode>(mode));
     request.set_charval(charval);
@@ -1877,10 +1883,10 @@ int main(int argc, char** argv) {
     else
       entrytime = std::make_pair(true, atoi(argv[10]));
 
-    status = client.ScheduleHostDowntime(
-        hostname, start, end, fixed,
-        triggeredby, duration, author, commentdata, entrytime, &response);
-    std::cout << "ScheduleHostDowntime " << status <<  std::endl;
+    status = client.ScheduleHostDowntime(hostname, start, end, fixed,
+                                         triggeredby, duration, author,
+                                         commentdata, entrytime, &response);
+    std::cout << "ScheduleHostDowntime " << status << std::endl;
   } else if (strcmp(argv[1], "ScheduleServiceDowntime") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
@@ -2242,7 +2248,8 @@ int main(int argc, char** argv) {
     status = client.ScheduleAndPropagateTriggeredHostDowntime(
         hostname, start, end, fixed, triggeredby, duration, author, commentdata,
         entrytime, &response);
-    std::cout << "ScheduleAndPropagateTriggeredHostDowntime " << status << std::endl;
+    std::cout << "ScheduleAndPropagateTriggeredHostDowntime " << status
+              << std::endl;
   } else if (strcmp(argv[1], "ScheduleHostCheck") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
@@ -2364,9 +2371,8 @@ int main(int argc, char** argv) {
     uint32_t mode = atoi(argv[3]);
     std::string charval(argv[4]);
 
-    status = client.ChangeHostObjectCharVar(hostname, mode, charval,
-                                                 &response);
-    std::cout << "ChangeHostObjectCharVar " << status  << std::endl;
+    status = client.ChangeHostObjectCharVar(hostname, mode, charval, &response);
+    std::cout << "ChangeHostObjectCharVar " << status << std::endl;
   } else if (strcmp(argv[1], "ChangeServiceObjectCharVar") == 0) {
     CommandSuccess response;
     std::string hostname(argv[2]);
@@ -2374,18 +2380,18 @@ int main(int argc, char** argv) {
     uint32_t mode = atoi(argv[4]);
     std::string charval(argv[5]);
 
-    status = client.ChangeServiceObjectCharVar(hostname, servicedesc, 
-        mode, charval, &response);
-    std::cout << "ChangeServiceObjectCharVar " << status  << std::endl;
+    status = client.ChangeServiceObjectCharVar(hostname, servicedesc, mode,
+                                               charval, &response);
+    std::cout << "ChangeServiceObjectCharVar " << status << std::endl;
   } else if (strcmp(argv[1], "ChangeContactObjectCharVar") == 0) {
     CommandSuccess response;
     std::string contact(argv[2]);
     uint32_t mode = atoi(argv[3]);
     std::string charval(argv[4]);
 
-    status = client.ChangeContactObjectCharVar(contact, 
-        mode, charval, &response);
-    std::cout << "ChangeContactObjectCharVar " << status  << std::endl;
+    status =
+        client.ChangeContactObjectCharVar(contact, mode, charval, &response);
+    std::cout << "ChangeContactObjectCharVar " << status << std::endl;
   } else {
     std::cout << "unknown command" << std::endl;
     status = EXIT_FAILURE;

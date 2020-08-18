@@ -20,12 +20,13 @@
 #include "com/centreon/engine/enginerpc.hh"
 
 #include <gtest/gtest.h>
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <fstream>
 #include <thread>
 
-#include <fstream>
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -912,7 +913,7 @@ TEST_F(EngineRpc, ChangeHostObjectCharVar) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
@@ -943,7 +944,7 @@ TEST_F(EngineRpc, ChangeHostObjectCharVar) {
   }
   condvar.notify_one();
   th->join();
-  
+
   erpc.shutdown();
 }
 
@@ -953,7 +954,7 @@ TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  
+
   ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
@@ -984,7 +985,7 @@ TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
   }
   condvar.notify_one();
   th->join();
-  
+
   erpc.shutdown();
 }
 
@@ -1114,19 +1115,19 @@ TEST_F(EngineRpc, ScheduleHostDowntime) {
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  // we fake a wrong test with an undefined parameter 
+  // we fake a wrong test with an undefined parameter
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleHostDowntime 0", output.back());
   oss.str("");
-  
-  // we make the right test 
+
+  // we make the right test
   oss << "ScheduleHostDowntime test_host " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
   ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
   ASSERT_EQ("ScheduleHostDowntime 1", output.back());
-  
-  //deleting the current downtime
+
+  // deleting the current downtime
   uint64_t id = downtime_manager::instance()
                     .get_scheduled_downtimes()
                     .begin()
@@ -1166,7 +1167,7 @@ TEST_F(EngineRpc, ScheduleServiceDowntime) {
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleServiceDowntime 0", output.back());
   oss.str("");
-  
+
   oss << "ScheduleServiceDowntime test_host test_svc " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
@@ -1250,11 +1251,11 @@ TEST_F(EngineRpc, ScheduleHostGroupHostsDowntime) {
       << " 0 0 10000 undef host " << now;
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  
+
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleHostGroupHostsDowntime 0", output.back());
   oss.str("");
-  
+
   oss << "ScheduleHostGroupHostsDowntime test_hg " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
@@ -1293,20 +1294,20 @@ TEST_F(EngineRpc, ScheduleHostGroupServicesDowntime) {
       << " 0 0 10000 undef host " << now;
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  
+
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleHostGroupServicesDowntime 0", output.back());
   oss.str("");
-  
+
   oss << "ScheduleHostGroupServicesDowntime test_hg " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
   ASSERT_EQ(2u, downtime_manager::instance().get_scheduled_downtimes().size());
   ASSERT_EQ("ScheduleHostGroupServicesDowntime 1", output.back());
-  
+
   oss.str("");
   oss << "DeleteServiceDowntimeFull test_host undef undef undef"
-          " undef undef undef undef undef";
+         " undef undef undef undef undef";
   output = execute(oss.str());
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1335,18 +1336,18 @@ TEST_F(EngineRpc, ScheduleServiceGroupHostsDowntime) {
       << " 0 0 10000 undef host " << now;
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  
+
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleServiceGroupHostsDowntime 0", output.back());
   oss.str("");
-  
+
   oss << "ScheduleServiceGroupHostsDowntime test_sg " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
   ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
   ASSERT_EQ("ScheduleServiceGroupHostsDowntime 1", output.back());
 
-  //deleting current downtime
+  // deleting current downtime
   uint64_t id = downtime_manager::instance()
                     .get_scheduled_downtimes()
                     .begin()
@@ -1381,11 +1382,11 @@ TEST_F(EngineRpc, ScheduleServiceGroupServicesDowntime) {
       << now + 1 << " 0 0 10000 undef host " << now;
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  
+
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleServiceGroupServicesDowntime 0", output.back());
   oss.str("");
-  
+
   oss << "ScheduleServiceGroupServicesDowntime test_sg " << now << " "
       << now + 1 << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
@@ -1425,7 +1426,7 @@ TEST_F(EngineRpc, ScheduleAndPropagateHostDowntime) {
       << " 0 0 10000 undef host " << now;
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  
+
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleAndPropagateHostDowntime 0", output.back());
   oss.str("");
@@ -1435,7 +1436,7 @@ TEST_F(EngineRpc, ScheduleAndPropagateHostDowntime) {
   output = execute(oss.str());
   ASSERT_EQ(2u, downtime_manager::instance().get_scheduled_downtimes().size());
   ASSERT_EQ("ScheduleAndPropagateHostDowntime 1", output.back());
-  
+
   uint64_t id = downtime_manager::instance()
                     .get_scheduled_downtimes()
                     .begin()

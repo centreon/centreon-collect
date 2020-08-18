@@ -21,6 +21,7 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <algorithm>
 #include <functional>
 #include <future>
@@ -930,15 +931,13 @@ grpc::Status engine_impl::ScheduleHostDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->host_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
-    uint64_t downtime_id(0);
+    uint64_t downtime_id = 0;
     unsigned long duration;
     /* get the host */
     auto it = host::hosts.find(request->host_name());
@@ -946,18 +945,16 @@ grpc::Status engine_impl::ScheduleHostDowntime(
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
     /* scheduling downtime */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
-        request->entry_time().value(), request->author().c_str(),
-        request->comment_data().c_str(), request->start().value(),
-        request->end().value(), request->fixed().value(),
-        request->triggered_by().value(), duration, &downtime_id);
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
 
     return 0;
   });
@@ -994,10 +991,7 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->host_name().empty() || request->service_desc().empty() ||
-      request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->author().empty() || request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1012,20 +1006,18 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
       temp_service = it->second;
     if (temp_service == nullptr)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling downtime */
     downtime_manager::instance().schedule_downtime(
         downtime::service_downtime, request->host_name(),
-        request->service_desc(), request->entry_time().value(),
+        request->service_desc(), request->entry_time(),
         request->author().c_str(), request->comment_data().c_str(),
-        request->start().value(), request->end().value(),
-        request->fixed().value(), request->triggered_by().value(), duration,
-        &downtime_id);
+        request->start(), request->end(), request->fixed(),
+        request->triggered_by(), duration, &downtime_id);
 
     return 0;
   });
@@ -1061,9 +1053,7 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->host_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1077,11 +1067,10 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     for (service_map_unsafe::iterator it(temp_host->services.begin()),
          end(temp_host->services.end());
@@ -1091,11 +1080,10 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
       /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
           downtime::service_downtime, request->host_name(),
-          it->second->get_description(), request->entry_time().value(),
+          it->second->get_description(), request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
-          request->start().value(), request->end().value(),
-          request->fixed().value(), request->triggered_by().value(), duration,
-          &downtime_id);
+          request->start(), request->end(), request->fixed(),
+          request->triggered_by(), duration, &downtime_id);
     }
     return 0;
   });
@@ -1132,14 +1120,12 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->host_group_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    uint64_t downtime_id(0);
+    uint64_t downtime_id = 0;
     unsigned long duration;
     hostgroup* hg{nullptr};
     /* get the host group */
@@ -1148,11 +1134,10 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     if (it == hostgroup::hostgroups.end() || !it->second)
       return 1;
     hg = it->second.get();
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     /* iterate through host group members(hosts) */
     for (host_map_unsafe::iterator it(hg->members.begin()),
@@ -1160,11 +1145,10 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
          it != end; ++it)
       /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, it->first, "", request->entry_time().value(),
+          downtime::host_downtime, it->first, "", request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
-          request->start().value(), request->end().value(),
-          request->fixed().value(), request->triggered_by().value(), duration,
-          &downtime_id);
+          request->start(), request->end(), request->fixed(),
+          request->triggered_by(), duration, &downtime_id);
     return 0;
   });
 
@@ -1201,9 +1185,7 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->host_group_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1217,11 +1199,10 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     if (it == hostgroup::hostgroups.end() || !it->second)
       return 1;
     hg = it->second.get();
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     /* iterate through host group members(hosts) */
     for (host_map_unsafe::iterator it(hg->members.begin()),
@@ -1238,11 +1219,10 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
         /* scheduling downtime */
         downtime_manager::instance().schedule_downtime(
             downtime::service_downtime, it2->second->get_hostname(),
-            it2->second->get_description(), request->entry_time().value(),
+            it2->second->get_description(), request->entry_time(),
             request->author().c_str(), request->comment_data().c_str(),
-            request->start().value(), request->end().value(),
-            request->fixed().value(), request->triggered_by().value(), duration,
-            &downtime_id);
+            request->start(), request->end(), request->fixed(),
+            request->triggered_by(), duration, &downtime_id);
       }
     }
     return 0;
@@ -1280,9 +1260,7 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->service_group_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1296,11 +1274,10 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
          end(sg_it->second->members.end());
@@ -1314,11 +1291,10 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
         continue;
       /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, it->first.first, "",
-          request->entry_time().value(), request->author().c_str(),
-          request->comment_data().c_str(), request->start().value(),
-          request->end().value(), request->fixed().value(),
-          request->triggered_by().value(), duration, &downtime_id);
+          downtime::host_downtime, it->first.first, "", request->entry_time(),
+          request->author().c_str(), request->comment_data().c_str(),
+          request->start(), request->end(), request->fixed(),
+          request->triggered_by(), duration, &downtime_id);
       last_host = temp_host;
     }
     return 0;
@@ -1356,9 +1332,7 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->service_group_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1370,11 +1344,10 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     /* iterate through the services of service group */
     for (service_map_unsafe::iterator it(sg_it->second->members.begin()),
@@ -1383,10 +1356,9 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
       /* scheduling downtime */
       downtime_manager::instance().schedule_downtime(
           downtime::service_downtime, it->first.first, it->first.second,
-          request->entry_time().value(), request->author().c_str(),
-          request->comment_data().c_str(), request->start().value(),
-          request->end().value(), request->fixed().value(),
-          request->triggered_by().value(), duration, &downtime_id);
+          request->entry_time(), request->author().c_str(),
+          request->comment_data().c_str(), request->start(), request->end(),
+          request->fixed(), request->triggered_by(), duration, &downtime_id);
     return 0;
   });
 
@@ -1421,9 +1393,7 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
   if (request->host_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1437,26 +1407,23 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling the parent host */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
-        request->entry_time().value(), request->author().c_str(),
-        request->comment_data().c_str(), request->start().value(),
-        request->end().value(), request->fixed().value(),
-        request->triggered_by().value(), duration, &downtime_id);
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
 
     /* schedule (non-triggered) downtime for all child hosts */
     command_manager::schedule_and_propagate_downtime(
-        temp_host.get(), request->entry_time().value(),
-        request->author().c_str(), request->comment_data().c_str(),
-        request->start().value(), request->end().value(),
-        request->fixed().value(), 0, duration);
+        temp_host.get(), request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), 0, duration);
     return 0;
   });
 
@@ -1492,10 +1459,8 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
     grpc::ServerContext* context __attribute__((unused)),
     const ScheduleDowntimeIdentifier* request,
     CommandSuccess* response) {
-if (request->host_name().empty() || request->author().empty() ||
-      request->comment_data().empty() || !request->has_start() ||
-      !request->has_end() || !request->has_triggered_by() ||
-      !request->has_duration() || !request->has_entry_time())
+  if (request->host_name().empty() || request->author().empty() ||
+      request->comment_data().empty())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "all fieds must be defined");
 
@@ -1509,25 +1474,22 @@ if (request->host_name().empty() || request->author().empty() ||
       temp_host = it->second;
     if (temp_host == nullptr)
       return 1;
-    if (request->fixed().value())
-      duration = static_cast<unsigned long>(request->end().value() -
-                                            request->start().value());
+    if (request->fixed())
+      duration = static_cast<unsigned long>(request->end() - request->start());
     else
-      duration = static_cast<unsigned long>(request->duration().value());
+      duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling the parent host */
     downtime_manager::instance().schedule_downtime(
         downtime::host_downtime, request->host_name(), "",
-        request->entry_time().value(), request->author().c_str(),
-        request->comment_data().c_str(), request->start().value(),
-        request->end().value(), request->fixed().value(),
-        request->triggered_by().value(), duration, &downtime_id);
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
     /* scheduling his childs */
     command_manager::schedule_and_propagate_downtime(
-        temp_host.get(), request->entry_time().value(),
-        request->author().c_str(), request->comment_data().c_str(),
-        request->start().value(), request->end().value(),
-        request->fixed().value(), downtime_id, duration);
+        temp_host.get(), request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), downtime_id, duration);
 
     return 0;
   });
