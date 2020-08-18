@@ -20,6 +20,7 @@
 #define CCB_NEB_ACKNOWLEDGEMENT_HH
 
 #include <string>
+
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -41,6 +42,8 @@ namespace neb {
  *  notification process, a user can acknowledge the problem.
  */
 class acknowledgement : public io::data {
+  void _internal_copy(const acknowledgement& other);
+
  public:
   acknowledgement();
   acknowledgement(short acknowledgement_type,
@@ -84,9 +87,6 @@ class acknowledgement : public io::data {
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
-/*
- private:
-  void _internal_copy(acknowledgement const& other);*/
 };
 }  // namespace neb
 

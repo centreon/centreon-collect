@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/neb/acknowledgement.hh"
+
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
@@ -47,9 +48,12 @@ acknowledgement::acknowledgement()
       service_id(0),
       state(0) {}
 
-acknowledgement& acknowledgement::operator=(acknowledgement const& other) {	
-  io::data::operator=(other);
-  return *this;	
+acknowledgement& acknowledgement::operator=(acknowledgement const& other) {
+  if (&other != this) {
+    io::data::operator=(other);
+    _internal_copy(other);
+  }
+  return *this;
 }
 
 acknowledgement::acknowledgement(short acknowledgement_type,
@@ -103,20 +107,6 @@ acknowledgement::acknowledgement(acknowledgement const& other)
 acknowledgement::~acknowledgement() {}
 
 /**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-
-/**************************************
- *                                     *
- *          Private Methods            *
- *                                     *
- **************************************/
-
-/**
  *  @brief Copy internal data of the given object to the current
  *         instance.
  *
@@ -130,7 +120,7 @@ acknowledgement::~acknowledgement() {}
  *  @see acknowledgement(acknowledgement const&)
  *  @see operator=(acknowledgement const&)
  */
-/*void acknowledgement::_internal_copy(acknowledgement const& other) {
+void acknowledgement::_internal_copy(const acknowledgement& other) {
   acknowledgement_type = other.acknowledgement_type;
   author = other.author;
   comment = other.comment;
@@ -145,8 +135,7 @@ acknowledgement::~acknowledgement() {}
   poller_id = other.poller_id;
   service_id = other.service_id;
   state = other.state;
-  return;
-}*/
+}
 
 /**************************************
  *                                     *
@@ -183,5 +172,7 @@ mapping::entry const acknowledgement::entries[] = {
     mapping::entry()};
 
 // Operations.
-static io::data* new_ack() { return new acknowledgement; }
+static io::data* new_ack() {
+  return new acknowledgement;
+}
 io::event_info::event_operations const acknowledgement::operations = {&new_ack};
