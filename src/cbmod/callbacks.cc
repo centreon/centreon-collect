@@ -29,7 +29,6 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/logging/logging.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/callback.hh"
@@ -48,6 +47,7 @@
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -81,37 +81,39 @@ static struct {
   uint32_t macro;
   int (*callback)(int, void*);
 } const gl_callbacks[] = {
-      {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
-      {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
-      {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
-      {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
-      {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
-      {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
-      {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
-      {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
-      {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
-      {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
-      {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status}};
+    {NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &neb::callback_acknowledgement},
+    {NEBCALLBACK_COMMENT_DATA, &neb::callback_comment},
+    {NEBCALLBACK_DOWNTIME_DATA, &neb::callback_downtime},
+    {NEBCALLBACK_EVENT_HANDLER_DATA, &neb::callback_event_handler},
+    {NEBCALLBACK_EXTERNAL_COMMAND_DATA, &neb::callback_external_command},
+    {NEBCALLBACK_FLAPPING_DATA, &neb::callback_flapping_status},
+    {NEBCALLBACK_HOST_CHECK_DATA, &neb::callback_host_check},
+    {NEBCALLBACK_HOST_STATUS_DATA, &neb::callback_host_status},
+    {NEBCALLBACK_PROGRAM_STATUS_DATA, &neb::callback_program_status},
+    {NEBCALLBACK_SERVICE_CHECK_DATA, &neb::callback_service_check},
+    {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_service_status}};
 
 // List of Engine-specific callbacks.
 static struct {
   uint32_t macro;
   int (*callback)(int, void*);
 } const gl_engine_callbacks[] = {
-      {NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &neb::callback_dependency},
-      {NEBCALLBACK_ADAPTIVE_HOST_DATA, &neb::callback_host},
-      {NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &neb::callback_service},
-      {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_custom_variable},
-      {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
-      {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
-      {NEBCALLBACK_MODULE_DATA, &neb::callback_module},
-      {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
+    {NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &neb::callback_dependency},
+    {NEBCALLBACK_ADAPTIVE_HOST_DATA, &neb::callback_host},
+    {NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &neb::callback_service},
+    {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_custom_variable},
+    {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
+    {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
+    {NEBCALLBACK_MODULE_DATA, &neb::callback_module},
+    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
 
 // Registered callbacks.
 std::list<std::shared_ptr<neb::callback> > neb::gl_registered_callbacks;
 
 // External function to get program version.
-extern "C" { char const* get_program_version(); }
+extern "C" {
+char const* get_program_version();
+}
 
 // Statistics generator.
 static neb::statistics::generator gl_generator;
@@ -120,8 +122,7 @@ extern "C" void event_statistics(void* args) {
   (void)args;
   try {
     gl_generator.run();
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium)
         << "stats: error occurred while generating statistics event: "
         << e.what();
@@ -152,41 +153,25 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    nebstruct_acknowledgement_data const* ack_data;
-    std::shared_ptr<neb::acknowledgement> ack(new neb::acknowledgement);
+    nebstruct_acknowledgement_data const* ack_data =
+        static_cast<nebstruct_acknowledgement_data*>(data);
+    if (ack_data->host_id == 0)
+      throw msg_fmt("acknowledgement on host with id 0");
+    std::shared_ptr<neb::acknowledgement> ack =
+        std::make_shared<neb::acknowledgement>(
+            ack_data->acknowledgement_type,
+            ack_data->author_name ? ack_data->author_name : "",
+            ack_data->comment_data ? ack_data->comment_data : "", time(nullptr),
+            ack_data->host_id, ack_data->service_id,
+            config::applier::state::instance().poller_id(), ack_data->is_sticky,
+            ack_data->notify_contacts, ack_data->persistent_comment,
+            ack_data->state);
 
-    // Fill output var.
-    ack_data = static_cast<nebstruct_acknowledgement_data*>(data);
-    ack->acknowledgement_type = ack_data->acknowledgement_type;
-    if (ack_data->author_name)
-      ack->author = ack_data->author_name;
-    if (ack_data->comment_data)
-      ack->comment = ack_data->comment_data;
-    ack->entry_time = time(nullptr);
-    if (!ack_data->host_id)
-      throw msg_fmt("unnamed host");
-    if (ack_data->service_id) {
-      ack->host_id = ack_data->host_id;
-      ack->service_id = ack_data->service_id;
-      if (!ack->host_id || !ack->service_id)
-        throw msg_fmt(
-            "acknowledgement on service with host_id or service_id 0");
-    } else {
-      ack->host_id = ack_data->host_id;
-      if (ack->host_id == 0)
-        throw msg_fmt("acknowledgement on host with id 0");
-    }
-    ack->poller_id = config::applier::state::instance().poller_id();
-    ack->is_sticky = ack_data->is_sticky;
-    ack->notify_contacts = ack_data->notify_contacts;
-    ack->persistent_comment = ack_data->persistent_comment;
-    ack->state = ack_data->state;
     gl_acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = *ack;
 
     // Send event.
     gl_publisher.write(ack);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating acknowledgement event: "
                                     << e.what();
@@ -221,16 +206,11 @@ int neb::callback_comment(int callback_type, void* data) {
         comment_data->comment_type,
         comment_data->author_name ? comment_data->author_name : "",
         comment_data->comment_data ? comment_data->comment_data : "",
-        config::applier::state::instance().poller_id(),
-        comment_data->host_id,
-        comment_data->service_id,
-        comment_data->entry_time,
-        comment_data->entry_type,
-        comment_data->expire_time,
-        comment_data->expires,
-        comment_data->comment_id,
-        comment_data->persistent,
-        comment_data->source,
+        config::applier::state::instance().poller_id(), comment_data->host_id,
+        comment_data->service_id, comment_data->entry_time,
+        comment_data->entry_type, comment_data->expire_time,
+        comment_data->expires, comment_data->comment_id,
+        comment_data->persistent, comment_data->source,
         comment_data->type == NEBTYPE_COMMENT_DELETE ? time(nullptr) : 0);
     if (comment_data->service_id) {
       if (!comment->host_id || !comment->service_id)
@@ -243,8 +223,7 @@ int neb::callback_comment(int callback_type, void* data) {
 
     // Send event.
     gl_publisher.write(comment);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating comment event: "
                                     << e.what();
@@ -297,9 +276,9 @@ int neb::callback_custom_variable(int callback_type, void* data) {
             new_cvar->default_value = cvar->var_value;
 
             // Send custom variable event.
-            logging::info(logging::low) << "callbacks: new custom variable '"
-                                        << new_cvar->name << "' on host "
-                                        << new_cvar->host_id;
+            logging::info(logging::low)
+                << "callbacks: new custom variable '" << new_cvar->name
+                << "' on host " << new_cvar->host_id;
             neb::gl_publisher.write(new_cvar);
           }
         }
@@ -345,10 +324,10 @@ int neb::callback_custom_variable(int callback_type, void* data) {
             new_cvar->default_value = cvar->var_value;
 
             // Send custom variable event.
-            logging::info(logging::low) << "callbacks: new custom variable '"
-                                        << new_cvar->name << "' on service ("
-                                        << new_cvar->host_id << ", "
-                                        << new_cvar->service_id << ")";
+            logging::info(logging::low)
+                << "callbacks: new custom variable '" << new_cvar->name
+                << "' on service (" << new_cvar->host_id << ", "
+                << new_cvar->service_id << ")";
             neb::gl_publisher.write(new_cvar);
           }
         }
@@ -523,10 +502,9 @@ int neb::callback_dependency(int callback_type, void* data) {
           svc_dep->execution_failure_options = options;
       }
       svc_dep->inherits_parent = dep->get_inherits_parent();
-      logging::info(logging::low) << "callbacks: service (" << dep_ids.first
-                                  << ", " << dep_ids.second
-                                  << ") depends on service (" << ids.first
-                                  << ", " << ids.second << ")";
+      logging::info(logging::low)
+          << "callbacks: service (" << dep_ids.first << ", " << dep_ids.second
+          << ") depends on service (" << ids.first << ", " << ids.second << ")";
 
       // Publish dependency event.
       neb::gl_publisher.write(svc_dep);
@@ -623,8 +601,7 @@ int neb::callback_downtime(int callback_type, void* data) {
 
     // Send event.
     gl_publisher.write(downtime);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        "generating downtime event: "
                                     << e.what();
@@ -698,8 +675,7 @@ int neb::callback_event_handler(int callback_type, void* data) {
 
     // Send event.
     gl_publisher.write(event_handler);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating event handler event: "
                                     << e.what();
@@ -867,8 +843,7 @@ int neb::callback_flapping_status(int callback_type, void* data) {
 
     // Send event.
     gl_publisher.write(flapping_status);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        "generating flapping event: "
                                     << e.what();
@@ -916,9 +891,9 @@ int neb::callback_group(int callback_type, void* data) {
 
         // Send host group event.
         if (new_hg->id) {
-          logging::info(logging::low) << "callbacks: new host group "
-                                      << new_hg->id << " ('" << new_hg->name
-                                      << "') on instance " << new_hg->poller_id;
+          logging::info(logging::low)
+              << "callbacks: new host group " << new_hg->id << " ('"
+              << new_hg->name << "') on instance " << new_hg->poller_id;
           neb::gl_publisher.write(new_hg);
         }
       }
@@ -939,9 +914,9 @@ int neb::callback_group(int callback_type, void* data) {
 
         // Send service group event.
         if (new_sg->id) {
-          logging::info(logging::low) << "callbacks:: new service group "
-                                      << new_sg->id << " ('" << new_sg->name
-                                      << "') on instance " << new_sg->poller_id;
+          logging::info(logging::low)
+              << "callbacks:: new service group " << new_sg->id << " ('"
+              << new_sg->name << "') on instance " << new_sg->poller_id;
           neb::gl_publisher.write(new_sg);
         }
       }
@@ -1013,6 +988,16 @@ int neb::callback_group_member(int callback_type, void* data) {
         std::pair<uint32_t, uint32_t> p;
         p = engine::get_host_and_service_id(svc->get_hostname(),
                                             svc->get_description());
+        if (!sg->get_id())
+          throw msg_fmt("could not find service group id of group '{}'",
+                        sg->get_group_name());
+        if (!p.first)
+          throw msg_fmt("could not find host ID of host '{}'",
+                        svc->get_hostname());
+        if (!p.second)
+          throw msg_fmt("could not find service ID of service '{} / {}'",
+                        svc->get_hostname(), svc->get_description());
+
         std::shared_ptr<neb::service_group_member> sgm =
             std::make_shared<neb::service_group_member>(
                 sg->get_group_name(),
@@ -1022,11 +1007,8 @@ int neb::callback_group_member(int callback_type, void* data) {
                 p.second, // service_id parameter
                 member_data->type != NEBTYPE_SERVICEGROUPMEMBER_DELETE);
 
-        if (sgm->host_id && sgm->service_id && sgm->group_id) {
-          // Send service group member event.
-          if (sgm->host_id && sgm->service_id && sgm->group_id)
-            neb::gl_publisher.write(sgm);
-        }
+        // Send service group member event.
+        neb::gl_publisher.write(sgm);
       }
     }
   }
@@ -1175,17 +1157,16 @@ int neb::callback_host(int callback_type, void* data) {
       my_host->host_id = host_id;
 
       // Send host event.
-      logging::info(logging::low) << "callbacks:  new host " << my_host->host_id
-                                  << " ('" << my_host->host_name
-                                  << "') on instance " << my_host->poller_id;
+      logging::info(logging::low)
+          << "callbacks:  new host " << my_host->host_id << " ('"
+          << my_host->host_name << "') on instance " << my_host->poller_id;
       neb::gl_publisher.write(my_host);
 
       // Generate existing custom variables.
       for (com::centreon::engine::map_customvar::const_iterator
                it{h->custom_variables.begin()},
            end{h->custom_variables.end()};
-           it != end;
-           ++it) {
+           it != end; ++it) {
         std::string const& name{it->first};
         if (it->second.is_sent() && name != "HOST_ID") {
           nebstruct_custom_variable_data data;
@@ -1199,10 +1180,10 @@ int neb::callback_host(int callback_type, void* data) {
         }
       }
     } else
-      logging::error(logging::medium) << "callbacks: host '"
-                                      << (!h->get_name().empty() ? h->get_name()
-                                                                 : "(unknown)")
-                                      << "' has no ID (yet) defined";
+      logging::error(logging::medium)
+          << "callbacks: host '"
+          << (!h->get_name().empty() ? h->get_name() : "(unknown)")
+          << "' has no ID (yet) defined";
   }
   // Avoid exception propagation to C code.
   catch (...) {
@@ -1249,8 +1230,7 @@ int neb::callback_host_check(int callback_type, void* data) {
       // Send event.
       gl_publisher.write(host_check);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating host check event: "
                                     << e.what();
@@ -1353,9 +1333,8 @@ int neb::callback_host_status(int callback_type, void* data) {
         gl_acknowledgements.find(std::make_pair(host_status->host_id, 0u)));
     if ((it != gl_acknowledgements.end()) && !host_status->acknowledged) {
       if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
-            ||
-            (!it->second.is_sticky &&
-             (host_status->current_state != it->second.state)))) {
+            || (!it->second.is_sticky &&
+                (host_status->current_state != it->second.state)))) {
         std::shared_ptr<neb::acknowledgement> ack(
             new neb::acknowledgement(it->second));
         ack->deletion_time = time(nullptr);
@@ -1363,8 +1342,7 @@ int neb::callback_host_status(int callback_type, void* data) {
       }
       gl_acknowledgements.erase(it);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating host status event: "
                                     << e.what();
@@ -1488,8 +1466,7 @@ int neb::callback_process(int callback_type, void* data) {
       logging::debug(logging::high) << "callbacks: registering callbacks";
       for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks); ++i)
         gl_registered_callbacks.push_back(std::shared_ptr<callback>(
-            new neb::callback(gl_callbacks[i].macro,
-                              gl_mod_handle,
+            new neb::callback(gl_callbacks[i].macro, gl_mod_handle,
                               gl_callbacks[i].callback)));
 
       // Register Engine-specific callbacks.
@@ -1498,8 +1475,7 @@ int neb::callback_process(int callback_type, void* data) {
              i < sizeof(gl_engine_callbacks) / sizeof(*gl_engine_callbacks);
              ++i)
           gl_registered_callbacks.push_back(std::shared_ptr<callback>(
-              new neb::callback(gl_engine_callbacks[i].macro,
-                                gl_mod_handle,
+              new neb::callback(gl_engine_callbacks[i].macro, gl_mod_handle,
                                 gl_engine_callbacks[i].callback)));
       }
 
@@ -1515,8 +1491,7 @@ int neb::callback_process(int callback_type, void* data) {
 
         // Set variables.
         statistics_interval = gl_generator.interval();
-      }
-      catch (msg_fmt const& e) {
+      } catch (msg_fmt const& e) {
         logging::config(logging::high) << e.what();
         return 0;
       }
@@ -1549,14 +1524,8 @@ int neb::callback_process(int callback_type, void* data) {
         com::centreon::engine::timed_event* evt =
             new com::centreon::engine::timed_event(
                 com::centreon::engine::timed_event::EVENT_USER_FUNCTION,
-                time(nullptr) + statistics_interval,
-                1,
-                statistics_interval,
-                nullptr,
-                1,
-                val.data,
-                nullptr,
-                0);
+                time(nullptr) + statistics_interval, 1, statistics_interval,
+                nullptr, 1, val.data, nullptr, 0);
         com::centreon::engine::events::loop::instance().schedule(evt, false);
       }
     } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
@@ -1689,10 +1658,9 @@ int neb::callback_relation(int callback_type, void* data) {
           new_host_parent->parent_id = parent_id;
 
           // Send event.
-          logging::info(logging::low) << "callbacks: host "
-                                      << new_host_parent->parent_id
-                                      << " is parent of host "
-                                      << new_host_parent->host_id;
+          logging::info(logging::low)
+              << "callbacks: host " << new_host_parent->parent_id
+              << " is parent of host " << new_host_parent->host_id;
           neb::gl_publisher.write(new_host_parent);
         }
       }
@@ -1849,18 +1817,17 @@ int neb::callback_service(int callback_type, void* data) {
     my_service->service_id = p.second;
     if (my_service->host_id && my_service->service_id) {
       // Send service event.
-      logging::info(logging::low) << "callbacks: new service "
-                                  << my_service->service_id << " ('"
-                                  << my_service->service_description
-                                  << "') on host " << my_service->host_id;
+      logging::info(logging::low)
+          << "callbacks: new service " << my_service->service_id << " ('"
+          << my_service->service_description << "') on host "
+          << my_service->host_id;
       neb::gl_publisher.write(my_service);
 
       // Generate existing custom variables.
       for (com::centreon::engine::map_customvar::const_iterator
                it{s->custom_variables.begin()},
            end{s->custom_variables.end()};
-           it != end;
-           ++it) {
+           it != end; ++it) {
         if (it->second.is_sent() && !it->first.empty() &&
             it->first != "HOST_ID" && it->first != "SERVICE_ID") {
           nebstruct_custom_variable_data data;
@@ -1879,7 +1846,8 @@ int neb::callback_service(int callback_type, void* data) {
           << (!s->get_hostname().empty() ? s->get_hostname() : "(unknown)")
           << "', service '"
           << (!s->get_description().empty() ? s->get_description()
-                                            : "(unknown)") << "')";
+                                            : "(unknown)")
+          << "')";
   }
   // Avoid exception propagation in C code.
   catch (...) {
@@ -1928,8 +1896,7 @@ int neb::callback_service_check(int callback_type, void* data) {
       // Send event.
       gl_publisher.write(service_check);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating service check event: "
                                     << e.what();
@@ -2030,8 +1997,7 @@ int neb::callback_service_status(int callback_type, void* data) {
       service_status->service_id = p.second;
       if (!service_status->host_id || !service_status->service_id)
         throw msg_fmt("could not find ID of service ('{}', '{}')",
-                      s->get_hostname(),
-                      s->get_description());
+                      s->get_hostname(), s->get_description());
     }
     service_status->should_be_scheduled = s->get_should_be_scheduled();
     service_status->state_type =
@@ -2046,9 +2012,8 @@ int neb::callback_service_status(int callback_type, void* data) {
                                                 service_status->service_id)));
     if ((it != gl_acknowledgements.end()) && !service_status->acknowledged) {
       if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
-            ||
-            (!it->second.is_sticky &&
-             (service_status->current_state != it->second.state)))) {
+            || (!it->second.is_sticky &&
+                (service_status->current_state != it->second.state)))) {
         std::shared_ptr<neb::acknowledgement> ack(
             new neb::acknowledgement(it->second));
         ack->deletion_time = time(nullptr);
@@ -2056,8 +2021,7 @@ int neb::callback_service_status(int callback_type, void* data) {
       }
       gl_acknowledgements.erase(it);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     logging::error(logging::medium) << "callbacks: error occurred while"
                                        " generating service status event: "
                                     << e.what();
@@ -2071,4 +2035,6 @@ int neb::callback_service_status(int callback_type, void* data) {
 /**
  *  Unregister callbacks.
  */
-void neb::unregister_callbacks() { gl_registered_callbacks.clear(); }
+void neb::unregister_callbacks() {
+  gl_registered_callbacks.clear();
+}
