@@ -12,6 +12,7 @@
         "snmp_standard/mode/stringvalue.pm",
         "snmp_standard/mode/uptime.pm",
         "os/linux/local/plugin.pm",
+        "os/linux/local/custom/cli.pm",
         "os/linux/local/mode/discoverysnmp.pm"
     ]
 }
