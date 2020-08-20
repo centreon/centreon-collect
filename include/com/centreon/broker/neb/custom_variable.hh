@@ -40,6 +40,15 @@ namespace neb {
 class custom_variable : public custom_variable_status {
  public:
   custom_variable();
+  custom_variable(std::string name,
+                  std::string value,
+                  uint32_t host_id,
+                  uint32_t service_id,
+                  bool modified,
+                  timestamp update_time,
+                  bool enabled,
+                  std::string default_value,
+                  short var_type);
   custom_variable(custom_variable const& other);
   ~custom_variable();
   custom_variable& operator=(custom_variable const& other);

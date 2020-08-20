@@ -32,10 +32,27 @@ using namespace com::centreon::broker::neb;
  */
 custom_variable_status::custom_variable_status(uint32_t type)
     : io::data(type),
+      name(""),
+      value(""),
       host_id(0),
-      modified(true),
       service_id(0),
+      modified(true),
       update_time(0) {}
+
+custom_variable_status::custom_variable_status(uint32_t type,
+                                               std::string name,
+                                               std::string value,
+                                               uint32_t host_id,
+                                               uint32_t service_id,
+                                               bool modified,
+                                               timestamp update_time)
+    : io::data(type),
+      name(name),
+      value(value),
+      host_id(host_id),
+      service_id(service_id),
+      modified(modified),
+      update_time(update_time) {}
 
 /**
  *  Copy constructor.

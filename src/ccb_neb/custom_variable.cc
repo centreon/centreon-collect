@@ -31,11 +31,23 @@ using namespace com::centreon::broker::neb;
  *  Default constructor.
  */
 custom_variable::custom_variable()
-    : custom_variable_status(custom_variable::static_type()),
+    : custom_variable_status(custom_variable::static_type(), "", "", 0, 0, false, 0),
       enabled(true),
-      var_type(0) {
-  modified = false;
-}
+      var_type(0) {}
+
+custom_variable::custom_variable(std::string name,
+                                 std::string value,
+                                 uint32_t host_id,
+                                 uint32_t service_id,
+                                 bool modified,
+                                 timestamp update_time,
+                                 bool enabled,
+                                 std::string default_value,
+                                 short var_type)
+    : custom_variable_status(custom_variable::static_type(), name, value, host_id, service_id, modified, update_time),
+      default_value(default_value),
+      enabled(enabled),
+      var_type(var_type) {}
 
 /**
  *  Copy constructor.
