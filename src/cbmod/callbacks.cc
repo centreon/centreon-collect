@@ -261,7 +261,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
           engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
           if (hst && !hst->get_name().empty()) {
             // Fill custom variable event.
-            uint64_t host_id = engine::get_host_id(hst->get_name());
+            uint64_t host_id = hst->get_host_id();
             if (host_id != 0) {
               std::shared_ptr<custom_variable> new_cvar = std::make_shared<custom_variable>(
                 cvar->var_name,
@@ -285,7 +285,7 @@ int neb::callback_custom_variable(int callback_type, void* data) {
         case NEBTYPE_HOSTCUSTOMVARIABLE_DELETE: {
           engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
           if (hst && !hst->get_name().empty()) {
-            uint32_t host_id = engine::get_host_id(hst->get_name());
+            uint32_t host_id = hst->get_host_id();
             if (host_id != 0) {
               std::shared_ptr<custom_variable> old_cvar = std::make_shared<custom_variable>(
                 cvar->var_name,
@@ -312,15 +312,14 @@ int neb::callback_custom_variable(int callback_type, void* data) {
           if (svc && !svc->get_description().empty() &&
               !svc->get_hostname().empty()) {
             // Fill custom variable event.
-            std::pair<uint32_t, uint32_t> p;
-            p = engine::get_host_and_service_id(svc->get_hostname(),
-                                                svc->get_description());
-            if (p.first && p.second) {
+            uint32_t host_id = svc->get_host_id();
+            uint32_t service_id = svc->get_service_id();
+            if (host_id && service_id) {
               std::shared_ptr<custom_variable> new_cvar = std::make_shared<custom_variable>(
                 cvar->var_name,
                 cvar->var_value, // var_value
-                p.first, // host_id
-                p.second, // service_id
+                host_id,
+                service_id,
                 false, // modified
                 cvar->timestamp.tv_sec, // update_time
                 true, // enabled
@@ -340,14 +339,14 @@ int neb::callback_custom_variable(int callback_type, void* data) {
           engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
           if (svc && !svc->get_description().empty() &&
               !svc->get_hostname().empty()) {
-            std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
-                svc->get_hostname(), svc->get_description())};
-            if (p.first && p.second) {
+            uint32_t host_id = svc->get_host_id();
+            uint32_t service_id = svc->get_service_id();
+            if (host_id && service_id) {
               std::shared_ptr<custom_variable> old_cvar = std::make_shared<custom_variable>(
                 cvar->var_name,
                 cvar->var_value, // var_value
-                p.first, // host_id
-                p.second, // service_id
+                host_id,
+                service_id,
                 true, // modified
                 cvar->timestamp.tv_sec, // update_time
                 false, // enabled
