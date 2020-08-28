@@ -39,9 +39,11 @@ sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/20.10/web.Dockerfile.in > map/web.$DIST
 if [ "$DISTRIB" = 'centos7' ] ; then
   sed "s#@PROJECT@#map-web#g;s#@SUBDIR@#20.10/el7/noarch/map-web/$PROJECT-web-$VERSIONWEB-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
   sed "s#@PROJECT@#map-server#g;s#@SUBDIR@#20.10/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
+  sed "s#@PROJECT@#map-server-ng#g;s#@SUBDIR@#20.10/el7/noarch/map-server-ng/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
 else
   sed "s#@PROJECT@#map-web#g;s#@SUBDIR@#20.10/el8/noarch/map-web/$PROJECT-web-$VERSIONWEB-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
   sed "s#@PROJECT@#map-server#g;s#@SUBDIR@#20.10/el8/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
+  sed "s#@PROJECT@#map-server-ng#g;s#@SUBDIR@#20.10/el8/noarch/map-server-ng/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
 fi
 
 # Server image.
