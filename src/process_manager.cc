@@ -52,12 +52,14 @@ void process_manager::add(process* p) {
   if (!p)
     throw basic_error() << "invalid process: null pointer";
 
-  std::lock_guard<std::mutex> lock_process(p->_lock_process);
+  // We lock _lock_processes before to avoid deadlocks
+  std::lock_guard<std::mutex> lock(_lock_processes);
+
   // Check if the process need to be managed.
+  std::lock_guard<std::mutex> lock_process(p->_lock_process);
   if (p->_process == static_cast<pid_t>(-1))
     throw basic_error() << "invalid process: not running";
 
-  std::lock_guard<std::mutex> lock(_lock_processes);
   // Add pid process to use waitpid.
   _processes_pid[p->_process] = p;
 
