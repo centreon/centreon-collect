@@ -16,7 +16,7 @@ fi
 
 # Fetch sources.
 rm -rf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
-get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
+get_internal_source "map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
 
 # Create and populate container.
 BUILD_IMAGE="registry.centreon.com/map-build-dependencies-20.04:centos7"

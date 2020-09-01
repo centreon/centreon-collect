@@ -16,7 +16,7 @@ fi
 
 # Fetch sources.
 rm -rf "$PROJECT-server-$VERSION.tar.gz" "$PROJECT-server-$VERSION"
-get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
+get_internal_source "map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server-$VERSIONSERVER.tar.gz"
 tar xzf "$PROJECT-server-$VERSIONSERVER.tar.gz"
 
 # Build with Maven.
