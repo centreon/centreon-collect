@@ -9,7 +9,7 @@ set -x
 PROJECT=centreon-map
 
 # Retrieve copy of git repository.
-curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-git.tar.gz"
+curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-git.tar.gz"
 rm -rf "$PROJECT"
 tar xzf "$PROJECT-git.tar.gz"
 

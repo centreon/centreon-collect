@@ -26,7 +26,7 @@ fi
 
 # Fetch sources.
 rm -rf "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
-get_internal_source "map/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
+get_internal_source "map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE/$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"
 if [ "$DISTRIB" = 'centos8' ] ; then
   rm -rf "$PROJECT-server-$VERSIONSERVER"
   tar xzf "$PROJECT-server$flavor-$VERSIONSERVER.tar.gz"

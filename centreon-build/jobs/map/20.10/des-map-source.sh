@@ -83,13 +83,13 @@ done
 
 # Send it to srvi-repo.
 curl -F "file=@$PROJECT-web-client-$VERSIONWEB.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-web-client-$VERSIONWEB-php72.tar.gz"
-put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB.tar.gz"
-put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB-php72.tar.gz"
-put_internal_source "map" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT/web/packaging/$PROJECT-web-client.spectemplate"
-put_internal_source "map" "$PROJECT-desktop-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
-put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-$VERSIONSERVER.tar.gz"
-put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-ng-$VERSIONSERVER.tar.gz"
-put_internal_source "map" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-git.tar.gz"
+put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB.tar.gz"
+put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB-php72.tar.gz"
+put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT/web/packaging/$PROJECT-web-client.spectemplate"
+put_internal_source "map-desktop" "$PROJECT-desktop-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
+put_internal_source "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-$VERSIONSERVER.tar.gz"
+put_internal_source "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-ng-$VERSIONSERVER.tar.gz"
+put_internal_source "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
