@@ -28,10 +28,11 @@ Source4:    centreontrapd.pm
 Source5:    php-fpm.conf
 Source6:    install.conf.php
 Source7:    centreon-apache.conf
-Source8:    centreon-mysql.cnf
-Source9:    php.ini
-Source10:   mariadb-systemd.conf
-Source11:   php-fpm-systemd.conf
+Source8:    centreon-apache-https.conf
+Source9:    centreon-mysql.cnf
+Source10:   php.ini
+Source11:   mariadb-systemd.conf
+Source12:   php-fpm-systemd.conf
 
 License:    GPLv2
 Group:      Applications/System
@@ -269,7 +270,7 @@ managed by Centreon. This includes the default central poller.
 %prep
 %setup -q %{SOURCE0}
 %{__mkdir} additional
-%{__cp} %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE7} %{SOURCE8} %{SOURCE9} %{SOURCE10} %{SOURCE11} additional/
+%{__cp} %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE5} %{SOURCE6} %{SOURCE7} %{SOURCE8} %{SOURCE9} %{SOURCE10} %{SOURCE11} %{SOURCE12} additional/
 %{__sed} -i -e "s|@@LIB_ARCH@@|%{_lib}|g" additional/centreon-macroreplacement.txt
 echo "s:@@LIB_ARCH@@:%{_lib}:g" >> additional/centreon-macroreplacement.txt
 
@@ -391,6 +392,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -d -m 0775 %buildroot%{_datadir}/centreon/examples
 %{__cp} tmpl/install/redhat/centreontrapd.systemd %buildroot%{_datadir}/centreon/examples/
 %{__cp} additional/centreon-apache.conf %buildroot%{_datadir}/centreon/examples/centreon.apache.conf
+%{__cp} additional/centreon-apache-https.conf %buildroot%{_datadir}/centreon/examples/centreon.apache.https.conf
 
 # Copy base files.
 %{__cp} -r .env .env.local.php bootstrap.php composer.json container.php package.json config GPL_LIB api src vendor www %buildroot%{_datadir}/centreon/
