@@ -16,11 +16,11 @@ fi
 
 # Move sources to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO mv "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
+$SSH_REPO mv "/srv/sources/lts/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/lts/stable/"
 
 # Put sources online.
-upload_artifact_for_download "$PROJECT" 3.4 "$VERSION" tar.gz 0 "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/centreon/$PROJECT-$VERSION.tar.gz"
+upload_artifact_for_download "$PROJECT" 3.4 "$VERSION" tar.gz 0 "/srv/sources/lts/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/centreon/$PROJECT-$VERSION.tar.gz"
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
-$SSH_REPO /srv/scripts/sync-standard.sh --confirm /3.4
+$SSH_REPO /srv/scripts/sync-lts.sh --confirm /3.4
