@@ -47,17 +47,17 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 
 # Copy sources to server.
 SSH_REPO="ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com"
-DESTDIR="/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
+DESTDIR="/srv/sources/lts/testing/$PROJECT-$VERSION-$RELEASE"
 $SSH_REPO mkdir "$DESTDIR"
 scp -o StrictHostKeyChecking=no "input/$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:$DESTDIR/"
 
 # Copy files to server.
 FILES_CENTOS6='output-centos6/x86_64/*.rpm'
 FILES_CENTOS7='output-centos7/x86_64/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el6/testing/x86_64/RPMS"
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el7/testing/x86_64/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.4/el6/testing/x86_64
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.4/el7/testing/x86_64
+scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/lts/3.4/el6/testing/x86_64/RPMS"
+scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/lts/3.4/el7/testing/x86_64/RPMS"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/lts/3.4/el6/testing/x86_64
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/lts/3.4/el7/testing/x86_64
 
 # Generate doc.
 SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"

@@ -37,7 +37,7 @@ for distrib in el6 el7 ; do
 
     # Push RPM.
     if [ "$project" = centreon ] ; then
-      REPO='standard'
+      REPO='lts'
     elif [ "$project" = 'centreon-bam' ] ; then
       REPO='bam'
     elif [ "$project" = 'centreon-map' ] ; then

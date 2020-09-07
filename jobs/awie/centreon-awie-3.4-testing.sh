@@ -40,14 +40,14 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 
 # Copy files to server.
 REPO="ubuntu@srvi-repo.int.centreon.com"
-ssh "$REPO" mkdir -p "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE"
-scp "input/$PROJECT-$VERSION.tar.gz" "$REPO:/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE/"
+ssh "$REPO" mkdir -p "/srv/sources/lts/testing/$PROJECT-$VERSION-$RELEASE"
+scp "input/$PROJECT-$VERSION.tar.gz" "$REPO:/srv/sources/lts/testing/$PROJECT-$VERSION-$RELEASE/"
 FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp $FILES_CENTOS6 "$REPO:/srv/yum/standard/3.4/el6/testing/noarch/RPMS"
-scp $FILES_CENTOS7 "$REPO:/srv/yum/standard/3.4/el7/testing/noarch/RPMS"
-ssh "$REPO" createrepo /srv/yum/standard/3.4/el6/testing/noarch
-ssh "$REPO" createrepo /srv/yum/standard/3.4/el7/testing/noarch
+scp $FILES_CENTOS6 "$REPO:/srv/yum/lts/3.4/el6/testing/noarch/RPMS"
+scp $FILES_CENTOS7 "$REPO:/srv/yum/lts/3.4/el7/testing/noarch/RPMS"
+ssh "$REPO" createrepo /srv/yum/lts/3.4/el6/testing/noarch
+ssh "$REPO" createrepo /srv/yum/lts/3.4/el7/testing/noarch
 
 # Generate testing documentation.
 DOC="root@doc-dev.int.centreon.com"
