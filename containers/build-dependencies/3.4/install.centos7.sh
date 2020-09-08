@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Install development repository.
-curl -o centreon-release.rpm http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
+curl -o centreon-release.rpm http://yum.centreon.com/lts/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-5.el7.centos.noarch.rpm
 yum install --nogpgcheck centreon-release.rpm
 
 # Install required build dependencies for all Centreon projects.

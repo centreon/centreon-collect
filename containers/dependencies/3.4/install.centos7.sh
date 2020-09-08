@@ -11,7 +11,7 @@ echo 'assumeyes=1' >> /etc/yum.conf
 yum install curl nc
 
 # Install Centreon repository.
-curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm"
+curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/lts/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-5.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
 
 # Install Node.js.
