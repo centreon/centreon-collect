@@ -129,7 +129,7 @@ case "$PROJECT" in
           centreon-poller-display-central"
   ;;
   centreon-web)
-    DIR='/standard/3.4'
+    DIR='/lts/3.4'
     ARCH='noarch'
     RPMS="centreon
           centreon-base-config-centreon-engine
