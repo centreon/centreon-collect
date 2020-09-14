@@ -2,13 +2,6 @@
 FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Set middleware server.
-ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
-COPY lm/20.10/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
-RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
-COPY lm/20.10/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
-RUN sed -i -e 's#http://middleware#http://ci.int.centreon.com#g' /etc/php-fpm.d/centreon-license-manager.conf
-
 # Install repository.
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
