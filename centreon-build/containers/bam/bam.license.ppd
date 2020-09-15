@@ -4,7 +4,7 @@ Hash: SHA256
 
 {
   "product": {
-    "name": "mbi"
+    "name": "bam"
   },
   "client": {
     "name": "centreon"
@@ -28,12 +28,12 @@ Hash: SHA256
 Version: OpenPGP.js v1.6.2
 Comment: http://openpgpjs.org
 
-wsBcBAEBCAAQBQJfX2KcCRDzHVLX3VyIwQAAYtIH/2Ycj1egvM8u7q1/cJbL
-g4Hy+uyVxH1XgwXp/LNtJSJi+X0KcJ3ve4TR9/+1zDO1Qyk271ipX6iyJEcV
-Zn2IJmUp1V2Cy29s2ngM0Alu3JEQ8DKkcdj5kLmUuXG6v0ZuUftxIi3n8u3P
-/ZOieJ6vfq0rnlXMR0c5nnAi8tKGgdEv+gysP23aAuzYl2s2cwhgwOqSfrh0
-3XUsGm47KU7OFzdO3hLyJSfDc+zipQgghDw349ns44z+Gw+ujzndvwxmgIK6
-GROSzlQG1MJf0EjM9afNM+c900N2PIq6X/ZWo8XK4DcfqhMQT8YnO2rWT3hh
-93dUmnU5Pok4K/FQq3jcRWs=
-=ZBU3
+wsBcBAEBCAAQBQJfX2KcCRDzHVLX3VyIwQAA0FEH/AptJxgYQSuiiV5a39ZS
+P566VlCTlpLjheeex3fKAWVNkClvr+jviTQNdOYCkhAiEO/sIJsiENIvzdx4
+n7AxHIcEB994g/qJyqlEcbSdrzrvw5EKCbhFSwRHMU/+N8m7QiIHHYkYH1Vu
+Cb7AQ7gN3XxTOdTK+O97c59adNffxpNJWmiZ5N3ZR2vPTEDfPCsH/H84MQO0
+9aWIMB4sGdEM0HQmShGlNGiANEgAfukZtE4XmL5Tl87OTDL15hyl+aD98JgN
+lb9KFW2FlwYDWzg4LbGLvzNn9SKbJP0T+Xya8IlYhFr0gHlFSSYLsrlh+Vwh
+wWnEWCgBexX4hfzA2H2sMGY=
+=jdT0
 -----END PGP SIGNATURE-----

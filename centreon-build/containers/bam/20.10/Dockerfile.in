@@ -11,7 +11,7 @@ RUN yum install -y centreon-bam-server && \
     yum clean all
 
 # Install license file.
-COPY bam/bam.license /etc/centreon/license.d/bam.license
+COPY bam/bam.license.ppd /etc/centreon/license.d/bam.license
 
 # Install module in Centreon.
 COPY web/20.10/install-centreon-module.php /tmp/install-centreon-module.php
