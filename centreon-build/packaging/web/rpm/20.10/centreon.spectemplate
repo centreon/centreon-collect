@@ -370,6 +370,8 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/logAnalyserBroker %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/changeRrdDsName.pl %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/migrateWikiPages.php %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/registerServerTopology.php %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/registerServerTopology-Func.php %buildroot%{_datadir}/centreon/bin/
 
 # Add new installation backup directory
 %{__install} -d -m 0775 %buildroot%{_localstatedir}/lib/centreon/installs
@@ -699,6 +701,10 @@ sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 %defattr(0664, centreon, centreon, -)
 %config(noreplace) %{_sysconfdir}/centreon/conf.pm
 %config(noreplace) %{_sysconfdir}/centreon/centreontrapd.pm
+
+%defattr(-, root, root, -)
+%{_datadir}/centreon/bin/registerServerTopology.php
+%{_datadir}/centreon/bin/registerServerTopology-Func.php
 
 %defattr(-, centreon, centreon, 0775)
 %dir %{_localstatedir}/lib/centreon
