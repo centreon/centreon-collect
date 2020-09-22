@@ -40,7 +40,3 @@ path="/srv/sources/map/testing/centreon-map-client-$VERSION"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" rm -rf "$path"
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "$path"
 scp -o StrictHostKeyChecking=no -r installs/* "ubuntu@srvi-repo.int.centreon.com:$path"
-
-# Generate documentation.
-SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V 4.4.x -p'"

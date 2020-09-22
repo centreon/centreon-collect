@@ -42,9 +42,5 @@ EXTERNAL_PRODUCT_NAME="centreon-map4-desktop-client-$VERSION-x86_64.deb"
 $SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$BASE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
 
 # Copy p2 artifacts to remote server.
-$SSH_REPO ssh -o StrictHostKeyChecking=no "map-repo@10.24.1.107" rm -rf "centreon-studio-repository/$MAJOR/$MINOR"
-$SSH_REPO scp -r "/srv/p2/testing/$MAJOR/$MINOR" "map-repo@10.24.1.107:centreon-studio-repository/$MAJOR/$MINOR"
-
-# Generate online documentation.
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V 4.4.x -p'"
+$SSH_REPO ssh -o StrictHostKeyChecking=no "map-repo@yum.int.centreon.com" rm -rf "centreon-studio-repository/$MAJOR/$MINOR"
+$SSH_REPO scp -r "/srv/p2/testing/$MAJOR/$MINOR" "map-repo@yum.int.centreon.com:centreon-studio-repository/$MAJOR/$MINOR"

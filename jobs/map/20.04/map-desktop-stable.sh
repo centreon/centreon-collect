@@ -52,5 +52,5 @@ SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
 curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-debian&extension=deb&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Copy p2 artifacts to remote server.
-$SSH_REPO ssh -o StrictHostKeyChecking=no "map-repo@10.24.1.107" rm -rf "centreon-studio-repository/$MAJOR/$MINOR"
-$SSH_REPO scp -r "/srv/p2/testing/$MAJOR/$MINOR" "map-repo@10.24.1.107:centreon-studio-repository/$MAJOR/$MINOR"
+$SSH_REPO ssh -o StrictHostKeyChecking=no "map-repo@yum.int.centreon.com" rm -rf "centreon-studio-repository/$MAJOR/$MINOR"
+$SSH_REPO scp -r "/srv/p2/testing/$MAJOR/$MINOR" "map-repo@yum.int.centreon.com:centreon-studio-repository/$MAJOR/$MINOR"
