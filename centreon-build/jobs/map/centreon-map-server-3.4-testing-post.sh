@@ -33,7 +33,3 @@ $SSH_REPO rpm --resign /srv/yum/map/3.4/el7/testing/noarch/RPMS/$TOMCAT7_FILE
 # update yum metadata so that the remote RPM repository will be up to date
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/map/3.4/el6/testing/noarch
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/map/3.4/el7/testing/noarch
-
-# Generate doc on internal server.
-SSH_DOC="ssh -o StrictHostKeyChecking=no root@doc-dev.int.centreon.com"
-$SSH_DOC bash -c "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-map-4 -V 4.4.x -p'"
