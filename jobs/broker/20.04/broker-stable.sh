@@ -23,4 +23,3 @@ upload_tarball_for_download "$PROJECT" "$VERSION" "/srv/sources/standard/stable/
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "20.04" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "standard" "20.04" "el8" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
