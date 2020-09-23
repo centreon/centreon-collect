@@ -1,5 +1,6 @@
 centreon-devel
 cmake
+cmake3
 gcc
 gcc-c++
 gettext
