@@ -20,12 +20,10 @@ fi
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_source_to_testing "standard" "broker" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "20.04" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "20.04" "el8" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
 
 #
 # CI delivery.
 #
 else
   promote_canary_rpms_to_unstable "standard" "20.04" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
-  promote_canary_rpms_to_unstable "standard" "20.04" "el8" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
 fi
