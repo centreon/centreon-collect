@@ -226,6 +226,7 @@ performance data in RRD files.
 %package poller-centreon-engine
 Summary:    Rights and file for pollers (including central)
 Group:      Networking/Other
+Requires:   %{php_prefix}php-cli
 Requires:   centreon-common = %{version}-%{release}
 Requires:   centreon-trap = %{version}-%{release}
 Requires:   centreon-engine >= %{thismajor}
@@ -705,6 +706,7 @@ sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 %defattr(-, root, root, -)
 %{_datadir}/centreon/bin/registerServerTopology.php
 %{_datadir}/centreon/bin/registerServerTopology-Func.php
+%{_datadir}/centreon/bin/registerServerTopologyTemplate
 
 %defattr(-, centreon, centreon, 0775)
 %dir %{_localstatedir}/lib/centreon
