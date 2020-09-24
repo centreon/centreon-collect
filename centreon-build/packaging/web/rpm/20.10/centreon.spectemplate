@@ -373,6 +373,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/migrateWikiPages.php %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/registerServerTopology.php %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/registerServerTopology-Func.php %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/registerServerTopologyTemplate %buildroot%{_datadir}/centreon/bin/
 
 # Add new installation backup directory
 %{__install} -d -m 0775 %buildroot%{_localstatedir}/lib/centreon/installs
