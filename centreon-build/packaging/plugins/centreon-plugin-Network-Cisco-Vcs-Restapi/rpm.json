@@ -1,7 +1,7 @@
 {
     "dependencies": [
-        "perl(XML::Simple)",
-        "perl(DateTime)",
+	"perl(XML::LibXML::Simple)",
+	"perl(Date::Parse)",
         "perl(Digest::SHA)",
         "perl(Digest::MD5)",
         "perl(LWP::UserAgent)",
