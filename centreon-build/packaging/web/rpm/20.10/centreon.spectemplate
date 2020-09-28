@@ -539,6 +539,10 @@ fi
 %config(noreplace) %{_sysconfdir}/systemd/system/php-fpm.service.d/centreon.conf
 %endif
 
+# Symfony environment files
+%config(noreplace) %{_datadir}/centreon/.env
+%config(noreplace) %{_datadir}/centreon/.env.local.php
+
 # Binaries
 %defattr(-, root, root, -)
 %{_datadir}/centreon/bin/centFillTrapDB
