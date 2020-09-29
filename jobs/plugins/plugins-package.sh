@@ -23,7 +23,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 REGISTRY="registry.centreon.com"
 BUILD_IMG_CENTOS6="$REGISTRY/mon-build-dependencies-3.4:centos6"
 BUILD_IMG_CENTOS7="$REGISTRY/mon-build-dependencies-19.04:centos7"
-BUILD_IMG_CENTOS8="$REGISTRY/mon-build-dependencies-20.04:centos8"
+BUILD_IMG_CENTOS8="$REGISTRY/mon-build-dependencies-20.10:centos8"
 docker pull "$BUILD_IMG_CENTOS6"
 docker pull "$BUILD_IMG_CENTOS7"
 docker pull "$BUILD_IMG_CENTOS8"
@@ -128,7 +128,6 @@ if [ "$atleastoneplugin" -ne 0 ] ; then
   put_internal_rpms "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "20.04" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
   put_internal_rpms "20.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "20.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
   if [ "$BRANCH_NAME" '=' 'master' ] ; then
@@ -137,7 +136,6 @@ if [ "$atleastoneplugin" -ne 0 ] ; then
     copy_internal_rpms_to_unstable "standard" "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "20.04" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "20.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "standard" "20.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
   fi
