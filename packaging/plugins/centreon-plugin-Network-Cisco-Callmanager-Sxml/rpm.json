@@ -1,0 +1,13 @@
+{
+    "dependencies": [
+	"perl(XML::LibXML::Simple)",
+	"perl(DateTime)",
+        "perl(Digest::SHA)",
+        "perl(Digest::MD5)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(HTTP::ProxyPAC)"
+    ]
+}
