@@ -2,6 +2,7 @@
     "dependencies": [
 	"perl(XML::LibXML::Simple)",
 	"perl(DateTime)",
+	"perl-Net-Curl",
         "perl(Digest::SHA)",
         "perl(Digest::MD5)",
         "perl(LWP::UserAgent)",
