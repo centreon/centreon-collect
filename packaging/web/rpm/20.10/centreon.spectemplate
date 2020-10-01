@@ -492,6 +492,7 @@ REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /usr/bin/php -r "echo bi
 %{_unitdir}/centreon.service
 
 %pre common
+%{_bindir}/rm -rf %{_localstatedir}/cache/centreon/config/broker %{_localstatedir}/cache/centreon/config/engine %{_localstatedir}/cache/centreon/config/export 2> /dev/null
 %{_bindir}/getent group centreon &>/dev/null || %{_sbindir}/groupadd -r centreon
 %{_bindir}/getent passwd centreon &>/dev/null || %{_sbindir}/useradd -g centreon -m -d %{_localstatedir}/spool/centreon -r centreon 2> /dev/null
 
