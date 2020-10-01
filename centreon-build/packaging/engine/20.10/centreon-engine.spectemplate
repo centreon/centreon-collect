@@ -137,6 +137,9 @@ fi
 if id centreon-broker &>/dev/null; then
     %{_sbindir}/usermod -a -G %{user} centreon-broker
 fi
+if id centreon-gorgone &>/dev/null; then
+    %{_sbindir}/usermod -a -G centreon-gorgone %{user}
+fi
 %if 0%{?suse_version}
     %define httpgroup www
 %else
