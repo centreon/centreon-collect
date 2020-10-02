@@ -2,8 +2,8 @@
 
 set -e
 set -x
-
-. `dirname $0`/../common.sh
+exit 1 # SHOULD NOT BE RELEASED YET
+. `dirname $0`/../../common.sh
 
 # Project.
 PROJECT=centreon-documentation
