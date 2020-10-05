@@ -30,12 +30,8 @@ BuildRequires:  gcc-c++
 BuildRequires:  libgcrypt-devel
 BuildRequires:  lua-devel
 BuildRequires:  make
-%if 0%{?el7}
 BuildRequires:  MariaDB-devel
 BuildRequires:  MariaDB-shared
-%else
-BuildRequires:  mariadb-devel
-%endif
 BuildRequires:  rrdtool-devel
 BuildRequires:  systemd
 Requires:       centreon-common >= %{thismajor}
