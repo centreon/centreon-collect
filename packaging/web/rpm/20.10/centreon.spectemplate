@@ -609,7 +609,7 @@ fi
 %post web
 %if 0%{?el7}
 systemctl try-restart httpd24-httpd || :
-systemctl try-restart %{php_scl}-php-fpm || :
+systemctl try-restart %{php_prefix}php-fpm || :
 %else
 systemctl try-restart httpd || :
 systemctl try-restart php-fpm || :
