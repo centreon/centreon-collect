@@ -113,6 +113,7 @@ Group:      Networking/Other
 BuildRequires: systemd
 Requires:   centreon-common = %{version}-%{release}
 Requires:   centreon-perl-libs = %{version}-%{release}
+Requires:   bc
 Requires:   initscripts
 %if 0%{?el7}
 Requires:   httpd24
