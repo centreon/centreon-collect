@@ -142,7 +142,7 @@ Requires:   perl-HTML-Parser
 Requires:   rrdtool
 Requires:   rrdtool-perl
 Requires:   net-snmp
-#Requires:   net-snmp-perl
+Requires:   net-snmp-perl
 Requires:   net-snmp-utils
 Requires:   rsync
 Requires(post): /etc/sudoers
@@ -195,7 +195,7 @@ Group:      Networking/Other
 %{?systemd_requires}
 BuildRequires: systemd
 Requires:   net-snmp
-#Requires:   net-snmp-perl
+Requires:   net-snmp-perl
 Requires:   centreon-perl-libs = %{version}-%{release}
 Obsoletes:  centreon-trap-poller
 Obsoletes:  centreon-trap-central
