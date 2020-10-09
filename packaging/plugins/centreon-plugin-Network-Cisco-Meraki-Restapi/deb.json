@@ -1,6 +1,6 @@
 {
     "dependencies": [
-	"libjson-xs-perl",
+        "libjson-xs-perl",
         "liburi-encode-perl",
         "liblwp-useragent-perl",
         "liblwp-protocol-https-perl",
