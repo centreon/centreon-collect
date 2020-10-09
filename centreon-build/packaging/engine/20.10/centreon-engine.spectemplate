@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2019 Centreon
+## Copyright 2011-2020 Centreon
 ##
 
 %if 0%{?suse_version}
