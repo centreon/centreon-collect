@@ -20,7 +20,6 @@ fi
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_source_to_testing "standard" "gorgone" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "20.04" "el7" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "20.04" "el8" "noarch" "gorgone" "$PROJECT-$VERSION-$RELEASE"
 
 #
 # CI delivery.
