@@ -16,7 +16,7 @@ fi
 
 # Move sources to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO mv "/srv/sources/lts/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/lts/stable/"
+$SSH_REPO mv "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
