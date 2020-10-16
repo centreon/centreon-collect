@@ -141,7 +141,8 @@ case "$PROJECT" in
           centreon-poller-centreon-engine
           centreon-trap
           centreon-web"
-  ;;
+    EL6=no
+    ;;
   centreon-web-endoflife)
     DIR='/standard/3.3'
     ARCH='noarch'
@@ -176,15 +177,19 @@ esac
 
 # Move all RPMs to stable.
 for rpm in $RPMS ; do
-  $SSH_REPO mv "$BASE_DIR/$DIR/el6/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el6.$ARCH.rpm" "$BASE_DIR/$DIR/el6/stable/$ARCH/RPMS"
+  if [ "$EL6" '!=' 'no' ] ; then
+    $SSH_REPO mv "$BASE_DIR/$DIR/el6/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el6.$ARCH.rpm" "$BASE_DIR/$DIR/el6/stable/$ARCH/RPMS"
+  fi
   if [ "$EL7" '!=' 'no' ] ; then
     $SSH_REPO mv "$BASE_DIR/$DIR/el7/testing/$ARCH/RPMS/$rpm-$VERSION-$RELEASE.el7.*$ARCH.rpm" "$BASE_DIR/$DIR/el7/stable/$ARCH/RPMS"
   fi
 done
 
 # Create repo.
-$SSH_REPO createrepo "$BASE_DIR/$DIR/el6/stable/$ARCH"
-$SSH_REPO createrepo "$BASE_DIR/$DIR/el6/testing/$ARCH"
+if [ "$EL6" '!=' 'no' ] ; then
+  $SSH_REPO createrepo "$BASE_DIR/$DIR/el6/stable/$ARCH"
+  $SSH_REPO createrepo "$BASE_DIR/$DIR/el6/testing/$ARCH"
+fi
 if [ "$EL7" '!=' 'no' ] ; then
   $SSH_REPO createrepo "$BASE_DIR/$DIR/el7/stable/$ARCH"
   $SSH_REPO createrepo "$BASE_DIR/$DIR/el7/testing/$ARCH"
