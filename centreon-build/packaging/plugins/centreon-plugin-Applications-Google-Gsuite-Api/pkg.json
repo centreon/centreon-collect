@@ -3,7 +3,7 @@
     "pkg_summary": "Centreon Plugin to monitor the status of Gsuite applications using Api",
     "plugin_name": "centreon_google_gsuite_api.pl",
     "files": [
-        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
         "apps/google/gsuite/"
