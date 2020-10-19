@@ -48,7 +48,7 @@ cd ..
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Send it to srvi-repo.
-put_internal_source "widgets" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+put_internal_source "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF
