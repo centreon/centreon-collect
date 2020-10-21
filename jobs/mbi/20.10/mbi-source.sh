@@ -21,12 +21,6 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 else
   export RELEASE="$now.$COMMIT"
 fi
-PRERELEASE=`echo $VERSION | cut -d - -f 2`
-if [ -n "$PRERELEASE" ] ; then
-  VERSION=`echo $VERSION | cut -d - -f 1`
-  export VERSION="$VERSION"
-  export RELEASE="$PRERELEASE.$RELEASE"
-fi
 
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
