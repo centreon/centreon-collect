@@ -30,6 +30,6 @@ ssh $REPO_CREDS sh -c "'cd $tmpdir && tar xzf prod.tar.gz'"
 TARGETDIR="s3://centreon-documentation-preprod/$VERSION"
 ssh $REPO_CREDS aws s3 sync --acl public-read --delete "$tmpdir/prod/version" "$TARGETDIR"
 TARGETDIR="s3://centreon-documentation-preprod/current"
-#ssh $REPO_CREDS aws s3 sync --acl public-read --delete "$tmpdir/prod/current" "$TARGETDIR"
-ssh $REPO_CREDS aws cloudfront create-invalidation --distribution-id E1DRHP505UQYSQ --paths "/$VERSION/"'*'
+ssh $REPO_CREDS aws s3 sync --acl public-read --delete "$tmpdir/prod/current" "$TARGETDIR"
+ssh $REPO_CREDS aws cloudfront create-invalidation --distribution-id E1DRHP505UQYSQ --paths "/$VERSION/"'* /current/*'
 ssh $REPO_CREDS rm -rf "$tmpdir"

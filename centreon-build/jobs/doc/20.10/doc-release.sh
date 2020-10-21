@@ -2,7 +2,7 @@
 
 set -e
 set -x
-exit 1 # SHOULD NOT BE RELEASED YET
+
 . `dirname $0`/../../common.sh
 
 # Project.
