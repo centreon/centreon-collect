@@ -1,0 +1,29 @@
+# Base information.
+FROM registry.centreon.com/mon-dependencies-21.04:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install Centreon MBI repository.
+RUN curl -o centreon-mbi-release.rpm "http://srvi-repo.int.centreon.com/yum/mbi/5e0524c1c4773a938c44139ea9d8b4d7/21.04/el7/stable/noarch/RPMS/centreon-mbi-release-21.04-2.el7.centos.noarch.rpm"
+RUN yum install --nogpgcheck centreon-mbi-release.rpm
+RUN sed -i -e 's#yum.centreon.com/centreon-mbi#srvi-repo.int.centreon.com/yum/mbi#g' -e 's/enabled=0/enabled=1/g' /etc/yum.repos.d/centreon-mbi.repo
+
+# Install internal repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install packages.
+RUN yum --disablerepo='*' --enablerepo='centreon*' clean all
+RUN yum install centreon-bi-reporting-server MariaDB-server
+
+# Copy configuration files.
+COPY mbi/21.04/cbis-profile.xml /etc/centreon-bi/cbis-profile.xml
+COPY mbi/21.04/reports-profile.xml /etc/centreon-bi/reports-profile.xml
+
+# Install script.
+COPY mbi/21.04/install-server.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh
+
+# Main script.
+COPY mbi/21.04/run.sh /usr/local/bin/container.sh
+RUN chmod +x /usr/local/bin/container.sh
+ENTRYPOINT ["/usr/local/bin/container.sh"]

@@ -1,0 +1,14 @@
+build-essential
+centreon-clib
+cmake
+devscripts
+libgnutls28-dev
+liblua5.3-dev
+libmariadb-dev
+librrd-dev
+lintian
+lsb-base
+make
+pbuilder
+python3-pip
+zlib1g-dev
