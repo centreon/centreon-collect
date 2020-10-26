@@ -1,0 +1,96 @@
+%define debug_package %{nil}
+Name:           centreon-ha
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        Centreon HA add-on for Centreon
+%define thismajor 21.04.0
+%define nextmajor 20.11.0
+
+Group:          System Environment/Base
+License:        Apache-2.0
+URL:            https://github.com/centreon/centreon-ha
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+%{?systemd_requires}
+BuildRequires:  systemd
+Requires:       centreon-gorgone-centreon-config >= %{thismajor}
+Requires:       centreon-gorgone-centreon-config < %{nextmajor}
+Requires:       centreon-web >= %{thismajor}
+Requires:       centreon-web < %{nextmajor}
+Requires:       perl-common-sense
+Requires:       perl-Linux-Inotify2
+Requires:       resource-agents
+
+%description
+This add-on is built to manage a failover solution for Centreon.
+
+%prep
+%setup -q
+
+%install
+
+# bin
+%{__install} -d %buildroot%{_datadir}/centreon-ha
+%{__cp} -r bin %buildroot%{_datadir}/centreon-ha/
+
+# etc
+%{__install} -d %buildroot%{_sysconfdir}
+%{__cp} -r etc/* %buildroot%{_sysconfdir}/
+%{__rm} -rf %buildroot%{_sysconfdir}/centreon
+
+# lib
+%{__cp} -r lib %buildroot%{_datadir}/centreon-ha/
+
+# log
+%{__install} -d %buildroot%{_localstatedir}/log/centreon-ha
+
+# ocf-scripts
+%{__install} -d %buildroot%{_prefix}/lib/ocf/resource.d/heartbeat
+%{__cp} -r ocf-scripts/* %buildroot%{_prefix}/lib/ocf/resource.d/heartbeat/
+
+# systemd
+%{__install} -d %buildroot%{_unitdir}
+%{__cp} systemd/* %buildroot%{_unitdir}/
+
+%clean
+rm -rf %buildroot
+
+%files
+
+# bin
+%defattr(0755, root, root, -)
+%{_datadir}/centreon-ha/bin
+
+# etc
+%defattr(-, root, root, -)
+%{_sysconfdir}/centreon-ha
+%config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
+%config(noreplace) %{_sysconfdir}/centreon-ha/mysql-resources.sh
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/10-centreon-ha.yaml
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/20-centreon-ha-centreon-autodisco.yaml
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
+%{_sysconfdir}/logrotate.d/centreon-ha
+%{_sysconfdir}/sudoers.d/centreon-cluster
+%{_sysconfdir}/sudoers.d/centreon-cluster-db
+%{_sysconfdir}/sysconfig/cbd_sql
+%{_sysconfdir}/sysconfig/centreon_central_sync
+
+# lib
+%defattr(-, root, root, -)
+%{_datadir}/centreon-ha/lib
+
+# log
+%defattr(-, centreon, centreon, 0755)
+%{_localstatedir}/log/centreon-ha
+
+# ocf-scripts
+%defattr(0755, root, root, -)
+%{_prefix}/lib/ocf/resource.d/heartbeat/mysql-centreon
+
+# systemd
+%defattr(-, root, root, -)
+%{_unitdir}/cbd-sql.service
+%{_unitdir}/centreon-central-sync.service
+
+%changelog

@@ -1,0 +1,29 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon BAM",
+        "shortname": "bam"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "21.04"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/21.04/el7/noarch/bam/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/des-bam-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/bam/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}

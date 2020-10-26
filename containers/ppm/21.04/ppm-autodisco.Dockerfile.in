@@ -1,0 +1,15 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Kevin Duret <kduret@centreon.com>
+
+# Install package.
+RUN yum install --enablerepo='centreon-testing*' --enablerepo='centreon-unstable*' -y centreon-auto-discovery-server && \
+    yum clean all
+
+# Install license
+RUN mv /etc/centreon/license.d/epp.license.offline /etc/centreon/license.d/epp.license
+
+# Install module in Centreon.
+COPY ppm/21.04/install-autodisco.sh /tmp/install-autodisco.sh
+RUN chmod +x /tmp/install-autodisco.sh && \
+    /tmp/install-autodisco.sh
