@@ -125,7 +125,7 @@ put_internal_debs () {
   shift
   for deb in $@ ; do
     scp "$deb" "$REPO_CREDS:/tmp/"
-    ssh "$REPO_CREDS" "cd $DIR && reprepro --waitforlock 10 includedeb $DISTRIB /tmp/`basename $deb` && rm -f /tmp/`basename $deb`"
+    ssh "$REPO_CREDS" "mkdir -p $DIR && cd $DIR && reprepro --waitforlock 10 includedeb $DISTRIB /tmp/`basename $deb` && rm -f /tmp/`basename $deb`"
   done
 }
 
