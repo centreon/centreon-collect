@@ -2,7 +2,6 @@ gnutls
 httpd
 libgcrypt
 lua
-mariadb-client
 mariadb-server
 php
 php-cli
