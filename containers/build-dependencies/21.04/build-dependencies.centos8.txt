@@ -7,8 +7,6 @@ gnutls-devel
 libgcrypt-devel
 lua-devel
 make
-MariaDB-devel
-MariaDB-shared
 maven
 python3-pip
 redhat-lsb
