@@ -2,9 +2,8 @@ gnutls
 httpd
 libgcrypt
 lua
-MariaDB-client
-MariaDB-server
-MariaDB-shared
+mariadb-client
+mariadb-server
 php
 php-cli
 php-curl
