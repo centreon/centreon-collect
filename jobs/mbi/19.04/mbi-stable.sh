@@ -23,7 +23,7 @@ $SSH_REPO mv "/srv/sources/mbi/testing/mbi/$PROJECT-$VERSION-$RELEASE" "/srv/sou
 
 # Put sources online.
 SRCHASH=`$SSH_REPO "cat /srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/centreon-bi-server-$VERSION-php71.tar.gz | md5sum | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php71.tar.gz" "s3://centreon-download/enterprises/centreon-mbi/centreon-mbi-19.04/centreon-mbi-$VERSION/$SRCHASH/$PROJECT-$VERSION-php71.tar.gz"
+$SSH_REPO aws s3 cp --acl public-read "/srv/sources/mbi/stable/$PROJECT-$VERSION-$RELEASE/centreon-bi-server-$VERSION-php71.tar.gz" "s3://centreon-download/enterprises/centreon-mbi/centreon-mbi-19.04/centreon-mbi-$VERSION/$SRCHASH/centreon-bi-server-$VERSION-php71.tar.gz"
 
 # Download link.
 echo 'https://download.centreon.com/?action=product&product=centreon-mbi&version='$VERSION'&secKey='$SRCHASH
