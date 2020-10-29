@@ -14,7 +14,7 @@ if [ -e /usr/bin/cmake3 ] ; then
 else
   mycmake=cmake
 fi
-conan install /usr/local/src/centreon-broker
+conan install /usr/local/src/centreon-broker -r centreon-center
 CXXFLAGS="-O0 -g3 -std=c++11 -Wall -Wno-long-long" $mycmake -DWITH_TESTING=1 /usr/local/src/centreon-broker
 
 # Build project.
