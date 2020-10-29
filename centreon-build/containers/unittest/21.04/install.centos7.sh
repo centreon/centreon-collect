@@ -21,6 +21,11 @@ curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
+# Install cmake3
+yum install -y epel-release
+yum install -y cmake3
+yum remove epel-release
+
 # Install Conan, a C++ package manager.
 pip3 install conan
 conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon
