@@ -20,5 +20,5 @@ chmod +x /usr/local/bin/composer
 
 # Install Conan, a C++ package manager.
 pip3 install conan
-conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon
+conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon -r centreon-center
 conan remote remove conan-center
