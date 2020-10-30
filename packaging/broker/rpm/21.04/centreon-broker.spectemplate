@@ -30,6 +30,8 @@ BuildRequires:  gcc-c++
 BuildRequires:  libgcrypt-devel
 BuildRequires:  lua-devel
 BuildRequires:  make
+BuildRequires:  MariaDB-devel
+BuildRequires:  MariaDB-shared
 BuildRequires:  rrdtool-devel
 BuildRequires:  systemd
 Requires:       centreon-common >= %{thismajor}
