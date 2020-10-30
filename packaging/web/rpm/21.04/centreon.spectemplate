@@ -2,7 +2,7 @@
 %define version @VERSION@
 %define release @RELEASE@%{?dist}
 %define thismajor 21.04.0
-%define nextmajor 20.11.0
+%define nextmajor 21.05.0
 
 #%define selinuxdevel %{_datadir}/selinux/devel
 
