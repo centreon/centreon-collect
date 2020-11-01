@@ -16,8 +16,8 @@ composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41
 composer install
 
 # Run backend unit tests and code style.
-./vendor/bin/phing unittest
-./vendor/bin/phing codestyle
+composer run-script test:ci
+composer run-script codestyle:ci
 
 # Move reports to expected places.
 mv build/phpunit.xml /tmp/ut-be.xml
