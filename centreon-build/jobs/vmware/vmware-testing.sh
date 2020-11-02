@@ -15,10 +15,9 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Move RPMs to the testing repository.
-promote_unstable_rpms_to_testing "standard" "3.4" "el6" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
-promote_unstable_rpms_to_testing "standard" "3.4" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
-promote_unstable_rpms_to_testing "standard" "19.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "19.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "20.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "20.10" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
 promote_unstable_rpms_to_testing "standard" "20.10" "el8" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+promote_unstable_rpms_to_testing "standard" "21.04" "el7" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
+promote_unstable_rpms_to_testing "standard" "21.04" "el8" "noarch" "vmware" "$PROJECT-$VERSION-$RELEASE"
