@@ -21,9 +21,7 @@ fi
 DISTRIB="$1"
 
 # Pull mon-build-dependencies container.
-if [ "$DISTRIB" '=' 'centos6' ] ; then
-  docker pull registry.centreon.com/mon-build-dependencies-3.4:$DISTRIB
-elif [ "$DISTRIB" '=' 'centos7' ] ; then
+if [ "$DISTRIB" '=' 'centos7' ] ; then
   docker pull registry.centreon.com/mon-build-dependencies-19.04:$DISTRIB
 else
   docker pull registry.centreon.com/mon-build-dependencies-20.10:$DISTRIB
