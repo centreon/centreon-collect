@@ -20,9 +20,8 @@ dnf config-manager --set-enabled 'centreon-testing*'
 xargs dnf install < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
 dnf install --nogpgcheck -y nodejs
-npm install -g gulp
 npm install -g redoc-cli
 
 # Install Composer.
