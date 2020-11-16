@@ -57,13 +57,15 @@ docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input
 # Copy files to server.
 if [ "$DISTRIB" = 'centos7' ] ; then
   DISTRIB='el7'
+elif [ "$DISTRIB" = 'centos8' ] ; then
+  DISTRIB='el8'
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
 put_internal_rpms "21.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE" output/noarch/*.rpm
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "bam" "21.04" "el7" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE"
+  copy_internal_rpms_to_canary "bam" "21.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE"
 fi
 
 # Create RPMs tarball.
