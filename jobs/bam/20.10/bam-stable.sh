@@ -24,6 +24,7 @@ $SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "bam" "20.10" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "bam" "20.10" "el8" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
 
 # Download link.
 echo 'https://download.centreon.com/?action=product&product=centreon-bam&version='$VERSION'&secKey='$SRCHASH

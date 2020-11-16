@@ -20,6 +20,7 @@ fi
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_source_to_testing "bam" "bam" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "bam" "21.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "bam" "21.04" "el8" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
   TARGETVERSION="$VERSION"
 
 #
@@ -27,12 +28,13 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 #
 else
   promote_canary_rpms_to_unstable "bam" "21.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "bam" "21.04" "el8" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
   TARGETVERSION='21.04'
 fi
 
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
-for distrib in centos7 ; do
+for distrib in centos7 centos8 ; do
   docker pull "$REGISTRY/des-bam-$VERSION-$RELEASE:$distrib"
   docker tag "$REGISTRY/des-bam-$VERSION-$RELEASE:$distrib" "$REGISTRY/des-bam-$TARGETVERSION:$distrib"
   docker push "$REGISTRY/des-bam-$TARGETVERSION:$distrib"
