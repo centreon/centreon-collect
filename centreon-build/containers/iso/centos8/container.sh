@@ -45,6 +45,7 @@ sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d
 
 # Retrieve the necessary packages.
 yum -y install yum-utils
+dnf config-manager --set-enabled PowerTools
 yum -y --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
 
 # Unpack the addon Anaconda Centreon and create the file "product.img"
