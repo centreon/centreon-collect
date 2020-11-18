@@ -1,5 +1,5 @@
 # Base information.
-FROM registry.centreon.com/centos:8.2.2004
+FROM centos:8.2.2004
 MAINTAINER Laurent Pinsivy <lpinsivy@centreon.com>
 
 # Dependencies.
