@@ -55,11 +55,11 @@ cd -
 mv -f /tmp/product.img centreon-iso/images/
 
 # Add the packages present in the minimum ISO Centos 7 and the "comps.xml" file
-cp centreon-iso/repodata/*-c8-minimal-x86_64-comps.xml centreon-iso/c8-minimal-x86_64-comps.xml
+cp centreon-iso/Minimal/repodata/*-comps-Minimal.x86_64.xml centreon-iso/c7-minimal-x86_64-comps.xml
 
 # Create the repository
 yum -y --disablerepo=updates install createrepo
-createrepo -g c8-minimal-x86_64-comps.xml centreon-iso/
+createrepo -g c8-comps-Minimal.x86_64.xml centreon-iso/
 
 # ----------------------------
 # Generate Custom Centreon ISO
