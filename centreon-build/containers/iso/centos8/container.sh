@@ -36,7 +36,7 @@ umount mount
 yum -y install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ dnf-plugins-core epel-release
 yum -y install dnf-plugins-core epel-release
 wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/20.10/el8/stable/noarch/RPMS/centreon-release-20.10-2.el8.noarch.rpm
-yum -y install --nogpgcheck centreon-release-20.10-2.el8.noarch.rpm
+yum -y install --nogpgcheck centreon-iso/Packages/centreon-release-20.10-2.el8.noarch.rpm
 sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
 
 # -----------------------------------------
@@ -45,6 +45,7 @@ sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d
 
 # Retrieve the necessary packages.
 yum -y install yum-utils
+dnf config-manager --set-enabled PowerTools
 yum -y --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
 
 # Unpack the addon Anaconda Centreon and create the file "product.img"
@@ -54,11 +55,11 @@ cd -
 mv -f /tmp/product.img centreon-iso/images/
 
 # Add the packages present in the minimum ISO Centos 7 and the "comps.xml" file
-cp centreon-iso/repodata/*-c8-minimal-x86_64-comps.xml centreon-iso/c8-minimal-x86_64-comps.xml
+cp centreon-iso/Minimal/repodata/*-comps-Minimal.x86_64.xml centreon-iso/c7-minimal-x86_64-comps.xml
 
 # Create the repository
 yum -y --disablerepo=updates install createrepo
-createrepo -g c8-minimal-x86_64-comps.xml centreon-iso/
+createrepo -g c8-comps-Minimal.x86_64.xml centreon-iso/
 
 # ----------------------------
 # Generate Custom Centreon ISO
