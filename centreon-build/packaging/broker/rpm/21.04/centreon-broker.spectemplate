@@ -39,9 +39,9 @@ Requires:       centreon-common < %{nextmajor}
 Requires:       coreutils
 
 %if 0%{?suse_version}
-BuildRequires:  libgnutls-devel >= 2.0
+BuildRequires:  libgnutls-devel >= 3.3.29
 %else
-BuildRequires:  gnutls-devel >= 2.0
+BuildRequires:  gnutls-devel >= 3.3.29
 %endif
 
 %description
@@ -51,7 +51,7 @@ one or multiple databases.
 %package core
 Summary:        Centreon Broker's shared library.
 Group:		Applications/Communications
-Requires:       gnutls >= 2.0
+Requires:       gnutls >= 3.3.29
 Requires:       lua
 Requires:       %{name} = %{version}-%{release}
 Requires:       %{name}-storage = %{version}-%{release}
