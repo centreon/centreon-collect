@@ -18,8 +18,10 @@ tar czf "$PROJECT-git.tar.gz" "$PROJECT"
 
 # Get version.
 cd "$PROJECT"
-VERSION='20.10.0'
-export VERSION="$VERSION"
+export VERSION=`grep -E "20.10.[0-9]+" CHANGELOG.md | cut -d "[" -f2 | cut -d "]" -f1 | head -n 1`
+if [ "$VERSION" '=' '' ] ; then
+  echo VERSION='20.10.0'
+fi
 
 # Get release.
 COMMIT=`git log -1 HEAD --pretty=format:%h`
