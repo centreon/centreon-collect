@@ -67,14 +67,14 @@ rm -rf %buildroot
 %{_sysconfdir}/centreon-ha
 %config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
 %config(noreplace) %{_sysconfdir}/centreon-ha/mysql-resources.sh
-%{_sysconfdir}/centreon-gorgone/config.d/cron.d/10-centreon-ha.yaml
-%{_sysconfdir}/centreon-gorgone/config.d/cron.d/20-centreon-ha-centreon-autodisco.yaml
-%{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
+%config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/10-centreon-ha.yaml
+%config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/20-centreon-ha-centreon-autodisco.yaml
+%config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
 %{_sysconfdir}/logrotate.d/centreon-ha
 %{_sysconfdir}/sudoers.d/centreon-cluster
 %{_sysconfdir}/sudoers.d/centreon-cluster-db
-%{_sysconfdir}/sysconfig/cbd_sql
-%{_sysconfdir}/sysconfig/centreon_central_sync
+%config(noreplace) %{_sysconfdir}/sysconfig/cbd_sql
+%config(noreplace) %{_sysconfdir}/sysconfig/centreon_central_sync
 
 # lib
 %defattr(-, root, root, -)
