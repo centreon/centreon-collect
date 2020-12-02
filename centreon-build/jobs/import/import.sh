@@ -11,7 +11,9 @@ set -x
 
 . `dirname $0`/../common.sh
 
+REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 S3_BUCKET="centreon-repo-pobox"
+REMOTE_FILE="/tmp/rpm_to_import_$(date +%s).rpm"
 LOCAL_FILE=$(mktemp)
 
 PKGNAME=$PKGNAME
@@ -48,7 +50,9 @@ fi
 
 S3_OBJECT_URL="s3://$S3_BUCKET/$PKGNAME"
 
-aws s3 cp "$S3_OBJECT_URL" "$LOCAL_FILE"
+ssh $REPO_CREDS aws s3 cp "$S3_OBJECT_URL" "$REMOTE_FILE"
+scp "$REPO_CREDS:$REMOTE_FILE" "$LOCAL_FILE"
+ssh $REPO_CREDS rm -f "$REMOTE_FILE"
 
 # sign if needed
 if [ "$PKG_NEEDS_SIGN" = true ]; then
