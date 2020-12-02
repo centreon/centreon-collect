@@ -24,7 +24,6 @@ $SSH_REPO aws s3 cp --acl public-read "/srv/sources/standard/stable/$PROJECT-$VE
 curl "$DL_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "standard" "3.4" "el6" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "3.4" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
