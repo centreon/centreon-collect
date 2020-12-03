@@ -11,7 +11,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7> [tags]"
+  echo "USAGE: $0 <centos7> [tags]"
   exit 1
 fi
 DISTRIB="$1"
