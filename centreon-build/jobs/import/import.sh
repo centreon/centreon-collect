@@ -51,13 +51,14 @@ fi
 S3_OBJECT_URL="s3://$S3_BUCKET/$PKGNAME"
 
 ssh $REPO_CREDS aws s3 cp "$S3_OBJECT_URL" "$REMOTE_FILE"
-scp "$REPO_CREDS:$REMOTE_FILE" "$LOCAL_FILE"
-ssh $REPO_CREDS rm -f "$REMOTE_FILE"
 
 # sign if needed
 if [ "$PKG_NEEDS_SIGN" = true ]; then
-  rpmsign --resign "$LOCAL_FILE"
+  ssh $REPO_CREDS rpm --resign "$REMOTE_FILE"
 fi
+
+scp "$REPO_CREDS:$REMOTE_FILE" "$LOCAL_FILE"
+ssh $REPO_CREDS rm -f "$REMOTE_FILE"
 
 put_testing_rpms "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP" "$LOCAL_FILE"
 
