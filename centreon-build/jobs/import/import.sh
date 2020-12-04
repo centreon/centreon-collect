@@ -14,7 +14,6 @@ set -x
 REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
 S3_BUCKET="centreon-repo-pobox"
 REMOTE_FILE="/tmp/rpm_to_import_$(date +%s).rpm"
-LOCAL_FILE=$(mktemp)
 
 PKGNAME=$PKGNAME
 BASEREPO=$BASEREPO
@@ -49,6 +48,7 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP"] ; then
 fi
 
 S3_OBJECT_URL="s3://$S3_BUCKET/$PKGNAME"
+LOCAL_FILE="/tmp/$PKGNAME"
 
 ssh $REPO_CREDS aws s3 cp "$S3_OBJECT_URL" "$REMOTE_FILE"
 
