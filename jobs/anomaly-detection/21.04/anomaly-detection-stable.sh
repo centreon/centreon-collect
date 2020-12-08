@@ -25,3 +25,4 @@ curl "$DL_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&versio
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el8" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"

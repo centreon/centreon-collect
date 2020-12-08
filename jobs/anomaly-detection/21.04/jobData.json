@@ -16,9 +16,19 @@
             "url": "@REPOSITORY@/yum/internal/21.04/el7/noarch/anomaly-detection/@PROJECT@-@VERSION@-@RELEASE@"
         },
         {
+            "displayname": "RPM repository",
+            "flavor": "centos8",
+            "url": "@REPOSITORY@/yum/internal/21.04/el8/noarch/anomaly-detection/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
             "displayname": "Docker image",
             "flavor": "centos7",
             "url": "@REGISTRY@/mon-anomaly-detection-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos8",
+            "url": "@REGISTRY@/mon-anomaly-detection-@VERSION@-@RELEASE@:centos8"
         },
         {
             "displayname": "Sources",
