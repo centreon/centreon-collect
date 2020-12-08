@@ -91,7 +91,13 @@ Some Centreon Engine benchmarking tools.
 %setup
 
 %build
-conan install .
+cpp11=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
+if [ $cpp11 -eq 1 ] ; then
+  conan install . -s compiler.libcxx=libstdc++11
+else
+  conan install . -s compiler.libcxx=libstdc++
+fi
+
 CXXFLAGS="-DNDEBUG -g -O2 -Wno-long-long" %{cmake} \
     -DWITH_BENCH=1 \
     -DWITH_CREATE_FILES=0 \
