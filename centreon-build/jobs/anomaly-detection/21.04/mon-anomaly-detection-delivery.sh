@@ -21,6 +21,7 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   # Copy build artifacts.
   copy_internal_source_to_testing "standard" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "21.04" "el7" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "21.04" "el8" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
 
   # Create entry in download-dev.
   SRCHASH=00112233445566778899aabbccddeeff
@@ -31,4 +32,5 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
 #
 else
   promote_canary_rpms_to_unstable "standard" "21.04" "el7" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "21.04" "el8" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
 fi
