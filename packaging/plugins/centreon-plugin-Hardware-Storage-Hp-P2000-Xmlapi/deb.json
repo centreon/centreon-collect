@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        "libxml-xpath-perl",
+        "libxml-libxml-simple-perl",
         "liblwp-useragent-perl",
         "liblwp-protocol-https-perl",
         "libio-socket-ssl-perl",
