@@ -118,7 +118,13 @@ Include files needed to develop a module Centreon Broker.
 %setup
 
 %build
-conan install .
+cpp11=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
+if [ $cpp11 -eq 1 ] ; then
+  conan install . -s compiler.libcxx=libstdc++11
+else
+  conan install . -s compiler.libcxx=libstdc++
+fi
+
 CXXFLAGS="-O2 -g -std=c++11" %{cmake} \
 	-DWITH_TESTING=0 \
 	-DWITH_PREFIX=/usr \

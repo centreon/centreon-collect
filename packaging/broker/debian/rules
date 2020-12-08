@@ -6,7 +6,7 @@ export DH_VERBOSE=1
 	dh $@
 
 override_dh_auto_configure:
-	conan install -s arch=$(ARCH) .
+	conan install -s arch=$(ARCH) -s compiler.libcxx=libstdc++11 .
 	CXXFLAGS="-std=c++11" cmake \
 	  -DWITH_TESTING=0 \
 	  -DWITH_PREFIX=/usr \
