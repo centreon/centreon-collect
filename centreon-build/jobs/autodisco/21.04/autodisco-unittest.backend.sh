@@ -16,7 +16,7 @@ cd "/usr/local/src/$PROJECT"
 composer install
 
 # Run backend unit tests and code style.
-./vendor/bin/phing unittest
+XDEBUG_MODE=coverage ./vendor/bin/phing unittest
 ./vendor/bin/phing codestyle
 ./vendor/bin/phing phpstan
 
