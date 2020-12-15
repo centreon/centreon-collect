@@ -15,14 +15,19 @@ cd /usr/local/src/$PROJECT/
 composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
 composer install
 
+# Prepare build directory
+mkdir -p build
+
 # Run backend unit tests and code style.
-composer run-script test:ci
+XDEBUG_MODE=coverage composer run-script test:ci
 composer run-script codestyle:ci
+composer run-script phpstan:ci > build/phpstan.xml
 
 # Move reports to expected places.
 mv build/phpunit.xml /tmp/ut-be.xml
 mv build/coverage.xml /tmp/coverage.xml
 mv build/checkstyle.xml /tmp/codestyle-be.xml
+mv build/phpstan.xml /tmp/phpstan.xml
 
 cd "www/modules/centreon-license-manager/frontend/hooks"
 

@@ -43,6 +43,7 @@ docker cp "$containerid:/tmp/ut-be.xml" ut-be.xml
 docker cp "$containerid:/tmp/ut-fe.xml" ut-fe.xml
 docker cp "$containerid:/tmp/coverage.xml" coverage.xml
 docker cp "$containerid:/tmp/codestyle-be.xml" codestyle-be.xml
+docker cp "$containerid:/tmp/phpstan.xml" phpstan.xml
 docker cp "$containerid:/tmp/codestyle-fe.xml" codestyle-fe.xml
 
 # Stop container.
