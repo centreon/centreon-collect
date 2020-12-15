@@ -34,7 +34,6 @@ if [ "$DISTRIB" = 'frontend' ] ; then
   rm -rf ut-fe.xml codestyle-fe.xml snapshots
   docker start -a "$containerid"
   docker cp "$containerid:/tmp/ut.xml" ut-fe.xml
-  #docker cp "$containerid:/tmp/coverage.xml" coverage.xml
   docker cp "$containerid:/tmp/codestyle.xml" codestyle-fe.xml
   docker cp "$containerid:/usr/local/src/$PROJECT/www/modules/$PROJECT/react/__image_snapshots__/__diff_output__" snapshots || true
 else
