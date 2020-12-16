@@ -20,10 +20,13 @@ composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41
 composer install
 npm ci
 
+# Prepare build directory
+mkdir -p build
+
 # Run backend unit tests and code style.
-XDEBUG_MODE=coverage ./vendor/bin/phing unittest
-./vendor/bin/phing codestyle
-./vendor/bin/phing phpstan
+XDEBUG_MODE=coverage composer run-script test:ci
+composer run-script codestyle:ci
+composer run-script phpstan:ci > build/phpstan.xml
 
 # Run frontend unit tests and code style.
 npm run eslint -- -o checkstyle-fe.xml -f checkstyle
