@@ -53,7 +53,7 @@ foreach ($repos as $repo => $repodata) {
 
                 // Description.
                 $content .= 'name=' . $repodata['name'] . ($flavor == 'stable' ? '' : ' (UNSUPPORTED)') . "\n";
-                $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
+                $content .= 'baseurl=https://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
                 $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
                 $content .= "gpgcheck=1\n";
                 $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n\n";
