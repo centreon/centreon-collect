@@ -3,8 +3,8 @@
 ## Introduction
 
 Centreon continuous integration system uses Docker to provide fast
-testing environments. Usually any image is provided with two tags :
-**centos6** and **centos7**, according to the operating system flavor.
+testing environments. Usually any image is provided with one tag:
+**centos7**, according to the operating system flavor.
 
 Images are hosted on a private registry hosted at
 *registry.centreon.com*.
@@ -13,12 +13,12 @@ Images are hosted on a private registry hosted at
 
 Images can be built directly using *docker build*. The sole tricky part
 is the context directory which must be set to *containers*. For example
-if you wish to build the *mon-build-dependencies:centos6* image, you
+if you wish to build the *mon-build-dependencies:centos7* image, you
 could do it like so.
 
 ```shell
 cd centreon-build/containers
-docker build -t registry.centreon.com/mon-build-dependencies:centos6 -f build-dependencies.centos6.Dockerfile .
+docker build -t registry.centreon.com/mon-build-dependencies:centos7 -f build-dependencies.centos7.Dockerfile .
 ```
 
 Note the ending dot. This is directory context we're talking about.

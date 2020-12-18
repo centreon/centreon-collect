@@ -51,8 +51,7 @@ testing.
 
 ### -d Distribution
 
-Set the Linux distribution with which tests should be run. This can be
-either *centos6* (default) or *centos7*.
+Set the Linux distribution with which tests should be run. This can be *centos7*.
 
 ### -c Continuous integration
 
@@ -100,7 +99,7 @@ First run a container (see above).
 $> docker ps
 CONTAINER ID        IMAGE                                           ...
 b6a3a6de9be2        registry.centreon.com/mon-phantomjs:latest   ...
-ca73d70955ea        registry.centreon.com/mon-web:centos6        ...
+ca73d70955ea        registry.centreon.com/mon-web:centos7        ...
 
 $> docker exec -ti ca73d70955ea bash
 $> export TERM=xterm

@@ -16,7 +16,6 @@ Source3:    instCentPlugins.conf_centreon-engine
 Source5:    instCentWeb.conf_centreon-engine
 Source6:    centreon-logrotate
 Source7:    install-web-centreon-engine
-Source9:    centreon-apache-el6.conf
 Source18:    centreon-apache-el7.conf
 # For installed packagess
 Source10:   centreon-my.cnf-optim.sed

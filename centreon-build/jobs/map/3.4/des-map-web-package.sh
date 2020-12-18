@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$VERSIONWEB" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7|...>"
+  echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
 DISTRIB="$1"
@@ -43,9 +43,7 @@ docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input
 export VERSION="$OLDVERSION"
 
 # Copy files to server.
-if [ "$DISTRIB" = 'centos6' ] ; then
-  DISTRIB='el6'
-elif [ "$DISTRIB" = 'centos7' ] ; then
+if [ "$DISTRIB" = 'centos7' ] ; then
   DISTRIB='el7'
 else
   echo "Unsupported distribution $DISTRIB."

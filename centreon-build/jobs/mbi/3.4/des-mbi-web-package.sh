@@ -7,7 +7,7 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos7>"
   exit 1
 fi
 DISTRIB="$1"
@@ -33,10 +33,7 @@ export RELEASE="$now.$commit"
 git archive --prefix="centreon-bi-server-$VERSION/" "$GIT_BRANCH" | gzip > "../centreon-bi-server-$VERSION.tar.gz"
 cd ..
 
-# Encrypt source archive.
-if [ "$DISTRIB" = "centos6" ] ; then
-  phpversion=53
-elif [ "$DISTRIB" = "centos7" ] ; then
+if [ "$DISTRIB" = "centos7" ] ; then
   phpversion=54
 else
   echo "Unsupported distribution $DISTRIB."
@@ -53,9 +50,7 @@ cp centreon-bi-server/packaging/centreon-bi-server.spectemplate input
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
-if [ "$DISTRIB" = 'centos6' ] ; then
-  DISTRIB='el6'
-elif [ "$DISTRIB" = 'centos7' ] ; then
+if [ "$DISTRIB" = 'centos7' ] ; then
   DISTRIB='el7'
 else
   echo "Unsupported distribution $DISTRIB."

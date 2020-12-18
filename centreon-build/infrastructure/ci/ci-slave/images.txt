@@ -1,4 +1,3 @@
-registry.centreon.com/mon-build-dependencies-3.4:centos6
 registry.centreon.com/mon-build-dependencies-3.4:centos7
 registry.centreon.com/mon-build-dependencies-19.04:centos7
 registry.centreon.com/mon-build-dependencies-19.10:centos7
@@ -7,14 +6,12 @@ registry.centreon.com/mon-build-dependencies-20.04:centos8
 registry.centreon.com/mon-build-dependencies-20.04:debian10
 registry.centreon.com/mon-build-dependencies-20.04:debian10-armhf
 registry.centreon.com/mon-build-dependencies-20.04:opensuse-leap
-registry.centreon.com/mon-dependencies-3.4:centos6
 registry.centreon.com/mon-dependencies-3.4:centos7
 registry.centreon.com/mon-dependencies-19.04:centos7
 registry.centreon.com/mon-dependencies-19.10:centos7
 registry.centreon.com/mon-dependencies-20.04:centos7
 registry.centreon.com/mon-dependencies-20.04:centos8
 registry.centreon.com/mon-dependencies-20.04:debian10
-registry.centreon.com/mon-unittest-3.4:centos6
 registry.centreon.com/mon-unittest-3.4:centos7
 registry.centreon.com/mon-unittest-19.04:centos7
 registry.centreon.com/mon-unittest-19.10:centos7

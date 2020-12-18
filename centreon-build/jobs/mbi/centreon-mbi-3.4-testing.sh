@@ -10,14 +10,11 @@ if [ -z "$COMMIT" -o -z "$RELEASE" -o -z "$PROJECT" ]; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull registry.centreon.com/mon-build-dependencies-3.4:centos6
 docker pull registry.centreon.com/mon-build-dependencies-3.4:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
-rm -rf output-centos6
-mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
@@ -56,15 +53,11 @@ cp $PROJECT-$VERSION*.tar.gz input/
 cp $PROJECT/packaging/*.spectemplate input/
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-3.4:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies-3.4:centos7 input output-centos7
 
 # Copy files to server.
-FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/3.4/el6/testing/noarch/RPMS"
 scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/3.4/el7/testing/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/3.4/el6/testing/noarch
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/3.4/el7/testing/noarch
 
 # Generate documentation on doc-dev.

@@ -11,7 +11,7 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
-for distrib in centos6 centos7 ; do
+for distrib in centos7 ; do
   docker pull "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$distrib"
   docker tag "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-ppe-3.4:$distrib"
   docker push "$REGISTRY/mon-ppe-3.4:$distrib"

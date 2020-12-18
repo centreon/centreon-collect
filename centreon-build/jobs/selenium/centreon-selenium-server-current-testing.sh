@@ -13,14 +13,11 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-docker pull registry.centreon.com/mon-build-dependencies:centos6
 docker pull registry.centreon.com/mon-build-dependencies:centos7
 
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
-rm -rf output-centos6
-mkdir output-centos6
 rm -rf output-centos7
 mkdir output-centos7
 
@@ -37,18 +34,14 @@ tar czf "input/$NAME-$VERSION.tar.gz" "$NAME-$VERSION"
 
 # Build RPMs.
 cp `dirname $0`/../../packaging/selenium/$NAME.spectemplate input/
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos6 input output-centos6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com/mon-build-dependencies:centos7 input output-centos7
 
 # Copy files to server.
 REPO="ubuntu@srvi-repo.int.centreon.com"
 ssh "$REPO" mkdir -p "/srv/sources/standard/testing/$NAME-$VERSION-$RELEASE"
 scp "input/$NAME-$VERSION.tar.gz" "$REPO:/srv/sources/standard/testing/$NAME-$VERSION-$RELEASE/"
-FILES_CENTOS6='output-centos6/noarch/*.rpm'
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp $FILES_CENTOS6 "$REPO:/srv/yum/standard/3.4/el6/testing/noarch/RPMS"
 scp $FILES_CENTOS7 "$REPO:/srv/yum/standard/3.4/el7/testing/noarch/RPMS"
-ssh "$REPO" createrepo /srv/yum/standard/3.4/el6/testing/noarch
 ssh "$REPO" createrepo /srv/yum/standard/3.4/el7/testing/noarch
 
 # Generate testing documentation.

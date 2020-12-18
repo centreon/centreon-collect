@@ -8,9 +8,6 @@ set -x
 # Check arguments.
 VERSION="$1"
 case "$2" in
-  centos6)
-    BASE_IMAGE="alanfranz/drb-epel-6-x86-64"
-    ;;
   centos7)
     BASE_IMAGE="alanfranz/drb-epel-7-x86-64"
     ;;

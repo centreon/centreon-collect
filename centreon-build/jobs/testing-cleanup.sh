@@ -49,7 +49,3 @@ esac
 $SSH_REPO rm -rf "/srv/sources/$repo/testing/$PROJECT/*"
 $SSH_REPO rm -rf "/srv/yum/$repo/$VERSION/el7/testing/$arch/$PROJECT/*"
 $SSH_REPO createrepo "/srv/yum/$repo/$VERSION/el7/testing/$arch"
-if [ "$VERSION" = '3.4' ] ; then
-  $SSH_REPO rm -rf "/srv/yum/$repo/$VERSION/el6/testing/$arch/$PROJECT/*"
-  $SSH_REPO createrepo "/srv/yum/$repo/$VERSION/el6/testing/$arch"
-fi

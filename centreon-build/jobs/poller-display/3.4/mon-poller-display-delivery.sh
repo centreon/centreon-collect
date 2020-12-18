@@ -12,7 +12,7 @@ fi
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
 for image in mon-poller-display mon-poller-display-central ; do
-  for distrib in centos6 centos7 ; do
+  for distrib in centos7 ; do
     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-3.4:$distrib"
     docker push "$REGISTRY/$image-3.4:$distrib"
