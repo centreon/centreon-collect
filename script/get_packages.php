@@ -43,16 +43,14 @@ function getIfNotExists($filename, $newFile, $url) {
 /**
  *  Get Engine and Broker packages.
  *
- * @param $distrib  Distribution name. Can be one of 'centos6' or 'centos7'.
+ * @param $distrib  Distribution name. Can be only be 'centos7'.
  * @param $version  Centreon version (3.4 or 18.10)
  * @throws Exception
  */
 function getPackages($distrib, $version) {
     global $expectedDirectories, $expectedFiles;
     echo "Searching latest Engine and Broker packages...\n";
-    if ($distrib == 'centos6') {
-        $url = 'http://srvi-repo.int.centreon.com/yum/internal/' . $version . '/el6/x86_64/';
-    } else if ($distrib == 'centos7') {
+    if ($distrib == 'centos7') {
         $url = 'http://srvi-repo.int.centreon.com/yum/internal/' . $version . '/el7/x86_64/';
     } else {
         throw new \Exception('Unknown distribution ' . $distrib);

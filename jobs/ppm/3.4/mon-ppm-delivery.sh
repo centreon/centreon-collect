@@ -11,8 +11,7 @@ fi
 
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
-for distrib in centos6 centos7 ; do
-  docker pull "$REGISTRY/mon-ppm-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-ppm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-ppm-3.4:$distrib"
-  docker push "$REGISTRY/mon-ppm-3.4:$distrib"
-done
+distrib="centos7"
+docker pull "$REGISTRY/mon-ppm-$VERSION-$RELEASE:$distrib"
+docker tag "$REGISTRY/mon-ppm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-ppm-3.4:$distrib"
+docker push "$REGISTRY/mon-ppm-3.4:$distrib"

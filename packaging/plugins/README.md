@@ -32,7 +32,6 @@ The Jenkins job in charge of building unstable packages is the
 
 For each successful jobs, packages will be available on the unstable repositories:
 
-* 2.8/CentOS 6: <http://yum.centreon.com/standard/3.4/el6/unstable/noarch/plugins/>,
 * 2.8/CentOS 7: <http://yum.centreon.com/standard/3.4/el7/unstable/noarch/plugins/>,
 * 18.10/CentOS 7: <http://yum.centreon.com/standard/18.10/el7/unstable/noarch/plugins/>.
 
@@ -48,7 +47,6 @@ This job needs a version and a release number:
 
 For each successful jobs, packages will be available on the testing repositories:
 
-* 2.8/CentOS 6: <http://yum.centreon.com/standard/3.4/el6/testing/noarch/plugins/>,
 * 2.8/CentOS 7: <http://yum.centreon.com/standard/3.4/el7/testing/noarch/plugins/>,
 * 18.10/CentOS 7: <http://yum.centreon.com/standard/18.10/el7/testing/noarch/plugins/>.
 

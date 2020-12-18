@@ -178,7 +178,7 @@ if ($synchronize) {
             'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
         ),
         '/mon-ppm1' => array(
-            'distribution' => array('centos6', 'centos7')
+            'distribution' => array('centos7')
         ),
         '/mon-web-fresh' => array(
             'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
@@ -217,7 +217,7 @@ if ($synchronize) {
         if (isset($parameters['version'])) {
             foreach ($parameters['version'] as $version) {
                 if ($version == '3.4') {
-                    $distributions = array('centos6', 'centos7');
+                    $distributions = array('centos7');
                 } else if ($version == '20.10') {
                     $distributions = array('centos7', 'centos8');
                 } else {

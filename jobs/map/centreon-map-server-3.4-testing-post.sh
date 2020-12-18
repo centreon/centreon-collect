@@ -23,13 +23,10 @@ for filename in "$TOMCAT7_PATH"/*.rpm; do
 done
 
 # Copy the RPMs into the remote internal RPM repository.
-scp -o StrictHostKeyChecking=no $TOMCAT6_PATH/$TOMCAT6_FILE ubuntu@srvi-repo.int.centreon.com:/srv/yum/map/3.4/el6/testing/noarch/RPMS/
 scp -o StrictHostKeyChecking=no $TOMCAT7_PATH/$TOMCAT7_FILE ubuntu@srvi-repo.int.centreon.com:/srv/yum/map/3.4/el7/testing/noarch/RPMS/
 
 # Sign RPMs on directly on the remote internal RPM repository.
-$SSH_REPO rpm --resign /srv/yum/map/3.4/el6/testing/noarch/RPMS/$TOMCAT6_FILE
 $SSH_REPO rpm --resign /srv/yum/map/3.4/el7/testing/noarch/RPMS/$TOMCAT7_FILE
 
 # update yum metadata so that the remote RPM repository will be up to date
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/map/3.4/el6/testing/noarch
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/map/3.4/el7/testing/noarch

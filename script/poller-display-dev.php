@@ -6,7 +6,7 @@ require_once($centreon_build_dir . DIRECTORY_SEPARATOR . 'script' . DIRECTORY_SE
 
 # Check arguments.
 if ($argc <= 2) {
-    echo "USAGE: $0 <centos6|centos7> <3.4>\n";
+    echo "USAGE: $0 <centos7> <3.4>\n";
     exit(1);
 }
 $distrib = $argv[1];

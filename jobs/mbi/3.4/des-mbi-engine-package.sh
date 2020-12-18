@@ -7,7 +7,7 @@ set -x
 
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
-  echo "USAGE: $0 <centos6|centos7>"
+  echo "USAGE: $0 <centos7>"
   exit 1
 fi
 DISTRIB="$1"
@@ -77,9 +77,5 @@ docker pull "$BUILD_IMG"
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 
 # Copy files to server.
-if [ "$DISTRIB" = "centos6" ] ; then
-  DISTRIB='el6'
-else
-  DISTRIB='el7'
-fi
+DISTRIB='el7'
 put_internal_rpms "3.4" "$DISTRIB" "noarch" "mbi-engine" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm

@@ -30,42 +30,41 @@ $repos = array(
 
 // Generate all .repo files.
 foreach ($repos as $repo => $repodata) {
-    // Process CentOS 6 and CentOS 7.
-    foreach (array('el6', 'el7') as $distrib) {
-        @mkdir($distrib);
-        $content = '';
+    // Process CentOS 7 distribution.
+    $distrib = 'el7';
+    @mkdir($distrib);
+    $content = '';
 
-        // Process all flavors.
-        foreach (array('stable', 'testing', 'unstable') as $flavor) {
-            // Process architectures.
-            $archs = array('noarch', '$basearch');
-            foreach ($archs as $arch) {
-                // Header [centreon-map-stable].
-                $content .= '[centreon';
-                if (!empty($repo)) {
-                    $content .= '-' . $repo;
-                }
-                $content .= '-' . $flavor;
-                if ($arch == 'noarch') {
-                    $content .= '-noarch';
-                }
-                $content .= "]\n";
-
-                // Description.
-                $content .= 'name=' . $repodata['name'] . "\n";
-                $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
-                $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
-                $content .= "gpgcheck=1\n";
-                $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n\n";
+    // Process all flavors.
+    foreach (array('stable', 'testing', 'unstable') as $flavor) {
+        // Process architectures.
+        $archs = array('noarch', '$basearch');
+        foreach ($archs as $arch) {
+            // Header [centreon-map-stable].
+            $content .= '[centreon';
+            if (!empty($repo)) {
+                $content .= '-' . $repo;
             }
-        }
+            $content .= '-' . $flavor;
+            if ($arch == 'noarch') {
+                $content .= '-noarch';
+            }
+            $content .= "]\n";
 
-        // Write repo file.
-        file_put_contents(
-            $distrib . '/centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo',
-            $content
-        );
+            // Description.
+            $content .= 'name=' . $repodata['name'] . "\n";
+            $content .= 'baseurl=http://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
+            $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
+            $content .= "gpgcheck=1\n";
+            $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n\n";
+        }
     }
+
+    // Write repo file.
+    file_put_contents(
+        $distrib . '/centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo',
+        $content
+    );
 }
 
 // Generate all spec files.

@@ -8,9 +8,6 @@ set -x
 # Check arguments.
 VERSION="$1"
 case "$2" in
-  centos6)
-    BASE_IMAGE="centos:6"
-    ;;
   centos7)
     BASE_IMAGE="centos:7"
     ;;

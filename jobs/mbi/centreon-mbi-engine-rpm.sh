@@ -59,22 +59,15 @@ cp $WORKSPACE/centreon-bi-engine/RPM-SPECS/$PRODUCT_NAME.spec $SPECS_NAME
  mv $SPECS_NAME input/
 
 # Pull latest build dependencies.
- BUILD_IMG_CENTOS6="registry.centreon.com/mon-build-dependencies:centos6"
  BUILD_IMG_CENTOS7="registry.centreon.com/mon-build-dependencies:centos7"
- docker pull "$BUILD_IMG_CENTOS6"
  docker pull "$BUILD_IMG_CENTOS7"
 
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS6" input output6
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS7" input output7
 
 # Copy files to server.
-  REPO6='internal/el6/noarch'
-  REPO7='internal/el7/noarch'
+REPO7='internal/el7/noarch'
 
-  FILES_CENTOS6='output6/noarch/*.rpm'
-  FILES_CENTOS7='output7/noarch/*.rpm'
+FILES_CENTOS7='output7/noarch/*.rpm'
 
-scp -o StrictHostKeyChecking=no $FILES_CENTOS6 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/3.4/el6/$REPO/noarch/RPMS"
 scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/mbi/3.4/el7/$REPO/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/3.4/el6/$REPO/noarch
 ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/mbi/3.4/el7/$REPO/noarch

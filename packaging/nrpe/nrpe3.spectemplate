@@ -28,16 +28,9 @@ BuildRequires:  patch
 
 Requires:	centreon-plugin-Operatingsystems-Linux-Local
 
-%if 0%{?el6}
-Requires(preun): /sbin/service, /sbin/chkconfig
-Requires(post): /sbin/chkconfig, /sbin/service
-Requires(postun): /sbin/service
-Requires: initscripts
-%else
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-%endif
 
 %description
 
@@ -82,12 +75,7 @@ CFLAGS="$RPM_OPT_FLAGS" CXXFLAGS="$RPM_OPT_FLAGS" LDFLAGS="%{?__global_ldflags}"
 %{__install} -Dp -m0755 src/check_nrpe %{buildroot}%{_libdir}/nagios/plugins/check_centreon_nrpe3
 %{__install} -Dp -m0644 sample-config/nrpe.cfg %{buildroot}%{_sysconfdir}/nrpe/centreon-nrpe3.cfg
 %{__install} -Dp -m0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/sysconfig/centreon-nrpe3
-%if 0%{?el6}
-%{__install} -Dp -m0755 %{SOURCE2} %{buildroot}%{_initrddir}/centreon-nrpe3
-%{__install} -Dp -m0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/xinetd.d/centreon-nrpe3
-%else
 %{__install} -Dp -m0644 %{SOURCE3} %{buildroot}%{_unitdir}/centreon-nrpe3.service
-%endif
 mkdir -p %{buildroot}%{_localstatedir}/log/nrpe/centplugins
 
 
@@ -96,21 +84,10 @@ mkdir -p %{buildroot}%{_localstatedir}/log/nrpe/centplugins
     %{_bindir}/getent passwd centreon-engine &>/dev/null || %{_sbindir}/useradd -g centreon-engine -m -d %{_localstatedir}/lib/centreon-engine -r centreon-engine 2> /dev/null
 
 %post daemon
-%if 0%{?el6}
-    %{_bindir}/chkconfig --add centreon-nrpe3
-%else
-    systemctl enable centreon-nrpe3.service
-%endif
+systemctl enable centreon-nrpe3.service
 
 %preun
-%if 0%{?el6}
-if [ $1 -eq 0 ]; then
-    %{_bindir}/service centreon-nrpe3 stop &>/dev/null || echo
-    %{_bindir}/chkconfig --del centreon-nrpe3
-fi
-%else
-    %systemd_preun centreon-nrpe3.service
-%endif
+%systemd_preun centreon-nrpe3.service
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -119,12 +96,7 @@ fi
 %defattr(-, root, root, 0755)
 %doc CHANGELOG.md LEGAL README.md README.SSL.md SECURITY.md LICENSE.md
 %config(noreplace) %{_sysconfdir}/nrpe/
-%if 0%{?el6}
-%config %{_initrddir}/centreon-nrpe3
-%config(noreplace) %{_sysconfdir}/xinetd.d/centreon-nrpe3
-%else
 %{_unitdir}/centreon-nrpe3.service
-%endif
 %config(noreplace) %{_sysconfdir}/sysconfig/centreon-nrpe3
 %{_sbindir}/centreon-nrpe3
 %defattr(-, centreon-engine, centreon-engine, 0755)
