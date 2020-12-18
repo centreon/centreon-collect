@@ -168,7 +168,7 @@ case "$PROJECT" in
       RPMS="centreon-map4-server"
   ;;
   centreon-widget-*)
-    DIR='/standard/3.4'
+    DIR='/lts/3.4'
     ARCH='noarch'
     RPMS="$PROJECT"
   ;;
