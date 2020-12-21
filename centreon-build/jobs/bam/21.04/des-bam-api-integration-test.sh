@@ -45,5 +45,11 @@ rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../api-integration-test-logs
 mkdir ../api-integration-test-logs
+
+# temporary fix to solve the beberlei/assert requirement, needed for acceptation tests
+# @TODO build a container with these packages to be able to execute tests on it directly
+sudo apt-get update
+sudo apt-get install -y php-intl
+
 composer install
 ./vendor/bin/behat --config tests/api/behat.yml --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
