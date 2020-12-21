@@ -28,7 +28,7 @@ npm ci
 cd ../../../..
 
 # Run backend unit tests and code style.
-composer run-script test:ci
+XDEBUG_MODE=coverage composer run-script test:ci
 composer run-script codestyle:ci
 composer run-script phpstan:ci > build/phpstan.xml
 
