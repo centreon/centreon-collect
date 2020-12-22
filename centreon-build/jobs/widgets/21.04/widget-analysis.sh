@@ -27,9 +27,10 @@ set -x
 
 # Project.
 PROJECT=centreon-widget-$WIDGET
+READABLE_NAME=( $(echo "$PROJECT" | sed -e 's/-/ /g' -e 's/\b\(.\)/\u\1/g') )
 
 # Retrieve copy of git repository.
-curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/widget-engine-status/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
+curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/widget-$WIDGET/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
 rm -rf "$PROJECT"
 tar xzf "$PROJECT-git.tar.gz"
 
@@ -37,10 +38,10 @@ tar xzf "$PROJECT-git.tar.gz"
 cd "$PROJECT"
 cp ../ut-be.xml .
 cp ../coverage-be.xml .
-sed -i -e 's#/usr/local/src/centreon-widget-engine-status/##g' coverage-be.xml
+sed -i -e 's#/usr/local/src/$PROJECT/##g' coverage-be.xml
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  sed -i -e 's/centreon-widget-engine-status-21.04/centreon-widget-engine-status-21.04-release/g' sonar-project.properties
-  sed -i -e 's/Centreon Widget Engine Status 21.04/Centreon Widget Engine Status 21.04 (release)/g' sonar-project.properties
+  sed -i -e "s/"$PROJECT"-21.04/"$PROJECT"-21.04-release/g" sonar-project.properties
+  sed -i -e "s/Centreon Widget "$READABLE_NAME" 21.04/Centreon Widget "$READABLE_NAME" 21.04 (release)/g" sonar-project.properties
 fi
-echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
+echo "sonar.projectVersion="$VERSION >> sonar-project.properties
 sonar-scanner
