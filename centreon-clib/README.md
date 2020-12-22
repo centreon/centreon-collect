@@ -60,7 +60,7 @@ First of all, check if you have these packages installed (Note that packages nam
 If they are not installed, please intall them.
 
 If you are on Centos 7 distribution, follow these steps:
-    
+
     $> git clone https://github.com/centreon/centreon-clib.git
     $> cd centreon-clib && ./cmake.sh
     $> cd build
@@ -68,20 +68,18 @@ If you are on Centos 7 distribution, follow these steps:
 
 If you are on an other distribution, then follow the steps bellow.
 
-Once the sources of Centreon Clib extracted, create the *./build/*
-directory and launch the CMake command. This will look for required
-dependencies and print a summary of the compilation parameters if
-everything went fine.
+Once the sources of Centreon Clib extracted, create the *build/*
+directory and from that directory launch the CMake command as proposed below:
 
     $> cd centreon-clib
     $> mkdir build && cd build
-    $> cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On  .. 
+    $> cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On  ..
     ...
 
 Now launch the compilation using the *make* command and then install the
 software by running *make install* as priviledged user.
 
-    $> make 
+    $> make
     ...
     $> make install
 
