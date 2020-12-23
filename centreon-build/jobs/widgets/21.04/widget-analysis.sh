@@ -27,7 +27,7 @@ set -x
 
 # Project.
 PROJECT=centreon-widget-$WIDGET
-READABLE_NAME=( $(echo "$PROJECT" | sed -e 's/-/ /g' -e 's/\b\(.\)/\u\1/g') )
+READABLE_NAME=$(echo "$PROJECT" | sed -e 's/-/ /g' -e 's/\b\(.\)/\u\1/g')
 
 # Retrieve copy of git repository.
 curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/widget-$WIDGET/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
