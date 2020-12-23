@@ -34,9 +34,6 @@ tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
 cd "$PROJECT-$VERSION"
-cp ../ut-be.xml .
-cp ../coverage-be.xml .
-sed -i -e 's#/usr/local/src/$PROJECT/##g' coverage-be.xml
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e "s/"$PROJECT"-21.04/"$PROJECT"-21.04-release/g" sonar-project.properties
   sed -i -e "s/Centreon Widget "$READABLE_NAME" 21.04/Centreon Widget "$READABLE_NAME" 21.04 (release)/g" sonar-project.properties
