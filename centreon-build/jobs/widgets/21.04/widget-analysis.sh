@@ -23,8 +23,6 @@ set -x
 
 . `dirname $0`/../../common.sh
 
-# This job is run directly after des-bam-unittest on centos7.
-
 # Project.
 PROJECT=centreon-widget-$WIDGET
 READABLE_NAME=$(echo "$PROJECT" | sed -e 's/-/ /g' -e 's/\b\(.\)/\u\1/g')
@@ -35,7 +33,7 @@ rm -rf "$PROJECT"
 tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
-cd "$PROJECT"
+cd "$PROJECT-$VERSION"
 cp ../ut-be.xml .
 cp ../coverage-be.xml .
 sed -i -e 's#/usr/local/src/$PROJECT/##g' coverage-be.xml
