@@ -36,6 +36,11 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 # Create source tarball.
 git archive --prefix="$PROJECT-$VERSION/" HEAD | gzip > "../$PROJECT-$VERSION.tar.gz"
 
+# temporary fix to solve the beberlei/assert requirement, needed for acceptation tests
+# @TODO build a container with these packages to be able to execute tests on it directly
+sudo apt-get update
+sudo apt-get install -y php-intl
+
 # Install Composer dependencies.
 composer install
 tar czf "../vendor.tar.gz" vendor
