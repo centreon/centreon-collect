@@ -99,7 +99,7 @@ if (isset($opts['v'])) {
     array_shift($argv);
     array_shift($argv);
 } else {
-    $version = '20.10';
+    $version = '21.04';
 }
 
 if (isset($opts['c'])) {
@@ -149,6 +149,7 @@ if ($synchronize) {
         '/mon-mediawiki-19.10' => array(),
         '/mon-mediawiki-20.04' => array(),
         '/mon-mediawiki-20.10' => array(),
+        '/mon-mediawiki-21.04' => array(),
         '/mon-openldap' => array(),
         '/mon-squid-simple' => array(),
         '/mon-squid-basic-auth' => array(),
@@ -157,7 +158,7 @@ if ($synchronize) {
         'selenium/node-chrome' => array(),
         'redis' => array(),
         '/mon-lm' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-poller-display-central' => array(
             'version' => array('3.4')
@@ -166,46 +167,46 @@ if ($synchronize) {
             'version' => array('3.4')
         ),
         '/mon-ppe' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-ppm' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-awie' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-ppm-autodisco' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-ppm1' => array(
             'distribution' => array('centos7')
         ),
         '/mon-web-fresh' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-web' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-web-widgets' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/mon-web-stable' => array(
             'version' => array('3.4')
         ),
         '/des-bam' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/des-map-server' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/des-map-web' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/des-mbi-server' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         ),
         '/des-mbi-web' => array(
-            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10')
+            'version' => array('3.4', '19.04', '19.10', '20.04', '20.10', '21.04')
         )
     );
 
@@ -218,7 +219,7 @@ if ($synchronize) {
             foreach ($parameters['version'] as $version) {
                 if ($version == '3.4') {
                     $distributions = array('centos7');
-                } else if ($version == '20.10') {
+                } else if ($version == '20.10' || $version == '21.04') {
                     $distributions = array('centos7', 'centos8');
                 } else {
                     $distributions = array('centos7');
