@@ -26,7 +26,7 @@ set -x
 . `dirname $0`/../../common.sh
 
 # Project.
-PROJECT="centreon-open-tickets"
+PROJECT=centreon-open-tickets
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then

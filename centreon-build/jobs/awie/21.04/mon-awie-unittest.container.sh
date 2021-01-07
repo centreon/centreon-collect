@@ -23,7 +23,7 @@
 set -x
 
 # Get project.
-PROJECT=centreon-open-tickets
+PROJECT=centreon-awie
 
 # Remove old reports.
 rm -f /tmp/codestyle-be.xml
