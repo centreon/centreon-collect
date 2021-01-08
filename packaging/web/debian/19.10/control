@@ -14,7 +14,7 @@ Description: Centreon installation entry point.
 Package: centreon-base-config-centreon-engine
 Architecture: all
 Depends: centreon-broker, centreon-web, centreon-poller-centreon-engine
-Description: The package contains base configuration for Centeon Engine and Centreon Broker.
+Description: The package contains base configuration for Centreon Engine and Centreon Broker.
  It provides one default monitoring engine running with Centreon Engine and
  two Centreon Broker instances to store real-time information in database and
  performance data in RRD files.

@@ -205,7 +205,7 @@ Obsoletes:  centreon-trap-central
 This package contains Centreon Trap engine
 
 %package base-config-centreon-engine
-Summary:    Configuration for Centeon with Centreon Engine and Centreon Broker
+Summary:    Configuration for Centreon with Centreon Engine and Centreon Broker
 Group:      Networking/Other
 Requires:   centreon-broker-cbd >= %{thismajor}
 Requires:   centreon-broker-cbd < %{nextmajor}
@@ -223,7 +223,7 @@ Provides:   centreon-base-config = %{version}-%{release}
 Provides:   /etc/centreon/conf.pm
 
 %description base-config-centreon-engine
-The package contains base configuration for Centeon Engine and Centreon Broker.
+The package contains base configuration for Centreon Engine and Centreon Broker.
 It provides one default monitoring engine running with Centreon Engine and
 two Centreon Broker instances to store real-time information in database and
 performance data in RRD files.
