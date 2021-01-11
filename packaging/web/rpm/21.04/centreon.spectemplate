@@ -231,7 +231,6 @@ performance data in RRD files.
 %package poller-centreon-engine
 Summary:    Rights and file for pollers (including central)
 Group:      Networking/Other
-Requires:   %{php_prefix}php-cli
 Requires:   centreon-common = %{version}-%{release}
 Requires:   centreon-trap = %{version}-%{release}
 Requires:   centreon-engine >= %{thismajor}
@@ -384,8 +383,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/logAnalyserBroker %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/changeRrdDsName.pl %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/migrateWikiPages.php %buildroot%{_datadir}/centreon/bin/
-%{__install} -m 0755 bin/registerServerTopology.php %buildroot%{_datadir}/centreon/bin/
-%{__install} -m 0755 bin/registerServerTopology-Func.php %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/registerServerTopology.sh %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/registerServerTopologyTemplate %buildroot%{_datadir}/centreon/bin/
 
 # Add new installation backup directory
@@ -749,8 +747,7 @@ sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 %config(noreplace) %{_sysconfdir}/centreon/centreontrapd.pm
 
 %defattr(-, root, root, -)
-%{_datadir}/centreon/bin/registerServerTopology.php
-%{_datadir}/centreon/bin/registerServerTopology-Func.php
+%{_datadir}/centreon/bin/registerServerTopology.sh
 %{_datadir}/centreon/bin/registerServerTopologyTemplate
 
 %defattr(-, centreon, centreon, 0775)
