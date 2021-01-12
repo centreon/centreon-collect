@@ -15,18 +15,10 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 #
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  TARGETDIR="s3://centreon-documentation/$PROJECT/21.04/testing"
-  ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
-  ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/ui/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
-
-#
 # CI delivery.
 #
-elif [ "$BUILD" '=' 'REFERENCE' ] ; then
-  TARGETDIR="s3://centreon-documentation/$PROJECT/21.04/unstable"
+if [ "$BUILD" '=' 'REFERENCE' ] ; then
+  TARGETDIR="s3://centreon-documentation-prod/dev-resources/storybook/21.04"
   ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
   ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/ui/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
 fi
