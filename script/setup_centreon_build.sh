@@ -11,7 +11,7 @@ cp -r /opt/centreon-build .
 
 # Try to checkout current project branch in centreon-build.
 cd centreon-build
-git checkout "$BRANCH_NAME" || true
+git checkout "$CHANGE_BRANCH" || git checkout "$BRANCH_NAME" || true
 cd ..
 
 # There you go !
