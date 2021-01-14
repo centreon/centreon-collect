@@ -57,6 +57,9 @@ cp -a build/module "$WEBDIR"
 cp -a build/widget "$WEBDIR"
 cp -a build/install.sh "$WEBDIR"
 cp -a build/libinstall "$WEBDIR"
+cp -a composer.json "$WEBDIR"
+cp -a composer.lock "$WEBDIR"
+cp -a ruleset.xml "$WEBDIR"
 for i in app/locale/*.UTF-8 ; do
   lang=`basename $i | cut -d _ -f 1`
   locale=`basename $i`
