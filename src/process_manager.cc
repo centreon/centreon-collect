@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013 Centreon
+** Copyright 2012-2013, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,17 +16,15 @@
 ** For more information : contact@centreon.com
 */
 
+#include <sys/wait.h>
+#include <unistd.h>
 #include <algorithm>
+#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <mutex>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
-#include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 #include "com/centreon/process_manager.hh"
 
@@ -34,12 +32,6 @@ using namespace com::centreon;
 
 // Default varibale.
 static int const DEFAULT_TIMEOUT = 200;
-
-/**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
 
 /**
  *  Add process to the process manager.
@@ -49,19 +41,10 @@ static int const DEFAULT_TIMEOUT = 200;
  */
 void process_manager::add(process* p) {
   // Check viability pointer.
-  if (!p)
-    throw basic_error() << "invalid process: null pointer";
+  assert(p);
 
   // We lock _lock_processes before to avoid deadlocks
   std::lock_guard<std::mutex> lock(_lock_processes);
-
-  // Check if the process need to be managed.
-  std::lock_guard<std::mutex> lock_process(p->_lock_process);
-  if (p->_process == static_cast<pid_t>(-1))
-    throw basic_error() << "invalid process: not running";
-
-  // Add pid process to use waitpid.
-  _processes_pid[p->_process] = p;
 
   // Monitor err/out output if necessary.
   if (p->_enable_stream[process::out])
@@ -75,7 +58,11 @@ void process_manager::add(process* p) {
 
   // Need to update file descriptor list.
   _update = true;
-  write(_fds_exit[1], "up", 2);
+
+  // Add pid process to use waitpid.
+  _processes_pid[p->_process] = p;
+
+  // write(_fds_exit[1], "up", 2);
 }
 
 /**
@@ -88,31 +75,13 @@ process_manager& process_manager::instance() {
   return instance;
 }
 
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
-
 /**
- *  Default constructor.
+ *  Default constructor. It is private. No need to call, we just use the static
+ *  internal function instance().
  */
 process_manager::process_manager()
-    : _thread{nullptr},
-      _fds(new pollfd[64]),
-      _fds_capacity(64),
-      _fds_size(0),
-      _update(true) {
-  // Create pipe to notify ending to the process manager thread.
-  if (::pipe(_fds_exit)) {
-    char const* msg(strerror(errno));
-    throw basic_error() << "pipe creation failed: " << msg;
-  }
-
-  process::_set_cloexec(_fds_exit[1]);
-
-  // Add exit fd to the file descriptor list.
-  _processes_fd[_fds_exit[0]] = nullptr;
+    : _thread{nullptr}, _fds_size{0}, _update(true) {
+  _fds.reserve(64);
 
   // Run process manager thread.
   _thread = new std::thread(&process_manager::_run, this);
@@ -129,17 +98,17 @@ process_manager::~process_manager() noexcept {
          it != end; ++it) {
       try {
         it->second->kill();
-      }
-      catch (std::exception const& e) {
+      } catch (const std::exception& e) {
         (void)e;
       }
     }
   }
 
   // Exit process manager thread.
-  _close(_fds_exit[1]);
+  //_close(_fds_exit[1]);
 
   // Waiting the end of the process manager thread.
+  _running = false;
   _thread->join();
   delete _thread;
   _thread = nullptr;
@@ -148,10 +117,7 @@ process_manager::~process_manager() noexcept {
     std::lock_guard<std::mutex> lock(_lock_processes);
 
     // Release memory.
-    delete[] _fds;
-
-    // Release ressources.
-    _close(_fds_exit[0]);
+    _fds.clear();
 
     // Waiting all process.
     int ret(0);
@@ -199,8 +165,7 @@ void process_manager::_close_stream(int fd) noexcept {
 
     // Update process informations.
     p->do_close(fd);
-  }
-  catch (std::exception const& e) {
+  } catch (const std::exception& e) {
     log_error(logging::high) << e.what();
   }
 }
@@ -233,12 +198,12 @@ void process_manager::_kill_processes_timeout() noexcept {
   std::time_t now(time(nullptr));
 
   // Kill process who timeout and remove it from timeout list.
-  for (auto it = _processes_timeout.begin(), end = _processes_timeout.end(); it != end && it->first <= now; ) {
+  for (auto it = _processes_timeout.begin(), end = _processes_timeout.end();
+       it != end && it->first <= now;) {
     process* p = it->second;
     try {
       p->kill();
-    }
-    catch (std::exception const& e) {
+    } catch (const std::exception& e) {
       log_error(logging::high) << e.what();
     }
     it = _processes_timeout.erase(it);
@@ -252,8 +217,8 @@ void process_manager::_kill_processes_timeout() noexcept {
  *
  *  @return Number of bytes read.
  */
-unsigned int process_manager::_read_stream(int fd) noexcept {
-  unsigned int size(0);
+uint32_t process_manager::_read_stream(int fd) noexcept {
+  uint32_t size(0);
   try {
     process* p;
     // Get process to link with fd.
@@ -268,8 +233,7 @@ unsigned int process_manager::_read_stream(int fd) noexcept {
     }
 
     size = p->do_read(fd);
-  }
-  catch (std::exception const& e) {
+  } catch (const std::exception& e) {
     log_error(logging::high) << e.what();
   }
   return size;
@@ -279,51 +243,35 @@ unsigned int process_manager::_read_stream(int fd) noexcept {
  *  Internal thread to monitor processes.
  */
 void process_manager::_run() {
+  _running = true;
   try {
-    bool quit(false);
-    while (true) {
+    for (;;) {
       // Update the file descriptor list.
       _update_list();
 
-      if (quit && _fds_size == 0)
+      if (!_running && _fds.size() == 0 && _processes_pid.size() == 0 &&
+          _orphans_pid.size() == 0)
         break;
 
-      // Wait event on file descriptor.
-      int ret(poll(_fds, _fds_size, DEFAULT_TIMEOUT));
-      if (ret < 0 && errno == EINTR)
-        ret = 0;
-      else if (ret < 0) {
-        char const* msg(strerror(errno));
-        throw basic_error() << "poll failed: " << msg;
+      int ret = poll(_fds.data(), _fds.size(), DEFAULT_TIMEOUT);
+      if (ret < 0) {
+        if (errno == EINTR)
+          ret = 0;
+        else {
+          const char* msg = strerror(errno);
+          throw basic_error() << "poll failed: " << msg;
+        }
       }
-      for (unsigned int i = 0, checked = 0;
-           checked < static_cast<unsigned int>(ret) && i < _fds_size;
-           ++i) {
-
+      for (uint32_t i = 0, checked = 0;
+           checked < static_cast<uint32_t>(ret) && i < _fds_size; ++i) {
         // No event.
         if (!_fds[i].revents)
           continue;
 
         ++checked;
 
-        // The process manager destructor was called,
-        // it's time to quit the loop.
-        if (_fds[i].fd == _fds_exit[0]) {
-          if (_fds[i].revents & POLLIN) {
-            char buf[3];
-            buf[3] = 0;
-            read(_fds_exit[0], buf, 2);
-            continue;
-          } else {
-            _processes_fd.erase(_fds[i].fd);
-            _update = true;
-            quit = true;
-            continue;
-          }
-        }
-
         // Data are available.
-        unsigned int size = 0;
+        uint32_t size = 0;
         if (_fds[i].revents & (POLLIN | POLLPRI))
           size = _read_stream(_fds[i].fd);
         // File descriptor was close.
@@ -333,8 +281,8 @@ void process_manager::_run() {
         //  Error!
         else if (_fds[i].revents & (POLLERR | POLLNVAL)) {
           _update = true;
-          log_error(logging::high) << "invalid fd " << _fds[i].fd
-                                   << " from process manager";
+          log_error(logging::high)
+              << "invalid fd " << _fds[i].fd << " from process manager";
         }
       }
       // Release finished process.
@@ -343,8 +291,7 @@ void process_manager::_run() {
       // Kill process in timeout.
       _kill_processes_timeout();
     }
-  }
-  catch (std::exception const& e) {
+  } catch (const std::exception& e) {
     log_error(logging::high) << e.what();
   }
 }
@@ -368,25 +315,24 @@ void process_manager::_update_ending_process(process* p, int status) noexcept {
  *  Update list of file descriptor to watch.
  */
 void process_manager::_update_list() {
-  std::lock_guard<std::mutex> lock(_lock_processes);
-  // No need update.
+  // No need to update.
   if (!_update)
     return;
 
-  // Resize file descriptor list.
-  if (_processes_fd.size() > _fds_capacity) {
-    delete[] _fds;
-    _fds_capacity = _processes_fd.size();
-    _fds = new pollfd[_fds_capacity];
-  }
+  std::lock_guard<std::mutex> lock(_lock_processes);
+
   // Set file descriptor to wait event.
-  _fds_size = 0;
-  for (auto it = _processes_fd.begin(), end = _processes_fd.end();
-       it != end; ++it) {
-    _fds[_fds_size].fd = it->first;
-    _fds[_fds_size].events = POLLIN | POLLPRI | POLL_HUP;
-    _fds[_fds_size].revents = 0;
-    ++_fds_size;
+  if (_processes_fd.size() != _fds_size) {
+    _fds.resize(_processes_fd.size());
+    _fds_size = _fds.size();
+  }
+  auto itt = _fds.begin();
+  for (auto it = _processes_fd.begin(), end = _processes_fd.end(); it != end;
+       ++it) {
+    itt->fd = it->first;
+    itt->events = POLLIN | POLLPRI | POLL_HUP;
+    itt->revents = 0;
+    ++itt;
   }
   // Disable update.
   _update = false;
@@ -421,8 +367,7 @@ void process_manager::_wait_orphans_pid() noexcept {
       // Erase orphan pid.
       it = _orphans_pid.erase(it);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (const std::exception& e) {
     log_error(logging::high) << e.what();
   }
 }
@@ -458,8 +403,7 @@ void process_manager::_wait_processes() noexcept {
         p->_is_timeout = true;
       _update_ending_process(p, status);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (const std::exception& e) {
     log_error(logging::high) << e.what();
   }
 }

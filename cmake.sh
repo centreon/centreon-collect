@@ -82,6 +82,40 @@ elif [ -r /etc/issue ] ; then
         fi
       fi
     done
+  elif [ $maj = "Raspbian" ] ; then
+    if [ $version = "9" ] ; then
+      dpkg="dpkg"
+    else
+      dpkg="dpkg --no-pager"
+    fi
+    if $dpkg -l --no-pager cmake ; then
+      echo "Bad version of cmake..."
+      exit 1
+    else
+      if [ $my_id -eq 0 ] ; then
+        apt install -y cmake
+        cmake='cmake'
+      else
+        echo -e "cmake is not installed, you could enter, as root:\n\tapt install -y cmake\n\n"
+        exit 1
+      fi
+    fi
+    pkgs=(
+      gcc
+      g++
+      ninja-build
+      pkg-config
+    )
+    for i in "${pkgs[@]}"; do
+      if ! $dpkg -l --no-pager $i | grep "^ii" ; then
+        if [ $my_id -eq 0 ] ; then
+          apt install -y $i
+        else
+          echo -e "The package \"$i\" is not installed, you can install it, as root, with the command:\n\tapt install -y $i\n\n"
+          exit 1
+        fi
+      fi
+    done
   else
     echo "Bad version of cmake..."
     exit 1
@@ -93,7 +127,11 @@ if [ ! -d build ] ; then
 fi
 
 cd build
-CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On $* ..
+if [ $maj = "Raspbian" ] ; then
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib -DWITH_TESTING=On $* ..
+else
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On $* ..
+fi
 
 #CXX=/usr/bin/clang++ CC=/usr/bin/clang CXXFLAGS="-Wall -Wextra" cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On $* ..
 

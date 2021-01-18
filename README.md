@@ -53,11 +53,14 @@ This paragraph is only a quickstart guide for the compilation of
 Centreon Clib. For a more in-depth guide with build options you should
 refer to the [online documentation](https://documentation.centreon.com/docs/centreon-clib/en/latest/).
 
+**For Centos 7 :**
+
 First of all, check if you have these packages installed (Note that packages names come from Centos 7 distribution, so if some packages names don't match on your distribution try to find their equivalent names) :
 
     git, make, cmake, gcc-c++.
 
 If they are not installed, please intall them.
+    $> yum install git make cmake gcc-c++
 
 If you are on Centos 7 distribution, follow these steps:
 
@@ -66,11 +69,37 @@ If you are on Centos 7 distribution, follow these steps:
     $> cd build
     $> make & make install
 
+You're done !
+
+**For Raspbian :**
+First of all, check if you have these packages installed :
+
+    git, make, cmake.
+
+If they are not installed, please install them.
+    $> apt install git make cmake
+
+Then you will be able to resume the following steps :
+    $> git clone https://github.com/centreon/centreon-clib.git
+    $> cd centreon-clib
+    $> ./cmake.sh
+
+To speed up the compilation you can use make
+    $> cd build/ && make && make install
+
+You're done !
+
+**For other distributions :**
 If you are on an other distribution, then follow the steps bellow.
 
+First of all, check if you have these packages installed :
+
+    git, make, cmake.
+    
 Once the sources of Centreon Clib extracted, create the *build/*
 directory and from that directory launch the CMake command as proposed below:
 
+    $> git clone https://github.com/centreon/centreon-clib.git
     $> cd centreon-clib
     $> mkdir build && cd build
     $> cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On  ..

@@ -60,14 +60,14 @@ int main(int argc, char** argv) {
         p.read_err(buffer_read);
       total_read += buffer_read.size();
     } while (total_read < sizeof(buffer_write));
-    p.enable_stream(process::in, false);
+    p.update_ending_process(0);
     p.wait();
     if (p.exit_code() != EXIT_SUCCESS)
-      throw(basic_error() << "invalid return");
+      throw basic_error() << "invalid return";
     if (total_write != sizeof(buffer_write))
-      throw(basic_error() << "invalid data wirte");
+      throw basic_error() << "invalid data write";
     if (total_write != total_read)
-      throw(basic_error() << "invalid data read");
+      throw basic_error() << "invalid data read";
   }
   catch (std::exception const& e) {
     ret = EXIT_FAILURE;

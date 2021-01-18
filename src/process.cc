@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013 Centreon
+** Copyright 2012-2013,2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,26 +16,23 @@
 ** For more information : contact@centreon.com
 */
 
+#include <fcntl.h>
 #include <algorithm>
+#include <cassert>
 #include <cerrno>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
-#include <fcntl.h>
-#include <poll.h>
-#include <mutex>
 #ifdef HAVE_SPAWN_H
-#  include <spawn.h>
-#endif // HAVE_SPAWN_H
+#include <spawn.h>
+#endif  // HAVE_SPAWN_H
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/exceptions/interruption.hh"
 #include "com/centreon/misc/command_line.hh"
 #include "com/centreon/process_listener.hh"
 #include "com/centreon/process_manager.hh"
-#include "com/centreon/process.hh"
 
 using namespace com::centreon;
 
@@ -45,54 +42,29 @@ extern char** environ;
 // Global process lock.
 static std::mutex gl_process_lock;
 
-/**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
-
 /**
  *  Default constructor.
  */
-process::process(process_listener* listener)
+process::process(process_listener* listener,
+                 bool in_stream,
+                 bool out_stream,
+                 bool err_stream)
     : _create_process(&_create_process_with_setpgid),
-      _is_timeout(false),
+      _enable_stream{in_stream, out_stream, err_stream},
+      _stream{-1, -1, -1},
+      _is_timeout{false},
       _listener(listener),
       _process(static_cast<pid_t>(-1)),
       _status(0),
-      _timeout(0) {
-  memset(_enable_stream, 1, sizeof(_enable_stream));
-  memset(_stream, -1, sizeof(_stream));
-}
+      _timeout(0) {}
 
 /**
  *  Destructor.
  */
 process::~process() noexcept {
-  kill();
-  wait();
-}
-
-/**
- *  Enable or disable process' stream.
- *
- *  @param[in] s      The stream to set.
- *  @param[in] enable Set to true to enable stderr.
- */
-void process::enable_stream(stream s, bool enable) {
-  std::lock_guard<std::mutex> lock(_lock_process);
-  if (_enable_stream[s] != enable) {
-    // Process not running juste set variable.
-    if (!_is_running())
-      _enable_stream[s] = enable;
-    // Process running and stream is enable, close stream.
-    else if (!enable)
-      _close(_stream[s]);
-    // Do not change stream status.
-    else
-      throw basic_error() << "cannot reenable \"" << s
-                          << "\" while process is running";
-  }
+  std::unique_lock<std::mutex> lock(_lock_process);
+  _kill(SIGKILL);
+  _cv_process_running.wait(lock, [this] { return !_is_running(); });
 }
 
 /**
@@ -103,6 +75,16 @@ void process::enable_stream(stream s, bool enable) {
 timestamp const& process::end_time() const noexcept {
   std::lock_guard<std::mutex> lock(_lock_process);
   return _end_time;
+}
+
+/**
+ *  Get is the current process run.
+ *
+ *  @return True is process run, otherwise false.
+ */
+bool process::_is_running() const noexcept {
+  return _process != static_cast<pid_t>(-1) || _stream[in] != -1 ||
+         _stream[out] != -1 || _stream[err] != -1;
 }
 
 /**
@@ -133,7 +115,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
   _status = 0;
 
   // Close the last file descriptor;
-  for (unsigned int i(0); i < 3; ++i)
+  for (int32_t i = 0; i < 3; ++i)
     _close(_stream[i]);
 
   // Init file desciptor.
@@ -151,7 +133,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
     std[2] = _dup(STDERR_FILENO);
 
     // Backup FDs do not need to be inherited.
-    for (unsigned int i(0); i < 3; ++i)
+    for (int32_t i = 0; i < 3; ++i)
       _set_cloexec(std[i]);
 
     restore_std = true;
@@ -186,7 +168,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
 
     // Parse and get command line arguments.
     misc::command_line cmdline(cmd);
-    char** args(cmdline.get_argv());
+    char** args = cmdline.get_argv();
 
     // volatile prevent compiler optimization
     // that might clobber variable.
@@ -194,16 +176,17 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
 
     // Create new process.
     _process = _create_process(args, my_env);
+    assert(_process != -1);
 
     // Parent execution.
     _start_time = timestamp::now();
-    _timeout = (timeout ? time(NULL) + timeout : 0);
+    _timeout = (timeout ? time(nullptr) + timeout : 0);
 
     // Restore original FDs.
     _dup2(std[0], STDIN_FILENO);
     _dup2(std[1], STDOUT_FILENO);
     _dup2(std[2], STDERR_FILENO);
-    for (unsigned int i(0); i < 3; ++i) {
+    for (int32_t i = 0; i < 3; ++i) {
       _close(std[i]);
       _close(pipe_stream[i][i == in ? 0 : 1]);
       _stream[i] = pipe_stream[i][i == in ? 1 : 0];
@@ -212,8 +195,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
     // Add process to the process manager.
     lock.unlock();
     process_manager::instance().add(this);
-  }
-  catch (...) {
+  } catch (...) {
     // Restore original FDs.
     if (restore_std) {
       _dup2(std[0], STDIN_FILENO);
@@ -222,7 +204,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
     }
 
     // Close all file descriptor.
-    for (unsigned int i(0); i < 3; ++i) {
+    for (uint32_t i = 0; i < 3; ++i) {
       _close(std[i]);
       _close(_stream[i]);
       for (unsigned int j(0); j < 2; ++j)
@@ -363,7 +345,8 @@ timestamp const& process::start_time() const noexcept {
 }
 
 /**
- *  Terminate process.
+ *  Terminate process. We don't wait for the termination, the SIGTERM signal
+ *  is just sent.
  */
 void process::terminate() {
   std::lock_guard<std::mutex> lock(_lock_process);
@@ -375,14 +358,14 @@ void process::terminate() {
  */
 void process::wait() const {
   std::unique_lock<std::mutex> lock(_lock_process);
-  while (_is_running())
-    _cv_process_running.wait(lock);
+  _cv_process_running.wait(lock, [this] { return !_is_running(); });
 }
 
 /**
  *  Wait for process termination.
  *
- * @param timeout Maximum number of milliseconds to wait for process termination.
+ * @param timeout Maximum number of milliseconds to wait for process
+ * termination.
  *
  * @return true if process exited.
  */
@@ -429,8 +412,7 @@ void process::do_close(int fd) {
   if (_stream[process::out] == fd) {
     _close(_stream[process::out]);
     _cv_buffer_out.notify_one();
-  }
-  else if (_stream[process::err] == fd) {
+  } else if (_stream[process::err] == fd) {
     _close(_stream[process::err]);
     _cv_buffer_err.notify_one();
   }
@@ -444,12 +426,6 @@ void process::do_close(int fd) {
     }
   }
 }
-
-/**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
 
 /**
  *  close syscall wrapper.
@@ -481,8 +457,8 @@ pid_t process::_create_process_with_setpgid(char** args, char** env) {
   if (ret) {
     posix_spawnattr_destroy(&attr);
     throw basic_error()
-          << "cannot set process group ID of to-be-spawned process: "
-          << strerror(ret);
+        << "cannot set process group ID of to-be-spawned process: "
+        << strerror(ret);
   }
   if (posix_spawnp(&pid, args[0], NULL, &attr, args, env)) {
     char const* msg(strerror(errno));
@@ -550,8 +526,7 @@ void process::_dev_null(int fd, int flags) {
   }
   try {
     _dup2(newfd, fd);
-  }
-  catch (...) {
+  } catch (...) {
     _close(newfd);
     throw;
   }
@@ -566,7 +541,7 @@ void process::_dev_null(int fd, int flags) {
  *  @return The new descriptor.
  */
 int process::_dup(int oldfd) {
-  int newfd(0);
+  int newfd;
   while ((newfd = dup(oldfd)) < 0) {
     if (errno == EINTR)
       continue;
@@ -590,16 +565,6 @@ void process::_dup2(int oldfd, int newfd) {
     char const* msg(strerror(errno));
     throw basic_error() << "could not duplicate FD: " << msg;
   }
-}
-
-/**
- *  Get is the current process run.
- *
- *  @return True is process run, otherwise false.
- */
-bool process::_is_running() const noexcept {
-  return _process != static_cast<pid_t>(-1) || _stream[in] != -1 ||
-          _stream[out] != -1 || _stream[err] != -1;
 }
 
 /**

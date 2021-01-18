@@ -16,11 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
-#include <sstream>
 #include "com/centreon/task_manager.hh"
-#include <algorithm>
 #include <unistd.h>
+#include <algorithm>
 #include <cassert>
+#include <sstream>
 
 using namespace com::centreon;
 
@@ -51,7 +51,7 @@ task_manager::task_manager(uint32_t max_thread_count)
           _queue.pop_front();
         }
         t->tsk->run();
-        if (t->interval == 0) // auto_delete
+        if (t->interval == 0)  // auto_delete
           delete t;
         _queue_cv.notify_all();
       }
@@ -80,9 +80,9 @@ task_manager::~task_manager() {
  *  @return The id of the new task in the task manager.
  */
 uint64_t task_manager::add(task* t,
-                       timestamp const& when,
-                       bool is_runnable,
-                       bool should_delete) {
+                           timestamp const& when,
+                           bool is_runnable,
+                           bool should_delete) {
   std::lock_guard<std::mutex> lock(_tasks_m);
 
   internal_task* itask =
@@ -104,13 +104,14 @@ uint64_t task_manager::add(task* t,
  *  @return The id of the new task in the task manager.
  */
 uint64_t task_manager::add(task* t,
-                       timestamp const& when,
-                       uint32_t interval,
-                       bool is_runnable,
-                       bool should_delete) {
+                           timestamp const& when,
+                           uint32_t interval,
+                           bool is_runnable,
+                           bool should_delete) {
   std::lock_guard<std::mutex> lock(_tasks_m);
 
-  internal_task* itask = new internal_task(t, ++_current_id, interval, is_runnable, should_delete);
+  internal_task* itask =
+      new internal_task(t, ++_current_id, interval, is_runnable, should_delete);
   _tasks.insert({when, itask});
   return _current_id;
 }
@@ -144,14 +145,13 @@ uint32_t task_manager::remove(task* t) {
   std::lock_guard<std::mutex> lock(_tasks_m);
 
   uint32_t retval = 0;
-  for (auto it = _tasks.begin(), end = _tasks.end(); it != end; ) {
+  for (auto it = _tasks.begin(), end = _tasks.end(); it != end;) {
     if (it->second->tsk == t) {
       if (it->second->interval == 0)  // auto_delete
         delete it->second;
       it = _tasks.erase(it);
       ++retval;
-    }
-    else
+    } else
       ++it;
   }
   return retval;
@@ -210,12 +210,11 @@ uint32_t task_manager::execute(timestamp const& now) {
 
     if (itask->is_runnable) {
       _enqueue(itask);
-    }
-    else {
+    } else {
       /* This task needs to be run in the main thread without any concurrency */
       _wait_for_queue_empty();
       itask->tsk->run();
-      if (itask->interval == 0) // auto_delete
+      if (itask->interval == 0)  // auto_delete
         delete itask;
     }
     ++retval;

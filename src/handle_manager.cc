@@ -16,7 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include <sstream>
 #include "com/centreon/handle_manager.hh"
 #include <cerrno>
 #include <cstring>
