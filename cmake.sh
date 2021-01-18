@@ -1,9 +1,37 @@
 #!/bin/bash
+# Usage info
+show_help() {
+cat << EOF
+Usage: ${0##*/} -n=[yes|no] -v
 
-if [ "$1" = "-f" ] ; then
-  force=1
-  shift
-fi
+This program build Centreon-clib
+
+    -f|--force    : force rebuild
+    -r|--release  : Build on release mode
+    -h|--help     : help
+EOF
+}
+force=0
+BUILD_TYPE="Debug"
+for i in "$@"
+do
+  case $i in
+    -f|--force)
+      force=1
+      shift
+      ;;
+    -r|--release)
+      BUILD_TYPE="Release"
+      ;;
+    -h|--help)
+      show_help
+      exit 2
+      ;;
+    *)
+            # unknown option
+    ;;
+  esac
+done
 
 # Am I root?
 my_id=$(id -u)
@@ -126,11 +154,17 @@ if [ ! -d build ] ; then
   mkdir build
 fi
 
+if [ "$force" = "1" ] ; then
+  rm -rf build
+  mkdir build
+fi
 cd build
 if [ $maj = "Raspbian" ] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib -DWITH_TESTING=On $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_PREFIX_LIB=/usr/lib -DWITH_TESTING=On -DUSE_CXX11_ABI=1 $* ..
+elif [ $maj = "Debian" ] ; then
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On -DUSE_CXX11_ABI=1 $* ..
 else
-  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On -DUSE_CXX11_ABI=0 $* ..
 fi
 
 #CXX=/usr/bin/clang++ CC=/usr/bin/clang CXXFLAGS="-Wall -Wextra" cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On $* ..
