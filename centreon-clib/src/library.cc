@@ -16,17 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/library.hh"
 #include <cstdlib>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/library.hh"
 
 using namespace com::centreon;
-
-/**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
 
 /**
  *  Default constructor.
@@ -40,8 +34,7 @@ library::library(std::string const& filename)
 library::~library() noexcept {
   try {
     unload();
-  }
-  catch (...) {
+  } catch (...) {
   }
 }
 
@@ -50,14 +43,18 @@ library::~library() noexcept {
  *
  *  @return The filename.
  */
-std::string const& library::filename() const noexcept { return _filename; }
+std::string const& library::filename() const noexcept {
+  return _filename;
+}
 
 /**
  *  Check if the library has loaded.
  *
  *  @return True if the library is loaded, otherwise false.
  */
-bool library::is_loaded() const noexcept { return _handle; }
+bool library::is_loaded() const noexcept {
+  return _handle;
+}
 
 /**
  *  Load the library.
@@ -112,7 +109,7 @@ void (*library::resolve_proc(char const* symbol))() {
     void* data;
   } type;
   type.data = resolve(symbol);
-  return (type.func);
+  return type.func;
 }
 
 /**
@@ -121,7 +118,7 @@ void (*library::resolve_proc(char const* symbol))() {
  *  @see resolve_proc
  */
 void (*library::resolve_proc(std::string const& symbol))() {
-  return (resolve_proc(symbol.c_str()));
+  return resolve_proc(symbol.c_str());
 }
 
 /**
@@ -132,5 +129,5 @@ void library::unload() {
     return;
   if (dlclose(_handle))
     throw basic_error() << "unload library failed: " << dlerror();
-  _handle = NULL;
+  _handle = nullptr;
 }
