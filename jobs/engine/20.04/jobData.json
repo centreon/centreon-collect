@@ -16,11 +16,6 @@
             "url": "@REPOSITORY@/yum/internal/20.04/el7/x86_64/engine/@PROJECT@-@VERSION@-@RELEASE@"
         },
         {
-            "displayname": "RPM repository",
-            "flavor": "centos8",
-            "url": "@REPOSITORY@/yum/internal/20.04/el8/x86_64/engine/@PROJECT@-@VERSION@-@RELEASE@"
-        },
-        {
             "displayname": "Sources",
             "flavor": "",
             "url": "@REPOSITORY@/sources/internal/engine/@PROJECT@-@VERSION@-@RELEASE@"
