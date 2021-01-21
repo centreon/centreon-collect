@@ -2,7 +2,7 @@
 
 #
 #
-# Copyright 2005 - 2020 Centreon (https://www.centreon.com/)
+# Copyright 2005 - 2021 Centreon (https://www.centreon.com/)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,14 +23,15 @@
 set -x
 
 # Get project.
-PROJECT=centreon-awie
+PROJECT=centreon-mbi
 
 # Remove old reports.
-rm -f /tmp/codestyle-be.xml
+rm -f ../tmp/codestyle-be.xml
 
 # Install dependencies.
 chown -R root:root "/usr/local/src/$PROJECT"
-cd "/usr/local/src/$PROJECT"
+cd "/usr/local/src/$PROJECT/server"
+
 # @TODO remove credentials
 composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
 composer install

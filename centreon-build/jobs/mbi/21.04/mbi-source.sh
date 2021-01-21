@@ -28,7 +28,7 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 #
 # ENGINE / ETL / REPORT / REPORTING-SERVER
 #
-for i in engine etl report reporting-server ; do
+for i in engine etl report reporting-server; do
   cd "$i"
   git archive --prefix="centreon-bi-$i-$VERSION/" HEAD . | gzip > "../../centreon-bi-$i-$VERSION.tar.gz"
   cd ..
@@ -51,11 +51,17 @@ done
 cd ../..
 tar czf "centreon-bi-server-$VERSION.tar.gz" "centreon-bi-server-$VERSION"
 
+# generate mbi server's tarball with file used for unit tests and coverage
+cd "$PROJECT"
+git archive --prefix="$PROJECT-$VERSION-full/" HEAD | gzip > "../$PROJECT-$VERSION-full.tar.gz"
+cd ..
+
 # Send sources to srvi-repo.
 curl -F "file=@centreon-bi-server-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "centreon-bi-server-$VERSION-php72.tar.gz"
 for i in engine etl report reporting-server ; do
   put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "centreon-bi-$i-$VERSION.tar.gz"
 done
+put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
 put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "centreon-bi-server-$VERSION-php72.tar.gz"
 put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/server/packaging/centreon-bi-server.spectemplate"
 
@@ -67,3 +73,9 @@ RELEASE=$RELEASE
 COMMIT=$COMMIT
 COMMITTER=$COMMITTER
 EOF
+
+# Generate summary report.
+rm -rf summary
+cp -r `dirname $0`/../../common/build-artifacts summary
+cp `dirname $0`/jobData.json summary/
+generate_summary
