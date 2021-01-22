@@ -32,7 +32,7 @@ PROJECT=centreon-mbi
 
 # Retrieve copy of git repository.
 echo "Downloading tarball"
-curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/mbi/$PROJECT-$VERSION-$RELEASE/$PROJECT-full.tar.gz"
+curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/mbi/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 rm -rf "$PROJECT"
 tar xzf "$PROJECT-git.tar.gz"
 
