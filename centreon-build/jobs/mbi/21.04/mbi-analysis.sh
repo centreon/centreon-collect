@@ -37,7 +37,7 @@ rm -rf "$PROJECT"
 tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
-cd "$PROJECT"
+cd "$PROJECT-$VERSION-full"
 if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/centreon-mbi-21.04/centreon-mbi-21.04-release/g' sonar-project.properties
   sed -i -e 's/Centreon MBI 21.04/Centreon MBI 21.04 (release)/g' sonar-project.properties
