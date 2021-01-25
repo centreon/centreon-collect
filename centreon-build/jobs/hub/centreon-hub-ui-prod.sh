@@ -31,4 +31,4 @@ ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" mkdir -p "/s
 scp -o StrictHostKeyChecking=no "$PROJECT-$VERSION.tar.gz" "ubuntu@srvi-repo.int.centreon.com:/srv/sources/hub/stable/$PROJECT-$VERSION/"
 
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO "cd /tmp && tar zxf /srv/sources/hub/stable/$PROJECT-$VERSION/$PROJECT-$VERSION.tar.gz && aws s3 sync '/tmp/$PROJECT/build' 's3://centreon-hub-ui'"
+$SSH_REPO "cd /tmp && rm -rf './$PROJECT' && tar zxf /srv/sources/hub/stable/$PROJECT-$VERSION/$PROJECT-$VERSION.tar.gz && aws s3 sync '/tmp/$PROJECT/build' 's3://centreon-hub-ui' --delete"
