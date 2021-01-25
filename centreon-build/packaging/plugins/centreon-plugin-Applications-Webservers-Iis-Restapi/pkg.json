@@ -6,6 +6,6 @@
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
-        "apps/iis/restapi/"
+        "apps/microsoft/iis/restapi/"
     ]
 }
