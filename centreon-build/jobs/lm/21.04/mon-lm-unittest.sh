@@ -22,11 +22,11 @@ DISTRIB="$1"
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
-get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/hooks.tar.gz"
+get_internal_source "lm/$PROJECT-$VERSION-$RELEASE/frontend.tar.gz"
 tar xzf "$PROJECT-$VERSION.tar.gz"
-cd "$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend"
-tar xzf ../../../../../hooks.tar.gz
-cd ../../../../..
+cd "$PROJECT-$VERSION/www/modules/centreon-license-manager"
+tar xzf ../../../../frontend.tar.gz
+cd ../../../..
 
 # Launch mon-unittest container.
 UT_IMAGE=registry.centreon.com/mon-unittest-21.04:$DISTRIB
