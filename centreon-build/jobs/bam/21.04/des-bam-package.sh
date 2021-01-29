@@ -23,18 +23,18 @@ DISTRIB="$1"
 rm -rf "$PROJECT-$VERSION-full.tar.gz" "$PROJECT-$VERSION-full"
 get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
 tar xzf "$PROJECT-$VERSION-full.tar.gz"
-rm -rf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
-get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz"
-tar xzf "$PROJECT-$VERSION-php72.tar.gz"
+rm -rf "$PROJECT-$VERSION-php73.tar.gz" "$PROJECT-$VERSION-php73"
+get_internal_source "bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz"
+tar xzf "$PROJECT-$VERSION-php73.tar.gz"
 OLDVERSION="$VERSION"
 OLDRELEASE="$RELEASE"
 PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
 if [ -n "$PRERELEASE" ] ; then
   export VERSION=`echo $VERSION | cut -d - -f 1`
   export RELEASE="$PRERELEASE.$RELEASE"
-  rm -rf "$PROJECT-$VERSION-php72"
-  mv "$PROJECT-$OLDVERSION-php72" "$PROJECT-$VERSION-php72"
-  tar czf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
+  rm -rf "$PROJECT-$VERSION-php73"
+  mv "$PROJECT-$OLDVERSION-php73" "$PROJECT-$VERSION-php73"
+  tar czf "$PROJECT-$VERSION-php73.tar.gz" "$PROJECT-$VERSION-php73"
 fi
 
 # Create input and output directories.
@@ -44,7 +44,7 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION-php72.tar.gz" input/"$PROJECT-$VERSION-php72.tar.gz"
+cp "$PROJECT-$VERSION-php73.tar.gz" input/"$PROJECT-$VERSION-php73.tar.gz"
 cp "$PROJECT-$OLDVERSION-full/packaging/$PROJECT.spectemplate" input
 
 # Pull latest build dependencies.

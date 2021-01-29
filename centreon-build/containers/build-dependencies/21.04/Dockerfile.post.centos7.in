@@ -1,5 +1,5 @@
 RUN yum remove 'php*'
-ENV PATH=$PATH:/opt/rh/rh-php72/root/usr/bin:/opt/rh/rh-maven35/root/usr/bin
+ENV PATH=$PATH:/opt/rh/rh-php73/root/usr/bin:/opt/rh/rh-maven35/root/usr/bin
 ENV PYTHONPATH="/opt/rh/rh-maven35/root/usr/lib/python2.7/site-packages${PYTHONPATH:+:}${PYTHONPATH:-}"
 ENV JAVACONFDIRS="/opt/rh/rh-maven35/root/etc/java${JAVACONFDIRS:+:}${JAVACONFDIRS:-}"
 ENV XDG_CONFIG_DIRS="/opt/rh/rh-maven35/root/etc/xdg:${XDG_CONFIG_DIRS:-/etc/xdg}"

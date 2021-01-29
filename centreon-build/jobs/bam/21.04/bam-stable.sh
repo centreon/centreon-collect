@@ -19,8 +19,8 @@ SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO mv "/srv/sources/bam/testing/bam/$PROJECT-$VERSION-$RELEASE" "/srv/sources/bam/stable/"
 
 # Put sources online.
-SRCHASH=`$SSH_REPO "cat /srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz | md5sum | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-21.04/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php72.tar.gz"
+SRCHASH=`$SSH_REPO "cat /srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz | md5sum | cut -d ' ' -f 1"`
+$SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-21.04/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php73.tar.gz"
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "bam" "21.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"

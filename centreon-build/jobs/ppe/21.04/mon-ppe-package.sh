@@ -20,9 +20,9 @@ fi
 DISTRIB="$1"
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
-get_internal_source "ppe/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz"
-tar xzf "$PROJECT-$VERSION-php72.tar.gz"
+rm -rf "$PROJECT-$VERSION-php73.tar.gz" "$PROJECT-$VERSION-php73"
+get_internal_source "ppe/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz"
+tar xzf "$PROJECT-$VERSION-php73.tar.gz"
 
 # Create input and output directories.
 rm -rf input
@@ -31,8 +31,8 @@ rm -rf output
 mkdir output
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION-php72.tar.gz" input/"$PROJECT-$VERSION-php72.tar.gz"
-cp "$PROJECT-$VERSION-php72/packaging/$PROJECT.spectemplate" input/
+cp "$PROJECT-$VERSION-php73.tar.gz" input/"$PROJECT-$VERSION-php73.tar.gz"
+cp "$PROJECT-$VERSION-php73/packaging/$PROJECT.spectemplate" input/
 
 # Pull latest build dependencies.
 BUILD_IMG="registry.centreon.com/mon-build-dependencies-21.04:$DISTRIB"

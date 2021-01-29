@@ -33,7 +33,7 @@ yum install centos-release-scl
 xargs yum install < /tmp/dependencies.txt
 
 # Configuration.
-echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php72/php.d/centreon.ini
+echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php73/php.d/centreon.ini
 
 # Clean packages
 yum-config-manager --enable 'centreon-unstable*'

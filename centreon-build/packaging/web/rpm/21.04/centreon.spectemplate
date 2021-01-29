@@ -8,7 +8,7 @@
 
 # Define PHP prefix.
 %if 0%{?el7}
-%define php_prefix rh-php72-
+%define php_prefix rh-php73-
 %else
 %define php_prefix %{nil}
 %endif
@@ -118,7 +118,7 @@ Requires:   initscripts
 %if 0%{?el7}
 Requires:   httpd24
 Requires:   mysql
-Requires:   rh-php72
+Requires:   rh-php73
 %else
 Requires:   httpd
 Requires:   mariadb
@@ -311,12 +311,12 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %if 0%{?el7}
 %{__install} -d -m 0755 %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php72/php.d
-%{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/opt/rh/rh-php72/php.d/50-centreon.ini
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php72/php-fpm.d
-%{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d
-%{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php73/php.d
+%{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/opt/rh/rh-php73/php.d/50-centreon.ini
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php73/php-fpm.d
+%{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/opt/rh/rh-php73/php-fpm.d/centreon.conf
+%{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/rh-php73-php-fpm.service.d
+%{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/rh-php73-php-fpm.service.d/centreon.conf
 %else
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot%{_sysconfdir}/httpd/conf.d/10-centreon.conf
@@ -478,7 +478,7 @@ sed -i -E "s/0\s0(.*)centreon\-send\-stats\.php(.*)/$MIN $HOUR\1centreon-send-st
 
 # Create HASH secret for Symfony application
 %if 0%{?el7}
-REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/rh-php72/root/usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
+REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/rh-php73/root/usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
 %else
 REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
 %endif
@@ -553,9 +553,9 @@ fi
 %defattr(-, root, root, -)
 %if 0%{?el7}
 %config(noreplace) /opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
-%config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php.d/50-centreon.ini
-%config(noreplace) %{_sysconfdir}/opt/rh/rh-php72/php-fpm.d/centreon.conf
-%config(noreplace) %{_sysconfdir}/systemd/system/rh-php72-php-fpm.service.d/centreon.conf
+%config(noreplace) %{_sysconfdir}/opt/rh/rh-php73/php.d/50-centreon.ini
+%config(noreplace) %{_sysconfdir}/opt/rh/rh-php73/php-fpm.d/centreon.conf
+%config(noreplace) %{_sysconfdir}/systemd/system/rh-php73-php-fpm.service.d/centreon.conf
 %else
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/10-centreon.conf
 %config(noreplace) %{_sysconfdir}/php.d/50-centreon.ini
