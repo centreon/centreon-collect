@@ -208,8 +208,8 @@ class CentreonData(AddonData):
         # httpd and PHP.
         if self.installation_type == 'central' or self.installation_type == 'centralwithoutdb' or self.installation_type == 'pollerdisplay':
             execWithRedirect("systemctl", ["enable", "httpd24-httpd"], root=getSysroot())
-            execWithRedirect("systemctl", ["enable", "rh-php72-php-fpm"], root=getSysroot())
-            centreon_ini_path = os.path.normpath(getSysroot() + '/etc/opt/rh/rh-php72/php.d/50-centreon.ini')
+            execWithRedirect("systemctl", ["enable", "rh-php73-php-fpm"], root=getSysroot())
+            centreon_ini_path = os.path.normpath(getSysroot() + '/etc/opt/rh/rh-php73/php.d/50-centreon.ini')
             with open(centreon_ini_path, "a") as fobj:
                 fobj.write("date.timezone=" + ksdata.timezone.timezone + "\n")
 

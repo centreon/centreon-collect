@@ -57,12 +57,12 @@ git archive --prefix="$PROJECT-$VERSION-full/" HEAD | gzip > "../$PROJECT-$VERSI
 cd ..
 
 # Send sources to srvi-repo.
-curl -F "file=@centreon-bi-server-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "centreon-bi-server-$VERSION-php72.tar.gz"
+curl -F "file=@centreon-bi-server-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "centreon-bi-server-$VERSION-php73.tar.gz"
 for i in engine etl report reporting-server ; do
   put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "centreon-bi-$i-$VERSION.tar.gz"
 done
 put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
-put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "centreon-bi-server-$VERSION-php72.tar.gz"
+put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "centreon-bi-server-$VERSION-php73.tar.gz"
 put_internal_source "mbi" "$PROJECT-$VERSION-$RELEASE" "$PROJECT/server/packaging/centreon-bi-server.spectemplate"
 
 # Generate properties files for downstream jobs.

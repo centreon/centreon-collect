@@ -25,11 +25,11 @@ RUN yum clean all && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     yum clean all && \
     rm -rf /tmp/fresh && \
-    touch /var/opt/rh/rh-php72/log/php-fpm/centreon-error.log && \
-    chown apache:apache /var/opt/rh/rh-php72/log/php-fpm/centreon-error.log
+    touch /var/opt/rh/rh-php73/log/php-fpm/centreon-error.log && \
+    chown apache:apache /var/opt/rh/rh-php73/log/php-fpm/centreon-error.log
 
 # License stuff.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
-COPY web/21.04/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php72/php-fpm.d/centreon-license-manager.conf
+COPY web/21.04/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php73/php-fpm.d/centreon-license-manager.conf
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]

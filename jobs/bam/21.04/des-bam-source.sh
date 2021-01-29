@@ -62,10 +62,10 @@ rm -f .git/info/attributes
 cd ..
 
 # Send it to srvi-repo.
-curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php72.tar.gz"
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php73.tar.gz"
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php72.tar.gz"
+put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php73.tar.gz"
 put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
 
 # Generate properties files for downstream jobs.

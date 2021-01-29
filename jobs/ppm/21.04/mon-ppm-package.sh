@@ -26,23 +26,23 @@ rm -rf output
 mkdir output
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
-get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php72.tar.gz"
-tar xzf "$PROJECT-$VERSION-php72.tar.gz"
+rm -rf "$PROJECT-$VERSION-php73.tar.gz" "$PROJECT-$VERSION-php73"
+get_internal_source "ppm/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz"
+tar xzf "$PROJECT-$VERSION-php73.tar.gz"
 OLDVERSION="$VERSION"
 OLDRELEASE="$RELEASE"
 PRERELEASE=`echo $VERSION | cut -d - -s -f 2-`
 if [ -n "$PRERELEASE" ] ; then
   export VERSION=`echo $VERSION | cut -d - -f 1`
   export RELEASE="$PRERELEASE.$RELEASE"
-  rm -rf "$PROJECT-$VERSION-php72"
-  mv "$PROJECT-$OLDVERSION-php72" "$PROJECT-$VERSION-php72"
-  tar czf "$PROJECT-$VERSION-php72.tar.gz" "$PROJECT-$VERSION-php72"
+  rm -rf "$PROJECT-$VERSION-php73"
+  mv "$PROJECT-$OLDVERSION-php73" "$PROJECT-$VERSION-php73"
+  tar czf "$PROJECT-$VERSION-php73.tar.gz" "$PROJECT-$VERSION-php73"
 fi
 
 # Retrieve sources.
-cp "$PROJECT-$VERSION-php72.tar.gz" input/"$PROJECT-$VERSION-php72.tar.gz"
-cp "$PROJECT-$VERSION-php72/packaging/$PROJECT.spectemplate" input/
+cp "$PROJECT-$VERSION-php73.tar.gz" input/"$PROJECT-$VERSION-php73.tar.gz"
+cp "$PROJECT-$VERSION-php73/packaging/$PROJECT.spectemplate" input/
 
 # Pull latest build dependencies.
 BUILD_IMG="registry.centreon.com/mon-build-dependencies-21.04:$DISTRIB"

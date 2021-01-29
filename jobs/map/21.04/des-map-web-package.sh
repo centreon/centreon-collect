@@ -28,7 +28,7 @@ mkdir output
 
 # Fetch sources.
 cd input
-get_internal_source "map-web/$PROJECT-web-$VERSIONWEB-$RELEASE/$PACKAGE-$VERSIONWEB-php72.tar.gz"
+get_internal_source "map-web/$PROJECT-web-$VERSIONWEB-$RELEASE/$PACKAGE-$VERSIONWEB-php73.tar.gz"
 get_internal_source "map-web/$PROJECT-web-$VERSIONWEB-$RELEASE/$PACKAGE.spectemplate"
 cd ..
 

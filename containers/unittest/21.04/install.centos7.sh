@@ -12,11 +12,11 @@ curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-8.phar
 chmod +x /usr/local/bin/phpunit
 
 # Install Xdebug PHP extension (for PHPUnit code coverage).
-yum install sclo-php72-php-pecl-xdebug
+yum install sclo-php73-php-pecl-xdebug
 
 # Install Composer.
-yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring
-export PATH="$PATH:/opt/rh/rh-php72/root/usr/bin"
+yum install -y rh-php73-php rh-php73-php-cli rh-php73-php-dom rh-php73-php-mbstring
+export PATH="$PATH:/opt/rh/rh-php73/root/usr/bin"
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
