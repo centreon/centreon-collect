@@ -1,12 +1,13 @@
 #!/usr/bin/make -f
 
 export DH_VERBOSE=1
+USE_CXX11=$(shell grep -q "ABI=1" CMakeLists.txt && echo -n 1 || echo -n 0)
 
 %:
 	dh $@
 
 override_dh_auto_configure:
-	cmake -DWITH_PREFIX=/usr .
+	cmake -DWITH_PREFIX=/usr -DUSE_CXX11_ABI=$(USE_CXX11) .
 
 override_dh_auto_build:
 	make
