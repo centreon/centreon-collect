@@ -47,3 +47,5 @@ put_testing_rpms "standard" "20.04" "el7" "x86_64" "ioncube" "ioncube" output-ce
 put_testing_rpms "standard" "20.04" "el8" "x86_64" "ioncube" "ioncube" output-centos8/x86_64/*.rpm
 put_testing_rpms "standard" "20.10" "el7" "x86_64" "ioncube" "ioncube" output-centos7/x86_64/*.rpm
 put_testing_rpms "standard" "20.10" "el8" "x86_64" "ioncube" "ioncube" output-centos8/x86_64/*.rpm
+put_testing_rpms "standard" "21.04" "el7" "x86_64" "ioncube" "ioncube" output-centos7/x86_64/*.rpm
+put_testing_rpms "standard" "21.04" "el8" "x86_64" "ioncube" "ioncube" output-centos8/x86_64/*.rpm
