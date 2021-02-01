@@ -59,7 +59,7 @@ cd ../../../..
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
 # Send it to srvi-repo.
-curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php73.tar.gz"
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=73" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php73.tar.gz"
 put_internal_source "autodisco" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
 put_internal_source "autodisco" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php73.tar.gz"
 
