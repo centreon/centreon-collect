@@ -2,6 +2,7 @@
 
 export DH_VERBOSE=1
 ABI=$(shell grep -q "ABI=1" CMakeLists.txt && echo -n 11)
+USE_CXX11=$(shell grep -q "ABI=1" CMakeLists.txt && echo -n 1 || echo -n 0)
 
 %:
 	dh $@
@@ -9,6 +10,7 @@ ABI=$(shell grep -q "ABI=1" CMakeLists.txt && echo -n 11)
 override_dh_auto_configure:
 	conan install -s arch=$(ARCH) -s compiler.libcxx=libstdc++$(ABI) .
 	CXXFLAGS="-std=c++11 -DNDEBUG -O2" cmake \
+          -DUSE_CXX11_ABI=$(USE_CXX11) \
 	  -DWITH_PREFIX=/usr \
 	  -DWITH_PREFIX_CONF=/etc/centreon-engine \
 	  -DWITH_VAR_DIR=/var/lib/centreon-engine \
