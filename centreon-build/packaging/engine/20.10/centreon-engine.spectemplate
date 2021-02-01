@@ -41,7 +41,7 @@ BuildRequires:  centreon-clib-devel < %{nextmajor}
 BuildRequires:  systemd
 Requires:       %{name}-daemon = %{version}-%{release}
 Requires:       %{name}-extcommands = %{version}-%{release}
-Requires:	centreon-broker >= 20.10.3
+Requires:	centreon-broker >= 20.10.4
 
 %description
 Centreon Engine is a monitoring engine, compatible with Nagios
