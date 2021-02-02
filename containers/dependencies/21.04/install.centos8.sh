@@ -18,6 +18,9 @@ dnf install --nogpgcheck centreon-release.rpm
 sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 dnf config-manager --set-enabled 'centreon-testing*'
 
+# Switch AppStream to install php73
+dnf module enable php:7.3
+
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
 

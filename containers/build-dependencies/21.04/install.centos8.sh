@@ -16,6 +16,9 @@ dnf install --nogpgcheck centreon-release.rpm
 sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 dnf config-manager --set-enabled 'centreon-testing*'
 
+# Switch AppStream to install php73
+dnf module enable php:7.3 -y
+
 # Install required build dependencies for all Centreon projects.
 xargs dnf install < /tmp/build-dependencies.txt
 
