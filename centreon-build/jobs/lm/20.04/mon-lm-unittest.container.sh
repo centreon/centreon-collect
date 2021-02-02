@@ -17,7 +17,7 @@ composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41
 composer install
 
 # Run backend unit tests and code style.
-./vendor/bin/phing unittest
+XDEBUG_MODE=coverage ./vendor/bin/phing unittest
 ./vendor/bin/phing codestyle
 
 # Move reports to expected places.
