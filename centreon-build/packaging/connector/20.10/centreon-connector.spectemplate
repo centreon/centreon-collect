@@ -26,7 +26,11 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root
 
 BuildRequires:  cmake >= 2.8
+%if 0%{?el7}
+%define cmake /usr/bin/cmake3
+%else
 %define cmake /usr/bin/cmake
+%endif
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
