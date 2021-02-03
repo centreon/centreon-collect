@@ -23,4 +23,3 @@ upload_tarball_for_download centreon-connectors "$VERSION" "/srv/sources/standar
 
 # Move RPMs to the stable repository.
 promote_testing_rpms_to_stable "standard" "20.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "standard" "20.04" "el8" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
