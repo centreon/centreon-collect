@@ -125,7 +125,7 @@ else
   conan install . -s compiler.libcxx=libstdc++
 fi
 
-CXXFLAGS="-O2 -g -std=c++11" %{cmake} \
+CXXFLAGS="-DNDEBUG -O2 -g -std=c++11" %{cmake} \
 	-DWITH_TESTING=0 \
 	-DWITH_PREFIX=/usr \
 	-DWITH_PREFIX_BIN=%{_sbindir} \
