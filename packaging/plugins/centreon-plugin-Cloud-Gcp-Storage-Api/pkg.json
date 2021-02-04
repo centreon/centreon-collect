@@ -6,7 +6,7 @@
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
-        "cloud/gcp/custom/",
-        "cloud/gcp/storage/"
+        "cloud/google/gcp/custom/",
+        "cloud/google/gcp/storage/"
     ]
 }
