@@ -3,7 +3,7 @@
         "libjson-xs-perl",
         "libdigest-md5-perl",
         "libdatetime-perl",
-        "libdigest-sha-perl",
+	"libjson-webtoken-perl",
         "liblwp-useragent-perl",
         "liblwp-protocol-https-perl",
         "libio-socket-ssl-perl",
