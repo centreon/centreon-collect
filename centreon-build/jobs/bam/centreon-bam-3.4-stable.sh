@@ -26,7 +26,7 @@ done
 `dirname $0`/../testing-to-stable.sh
 
 # Synchronize RPMs.
-$SSH_REPO /srv/scripts/sync-bam.sh --confirm /3.4
+`dirname $0`/../sync-repo.sh --project bam --path /3.4 --confirm
 
 # Download link.
 echo 'https://download.centreon.com/?action=product&product=centreon-bam&version='$VERSION'&secKey='$SRCHASH

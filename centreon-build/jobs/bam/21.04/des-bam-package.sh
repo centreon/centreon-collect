@@ -64,9 +64,9 @@ else
   exit 1
 fi
 put_internal_rpms "21.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE" output/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
+#if [ "$BUILD" '=' 'REFERENCE' ] ; then
   copy_internal_rpms_to_canary "bam" "21.04" "$DISTRIB" "noarch" "bam" "$PROJECT-$OLDVERSION-$OLDRELEASE"
-fi
+#fi
 
 # Create RPMs tarball.
 tar czf "rpms-$DISTRIB.tar.gz" output

@@ -115,7 +115,7 @@ put_testing_rpms () {
   done
   scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
   ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$REPOROOT.sh" --confirm "$REPOSUBDIR"
+  $UPDATEREPODIR/sync-repo.sh --project $REPOROOT --path "$REPOSUBDIR" --confirm
 }
 
 put_internal_debs () {
@@ -130,102 +130,150 @@ put_internal_debs () {
 }
 
 copy_internal_rpms_to_canary () {
-  TARGETDIR="/srv/yum/$1/$2/$3/canary/$4/$5"
-  REPO="$1/$2/$3/canary/$4"
-  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
-  ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
-  ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
-  clean_directory "$TARGETDIR"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    TARGETDIR="/srv/yum/$TARGETPROJECT/$2/$3/canary/$4/$5"
+    REPO="$TARGETPROJECT/$2/$3/canary/$4"
+    ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
+    ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
+    ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
+    clean_directory "$TARGETDIR"
+    DESTFILE=`ssh "$REPO_CREDS" mktemp`
+    UPDATEREPODIR=`dirname $0`
+    while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+      UPDATEREPODIR="$UPDATEREPODIR/.."
+    done
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/canary/$4" --confirm
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/canary/$4"
 }
 
 copy_internal_rpms_to_unstable () {
-  TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/$5"
-  REPO="$1/$2/$3/unstable/$4"
-  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
-  ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
-  ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
-  clean_directory "$TARGETDIR"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    TARGETDIR="/srv/yum/$TARGETPROJECT/$2/$3/unstable/$4/$5"
+    REPO="$TARGETPROJECT/$2/$3/unstable/$4"
+    ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
+    ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
+    ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
+    clean_directory "$TARGETDIR"
+    DESTFILE=`ssh "$REPO_CREDS" mktemp`
+    UPDATEREPODIR=`dirname $0`
+    while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+      UPDATEREPODIR="$UPDATEREPODIR/.."
+    done
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/unstable/$4" --confirm
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
 }
 
 copy_internal_rpms_to_testing () {
-  TARGETDIR="/srv/yum/$1/$2/$3/testing/$4/$5"
-  REPO="$1/$2/$3/testing/$4"
-  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
-  ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
-  ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
-  clean_directory "$TARGETDIR"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    TARGETDIR="/srv/yum/$TARGETPROJECT/$2/$3/testing/$4/$5"
+    REPO="$TARGETPROJECT/$2/$3/testing/$4"
+    ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
+    ssh "$REPO_CREDS" cp -r "/srv/yum/internal/$2/$3/$4/$5/$6" "$TARGETDIR/"
+    ssh "$REPO_CREDS" rm -rf "$TARGETDIR/$6/repodata"
+    clean_directory "$TARGETDIR"
+    DESTFILE=`ssh "$REPO_CREDS" mktemp`
+    UPDATEREPODIR=`dirname $0`
+    while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+      UPDATEREPODIR="$UPDATEREPODIR/.."
+    done
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/testing/$4" --confirm
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/testing/$4"
 }
 
 promote_canary_rpms_to_unstable () {
-  TARGETDIR="/srv/yum/$1/$2/$3/unstable/$4/$5"
-  REPO="$1/$2/$3/unstable/$4"
-  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
-  ssh "$REPO_CREDS" cp -r "/srv/yum/$1/$2/$3/canary/$4/$5/$6" "$TARGETDIR/"
-  clean_directory "$TARGETDIR"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    TARGETDIR="/srv/yum/$TARGETPROJECT/$2/$3/unstable/$4/$5"
+    REPO="$TARGETPROJECT/$2/$3/unstable/$4"
+    ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
+    ssh "$REPO_CREDS" cp -r "/srv/yum/$TARGETPROJECT/$2/$3/canary/$4/$5/$6" "$TARGETDIR/"
+    clean_directory "$TARGETDIR"
+    DESTFILE=`ssh "$REPO_CREDS" mktemp`
+    UPDATEREPODIR=`dirname $0`
+    while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+      UPDATEREPODIR="$UPDATEREPODIR/.."
+    done
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/unstable/$4" --confirm
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/unstable/$4"
 }
 
 promote_unstable_rpms_to_testing () {
-  TARGETDIR="/srv/yum/$1/$2/$3/testing/$4/$5"
-  REPO="$1/$2/$3/testing/$4"
-  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
-  ssh "$REPO_CREDS" cp -r "/srv/yum/$1/$2/$3/unstable/$4/$5/$6" "$TARGETDIR/"
-  clean_directory "$TARGETDIR"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    TARGETDIR="/srv/yum/$TARGETPROJECT/$2/$3/testing/$4/$5"
+    REPO="$1/$2/$3/testing/$4"
+    ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
+    ssh "$REPO_CREDS" cp -r "/srv/yum/$TARGETPROJECT/$2/$3/unstable/$4/$5/$6" "$TARGETDIR/"
+    clean_directory "$TARGETDIR"
+    DESTFILE=`ssh "$REPO_CREDS" mktemp`
+    UPDATEREPODIR=`dirname $0`
+    while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+      UPDATEREPODIR="$UPDATEREPODIR/.."
+    done
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/testing/$4" --confirm
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/testing/$4"
 }
 
 promote_testing_rpms_to_stable () {
-  SOURCEDIR="/srv/yum/$1/$2/$3/testing/$4/$5/$6"
-  TARGETDIR="/srv/yum/$1/$2/$3/stable/$4/RPMS"
-  REPO="$1/$2/$3/stable/$4"
-  ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
-  ssh "$REPO_CREDS" cp "$SOURCEDIR/*.rpm" "$TARGETDIR/"
-  DESTFILE=`ssh "$REPO_CREDS" mktemp`
-  UPDATEREPODIR=`dirname $0`
-  while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
-    UPDATEREPODIR="$UPDATEREPODIR/.."
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    SOURCEDIR="/srv/yum/$TARGETPROJECT/$2/$3/testing/$4/$5/$6"
+    TARGETDIR="/srv/yum/$TARGETPROJECT/$2/$3/stable/$4/RPMS"
+    REPO="$TARGETPROJECT/$2/$3/stable/$4"
+    ssh "$REPO_CREDS" mkdir -p "$TARGETDIR"
+    ssh "$REPO_CREDS" cp "$SOURCEDIR/*.rpm" "$TARGETDIR/"
+    DESTFILE=`ssh "$REPO_CREDS" mktemp`
+    UPDATEREPODIR=`dirname $0`
+    while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
+      UPDATEREPODIR="$UPDATEREPODIR/.."
+    done
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/stable/$4" --confirm
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  ssh "$REPO_CREDS" "/srv/scripts/sync-$1.sh" --confirm "/$2/$3/stable/$4"
 }
 
 # Summary report.

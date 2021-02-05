@@ -10,4 +10,4 @@ SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
-$SSH_REPO /srv/scripts/sync-map.sh --confirm
+`dirname $0`/../sync-repo.sh --project map --confirm

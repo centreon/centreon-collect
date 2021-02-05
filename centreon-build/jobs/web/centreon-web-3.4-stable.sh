@@ -20,4 +20,4 @@ $SSH_REPO mv "/srv/sources/standard/testing/$PROJECT-$VERSION-$RELEASE" "/srv/so
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
-$SSH_REPO /srv/scripts/sync-lts.sh --confirm /3.4
+`dirname $0`/../sync-repo.sh --project lts --path /3.4 --confirm

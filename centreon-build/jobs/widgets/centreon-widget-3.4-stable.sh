@@ -23,4 +23,4 @@ upload_artifact_for_download "$PROJECT" 3.4 "$VERSION" tar.gz 0 "/srv/sources/lt
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
-$SSH_REPO /srv/scripts/sync-lts.sh --confirm
+`dirname $0`/../sync-repo.sh --project lts --confirm

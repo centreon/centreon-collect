@@ -21,7 +21,7 @@ upload_artifact_for_download "$PROJECT" 3.4 "$VERSION" tar.gz 0 "/srv/sources/lt
 
 # Move RPMs to the stable repository.
 `dirname $0`/../testing-to-stable.sh
-$SSH_REPO /srv/scripts/sync-lts.sh --confirm /3.4
+`dirname $0`/../sync-repo.sh --project lts --path /3.4 --confirm
 
 # Generate online documentation.
 SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
