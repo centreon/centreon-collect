@@ -51,7 +51,7 @@ fi
 oIFS=$IFS
 IFS=,
 
-for pkg in ${PKGNAME[*]}; do
+for pkg in $PKGNAME; do
   LOCAL_FILE="/tmp/$pkg"
 
   ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/$pkg" "$REMOTE_FILE"
