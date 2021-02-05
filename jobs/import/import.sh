@@ -49,7 +49,7 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   exit 1
 fi
 
-PACKAGES=()
+declare -a PACKAGES
 
 # If multiple packages then retrieve the names
 if [ "$MULTIPKE_PKG" = true ]; then
