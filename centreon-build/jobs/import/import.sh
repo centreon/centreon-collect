@@ -22,7 +22,6 @@ OS=$OS
 ARCH=$ARCH
 PRODUCT=$PRODUCT
 GROUP=$GROUP
-MULTIPKE_PKG=$MULTIPKE_PKG
 
 # Check variables.
 if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
@@ -49,14 +48,10 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   exit 1
 fi
 
-# If multiple packages then retrieve the names
-if [ "$MULTIPKE_PKG" = true ]; then
-  IFS=$',' PACKAGES=($PKGNAME)
-else
-  PACKAGES+=($PKGNAME)
-fi
+oIFS=$IFS
+IFS=,
 
-for pkg in ${PACKAGES[@]}; do
+for pkg in ${PKGNAME[*]}; do
   LOCAL_FILE="/tmp/$pkg"
 
   ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/$pkg" "$REMOTE_FILE"
@@ -76,3 +71,5 @@ for pkg in ${PACKAGES[@]}; do
     promote_testing_rpms_to_stable "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP"
   fi
 done
+
+IFS=$oIFS
