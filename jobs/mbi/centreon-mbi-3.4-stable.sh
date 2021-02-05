@@ -31,7 +31,7 @@ fi
 
 # Synchronize repositories.
 if [ "$SYNC" '!=' 'false' ] ; then
-  $SSH_REPO /srv/scripts/sync-mbi.sh --confirm
+  `dirname $0`/../sync-repo.sh --project mbi --confirm
 fi
 
 # Generate online documentation.
