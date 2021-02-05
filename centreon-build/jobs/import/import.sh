@@ -49,8 +49,6 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   exit 1
 fi
 
-declare -a PACKAGES
-
 # If multiple packages then retrieve the names
 if [ "$MULTIPKE_PKG" = true ]; then
   IFS=$',' PACKAGES=($PKGNAME)
