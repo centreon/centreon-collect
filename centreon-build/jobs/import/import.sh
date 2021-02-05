@@ -12,7 +12,7 @@ set -x
 . `dirname $0`/../common.sh
 
 REPO_CREDS="ubuntu@srvi-repo.int.centreon.com"
-S3_BUCKET="centreon-repo-pobox"
+S3_BUCKET="s3://centreon-repo-pobox"
 REMOTE_FILE="/tmp/rpm_to_import_$(date +%s).rpm"
 
 PKGNAME=$PKGNAME
@@ -22,9 +22,10 @@ OS=$OS
 ARCH=$ARCH
 PRODUCT=$PRODUCT
 GROUP=$GROUP
+MULTIPKE_PKG=$MULTIPKE_PKG
 
 # Check variables.
-if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP"] ; then
+if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   echo "You need to specify PKGNAME, PRODUCT and GROUP environment variables."
   # Display Help
   echo "This script aims to ease file transfer between repositories"
@@ -35,6 +36,7 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP"] ; then
   echo
   echo "Syntax: [env_variables] ${0##/*}"
   echo "env:"
+  echo "  MULTIPKE_PKG          Mutiple packages to import, possible: true | false"
   echo "  PKGNAME               Name of the RPM stored in the S3 bucket."
   echo "  BASEREPO              defines the repository, possible : standard | bam | map | mbi | plugin-packs"
   echo "  SERIE                 defines the major version, possible :  19.10 | 20.04 | 20.10 | 21.04"
@@ -47,22 +49,32 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP"] ; then
   exit 1
 fi
 
-S3_OBJECT_URL="s3://$S3_BUCKET/$PKGNAME"
-LOCAL_FILE="/tmp/$PKGNAME"
+PACKAGES=()
 
-ssh $REPO_CREDS aws s3 cp "$S3_OBJECT_URL" "$REMOTE_FILE"
-
-# sign if needed
-if [ "$PKG_NEEDS_SIGN" = true ]; then
-  ssh $REPO_CREDS rpm --resign "$REMOTE_FILE"
+# If multiple packages then retrieve the names
+if [ "$MULTIPKE_PKG" = true ]; then
+  IFS=$',' PACKAGES=($PKGNAME)
+else
+  PACKAGES+=($PKGNAME)
 fi
 
-scp "$REPO_CREDS:$REMOTE_FILE" "$LOCAL_FILE"
-ssh $REPO_CREDS rm -f "$REMOTE_FILE"
+for pkg in ${PACKAGES[@]}; do
+  LOCAL_FILE="/tmp/$pkg"
 
-put_testing_rpms "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP" "$LOCAL_FILE"
+  ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/$pkg" "$REMOTE_FILE"
 
-# promote to stable if needed
-if [ "$PKG_PUBLISH_STABLE" = true ]; then
-  promote_testing_rpms_to_stable "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP"
-fi
+  # sign if needed
+  if [ "$PKG_NEEDS_SIGN" = true ]; then
+    ssh "$REPO_CREDS" rpm --resign "$REMOTE_FILE"
+  fi
+
+  scp "$REPO_CREDS:$REMOTE_FILE" "$LOCAL_FILE"
+  ssh "$REPO_CREDS" rm -f "$REMOTE_FILE"
+
+  put_testing_rpms "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP" "$LOCAL_FILE"
+
+  # promote to stable if needed
+  if [ "$PKG_PUBLISH_STABLE" = true ]; then
+    promote_testing_rpms_to_stable "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP"
+  fi
+done
