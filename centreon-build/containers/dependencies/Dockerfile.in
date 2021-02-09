@@ -4,4 +4,8 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 # Run distribution-dependent installation.
 COPY dependencies/@VERSION@/dependencies.@DISTRIB@.txt /tmp/dependencies.txt
 COPY dependencies/@VERSION@/install.@DISTRIB@.sh /tmp/install.sh
+
+COPY dependencies/@VERSION@/init/mysql /etc/init.d/mysql
+RUN chmod +x /etc/init.d/mysql
+
 RUN /tmp/install.sh
