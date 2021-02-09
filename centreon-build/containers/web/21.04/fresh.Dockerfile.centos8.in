@@ -20,15 +20,15 @@ RUN dnf clean all && \
     cp /tmp/fresh/configuration/* /usr/share/centreon/www/install/tmp/ && \
     chown -R apache.apache /usr/share/centreon/www/install/tmp && \
     chmod +x /tmp/fresh/fresh.sh && \
+    touch /var/log/php-fpm/centreon-error.log && \
+    chown apache:apache /var/log/php-fpm/centreon-error.log && \
     /tmp/fresh/fresh.sh && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     dnf clean all && \
     rm -rf /tmp/fresh && \
-    rm -f /etc/php-fpm.d/www.conf && \
-    touch /var/log/php-fpm/centreon-error.log && \
-    chown apache:apache /var/log/php-fpm/centreon-error.log
+    rm -f /etc/php-fpm.d/www.conf
 
 # License stuff.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
