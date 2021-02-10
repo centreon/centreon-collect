@@ -12,7 +12,7 @@ curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-8.phar
 chmod +x /usr/local/bin/phpunit
 
 # Install Xdebug PHP extension (for PHPUnit code coverage).
-yum install sclo-php73-php-pecl-xdebug
+yum install rh-php73-php-pecl-xdebug
 
 # Install Composer.
 yum install -y rh-php73-php rh-php73-php-cli rh-php73-php-dom rh-php73-php-mbstring
