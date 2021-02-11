@@ -16,6 +16,7 @@ php-mbstring
 php-mysqlnd
 php-pdo
 php-pear
+php-pecl-gnupg
 php-snmp
 php-xml
 php-zip
