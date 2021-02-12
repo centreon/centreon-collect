@@ -206,7 +206,6 @@ fi
 %{_datadir}/centreon/lib/centreon-broker/10-neb.so
 %{_datadir}/centreon/lib/centreon-broker/15-stats.so
 %{_datadir}/centreon/lib/centreon-broker/20-bam.so
-%{_datadir}/centreon/lib/centreon-broker/30-correlation.so
 %{_datadir}/centreon/lib/centreon-broker/50-tcp.so
 %{_datadir}/centreon/lib/centreon-broker/60-tls.so
 %{_datadir}/centreon/lib/centreon-broker/70-lua.so
