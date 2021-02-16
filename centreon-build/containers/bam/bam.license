@@ -17,9 +17,9 @@ Hash: SHA256
   "licensing": {
     "type": "demo",
     "isMachineLocked": "false",
-    "generated": "2020-11-04",
-    "start": "2020-11-04",
-    "end": "2021-02-04",
+    "generated": "2021-02-10",
+    "start": "2021-02-10",
+    "end": "2021-03-10",
     "hosts": -1,
     "catalog_level": "4"
   }
@@ -28,12 +28,12 @@ Hash: SHA256
 Version: OpenPGP.js v1.6.2
 Comment: http://openpgpjs.org
 
-wsBcBAEBCAAQBQJfotkoCRC4oxbLyI+7ygAAIicH/2XJY2jOaAb/StKmJFZq
-g6RVAytZjWPMohhXTIY98dSBox8fEd7vRLD8yHeQ2sXuvmBslFWtvl8LOK+G
-PDo3YjHxSb1PixMwyaV9xWxvHGavriENImQZMFqvww/gK5aRukEy5H8hJEIp
-Vuli/lcQwzMtc51l4wOenF63T8fKwiFRLry31o2QwzrdRwcHMzSAS9pjwu1p
-cB3T0Zw8PQOXKswfaKaIcdswvmsnfO67WVLODklPkAzlzndgEv7pwHJfOTUr
-uIgFqfE/1ruS77+TEZnNrj2kwOv3kQ1rCf5tlzlBu5ik3loKvQy5oBmHw6PZ
-h4oTYDd1qgWAgPDEN4twZhs=
-=qTYw
+wsBcBAEBCAAQBQJgI/Q2CRC4oxbLyI+7ygAAIJIIAIC4m1WCCcpB30+wrV8Y
+7y1OCfRnJ7tdDYpgDNwCj8fW1HWgomboOp3Ki3b5JJ5B8YGGZo0zdL7X+/nt
+XNAsCSTmck2WtwMEsTmDTkJZPXy1ZVv2UZ8YznsJMabs1tpNVxAeOUF+4H30
+eLLh2X+7QX1ddVkw9M/P+gL5jEXMbUu88gfAZmX8bMWsBU55AlPNCiWtWv74
+rVfDb3MXkZWh/sJ1BVzssq8y0VHfiPSk5uaf2HSBQ0IKSyasFLLykAfzeMDH
+TMd/nboOpxAyySyOyhIZ1DwGyqMpNq9LKkUPv4atduDWxHoZ3b8ZaJfVPpJN
+U65qhEQEsxkiOtXafoA7jKY=
+=6aDV
 -----END PGP SIGNATURE-----
