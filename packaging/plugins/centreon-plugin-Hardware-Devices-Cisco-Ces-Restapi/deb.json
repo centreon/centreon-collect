@@ -1,6 +1,6 @@
 {
     "dependencies": [
-	"libxml-simple-perl",
+	"libxml-libxml-simple-perl",
 	"libtime-parsedate-perl",
         "liburi-encode-perl",
         "liblwp-useragent-perl",
