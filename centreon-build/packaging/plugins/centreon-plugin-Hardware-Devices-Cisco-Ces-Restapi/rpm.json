@@ -1,6 +1,6 @@
 {
     "dependencies": [
-	"perl(XML::Simple)",
+	"perl(XML::LibXML::Simple)",
 	"perl(Date::Parse)",
         "perl(URI::Encode)",
         "perl(LWP::UserAgent)",
