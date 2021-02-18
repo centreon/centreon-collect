@@ -3,7 +3,7 @@
     "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_protocol_x509.pl",
     "files": [
-        "centreon/plugins/script_simple.pm",
+        "centreon/plugins/script_custom.pm",
         "apps/protocols/x509/"
     ]
 }

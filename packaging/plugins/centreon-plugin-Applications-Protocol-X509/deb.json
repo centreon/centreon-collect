@@ -2,6 +2,11 @@
     "dependencies": [
         "libio-socket-ssl-perl",
         "libnet-ssleay-perl",
-        "libdate-manip-perl"
+        "liburi-encode-perl",
+        "liblwp-useragent-perl",
+        "liblwp-protocol-https-perl",
+        "libio-socket-ssl-perl",
+        "liburi-perl",
+        "libhttp-proxypac-perl"
     ]
 }
