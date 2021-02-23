@@ -38,5 +38,5 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key registry.centreon.com
 
 # Copy files to server.
 FILES_CENTOS7='output-centos7/noarch/*.rpm'
-scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/standard/3.4/el7/$REPO/noarch/RPMS"
-ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/standard/3.4/el7/$REPO/noarch
+scp -o StrictHostKeyChecking=no $FILES_CENTOS7 "ubuntu@srvi-repo.int.centreon.com:/srv/yum/lts/3.4/el7/$REPO/noarch/RPMS"
+ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" createrepo /srv/yum/lts/3.4/el7/$REPO/noarch
