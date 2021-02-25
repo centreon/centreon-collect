@@ -25,6 +25,7 @@ RUN yum clean all && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all && \
     rm -rf /tmp/fresh
 
