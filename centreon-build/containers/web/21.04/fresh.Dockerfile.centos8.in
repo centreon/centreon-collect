@@ -26,6 +26,7 @@ RUN dnf clean all && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     dnf clean all && \
     rm -rf /tmp/fresh && \
     rm -f /etc/php-fpm.d/www.conf

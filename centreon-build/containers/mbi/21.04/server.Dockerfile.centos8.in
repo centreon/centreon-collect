@@ -11,7 +11,7 @@ RUN sed -i -e 's#yum.centreon.com/centreon-mbi#srvi-repo.int.centreon.com/yum/mb
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install packages.
-RUN dnf --disablerepo='*' --enablerepo='centreon*' clean all
+RUN dnf clean all
 RUN dnf install centreon-bi-reporting-server MariaDB-server
 
 # Copy configuration files.
