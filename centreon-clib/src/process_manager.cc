@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/process_manager.hh"
+#include <sys/signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <algorithm>
@@ -26,7 +28,6 @@
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/logger.hh"
 #include "com/centreon/process_listener.hh"
-#include "com/centreon/process_manager.hh"
 
 using namespace com::centreon;
 
