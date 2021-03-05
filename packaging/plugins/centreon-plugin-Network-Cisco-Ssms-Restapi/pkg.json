@@ -6,6 +6,6 @@
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
-        "network/cisco/ssms/restapi/"
+        "apps/cisco/ssms/restapi/"
     ]
 }
