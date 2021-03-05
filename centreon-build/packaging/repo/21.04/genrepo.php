@@ -2,43 +2,47 @@
 
 // Base centreon version.
 $centreonversion = '21.04';
-$reporelease = '2';
+$reporelease = '3';
 
 // Information table.
-$repos = array(
-    '' => array(
+$repos = [
+    '' => [
         'name' => 'Centreon open source software repository.',
-        'path' => 'standard'
-    ),
-    'bam' => array(
+        'path' => 'standard',
+    ],
+    'business' => [
+        'name' => 'Centreon Business repository',
+        'path' => 'centreon-business/1a97ff9985262bf3daf7a0919f9c59a6',
+    ],
+    'bam' => [
         'name' => 'Centreon BAM module repository',
-        'path' => 'centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3'
-    ),
-    'map' => array(
+        'path' => 'centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3',
+    ],
+    'map' => [
         'name' => 'Centreon Map module repository',
-        'path' => 'centreon-map/bfcfef6922ae08bd2b641324188d8a5f'
-    ),
-    'mbi' => array(
+        'path' => 'centreon-map/bfcfef6922ae08bd2b641324188d8a5f',
+    ],
+    'mbi' => [
         'name' => 'Centreon MBI module repository',
-        'path' => 'centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7'
-    ),
-    'plugin-packs' => array(
+        'path' => 'centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7',
+    ],
+    'plugin-packs' => [
         'name' => 'Centreon Plugin Packs repository',
-        'path' => 'plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f'
-    )
-);
+        'path' => 'plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f',
+    ],
+];
 
 // Generate all .repo files.
 foreach ($repos as $repo => $repodata) {
     // Process CentOS 7 only.
-    foreach (array('el7', 'el8') as $distrib) {
+    foreach (['el7', 'el8'] as $distrib) {
         @mkdir($distrib);
         $content = '';
 
         // Process all flavors.
-        foreach (array('stable', 'testing', 'unstable', 'canary') as $flavor) {
+        foreach (['stable', 'testing', 'unstable', 'canary'] as $flavor) {
             // Process architectures.
-            $archs = array('noarch', '$basearch');
+            $archs = ['noarch', '$basearch'];
             foreach ($archs as $arch) {
                 // Header [centreon-map-stable].
                 $content .= '[centreon';
@@ -93,6 +97,14 @@ foreach ($repos as $repo => $repodata) {
             'Provides:  ces-release' . "\n" .
             'Obsoletes: ces-release' . "\n" .
             'Source1:   RPM-GPG-KEY-CES' . "\n";
+    } elseif ($repo === 'business') {
+        $content .=
+            'Requires: centreon-release' . "\n" .
+            'Obsoletes: centreon-bam-release' . "\n" .
+            'Obsoletes: centreon-map-release' . "\n" .
+            'Obsoletes: centreon-mbi-release' . "\n" .
+            'Obsoletes: centreon-plugin-packs-release' . "\n" .
+            'Obsoletes: centreon-failover-release' . "\n";
     } else {
         $content .=
             'Requires: centreon-release' . "\n";
