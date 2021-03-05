@@ -14,22 +14,6 @@ $repos = [
         'name' => 'Centreon Business repository',
         'path' => 'centreon-business/1a97ff9985262bf3daf7a0919f9c59a6',
     ],
-    'bam' => [
-        'name' => 'Centreon BAM module repository',
-        'path' => 'centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3',
-    ],
-    'map' => [
-        'name' => 'Centreon Map module repository',
-        'path' => 'centreon-map/bfcfef6922ae08bd2b641324188d8a5f',
-    ],
-    'mbi' => [
-        'name' => 'Centreon MBI module repository',
-        'path' => 'centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7',
-    ],
-    'plugin-packs' => [
-        'name' => 'Centreon Plugin Packs repository',
-        'path' => 'plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f',
-    ],
 ];
 
 // Generate all .repo files.
@@ -157,14 +141,11 @@ foreach ($repos as $repo => $repodata) {
         'Group:     Applications/Communications' . "\n" .
         'License:   Proprietary' . "\n" .
         'URL:       https://www.centreon.com' . "\n" .
-        'Packager:  Matthieu Kermagoret <mkermagoret@centreon.com>' . "\n" .
+        'Packager:  Centreon Team <centreon@centreon.com>' . "\n" .
         'Vendor:    Centreon' . "\n" .
         'BuildArch: noarch' . "\n" .
         'Requires:  centreon-release' . "\n" .
-        'Requires:  centreon-bam-release' . "\n" .
-        'Requires:  centreon-map-release' . "\n" .
-        'Requires:  centreon-mbi-release' . "\n" .
-        'Requires:  centreon-plugin-packs-release' . "\n";
+        'Requires:  centreon-business-release' . "\n";
     file_put_contents(
         'centreon-ems.spec',
         $content
