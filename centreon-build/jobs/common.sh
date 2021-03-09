@@ -130,7 +130,7 @@ put_internal_debs () {
 }
 
 copy_internal_rpms_to_canary () {
-  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
     TARGETPROJECTS="$1 business"
   else
     TARGETPROJECTS="$1"
@@ -155,7 +155,7 @@ copy_internal_rpms_to_canary () {
 }
 
 copy_internal_rpms_to_unstable () {
-  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
     TARGETPROJECTS="$1 business"
   else
     TARGETPROJECTS="$1"
@@ -180,7 +180,7 @@ copy_internal_rpms_to_unstable () {
 }
 
 copy_internal_rpms_to_testing () {
-  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
     TARGETPROJECTS="$1 business"
   else
     TARGETPROJECTS="$1"
@@ -205,7 +205,7 @@ copy_internal_rpms_to_testing () {
 }
 
 promote_canary_rpms_to_unstable () {
-  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
     TARGETPROJECTS="$1 business"
   else
     TARGETPROJECTS="$1"
@@ -229,7 +229,7 @@ promote_canary_rpms_to_unstable () {
 }
 
 promote_unstable_rpms_to_testing () {
-  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
     TARGETPROJECTS="$1 business"
   else
     TARGETPROJECTS="$1"
@@ -253,7 +253,7 @@ promote_unstable_rpms_to_testing () {
 }
 
 promote_testing_rpms_to_stable () {
-  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' -o "$1" '=' 'failover' -o "$1" '=' 'plugin-packs' ] ; then
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
     TARGETPROJECTS="$1 business"
   else
     TARGETPROJECTS="$1"

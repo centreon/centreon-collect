@@ -11,7 +11,7 @@ php `dirname $0`/../../../packaging/repo/21.04/genrepo.php
 
 # Build all release RPMs.
 for distrib in el7 el8 ; do
-  for project in centreon centreon-business ; do
+  for project in centreon centreon-business centreon-plugin-packs ; do
     # Create temporary directories.
     rm -rf input output
     mkdir input
@@ -38,6 +38,8 @@ for distrib in el7 el8 ; do
     # Push RPM.
     if [ "$project" = centreon ] ; then
       REPO='standard'
+    elif [ "$project" = 'centreon-plugin-packs' ] ; then
+      REPO='plugin-packs'
     elif [ "$project" = 'centreon-business' ] ; then
       REPO='business'
     fi

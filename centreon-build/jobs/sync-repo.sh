@@ -89,9 +89,6 @@ elif [ "$PROJECT" = "mbi" ] ; then
 elif [ "$PROJECT" = "plugin-packs" ] ; then
   LOCAL_PATH=/srv/yum/plugin-packs
   REMOTE_PROJECT_PATH=plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f
-elif [ "$PROJECT" = "failover" ] ; then
-  LOCAL_PATH=/srv/yum/failover
-  REMOTE_PROJECT_PATH=centreon-failover/c2f6eb8f4e8f289c80b90c9b01625c55
 fi
 
 if [ "$SUB_PATH" = "/" ] ; then
