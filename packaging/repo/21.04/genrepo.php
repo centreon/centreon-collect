@@ -2,7 +2,7 @@
 
 // Base centreon version.
 $centreonversion = '21.04';
-$reporelease = '3';
+$reporelease = '4';
 
 // Information table.
 $repos = [
@@ -13,6 +13,10 @@ $repos = [
     'business' => [
         'name' => 'Centreon Business repository',
         'path' => 'centreon-business/1a97ff9985262bf3daf7a0919f9c59a6',
+    ],
+    'plugin-packs' => [
+        'name' => 'Centreon Plugin Packs repository',
+        'path' => 'plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f',
     ],
 ];
 
@@ -41,7 +45,8 @@ foreach ($repos as $repo => $repodata) {
 
                 // Description.
                 $content .= 'name=' . $repodata['name'] . ($flavor == 'stable' ? '' : ' (UNSUPPORTED)') . "\n";
-                $content .= 'baseurl=https://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/' . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
+                $content .= 'baseurl=https://yum.centreon.com/' . $repodata['path'] . '/' . $centreonversion . '/'
+                    . $distrib . '/' . $flavor . '/' . $arch . '/' . "\n";
                 $content .= 'enabled=' . ($flavor == 'stable' ? 1 : 0) . "\n";
                 $content .= "gpgcheck=1\n";
                 $content .= "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CES\n";
@@ -63,7 +68,6 @@ foreach ($repos as $repo => $repodata) {
 // Generate all spec files.
 foreach ($repos as $repo => $repodata) {
     // Generate spec content.
-    $content = '';
     $content =
         'Name:      centreon' . (empty($repo) ? '' : '-' . $repo) . '-release' . "\n" .
         'Version:   ' . $centreonversion . "\n" .
@@ -72,7 +76,7 @@ foreach ($repos as $repo => $repodata) {
         'Group:     Applications/Communications' . "\n" .
         'License:   ' . (empty($repo) ? 'ASL 2.0' : 'Proprietary') . "\n" .
         'URL:       https://www.centreon.com' . "\n" .
-        'Packager:  Matthieu Kermagoret <mkermagoret@centreon.com>' . "\n" .
+        'Packager:  Centreon Team <centreon@centreon.com>' . "\n" .
         'Vendor:    Centreon' . "\n" .
         'BuildArch: noarch' . "\n" .
         'Source0:   centreon' . (empty($repo) ? '' : '-' . $repo) . '.repo' . "\n";
@@ -87,7 +91,6 @@ foreach ($repos as $repo => $repodata) {
             'Obsoletes: centreon-bam-release' . "\n" .
             'Obsoletes: centreon-map-release' . "\n" .
             'Obsoletes: centreon-mbi-release' . "\n" .
-            'Obsoletes: centreon-plugin-packs-release' . "\n" .
             'Obsoletes: centreon-failover-release' . "\n";
     } else {
         $content .=
