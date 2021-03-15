@@ -14,7 +14,15 @@ if [ -e /usr/bin/cmake3 ] ; then
 else
   mycmake=cmake
 fi
-conan install /usr/local/src/centreon-broker
+
+cpp11=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
+
+if [ $cpp11 -eq 1 ] ; then
+  conan install /usr/local/src/centreon-broker -r centreon-center -s compiler.libcxx=libstdc++11
+else
+  conan install /usr/local/src/centreon-broker -r centreon-center -s compiler.libcxx=libstdc++
+fi
+
 CXXFLAGS="-O0 -g3 -std=c++11 -Wall -Wno-long-long" $mycmake -DWITH_TESTING=1 /usr/local/src/centreon-broker
 
 # Build project.
