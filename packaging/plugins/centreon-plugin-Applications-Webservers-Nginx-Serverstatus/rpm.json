@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        "perl(Time::HiRes)",
+	"perl-Net-Curl",
         "perl(LWP::UserAgent)",
         "perl(LWP::Protocol::https)",
         "perl(IO::Socket::SSL)",

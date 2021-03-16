@@ -1,6 +1,5 @@
 {
     "dependencies": [
-        "libtime-hires-perl",
         "liblwp-useragent-perl",
         "liblwp-protocol-https-perl",
         "libio-socket-ssl-perl",
