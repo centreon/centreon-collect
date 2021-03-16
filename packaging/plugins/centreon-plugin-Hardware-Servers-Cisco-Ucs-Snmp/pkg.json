@@ -5,6 +5,6 @@
     "files": [
         "centreon/plugins/script_snmp.pm",
         "centreon/plugins/snmp.pm",
-        "hardware/server/cisco/ucs/"
+        "hardware/server/cisco/ucs/snmp/"
     ]
 }
