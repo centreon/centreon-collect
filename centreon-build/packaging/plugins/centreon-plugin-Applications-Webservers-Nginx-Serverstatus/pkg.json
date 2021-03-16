@@ -3,7 +3,7 @@
     "pkg_summary": "Centreon Plugin",
     "plugin_name": "centreon_nginx_serverstatus.pl",
     "files": [
-        "centreon/plugins/script_simple.pm",
+	"centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
         "apps/nginx/serverstatus/"
