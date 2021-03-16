@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include <sstream>
+
 #include <fcntl.h>
 #include <algorithm>
 #include <cassert>
@@ -386,6 +388,31 @@ unsigned int process::write(std::string const& data) {
   return write(data.c_str(), data.size());
 }
 
+static std::string to_string(const char* data, size_t size) {
+  std::ostringstream oss;
+  for (int i = 0; i < size; i++) {
+    if (!isprint(*data)) {
+      unsigned int c = *data;
+      unsigned char c1, c2;
+      c1 = c >> 4;
+      c2 = c & 0xf;
+      if (c1 <= 9)
+        c1 += '0';
+      else if (c1 > 9)
+        c1 += 'A' - 10;
+      if (c2 <= 9)
+        c2 += '0';
+      else if (c2 > 9)
+        c2 += 'A' - 10;
+      oss << "\\x" << c1 << c2;
+    }
+    else
+      oss << *data;
+    data++;
+  }
+  return oss.str();
+}
+
 /**
  *  Write data to process' standard input.
  *
@@ -401,8 +428,9 @@ unsigned int process::write(void const* data, unsigned int size) {
     char const* msg(strerror(errno));
     if (errno == EINTR)
       throw interruption_error() << msg;
-    throw basic_error() << "could not write on process " << _process
-                        << "'s input: " << msg;
+    throw basic_error() << "could not write '"
+                        << to_string(static_cast<const char*>(data), size)
+                        << "' on process " << _process << "'s input: " << msg;
   }
   return wb;
 }
