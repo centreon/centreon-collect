@@ -121,10 +121,16 @@ process_manager::~process_manager() noexcept {
     _fds.clear();
 
     // Waiting all process.
-    int ret(0);
     int status(0);
-    while ((ret = ::waitpid(-1, &status, 0)) > 0 || (ret && errno == EINTR))
-      ;
+    auto time_limit = std::chrono::system_clock::now() + std::chrono::seconds(10);
+    int ret = ::waitpid(-1, &status, WNOHANG);
+    while (ret >= 0 || (ret < 0 && errno == EINTR)) {
+      if (ret == 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      ret = ::waitpid(-1, &status, WNOHANG);
+      if (std::chrono::system_clock::now() >= time_limit)
+        break;
+    }
   }
 }
 
@@ -378,7 +384,7 @@ void process_manager::_wait_orphans_pid() noexcept {
  */
 void process_manager::_wait_processes() noexcept {
   try {
-    while (true) {
+    for (;;) {
       int status = 0;
       pid_t pid(::waitpid(-1, &status, WNOHANG));
       // No process are finished.
