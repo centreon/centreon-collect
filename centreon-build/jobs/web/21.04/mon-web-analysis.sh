@@ -9,15 +9,24 @@ set -x
 
 # Project.
 PROJECT=centreon-web
+PROJECT_NAME="Centreon Web"
 
 # Copy reports and run analysis.
 cd centreon-web
 cp ../ut-be.xml .
 cp ../coverage-be.xml .
 sed -i -e 's#/usr/local/src/centreon-web/##g' coverage-be.xml
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  sed -i -e 's/centreon-web-21.04/centreon-web-21.04-release/g' sonar-project.properties
-  sed -i -e 's/Centreon Web 21.04/Centreon Web 21.04 (release)/g' sonar-project.properties
-fi
-echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
+
+# environment values required to replace sonarQube project versioning and binding
+#   sonar.projectKey="{PROJECT_TITLE}"
+#   sonar.projectName="{PROJECT_NAME}"
+#   sonar.projectKey="{PROJECT_VERSION}"
+echo "BRANCH_NAME      -> $BRANCH_NAME"
+echo "PROJECT_TITLE    -> $PROJECT"
+echo "PROJECT_NAME     -> $PROJECT_NAME"
+echo "PROJECT_VERSION  -> $VERSION"
+sed -i -e "s/{PROJECT_TITLE}/$PROJECT/g" sonar-project.properties
+sed -i -e "s/{PROJECT_NAME}/$PROJECT_NAME/g" sonar-project.properties
+sed -i -e "s/{PROJECT_VERSION}/$VERSION/g" sonar-project.properties
+
 sonar-scanner
