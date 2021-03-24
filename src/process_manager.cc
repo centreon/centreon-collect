@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/process_manager.hh"
-#include <sys/signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <algorithm>
