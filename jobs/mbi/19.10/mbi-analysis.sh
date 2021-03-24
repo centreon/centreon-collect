@@ -31,14 +31,8 @@ set -x
 PROJECT=centreon-mbi
 PROJECT_NAME="Centreon MBI"
 
-# Retrieve copy of git repository.
-echo "Downloading tarball"
-curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/mbi/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-full.tar.gz"
-rm -rf "$PROJECT"
-tar xzf "$PROJECT-git.tar.gz"
-
 # Copy reports and run analysis.
-cd "$PROJECT-$VERSION-full"
+cd "$PROJECT"
 
 # environment values required to replace sonarQube project versioning and binding
 #   sonar.projectKey="{PROJECT_TITLE}"
