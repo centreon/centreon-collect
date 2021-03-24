@@ -137,6 +137,7 @@ Requires:   %{php_prefix}php-curl
 Requires:   %{php_prefix}php-zip
 Requires:   %{php_prefix}php-pear
 Requires:   %{php_prefix}php-json
+Requires:   openssl
 Requires:   perl-DBD-MySQL
 Requires:   perl-DBI
 Requires:   perl-HTML-Parser
