@@ -122,6 +122,7 @@ Requires:   %{php_scl}-php-fpm
 Requires:   %{php_scl}-php-curl
 Requires:   %{php_scl}-php-zip
 Requires:   %{php_scl}-php-pear
+Requires:   openssl
 Requires:   perl-DBD-MySQL
 Requires:   perl-DBI
 Requires:   perl-HTML-Parser

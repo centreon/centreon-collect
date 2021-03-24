@@ -110,6 +110,7 @@ Requires:   php-pear-MDB2
 Requires:   php-pear-Validate
 Requires:   php-pecl-json = 1.2.1
 Requires:   php-intl
+Requires:   openssl
 Requires:   rsync
 Requires(post): /etc/sudoers
 Provides:   centreon-database
