@@ -40,8 +40,7 @@ int main() {
     if (!p.wait(1500))
       throw basic_error() << "wait timeout failed: "
                              "waiting less than necessary";
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     ret = EXIT_FAILURE;
     std::cerr << "error: " << e.what() << std::endl;
   }

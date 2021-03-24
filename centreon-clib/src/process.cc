@@ -388,6 +388,20 @@ unsigned int process::write(std::string const& data) {
   return write(data.c_str(), data.size());
 }
 
+/**
+ * @brief This function is only used by process object. Its goal is to show
+ * the content of buffers sent or received by process through pipes. The
+ * buffer is given by a const char array but it contains non ascii characters.
+ * So for all characters not displayable, we show the hexadecimal code instead.
+ * And this function transforms a such binary buffer to a string that can be
+ * shown to understand an error.
+ *
+ * @param data A char array representing a binary buffer.
+ * @param size The size of the buffer.
+ *
+ * @return A string containing the data buffer but displayable in a string with
+ * bad characters converted into hexadecimal numbers.
+ */
 static std::string to_string(const char* data, size_t size) {
   std::ostringstream oss;
   for (int i = 0; i < size; i++) {
@@ -405,8 +419,7 @@ static std::string to_string(const char* data, size_t size) {
       else if (c2 > 9)
         c2 += 'A' - 10;
       oss << "\\x" << c1 << c2;
-    }
-    else
+    } else
       oss << *data;
     data++;
   }
