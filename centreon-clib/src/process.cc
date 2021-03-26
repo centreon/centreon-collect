@@ -404,7 +404,7 @@ unsigned int process::write(std::string const& data) {
  */
 static std::string to_string(const char* data, size_t size) {
   std::ostringstream oss;
-  for (int i = 0; i < size; i++) {
+  for (size_t i = 0; i < size; i++) {
     if (!isprint(*data)) {
       unsigned int c = *data;
       unsigned char c1, c2;

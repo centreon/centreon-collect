@@ -44,5 +44,5 @@ int main() {
               << std::endl;
 
   // Return check result.
-  return (retval);
+  return retval;
 }
