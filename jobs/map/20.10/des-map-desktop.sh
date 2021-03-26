@@ -24,7 +24,7 @@ cd "$PROJECT-desktop-$VERSION"
 vncserver :42 &
 VNCPID=`echo $!`
 export DISPLAY=':42'
-mvn -f com.centreon.studio.client.parent/pom.xml clean install
+mvn -q -f com.centreon.studio.client.parent/pom.xml clean install
 kill -KILL $VNCPID || true
 
 # Find version.
