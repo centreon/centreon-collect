@@ -25,7 +25,7 @@ sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studi
 sed -i 's/<project.release>1/<project.release>'"$RELEASE"'/g' com.centreon.studio.server.parent/com.centreon.studio.map.server/com.centreon.studio.map.server.packaging/com.centreon.studio.map.server.packaging.tomcat7/pom.xml
 
 # Build with Maven.
-mvn -f com.centreon.studio.server.parent/pom.xml clean install
+mvn -q -f com.centreon.studio.server.parent/pom.xml clean install
 
 # This is run once the Maven build terminated.
 cd ..

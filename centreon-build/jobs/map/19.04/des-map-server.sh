@@ -21,7 +21,7 @@ tar xzf "$PROJECT-server-$VERSIONSERVER.tar.gz"
 
 # Build with Maven.
 cd "$PROJECT-server-$VERSIONSERVER"
-mvn -f map-server-parent/pom.xml clean install
+mvn -q -f map-server-parent/pom.xml clean install
 
 # This is run once the Maven build terminated.
 cd ..

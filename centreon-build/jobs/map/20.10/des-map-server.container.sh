@@ -19,4 +19,4 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 
 # Run build.
-mvn -f map-server-parent/pom.xml clean install
+mvn -q -f map-server-parent/pom.xml clean install
