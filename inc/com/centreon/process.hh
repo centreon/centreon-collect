@@ -20,7 +20,6 @@
 #define CC_PROCESS_POSIX_HH
 
 #include <sys/types.h>
-#include <array>
 #include <condition_variable>
 #include <mutex>
 #include <string>
