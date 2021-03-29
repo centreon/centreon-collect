@@ -1,0 +1,5 @@
+User_Alias      CENTREON_ENGINE=centreon-engine
+Defaults:CENTREON_ENGINE !requiretty
+
+CENTREON_ENGINE   ALL = NOPASSWD: /usr/lib/centreon/plugins/centreon_protocol_dhcp.pl *
+CENTREON_ENGINE   ALL = NOPASSWD: /usr/lib/centreon/plugins/centreon_protocol_udp.pl *
