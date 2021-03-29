@@ -2,7 +2,7 @@
 
 # Update to latest build scripts.
 cd /opt/centreon-build
-git pull
+git pull --quiet
 cd -
 
 # Copy centreon-build directory.
