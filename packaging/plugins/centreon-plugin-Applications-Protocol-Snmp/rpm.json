@@ -1,5 +1,6 @@
 {
     "dependencies": [
+	"perl(JSON::XS)",
         "perl(SNMP)",
         "perl(Digest::MD5)",
         "perl(NetAddr::IP)"
