@@ -1,0 +1,41 @@
+##
+## Copyright 2020-2021 Centreon
+##
+
+Name:           centreon-plugins-sudoers
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        Sudoers configuration for centreon plugins
+
+Group:          Applications/System
+License:        GPLv2
+URL:            http://www.centreon.com
+Packager:       Kevin Duret <kduret@centreon.com>
+
+Source0:        centreon-plugins-sudoers
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+
+Obsoletes:      centreon-cwrapper-perl
+
+%description
+Sudoers configuration for centreon plugins
+
+%prep
+
+%build
+
+%install
+%{__install} -d %buildroot%{_sysconfdir}/sudoers.d/
+%{__cp} %SOURCE0 %buildroot%{_sysconfdir}/sudoers.d/centreon-plugins
+
+%check
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root,-)
+%attr(0600,root, root) %{_sysconfdir}/sudoers.d/centreon-plugins
+
+%changelog

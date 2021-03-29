@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        "centreon-cwrapper-perl",
+        "centreon-plugins-sudoers",
         "libio-socket-perl",
         "libio-select-perl",
         "libnet-dhcp-packet-perl",
