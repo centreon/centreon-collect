@@ -23,12 +23,9 @@
 set -e
 set -x
 
-#debug
-ls -la
-
 # Copy reports and run analysis.
-#cp ../broker.xml .
-#cp ../clib.xml .
-#cp ../engine.xml .
+cp ../broker.xml .
+cp ../clib.xml .
+cp ../engine.xml .
 
 sonar-scanner
