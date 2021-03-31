@@ -16,6 +16,9 @@ Source0:        centreon-plugins-sudoers
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 
+Provides:       centreon-cwrapper-perl
+Obsoletes:      centreon-cwrapper-perl
+
 %description
 Sudoers configuration for centreon plugins
 
