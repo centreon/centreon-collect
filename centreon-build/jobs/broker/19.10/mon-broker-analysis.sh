@@ -9,6 +9,7 @@ set -x
 
 # Project.
 PROJECT=centreon-broker
+PROJECT_NAME="Centreon Broker"
 
 # Retrieve copy of git repository.
 curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/broker/$PROJECT-$VERSION-$RELEASE/$PROJECT-git.tar.gz"
@@ -18,9 +19,17 @@ tar xzf "$PROJECT-git.tar.gz"
 # Copy reports and run analysis.
 cd "$PROJECT"
 cp ../ut.xml .
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  sed -i -e 's/centreon-broker-19.10/centreon-broker-19.10-release/g' sonar-project.properties
-  sed -i -e 's/Centreon Broker 19.10/Centreon Broker 19.10 (release)/g' sonar-project.properties
-fi
-echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
+
+# environment values required to replace sonarQube project versioning and binding
+#   sonar.projectKey="{PROJECT_TITLE}"
+#   sonar.projectName="{PROJECT_NAME}"
+#   sonar.projectKey="{PROJECT_VERSION}"
+echo "BRANCH_NAME      -> $BRANCH_NAME"
+echo "PROJECT_TITLE    -> $PROJECT"
+echo "PROJECT_NAME     -> $PROJECT_NAME"
+echo "PROJECT_VERSION  -> $VERSION"
+sed -i -e "s/{PROJECT_TITLE}/$PROJECT/g" sonar-project.properties
+sed -i -e "s/{PROJECT_NAME}/$PROJECT_NAME/g" sonar-project.properties
+sed -i -e "s/{PROJECT_VERSION}/$VERSION/g" sonar-project.properties
+
 sonar-scanner
