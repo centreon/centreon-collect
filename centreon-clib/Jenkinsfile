@@ -32,15 +32,27 @@ stage('Source') {
       reportName: 'Centreon Clib Build Artifacts',
       reportTitles: ''
     ])
-    if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
-      withSonarQubeEnv('SonarQube') {
-        sh "./centreon-build/jobs/clib/${serie}/mon-clib-analysis.sh"
-      }
+    withSonarQubeEnv('SonarQubeDev') {
+      sh "./centreon-build/jobs/clib/${serie}/mon-clib-analysis.sh"
     }
   }
 }
 
+
 try {
+  // sonarQube step to get qualityGate result
+  stage('Quality gate') {
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        currentBuild.result = 'FAIL'
+      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error('Quality gate failure: ${qualityGate.status}.');
+    }
+  }
+
   stage('Package') {
     parallel 'centos7': {
       node {
