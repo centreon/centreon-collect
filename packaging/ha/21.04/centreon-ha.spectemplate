@@ -1,29 +1,26 @@
-%define debug_package %{nil}
-Name:           centreon-ha
-Version:        @VERSION@
-Release:        @RELEASE@%{?dist}
-Summary:        Centreon HA add-on for Centreon
+%define name centreon-ha
+%define version @VERSION@
+%define release @RELEASE@%{?dist}
 %define thismajor 21.04.0
 %define nextmajor 21.05.0
 
-Group:          System Environment/Base
-License:        Apache-2.0
-URL:            https://github.com/centreon/centreon-ha
-Source0:        %{name}-%{version}.tar.gz
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildArch:      noarch
-%{?systemd_requires}
-BuildRequires:  systemd
-Requires:       centreon-gorgone-centreon-config >= %{thismajor}
-Requires:       centreon-gorgone-centreon-config < %{nextmajor}
-Requires:       centreon-web >= %{thismajor}
-Requires:       centreon-web < %{nextmajor}
-Requires:       perl-common-sense
-Requires:       perl-Linux-Inotify2
-Requires:       resource-agents
+%define debug_package %{nil}
+
+Name:       %{name}
+Version:    %{version}
+Release:    %{release}
+Source0:    %{name}-%{version}.tar.gz
+
+License:    Apache-2.0
+Group:      System Environment/Base
+Url:        https://github.com/centreon/centreon-ha
+Summary:    Centreon HA
+
+BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:  noarch
 
 %description
-This add-on is built to manage a failover solution for Centreon.
+Centreon HA
 
 %prep
 %setup -q
@@ -53,10 +50,24 @@ This add-on is built to manage a failover solution for Centreon.
 %{__install} -d %buildroot%{_unitdir}
 %{__cp} systemd/* %buildroot%{_unitdir}/
 
-%clean
-rm -rf %buildroot
 
-%files
+######################
+# centreon-ha-common #
+######################
+
+%package common
+Summary:    Centreon HA common files for database and central nodes
+
+%{?systemd_requires}
+BuildRequires:  systemd
+Requires:       perl-common-sense
+Requires:       perl-Linux-Inotify2
+Requires:       rsync
+
+%description common
+This package provides the scripts and config files necessary for database and central nodes in a Centreon-HA cluster
+
+%files common
 
 # bin
 %defattr(0755, root, root, -)
@@ -67,14 +78,60 @@ rm -rf %buildroot
 %{_sysconfdir}/centreon-ha
 %config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
 %config(noreplace) %{_sysconfdir}/centreon-ha/mysql-resources.sh
+%{_sysconfdir}/logrotate.d/centreon-ha
+%{_sysconfdir}/sudoers.d/centreon-cluster-db
+%config(noreplace) %{_sysconfdir}/sysconfig/centreon_central_sync
+
+# lib
+%defattr(-, root, root, -)
+%{_datadir}/centreon-ha/lib
+
+# log
+%defattr(-, centreon, centreon, 0755)
+%{_localstatedir}/log/centreon-ha
+
+# ocf-scripts
+%defattr(0755, root, root, -)
+%{_prefix}/lib/ocf/resource.d/heartbeat/mysql-centreon
+
+# systemd
+%defattr(-, root, root, -)
+%{_unitdir}/centreon-central-sync.service
+
+
+###################
+# centreon-ha-web #
+###################
+
+%package web
+Summary:        Scripts and config files for central servers
+
+%{?systemd_requires}
+BuildRequires:  systemd
+Requires:       centreon-gorgone-centreon-config >= %{thismajor}
+Requires:       centreon-gorgone-centreon-config < %{nextmajor}
+Requires:       centreon-common >= %{thismajor}
+Requires:       centreon-common < %{nextmajor}
+Requires:       centreon-ha-common = %{version}-%{release}
+Requires:       resource-agents
+
+%description web
+This add-on is built to manage a failover solution for Centreon.
+
+%files web
+
+# bin
+%defattr(0755, root, root, -)
+%{_datadir}/centreon-ha/bin
+
+# etc
+%defattr(-, root, root, -)
+%{_sysconfdir}/centreon-ha
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/10-centreon-ha.yaml
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/20-centreon-ha-centreon-autodisco.yaml
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
-%{_sysconfdir}/logrotate.d/centreon-ha
 %{_sysconfdir}/sudoers.d/centreon-cluster
-%{_sysconfdir}/sudoers.d/centreon-cluster-db
 %config(noreplace) %{_sysconfdir}/sysconfig/cbd_sql
-%config(noreplace) %{_sysconfdir}/sysconfig/centreon_central_sync
 
 # lib
 %defattr(-, root, root, -)
@@ -93,4 +150,6 @@ rm -rf %buildroot
 %{_unitdir}/cbd-sql.service
 %{_unitdir}/centreon-central-sync.service
 
-%changelog
+
+%clean
+rm -rf %buildroot
