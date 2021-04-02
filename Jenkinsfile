@@ -62,17 +62,29 @@ try {
             ])
           }
         }
-        if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
-          dir('centreon-collect') {
-            withSonarQubeEnv('SonarQube') {
-              sh 'sonar-scanner'
-            }
+        dir('centreon-collect') {
+          // Run sonarQube analysis
+          withSonarQubeEnv('SonarQubeDev') {
+            sh "./script/ci/analysis.sh"
           }
         }
       }
     }
     if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
       error('Unit tests stage failure.');
+    }
+  }
+
+  // sonarQube step to get qualityGate result
+  stage('Quality gate') {
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        currentBuild.result = 'FAIL'
+      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error('Quality gate failure: ${qualityGate.status}.');
     }
   }
 
