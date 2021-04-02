@@ -1,5 +1,5 @@
 # Base information.
-FROM osixia/openldap:latest
+FROM osixia/openldap:1.1.11
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 ENV LDAP_ORGANISATION Centreon
