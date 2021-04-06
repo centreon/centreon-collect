@@ -76,11 +76,9 @@ This package provides the scripts and config files necessary for database and ce
 # etc
 %defattr(-, root, root, -)
 %{_sysconfdir}/centreon-ha
-%config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
 %config(noreplace) %{_sysconfdir}/centreon-ha/mysql-resources.sh
 %{_sysconfdir}/logrotate.d/centreon-ha
 %{_sysconfdir}/sudoers.d/centreon-cluster-db
-%config(noreplace) %{_sysconfdir}/sysconfig/centreon_central_sync
 
 # lib
 %defattr(-, root, root, -)
@@ -93,10 +91,6 @@ This package provides the scripts and config files necessary for database and ce
 # ocf-scripts
 %defattr(0755, root, root, -)
 %{_prefix}/lib/ocf/resource.d/heartbeat/mysql-centreon
-
-# systemd
-%defattr(-, root, root, -)
-%{_unitdir}/centreon-central-sync.service
 
 
 ###################
@@ -120,30 +114,15 @@ This add-on is built to manage a failover solution for Centreon.
 
 %files web
 
-# bin
-%defattr(0755, root, root, -)
-%{_datadir}/centreon-ha/bin
-
 # etc
 %defattr(-, root, root, -)
-%{_sysconfdir}/centreon-ha
+%config(noreplace) %{_sysconfdir}/centreon-ha/centreon_central_sync.pm
+%config(noreplace) %{_sysconfdir}/sysconfig/centreon_central_sync
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/10-centreon-ha.yaml
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/20-centreon-ha-centreon-autodisco.yaml
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
 %{_sysconfdir}/sudoers.d/centreon-cluster
 %config(noreplace) %{_sysconfdir}/sysconfig/cbd_sql
-
-# lib
-%defattr(-, root, root, -)
-%{_datadir}/centreon-ha/lib
-
-# log
-%defattr(-, centreon, centreon, 0755)
-%{_localstatedir}/log/centreon-ha
-
-# ocf-scripts
-%defattr(0755, root, root, -)
-%{_prefix}/lib/ocf/resource.d/heartbeat/mysql-centreon
 
 # systemd
 %defattr(-, root, root, -)
