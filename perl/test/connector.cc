@@ -90,17 +90,9 @@ static constexpr const char scripts[] =
 
 class TestConnector : public testing::Test {
  public:
-  process p;
-
   void SetUp() override{};
   void TearDown() override{};
-
-  void launch_process(std::string const& process_name) {
-    p.enable_stream(process::in, true);
-    p.enable_stream(process::out, true);
-    p.enable_stream(process::err, false);
-    p.exec(process_name.c_str());
-  }
+  TestConnector() : testing::Test(), p(nullptr, true, true, false) {}
 
   int wait_for_termination() {
     // Wait for process termination.
@@ -122,7 +114,7 @@ class TestConnector : public testing::Test {
       size -= rb;
       ptr += rb;
     }
-    p.enable_stream(process::in, false);
+    p.update_ending_process(0);
   }
 
   std::string read_reply() {
@@ -164,14 +156,17 @@ class TestConnector : public testing::Test {
     // Close handle.
     fclose(f);
   }
+
+ protected:
+  process p;
 };
 
 TEST_F(TestConnector, EofOnStdin) {
   // Process.
-  launch_process(perl_connector);
-  p.enable_stream(process::in, false);
+  p.exec(perl_connector);
+  p.update_ending_process(0);
 
-  int retval{wait_for_termination()};
+  int retval = wait_for_termination();
 
   ASSERT_EQ(retval, 0);
 }
@@ -189,7 +184,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
               "exit 0;\n");
 
   // Process.
-  launch_process(perl_connector);
+  p.exec(perl_connector);
 
   // Write command.
   std::ostringstream oss;
@@ -220,7 +215,7 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
   }
 
   // Process.
-  launch_process(perl_connector);
+  p.exec(perl_connector);
 
   // Generate command string.
   std::string cmd;
@@ -265,7 +260,7 @@ TEST_F(TestConnector, ExecuteSingleScript) {
               "exit 0;\n");
 
   // Process.
-  launch_process(perl_connector);
+  p.exec(perl_connector);
 
   // Write command.
   std::ostringstream oss;
@@ -304,7 +299,7 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
               "exit 0;\n");
 
   // Process.
-  launch_process(perl_connector + " --log-file /tmp/log_file");
+  p.exec(perl_connector + " --log-file /tmp/log_file");
 
   // Write command.
   std::ostringstream oss;
@@ -347,7 +342,7 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
       "exit 0;\n");
 
   // Process.
-  launch_process(
+  p.exec(
       perl_connector +
       " --code 'package Centreon::Test; our $company=\"Centreon\"; our "
       "$attribute=\"wonderful\";'");
@@ -374,7 +369,7 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
 
 TEST_F(TestConnector, NonExistantScript) {
   // Process.
-  launch_process(perl_connector);
+  p.exec(perl_connector);
 
   // Write command.
   std::ostringstream oss;
@@ -400,7 +395,7 @@ TEST_F(TestConnector, NonExistantScript) {
  */
 TEST_F(TestConnector, TimeoutKill) {
   // Process.
-  launch_process(perl_connector);
+  p.exec(perl_connector);
 
   // Write command.
   std::ostringstream oss;
@@ -420,7 +415,7 @@ TEST_F(TestConnector, TimeoutKill) {
 
 TEST_F(TestConnector, TimeoutTerm) {
   // Process.
-  launch_process(perl_connector);
+  p.exec(perl_connector);
 
   // Write command.
   std::ostringstream oss;
