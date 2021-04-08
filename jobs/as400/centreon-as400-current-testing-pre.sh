@@ -3,9 +3,10 @@
 set -e
 set -x
 
-#
-# This is run before the Maven build.
-#
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-AS400
 
 # Check arguments.
 if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
@@ -14,5 +15,5 @@ if [ -z "$COMMIT" -o -z "$RELEASE" ] ; then
 fi
 
 # Checkout commit.
-cd centreon-AS400
+cd $PROJECT
 git checkout --detach "$COMMIT"
