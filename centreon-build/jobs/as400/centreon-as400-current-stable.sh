@@ -3,21 +3,30 @@
 set -e
 set -x
 
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-AS400
+
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
+# 20.04
+promote_testing_rpms_to_stable "standard" "20.04" "el7" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.04" "el8" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.04" "el7" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.04" "el8" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
 
-# Move RPMs to the stable repository.
-for project in centreon-as400-connector centreon-as400-connector-endoflife centreon-as400-plugin centreon-as400-plugin-endoflife ; do
-  export PROJECT="$project"
-  `dirname $0`/../testing-to-stable.sh
-done
-`dirname $0`/../sync-repo.sh --project plugin-packs --confirm
+# 20.10
+promote_testing_rpms_to_stable "standard" "20.10" "el7" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.10" "el8" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.10" "el7" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "20.10" "el8" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
 
-# Generate online documentation.
-SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-SSH_DOC="$SSH_REPO ssh -o StrictHostKeyChecking=no ubuntu@10.24.1.54"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage.py update_repos centreon-as400 -V latest -p'"
-$SSH_DOC "'source /srv/env/documentation/bin/activate ; /srv/prod/readthedocs.org/readthedocs/manage_fr.py update_repos centreon-as400 -V latest -p'"
+# 21.04
+promote_testing_rpms_to_stable "standard" "21.04" "el7" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el8" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el8" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
