@@ -14,12 +14,10 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-MAJOR="${VERSION%.*}"
-
 # Pull mon-build-dependencies containers.
-BUILD_CENTOS7="registry.centreon.com/mon-build-dependencies-$MAJOR:centos7"
+BUILD_CENTOS7="registry.centreon.com/mon-build-dependencies-$VERSION:centos7"
 docker pull "$BUILD_CENTOS7"
-BUILD_CENTOS8="registry.centreon.com/mon-build-dependencies-$MAJOR:centos8"
+BUILD_CENTOS8="registry.centreon.com/mon-build-dependencies-$VERSION:centos8"
 docker pull "$BUILD_CENTOS8"
 
 # Create input and output directories for docker-rpm-builder.
