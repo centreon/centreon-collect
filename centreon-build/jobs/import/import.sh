@@ -54,7 +54,7 @@ IFS=,
 for pkg in $PKGNAME; do
   LOCAL_FILE="/tmp/$pkg"
 
-  ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/${S3_BUCKED_SUBDIR:+S3_BUCKED_SUBDIR/}$pkg" "$REMOTE_FILE"
+  ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/$S3_BUCKED_SUBDIR$pkg" "$REMOTE_FILE"
 
   # sign if needed
   if [ "$PKG_NEEDS_SIGN" = true ]; then
