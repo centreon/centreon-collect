@@ -45,12 +45,12 @@ tar czf "input-server/$SERVERDIR.tar.gz" "$SERVERDIR"
 cp $SRCDIR/Connector/rpm/*.spectemplate input-server/
 
 # Build server.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS7" input-server output-centos7
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS8" input-server output-centos8
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input-server output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS8" input-server output-centos8
 
 # Build plugin.
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS7" input-plugin output-centos7
-docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS8" input-plugin output-centos8
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input-plugin output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS8" input-plugin output-centos8
 
 # 20.04
 put_testing_rpms "standard" "20.04" "el7" "x86_64" "centreon-as400" "centreon-as400" output-centos7/x86_64/*.rpm
