@@ -22,6 +22,7 @@ OS=$OS
 ARCH=$ARCH
 PRODUCT=$PRODUCT
 GROUP=$GROUP
+S3_BUCKET_SUBDIR=$S3_BUCKET_SUBDIR
 
 # Check variables.
 if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
@@ -35,7 +36,6 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   echo
   echo "Syntax: [env_variables] ${0##/*}"
   echo "env:"
-  echo "  MULTIPKE_PKG          Mutiple packages to import, possible: true | false"
   echo "  PKGNAME               Name of the RPM stored in the S3 bucket."
   echo "  BASEREPO              defines the repository, possible : standard | bam | map | mbi | plugin-packs"
   echo "  SERIE                 defines the major version, possible :  19.10 | 20.04 | 20.10 | 21.04"
@@ -54,7 +54,7 @@ IFS=,
 for pkg in $PKGNAME; do
   LOCAL_FILE="/tmp/$pkg"
 
-  ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/$pkg" "$REMOTE_FILE"
+  ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/${S3_BUCKED_SUBDIR:+S3_BUCKED_SUBDIR/}$pkg" "$REMOTE_FILE"
 
   # sign if needed
   if [ "$PKG_NEEDS_SIGN" = true ]; then
