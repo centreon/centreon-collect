@@ -23,15 +23,15 @@ docker pull "$BUILD_CENTOS8"
 # Create input and output directories for docker-rpm-builder.
 rm -rf input
 mkdir input
-cp -r `dirname $0`/../../packaging/fingerprint/* input
+cp -r `dirname $0`/../../../packaging/fingerprint/* input
 rm -rf output-centos7
 mkdir output-centos7
 rm -rf output-centos8
 mkdir output-centos8
 
 # Build RPMs.
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input output-centos7
-docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS8" input output-centos8
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS7" input output-centos7
+docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS8" input output-centos8
 
 # Copy files to server.
 put_testing_rpms "standard" "21.04" "el7" "x86_64" "fingerprint" "fingerprint" output-centos7/x86_64/*.rpm
