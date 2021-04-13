@@ -95,27 +95,34 @@ put_internal_rpms () {
 }
 
 put_testing_rpms () {
-  DIR="/srv/yum/$1/$2/$3/testing/$4/$5"
-  NEWDIR="$6"
-  REPO="$1/$2/$3/testing/$4"
-  REPOROOT="$1"
-  REPOSUBDIR="/$2/$3/testing/$4"
-  shift
-  shift
-  shift
-  shift
-  shift
-  shift
-  ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
-  scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+  if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
+    TARGETPROJECTS="$1 business"
+  else
+    TARGETPROJECTS="$1"
+  fi
+  SERIE="$2"
+  OS="$3"
+  ARCH="$4"
+  PRODUCT="$5"
+  GROUP="$6"
+  shift 6
   DESTFILE=`ssh "$REPO_CREDS" mktemp`
   UPDATEREPODIR=`dirname $0`
   while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
     UPDATEREPODIR="$UPDATEREPODIR/.."
   done
-  scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
-  ssh "$REPO_CREDS" sh $DESTFILE $REPO
-  $UPDATEREPODIR/sync-repo.sh --project $REPOROOT --path "$REPOSUBDIR" --confirm
+  for TARGETPROJECT in $TARGETPROJECTS ; do
+    DIR="/srv/yum/$TARGETPROJECT/$SERIE/$OS/testing/$ARCH/$PRODUCT"
+    NEWDIR="$GROUP"
+    REPO="$TARGETPROJECT/$SERIE/$OS/testing/$ARCH"
+    REPOROOT="$TARGETPROJECT"
+    REPOSUBDIR="/$SERIE/$OS/testing/$ARCH"
+    ssh "$REPO_CREDS" mkdir -p "$DIR/$NEWDIR"
+    scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
+    scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
+    ssh "$REPO_CREDS" sh $DESTFILE $REPO
+    $UPDATEREPODIR/sync-repo.sh --project $REPOROOT --path "$REPOSUBDIR" --confirm
+  done
 }
 
 put_internal_debs () {
