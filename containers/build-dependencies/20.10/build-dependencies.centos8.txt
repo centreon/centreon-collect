@@ -16,4 +16,3 @@ rpm-build
 rpm-sign
 rrdtool-devel
 yum-utils
-qt4-devel
