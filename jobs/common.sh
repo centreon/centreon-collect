@@ -96,9 +96,9 @@ put_internal_rpms () {
 
 put_testing_rpms () {
   if [ "$1" '=' 'bam' -o "$1" '=' 'map' -o "$1" '=' 'mbi' ] ; then
-    TARGETPROJECTS="$1 business"
+    TARGETPROJECTS=($1 business)
   else
-    TARGETPROJECTS="$1"
+    TARGETPROJECTS=($1)
   fi
   SERIE="$2"
   OS="$3"
@@ -111,7 +111,7 @@ put_testing_rpms () {
   while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
     UPDATEREPODIR="$UPDATEREPODIR/.."
   done
-  for TARGETPROJECT in $TARGETPROJECTS ; do
+  for TARGETPROJECT in ${TARGETPROJECTS[@]} ; do
     DIR="/srv/yum/$TARGETPROJECT/$SERIE/$OS/testing/$ARCH/$PRODUCT"
     NEWDIR="$GROUP"
     REPO="$TARGETPROJECT/$SERIE/$OS/testing/$ARCH"
