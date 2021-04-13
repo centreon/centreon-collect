@@ -61,8 +61,6 @@ docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS8" inpu
 # 20.04
 put_testing_rpms "standard" "20.04" "el7" "x86_64" "centreon-as400" "centreon-as400" output-centos7/x86_64/*.rpm
 put_testing_rpms "standard" "20.04" "el7" "noarch" "centreon-as400" "centreon-as400" output-centos7/noarch/*.rpm
-put_testing_rpms "standard" "20.04" "el8" "x86_64" "centreon-as400" "centreon-as400" output-centos8/x86_64/*.rpm
-put_testing_rpms "standard" "20.04" "el8" "noarch" "centreon-as400" "centreon-as400" output-centos8/noarch/*.rpm
 
 # 20.10
 put_testing_rpms "standard" "20.10" "el7" "x86_64" "centreon-as400" "centreon-as400" output-centos7/x86_64/*.rpm
