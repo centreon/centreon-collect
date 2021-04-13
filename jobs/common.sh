@@ -111,6 +111,8 @@ put_testing_rpms () {
   while [ \! -f "$UPDATEREPODIR/updaterepo.sh" ] ; do
     UPDATEREPODIR="$UPDATEREPODIR/.."
   done
+  oIFS=$IFS
+  IFS=" "
   for TARGETPROJECT in $TARGETPROJECTS ; do
     DIR="/srv/yum/$TARGETPROJECT/$SERIE/$OS/testing/$ARCH/$PRODUCT"
     NEWDIR="$GROUP"
@@ -123,6 +125,7 @@ put_testing_rpms () {
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
     $UPDATEREPODIR/sync-repo.sh --project $REPOROOT --path "$REPOSUBDIR" --confirm
   done
+  IFS=$oIFS
 }
 
 put_internal_debs () {
