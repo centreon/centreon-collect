@@ -44,6 +44,12 @@ cp $SRCDIR/Connector/connector.as400/target/connector-*-jar-with-dependencies.ja
 tar czf "input-server/$SERVERDIR.tar.gz" "$SERVERDIR"
 cp $SRCDIR/Connector/rpm/*.spectemplate input-server/
 
+# Prepare plugin tarball.
+rm -rf "$PLUGINDIR"
+cp -r "$SRCDIR/Plugins/connector.plugins" "$PLUGINDIR"
+tar czf "input-plugin/$PLUGINDIR.tar.gz" "$PLUGINDIR"
+cp $SRCDIR/Plugins/rpm/*.spectemplate input-plugin/
+
 # Build server.
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS7" input-server output-centos7
 docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_CENTOS8" input-server output-centos8
