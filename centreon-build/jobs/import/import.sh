@@ -48,8 +48,7 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   exit 1
 fi
 
-oIFS=$IFS
-IFS=,
+PKGS=${PKGNAME/,/ }
 
 for pkg in $PKGNAME; do
   LOCAL_FILE="/tmp/$pkg"
@@ -71,5 +70,3 @@ for pkg in $PKGNAME; do
     promote_testing_rpms_to_stable "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP"
   fi
 done
-
-IFS=$oIFS
