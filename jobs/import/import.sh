@@ -48,9 +48,9 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   exit 1
 fi
 
-PKGS=${PKGNAME/,/ }
+PKGS="${PKGNAME/,/ }"
 
-for pkg in $PKGNAME; do
+for pkg in $PKGS; do
   LOCAL_FILE="/tmp/$pkg"
 
   ssh "$REPO_CREDS" aws s3 cp "$S3_BUCKET/$S3_BUCKED_SUBDIR$pkg" "$REMOTE_FILE"
