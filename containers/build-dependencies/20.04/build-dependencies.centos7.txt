@@ -20,3 +20,4 @@ expect
 perl-XML-SAX
 MariaDB-devel
 MariaDB-shared
+qt4-devel

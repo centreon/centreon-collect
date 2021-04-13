@@ -16,3 +16,4 @@ rrdtool-devel
 yum-utils
 MariaDB-devel
 MariaDB-shared
+qt4-devel
