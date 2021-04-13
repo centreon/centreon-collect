@@ -48,7 +48,7 @@ if [ -z "$PKGNAME" -o -z "$PRODUCT" -o -z "$GROUP" ] ; then
   exit 1
 fi
 
-PKGS="${PKGNAME/,/ }"
+PKGS="$(echo $PKGNAME | tr ',' ' ')"
 
 for pkg in $PKGS; do
   LOCAL_FILE="/tmp/$pkg"
