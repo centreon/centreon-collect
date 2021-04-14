@@ -17,6 +17,8 @@ Requires:       centreon-web >= %{thismajor}
 Requires:       centreon-web < %{nextmajor}
 Requires:       lua-curl
 Requires:       bzip2
+Requires:       perl-Statistics-Regression
+Requires:       perl-Statistics-Descriptive
 AutoReqProv:    no
 
 %description
@@ -47,6 +49,8 @@ find .          \
 
 %{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/
 %{__cp} gorgone/42-anomalydetection.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d
+%{__install} -d %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/cron.d/
+%{__cp} gorgone/cron.d/42-anomalydetection.yaml %{buildroot}%{_sysconfdir}/centreon-gorgone/config.d/cron.d
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -60,9 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 %{centreon_www}/modules/%{name}
 %{_datadir}/centreon-broker/lua/centreon-anomaly-detection.lua
 %{perl_vendorlib}/centreon/anomalydetection
-%{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
 
-%defattr(-,root,root,-)
+%defattr(-,centreon,centreon-gorgone,0640)
 %{_sysconfdir}/centreon-gorgone/config.d/42-anomalydetection.yaml
+%{_sysconfdir}/centreon-gorgone/config.d/cron.d/42-anomalydetection.yaml
 
 %changelog
