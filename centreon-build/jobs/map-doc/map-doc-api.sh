@@ -3,10 +3,10 @@
 . `dirname $0`/../common.sh
 
 # Project.
-PROJECT=centreon-studio-doc
+PROJECT=centreon-map
 
 # Build API documentation.
-cd "$PROJECT/api"
+cd "$PROJECT/docs"
 npm ci
 npm run redoc-bundle
 
