@@ -15,7 +15,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Pull mon-build-dependencies containers.
-BUILD_CENTOS7="registry.centreon.com/mon-build-dependencies-$VERSION:centos7"
+BUILD_CENTOS7="registry.centreon.com/mon-build-dependencies-20.04:centos7"
 docker pull "$BUILD_CENTOS7"
 
 # Create input and output directories for docker-rpm-builder.
