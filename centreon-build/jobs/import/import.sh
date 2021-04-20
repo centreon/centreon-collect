@@ -64,9 +64,9 @@ for pkg in $PKGS; do
   ssh "$REPO_CREDS" rm -f "$REMOTE_FILE"
 
   put_testing_rpms "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP" "$LOCAL_FILE"
-
-  # promote to stable if needed
-  if [ "$PKG_PUBLISH_STABLE" = true ]; then
-    promote_testing_rpms_to_stable "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP"
-  fi
 done
+
+# promote to stable if needed
+if [ "$PKG_PUBLISH_STABLE" = true ]; then
+  promote_testing_rpms_to_stable "$BASEREPO" "$SERIE" "$OS" "$ARCH" "$PRODUCT" "$GROUP"
+fi
