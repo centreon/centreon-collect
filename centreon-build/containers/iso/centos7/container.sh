@@ -47,7 +47,7 @@ else
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-21.04-4.el7.centos.noarch.rpm
 fi
 
-sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
+#sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
 
 # -----------------------------------------
 # Download packages for basic configuration
