@@ -16,7 +16,7 @@ fi
 
 # Move sources to the testing directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO mv "/srv/sources/internal/packs/$PROJECT-$VERSION-$RELEASE" "/srv/sources/plugin-packs/testing/packs/"
+$SSH_REPO mv "/srv/sources/internal/packs/$PROJECT-$VERSION-$RELEASE" "/srv/sources/plugin-packs/testing/packs/" || true
 
 # Retrieve sources.
 curl -s -o "$PROJECT-$VERSION.tar.gz" "http://srvi-repo.int.centreon.com/sources/plugin-packs/testing/packs/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz"
