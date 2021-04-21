@@ -45,20 +45,20 @@ for json in *.json ; do
     -H "content-type: application/json"
 
   #ppd
-  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
-  ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
-  ppVersion=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['attributes']['version']")
-  echo "Plugin pack id:${ppId} version:${ppVersion}"
+  # curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
+  # ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
+  # ppVersion=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['attributes']['version']")
+  # echo "Plugin pack id:${ppId} version:${ppVersion}"
 
-  curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
-    -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
-    -H "centreon-imp-token: $PPDTOKEN" \
-    -H "content-type: application/json"
+  # curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
+  #   -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
+  #   -H "centreon-imp-token: $PPDTOKEN" \
+  #   -H "content-type: application/json"
 
-  curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/version/$ppVersion" \
-    -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"released\":1}}}" \
-    -H "centreon-imp-token: $PPDTOKEN" \
-    -H "content-type: application/json"
+  # curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/version/$ppVersion" \
+  #   -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"released\":1}}}" \
+  #   -H "centreon-imp-token: $PPDTOKEN" \
+  #   -H "content-type: application/json"
 done
 cd ..
 
