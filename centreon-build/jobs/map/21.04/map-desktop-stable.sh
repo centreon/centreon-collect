@@ -17,8 +17,8 @@ export BUGFIX=`echo $VERSION | cut -d . -f 3`
 
 # Move artifacts to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-#$SSH_REPO rm -rf "/srv/sources/map/stable/$PROJECT-desktop-$MAJOR.$MINOR-$RELEASE"
-#$SSH_REPO mv "/srv/sources/map/testing/map-desktop/$PROJECT-desktop-$MAJOR.$MINOR-$RELEASE" "/srv/sources/map/stable/"
+$SSH_REPO rm -rf "/srv/sources/map/stable/$PROJECT-desktop-$MAJOR.$MINOR-$RELEASE"
+$SSH_REPO mv "/srv/sources/map/testing/map-desktop/$PROJECT-desktop-$MAJOR.$MINOR-$RELEASE" "/srv/sources/map/stable/"
 
 # Upload installers to centreon download website
 # The url is specific for this version. We have to change it for new minor versions
@@ -30,26 +30,26 @@ PUBLIC_EXTERNAL_URL="s3://centreon-download/public/centreon-map"
 # Copy MacOS .tar.gz version
 PRODUCT_NAME='Centreon-Map4.product-macosx.cocoa.x86_64.tar.gz'
 EXTERNAL_PRODUCT_NAME="centreon-map-$VERSION.product-macosx.cocoa.x86_64.tar.gz"
-#$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
-#$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
-#SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
-#curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION.product-macosx.cocoa.x86_64&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
+$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
+$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
+SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
+curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION.product-macosx.cocoa.x86_64&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Copy Windows .exe
 PRODUCT_NAME="centreon-map4-desktop-client-$VERSION-SNAPSHOT-x86_64.exe"
 EXTERNAL_PRODUCT_NAME="centreon-map-desktop-client-$VERSION-x86_64-windows.exe"
-#$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
-#$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
-#SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
-#curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-windows&extension=exe&md5=$SRCHASH&ddos=0&dryrun=0"
+$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
+$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
+SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
+curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-windows&extension=exe&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Copy Ubuntu .deb
 PRODUCT_NAME="centreon-map4-desktop-client-$VERSION-SNAPSHOT-x86_64.deb"
 EXTERNAL_PRODUCT_NAME="centreon-map-desktop-client-$VERSION-x86_64-debian.deb"
-#$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
-#$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
-#SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
-#curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-debian&extension=deb&md5=$SRCHASH&ddos=0&dryrun=0"
+$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PRIVATE_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
+$SSH_REPO aws s3 cp --acl public-read "$BASE_INTERNAL_URL/$PRODUCT_NAME" "$PUBLIC_EXTERNAL_URL/$EXTERNAL_PRODUCT_NAME"
+SRCHASH=`$SSH_REPO "md5sum $BASE_INTERNAL_URL/$PRODUCT_NAME | cut -d ' ' -f 1"`
+curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=desktop-client-$VERSION-x86_64-debian&extension=deb&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Copy p2 artifacts to remote server.
 $SSH_REPO ssh -o StrictHostKeyChecking=no "map-repo@yum.int.centreon.com" rm -rf "centreon-studio-repository/$MAJOR/$MINOR"
