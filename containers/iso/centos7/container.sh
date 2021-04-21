@@ -8,7 +8,7 @@ set -x
 # ---------------
 
 VERSION="$1"
-if [ "$VERSION" '!=' '3.4' -a "$VERSION" '!=' '19.04' -a "$VERSION" '!=' '19.10' -a "$VERSION" '!=' '20.04' -a "$VERSION" '!=' '20.10' ] ; then
+if [ "$VERSION" '!=' '20.04' -a "$VERSION" '!=' '20.10' -a "$VERSION" '!=' '21.04' ] ; then
   echo "Unsupported version $VERSION"
   exit 1
 fi
@@ -33,34 +33,21 @@ umount mount
 # Download and install Centreon repository
 # ----------------------------------------
 
-if [ "$VERSION" = '3.4' ] ; then
-  wget -P centreon-iso/Packages http://yum.centreon.com/standard/3.4/el7/stable/noarch/RPMS/centreon-release-3.4-4.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-3.4-4.el7.centos.noarch.rpm
-elif [ "$VERSION" = '19.04' ] ; then
-  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
-  yum -y --disablerepo=updates install centos-release-scl
-  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/19.04/el7/stable/noarch/RPMS/centreon-release-19.04-1.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-19.04-1.el7.centos.noarch.rpm
-  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
-elif [ "$VERSION" = '19.10' ] ; then
-  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
-  yum -y --disablerepo=updates install centos-release-scl
-  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/19.10/el7/stable/noarch/RPMS/centreon-release-19.10-1.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-19.10-1.el7.centos.noarch.rpm
-  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
-elif [ "$VERSION" = '20.04' ] ; then
-  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
-  yum -y --disablerepo=updates install centos-release-scl
+yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
+yum -y --disablerepo=updates install centos-release-scl
+
+if [ "$VERSION" = '20.04' ] ; then
   wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el7.centos.noarch.rpm
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-20.04-1.el7.centos.noarch.rpm
-  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
-else
-  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
-  yum -y --disablerepo=updates install centos-release-scl
+elif [ "$VERSION" = '20.10' ] ; then
   wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/20.10/el7/stable/noarch/RPMS/centreon-release-20.10-2.el7.centos.noarch.rpm
   yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-20.10-2.el7.centos.noarch.rpm
-  sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
+else
+  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm
+  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-21.04-4.el7.centos.noarch.rpm
 fi
+
+sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
 
 # -----------------------------------------
 # Download packages for basic configuration
@@ -68,11 +55,7 @@ fi
 
 # Retrieve the necessary packages.
 yum -y --disablerepo=updates install yum-utils
-if [ "$VERSION" = '3.4' ] ; then
-  yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon centreon-widget-* MariaDB-server centreon-poller-centreon-engine
-else
-  yum -y --disablerepo=updates --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
-fi
+yum -y --disablerepo=updates --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
 
 # Unpack the addon Anaconda Centreon and create the file "product.img"
 cd /tmp/addon
