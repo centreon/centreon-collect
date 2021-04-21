@@ -1,0 +1,26 @@
+# Base information.
+FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install internal repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install Centreon MBI repository.
+RUN curl -o centreon-mbi-release.rpm "http://srvi-repo.int.centreon.com/yum/mbi/5e0524c1c4773a938c44139ea9d8b4d7/21.10/el7/stable/noarch/RPMS/centreon-mbi-release-21.10-1.el7.centos.noarch.rpm"
+RUN yum clean all && yum install --nogpgcheck centreon-mbi-release.rpm
+RUN sed -i -e 's#yum.centreon.com/centreon-mbi#srvi-repo.int.centreon.com/yum/mbi#g' -e 's/enabled=0/enabled=1/g' /etc/yum.repos.d/centreon-mbi.repo
+
+# Install Centreon MBI web interface.
+RUN yum clean all && \
+    yum install -y centreon-bi-server && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install license file.
+COPY mbi/mbi.license /etc/centreon/license.d/mbi.license
+
+# Install Centreon MBI web interface.
+COPY web/21.10/install-centreon-module.php /tmp/install-centreon-module.php
+COPY mbi/21.10/install-web.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+RUN /tmp/install.sh

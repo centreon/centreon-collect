@@ -19,3 +19,5 @@ promote_testing_rpms_to_stable "standard" "20.10" "el7" "noarch" "$PROJECT" "$PR
 promote_testing_rpms_to_stable "standard" "20.10" "el8" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el8" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el7" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el8" "noarch" "$PROJECT" "$PROJECT-$VERSION-$RELEASE"

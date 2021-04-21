@@ -39,3 +39,5 @@ put_testing_rpms "standard" "20.10" "el7" "noarch" "plugins-sudoers" "$PROJECT-$
 put_testing_rpms "standard" "20.10" "el8" "noarch" "plugins-sudoers" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
 put_testing_rpms "standard" "21.04" "el7" "noarch" "plugins-sudoers" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
 put_testing_rpms "standard" "21.04" "el8" "noarch" "plugins-sudoers" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
+put_testing_rpms "standard" "21.10" "el7" "noarch" "plugins-sudoers" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+put_testing_rpms "standard" "21.10" "el8" "noarch" "plugins-sudoers" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm

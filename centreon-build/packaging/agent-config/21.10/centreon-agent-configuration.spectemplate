@@ -1,0 +1,46 @@
+%define debug_package %{nil}
+Name:           centreon-agent-configuration
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        Centreon Agent Configuration add-on for Centreon
+%define thismajor 21.10.0
+%define nextmajor 21.11.0
+
+Group:          System Environment/Base
+License:        Apache-2.0
+URL:            https://github.com/centreon/centreon-agent-configuration
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+BuildRequires:  centreon-devel
+Requires:       centreon-web >= %{thismajor}
+Requires:       centreon-web < %{nextmajor}
+AutoReqProv:    no
+
+%description
+Module for configuring the Centreon agent
+
+%prep
+%setup -q
+
+# Change CENTREON_ETC Macro
+find .          \
+        -type f \
+        -exec %{__grep} -qE '(@@CENTREON_ETC@@)' {} ';'   \
+        -exec %{__sed} -i -e 's|@@CENTREON_ETC@@|'"/etc/centreon/"'|g'\
+        {} ';'
+
+%install
+%{__install} -d $RPM_BUILD_ROOT%{centreon_www}/modules/
+%{__cp} -rp www/modules/%{name} $RPM_BUILD_ROOT%{centreon_www}/modules/
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+
+%defattr(-,apache,apache,-)
+%{centreon_www}/modules/%{name}
+
+%changelog
+

@@ -1,0 +1,23 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y centreon-pp-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install Plugin Pack JSON files.
+COPY middleware/data/pluginpacks/**/*.json /usr/share/centreon-packs/
+
+# Install license file.
+COPY ppm/epp.license.offline /etc/centreon/license.d/epp.license.offline
+
+# Install module in Centreon.
+COPY web/21.10/install-centreon-module.php /tmp/install-centreon-module.php
+COPY ppm/21.10/install.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh

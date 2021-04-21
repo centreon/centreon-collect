@@ -1,0 +1,24 @@
+# Base information.
+FROM @BASE_IMAGE@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install Centreon Map web client and Centreon BAM.
+RUN curl -o centreon-bam-release.rpm http://srvi-repo.int.centreon.com/yum/bam/d4e1d7d3e888f596674453d1f20ff6d3/21.10/el7/stable/noarch/RPMS/centreon-bam-release-21.10-1.el7.centos.noarch.rpm && \
+    yum install centreon-bam-release.rpm && \
+    yum install -y --enablerepo='centreon-bam-testing*' --enablerepo='centreon-bam-unstable*' centreon-bam-server centreon-map4-web-client && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+COPY web/21.10/install-centreon-module.php /tmp/install-centreon-module.php
+RUN chmod +x /tmp/install-centreon-module.php
+
+# Install license file.
+COPY bam/bam.license /etc/centreon/license.d/bam.license
+COPY map/licence.json.asc /etc/centreon/license.d/map.license
+
+# Install script.
+COPY map/21.10/install-web.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh
+RUN /tmp/install.sh

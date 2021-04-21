@@ -32,6 +32,8 @@ promote_testing_rpms_to_stable "standard" "20.10" "el7" "noarch" "plugins" "$PRO
 promote_testing_rpms_to_stable "standard" "20.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
 
 # Move cache files to the stable directory.
 TESTINGCACHE="/srv/cache/plugins/testing/cache-$VERSION-$RELEASE"

@@ -1,0 +1,18 @@
+# Base information.
+FROM registry.centreon.com/mon-ppm-21.10:@DISTRIB@
+LABEL maintainer Kevin Duret <kduret@centreon.com>
+
+ENV MODULEPATH /usr/share/centreon/www/modules/centreon-pp-manager
+
+# Static sources.
+COPY centreon-pp-manager/centreon-pluginpack-manager.conf.php $MODULEPATH/centreon-pluginpack-manager.conf.php
+COPY centreon-pp-manager/static $MODULEPATH/static
+COPY centreon-pp-manager/locale $MODULEPATH/locale
+COPY centreon-pp-manager/UPGRADE $MODULEPATH/UPGRADE
+COPY centreon-pp-manager/webServices $MODULEPATH/webServices
+COPY centreon-pp-manager/core $MODULEPATH/core
+COPY centreon-pp-manager/sql $MODULEPATH/sql
+
+# Database.
+COPY ppm/21.10/install-dev.sh /tmp/install.sh
+RUN chmod +x /tmp/install.sh && /tmp/install.sh

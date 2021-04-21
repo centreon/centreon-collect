@@ -1,0 +1,6 @@
+---
+  - jenkins_job:
+      name: centreon-repo-21.10-testing
+      config: "{{ lookup('file', 'repo-testing.xml.in') | regex_replace('@SERIE@', '21.10') }}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
