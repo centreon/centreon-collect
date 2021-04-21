@@ -1,0 +1,18 @@
+---
+  - jenkins_job:
+      name: mon-containers-dependencies-21.10-centos7
+      config: "{{ lookup('file', 'mon-containers-dependencies.xml.in') | regex_replace('@SERIE@', '21.10') | regex_replace('@DISTRIB@', 'centos7')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: mon-containers-dependencies-21.10-centos8
+      config: "{{ lookup('file', 'mon-containers-dependencies.xml.in') | regex_replace('@SERIE@', '21.10') | regex_replace('@DISTRIB@', 'centos8')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"
+
+  - jenkins_job:
+      name: mon-containers-dependencies-21.10-debian10
+      config: "{{ lookup('file', 'mon-containers-dependencies.xml.in') | regex_replace('@SERIE@', '21.10') | regex_replace('@DISTRIB@', 'debian10')}}"
+      user: "{{ jenkins_user }}"
+      password: "{{ jenkins_password }}"

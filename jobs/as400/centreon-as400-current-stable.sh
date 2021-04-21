@@ -30,3 +30,9 @@ promote_testing_rpms_to_stable "standard" "21.04" "el7" "x86_64" "centreon-as400
 promote_testing_rpms_to_stable "standard" "21.04" "el8" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el8" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+
+# 21.10
+promote_testing_rpms_to_stable "standard" "21.10" "el7" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el8" "x86_64" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el7" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el8" "noarch" "centreon-as400" "$PROJECT-$VERSION-$RELEASE"

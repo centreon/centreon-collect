@@ -63,3 +63,7 @@ put_testing_rpms "standard" "20.10" "el7" "noarch" "centreon-as400" "centreon-as
 # 21.04
 put_testing_rpms "standard" "21.04" "el7" "x86_64" "centreon-as400" "centreon-as400" output-centos7/x86_64/*.rpm
 put_testing_rpms "standard" "21.04" "el7" "noarch" "centreon-as400" "centreon-as400" output-centos7/noarch/*.rpm
+
+# 21.10
+put_testing_rpms "standard" "21.10" "el7" "x86_64" "centreon-as400" "centreon-as400" output-centos7/x86_64/*.rpm
+put_testing_rpms "standard" "21.10" "el7" "noarch" "centreon-as400" "centreon-as400" output-centos7/noarch/*.rpm

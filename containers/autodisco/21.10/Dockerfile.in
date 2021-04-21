@@ -1,0 +1,20 @@
+# Base information.
+FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
+LABEL maintainer="Kevin Duret <kduret@centreon.com>"
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y --enablerepo='centreon-unstable*' centreon-auto-discovery-server centreon-license-manager && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install module in Centreon.
+COPY web/21.10/install-centreon-module.php /tmp/install-centreon-module.php
+COPY autodisco/21.10/install.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh && \
+    /tmp/install.sh
+
+# License.
+COPY ppm/epp.license.offline /etc/centreon/license.d/epp.license

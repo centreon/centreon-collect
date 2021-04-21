@@ -75,6 +75,8 @@ if [ "$packagecount" -gt 0 ] ; then
   put_internal_rpms "20.10" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
   put_internal_rpms "21.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
   put_internal_rpms "21.04" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
+  put_internal_rpms "21.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
+  put_internal_rpms "21.10" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
   if [ "$BRANCH_NAME" '=' 'master' ] ; then
     copy_internal_rpms_to_unstable "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "plugin-packs" "20.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
@@ -82,6 +84,8 @@ if [ "$packagecount" -gt 0 ] ; then
     copy_internal_rpms_to_unstable "plugin-packs" "20.10" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "plugin-packs" "21.04" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
     copy_internal_rpms_to_unstable "plugin-packs" "21.04" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+    copy_internal_rpms_to_unstable "plugin-packs" "21.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
+    copy_internal_rpms_to_unstable "plugin-packs" "21.10" "el8" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
   fi
 
   # Populate cache.
