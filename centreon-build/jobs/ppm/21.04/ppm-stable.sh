@@ -24,5 +24,5 @@ $SSH_REPO mv "/srv/sources/standard/testing/ppm/$PROJECT-$VERSION-$RELEASE" "/sr
 #curl "https://download.centreon.com/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=1"
 
 # Move RPMs to the stable repository.
-#promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el7" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "21.04" "el8" "noarch" "ppm" "$PROJECT-$VERSION-$RELEASE"
