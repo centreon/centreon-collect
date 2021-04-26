@@ -5,4 +5,7 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 COPY dependencies/@VERSION@/dependencies.@DISTRIB@.txt /tmp/dependencies.txt
 COPY dependencies/@VERSION@/install.@DISTRIB@.sh /tmp/install.sh
 
-RUN /tmp/install.sh
+# Trust centreon internal certificate
+COPY ca-centreon-internal.pem /etc/pki/ca-trust/source/anchors/
+
+RUN update-ca-trust && /tmp/install.sh
