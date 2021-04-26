@@ -3,6 +3,9 @@
 set -e
 set -x
 
+cp /tmp/ca-centreon-internal.pem /etc/pki/ca-trust/source/anchors/
+update-ca-trust
+
 # Base dnf configuration.
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf

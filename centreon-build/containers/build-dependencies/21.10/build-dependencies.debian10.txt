@@ -12,3 +12,4 @@ make
 pbuilder
 python3-pip
 zlib1g-dev
+ca-certificates
