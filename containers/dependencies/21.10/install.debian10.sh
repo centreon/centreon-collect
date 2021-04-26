@@ -3,6 +3,11 @@
 set -e
 set -x
 
+# Trust centreon internal certificate
+mkdir /usr/local/share/ca-certificates/int.centreon.com
+cp /tmp/ca-centreon-internal.pem /usr/local/share/ca-certificates/int.centreon.com/ca-centreon-internal.crt
+update-ca-certificates
+
 # Base apt configuration.
 echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes
 
@@ -11,8 +16,8 @@ apt-get update
 apt-get install curl gnupg netcat-openbsd
 
 # Install internal repository.
-curl http://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -
-echo 'deb http://srvi-repo.int.centreon.com/apt/internal/21.10 buster main' > /etc/apt/sources.list.d/centreon-internal.list
+curl https://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -
+echo 'deb https://srvi-repo.int.centreon.com/apt/internal/21.10 buster main' > /etc/apt/sources.list.d/centreon-internal.list
 
 # Install Node.js repository.
 curl -sL https://deb.nodesource.com/setup_14.x | bash -

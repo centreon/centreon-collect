@@ -3,6 +3,9 @@
 set -e
 set -x
 
+cp /tmp/ca-centreon-internal.pem /etc/pki/ca-trust/source/anchors/
+update-ca-trust
+
 # Install development repository.
 curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
