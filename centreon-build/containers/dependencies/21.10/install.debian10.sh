@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Trust centreon internal certificate
-mkdir /usr/local/share/ca-certificates/int.centreon.com
+mkdir -p /usr/local/share/ca-certificates/int.centreon.com
 cp /tmp/ca-centreon-internal.pem /usr/local/share/ca-certificates/int.centreon.com/ca-centreon-internal.crt
 update-ca-certificates
 
