@@ -8,7 +8,12 @@ echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes
 
 # Install base tools.
 apt-get update
-apt-get install curl gnupg
+apt-get install curl gnupg ca-certificates
+
+# Trust centreon internal certificate
+mkdir /usr/local/share/ca-certificates/int.centreon.com
+cp /tmp/ca-centreon-internal.pem /usr/local/share/ca-certificates/int.centreon.com/ca-centreon-internal.crt
+update-ca-certificates
 
 # Install development repository.
 curl http://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -
