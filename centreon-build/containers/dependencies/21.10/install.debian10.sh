@@ -3,17 +3,17 @@
 set -e
 set -x
 
-# Trust centreon internal certificate
-mkdir -p /usr/local/share/ca-certificates/int.centreon.com
-cp /tmp/ca-centreon-internal.pem /usr/local/share/ca-certificates/int.centreon.com/ca-centreon-internal.crt
-update-ca-certificates
-
 # Base apt configuration.
 echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes
 
 # Install base tools.
 apt-get update
-apt-get install curl gnupg netcat-openbsd
+apt-get install curl gnupg netcat-openbsd ca-certificates
+
+# Trust centreon internal certificate
+mkdir /usr/local/share/ca-certificates/int.centreon.com
+cp /tmp/ca-centreon-internal.pem /usr/local/share/ca-certificates/int.centreon.com/ca-centreon-internal.crt
+update-ca-certificates
 
 # Install internal repository.
 curl https://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -

@@ -3,4 +3,3 @@ php
 php-cli
 php-mbstring
 php-xml
-ca-certificates
