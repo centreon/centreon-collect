@@ -3,9 +3,9 @@
     "pkg_summary": "Centreon Plugin Salesforce monitoring",
     "plugin_name": "centreon_salesforce_restapi.pl",
     "files": [
-        "centreon/plugins/script_simple.pm",
+	"centreon/plugins/script_custom.pm",
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
-        "apps/salesforce/"
+        "apps/salesforce/restapi/"
     ]
 }
