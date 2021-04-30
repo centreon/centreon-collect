@@ -31,7 +31,7 @@ npm install -g gulp
 npm install -g redoc-cli
 
 # Install Composer.
-yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring
+yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring rh-php72-php-pdo
 export PATH="$PATH:/opt/rh/rh-php72/root/usr/bin"
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer

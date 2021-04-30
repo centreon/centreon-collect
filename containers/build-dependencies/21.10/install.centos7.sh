@@ -36,7 +36,7 @@ yum install --nogpgcheck -y nodejs
 npm install -g redoc-cli
 
 # Install Composer.
-yum install -y rh-php73-php rh-php73-php-cli rh-php73-php-dom rh-php73-php-mbstring rh-php73-php-intl
+yum install -y rh-php73-php rh-php73-php-cli rh-php73-php-dom rh-php73-php-mbstring rh-php73-php-intl rh-php73-php-pdo
 export PATH="$PATH:/opt/rh/rh-php73/root/usr/bin"
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer

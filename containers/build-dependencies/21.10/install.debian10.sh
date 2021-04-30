@@ -30,7 +30,7 @@ xargs apt-get install < /tmp/build-dependencies.txt
 apt-get install nodejs
 
 # Install Composer.
-apt-get install php php-cli php-curl php-mbstring php-xml
+apt-get install php php-cli php-curl php-mbstring php-xml php-pdo
 curl -sS https://getcomposer.org/installer | php
 # For mon-build-dependencies, composer need to be in /usr/bin so that
 # composer is still available during debuild.
