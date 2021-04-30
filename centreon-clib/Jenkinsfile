@@ -38,7 +38,6 @@ stage('Source') {
   }
 }
 
-
 try {
   // sonarQube step to get qualityGate result
   stage('Quality gate') {
