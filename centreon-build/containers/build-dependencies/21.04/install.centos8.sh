@@ -28,7 +28,7 @@ dnf install --nogpgcheck -y nodejs
 npm install -g redoc-cli
 
 # Install Composer.
-dnf install php php-cli php-dom php-json php-mbstring php-intl
+dnf install php php-cli php-dom php-json php-mbstring php-intl php-pdo
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
