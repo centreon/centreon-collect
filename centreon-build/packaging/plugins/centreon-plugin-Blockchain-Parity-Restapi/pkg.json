@@ -5,7 +5,7 @@
     "files": [
         "centreon/plugins/http.pm",
         "centreon/plugins/backend/http/",
-        "centreon/plugins/script_custom",
+        "centreon/plugins/script_custom.pm",
         "blockchain/parity/restapi/"
     ]
 }
