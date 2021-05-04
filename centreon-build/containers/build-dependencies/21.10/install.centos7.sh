@@ -49,6 +49,7 @@ cpanm PAR::Filter::Crypto
 
 # Install Conan, a C++ package manager.
 pip3 install --prefix=/usr conan
+source scl_source enable devtoolset-9
 
 # Pre-install conan dependencies
 mkdir /tmp/conan-pkgs
@@ -69,7 +70,7 @@ zlib/1.2.11
 cmake_paths
 cmake_find_package
 EOF
-source scl_source enable devtoolset-9
+
 conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing
 rm -rf /tmp/conan-pkgs
 
