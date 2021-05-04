@@ -22,14 +22,15 @@ mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
 # Install cmake3
-yum install -y epel-release cmake3 devtoolset-9
-yum remove epel-release
+yum install -y epel-release cmake3 devtoolset-9 perl-Thread-Queue
+yum remove epel-release cmake
 
 # Install Conan, a C++ package manager.
 pip3 install conan
 
 # Pre-install dependencies
-scl enable devtoolset-9 bash
+ln -s /usr/bin/cmake3 /usr/bin/cmake
+source /opt/rh/devtoolset-9/enable
 
 mkdir /tmp/conan-pkgs
 cat <<EOF >/tmp/conan-pkgs/conanfile.txt
@@ -50,5 +51,5 @@ cmake_paths
 cmake_find_package
 EOF
 
-scl enable devtoolset-9 'conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing'
+conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build='*'
 rm -rf /tmp/conan-pkgs
