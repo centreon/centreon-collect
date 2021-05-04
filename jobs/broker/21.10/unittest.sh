@@ -15,9 +15,13 @@ else
   mycmake=cmake
 fi
 
+if [ -x /usr/bin/scl_source ] ; then
+  source scl_source enable devtoolset-9
+fi
+
 cpp11=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
 
-if [ $cpp11 -eq 1 ] ; then
+if [ "x$cpp11" = "x1" ] ; then
   conan install /usr/local/src/centreon-broker -s compiler.libcxx=libstdc++11 --build=missing
 else
   conan install /usr/local/src/centreon-broker -s compiler.libcxx=libstdc++ --build=missing
