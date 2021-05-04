@@ -6,7 +6,7 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install Centreon Map web client and Centreon BAM.
-RUN curl -o centreon-business-release.rpm http://yum-1.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/20.10/el7/stable/noarch/RPMS/centreon-business-release-21.04-4.el7.centos.noarch.rpm && \
+RUN curl -o centreon-business-release.rpm http://srvi-repo.int.centreon.com/yum/bam/d4e1d7d3e888f596674453d1f20ff6d3/20.10/el7/stable/noarch/RPMS/centreon-bam-release-20.10-2.el7.centos.noarch.rpm && \
     yum install centreon-business-release.rpm && \
     yum install -y --enablerepo='centreon-business-testing*' --enablerepo='centreon-business-unstable*' centreon-bam-server centreon-map4-web-client && \
     rm -f /etc/yum.repos.d/centreon-internal.repo && \
