@@ -51,6 +51,9 @@ cpanm PAR::Filter::Crypto
 pip3 install --prefix=/usr conan
 
 # Pre-install conan dependencies
+ln -s /usr/bin/cmake3 /usr/bin/cmake
+source /opt/rh/devtoolset-9/enable
+
 mkdir /tmp/conan-pkgs
 cat <<EOF >/tmp/conan-pkgs/conanfile.txt
 [requires]
@@ -70,7 +73,7 @@ cmake_paths
 cmake_find_package
 EOF
 
-scl enable devtoolset-9 'conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing'
+conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build='*'
 rm -rf /tmp/conan-pkgs
 
 # Workaround, yum does not seem to exit correctly.
