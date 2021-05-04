@@ -49,7 +49,6 @@ cpanm PAR::Filter::Crypto
 
 # Install Conan, a C++ package manager.
 pip3 install --prefix=/usr conan
-scl enable devtoolset-9 bash
 
 # Pre-install conan dependencies
 mkdir /tmp/conan-pkgs
@@ -71,7 +70,7 @@ cmake_paths
 cmake_find_package
 EOF
 
-conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing
+scl enable devtoolset-9 'conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing'
 rm -rf /tmp/conan-pkgs
 
 # Workaround, yum does not seem to exit correctly.
