@@ -31,7 +31,7 @@ yum remove epel-release
 pip3 install conan
 
 # Pre-install dependencies
-source scl_source enable devtoolset-9
+scl enable devtoolset-9 bash
 
 mkdir /tmp/conan-pkgs
 cat <<EOF >/tmp/conan-pkgs/conanfile.txt
