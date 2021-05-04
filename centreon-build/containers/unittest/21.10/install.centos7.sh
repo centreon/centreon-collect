@@ -24,9 +24,31 @@ chmod +x /usr/local/bin/composer
 # Install cmake3
 yum install -y epel-release
 yum install -y cmake3
+yum install -y devtoolset-9
 yum remove epel-release
 
 # Install Conan, a C++ package manager.
 pip3 install conan
-conan remote add centreon-center https://api.bintray.com/conan/centreon/centreon
-conan remote remove conan-center
+
+# Pre-install dependencies
+mkdir /tmp/conan-pkgs
+cat <<EOF >/tmp/conan-pkgs/conanfile.txt
+[requires]
+gtest/cci.20210126
+asio/1.18.1
+fmt/7.1.3
+spdlog/1.8.5
+nlohmann_json/3.9.1
+openssl/1.1.1k
+protobuf/3.15.5
+grpc/1.37.0
+mariadb-connector-c/3.1.12
+zlib/1.2.11
+
+[generators]
+cmake_paths
+cmake_find_package
+EOF
+source scl_source enable devtoolset-9
+conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing
+rm -rf /tmp/conan-pkgs
