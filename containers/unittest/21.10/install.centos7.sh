@@ -22,9 +22,7 @@ mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
 # Install cmake3
-yum install -y epel-release
-yum install -y cmake3
-yum install -y devtoolset-9
+yum install -y epel-release cmake3 devtoolset-9
 yum remove epel-release
 
 # Install Conan, a C++ package manager.
