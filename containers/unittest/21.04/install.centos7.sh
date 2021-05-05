@@ -30,6 +30,9 @@ yum remove epel-release
 pip3 install conan
 
 # Pre-install dependencies
+ln -s /usr/bin/cmake3 /usr/bin/cmake
+source /opt/rh/devtoolset-9/enable
+
 mkdir /tmp/conan-pkgs
 cat <<EOF >/tmp/conan-pkgs/conanfile.txt
 [requires]
