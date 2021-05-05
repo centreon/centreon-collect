@@ -15,9 +15,13 @@ else
   mycmake=cmake
 fi
 
+if [ -f /opt/rh/devtoolset-9/enable ] ; then
+  source /opt/rh/devtoolset-9/enable
+fi
+
 cpp11=$(gcc --version | awk '/gcc/ && ($3+0)>5.0{print 1}')
 
-if [ $cpp11 -eq 1 ] ; then
+if [ "x$cpp11" = "x1" ] ; then
   conan install /usr/local/src/centreon-engine -s compiler.libcxx=libstdc++11 --build=missing
 else
   conan install /usr/local/src/centreon-engine -s compiler.libcxx=libstdc++ --build=missing
