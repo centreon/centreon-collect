@@ -46,7 +46,7 @@ configuration, designed to monitor hosts and services on your network.
 %package daemon
 Summary:    Centreon Engine Daemon is the daemon to schedule checks.
 Group:      %{group}
-Requires:   centreon-clib >= %{thismajor}
+Requires:   centreon-clib >= 20.04.1
 Requires:   centreon-clib < %{nextmajor}
 %{?systemd_requires}
 
