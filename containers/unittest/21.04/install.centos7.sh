@@ -52,5 +52,5 @@ cmake_paths
 cmake_find_package
 EOF
 
-conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build=missing
+conan install /tmp/conan-pkgs -s compiler.libcxx=libstdc++11 --build='*'
 rm -rf /tmp/conan-pkgs
