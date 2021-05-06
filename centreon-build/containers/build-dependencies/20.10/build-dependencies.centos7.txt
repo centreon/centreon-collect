@@ -1,5 +1,4 @@
 centreon-devel
-cmake
 cmake3
 gcc
 gcc-c++
@@ -10,6 +9,7 @@ libgcrypt-devel
 perl-App-FatPacker
 perl-File-Copy-Recursive
 perl-JSON
+perl-Thread-Queue
 python3-pip
 rrdtool-devel
 redhat-lsb
@@ -18,6 +18,4 @@ git
 lua-devel
 expect
 perl-XML-SAX
-MariaDB-devel
 MariaDB-shared
-qt4-devel
