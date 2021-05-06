@@ -31,7 +31,7 @@ npm install -g gulp
 npm install -g redoc-cli
 
 # Install Composer.
-yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring
+yum install -y rh-php72-php rh-php72-php-cli rh-php72-php-dom rh-php72-php-mbstring devtoolset-9
 export PATH="$PATH:/opt/rh/rh-php72/root/usr/bin"
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
@@ -41,6 +41,7 @@ chmod +x /usr/local/bin/composer
 yum install -y perl perl-App-cpanminus perl-ExtUtils-Embed gcc openssl openssl-devel
 cpanm PAR::Packer
 cpanm PAR::Filter::Crypto
+
 
 # Install Conan, a C++ package manager.
 pip3 install --prefix=/usr conan
