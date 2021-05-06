@@ -21,7 +21,7 @@ mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
 # Install cmake3
-yum install -y epel-release cmake3 devtoolset-9 perl-Thread-Queue
+yum install -y epel-release cmake3 devtoolset-9 perl-Thread-Queue MariaDB-devel
 yum remove epel-release cmake
 
 # Install Conan, a C++ package manager.
