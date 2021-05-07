@@ -13,9 +13,9 @@ PROJECT_NAME="Centreon Web"
 
 # Copy reports and run analysis.
 cd centreon-web
-cp ../ut-be.xml .
-cp ../coverage-be.xml .
-sed -i -e 's#/usr/local/src/centreon-web/##g' coverage-be.xml
+#cp ../ut-be.xml .
+#cp ../coverage-be.xml .
+#sed -i -e 's#/usr/local/src/centreon-web/##g' coverage-be.xml
 
 # environment values required to replace sonarQube project versioning and binding
 #   sonar.projectKey="{PROJECT_TITLE}"

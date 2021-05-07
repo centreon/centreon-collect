@@ -7,9 +7,23 @@ set -x
 cd /usr/local/src
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
-# Replace basic macros.
+# restore or install dependencies
 cd "$PROJECT-$VERSION"
-find . -type f | xargs --delimiter='\n' sed -i -e "s/@COMMIT@/$COMMIT/g"
+if [ -f "../node_modules.tar.gz" ]; then
+  tar xzf "../node_modules.tar.gz" -C "./"
+else
+  npm ci
+  tar zcf "../node_modules.tar.gz" node_modules
+fi
+if [ -f "../vendor.tar.gz" ]; then
+  tar xzf "../vendor.tar.gz" -C "./"
+else
+  composer install
+  tar zcf "../vendor.tar.gz" vendor
+fi
+
+# Replace basic macros.
+find ./www/include/Administration/about -type f | xargs --delimiter='\n' sed -i -e "s/@COMMIT@/$COMMIT/g"
 
 # Generate lang files.
 # Special case for english front-end translation that uses french as base.
@@ -31,16 +45,7 @@ redoc-cli bundle --options.hideDownloadButton=true doc/API/centreon-api-v2.yaml 
 # Install Composer dependencies.
 composer install --no-dev --optimize-autoloader
 
-# Install npm dependencies.
-npm ci
-npm run build
-rm -rf node_modules
-
 # Create source tarballs.
 cd ..
 rm -f "$PROJECT-$VERSION.tar.gz"
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-cd "$PROJECT-$VERSION"
-composer install
-rm -f "../vendor.tar.gz"
-tar czf "../vendor.tar.gz" "vendor"
