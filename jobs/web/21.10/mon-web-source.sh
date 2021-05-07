@@ -58,18 +58,32 @@ git archive --worktree-attributes --prefix="$PROJECT-$VERSION/" HEAD | gzip > ".
 git reset --hard HEAD
 cd ..
 
+# restore cache
+cd centreon-web
+
+../centreon-build/script/s3-cache.sh npm
+rm -f ../node_modules.tar.gz
+mv node_modules.tar.gz ../
+
+../centreon-build/script/s3-cache.sh composer
+rm -f ../vendor.tar.gz
+mv vendor.tar.gz ../
+
+cd ..
+
 # Create and populate container.
 BUILD_IMAGE="registry.centreon.com/mon-build-dependencies-21.10:centos7"
-docker pull "$BUILD_IMAGE"
+docker pull $BUILD_IMAGE
 containerid=`docker create -e "PROJECT=$PROJECT" -e "VERSION=$VERSION" -e "COMMIT=$COMMIT" $BUILD_IMAGE /usr/local/bin/source.sh`
 docker cp `dirname $0`/mon-web-source.container.sh "$containerid:/usr/local/bin/source.sh"
 docker cp "$PROJECT-$VERSION.tar.gz" "$containerid:/usr/local/src/"
+docker cp node_modules.tar.gz "$containerid:/usr/local/src/"
+docker cp vendor.tar.gz "$containerid:/usr/local/src/"
 
 # Run container that will generate complete tarball.
 docker start -a "$containerid"
-rm -f "$PROJECT-$VERSION.tar.gz" "vendor.tar.gz"
+rm -f "$PROJECT-$VERSION.tar.gz"
 docker cp "$containerid:/usr/local/src/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
-docker cp "$containerid:/usr/local/src/vendor.tar.gz" "vendor.tar.gz"
 docker cp "$containerid:/usr/local/src/centreon-api-v2.html" centreon-api-v2.html
 
 # Stop container.

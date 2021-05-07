@@ -16,24 +16,17 @@ if [ "$#" -lt 2 ] ; then
 fi
 DISTRIB="$1"
 
+TAG_OPTION=""
+if [ "$3" ] ; then
+  TAG_OPTION="--tags $3"
+fi
+
 # Pull images.
 WEB_IMAGE="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
 WEB_FRESH_IMAGE="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 WEB_WIDGETS_IMAGE="$REGISTRY/mon-web-widgets-$VERSION-$RELEASE:$DISTRIB"
-MEDIAWIKI_IMAGE="$REGISTRY/mon-mediawiki-21.10:latest"
-OPENLDAP_IMAGE="$REGISTRY/mon-openldap:latest"
-PROXY_IMAGE="$REGISTRY/mon-squid-simple:latest"
-INFLUXDB_IMAGE="$REGISTRY/influxdb:latest"
-NEWMAN_IMAGE="$REGISTRY/postman/newman_alpine33:latest"
 WEBDRIVER_IMAGE="$REGISTRY/standalone-chrome:3.141.59-oxygen"
 docker pull $WEB_IMAGE
-docker pull $WEB_FRESH_IMAGE
-docker pull $WEB_WIDGETS_IMAGE
-docker pull $MEDIAWIKI_IMAGE
-docker pull $OPENLDAP_IMAGE
-docker pull $PROXY_IMAGE
-docker pull $INFLUXDB_IMAGE
-docker pull $NEWMAN_IMAGE
 docker pull $WEBDRIVER_IMAGE
 
 # Fetch sources.
@@ -66,4 +59,4 @@ rm -rf ../xunit-reports
 mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
-./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
+./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" $TAG_OPTION "$2"
