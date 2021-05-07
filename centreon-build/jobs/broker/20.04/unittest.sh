@@ -15,7 +15,7 @@ else
   mycmake=cmake
 fi
 
-if [ -x /usr/bin/scl_source ] ; then
+if [ -f /opt/rh/devtoolset-9/enable ] ; then
   source /opt/rh/devtoolset-9/enable
 fi
 

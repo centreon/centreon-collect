@@ -36,6 +36,7 @@ chmod +x /usr/local/bin/composer
 # Install Conan, a C++ package manager.
 pip3 install --prefix=/usr conan
 
+# Pre-install conan dependencies
 mkdir /tmp/conan-pkgs
 cat <<EOF >/tmp/conan-pkgs/conanfile.txt
 [requires]

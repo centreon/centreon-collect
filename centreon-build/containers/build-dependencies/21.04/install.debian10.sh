@@ -36,6 +36,7 @@ chmod +x /usr/bin/composer
 pip3 install conan
 ln -s /usr/local/bin/conan /usr/bin/conan
 
+# Pre-install conan dependencies
 mkdir /tmp/conan-pkgs
 cat <<EOF >/tmp/conan-pkgs/conanfile.txt
 [requires]

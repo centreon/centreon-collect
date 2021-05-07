@@ -7,8 +7,6 @@ gnutls-devel
 libgcrypt-devel
 lua-devel
 make
-mariadb-connector-c
-mariadb-devel
 maven
 python3-pip
 redhat-lsb
@@ -16,3 +14,5 @@ rpm-build
 rpm-sign
 rrdtool-devel
 yum-utils
+MariaDB-shared
+MariaDB-devel
