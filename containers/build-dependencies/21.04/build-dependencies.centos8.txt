@@ -14,5 +14,4 @@ rpm-build
 rpm-sign
 rrdtool-devel
 yum-utils
-MariaDB-devel
 MariaDB-shared
