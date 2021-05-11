@@ -12,7 +12,7 @@ services:
     ports:
     - "80"
   webdriver:
-    image: registry.centreon.com/standalone-chrome-debug:3.141.59-oxygen
+    image: registry.centreon.com/standalone-chrome:3.141.59-oxygen
     environment:
     - "SCREEN_WIDTH=1600"
     - "SCREEN_HEIGHT=2000"

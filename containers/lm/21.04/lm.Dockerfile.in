@@ -6,7 +6,7 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
 COPY lm/21.04/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php73/php-fpm.d/centreon-license-manager.conf
 COPY lm/21.04/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
-RUN sed -i 's@http://ci.int.centreon.com@http://middleware@g' /usr/share/centreon/container.d/60-gorgone.sh
+RUN sed -i 's@http://ci.int.centreon.com@http://middleware@g' /usr/share/centreon/container.d/70-gorgone.sh
 
 # Install repository.
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
