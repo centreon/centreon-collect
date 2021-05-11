@@ -1,7 +1,7 @@
 # Global options.
 cmake_minimum_required(VERSION 2.8.12)
 project(connectors CXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
 set(CONNECTOR_MAJOR 21)
@@ -46,12 +46,12 @@ add_subdirectory(ssh)
 # Testing.
 option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
-  find_package(gtest REQUIRED)
+  find_package(GTest REQUIRED)
 
-  include_directories(${gtest_INCLUDE_DIRS})
+  include_directories(${GTest_INCLUDE_DIRS})
   include_directories(/usr/lib64/perl5/CORE)
 
-  link_directories(${gtest_LIB_DIRS})
+  link_directories(${GTest_LIB_DIRS})
 
   include_directories(${CMAKE_SOURCE_DIR}/perl/inc)
   include_directories(${CMAKE_SOURCE_DIR}/ssh/inc)
@@ -87,5 +87,5 @@ if (WITH_TESTING)
     ${CMAKE_SOURCE_DIR}/ssh/test/sessions.cc
     )
 
-  target_link_libraries(ut ${gtest_LIBS} ${CLIB_LIBRARIES} ${PERL_LIBRARIES} ${fmt_LIBS} ${spdlog_LIBS} ${LIBSSH2_LIBRARIES})
+  target_link_libraries(ut ${GTest_LIBS} ${CLIB_LIBRARIES} ${PERL_LIBRARIES} ${fmt_LIBS} ${spdlog_LIBS} ${LIBSSH2_LIBRARIES})
 endif (WITH_TESTING)
