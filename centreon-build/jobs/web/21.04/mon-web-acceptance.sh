@@ -25,6 +25,7 @@ OPENLDAP_IMAGE="$REGISTRY/mon-openldap:latest"
 PROXY_IMAGE="$REGISTRY/mon-squid-simple:latest"
 INFLUXDB_IMAGE="$REGISTRY/influxdb:latest"
 NEWMAN_IMAGE="$REGISTRY/postman/newman_alpine33:latest"
+WEBDRIVER_IMAGE="$REGISTRY/standalone-chrome:3.141.59-oxygen"
 docker pull $WEB_IMAGE
 docker pull $WEB_FRESH_IMAGE
 docker pull $WEB_WIDGETS_IMAGE
@@ -33,6 +34,7 @@ docker pull $OPENLDAP_IMAGE
 docker pull $PROXY_IMAGE
 docker pull $INFLUXDB_IMAGE
 docker pull $NEWMAN_IMAGE
+docker pull $WEBDRIVER_IMAGE
 
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION"
