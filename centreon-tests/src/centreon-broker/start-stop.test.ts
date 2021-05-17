@@ -1,8 +1,11 @@
-import { $, sleep } from 'zx';
+import sleep from 'await-sleep';
+import shell from 'shelljs';
+
+shell.config.silent = true;
 
 const broker = {
   isRunning: async () => {
-    const result = await $`sh -c 'ps -ax | grep cbd'`;
+    const result = shell.exec( `sh -c 'ps -ax | grep cbd'`);
 
     const resultString = result.toString();
 
@@ -14,13 +17,13 @@ const broker = {
     );
   },
   start: async () => {
-    const result = await $`service cbd start`;
+    const result = shell.exec(`service cbd start`);
     await sleep(1000);
 
     return result;
   },
   stop: async () => {
-    const result = await $`service cbd stop`;
+    const result = shell.exec(`service cbd stop`);
     await sleep(1000);
 
     return result;
@@ -28,8 +31,8 @@ const broker = {
 };
 
 const engine = {
-  isRunning: async () => {
-    const result = await $`sh -c 'ps -ax | grep centengine'`;
+  isRunning: () => {
+    const result = shell.exec(`sh -c 'ps -ax | grep centengine'`);
 
     const resultString = result.toString();
 
@@ -37,12 +40,12 @@ const engine = {
     // error kill in script killing centegine
     return resultString.toLocaleLowerCase().includes('centengine.cfg');
   },
-  start: async () => {
-    const result = await $`service centengine start`;
+  start: () => {
+    const result = shell.exec(`service centengine start`);
     return result;
   },
-  stop: async () => {
-    const result = await $`service centengine stop`;
+  stop: () => {
+    const result = shell.exec(`service centengine stop`);
     return result;
   },
 };
@@ -51,39 +54,28 @@ describe('start and stop centreon broker', () => {
   beforeEach(async () => {
     if (await broker.isRunning()) {
       const result = await broker.stop();
-      expect(result.exitCode).toBe(0);
+      expect(result.code).toBe(0);
     }
 
-    if (await engine.isRunning()) {
-      const result = await broker.stop();
-      expect(result.exitCode).toBe(0);
-    }
-  });
 
-  it('start centreon broker', async () => {
-    const result = await broker.start();
-    expect(result.exitCode).toBe(0);
-
-    expect(await broker.isRunning()).toBeTruthy();
-  }, 10000);
-
-  it('stop centreon broker', async () => {
     expect(await broker.isRunning()).toBeFalsy();
 
-    const brokerStartResult = await broker.start();
-    expect(brokerStartResult.exitCode).toBe(0);
+  });
 
-    const isBrokerStarted = await broker.isRunning();
-    expect(isBrokerStarted).toBeTruthy();
+  it('start/stop centreon broker', async () => {
+    const result = await broker.start();
+    expect(result.code).toBe(0);
+
+    expect(await broker.isRunning()).toBeTruthy();
 
     const startTime = process.hrtime();
 
     const brokerTimedStopResult = await broker.stop();
-    expect(brokerTimedStopResult.exitCode).toBe(0);
+    expect(brokerTimedStopResult.code).toBe(0);
 
     const endTime = process.hrtime();
 
     const isBrokerRunning = await broker.isRunning();
     expect(isBrokerRunning).toBeFalsy();
-  }, 30000);
+  }, 50000);
 });
