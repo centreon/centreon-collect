@@ -6,7 +6,8 @@
     "p-iteration": "^1.1.8",
     "shelljs": "^0.8.4",
     "stream-to-promise": "^3.0.0",
-    "symlink-dir": "^4.1.0"
+    "symlink-dir": "^4.1.0",
+    "zx": "^1.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
