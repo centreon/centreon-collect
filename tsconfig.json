@@ -1,13 +1,12 @@
 {
-  "extends": "./node_modules/@centreon/frontend-core/tsconfig/index",
   "compilerOptions": {
     "baseUrl": "./src",
     "typeRoots": ["./node_modules/@types"],
-    "module": "CommonJS",
     "outDir": "build",
     "sourceMap": true,
+    "target": "esnext",
+    "module": "commonjs",
     "esModuleInterop": true,
   },
   "include": ["./src/**/*.ts"],
-  "exclude": ["apps/", "node_modules"]
 }
