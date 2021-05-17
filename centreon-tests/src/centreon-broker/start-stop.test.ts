@@ -5,7 +5,7 @@ shell.config.silent = true;
 
 const broker = {
   isRunning: async () => {
-    const result = shell.exec( `sh -c 'ps -ax | grep cbd'`);
+    const result = shell.exec(`ps -ax | grep cbd`);
 
     const resultString = result.toString();
 
@@ -18,13 +18,13 @@ const broker = {
   },
   start: async () => {
     const result = shell.exec(`service cbd start`);
-    await sleep(1000);
+    await sleep(5000);
 
     return result;
   },
   stop: async () => {
     const result = shell.exec(`service cbd stop`);
-    await sleep(1000);
+    await sleep(5000);
 
     return result;
   },
@@ -50,7 +50,7 @@ const engine = {
   },
 };
 
-describe('start and stop centreon broker', () => {
+describe('broker testing', () => {
   beforeEach(async () => {
     if (await broker.isRunning()) {
       const result = await broker.stop();
@@ -63,6 +63,7 @@ describe('start and stop centreon broker', () => {
   });
 
   it('start/stop centreon broker', async () => {
+
     const result = await broker.start();
     expect(result.code).toBe(0);
 
@@ -78,4 +79,6 @@ describe('start and stop centreon broker', () => {
     const isBrokerRunning = await broker.isRunning();
     expect(isBrokerRunning).toBeFalsy();
   }, 50000);
+
+
 });
