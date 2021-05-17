@@ -33,15 +33,9 @@ mkdir -p %{buildroot}/%{perl_vendorlib}/centreon/vmware
 mkdir -p %{buildroot}/%{perl_vendorlib}/centreon/script
 %{__install} -d -m 0755 %{buildroot}%{_bindir}
 %{__install} -d -m 0755 %{buildroot}%{_sysconfdir}/centreon
-%if 0%{?el7}
 %{__install} -d -m 0755 %{buildroot}%{_sysconfdir}/systemd/system/
 %{__cp} contrib/redhat/centreon_vmware-systemd %{buildroot}%{_sysconfdir}/systemd/system/centreon_vmware.service
-%else
-%{__install} -d -m 0755 %{buildroot}%{_sysconfdir}/sysconfig
-%{__install} -d -m 0755 %{buildroot}%{_sysconfdir}/init.d
-%{__cp} contrib/redhat/centreon_vmware-sysconfig %{buildroot}%{_sysconfdir}/sysconfig/centreon_vmware
-%{__cp} contrib/redhat/centreon_vmware-init %{buildroot}%{_sysconfdir}/init.d/centreon_vmware
-%endif
+
 
 %{__cp} -R centreon/vmware/* %{buildroot}/%{perl_vendorlib}/centreon/vmware/
 %{__cp} centreon/script/centreon_vmware.pm %{buildroot}/%{perl_vendorlib}/centreon/script/
@@ -60,12 +54,6 @@ rm -rf %{buildroot}
 %{perl_vendorlib}/centreon/
 %config(noreplace) %{_sysconfdir}/centreon/centreon_vmware.pm
 %attr(755,root,root) %{_bindir}/centreon_vmware.pl
-
-%if 0%{?el7}
 %attr(755,root,root) %{_sysconfdir}/systemd/system/centreon_vmware.service
-%else
-%config(noreplace) %{_sysconfdir}/sysconfig/centreon_vmware
-%attr(755,root,root) %{_sysconfdir}/init.d/centreon_vmware
-%endif
 
 %changelog
