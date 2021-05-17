@@ -1,5 +1,4 @@
-import sleep from 'await-sleep';
-import { $ } from 'zx';
+import { $, sleep } from 'zx';
 
 const broker = {
   isRunning: async () => {
