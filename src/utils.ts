@@ -1,34 +1,60 @@
 import sleep from 'await-sleep';
-import shell from 'shelljs';
+import shell, { cat } from 'shelljs';
 import { once } from 'events'
+import psList from 'ps-list';
+
 shell.config.silent = true;
 
 export const broker = {
-  isRunning: async () => {
-    const result = shell.exec(`ps -ax | grep cbd`);
+  isRunning: async (repeat = 5, expected = true): Promise<Boolean> => {
+    let centreonBrokerProcess;
+    let centreonBrokerRddProcesss;
 
-    const resultString = result.toString();
+    for(let i = 0; i < repeat; ++i) {
+      await sleep(1000)
 
-    // return code is different than 0 when already stop
-    // error kill in script killing cbd
-    return (
-      resultString.toLocaleLowerCase().includes('central-broker.json') &&
-      resultString.toLocaleLowerCase().includes('central-rrd.json')
-    );
+      const processList = await psList();
+
+      centreonBrokerProcess = processList.find((process) => process.name == `cbd` && process.cmd === `/usr/sbin/cbd /etc/centreon-broker/central-broker.json`);
+      centreonBrokerRddProcesss = processList.find((process) => process.name == `cbd` && process.cmd === `/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`);
+
+
+      if((centreonBrokerProcess && centreonBrokerRddProcesss) && expected)
+        return true;
+
+      if(expected == false && !centreonBrokerProcess && !centreonBrokerRddProcesss)
+        return false;
+    }
+    return !!centreonBrokerProcess && !!centreonBrokerRddProcesss;
   },
+
   start: async () => {
     const result = shell.exec(`service cbd start`);
-    await sleep(5000);
-    expect(broker.isRunning()).toBeTruthy()
 
+    expect(result.code).toBe(0)
+    expect(broker.isRunning()).toBeTruthy()
     return result;
   },
   stop: async () => {
-    const result = shell.exec(`service cbd stop`);
-    await sleep(5000);
-    expect(broker.isRunning()).toBeTruthy()
 
-    return result;
+
+    const result = shell.exec(`service cbd stop`)
+    
+      // const processList = await psList();
+
+      // const centreonBrokerProcess = processList.find((process) => process.name == `cbd` && process.cmd === `/usr/sbin/cbd /etc/centreon-broker/central-broker.json`);
+      // const centreonBrokerRddProcesss = processList.find((process) => process.name == `cbd` && process.cmd === `/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`);
+  
+      // if(centreonBrokerProcess) {
+      //   process.kill(centreonBrokerProcess?.pid)
+      // }
+  
+      // if(centreonBrokerRddProcesss) {
+      //   process.kill(centreonBrokerRddProcesss?.pid)
+      // }
+  
+      expect(result.code).toBe(0)
+      expect(await broker.isRunning(5, false)).toBeFalsy()
   },
 };
 
@@ -44,6 +70,8 @@ export const engine = {
   },
   start: async () => {
     const result = shell.exec(`service centengine start`);
+    expect(result.code).toBe(0);
+
     await sleep(5000);
 
     expect(engine.isRunning()).toBeTruthy()
@@ -51,6 +79,8 @@ export const engine = {
   },
   stop: async() => {
     const result = shell.exec(`service centengine stop`);
+    expect(result.code).toBe(0);
+
     await sleep(5000);
 
     expect(engine.isRunning()).toBeFalsy()
