@@ -19,14 +19,14 @@ and to run tests, you can use the following commands
 
 ### Start and stop test
 
-[] start/stop centreon broker
-[] start and stop many instances broker with .3 seconds interval
-[] start and stop many instances broker with 1 second interval
-
+- [x] start/stop centreon broker
+- [x] start and stop many instances broker with .3 seconds interval
+- [x] start and stop many instances broker with 1 second interval
 
 ## Bad credentials
 
-[] should deny access when database user password is wrong
-[] should deny access when database user password is wrong for storage
-[] should deny access when database user password is wrong for sql
-[] should log error when mariadb server is stopped
+- [x] should deny access when database user password is wrong
+- [x] should deny access when database user password is wrong for storage
+- [x] should deny access when database user password is wrong for sql
+- [x] should log error when mariadb server is stopped
+
