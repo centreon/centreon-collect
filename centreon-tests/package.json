@@ -5,6 +5,7 @@
   "dependencies": {
     "await-sleep": "0.0.1",
     "p-iteration": "^1.1.8",
+    "ps-list": "^7.2.0",
     "shelljs": "^0.8.4",
     "stream-to-promise": "^3.0.0",
     "symlink-dir": "^4.1.0",
