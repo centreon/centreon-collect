@@ -28,5 +28,5 @@ and to run tests, you can use the following commands
 - [x] should deny access when database user password is wrong
 - [x] should deny access when database user password is wrong for storage
 - [x] should deny access when database user password is wrong for sql
-- [x] should log error when mariadb server is stopped
+- [ ] should log error when mariadb server is stopped
 
