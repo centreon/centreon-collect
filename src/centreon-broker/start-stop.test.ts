@@ -1,7 +1,7 @@
 import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
-import { broker } from '../utils';
+import { broker } from '../shared';
 
 shell.config.silent = true;
 
@@ -9,18 +9,14 @@ describe('broker testing', () => {
 
   beforeEach(async () => {
     await broker.stop()
-  })
-
-
-  afterAll( async () => {
-    await broker.stop()
+    shell.rm('/var/log/centreon-broker/central-broker-master.log')
   })
 
   
   it('start/stop centreon broker', async () => {
     await broker.start();
     await broker.stop(); 
-  }, 30000);
+  }, 60000);
 
   it('start and stop many instances broker with .3 seconds interval', async () => {
 
