@@ -5,8 +5,10 @@ import psList from 'ps-list';
 
 shell.config.silent = true;
 
+
+
 export const broker = {
-  isRunning: async (repeat = 5, expected = true): Promise<Boolean> => {
+  isRunning: async (repeat = 15, expected = true): Promise<Boolean> => {
     let centreonBrokerProcess;
     let centreonBrokerRddProcesss;
 
@@ -17,7 +19,6 @@ export const broker = {
 
       centreonBrokerProcess = processList.find((process) => process.name == `cbd` && process.cmd === `/usr/sbin/cbd /etc/centreon-broker/central-broker.json`);
       centreonBrokerRddProcesss = processList.find((process) => process.name == `cbd` && process.cmd === `/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`);
-
 
       if((centreonBrokerProcess && centreonBrokerRddProcesss) && expected)
         return true;
@@ -37,7 +38,6 @@ export const broker = {
   },
   stop: async () => {
 
-
     const result = shell.exec(`service cbd stop`)
     
       // const processList = await psList();
@@ -54,7 +54,7 @@ export const broker = {
       // }
   
       expect(result.code).toBe(0)
-      expect(await broker.isRunning(5, false)).toBeFalsy()
+      expect(await broker.isRunning(15, false)).toBeFalsy()
   },
 };
 
