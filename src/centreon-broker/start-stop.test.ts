@@ -1,54 +1,8 @@
 import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
+import { broker } from '../utils';
 shell.config.silent = true;
-
-const broker = {
-  isRunning: async () => {
-    const result = shell.exec(`ps -ax | grep cbd`);
-
-    const resultString = result.toString();
-
-    // return code is different than 0 when already stop
-    // error kill in script killing cbd
-    return (
-      resultString.toLocaleLowerCase().includes('central-broker.json') &&
-      resultString.toLocaleLowerCase().includes('central-rrd.json')
-    );
-  },
-  start: async () => {
-    const result = shell.exec(`service cbd start`);
-    await sleep(5000);
-
-    return result;
-  },
-  stop: async () => {
-    const result = shell.exec(`service cbd stop`);
-    await sleep(5000);
-
-    return result;
-  },
-};
-
-const engine = {
-  isRunning: () => {
-    const result = shell.exec(`sh -c 'ps -ax | grep centengine'`);
-
-    const resultString = result.toString();
-
-    // return code is different than 0 when already stop
-    // error kill in script killing centegine
-    return resultString.toLocaleLowerCase().includes('centengine.cfg');
-  },
-  start: () => {
-    const result = shell.exec(`service centengine start`);
-    return result;
-  },
-  stop: () => {
-    const result = shell.exec(`service centengine stop`);
-    return result;
-  },
-};
 
 describe('broker testing', () => {
   beforeEach(async () => {
@@ -72,17 +26,11 @@ describe('broker testing', () => {
     const startTime = process.hrtime();
 
     const brokerTimedStopResult = await broker.stop();
-    expect(brokerTimedStopResult.code).toBe(0);
-
-    const endTime = process.hrtime();
-
-    const isBrokerRunning = await broker.isRunning();
-    expect(isBrokerRunning).toBeFalsy();
   }, 30000);
 
   it('start and stop many instances broker with .3 seconds interval', async () => {
 
-    for(let i = 0; i < 10; ++i) {
+    for(let i = 0; i < 5; ++i) {
       const process = shell.exec(`su centreon-broker -c '/usr/sbin/cbd /etc/centreon-broker/central-broker.json'`, {async: true})
       await sleep(300)
       process.kill('SIGINT')
@@ -97,7 +45,7 @@ describe('broker testing', () => {
 
   it('start and stop many instances broker with 1 second interval', async () => {
 
-    for(let i = 0; i < 10; ++i) {
+    for(let i = 0; i < 5; ++i) {
       const process = shell.exec(`su centreon-broker -c '/usr/sbin/cbd /etc/centreon-broker/central-broker.json'`, {async: true})
       await sleep(1000)
       process.kill('SIGINT')
