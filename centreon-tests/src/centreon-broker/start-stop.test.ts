@@ -1,21 +1,29 @@
 import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
-import { broker } from '../shared';
+import { Broker } from '../core/broker';
 
 shell.config.silent = true;
 
 describe('broker testing', () => {
 
+
   beforeEach(async () => {
-    await broker.stop()
-    shell.rm('/var/log/centreon-broker/central-broker-master.log')
-  })
+  
+  }, 60000)
 
   
   it('start/stop centreon broker', async () => {
+    Broker.clearLogs()
+    const broker = new Broker();
+
     await broker.start();
-    await broker.stop(); 
+
+    expect(await broker.isRunning()).toBeTruthy()
+
+    await broker.stop()
+
+    expect(await broker.isRunning()).toBeTruthy();
   }, 60000);
 
   it('start and stop many instances broker with .3 seconds interval', async () => {

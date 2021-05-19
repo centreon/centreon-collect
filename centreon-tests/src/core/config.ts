@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 
 
+
 export const getConfig = async (): Promise<JSON> => {
     return JSON.parse((await fs.readFile('/etc/centreon-broker/central-broker.json')).toString());
 }
