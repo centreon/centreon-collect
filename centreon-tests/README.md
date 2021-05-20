@@ -20,13 +20,17 @@ and to run tests, you can use the following commands
 ### Start and stop test
 
 - [x] start/stop centreon broker
-- [x] start and stop many instances broker with .3 seconds interval
-- [x] start and stop many instances broker with 1 second interval
+- [x] start and stop multiple times
 
 ## Bad credentials
 
 - [x] should deny access when database user password is wrong
 - [x] should deny access when database user password is wrong for storage
 - [x] should deny access when database user password is wrong for sql
+- [x] should log error when database name is not correct
 - [ ] should log error when mariadb server is stopped
 
+## Centengine
+
+- [x] start/stop centreon centgine
+- [x] start/stop centreon centengine multiple times
