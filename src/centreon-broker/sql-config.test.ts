@@ -10,7 +10,7 @@ beforeEach(async () => {
   Broker.clearLogs()
 }, 30000)
 
-it('should deny access when database user password is wrong', async () => {
+it('should deny access when database user password is not corrrect', async () => {
 
   const config = await getConfig()
   const centrealBorkerMasterSql = config['centreonBroker']['output'].find((output => output.name === 'central-broker-master-sql'))
@@ -27,7 +27,7 @@ it('should deny access when database user password is wrong', async () => {
   let logFile;
   let logFileString;
 
-  for (let i = 0; i < 10; ++i) {
+  for (let i = 0; i < 15; ++i) {
     logFile = await fs.readFile('/var/log/centreon-broker/central-broker-master.log')
     logFileString = logFile.toString()
 
@@ -160,7 +160,7 @@ it('should log error when databse name is not correct', async () => {
 
   centrealBorkerMasterSql['db_name'] = "centreon"
   await writeConfig(config)
-})
+}, 60000)
 
 
 it("should handle database service stop and start", () => {
