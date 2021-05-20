@@ -16,15 +16,15 @@ export class Broker {
     }
 
     async start() {
-        this.process = shell.exec(`usr/sbin/cbd /etc/centreon-broker/central-broker.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
+        this.process = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-broker.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
         this.rddProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
-
     }
 
 
     async stop() {
         if(await this.isRunning(true, 5)) {
             this.process.kill()
+            this.rddProcess.kill()
         }
     }
 
@@ -40,10 +40,10 @@ export class Broker {
           centreonBrokerProcess = processList.find((process) => process.pid == this.process.pid);
           centreonRddProcess = processList.find((process) => process.pid == this.rddProcess.pid);
           
-          if(centreonBrokerProcess  && expected)
+          if(centreonBrokerProcess  && centreonRddProcess && expected)
             return true;
     
-          if(expected == false && !centreonBrokerProcess )
+          if(expected == false && !centreonRddProcess && !centreonBrokerProcess )
             return false;
 
           
