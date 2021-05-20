@@ -6,9 +6,9 @@ MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 
 # Install Centreon business repository.
-RUN curl -o centreon-business-release.rpm "http://yum-1.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.10/el7/stable/noarch/RPMS/centreon-business-release-21.10-1.el7.centos.noarch.rpm"
+RUN curl -o centreon-business-release.rpm "https://yum.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.10/el7/stable/noarch/RPMS/centreon-business-release-21.10-1.el7.centos.noarch.rpm"
 RUN yum clean all && yum install --nogpgcheck centreon-business-release.rpm
-RUN sed -i -e 's#yum.centreon.com/centreon-business#srvi-repo.int.centreon.com/yum/business#g' -e 's/enabled=0/enabled=1/g' /etc/yum.repos.d/centreon-business.repo
+RUN sed -i -e 's#yum.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6#srvi-repo.int.centreon.com/yum/business#g' -e 's/enabled=0/enabled=1/g' /etc/yum.repos.d/centreon-business.repo
 
 # Install Centreon MBI web interface.
 RUN yum clean all && \
