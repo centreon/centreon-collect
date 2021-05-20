@@ -107,7 +107,7 @@ it('should deny access when database user password is wrong for sql', async () =
   let logFile;
   let logFileString;
 
-  for (let i = 0; i < 10; ++i) {
+  for (let i = 0; i < 20; ++i) {
     logFile = await fs.readFile('/var/log/centreon-broker/central-broker-master.log')
     logFileString = logFile.toString()
 

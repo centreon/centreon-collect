@@ -1,52 +1,35 @@
 import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
-import {  engine } from '../shared';
+import {  Engine } from '../core/engine';
 
 shell.config.silent = true;
 
-describe('start and stop', () => {
-
-  beforeEach(async () => {
-    if (await engine.isRunning()) {
-      await engine.stop();
-    }
-  });
 
   it('start/stop centengine', async () => {
+    const engine = new Engine()
     await engine.start();
+
+    expect(await engine.isRunning()).toBeTruthy();
+
     await engine.stop();
+    
+    expect(await engine.stop()).toBeFalsy()
   }, 60000);
 
-  it('start and stop many instances centegine with .3 seconds interval', async () => {
+  it('start and stop many instances engine', async () => {
 
-    for(let i = 0; i < 10; ++i) {
-      await engine.start()
+    for(let i = 0; i < 5; ++i) {
+      const engine = new Engine();
+      await engine.start();
+      expect(await engine.isRunning()).toBeTruthy()
       await engine.stop()
+      expect(await engine.isRunning(false, 15)).toBeFalsy();
     }
 
     const coreDumpResult = shell.exec('coredumpctl');
     expect(coreDumpResult.code).toBe(1);
     expect(coreDumpResult.stderr?.toLocaleLowerCase()).toContain('no coredumps found')
     expect(0).toBe(0)
-  }, 60000)
+  }, 120000)
 
-  it('start and stop many instances centegine with 1 second interval', async () => {
-
-    for(let i = 0; i < 10; ++i) {
-      await engine.start()
-      await sleep(1000)
-
-      await engine.stop()
-    }
-
-    const coreDumpResult = shell.exec('coredumpctl');
-    expect(coreDumpResult.code).toBe(1);
-    expect(coreDumpResult.stderr?.toLocaleLowerCase()).toContain('no coredumps found')
-    expect(0).toBe(0)
-  }, 60000)
-});
-
-it('test', () => {
-  expect(0).toBe(0)
-})
