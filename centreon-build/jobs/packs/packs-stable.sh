@@ -4,6 +4,7 @@ set -e
 set -x
 
 . `dirname $0`/../common.sh
+PACKS_SCRIPTS_PATH=$(dirname $0)
 
 # Project.
 export PROJECT=centreon-packs
@@ -41,7 +42,7 @@ MW_TOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "bat
 # get list of pp versions not yet released
 IFS='
 ' pp_query_output=$(curl -s "$MIDDLEWARE/pluginpack/pluginpack?filter[released]=0" \
-    -H "centreon-imp-token: $MW_TOKEN" | python get_pp_from_mw_output.py)
+    -H "centreon-imp-token: $MW_TOKEN" | python $PACKS_SCRIPTS_PATH/get_pp_from_mw_output.py)
 
 # one by one, set them released
 for pp_info in ${pp_query_output[@]}; do
