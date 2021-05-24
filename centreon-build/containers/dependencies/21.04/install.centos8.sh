@@ -22,7 +22,7 @@ dnf config-manager --set-enabled 'centreon-testing*'
 dnf module enable php:7.3
 
 # Install Node.js.
-curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt

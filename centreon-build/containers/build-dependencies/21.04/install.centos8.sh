@@ -23,7 +23,7 @@ dnf module enable php:7.3 -y
 xargs dnf install < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 dnf install --nogpgcheck -y nodejs
 npm install -g redoc-cli
 
