@@ -15,7 +15,7 @@ curl http://srvi-repo.int.centreon.com/apt/centreon.apt.gpg | apt-key add -
 echo 'deb http://srvi-repo.int.centreon.com/apt/internal/21.04 buster main' > /etc/apt/sources.list.d/centreon-internal.list
 
 # Install Node.js repository.
-curl -sL https://deb.nodesource.com/setup_14.x | bash -
+curl -sL https://deb.nodesource.com/setup_16.x | bash -
 
 # Install dependencies.
 apt-get update
