@@ -77,3 +77,4 @@ loginShell: /bin/bash
 gecos: centreon-ldap5
 userPassword: centreon-ldap5
 mail: centreon-ldap5@localhost
+
