@@ -2,10 +2,11 @@
 import shell from 'shelljs'
 import psList from 'ps-list'
 import sleep from 'await-sleep'
-import  { once } from 'process'
+import  { once } from 'events'
+import { ChildProcess } from 'child_process'
 
 export class Engine {
-    private process: any
+    private process: ChildProcess
     private config: JSON;
     static CENTREON_ENGINE_UID = parseInt(shell.exec('id -u centreon-engine'))
 
@@ -21,6 +22,7 @@ export class Engine {
     async stop() {
         if(await this.isRunning()) {
             this.process.kill()
+            await once(this.process, 'exit')
         }
     }
 

@@ -6,6 +6,7 @@ import {  Engine } from '../core/engine';
 shell.config.silent = true;
 
 
+describe("start and stop engine", () => {
   it('start/stop centengine', async () => {
     const engine = new Engine()
     await engine.start();
@@ -14,8 +15,8 @@ shell.config.silent = true;
 
     await engine.stop();
     
-    expect(await engine.stop()).toBeFalsy()
-  }, 60000);
+    expect(await engine.isRunning(false)).toBeFalsy()
+  }, 30000);
 
   it('start and stop many instances engine', async () => {
 
@@ -32,4 +33,4 @@ shell.config.silent = true;
     expect(coreDumpResult.stderr?.toLocaleLowerCase()).toContain('no coredumps found')
     expect(0).toBe(0)
   }, 120000)
-
+})
