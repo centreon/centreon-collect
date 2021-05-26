@@ -14,21 +14,47 @@ describe('broker testing', () => {
   it('start/stop centreon broker', async () => {
     const broker = new Broker();
 
-    await broker.start();
+    const isStarted = await broker.start();
+    expect(isStarted).toBeTruthy()
 
-    expect(await broker.isRunning()).toBeTruthy()
-
-    await broker.stop()
-
-    expect(await broker.isRunning(false)).toBeFalsy();
+    const isStopped = await broker.stop()
+    expect(isStopped).toBeTruthy();
+    
+    // expect(await Broker.getLogs()).not.toContain("error")
   }, 60000);
 
-  it('start and stop many instances broker', async () => {
+  it('start and stop many instances broker with .3sec interval', async () => {
+    for(let i = 0; i < 10; ++i) {
+      const broker = new Broker();
 
-    for(let i = 0; i < 5; ++i) {
+      const isStarted = await broker.start();
+      expect(isStarted).toBeTruthy()
+  
+      await sleep(300)
+
+
+      const isStopped = await broker.stop()
+      expect(isStopped).toBeTruthy();
+
+      const coreDumpResult = shell.exec('coredumpctl');
+      expect(coreDumpResult.code).toBe(1);
+      expect(coreDumpResult.stderr?.toLocaleLowerCase()).toContain('no coredumps found')
+      expect(0).toBe(0)
+
+      // TODO: should not contain any error
+      // expect(await Broker.getLogs()).not.toContain("error")
+    }
+  }, 120000)
+
+
+  it('start and stop many instances broker with 1sec sleintervalep', async () => {
+
+    for(let i = 0; i < 10; ++i) {
       const broker = new Broker();
       await broker.start();
       expect(await broker.isRunning()).toBeTruthy()
+
+      await sleep(1000)
       await broker.stop()
       expect(await broker.isRunning(false)).toBeFalsy();
     }

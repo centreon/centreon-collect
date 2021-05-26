@@ -6,10 +6,7 @@
     "await-sleep": "0.0.1",
     "p-iteration": "^1.1.8",
     "ps-list": "^7.2.0",
-    "shelljs": "^0.8.4",
-    "stream-to-promise": "^3.0.0",
-    "symlink-dir": "^4.1.0",
-    "zx": "^1.7.0"
+    "shelljs": "^0.8.4"
   },
   "devDependencies": {
     "@babel/core": "^7.14.2",
@@ -18,6 +15,7 @@
     "@babel/preset-env": "^7.14.2",
     "@babel/runtime": "^7.12.5",
     "@types/jest": "^26.0.23",
+    "@types/node": "^15.6.1",
     "@types/shelljs": "^0.8.8",
     "@typescript-eslint/eslint-plugin": "^4.10.0",
     "@typescript-eslint/parser": "^4.10.0",
