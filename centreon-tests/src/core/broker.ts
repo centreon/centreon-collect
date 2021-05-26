@@ -6,6 +6,7 @@ import fs from 'fs/promises'
 import { once } from 'events'
 import { ChildProcess } from 'child_process'
 import sleep from 'await-sleep';
+import path from 'path';
 
 export class Broker {
     private process: ChildProcess
@@ -14,6 +15,7 @@ export class Broker {
 
     static CENTREON_BROKER_UID = parseInt(shell.exec('id -u centreon-broker'))
     static CENTREON_BROKER_LOGS_PATH = `/var/log/centreon-broker/central-broker-master.log`
+    static CENTRON_BROKER_CONFIG_PATH = `/etc/centreon-broker/central-broker.json`
     
     constructor() {
     }
@@ -22,7 +24,7 @@ export class Broker {
      * upon completition 
      */
     async start(): Promise<Boolean> {
-        this.process = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-broker.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
+        this.process = shell.exec(Broker.CENTRON_BROKER_CONFIG_PATH, {async: true, uid: Broker.CENTREON_BROKER_UID})
         this.rddProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
 
         const isRunning = await this.isRunning()
@@ -68,10 +70,23 @@ export class Broker {
     }
 
 
+
+  
+
     static async getConfig(): Promise<JSON> {
       return JSON.parse((await fs.readFile('/etc/centreon-broker/central-broker.json')).toString());
     }
-  
+
+    static async writeConfig(config: JSON) {
+        await fs.writeFile('/etc/centreon-broker/central-broker.json', JSON.stringify(config, null, '\t'))
+    }
+
+    static  resetConfig() {
+      return shell.cp(path.join(__dirname, '../config/centreon-broker.json'), Broker.CENTRON_BROKER_CONFIG_PATH)
+    }
+
+
+
 
     static async checkLogFileContanin(strings: Array<string>, seconds = 15): Promise<Boolean> {
 
@@ -92,14 +107,9 @@ export class Broker {
      throw Error(`log file ${Broker.CENTREON_BROKER_LOGS_PATH} do not contain expected strings ${strings.toString()}`)
     }
 
-    static async writeConfig(config: JSON) {
-        await fs.writeFile('/etc/centreon-broker/central-broker.json', JSON.stringify(config, null, '\t'))
-    }
-
     static async getLogs() {
       return ( await fs.readFile(Broker.CENTREON_BROKER_LOGS_PATH)).toString()
     }
-
 
     static clearLogs() {
       shell.rm(Broker.CENTREON_BROKER_LOGS_PATH)
