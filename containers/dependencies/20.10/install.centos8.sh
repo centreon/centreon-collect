@@ -19,7 +19,7 @@ sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d
 dnf config-manager --set-enabled 'centreon-testing*'
 
 # Install Node.js.
-curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 
 # Install dependencies.
 xargs yum install < /tmp/dependencies.txt
