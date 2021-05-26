@@ -44,10 +44,10 @@ describe('broker testing', () => {
       // TODO: should not contain any error
       // expect(await Broker.getLogs()).not.toContain("error")
     }
-  }, 120000)
+  }, 240000)
 
 
-  it('start and stop many instances broker with 1sec sleintervalep', async () => {
+  it('start and stop many instances broker with 1sec sleep interval', async () => {
 
     for(let i = 0; i < 10; ++i) {
       const broker = new Broker();
