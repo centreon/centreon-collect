@@ -9,23 +9,23 @@ shell.config.silent = true;
 describe("start and stop engine", () => {
   it('start/stop centengine', async () => {
     const engine = new Engine()
-    await engine.start();
+    const isStarted = await engine.start();
+    expect(isStarted).toBeTruthy();
 
-    expect(await engine.isRunning()).toBeTruthy();
-
-    await engine.stop();
-    
-    expect(await engine.isRunning(false)).toBeFalsy()
+    const isStoped =  await engine.stop();
+    expect(isStoped).toBeTruthy();
   }, 30000);
 
   it('start and stop many instances engine', async () => {
 
-    for(let i = 0; i < 5; ++i) {
-      const engine = new Engine();
-      await engine.start();
-      expect(await engine.isRunning()).toBeTruthy()
-      await engine.stop()
-      expect(await engine.isRunning(false, 15)).toBeFalsy();
+    for(let i = 0; i < 3; ++i) {
+      const engine = new Engine()
+      const isStarted = await engine.start();
+      expect(isStarted).toBeTruthy();
+  
+      await sleep(300)
+      const isStoped =  await engine.stop();
+      expect(isStoped).toBeTruthy();
     }
 
     const coreDumpResult = shell.exec('coredumpctl');

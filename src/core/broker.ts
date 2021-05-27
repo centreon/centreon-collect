@@ -19,15 +19,17 @@ export class Broker {
     
     constructor() {
     }
+
+
     /**
      * this function will start a new centreon broker and rdd process
      * upon completition 
      */
     async start(): Promise<Boolean> {
-        this.process = shell.exec(Broker.CENTRON_BROKER_CONFIG_PATH, {async: true, uid: Broker.CENTREON_BROKER_UID})
+        this.process = shell.exec(`/usr/sbin/cbd ${Broker.CENTRON_BROKER_CONFIG_PATH}`, {async: true, uid: Broker.CENTREON_BROKER_UID})
         this.rddProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
 
-        const isRunning = await this.isRunning()
+        const isRunning = await this.isRunning(true, 20)
         return isRunning;
     }
 
@@ -35,9 +37,6 @@ export class Broker {
         if(await this.isRunning(true, 5)) {
             this.process.kill()
             this.rddProcess.kill()
-
-            await once(this.process, 'exit')
-            await once(this.rddProcess, 'exit')
 
             const isRunning = await this.isRunning(false)
             return !isRunning;
@@ -64,9 +63,10 @@ export class Broker {
           if(expected == false && !centreonRddProcess && !centreonBrokerProcess )
             return false;
 
-          
+          await sleep(500)
         }
-        return !!centreonBrokerProcess;
+        
+        return centreonBrokerProcess != undefined && centreonRddProcess != undefined;
     }
 
 
@@ -86,16 +86,10 @@ export class Broker {
     }
 
 
-
-
     static async checkLogFileContanin(strings: Array<string>, seconds = 15): Promise<Boolean> {
 
       for (let i = 0; i < seconds * 10; ++i) {
         const logs = await Broker.getLogs()
-
-
-        console.log(logs);
-        console.log("called")
 
         if (logs.includes(strings[0])) {
           return true;
