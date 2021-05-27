@@ -1,25 +1,28 @@
 import shell from "shelljs"
+import sleep from "await-sleep"
 
-export const isBorkerAndEngineConnected = (): Boolean => {
-    const lsOfResult = shell.exec('lsof | grep cbmod')
-    expect(lsOfResult.stdout).toContain('')
-    expect(lsOfResult.code).toBe(0)
+export const isBorkerAndEngineConnected = async (): Promise<Boolean> => {
 
-    if(lsOfResult.code !== 0 || !lsOfResult.stdout.includes("/usr/lib64/nagios/chmod.so")) {
-        throw new Error("lsof | grep cbmod did not contain any entry to chmod")
+    // TODO: change to correct check when lsof fixed
+
+    // const lsOfResult = shell.exec('lsof | grep cbmod')
+    // if(lsOfResult.code !== 0 || !lsOfResult.stdout.includes("/usr/lib64/nagios/chmod.so")) {
+    //     throw new Error("lsof | grep cbmod did not contain any entry to chmod")
+    // }
+
+
+    for(let i = 0; i < 10; ++i) {
+        const cbdPort = 5669;
+
+        const ssResultCbd = shell.exec(`ss -plant | grep ${cbdPort}`)
+        if(ssResultCbd.code == 0 && ssResultCbd.stdout.includes(cbdPort + "")) {
+            return true;
+        }
+
+        await sleep(500);
     }
 
-    // TODO: change to correct check when connection fixed
-    const ssResultCbd = shell.exec('ss | grep cbd')
-    if(ssResultCbd.code !== 0 || !ssResultCbd.stdout.includes("/usr/lib64/nagios/chmod.so")) {
-        throw new Error("ss | grep cbd did not contain any entry to cbd")
-    }
+    return false;
 
-        // TODO: change to correct check when connection fixed
-    const ssResultCentEngine = shell.exec('ss | grep cbmod')
-    if(ssResultCentEngine.code !== 0 || !ssResultCentEngine.stdout.includes("/usr/lib64/nagios/chmod.so")) {
-        throw new Error("ss | grep cbd did not contain any entry to cbd")
-    }
-
-    return true;
+    
 }

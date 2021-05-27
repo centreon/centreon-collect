@@ -58,7 +58,6 @@ export class Engine {
       let centreonEngineProcess;   
 
       for(let i = 0; i < seconds * 2; ++i) {
-  
 
         const processList = await psList();
           centreonEngineProcess = processList.find((process) => process.pid == this.process.pid);
