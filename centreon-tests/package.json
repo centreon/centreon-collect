@@ -42,7 +42,7 @@
     "typescript": "^4.2.4"
   },
   "scripts": {
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --verbose"
   },
   "author": "Centreon Team",
   "license": "ISC"
