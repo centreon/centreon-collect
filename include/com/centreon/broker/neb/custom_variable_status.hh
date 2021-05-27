@@ -42,6 +42,13 @@ namespace neb {
 class custom_variable_status : public io::data {
  public:
   custom_variable_status(uint32_t type = static_type());
+  custom_variable_status(uint32_t type,
+                         std::string name,
+                         std::string value,
+                         uint32_t host_id,
+                         uint32_t service_id,
+                         bool modified,
+                         timestamp update_time);
   custom_variable_status(custom_variable_status const& other);
   virtual ~custom_variable_status();
   custom_variable_status& operator=(custom_variable_status const& other);
