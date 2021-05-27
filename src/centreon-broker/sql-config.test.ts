@@ -92,7 +92,7 @@ it('should log error when databse name is not correct', async () => {
 }, 60000)
 
 
-it("should handle database service stop and start", () => {
-  shell.exec('service mysql stop')
-})
+// it("should handle database service stop and start", () => {
+//   shell.exec('service mysql stop')
+// })
 

@@ -136,11 +136,11 @@ export class Broker {
      throw Error(`log file ${Broker.CENTREON_BROKER_LOGS_PATH} do not contain expected strings ${strings.toString()}`)
     }
 
-    static async getLogs() {
+    static async getLogs(): Promise<String> {
       return ( await fs.readFile(Broker.CENTREON_BROKER_LOGS_PATH)).toString()
     }
 
-    static clearLogs() {
+    static clearLogs(): void {
       shell.rm(Broker.CENTREON_BROKER_LOGS_PATH)
     }
 }
