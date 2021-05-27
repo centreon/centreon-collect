@@ -15,6 +15,12 @@ export class Engine {
 
     }
 
+    /**
+     * this function will start a new centreon engine
+     * upon completition
+     * 
+     * @returns Promise<Boolean> true if correctly started, else false
+     */
     async start() {
         this.process = shell.exec(`/usr/sbin/centengine ${Engine.CENTRON_ENGINE_CONFIG_PATH}`, {async: true, uid: Engine.CENTREON_ENGINE_UID})  
     
@@ -22,12 +28,16 @@ export class Engine {
         return isRunning;
       }
 
+
+    
+    /**
+     * will stop current engine instance if already running
+     * 
+     * @returns Promise<Boolean> true if correctly stoped, else false
+     */
     async stop() {
       if(await this.isRunning(true, 5)) {
           this.process.kill()
-
-          await once(this.process, 'exit')
-
           const isRunning = await this.isRunning(false)
           return !isRunning;
       }
@@ -36,6 +46,14 @@ export class Engine {
   }
 
 
+   /**
+     * this function will check the list of all process running in current os 
+     * to check that the current instance of engine is correctly running or not
+     * 
+     * @param  {boolean=true} expected the expected value, true or false
+     * @param  {number=15} seconds number of seconds to wait for process to show in processlist
+     * @returns Promise<Boolean>
+     */
     async  isRunning(expected: boolean = true, seconds: number = 15) : Promise<boolean> {
       let centreonEngineProcess;   
 
