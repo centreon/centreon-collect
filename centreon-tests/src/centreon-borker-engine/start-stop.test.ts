@@ -4,6 +4,7 @@ import { once } from 'events'
 import { Broker } from '../core/broker';
 import { Engine } from '../core/engine';
 import { isBorkerAndEngineConnected } from '../core/brokerEngine';
+import { broker } from 'shared';
 
 shell.config.silent = true;
 
@@ -11,43 +12,60 @@ describe('engine and broker testing in same time', () => {
 
   beforeEach(() => {
     Broker.clearLogs()
+    Broker.resetConfig()
   })
 
-  it('start/stop centreon broker', async () => {
-    // const broker = new Broker();
-    // await broker.start();
+  afterAll(() => {
+    beforeEach(() => {
+      Broker.clearLogs()
+      Broker.resetConfig()
+    })
+  })
+  
 
-    // expect(await broker.isRunning()).toBeTruthy()
+  it('start/stop centreon broker - broker first', async () => {
 
-    // const engine = new Engine()
-    // await engine.start()
+    const broker = new Broker();
+    expect(await broker.start()).toBeTruthy()
 
-    // expect(await engine.isRunning()).toBeTruthy()
+    const engine = new Engine()
+    expect(await engine.start()).toBeTruthy()
+
     
+    expect(await isBorkerAndEngineConnected()).toBeTruthy()
 
-    // await sleep(60000)
-    // expect(isBorkerAndEngineConnected()).toBeTruthy()
-
-
-    // await engine.stop()
-    // expect(await engine.isRunning(false, 15)).toBeFalsy();
-
-    // const ssResultCentegineStopped = shell.exec('ss | grep cbmod')
-    // expect(ssResultCentegineStopped.stdout).toContain('cbmod.so')
-    // expect(ssResultCentegineStopped.code).not.toBe(0)
+    
+    expect(await engine.stop()).toBeTruthy();
+    expect(await engine.start()).toBeTruthy()
 
 
-    // await engine.start()
-    // expect(await engine.isRunning()).toBeTruthy()
-    // expect(isBorkerAndEngineConnected()).toBeTruthy()
+    expect(await isBorkerAndEngineConnected()).toBeTruthy()
 
-    // await engine.stop()
-    // await broker.stop()
+   
+    expect(await engine.stop()).toBeTruthy();
+    expect(await broker.stop()).toBeTruthy();
+  }, 60000);
 
-    // expect(await broker.isRunning(false, 15)).toBeFalsy();
-    // expect(await engine.isRunning(false, 15)).toBeFalsy();
-    expect(0).toBe(0)
 
+  it('start/stop centreon broker - engine first', async () => {
+    
+    const engine = new Engine()
+    expect(await engine.start()).toBeTruthy()
+
+    const broker = new Broker();
+    expect(await broker.start()).toBeTruthy()
+
+
+    expect(await isBorkerAndEngineConnected()).toBeTruthy()
+
+    expect(await broker.stop()).toBeTruthy();
+    expect(await broker.start()).toBeTruthy()
+
+
+    expect(await isBorkerAndEngineConnected()).toBeTruthy()
+
+    expect(await broker.stop()).toBeTruthy();
+    expect(await engine.stop()).toBeTruthy();
   }, 60000);
 
 });
