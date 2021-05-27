@@ -263,15 +263,16 @@ int neb::callback_custom_variable(int callback_type, void* data) {
             // Fill custom variable event.
             uint64_t host_id = engine::get_host_id(hst->get_name());
             if (host_id != 0) {
-              std::shared_ptr<custom_variable> new_cvar(new custom_variable);
-              new_cvar->enabled = true;
-              new_cvar->host_id = host_id;
-              new_cvar->modified = false;
-              new_cvar->name = cvar->var_name;
-              new_cvar->var_type = 0;
-              new_cvar->update_time = cvar->timestamp.tv_sec;
-              new_cvar->value = cvar->var_value;
-              new_cvar->default_value = cvar->var_value;
+              std::shared_ptr<custom_variable> new_cvar = std::make_shared<custom_variable>(
+                cvar->var_name,
+                cvar->var_value, // var_value
+                host_id,
+                0, // service_id
+                false, // modified
+                cvar->timestamp.tv_sec, // update_time
+                true, // enabled
+                cvar->var_value, // default_value
+                0); // var_type
 
               // Send custom variable event.
               logging::info(logging::low)
@@ -286,12 +287,16 @@ int neb::callback_custom_variable(int callback_type, void* data) {
           if (hst && !hst->get_name().empty()) {
             uint32_t host_id = engine::get_host_id(hst->get_name());
             if (host_id != 0) {
-              std::shared_ptr<custom_variable> old_cvar(new custom_variable);
-              old_cvar->enabled = false;
-              old_cvar->host_id = host_id;
-              old_cvar->name = cvar->var_name;
-              old_cvar->var_type = 0;
-              old_cvar->update_time = cvar->timestamp.tv_sec;
+              std::shared_ptr<custom_variable> old_cvar = std::make_shared<custom_variable>(
+                cvar->var_name,
+                cvar->var_value, // var_value
+                host_id,
+                0, // service_id
+                false, // modified
+                cvar->timestamp.tv_sec, // update_time
+                false, // enabled
+                cvar->var_value, // default_value
+                0); // var_type
 
               // Send custom variable event.
               logging::info(logging::low)
@@ -311,16 +316,16 @@ int neb::callback_custom_variable(int callback_type, void* data) {
             p = engine::get_host_and_service_id(svc->get_hostname(),
                                                 svc->get_description());
             if (p.first && p.second) {
-              std::shared_ptr<custom_variable> new_cvar(new custom_variable);
-              new_cvar->enabled = true;
-              new_cvar->host_id = p.first;
-              new_cvar->modified = false;
-              new_cvar->name = cvar->var_name;
-              new_cvar->service_id = p.second;
-              new_cvar->var_type = 1;
-              new_cvar->update_time = cvar->timestamp.tv_sec;
-              new_cvar->value = cvar->var_value;
-              new_cvar->default_value = cvar->var_value;
+              std::shared_ptr<custom_variable> new_cvar = std::make_shared<custom_variable>(
+                cvar->var_name,
+                cvar->var_value, // var_value
+                p.first, // host_id
+                p.second, // service_id
+                false, // modified
+                cvar->timestamp.tv_sec, // update_time
+                true, // enabled
+                cvar->var_value, // default_value
+                1); // var_type
 
               // Send custom variable event.
               logging::info(logging::low)
@@ -338,14 +343,16 @@ int neb::callback_custom_variable(int callback_type, void* data) {
             std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
                 svc->get_hostname(), svc->get_description())};
             if (p.first && p.second) {
-              std::shared_ptr<custom_variable> old_cvar(new custom_variable);
-              old_cvar->enabled = false;
-              old_cvar->host_id = p.first;
-              old_cvar->modified = true;
-              old_cvar->name = cvar->var_name;
-              old_cvar->service_id = p.second;
-              old_cvar->var_type = 1;
-              old_cvar->update_time = cvar->timestamp.tv_sec;
+              std::shared_ptr<custom_variable> old_cvar = std::make_shared<custom_variable>(
+                cvar->var_name,
+                cvar->var_value, // var_value
+                p.first, // host_id
+                p.second, // service_id
+                true, // modified
+                cvar->timestamp.tv_sec, // update_time
+                false, // enabled
+                cvar->var_value, // default_value
+                1); // var_type
 
               // Send custom variable event.
               logging::info(logging::low)

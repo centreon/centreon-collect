@@ -77,6 +77,33 @@ TEST_F(CVarTest, CopyConstructor) {
   ASSERT_TRUE(cvar2 == randvals1);
 }
 
+TEST_F(CVarTest, ParamConstructor) {
+  // Object.
+  neb::custom_variable cvar("name",
+                            "value",
+                            3,
+                            5,
+                            false,
+                            0,
+                            true,
+                            "default_value",
+                            1);
+  io::data::broker_id = 0;
+  // Check.
+  ASSERT_EQ(cvar.name, "name");
+  ASSERT_EQ(cvar.value, "value");
+  ASSERT_EQ(cvar.host_id, 3);
+  ASSERT_EQ(cvar.service_id, 5);
+  ASSERT_EQ(cvar.modified, false);
+  ASSERT_EQ(cvar.update_time, 0);
+  ASSERT_EQ(cvar.enabled, true);
+  ASSERT_EQ(cvar.default_value, "default_value");
+  ASSERT_EQ(cvar.var_type, 1);
+
+  ASSERT_EQ(cvar.source_id, 0u);
+  ASSERT_EQ(cvar.destination_id, 0u);
+}
+
 TEST_F(CVarTest, DefaultConstructor) {
   // Object.
   neb::custom_variable cvar;
