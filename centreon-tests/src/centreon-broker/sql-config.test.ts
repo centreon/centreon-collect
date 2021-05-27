@@ -26,7 +26,7 @@ it('should deny access when database user password is not corrrect', async () =>
   const isStarted = await broker.start();
 
   expect(isStarted).toBeTruthy()
-  expect(await Broker.checkLogFileContanin(['[core] [error] failover: global error: mysql_connection: error while starting connection'])).toBeFalsy()
+  expect(await Broker.checkLogFileContanin(['[core] [error] failover: global error: mysql_connection: error while starting connection'])).toBeTruthy()
   
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
@@ -43,15 +43,12 @@ it('should deny access when database user password is wrong for storage', async 
 
   const broker = new Broker();
   const isStarted = await broker.start();
-
   expect(await broker.isRunning()).toBeTruthy()
 
-  expect(await Broker.checkLogFileContanin(['[sql] [error] storage: rebuilder: Unable to connect to the database: mysql_connection: error while starting connection'])).toBeFalsy()
+  expect(await Broker.checkLogFileContanin(['[sql] [error] storage: rebuilder: Unable to connect to the database: mysql_connection: error while starting connection'])).toBeTruthy()
   
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
-
-
 
 }, 30000);
 
@@ -68,7 +65,7 @@ it('should deny access when database user password is wrong for sql', async () =
 
   expect(await broker.isRunning()).toBeTruthy()
 
-  expect(await Broker.checkLogFileContanin(['[core] [error] failover: global error: mysql_connection: error while starting connection'])).toBeFalsy()
+  expect(await Broker.checkLogFileContanin(['[core] [error] failover: global error: mysql_connection: error while starting connection'])).toBeTruthy()
   
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
@@ -88,7 +85,7 @@ it('should log error when databse name is not correct', async () => {
 
   expect(await broker.isRunning()).toBeTruthy()
 
-  expect(await Broker.checkLogFileContanin(['[core] [error] failover: global error: mysql_connection: error while starting connection'])).toBeFalsy()
+  expect(await Broker.checkLogFileContanin(['[core] [error] failover: global error: mysql_connection: error while starting connection'])).toBeTruthy()
   
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
