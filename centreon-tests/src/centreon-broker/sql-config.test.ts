@@ -13,7 +13,7 @@ afterEach(async () => {
   Broker.resetConfig();
 })
 
-it('should deny access when database user password is not corrrect', async () => {
+it('should deny access when database user password is not correct', async () => {
 
   const config = await Broker.getConfig();
   const centrealBorkerMasterSql = config['centreonBroker']['output'].find((output => output.name === 'central-broker-master-sql'))
@@ -73,7 +73,7 @@ it('should deny access when database user password is wrong for sql', async () =
 }, 30000);
 
 
-it('should log error when databse name is not correct', async () => {
+it('should log error when database name is not correct', async () => {
 
   const config = await Broker.getConfig()
   const centrealBorkerMasterSql = config['centreonBroker']['output'].find((output => output.name === 'central-broker-master-sql'))
