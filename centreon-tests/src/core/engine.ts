@@ -18,21 +18,20 @@ export class Engine {
     /**
      * this function will start a new centreon engine
      * upon completition
-     * 
+     *
      * @returns Promise<Boolean> true if correctly started, else false
      */
     async start() {
-        this.process = shell.exec(`/usr/sbin/centengine ${Engine.CENTRON_ENGINE_CONFIG_PATH}`, {async: true, uid: Engine.CENTREON_ENGINE_UID})  
-    
+        this.process = shell.exec(`/usr/sbin/centengine ${Engine.CENTRON_ENGINE_CONFIG_PATH}`, {async: true, uid: Engine.CENTREON_ENGINE_UID})
+
         const isRunning = await this.isRunning(true, 20)
         return isRunning;
       }
 
 
-    
     /**
      * will stop current engine instance if already running
-     * 
+     *
      * @returns Promise<Boolean> true if correctly stoped, else false
      */
     async stop() {
@@ -45,26 +44,33 @@ export class Engine {
       return true;
   }
 
+    static async checkCoredump(): Promise<boolean> {
+      const cdList = await shell.exec('/usr/bin/coredumpctl').stdout
+      let retval = cdList.includes('centengine')
+      return retval
+    }
+
+
 
    /**
-     * this function will check the list of all process running in current os 
+     * this function will check the list of all process running in current os
      * to check that the current instance of engine is correctly running or not
-     * 
+     *
      * @param  {boolean=true} expected the expected value, true or false
      * @param  {number=15} seconds number of seconds to wait for process to show in processlist
      * @returns Promise<Boolean>
      */
     async  isRunning(expected: boolean = true, seconds: number = 15) : Promise<boolean> {
-      let centreonEngineProcess;   
+      let centreonEngineProcess;
 
       for(let i = 0; i < seconds * 2; ++i) {
 
         const processList = await psList();
           centreonEngineProcess = processList.find((process) => process.pid == this.process.pid);
-    
+
           if(centreonEngineProcess && expected)
             return true;
-    
+
           else if(!centreonEngineProcess && !expect)
             return false;
 
