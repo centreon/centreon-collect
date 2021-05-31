@@ -27,3 +27,7 @@ curl "$DL_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&versio
 promote_testing_rpms_to_stable "standard" "20.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "20.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
 promote_testing_rpms_to_stable "standard" "20.10" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.04" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+promote_testing_rpms_to_stable "standard" "21.10" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
