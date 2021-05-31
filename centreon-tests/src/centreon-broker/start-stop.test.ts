@@ -17,7 +17,6 @@ describe('broker testing', () => {
     const isStarted = await broker.start();
     expect(isStarted).toBeTruthy()
 
-    console.log("started")
     const isStopped = await broker.stop()
     expect(isStopped).toBeTruthy();
 
@@ -31,10 +30,10 @@ describe('broker testing', () => {
       const isStarted = await broker.start();
       expect(isStarted).toBeTruthy()
 
+      await sleep(300)
+
       const isStopped = await broker.stop()
       expect(isStopped).toBeTruthy();
-
-      await sleep(300)
 
       //const coreDumpResult = shell.exec('coredumpctl');
       //expect(coreDumpResult.code).toBe(1);
@@ -60,11 +59,6 @@ describe('broker testing', () => {
 
       const isStopped = await broker.stop()
       expect(isStopped).toBeTruthy();
-
-      const coreDumpResult = shell.exec('coredumpctl');
-      expect(coreDumpResult.code).toBe(1);
-      expect(coreDumpResult.stderr?.toLocaleLowerCase()).toContain('no coredumps found')
-      expect(0).toBe(0)
     }
     expect(await Broker.checkCoredump()).toBeFalsy()
   }, 240000)
