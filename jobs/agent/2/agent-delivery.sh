@@ -22,6 +22,10 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   copy_internal_rpms_to_testing "standard" "20.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "20.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "20.10" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "21.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "21.04" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "21.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  copy_internal_rpms_to_testing "standard" "21.10" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
 
 #
 # CI delivery.
@@ -30,4 +34,8 @@ else
   promote_canary_rpms_to_unstable "standard" "20.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
   promote_canary_rpms_to_unstable "standard" "20.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
   promote_canary_rpms_to_unstable "standard" "20.10" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "21.04" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "21.04" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "21.10" "el7" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "21.10" "el8" "x86_64" "agent" "$PROJECT-$VERSION-$RELEASE"
 fi
