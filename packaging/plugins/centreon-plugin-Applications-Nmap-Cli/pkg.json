@@ -5,7 +5,7 @@
     "files": [
         "centreon/plugins/script_custom.pm",
         "centreon/plugins/script_custom/cli.pm",
+        "centreon/plugins/ssh.pm",
         "apps/nmap/cli/"
-    ],
-    "custom_pkg_data": "Requires:    nmap = 7.91"
+    ]
 }
