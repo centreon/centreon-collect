@@ -162,11 +162,11 @@ it('repeat 20 times start/stop cbd with a wrong configuration in sql', async () 
         expect(await broker.isRunning()).toBeTruthy()
         await sleep(2000)
         expect(await Broker.checkLogFileContains(
-            ['[sql] [error] storage: rebuilder: Unable to connect to the database: mysql_connection: error while starting connection'])).toBeTruthy()
+            ['[sql] [error] conflict_manager: not initialized after 10s. Probably an issue in the sql output configuration'])).toBeTruthy()
         const isStopped = await broker.stop()
         expect(isStopped).toBeTruthy();
+        expect(await broker.checkCoredump()).toBeFalsy()
     }
-    expect(await broker.checkCoredump()).toBeFalsy()
 }, 220000)
 
 

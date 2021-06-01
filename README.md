@@ -34,3 +34,14 @@ and to run tests, you can use the following commands
 
 - [x] start/stop centreon centgine
 - [x] start/stop centreon centengine multiple times
+
+## Coding style
+
+We use tsfmt to format the code.
+
+To use it:
+
+`npm install typescript-formatter`
+`node_modules/.bin/tsfmt -r`
+
+You are done.
