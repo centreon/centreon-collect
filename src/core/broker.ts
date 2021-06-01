@@ -13,7 +13,7 @@ import { strict as assert } from 'assert';
 export class Broker {
     private instanceCount: number
     private process: ChildProcess
-    private rddProcess: ChildProcess
+    private rrdProcess: ChildProcess
     private config: JSON;
 
     static CENTREON_BROKER_UID = parseInt(shell.exec('id -u centreon-broker'))
@@ -35,7 +35,7 @@ export class Broker {
     async start(): Promise<Boolean> {
       this.process = shell.exec(`/usr/sbin/cbd ${Broker.CENTRON_BROKER_CONFIG_PATH}`, {async: true, uid: Broker.CENTREON_BROKER_UID})
       if (this.instanceCount == 2)
-        this.rddProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
+        this.rrdProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, {async: true, uid: Broker.CENTREON_BROKER_UID})
 
       const isRunning = await this.isRunning(true, 20)
       return isRunning;
@@ -51,7 +51,7 @@ export class Broker {
         if(await this.isRunning(true, 5)) {
             this.process.kill()
             if (this.instanceCount == 2)
-              this.rddProcess.kill()
+              this.rrdProcess.kill()
 
             const isRunning = await this.isRunning(false)
             return !isRunning;
@@ -80,7 +80,7 @@ export class Broker {
           centreonBrokerProcess = processList.find((process) => process.pid == this.process.pid);
 
           if (this.instanceCount == 2)
-            centreonRddProcess = processList.find((process) => process.pid == this.rddProcess.pid);
+            centreonRddProcess = processList.find((process) => process.pid == this.rrdProcess.pid);
           else
             centreonRddProcess = expected
 
@@ -96,10 +96,20 @@ export class Broker {
         return !expected;
     }
 
-    static async checkCoredump(): Promise<boolean> {
-      const cdList = await shell.exec('/usr/bin/coredumpctl').stdout
-      let retval = cdList.includes('cbd')
-      return retval
+    async checkCoredump(): Promise<boolean> {
+      let now = new Date();
+      const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
+      let retval;
+      if (this.instanceCount == 1)
+        retval = cdList.find(line => line.includes('cbd') &&
+                                       line.includes(this.process.pid + ""));
+      else
+        retval = cdList.find(line => line.includes('cbd') &&
+                                       (line.includes(this.process.pid + "") || line.includes(this.rrdProcess.pid + "")));
+      if (retval)
+        return true;
+      else
+        return false;
     }
 
     /**

@@ -20,7 +20,7 @@ describe('broker testing', () => {
     const isStopped = await broker.stop()
     expect(isStopped).toBeTruthy();
 
-    expect(await Broker.checkCoredump()).toBeFalsy()
+    expect(await broker.checkCoredump()).toBeFalsy()
   }, 60000);
 
   it('repeat 10 times start/stop broker with .3sec interval => no coredump', async () => {
@@ -43,7 +43,7 @@ describe('broker testing', () => {
       // TODO: should not contain any error
       // expect(await Broker.getLogs()).not.toContain("error")
     }
-    expect(await Broker.checkCoredump()).toBeFalsy()
+    expect(await broker.checkCoredump()).toBeFalsy()
   }, 240000)
 
 
@@ -60,6 +60,6 @@ describe('broker testing', () => {
       const isStopped = await broker.stop()
       expect(isStopped).toBeTruthy();
     }
-    expect(await Broker.checkCoredump()).toBeFalsy()
+    expect(await broker.checkCoredump()).toBeFalsy()
   }, 240000)
 });

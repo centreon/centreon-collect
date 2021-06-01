@@ -28,7 +28,7 @@ it('should deny access when database name exists but is not the good one for sql
 
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
-  expect(await Broker.checkCoredump()).toBeFalsy()
+  expect(await broker.checkCoredump()).toBeFalsy()
 
 }, 120000);
 
@@ -47,7 +47,7 @@ it('should deny access when database name exists but is not the good one for sto
 
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
-  expect(await Broker.checkCoredump()).toBeFalsy()
+  expect(await broker.checkCoredump()).toBeFalsy()
 }, 30000);
 
 it('should deny access when database name does not exists for sql output', async () => {
@@ -65,7 +65,7 @@ it('should deny access when database name does not exists for sql output', async
 
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
-  expect(await Broker.checkCoredump()).toBeFalsy()
+  expect(await broker.checkCoredump()).toBeFalsy()
 
 }, 120000);
 
@@ -84,7 +84,7 @@ it('should deny access when database name does not exist for storage output', as
 
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
-  expect(await Broker.checkCoredump()).toBeFalsy()
+  expect(await broker.checkCoredump()).toBeFalsy()
 }, 30000);
 
 it('should deny access when database user password is wrong for sql', async () => {
@@ -102,7 +102,7 @@ it('should deny access when database user password is wrong for sql', async () =
 
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
-  expect(await Broker.checkCoredump()).toBeFalsy()
+  expect(await broker.checkCoredump()).toBeFalsy()
 
 }, 30000);
 
@@ -122,6 +122,7 @@ it('should log error when database name is not correct', async () => {
 
   const isStopped = await broker.stop()
   expect(isStopped).toBeTruthy();
+  expect(await broker.checkCoredump()).toBeFalsy()
 }, 60000)
 
 
