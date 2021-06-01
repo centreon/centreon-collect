@@ -125,6 +125,50 @@ it('should log error when database name is not correct', async () => {
   expect(await broker.checkCoredump()).toBeFalsy()
 }, 60000)
 
+it('repeat 20 times start/stop cbd with a wrong configuration in perfdata', async () => {
+  const config = await Broker.getConfig()
+  const centralBrokerMasterPerfdata = config['centreonBroker']['output'].find((
+      output => output.name === 'central-broker-master-perfdata'))
+  centralBrokerMasterPerfdata['db_host'] = "1.2.3.4"
+  await Broker.writeConfig(config)
+
+  const broker = new Broker();
+  for(let i = 0; i < 20; ++i) {
+    console.log(i)
+    const isStarted = await broker.start();
+    expect(isStarted).toBeTruthy()
+    expect(await broker.isRunning()).toBeTruthy()
+    await sleep(2000)
+    expect(await Broker.checkLogFileContains(
+      ['[sql] [error] storage: rebuilder: Unable to connect to the database: mysql_connection: error while starting connection'])).toBeTruthy()
+    const isStopped = await broker.stop()
+    expect(isStopped).toBeTruthy();
+    expect(await broker.checkCoredump()).toBeFalsy()
+  }
+}, 220000)
+
+it('repeat 20 times start/stop cbd with a wrong configuration in sql', async () => {
+  const config = await Broker.getConfig()
+  const centralBrokerMasterSql = config['centreonBroker']['output'].find((
+      output => output.name === 'central-broker-master-sql'))
+  centralBrokerMasterSql['db_host'] = "1.2.3.4"
+  await Broker.writeConfig(config)
+
+  const broker = new Broker();
+  for(let i = 0; i < 20; ++i) {
+    console.log(i)
+    const isStarted = await broker.start();
+    expect(isStarted).toBeTruthy()
+    expect(await broker.isRunning()).toBeTruthy()
+    await sleep(2000)
+    expect(await Broker.checkLogFileContains(
+      ['[sql] [error] storage: rebuilder: Unable to connect to the database: mysql_connection: error while starting connection'])).toBeTruthy()
+    const isStopped = await broker.stop()
+    expect(isStopped).toBeTruthy();
+  }
+  expect(await broker.checkCoredump()).toBeFalsy()
+}, 220000)
+
 
 //it("should handle database service stop and start", () => {
 //   shell.exec('service mysql stop')
