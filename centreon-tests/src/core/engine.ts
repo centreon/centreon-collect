@@ -47,19 +47,13 @@ export class Engine {
     async checkCoredump() : Promise<boolean> {
         const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
         let retval;
-        if (this.instanceCount == 1)
-            retval = cdList.find(line => line.includes('cbd') &&
-                line.includes(this.process.pid + ""));
-        else
-            retval = cdList.find(line => line.includes('cbd') &&
-                (line.includes(this.process.pid + "") || line.includes(this.rrdProcess.pid + "")));
+        retval = cdList.find(line => line.includes('cbd') &&
+            line.includes(this.process.pid + ""));
         if (retval)
             return true;
         else
             return false;
     }
-
-
 
     /**
       * this function will check the list of all process running in current os

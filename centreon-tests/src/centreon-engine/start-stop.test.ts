@@ -14,6 +14,7 @@ describe("start and stop engine", () => {
 
         const isStoped = await engine.stop();
         expect(isStoped).toBeTruthy();
+        expect(await engine.checkCoredump()).toBeFalsy()
     }, 30000);
 
     it('start and stop many instances engine', async () => {
@@ -26,11 +27,7 @@ describe("start and stop engine", () => {
             await sleep(300)
             const isStoped = await engine.stop();
             expect(isStoped).toBeTruthy();
+            expect(await engine.checkCoredump()).toBeFalsy()
         }
-
-        const coreDumpResult = shell.exec('coredumpctl');
-        expect(coreDumpResult.code).toBe(1);
-        expect(coreDumpResult.stderr?.toLocaleLowerCase()).toContain('no coredumps found')
-        expect(0).toBe(0)
     }, 120000)
 })
