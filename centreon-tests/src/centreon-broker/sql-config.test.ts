@@ -6,7 +6,7 @@ import fs from 'fs/promises'
 shell.config.silent = true;
 
 beforeEach(async () => {
-    Broker.clearLogs()
+    await Broker.clearLogs()
 }, 30000)
 
 afterEach(async () => {
@@ -134,7 +134,6 @@ it('repeat 20 times start/stop cbd with a wrong configuration in perfdata', asyn
 
     const broker = new Broker();
     for (let i = 0; i < 20; ++i) {
-        console.log(i)
         const isStarted = await broker.start();
         expect(isStarted).toBeTruthy()
         expect(await broker.isRunning()).toBeTruthy()
@@ -145,7 +144,7 @@ it('repeat 20 times start/stop cbd with a wrong configuration in perfdata', asyn
         expect(isStopped).toBeTruthy();
         expect(await broker.checkCoredump()).toBeFalsy()
     }
-}, 220000)
+}, 300000)
 
 it('repeat 20 times start/stop cbd with a wrong configuration in sql', async () => {
     const config = await Broker.getConfig()
@@ -156,7 +155,6 @@ it('repeat 20 times start/stop cbd with a wrong configuration in sql', async () 
 
     const broker = new Broker();
     for (let i = 0; i < 20; ++i) {
-        console.log(i)
         const isStarted = await broker.start();
         expect(isStarted).toBeTruthy()
         expect(await broker.isRunning()).toBeTruthy()
@@ -167,7 +165,7 @@ it('repeat 20 times start/stop cbd with a wrong configuration in sql', async () 
         expect(isStopped).toBeTruthy();
         expect(await broker.checkCoredump()).toBeFalsy()
     }
-}, 220000)
+}, 300000)
 
 
 //it("should handle database service stop and start", () => {
