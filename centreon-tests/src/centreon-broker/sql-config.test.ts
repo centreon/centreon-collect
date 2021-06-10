@@ -172,18 +172,15 @@ it('multi connections step 1', async () => {
     const centralBrokerMasterSql = config['centreonBroker']['output'].find((
         output => output.name === 'central-broker-master-sql'))
     centralBrokerMasterSql.connections_count = "4"
-    console.log(centralBrokerMasterSql)
 
     const centralBrokerMasterPerfdata = config['centreonBroker']['output'].find((
         output => output.name === 'central-broker-master-perfdata'))
     centralBrokerMasterPerfdata.connections_count = "4"
-    console.log(centralBrokerMasterPerfdata)
 
     const loggers = config['centreonBroker']['log']['loggers']
     loggers['sql'] = "info"
     
     await Broker.writeConfig(config)
-    console.log(loggers)
 
     const broker = new Broker();
     expect(await broker.start()).toBeTruthy()
@@ -198,18 +195,15 @@ it('multi connections step 2', async () => {
     const centralBrokerMasterSql = config['centreonBroker']['output'].find((
         output => output.name === 'central-broker-master-sql'))
     centralBrokerMasterSql.connections_count = "5"
-    console.log(centralBrokerMasterSql)
 
     const centralBrokerMasterPerfdata = config['centreonBroker']['output'].find((
         output => output.name === 'central-broker-master-perfdata'))
     centralBrokerMasterPerfdata.connections_count = "5"
-    console.log(centralBrokerMasterPerfdata)
 
     const loggers = config['centreonBroker']['log']['loggers']
     loggers['sql'] = "info"
     
     await Broker.writeConfig(config)
-    console.log(loggers)
 
     const broker = new Broker();
     expect(await broker.start()).toBeTruthy()
@@ -219,7 +213,7 @@ it('multi connections step 2', async () => {
     expect(await broker.checkCoredump()).toBeFalsy()
 }, 60000)
 
-it.only('mariadb server down', async () => {
+it('mariadb server down', async () => {
    const broker = new Broker();
    expect(await broker.start()).toBeTruthy()
 

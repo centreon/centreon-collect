@@ -168,10 +168,8 @@ export class Broker {
 
     static async isMySqlRunning() : Promise<Boolean> {
       const cdList = shell.exec('systemctl status mysql').stdout.split('\n')
-      //console.log(cdList)
       let retval;
       retval = cdList.find(line => line.includes('inactive'))
-      console.log(retval)
       if (retval)
         return true
       else
