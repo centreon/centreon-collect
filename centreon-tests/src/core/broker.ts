@@ -1,5 +1,3 @@
-
-
 import shell from 'shelljs'
 import psList from 'ps-list'
 import fs from 'fs/promises'
@@ -166,5 +164,17 @@ export class Broker {
 
     static clearLogs() : void {
         shell.rm(Broker.CENTREON_BROKER_LOGS_PATH)
+    }
+
+    static async isMySqlRunning() : Promise<Boolean> {
+      const cdList = shell.exec('systemctl status mysql').stdout.split('\n')
+      //console.log(cdList)
+      let retval;
+      retval = cdList.find(line => line.includes('inactive'))
+      console.log(retval)
+      if (retval)
+        return true
+      else
+        return false
     }
 }

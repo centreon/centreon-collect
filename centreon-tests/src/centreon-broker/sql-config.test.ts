@@ -167,7 +167,70 @@ it('repeat 20 times start/stop cbd with a wrong configuration in sql', async () 
     }
 }, 300000)
 
+it('multi connections step 1', async () => {
+    const config = await Broker.getConfig()
+    const centralBrokerMasterSql = config['centreonBroker']['output'].find((
+        output => output.name === 'central-broker-master-sql'))
+    centralBrokerMasterSql.connections_count = "4"
+    console.log(centralBrokerMasterSql)
 
-//it("should handle database service stop and start", () => {
-//   shell.exec('service mysql stop')
-// })
+    const centralBrokerMasterPerfdata = config['centreonBroker']['output'].find((
+        output => output.name === 'central-broker-master-perfdata'))
+    centralBrokerMasterPerfdata.connections_count = "4"
+    console.log(centralBrokerMasterPerfdata)
+
+    const loggers = config['centreonBroker']['log']['loggers']
+    loggers['sql'] = "info"
+    
+    await Broker.writeConfig(config)
+    console.log(loggers)
+
+    const broker = new Broker();
+    expect(await broker.start()).toBeTruthy()
+
+    expect(await Broker.checkLogFileContains(['[sql] [info] mysql connector configured with 4 connection(s)'])).toBeTruthy()
+    expect(await broker.stop()).toBeTruthy();
+    expect(await broker.checkCoredump()).toBeFalsy()
+}, 60000)
+
+it('multi connections step 2', async () => {
+    const config = await Broker.getConfig()
+    const centralBrokerMasterSql = config['centreonBroker']['output'].find((
+        output => output.name === 'central-broker-master-sql'))
+    centralBrokerMasterSql.connections_count = "5"
+    console.log(centralBrokerMasterSql)
+
+    const centralBrokerMasterPerfdata = config['centreonBroker']['output'].find((
+        output => output.name === 'central-broker-master-perfdata'))
+    centralBrokerMasterPerfdata.connections_count = "5"
+    console.log(centralBrokerMasterPerfdata)
+
+    const loggers = config['centreonBroker']['log']['loggers']
+    loggers['sql'] = "info"
+    
+    await Broker.writeConfig(config)
+    console.log(loggers)
+
+    const broker = new Broker();
+    expect(await broker.start()).toBeTruthy()
+
+    expect(await Broker.checkLogFileContains(['[sql] [info] mysql connector configured with 5 connection(s)'])).toBeTruthy()
+    expect(await broker.stop()).toBeTruthy();
+    expect(await broker.checkCoredump()).toBeFalsy()
+}, 60000)
+
+it.only('mariadb server down', async () => {
+   const broker = new Broker();
+   expect(await broker.start()).toBeTruthy()
+
+   for (let i = 0; i < 10; ++i) {
+        await shell.exec('service mysqld stop')
+        await sleep(10000)
+        await shell.exec('service mysqld start')
+        await sleep(10000)
+   }   
+
+   expect(await broker.isRunning()).toBeTruthy()
+   expect(await broker.stop()).toBeTruthy();
+   expect(await broker.checkCoredump()).toBeFalsy()
+}, 300000)
