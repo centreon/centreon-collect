@@ -68,15 +68,13 @@ describe('engine and broker testing in same time', () => {
         expect(await engine.checkCoredump()).toBeFalsy()
     }, 60000);
 
-    it('should handle database service stop and start', async () => {
+    it.only('should handle database service stop and start', async () => {
         const broker = new Broker();
 
         await shell.exec('service mysql stop')
-        const cdList = await shell.exec('systemctl status mysql').stdout.split('\n')
-
-        let retval;
-        retval = cdList.find(line => line.includes('inactive'))
        
+        expect(await Broker.isMySqlRunning()).toBeTruthy()
+
         expect(await broker.start()).toBeTruthy()
 
         const engine = new Engine()
