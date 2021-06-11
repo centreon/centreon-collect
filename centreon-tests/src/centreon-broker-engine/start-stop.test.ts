@@ -68,7 +68,7 @@ describe('engine and broker testing in same time', () => {
         expect(await engine.checkCoredump()).toBeFalsy()
     }, 60000);
 
-    it.only('should handle database service stop and start', async () => {
+    it('should handle database service stop and start', async () => {
         const broker = new Broker();
 
         await shell.exec('service mysql stop')
