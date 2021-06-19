@@ -29,5 +29,9 @@ describe("start and stop engine", () => {
             expect(isStoped).toBeTruthy();
             expect(await engine.checkCoredump()).toBeFalsy()
         }
+    }, 120000);
+
+    it.only('Check custom config', async () => {
+        expect(await Engine.buildConfig()).toBeTruthy();
     }, 120000)
 })

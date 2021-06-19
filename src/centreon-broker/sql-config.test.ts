@@ -179,7 +179,7 @@ it('multi connections step 1', async () => {
 
     const loggers = config['centreonBroker']['log']['loggers']
     loggers['sql'] = "info"
-    
+
     await Broker.writeConfig(config)
 
     const broker = new Broker();
@@ -202,7 +202,7 @@ it('multi connections step 2', async () => {
 
     const loggers = config['centreonBroker']['log']['loggers']
     loggers['sql'] = "info"
-    
+
     await Broker.writeConfig(config)
 
     const broker = new Broker();
@@ -214,17 +214,17 @@ it('multi connections step 2', async () => {
 }, 60000)
 
 it('mariadb server down', async () => {
-   const broker = new Broker();
-   expect(await broker.start()).toBeTruthy()
+    const broker = new Broker();
+    expect(await broker.start()).toBeTruthy()
 
-   for (let i = 0; i < 10; ++i) {
+    for (let i = 0; i < 10; ++i) {
         await shell.exec('service mysqld stop')
         await sleep(10000)
         await shell.exec('service mysqld start')
         await sleep(10000)
-   }   
+    }
 
-   expect(await broker.isRunning()).toBeTruthy()
-   expect(await broker.stop()).toBeTruthy();
-   expect(await broker.checkCoredump()).toBeFalsy()
+    expect(await broker.isRunning()).toBeTruthy()
+    expect(await broker.stop()).toBeTruthy();
+    expect(await broker.checkCoredump()).toBeFalsy()
 }, 300000)

@@ -1,12 +1,17 @@
 {
   "name": "centreon-tests",
+  "jest": {
+    "verbose": true
+  },
   "version": "0.0.1",
   "description": "Tests for centreon plateform",
   "dependencies": {
     "await-sleep": "0.0.1",
+    "fs.promises": "^0.1.2",
     "p-iteration": "^1.1.8",
     "ps-list": "^7.2.0",
-    "shelljs": "^0.8.4"
+    "shelljs": "^0.8.4",
+    "typescript-formatter": "^7.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.14.2",
