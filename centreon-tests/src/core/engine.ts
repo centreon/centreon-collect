@@ -5,11 +5,12 @@ import sleep from 'await-sleep'
 import { once } from 'events'
 import { ChildProcess } from 'child_process'
 import { closeSync, existsSync, fstat, mkdir, mkdirSync, open, openSync, rmdir, rmdirSync, rmSync, write, writeSync } from 'fs'
+import { rejects } from 'assert/strict'
 
 export class Engine {
     private process: ChildProcess
     private config: JSON;
-    static CENTREON_ENGINE_UID = parseInt(shell.exec('id -u david'))
+    static CENTREON_ENGINE_UID = parseInt(shell.exec('id -u centreon-engine'))
     static CENTRON_ENGINE_CONFIG_PATH = `/etc/centreon-engine/centengine.cfg`
 
     constructor() {
@@ -147,29 +148,81 @@ export class Engine {
         return retval;
     }
 
-    static buildConfig(hosts: number = 50, servicesByHost: number = 20): boolean {
+    static async buildConfig(hosts: number = 50, servicesByHost: number = 20): Promise<boolean> {
+        let nbCommands = 50;
         let configDir = process.cwd() + '/src/config/centreon-engine';
         if (existsSync(configDir)) {
             rmSync(configDir, { recursive: true });
         }
 
-        mkdirSync(configDir);
-        console.log("directory built");
-        let fd = openSync(configDir + '/hosts.cfg', 'w');
-        for (let i = 1; i <= hosts; ++i) {
-            writeSync(fd, Buffer.from(Engine.createHost(i)));
+        let p = new Promise((resolve, reject) => {
+            let count = hosts + hosts * servicesByHost + nbCommands;
+            mkdir(configDir, () => {
+                open(configDir + '/hosts.cfg', 'w', (err, fd) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    for (let i = 1; i <= hosts; ++i) {
+                        write(fd, Buffer.from(Engine.createHost(i)), (err) => {
+                            --count;    // one host written
+                            if (count <= 0) {
+                                resolve(true);
+                                return;
+                            }
 
-            let fdd = openSync(configDir + '/services.cfg', 'a');
-            for (let j = 1; j <= servicesByHost; ++j) {
-                writeSync(fdd, Buffer.from(Engine.createService(i, j, 50)));
-            }
-        }
-        let fdd = openSync(configDir + '/commands.cfg', 'w');
-        for (let i = 1; i <= 50; ++i) {
-            writeSync(fdd, Buffer.from(Engine.createCommand(i)));
-        }
-        closeSync(fdd);
-        closeSync(fd);
-        return true;
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+
+                            open(configDir + '/services.cfg', 'a', (err, fd) => {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+                                for (let j = 1; j <= servicesByHost; ++j) {
+                                    write(fd, Buffer.from(Engine.createService(i, j, nbCommands)), (err) => {
+                                        if (err) {
+                                            reject(err);
+                                            return;
+                                        }
+                                        --count;    // One service written
+                                        if (count <= 0) {
+                                            resolve(true);
+                                            return;
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    }
+                    open(configDir + '/commands.cfg', 'w', (err, fd) => {
+                        for (let i = 1; i <= nbCommands; ++i) {
+                            write(fd, Buffer.from(Engine.createCommand(i)), (err) => {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+                                --count;    // One command written
+                                if (count <= 0) {
+                                    resolve(true);
+                                    return;
+                                }
+                            });
+                        }
+                    });
+                });
+                if (count <= 0)
+                    resolve(true);
+            });
+        });
+
+        let retval = p.then(ok => { return true; })
+            .catch(err => {
+                console.log(err);
+                return false
+            });
+        return retval;
     }
 }

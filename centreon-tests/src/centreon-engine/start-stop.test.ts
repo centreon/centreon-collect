@@ -31,7 +31,7 @@ describe("start and stop engine", () => {
         }
     }, 120000);
 
-    it.only('Check custom config', async () => {
+    it('Check custom config', async () => {
         expect(await Engine.buildConfig()).toBeTruthy();
     }, 120000)
 })
