@@ -15,3 +15,5 @@ workspace.*
 
 # ingore local env files
 .env.local
+
+src/config/centreon-engine/*.cfg

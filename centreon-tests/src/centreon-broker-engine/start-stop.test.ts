@@ -72,7 +72,7 @@ describe('engine and broker testing in same time', () => {
         const broker = new Broker();
 
         await shell.exec('service mysql stop')
-       
+
         expect(await Broker.isMySqlRunning()).toBeTruthy()
 
         expect(await broker.start()).toBeTruthy()
