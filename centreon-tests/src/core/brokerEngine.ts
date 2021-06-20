@@ -1,7 +1,7 @@
 import shell from "shelljs"
 import sleep from "await-sleep"
 
-export const isBrokerAndEngineConnected = async (): Promise<Boolean> => {
+export const isBrokerAndEngineConnected = async () : Promise<Boolean> => {
     for (let i = 0; i < 10; ++i) {
         const cbdPort = 5669;
 

@@ -8,8 +8,8 @@ import { closeSync, existsSync, fstat, mkdir, mkdirSync, open, openSync, rmdir, 
 import { rejects } from 'assert/strict'
 
 export class Engine {
-    private process: ChildProcess
-    private config: JSON;
+    private process : ChildProcess
+    private config : JSON;
     static CENTREON_ENGINE_UID = parseInt(shell.exec('id -u centreon-engine'))
     static CENTRON_ENGINE_CONFIG_PATH = `/etc/centreon-engine/centengine.cfg`
 
@@ -46,7 +46,7 @@ export class Engine {
         return true;
     }
 
-    async checkCoredump(): Promise<boolean> {
+    async checkCoredump() : Promise<boolean> {
         const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
         let retval;
         retval = cdList.find(line => line.includes('cbd') &&
@@ -65,7 +65,7 @@ export class Engine {
       * @param  {number=15} seconds number of seconds to wait for process to show in processlist
       * @returns Promise<Boolean>
       */
-    async isRunning(expected: boolean = true, seconds: number = 15): Promise<boolean> {
+    async isRunning(expected : boolean = true, seconds : number = 15) : Promise<boolean> {
         let centreonEngineProcess;
 
         for (let i = 0; i < seconds * 2; ++i) {
@@ -85,7 +85,7 @@ export class Engine {
         return !!centreonEngineProcess;
     }
 
-    static createHost(id: number): string {
+    static createHost(id : number) : string {
         let a = id % 255;
         let q = Math.floor(id / 255);
         let b = q % 255;
@@ -110,7 +110,7 @@ export class Engine {
         return retval;
     }
 
-    static createCommand(commandId: number): string {
+    static createCommand(commandId : number) : string {
         if (commandId % 2 == 0) {
             let retval = `define command {
     command_name                    command_${commandId}
@@ -130,7 +130,7 @@ export class Engine {
         }
     }
 
-    static createService(hostId: number, serviceId: number, nbCommands: number): string {
+    static createService(hostId : number, serviceId : number, nbCommands : number) : string {
         let commandId = ((hostId + 1) * (serviceId + 1)) % nbCommands;
         let retval = `define service {
     host_name                       host_${hostId}
@@ -148,7 +148,7 @@ export class Engine {
         return retval;
     }
 
-    static async buildConfig(hosts: number = 50, servicesByHost: number = 20): Promise<boolean> {
+    static async buildConfig(hosts : number = 50, servicesByHost : number = 20) : Promise<boolean> {
         let nbCommands = 50;
         let configDir = process.cwd() + '/src/config/centreon-engine';
         if (existsSync(configDir)) {

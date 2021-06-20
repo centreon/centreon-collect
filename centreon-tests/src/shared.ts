@@ -8,7 +8,7 @@ shell.config.silent = true;
 
 
 export const broker = {
-    isRunning: async (repeat = 15, expected = true): Promise<Boolean> => {
+    isRunning: async (repeat = 15, expected = true) : Promise<Boolean> => {
         let centreonBrokerProcess;
         let centreonBrokerRddProcesss;
 
