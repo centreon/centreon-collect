@@ -3,7 +3,7 @@ import shell from 'shelljs';
 import { once } from 'events'
 import { Broker } from '../core/broker';
 
-shell.config.silent = true;
+//shell.config.silent = true;
 
 describe('broker testing', () => {
 

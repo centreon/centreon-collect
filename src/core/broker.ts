@@ -9,16 +9,16 @@ import { strict as assert } from 'assert';
 
 
 export class Broker {
-    private instanceCount: number
-    private process: ChildProcess
-    private rrdProcess: ChildProcess
-    private config: JSON;
+    private instanceCount : number
+    private process : ChildProcess
+    private rrdProcess : ChildProcess
+    private config : JSON;
 
     static CENTREON_BROKER_UID = parseInt(shell.exec('id -u centreon-broker'))
     static CENTREON_BROKER_LOGS_PATH = `/var/log/centreon-broker/central-broker-master.log`
     static CENTRON_BROKER_CONFIG_PATH = `/etc/centreon-broker/central-broker.json`
 
-    constructor(count: number = 2) {
+    constructor(count : number = 2) {
         assert(count == 1 || count == 2)
         this.instanceCount = count
     }
@@ -30,7 +30,7 @@ export class Broker {
      *
      * @returns Promise<Boolean> true if correctly started, else false
      */
-    async start(): Promise<Boolean> {
+    async start() : Promise<Boolean> {
         this.process = shell.exec(`/usr/sbin/cbd ${Broker.CENTRON_BROKER_CONFIG_PATH}`, { async: true, uid: Broker.CENTREON_BROKER_UID })
         if (this.instanceCount == 2)
             this.rrdProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, { async: true, uid: Broker.CENTREON_BROKER_UID })
@@ -45,7 +45,7 @@ export class Broker {
      *
      * @returns Promise<Boolean> true if correctly stoped, else false
      */
-    async stop(): Promise<Boolean> {
+    async stop() : Promise<Boolean> {
         if (await this.isRunning(true, 5)) {
             this.process.kill()
             if (this.instanceCount == 2)
@@ -67,7 +67,7 @@ export class Broker {
      * @param  {number=15} seconds number of seconds to wait for process to show in processlist
      * @returns Promise<Boolean>
      */
-    async isRunning(expected: boolean = true, seconds: number = 15): Promise<boolean> {
+    async isRunning(expected : boolean = true, seconds : number = 15) : Promise<boolean> {
         let centreonBrokerProcess;
         let centreonRddProcess;
 
@@ -94,7 +94,7 @@ export class Broker {
         return !expected;
     }
 
-    async checkCoredump(): Promise<boolean> {
+    async checkCoredump() : Promise<boolean> {
         const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
         let retval;
         if (this.instanceCount == 1)
@@ -114,7 +114,7 @@ export class Broker {
      *
      * @returns Promise<JSON> config json object
      */
-    static async getConfig(): Promise<JSON> {
+    static async getConfig() : Promise<JSON> {
         return JSON.parse((await fs.readFile('/etc/centreon-broker/central-broker.json')).toString());
     }
 
@@ -123,7 +123,7 @@ export class Broker {
      * write json config to centreon default config file location
      * @param  {JSON} config object representing broker configuration
      */
-    static async writeConfig(config: JSON) {
+    static async writeConfig(config : JSON) {
         await fs.writeFile('/etc/centreon-broker/central-broker.json', JSON.stringify(config, null, '\t'))
     }
 
@@ -138,35 +138,38 @@ export class Broker {
 
 
     /**
-     *  this function is usefu for checking that a log file contain some string
+     *  this function is useful for checking that a log file contain some string
      * @param  {Array<string>} strings list of string to check, every string in this array must be found in logs file
      * @param  {number} seconds=15 number of second to wait before returning
      * @returns {Promise<Boolean>} true if found, else false
      */
-    static async checkLogFileContains(strings: Array<string>, seconds = 15): Promise<Boolean> {
+    static async checkLogFileContains(strings : Array<string>, seconds : number = 15) : Promise<boolean> {
 
         for (let i = 0; i < seconds * 10; ++i) {
             const logs = await Broker.getLogs()
 
-            if (logs.includes(strings[0])) {
-                return true;
-            }
+            let retval = strings.every((value) => {
+                return logs.includes(value);
+            });
 
+            if (retval)
+                return true;
             await sleep(100)
         }
 
-        throw Error(`log file ${Broker.CENTREON_BROKER_LOGS_PATH} does not contain expected strings ${strings.toString()}`)
+        return false;
+        //throw Error(`log file ${Broker.CENTREON_BROKER_LOGS_PATH} does not contain expected strings ${strings.toString()}`)
     }
 
-    static async getLogs(): Promise<String> {
+    static async getLogs() : Promise<String> {
         return (await fs.readFile(Broker.CENTREON_BROKER_LOGS_PATH)).toString()
     }
 
-    static clearLogs(): void {
+    static clearLogs() : void {
         shell.rm(Broker.CENTREON_BROKER_LOGS_PATH)
     }
 
-    static async isMySqlRunning(): Promise<Boolean> {
+    static async isMySqlRunning() : Promise<Boolean> {
         const cdList = shell.exec('systemctl status mysql').stdout.split('\n')
         let retval;
         retval = cdList.find(line => line.includes('inactive'))
