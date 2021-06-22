@@ -26,8 +26,8 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 # Upload packs to the middleware.
 MIDDLEWARE='https://api.imp.centreon.com/api'
 TOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "b46567488e4140d921b76cc063678af3dfeace77" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
-PPDMIDDLEWARE='https://ppd-api.imp.centreon.com/api'
-PPDTOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "3d3e1700e611b1c7113694c14c51126bcb1f2604" }' "$PPDMIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
+#PPDMIDDLEWARE='https://ppd-api.imp.centreon.com/api'
+#PPDTOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "3d3e1700e611b1c7113694c14c51126bcb1f2604" }' "$PPDMIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
 PPOUTPUT=$(mktemp)
 cd "$PROJECT-$VERSION"
 for json in *.json ; do
@@ -45,26 +45,26 @@ for json in *.json ; do
     -H "content-type: application/json"
 
   #ppd
-  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
+  # curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
 
-  if grep -q "data" "${PPOUTPUT}"; then
-    ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
-    ppVersion=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['attributes']['version']")
-    echo "Plugin pack id:${ppId} version:${ppVersion}"
+  # if grep -q "data" "${PPOUTPUT}"; then
+  #   ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
+  #   ppVersion=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['attributes']['version']")
+  #   echo "Plugin pack id:${ppId} version:${ppVersion}"
 
-    curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
-      -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
-      -H "centreon-imp-token: $PPDTOKEN" \
-      -H "content-type: application/json"
+  #   curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
+  #     -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
+  #     -H "centreon-imp-token: $PPDTOKEN" \
+  #     -H "content-type: application/json"
 
-    curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/version/$ppVersion" \
-      -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"released\":1}}}" \
-      -H "centreon-imp-token: $PPDTOKEN" \
-      -H "content-type: application/json"
-  else
-    echo "No data received when updating PP. Cannot release it. This is the output of the API:"
-    cat ${PPOUTPUT}
-  fi
+  #   curl -s -X PATCH "$PPDMIDDLEWARE/pluginpack/pluginpack/$ppId/version/$ppVersion" \
+  #     -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"released\":1}}}" \
+  #     -H "centreon-imp-token: $PPDTOKEN" \
+  #     -H "content-type: application/json"
+  # else
+  #   echo "No data received when updating PP. Cannot release it. This is the output of the API:"
+  #   cat ${PPOUTPUT}
+  # fi
 done
 cd ..
 
