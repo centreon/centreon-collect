@@ -24,25 +24,25 @@ rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Upload packs to the middleware.
-MIDDLEWARE='https://api.imp.centreon.com/api'
-TOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "b46567488e4140d921b76cc063678af3dfeace77" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
+# MIDDLEWARE='https://api.imp.centreon.com/api'
+# TOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "b46567488e4140d921b76cc063678af3dfeace77" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
 #PPDMIDDLEWARE='https://ppd-api.imp.centreon.com/api'
 #PPDTOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "3d3e1700e611b1c7113694c14c51126bcb1f2604" }' "$PPDMIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
-PPOUTPUT=$(mktemp)
-cd "$PROJECT-$VERSION"
-for json in *.json ; do
-  echo -n '{"data": {"type": "pluginpack", "attributes": { "slug": "' > ../query.json
-  slug=`python -c "import sys, json; print json.load(sys.stdin)['information']['slug']" < "$json"`
-  echo -n "$slug" >> ../query.json
-  echo '", "information": ' >> ../query.json
-  cat < "$json" >> ../query.json
-  echo '}}}' >> ../query.json
-  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $TOKEN" -X POST -d '@-' "$MIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
-  ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
-  curl -s -X PATCH "$MIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
-    -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
-    -H "centreon-imp-token: $TOKEN" \
-    -H "content-type: application/json"
+# PPOUTPUT=$(mktemp)
+# cd "$PROJECT-$VERSION"
+# for json in *.json ; do
+#   echo -n '{"data": {"type": "pluginpack", "attributes": { "slug": "' > ../query.json
+#   slug=`python -c "import sys, json; print json.load(sys.stdin)['information']['slug']" < "$json"`
+#   echo -n "$slug" >> ../query.json
+#   echo '", "information": ' >> ../query.json
+#   cat < "$json" >> ../query.json
+#   echo '}}}' >> ../query.json
+#   curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $TOKEN" -X POST -d '@-' "$MIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
+#   ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
+#   curl -s -X PATCH "$MIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
+#     -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
+#     -H "centreon-imp-token: $TOKEN" \
+#     -H "content-type: application/json"
 
   #ppd
   # curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
@@ -65,8 +65,8 @@ for json in *.json ; do
   #   echo "No data received when updating PP. Cannot release it. This is the output of the API:"
   #   cat ${PPOUTPUT}
   # fi
-done
-cd ..
+# done
+# cd ..
 
 # Move RPMs to the testing repository.
 promote_unstable_rpms_to_testing "plugin-packs" "19.10" "el7" "noarch" "packs" "$PROJECT-$VERSION-$RELEASE"
