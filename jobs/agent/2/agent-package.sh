@@ -18,7 +18,7 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
-
+COMMIT=$COMMIT 
 # Create input and output directories.
 rm -rf input
 mkdir input
@@ -28,6 +28,10 @@ mkdir output
 # Fetch sources.
 rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
+
+# Retrieve build commit number and push it into Makefile
+sed -i 's/BUILDCOMMIT=`git rev-parse --short HEAD`/BUILDCOMMIT='$COMMIT'/g' $PROJECT-$VERSION/Makefile
+tar czf "$PROJECT-$VERSION.tar.gz" $PROJECT-$VERSION
 
 # Pull latest build dependencies.
 BUILD_IMG="registry.centreon.com/build-dependencies-agent-2.1:$DISTRIB"
