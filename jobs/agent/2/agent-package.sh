@@ -30,7 +30,7 @@ rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 # Pull latest build dependencies.
-BUILD_IMG="registry.centreon.com/build-dependencies-agent-2:$DISTRIB"
+BUILD_IMG="registry.centreon.com/build-dependencies-agent-2.1:$DISTRIB"
 docker pull "$BUILD_IMG"
 
 # Build RPMs.
