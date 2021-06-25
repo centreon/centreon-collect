@@ -6,8 +6,8 @@ set -x
 . `dirname $0`/../../../common.sh
 
 # Project.
-PROJECT=centreon-ui
-PROJECT_DIR="centreon-frontend/packages/centreon-ui"
+PROJECT=ui-context
+PROJECT_DIR="centreon-frontend/packages/ui-context"
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -21,20 +21,14 @@ docker pull $UT_IMAGE
 containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh $PROJECT`
 
 # Copy sources to container.
-docker cp `dirname $0`/centreonui-unittest.container.sh "$containerid:/usr/local/bin/unittest.sh"
+docker cp `dirname $0`/uicontext-unittest.container.sh "$containerid:/usr/local/bin/unittest.sh"
 docker cp "centreon-frontend" "$containerid:/usr/local/"
 
 # Run unit tests.
-rm -rf ut.xml codestyle.xml snapshots storybook
+rm -rf codestyle.xml 
 docker start -a "$containerid"
-docker cp "$containerid:/tmp/ut.xml" ut.xml
 docker cp "$containerid:/tmp/codestyle.xml" codestyle.xml
-docker cp "$containerid:/usr/local/centreon-frontend/packages/centreon-ui/src/__image_snapshots__/__diff_output__" snapshots || true
-
-# Store storybook.
-docker cp "$containerid:/usr/local/centreon-frontend/packages/centreon-ui/.out" storybook
-put_internal_source "ui" "$PROJECT-$VERSION-$RELEASE" "storybook"
 
 # Stop container.
 docker stop "$containerid"
-docker rm "$containerid"
+docker rm "$containerid" 
