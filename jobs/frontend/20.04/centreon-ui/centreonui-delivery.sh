@@ -20,5 +20,5 @@ fi
 if [ "$BUILD" '=' 'REFERENCE' ] ; then
   TARGETDIR="s3://centreon-documentation-prod/dev-resources/storybook/21.10"
   ssh $REPO_CREDS aws s3 rm --recursive "$TARGETDIR"
-  ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/ui/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
+  ssh $REPO_CREDS aws s3 cp --acl public-read --recursive "/srv/sources/internal/frontend/$PROJECT-$VERSION-$RELEASE/storybook" "$TARGETDIR"
 fi
