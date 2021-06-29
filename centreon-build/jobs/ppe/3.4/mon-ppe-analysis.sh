@@ -20,4 +20,6 @@ cd "$PROJECT"
 cp ../ut.xml .
 cp ../coverage.xml .
 sed -i -e 's#/usr/local/src/centreon-export/##g' coverage.xml
+# override missing AMI requirement
+sudo apt-get install shellcheck
 sonar-scanner

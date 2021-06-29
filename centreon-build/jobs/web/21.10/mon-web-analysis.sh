@@ -31,4 +31,6 @@ sed -i -e "s/{PROJECT_VERSION}/$VERSION/g" sonar-project.properties
 
 # override missing AMI requirement
 sudo apt-get install shellcheck
+# override missing AMI requirement
+sudo apt-get install shellcheck
 sonar-scanner
