@@ -21,4 +21,6 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/Centreon Map Web 21.04/Centreon Map Web 21.04 (release)/g' sonar-project.properties
 fi
 echo "sonar.projectVersion=$VERSIONWEB" >> sonar-project.properties
+# override missing AMI requirement
+sudo apt-get install shellcheck
 sonar-scanner

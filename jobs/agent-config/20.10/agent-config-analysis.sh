@@ -17,4 +17,6 @@ if [ "$BUILD" '=' 'RELEASE' ] ; then
   sed -i -e 's/Centreon Agent Configuration 20.10/Centreon Agent Configuration 20.10 (release)/g' sonar-project.properties
 fi
 echo "sonar.projectVersion=$VERSION" >> sonar-project.properties
+# override missing AMI requirement
+sudo apt-get install shellcheck
 sonar-scanner
