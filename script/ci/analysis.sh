@@ -28,4 +28,6 @@ cp ../broker.xml .
 cp ../clib.xml .
 cp ../engine.xml .
 
+# override missing AMI requirement
+sudo apt-get install shellcheck
 sonar-scanner
