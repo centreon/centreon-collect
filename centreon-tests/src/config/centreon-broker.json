@@ -37,7 +37,7 @@
                 "tls": "auto",
                 "negotiation": "yes",
                 "one_peer_retention_mode": "no",
-                "compression": "auto",
+                "compression": "no",
                 "type": "ipv4"
             }
         ],
