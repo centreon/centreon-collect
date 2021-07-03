@@ -1,5 +1,6 @@
 import shell from 'shelljs'
 import psList from 'ps-list'
+import files from 'fs'
 import fs from 'fs/promises'
 import { once } from 'events'
 import { ChildProcess } from 'child_process'
@@ -7,6 +8,7 @@ import sleep from 'await-sleep';
 import path from 'path';
 import { strict as assert } from 'assert';
 
+const { exec } = require("child_process");
 
 export class Broker {
     private instanceCount : number
@@ -15,8 +17,12 @@ export class Broker {
     private config : JSON;
 
     static CENTREON_BROKER_UID = parseInt(shell.exec('id -u centreon-broker'))
+    static CENTREON_ENGINE_UID = parseInt(shell.exec('id -u centreon-engine'))
+    static CENTREON_ENGINE_GID = parseInt(shell.exec('id -g centreon-engine'))
     static CENTREON_BROKER_LOGS_PATH = `/var/log/centreon-broker/central-broker-master.log`
+    static CENTREON_MODULE_LOGS_PATH = `/var/log/centreon-broker/central-module-master.log`
     static CENTRON_BROKER_CONFIG_PATH = `/etc/centreon-broker/central-broker.json`
+    static CENTRON_MODULE_CONFIG_PATH = `/etc/centreon-broker/central-module.json`
 
     constructor(count : number = 2) {
         assert(count == 1 || count == 2)
@@ -118,6 +124,14 @@ export class Broker {
         return JSON.parse((await fs.readFile('/etc/centreon-broker/central-broker.json')).toString());
     }
 
+    /**
+     * this retrive the current centreon config
+     *
+     * @returns Promise<JSON> config json object
+     */
+    static async getConfigCentralModule() : Promise<JSON> {
+        return JSON.parse((await fs.readFile('/etc/centreon-broker/central-module.json')).toString());
+    }
 
     /**
      * write json config to centreon default config file location
@@ -127,6 +141,13 @@ export class Broker {
         await fs.writeFile('/etc/centreon-broker/central-broker.json', JSON.stringify(config, null, '\t'))
     }
 
+    /**
+     * write json config to centreon default config file location
+     * @param  {JSON} config object representing broker configuration
+     */
+    static async writeConfigCentralModule(config : JSON) {
+        await fs.writeFile('/etc/centreon-broker/central-module.json', JSON.stringify(config, null, '\t'))
+    }
 
     /**
      * this reset the default configuration for broker</Boolean>
@@ -136,6 +157,13 @@ export class Broker {
         return shell.cp(path.join(__dirname, '../config/centreon-broker.json'), Broker.CENTRON_BROKER_CONFIG_PATH)
     }
 
+    /**
+     * this reset the default configuration for broker</Boolean>
+     * very useful for resetting after doing some tests
+     */
+    static resetConfigCentralModule() {
+        return shell.cp(path.join(__dirname, '../config/central-module.json'), Broker.CENTRON_MODULE_CONFIG_PATH)
+    }
 
     /**
      *  this function is useful for checking that a log file contain some string
@@ -161,12 +189,48 @@ export class Broker {
         //throw Error(`log file ${Broker.CENTREON_BROKER_LOGS_PATH} does not contain expected strings ${strings.toString()}`)
     }
 
+    static async checkLogFileCentralModuleContains(strings : Array<string>, seconds : number = 15) : Promise<boolean> {
+
+        for (let i = 0; i < seconds * 10; ++i) {
+            const logs = await Broker.getLogsCentralModule()
+
+            let retval = strings.every((value) => {
+                return logs.includes(value);
+            });
+
+            if (retval)
+                return true;
+            await sleep(100)
+        }
+
+        return false;
+    }
+
     static async getLogs() : Promise<String> {
         return (await fs.readFile(Broker.CENTREON_BROKER_LOGS_PATH)).toString()
+
+    }
+
+    static async getLogsCentralModule() : Promise<String> {
+        return (await fs.readFile(Broker.CENTREON_MODULE_LOGS_PATH)).toString()
+
     }
 
     static clearLogs() : void {
         shell.rm(Broker.CENTREON_BROKER_LOGS_PATH)
+    }
+
+    static clearLogsCentralModule() : void {
+        files.rmSync(Broker.CENTREON_MODULE_LOGS_PATH)
+	files.writeFile(Broker.CENTREON_MODULE_LOGS_PATH, "", (err) => {
+	  if (err) throw err;
+        });
+
+        files.chown(Broker.CENTREON_MODULE_LOGS_PATH, Broker.CENTREON_ENGINE_UID, 
+                    Broker.CENTREON_ENGINE_GID, (error) => {
+          if (error)
+            console.log("Error Code:", error);
+        });
     }
 
     static async isMySqlRunning() : Promise<Boolean> {
