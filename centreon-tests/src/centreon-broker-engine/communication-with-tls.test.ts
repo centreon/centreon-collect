@@ -6,9 +6,9 @@ import { Engine } from '../core/engine';
 import { isBrokerAndEngineConnected } from '../core/brokerEngine';
 import { broker } from 'shared';
 
+const process = require('process')
 
 shell.config.silent = true;
-
 
 describe('engine and broker testing in same time for compression', () => {
     beforeEach(() => {
@@ -26,7 +26,7 @@ describe('engine and broker testing in same time for compression', () => {
         })
     })
 
-    it.only('tls without keys checks between broker - engine', async () => {
+    it('tls without keys checks between broker - engine', async () => {
       const broker = new Broker()
       const engine = new Engine()
 
@@ -125,17 +125,76 @@ describe('engine and broker testing in same time for compression', () => {
         }
     }, 400000);
 
-    it('tls with keys checks between broker - engine', async () => {
+    it.only('tls with keys checks between broker - engine', async () => {
       const broker = new Broker()
       const engine = new Engine()
 
       const config_broker = await Broker.getConfig()
+      const config_rrd = await Broker.getConfigCentralRrd()
+
       const centralBrokerLoggers = config_broker['centreonBroker']['log']['loggers']
 
       centralBrokerLoggers['bbdo'] = "info"
       centralBrokerLoggers['tcp']  = "info"
       centralBrokerLoggers['tls']  = "trace"
 
+      var centralBrokerMaster = config_broker['centreonBroker']['output'].find((
+              output => output.name === 'centreon-broker-master-rrd'))
+      const centralRrdMaster = config_rrd['centreonBroker']['input'].find((
+              input => input.name === 'central-rrd-master-input'))
+      
+      // get hostname
+      const output = await shell.exec("hostname --fqdn")
+      const hostname = output.stdout.replace(/\n/g, '')
+      
+      // generates keys
+      /*
+      await shell.exec("openssl req -batch -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server.key -out server.crt")
+      await shell.exec("openssl req -batch -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout client.key -out client.crt")
+      */
+      
 
+      /*
+      centralBrokerMaster["tls"] = "yes"
+      centralBrokerMaster = addToObject(centralBrokerMaster, 'private_key', '/etc/centreon-broker/ssl/client.key', 7) 
+      centralBrokerMaster = addToObject(centralBrokerMaster, 'public_cert', '/etc/centreon-broker/ssl/client.crt', 8) 
+      centralBrokerMaster = addToObject(centralBrokerMaster, 'cat_certficate', '/etc/centreon-broker/ssl/server.crt', 9) 
+      */
+
+      // update configuration file
+      centralBrokerMaster["tls"] = "yes"
+      centralBrokerMaster["private_key"] = "/etc/centreon-broker/ssl/client.key"
+      centralBrokerMaster["public_cert"] = "/etc/centreon-broker/ssl/client.crt"
+      centralBrokerMaster["ca_certficate"] = "/etc/centreon-broker/ssl/server.crt"
+
+      /*
+      centralRrdMaster["tls"] = "yes"
+      centralRrdMaster["private_key"] = "/etc/centreon-broker/ssl/server.key"
+      centralRrdMaster["public_cert"] = "/etc/centreon-broker/ssl/server.crt"
+      centralRrdMaster["ca_certficate"] = "/etc/centreon-broker/ssl/client.crt"
+      */
+
+ 
+      
+      // write changes in config_broker
+      
+      await Broker.writeConfig(config_broker)
+      /*
+      await Broker.writeConfig(config_rrd)
+      */
+      
+      console.log(centralBrokerMaster)
+      console.log(centralRrdMaster)
+      
+      
+      // starts centreon
+
+      expect(await broker.start()).toBeTruthy()
+      expect(await engine.start()).toBeTruthy()
+
+      expect(await isBrokerAndEngineConnected()).toBeTruthy()
+
+      expect(await broker.stop()).toBeTruthy();
+      expect(await engine.stop()).toBeTruthy();
     }, 90000);
 });
