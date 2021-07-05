@@ -42,6 +42,11 @@ for lang in en fr ; do
   docker start -a "$containerid"
   docker cp "$containerid:/$PROJECT/website/build/centreon-documentation" "vanilla/$lang"
   find "vanilla/$lang" -type f | xargs -d '\n' sed -i -e "s#@BASEURL@#@BASEURL@/${lang}#g"
+  if [ $lang=fr ]
+  then  
+    find "vanilla/$lang" -type f | xargs -d '\n' sed -i -e 's/lang="en"/lang="fr"/g'
+    find "vanilla/$lang" -type f | xargs -d '\n' sed -i -e 's/content="en"/content="fr"/g'
+  fi
   docker stop "$containerid"
   docker rm "$containerid"
 done
