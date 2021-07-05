@@ -46,6 +46,7 @@ for lang in en fr ; do
   then  
     find "vanilla/$lang" -type f | xargs -d '\n' sed -i -e 's/lang="en"/lang="fr"/g'
     find "vanilla/$lang" -type f | xargs -d '\n' sed -i -e 's/content="en"/content="fr"/g'
+    sed -i -e 's/lang=""/lang="fr"/g' vanilla/fr/index.html 
   fi
   docker stop "$containerid"
   docker rm "$containerid"
