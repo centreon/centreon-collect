@@ -16,6 +16,7 @@ describe('engine and broker testing in same time for compression', () => {
         Broker.clearLogsCentralModule()
         Broker.resetConfig()
         Broker.resetConfigCentralModule()
+        Broker.resetConfigCentralRrd()
     })
 
     afterAll(() => {
@@ -23,6 +24,7 @@ describe('engine and broker testing in same time for compression', () => {
             Broker.clearLogs()
             Broker.resetConfig()
             Broker.resetConfigCentralModule()
+            Broker.resetConfigCentralRrd()
         })
     })
 
@@ -96,7 +98,7 @@ describe('engine and broker testing in same time for compression', () => {
               output => output.name === 'central-module-master-output'))
       const centralBrokerMaster = config_broker['centreonBroker']['input'].find((
               input => input.name === 'central-broker-master-input'))
-      
+
       for (let i = 0, k = 0; i < 3; ++i, k = i*3) {
           for (let j = 0; j < 3; ++j) { 
             Broker.clearLogs()
@@ -114,7 +116,7 @@ describe('engine and broker testing in same time for compression', () => {
             expect(await engine.start()).toBeTruthy()
 
             expect(await isBrokerAndEngineConnected()).toBeTruthy()
-
+            
             console.log("index = ", k+j)
             expect(await Broker.checkLogFileContains([errors[k+j][0]])).toBeTruthy()
             expect(await Broker.checkLogFileCentralModuleContains([errors[k+j][1]])).toBeTruthy()
@@ -148,47 +150,28 @@ describe('engine and broker testing in same time for compression', () => {
       const hostname = output.stdout.replace(/\n/g, '')
       
       // generates keys
-      /*
-      await shell.exec("openssl req -batch -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server.key -out server.crt")
-      await shell.exec("openssl req -batch -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout client.key -out client.crt")
-      */
+      await shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/ssl/server.key -out /etc/centreon-broker/ssl/server.crt -subj '/CN='" + hostname)
+      await shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/ssl/client.key -out /etc/centreon-broker/ssl/client.crt -subj '/CN='" + hostname)
       
-
-      /*
-      centralBrokerMaster["tls"] = "yes"
-      centralBrokerMaster = addToObject(centralBrokerMaster, 'private_key', '/etc/centreon-broker/ssl/client.key', 7) 
-      centralBrokerMaster = addToObject(centralBrokerMaster, 'public_cert', '/etc/centreon-broker/ssl/client.crt', 8) 
-      centralBrokerMaster = addToObject(centralBrokerMaster, 'cat_certficate', '/etc/centreon-broker/ssl/server.crt', 9) 
-      */
-
       // update configuration file
       centralBrokerMaster["tls"] = "yes"
       centralBrokerMaster["private_key"] = "/etc/centreon-broker/ssl/client.key"
       centralBrokerMaster["public_cert"] = "/etc/centreon-broker/ssl/client.crt"
-      centralBrokerMaster["ca_certficate"] = "/etc/centreon-broker/ssl/server.crt"
+      centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/ssl/server.crt"
 
-      /*
       centralRrdMaster["tls"] = "yes"
       centralRrdMaster["private_key"] = "/etc/centreon-broker/ssl/server.key"
       centralRrdMaster["public_cert"] = "/etc/centreon-broker/ssl/server.crt"
-      centralRrdMaster["ca_certficate"] = "/etc/centreon-broker/ssl/client.crt"
-      */
-
- 
+      centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/ssl/client.crt"
       
       // write changes in config_broker
-      
       await Broker.writeConfig(config_broker)
-      /*
-      await Broker.writeConfig(config_rrd)
-      */
+      await Broker.writeConfigCentralRrd(config_rrd)
       
       console.log(centralBrokerMaster)
       console.log(centralRrdMaster)
       
-      
       // starts centreon
-
       expect(await broker.start()).toBeTruthy()
       expect(await engine.start()).toBeTruthy()
 
@@ -196,5 +179,10 @@ describe('engine and broker testing in same time for compression', () => {
 
       expect(await broker.stop()).toBeTruthy();
       expect(await engine.stop()).toBeTruthy();
+
+      await shell.rm("/etc/centreon-broker/ssl/client.key")
+      await shell.rm("/etc/centreon-broker/ssl/client.crt")
+      await shell.rm("/etc/centreon-broker/ssl/server.key")
+      await shell.rm("/etc/centreon-broker/ssl/server.crt")
     }, 90000);
 });
