@@ -23,6 +23,7 @@ export class Broker {
     static CENTREON_MODULE_LOGS_PATH = `/var/log/centreon-broker/central-module-master.log`
     static CENTRON_BROKER_CONFIG_PATH = `/etc/centreon-broker/central-broker.json`
     static CENTRON_MODULE_CONFIG_PATH = `/etc/centreon-broker/central-module.json`
+    static CENTRON_RRD_CONFIG_PATH = `/etc/centreon-broker/central-rrd.json`
 
     constructor(count : number = 2) {
         assert(count == 1 || count == 2)
@@ -78,7 +79,6 @@ export class Broker {
         let centreonRddProcess;
 
         for (let i = 0; i < seconds * 2; ++i) {
-
             const processList = await psList();
 
             centreonBrokerProcess = processList.find((process) => process.pid == this.process.pid);
@@ -147,12 +147,21 @@ export class Broker {
     }
 
     /**
-     * write json config to centreon default config file location
+     * write json config to centreon module config file location
      * @param  {JSON} config object representing broker configuration
      */
     static async writeConfigCentralModule(config : JSON) {
         await fs.writeFile('/etc/centreon-broker/central-module.json', JSON.stringify(config, null, '\t'))
     }
+
+    /**
+     * write json config to centreon rrd config file location
+     * @param  {JSON} config object representing broker configuration
+     */
+    static async writeConfigCentralRrd(config : JSON) {
+        await fs.writeFile('/etc/centreon-broker/central-rrd.json', JSON.stringify(config, null, '\t'))
+    }
+
 
     /**
      * this reset the default configuration for broker</Boolean>
@@ -163,11 +172,19 @@ export class Broker {
     }
 
     /**
-     * this reset the default configuration for broker</Boolean>
+     * this reset the central module configuration for broker</Boolean>
      * very useful for resetting after doing some tests
      */
     static resetConfigCentralModule() {
         return shell.cp(path.join(__dirname, '../config/central-module.json'), Broker.CENTRON_MODULE_CONFIG_PATH)
+    }
+
+    /**
+     * this reset the central rrd configuration for broker</Boolean>
+     * very useful for resetting after doing some tests
+     */
+    static resetConfigCentralRrd() {
+        return shell.cp(path.join(__dirname, '../config/central-rrd.json'), Broker.CENTRON_RRD_CONFIG_PATH)
     }
 
     /**
