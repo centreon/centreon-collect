@@ -125,13 +125,18 @@ export class Broker {
     }
 
     /**
-     * this retrive the current centreon config
+     * this retrive the current centreon module config
      *
      * @returns Promise<JSON> config json object
      */
     static async getConfigCentralModule() : Promise<JSON> {
         return JSON.parse((await fs.readFile('/etc/centreon-broker/central-module.json')).toString());
     }
+
+    static async getConfigCentralRrd() : Promise<JSON> {
+        return JSON.parse((await fs.readFile('/etc/centreon-broker/central-rrd.json')).toString());
+    }
+
 
     /**
      * write json config to centreon default config file location
