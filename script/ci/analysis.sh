@@ -23,10 +23,26 @@
 set -e
 set -x
 
+# Project.
+PROJECT=centreon-collect
+PROJECT_NAME="Centreon Collect"
+
 # Copy reports and run analysis.
 cp ../broker.xml .
 cp ../clib.xml .
 cp ../engine.xml .
+
+if [ -z "$VERSION" ]; then
+  VERSION="latest"
+fi;
+
+# environment values required to replace sonarQube project versioning and binding
+#   sonar.projectKey="{PROJECT_TITLE}"
+#   sonar.projectName="{PROJECT_NAME}"
+#   sonar.projectKey="{PROJECT_VERSION}"
+sed -i -e "s/{PROJECT_TITLE}/$PROJECT/g" ../../sonar-project.properties
+sed -i -e "s/{PROJECT_NAME}/$PROJECT_NAME/g" ../../sonar-project.properties
+sed -i -e "s/{PROJECT_VERSION}/$VERSION/g" ../../sonar-project.properties
 
 # override missing AMI requirement
 sudo apt-get install shellcheck
