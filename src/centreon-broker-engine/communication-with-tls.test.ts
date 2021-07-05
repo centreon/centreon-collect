@@ -8,7 +8,7 @@ import { broker } from 'shared';
 
 const process = require('process')
 
-shell.config.silent = true;
+// shell.config.silent = true;
 
 describe('engine and broker testing in same time for compression', () => {
     beforeEach(() => {
@@ -127,7 +127,7 @@ describe('engine and broker testing in same time for compression', () => {
         }
     }, 400000);
 
-    it.only('tls with keys checks between broker - engine', async () => {
+    it('tls with keys checks between broker - engine', async () => {
       const broker = new Broker()
       const engine = new Engine()
 
