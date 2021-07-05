@@ -47,14 +47,18 @@ Centreon Clib.
 Compilation of these distributions is pretty straightforward.
 
 You'll need to download the project and launch the *cmake.sh* script
-to prepare the compilation environment.
-
-Here are the command lines to launch:
+to prepare the compilation environment:
 
 ```shell
 git clone https://github.com/centreon/centreon-clib
 cd centreon-clib
 ./cmake.sh
+```
+
+Now launch the compilation using the *make* command and then install the
+software by running *make install* as priviledged user:
+
+```shell
 cd build
 make
 make install
@@ -69,8 +73,7 @@ come from CentOS distributions, so if some packages names don't match
 on your distribution try to find their equivalent names): git, make,
 cmake.
 
-Once the sources of Centreon Clib extracted, create the *build/*
-directory and from that directory launch the CMake command as proposed below:
+You can now prepare the compilation environment:
 
 ```shell
 git clone https://github.com/centreon/centreon-clib
