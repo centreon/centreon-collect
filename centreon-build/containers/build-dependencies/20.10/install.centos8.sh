@@ -17,6 +17,7 @@ sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d
 dnf config-manager --set-enabled 'centreon-testing*'
 
 # Install required build dependencies for all Centreon projects.
+dnf clean all
 xargs dnf install < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
