@@ -27,6 +27,7 @@ dnf module enable php:7.3 -y
 
 # Install required build dependencies for all Centreon projects.
 xargs dnf install < /tmp/build-dependencies.txt
+dnf update libarchive
 
 # Install Node.js and related elements.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
