@@ -1,4 +1,5 @@
 cmake
+libarchive
 gcc
 gcc-c++
 gettext
