@@ -62,7 +62,7 @@ bool library::is_loaded() const noexcept {
 void library::load() {
   if (_handle)
     return;
-  if (!(_handle = dlopen(_filename.c_str(), RTLD_NOW | RTLD_GLOBAL)))
+  if (!(_handle = dlopen(_filename.c_str(), RTLD_LAZY | RTLD_GLOBAL)))
     throw basic_error() << "load library failed: " << dlerror();
 }
 
