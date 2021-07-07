@@ -127,7 +127,7 @@ describe('engine and broker testing in same time for compression', () => {
         }
     }, 400000);
 
-    it('tls with keys checks between broker - engine', async () => {
+    it.only('tls with keys checks between broker - engine', async () => {
       const broker = new Broker()
       const engine = new Engine()
 
@@ -176,6 +176,11 @@ describe('engine and broker testing in same time for compression', () => {
       expect(await engine.start()).toBeTruthy()
 
       expect(await isBrokerAndEngineConnected()).toBeTruthy()
+
+      // checking logs 
+      expect(await Broker.checkLogFileContains(["[tls] [info] TLS: using certificates as credentials"])).toBeTruthy()
+      expect(await Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).toBeTruthy()
+      expect(await Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).toBeTruthy()
 
       expect(await broker.stop()).toBeTruthy();
       expect(await engine.stop()).toBeTruthy();
