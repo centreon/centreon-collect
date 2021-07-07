@@ -22,10 +22,10 @@ RUN dnf clean all && \
     chmod +x /tmp/fresh/fresh.sh && \
     touch /var/log/php-fpm/centreon-error.log && \
     chown apache:apache /var/log/php-fpm/centreon-error.log && \
+    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     /tmp/fresh/fresh.sh && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
-    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     rm -f /etc/yum.repos.d/centreon-internal.repo && \
     dnf clean all && \
     rm -rf /tmp/fresh && \
