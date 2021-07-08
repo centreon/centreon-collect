@@ -5,6 +5,7 @@ set -x
 
 # Install build dependencies.
 xargs dnf install < /tmp/build-dependencies.txt
+dnf update libarchive
 dnf install centreon-clib centreon-clib-devel
 
 # Install PHPUnit.
