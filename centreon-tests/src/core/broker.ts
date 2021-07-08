@@ -230,7 +230,6 @@ export class Broker {
 
     static async getLogs() : Promise<String> {
         return (await fs.readFile(Broker.CENTREON_BROKER_LOGS_PATH)).toString()
-
     }
 
     static async getLogsCentralModule() : Promise<String> {
@@ -244,15 +243,10 @@ export class Broker {
 
     static clearLogsCentralModule() : void {
         files.rmSync(Broker.CENTREON_MODULE_LOGS_PATH)
-	files.writeFile(Broker.CENTREON_MODULE_LOGS_PATH, "", (err) => {
-	  if (err) throw err;
-        });
+        files.writeFileSync(Broker.CENTREON_MODULE_LOGS_PATH, "")
 
-        files.chown(Broker.CENTREON_MODULE_LOGS_PATH, Broker.CENTREON_ENGINE_UID, 
-                    Broker.CENTREON_ENGINE_GID, (error) => {
-          if (error)
-            console.log("Error Code:", error);
-        });
+        files.chownSync(Broker.CENTREON_MODULE_LOGS_PATH, Broker.CENTREON_ENGINE_UID,
+            Broker.CENTREON_ENGINE_GID)
     }
 
     static async isMySqlRunning() : Promise<Boolean> {
