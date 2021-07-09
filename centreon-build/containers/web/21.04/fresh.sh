@@ -9,7 +9,7 @@ php configFileSetup.php
 php installConfigurationDb.php
 php installStorageDb.php
 php createDbUser.php
-php insertBaseConf.php
+SERVER_ADDR="127.0.0.1" php insertBaseConf.php
 php partitionTables.php
 su -c "php generationCache.php" apache -s /bin/bash
 rm -rf /usr/share/centreon/www/install
