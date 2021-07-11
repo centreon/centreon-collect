@@ -33,55 +33,11 @@ describe('engine and broker testing in same time for compression', () => {
         const broker = new Broker()
         const engine = new Engine()
 
-        const tls = ["yes", "no", "auto"]
-        const errors = [
-            // yes, yes
-            [
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'",
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'"
-            ],
-            // yes, no 
-            [
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has ''",
-                "[bbdo] [info] BBDO: we have extensions '' and peer has 'TLS'"
-            ],
-            // yes, auto
-            [
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'",
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'"
-            ],
-            // no, yes
-            [
-                "[bbdo] [info] BBDO: we have extensions '' and peer has 'TLS'",
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has ''"
-            ],
-            // no, no
-            [
-                "[bbdo] [info] BBDO: we have extensions \'\' and peer has \'\'",
-                "[bbdo] [info] BBDO: we have extensions \'\' and peer has \'\'"
-            ],
-
-            // no, auto 
-            [
-                "[bbdo] [info] BBDO: we have extensions '' and peer has 'TLS'",
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has ''"
-            ],
-            // auto, yes 
-            [
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'",
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'"
-            ],
-            // auto, no 
-            [
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has ''",
-                "[bbdo] [info] BBDO: we have extensions '' and peer has 'TLS'"
-            ],
-            // auto, auto 
-            [
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'",
-                "[bbdo] [info] BBDO: we have extensions 'TLS' and peer has 'TLS'"
-            ]
-        ]
+        let tls = {
+            yes: 'TLS',
+            no : '',
+            auto: 'TLS'
+        }
 
         const config_broker = await Broker.getConfig()
         const config_module = await Broker.getConfigCentralModule()
@@ -100,28 +56,29 @@ describe('engine and broker testing in same time for compression', () => {
         const centralBrokerMaster = config_broker['centreonBroker']['input'].find((
             input => input.name === 'central-broker-master-input'))
 
-        for (let i = 0, k = 0; i < 3; ++i, k = i * 3) {
-            for (let j = 0; j < 3; ++j) {
+        for (let t1 in tls) {
+            for (let t2 in tls) {
                 Broker.clearLogs()
                 Broker.clearLogsCentralModule()
-                centralBrokerMaster['tls'] = tls[i]
-                centralModuleMaster['tls'] = tls[j]
+
+                centralBrokerMaster['tls'] = t1
+                centralModuleMaster['tls'] = t2
+
+                let peer1 = `[bbdo] [info] BBDO: we have extensions '${tls[t1]}' and peer has '${tls[t2]}'`
+                let peer2 = `[bbdo] [info] BBDO: we have extensions '${tls[t2]}' and peer has '${tls[t1]}'`
+                console.log(centralBrokerMaster)
+                console.log(centralModuleMaster)
 
                 await Broker.writeConfigCentralModule(config_module)
                 await Broker.writeConfig(config_broker)
-
-                console.log(centralBrokerMaster)
-                console.log(centralModuleMaster)
 
                 expect(await broker.start()).toBeTruthy()
                 expect(await engine.start()).toBeTruthy()
 
                 expect(await isBrokerAndEngineConnected()).toBeTruthy()
-                await shell.exec("cat /var/log/centreon-broker/central-broker-master.log")
 
-                console.log("index = ", k + j)
-                expect(await Broker.checkLogFileContains([errors[k + j][0]])).toBeTruthy()
-                expect(await Broker.checkLogFileCentralModuleContains([errors[k + j][1]])).toBeTruthy()
+                expect(await Broker.checkLogFileContains([peer1])).toBeTruthy()
+                expect(await Broker.checkLogFileCentralModuleContains([peer2])).toBeTruthy()
 
                 expect(await broker.stop()).toBeTruthy();
                 expect(await engine.stop()).toBeTruthy();
