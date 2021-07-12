@@ -47,10 +47,15 @@ export class Engine {
     }
 
     async checkCoredump() : Promise<boolean> {
-        const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
         let retval;
-        retval = cdList.find(line => line.includes('cbd') &&
-            line.includes(this.process.pid + ""));
+        const cdList = shell.exec('ps ax').stdout.split('\n')
+        retval = cdList.find(line => line.includes('/usr/lib/systemd/systemd-coredump'))
+
+        if (!retval) {
+            const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
+            retval = cdList.find(line => line.includes('cbd') &&
+                line.includes(this.process.pid + ""));
+        }
         if (retval)
             return true;
         else
