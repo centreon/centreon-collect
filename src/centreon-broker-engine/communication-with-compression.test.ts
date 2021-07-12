@@ -32,9 +32,9 @@ describe('engine and broker testing in same time for compression', () => {
         const engine = new Engine()
 
         let compression = {
-            yes: 'compression',
+            yes: 'COMPRESSION',
             no: '',
-            auto: 'compression'
+            auto: 'COMPRESSION'
         }
 
         const config_broker = await Broker.getConfig()
