@@ -3,7 +3,7 @@ import shell from 'shelljs';
 import { once } from 'events'
 import { Engine } from '../core/engine';
 
-// shell.config.silent = true;
+shell.config.silent = true;
 
 describe("start and stop engine", () => {
     it('start/stop centengine', async () => {
