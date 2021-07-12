@@ -26,15 +26,15 @@ describe('engine and broker testing in same time for compression', () => {
         })
     })
 
-        
+
     it('compression checks between broker - engine', async () => {
         const broker = new Broker()
         const engine = new Engine()
-        
+
         let compression = {
-           yes: 'compression',
-           no: '',
-           auto: 'compression'
+            yes: 'compression',
+            no: '',
+            auto: 'compression'
         }
 
         const config_broker = await Broker.getConfig()
@@ -62,8 +62,8 @@ describe('engine and broker testing in same time for compression', () => {
                 centralBrokerMaster['compression'] = c1
                 centralModuleMaster['compression'] = c2
 
-                let peer1 = `[bbdo] [info] BBDO: we have extensions '${compression[c1]}' and peer has '${compression[c2]}'` 
-                let peer2 = `[bbdo] [info] BBDO: we have extensions '${compression[c2]}' and peer has '${compression[c1]}'` 
+                let peer1 = `[bbdo] [info] BBDO: we have extensions '${compression[c1]}' and peer has '${compression[c2]}'`
+                let peer2 = `[bbdo] [info] BBDO: we have extensions '${compression[c2]}' and peer has '${compression[c1]}'`
 
                 console.log(centralBrokerMaster)
                 console.log(centralModuleMaster)
@@ -85,5 +85,5 @@ describe('engine and broker testing in same time for compression', () => {
         }
 
     }, 400000);
- 
+
 });

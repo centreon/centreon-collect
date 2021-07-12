@@ -35,7 +35,7 @@ describe('engine and broker testing in same time for compression', () => {
 
         let tls = {
             yes: 'TLS',
-            no : '',
+            no: '',
             auto: 'TLS'
         }
 
@@ -149,18 +149,4 @@ describe('engine and broker testing in same time for compression', () => {
         await shell.rm("/etc/centreon-broker/ssl/server.key")
         await shell.rm("/etc/centreon-broker/ssl/server.crt")
     }, 90000);
-
-    /*
-    it('test a enlever', async () => {
-        let retval;
-        const engine = new Engine()
-
-        expect(await engine.start()).toBeTruthy()
-        engine.stop();
-
-        const cdList = shell.exec('ps ax').stdout.split('\n')
-        retval = cdList.find(line => line.includes('/usr/lib/systemd/systemd-coredump'))
-        console.log(retval)
-    }, 90000);
-    */
 });

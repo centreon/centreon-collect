@@ -101,14 +101,19 @@ export class Broker {
     }
 
     async checkCoredump() : Promise<boolean> {
-        const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
         let retval;
-        if (this.instanceCount == 1)
-            retval = cdList.find(line => line.includes('cbd') &&
-                line.includes(this.process.pid + ""));
-        else
-            retval = cdList.find(line => line.includes('cbd') &&
-                (line.includes(this.process.pid + "") || line.includes(this.rrdProcess.pid + "")));
+        const cdList = shell.exec('ps ax').stdout.split('\n')
+        retval = cdList.find(line => line.includes('/usr/lib/systemd/systemd-coredump'))
+
+        if (!retval) {
+            const cdList = await shell.exec('/usr/bin/coredumpctl').stdout.split('\n')
+            if (this.instanceCount == 1)
+                retval = cdList.find(line => line.includes('cbd') &&
+                    line.includes(this.process.pid + ""));
+            else
+                retval = cdList.find(line => line.includes('cbd') &&
+                    (line.includes(this.process.pid + "") || line.includes(this.rrdProcess.pid + "")));
+        }
         if (retval)
             return true;
         else
