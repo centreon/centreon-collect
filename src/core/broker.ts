@@ -50,16 +50,18 @@ export class Broker {
     /**
      * will stop current cbd broker if already running
      *
-     * @returns Promise<Boolean> true if correctly stoped, else false
+     * @returns Promise<Boolean> true if correctly stopped, else false
      */
     async stop() : Promise<Boolean> {
-        if (await this.isRunning(true, 5)) {
-            this.process.kill()
+        if (await this.isRunning(true, 25)) {
+            let ret1 = this.process.kill()
+            let ret2 = true;
             if (this.instanceCount == 2)
-                this.rrdProcess.kill()
+                ret2 = this.rrdProcess.kill()
 
-            const isRunning = await this.isRunning(false)
-            return !isRunning;
+            return ret1 && ret2;
+            //const isRunning = await this.isRunning(false)
+            //return !isRunning;
         }
 
         return true;
@@ -243,7 +245,8 @@ export class Broker {
     }
 
     static clearLogs() : void {
-        shell.rm(Broker.CENTREON_BROKER_LOGS_PATH)
+        if (files.existsSync(Broker.CENTREON_BROKER_LOGS_PATH))
+            files.rmSync(Broker.CENTREON_BROKER_LOGS_PATH)
     }
 
     static clearLogsCentralModule() : void {

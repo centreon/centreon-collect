@@ -6,10 +6,10 @@ import { Engine } from '../core/engine';
 import { isBrokerAndEngineConnected } from '../core/brokerEngine';
 import { broker } from 'shared';
 
-const util = require('util')
-const process = require('process')
+import util from 'util';
+import process from 'process';
 
-// shell.config.silent = true;
+shell.config.silent = true;
 
 describe('engine and broker testing in same time for compression', () => {
     beforeEach(() => {

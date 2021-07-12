@@ -1,4 +1,3 @@
-import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
 import { Broker } from '../core/broker';
@@ -62,8 +61,13 @@ describe('engine and broker testing in same time for compression', () => {
                 centralBrokerMaster['compression'] = c1
                 centralModuleMaster['compression'] = c2
 
-                let peer1 = `[bbdo] [info] BBDO: we have extensions '${compression[c1]}' and peer has '${compression[c2]}'`
-                let peer2 = `[bbdo] [info] BBDO: we have extensions '${compression[c2]}' and peer has '${compression[c1]}'`
+                let peer1 = [`[bbdo] [info] BBDO: we have extensions '${compression[c1]}' and peer has '${compression[c2]}'`];
+                let peer2 = [`[bbdo] [info] BBDO: we have extensions '${compression[c2]}' and peer has '${compression[c1]}'`];
+
+                if (c1 == 'yes' && c2 == 'no')
+                    peer1.push("[bbdo] [error] BBDO: extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration.");
+                else if (c1 == 'no' && c2 == 'yes')
+                    peer2.push("[bbdo] [error] BBDO: extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration.");
 
                 console.log(centralBrokerMaster)
                 console.log(centralModuleMaster)
@@ -76,8 +80,8 @@ describe('engine and broker testing in same time for compression', () => {
 
                 expect(await isBrokerAndEngineConnected()).toBeTruthy()
 
-                expect(await Broker.checkLogFileContains([peer1])).toBeTruthy()
-                expect(await Broker.checkLogFileCentralModuleContains([peer2])).toBeTruthy()
+                expect(await Broker.checkLogFileContains(peer1)).toBeTruthy()
+                expect(await Broker.checkLogFileCentralModuleContains(peer2)).toBeTruthy()
 
                 expect(await broker.stop()).toBeTruthy();
                 expect(await engine.stop()).toBeTruthy();
