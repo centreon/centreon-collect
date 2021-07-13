@@ -5,10 +5,10 @@ import { Broker } from '../core/broker';
 import fs from 'fs/promises'
 import { readFile } from 'fs';
 import { doesNotReject } from 'assert/strict';
-//shell.config.silent = true;
+shell.config.silent = true;
 
 beforeEach(async () => {
-    await Broker.clearLogs()
+    Broker.clearLogs();
 }, 30000)
 
 afterEach(async () => {
@@ -32,7 +32,6 @@ it('should deny access when database name exists but is not the good one for sql
     console.log("isStopped = " + isStopped);
     expect(isStopped).toBeTruthy();
     expect(await broker.checkCoredump()).toBeFalsy()
-
 }, 120000);
 
 it('should deny access when database name exists but is not the good one for storage output', async () => {

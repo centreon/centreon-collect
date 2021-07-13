@@ -34,10 +34,10 @@
                 "buffering_timeout": "0",
                 "retry_interval": "5",
                 "protocol": "bbdo",
-                "tls": "auto",
+                "tls": "no",
                 "negotiation": "yes",
                 "one_peer_retention_mode": "no",
-                "compression": "auto",
+                "compression": "no",
                 "type": "ipv4"
             }
         ],

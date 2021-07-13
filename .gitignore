@@ -17,3 +17,5 @@ workspace.*
 .env.local
 
 src/config/centreon-engine/*.cfg
+tags
+.ctags
