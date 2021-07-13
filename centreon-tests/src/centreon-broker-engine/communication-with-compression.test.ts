@@ -75,16 +75,16 @@ describe('engine and broker testing in same time for compression', () => {
                 await Broker.writeConfigCentralModule(config_module)
                 await Broker.writeConfig(config_broker)
 
-                expect(await broker.start()).toBeTruthy()
-                expect(await engine.start()).toBeTruthy()
+                await expect(broker.start()).resolves.toBeTruthy()
+                await expect(engine.start()).resolves.toBeTruthy()
 
-                expect(await isBrokerAndEngineConnected()).toBeTruthy()
+                await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-                expect(await Broker.checkLogFileContains(peer1)).toBeTruthy()
-                expect(await Broker.checkLogFileCentralModuleContains(peer2)).toBeTruthy()
+                await expect(Broker.checkLogFileContains(peer1)).resolves.toBeTruthy();
+                await expect(Broker.checkLogFileCentralModuleContains(peer2)).resolves.toBeTruthy()
 
-                expect(await broker.stop()).toBeTruthy();
-                expect(await engine.stop()).toBeTruthy();
+                await expect(broker.stop()).resolves.toBeTruthy();
+                await expect(engine.stop()).resolves.toBeTruthy();
             }
         }
 

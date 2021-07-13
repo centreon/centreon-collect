@@ -64,24 +64,30 @@ describe('engine and broker testing in same time for compression', () => {
                 centralBrokerMaster['tls'] = t1
                 centralModuleMaster['tls'] = t2
 
-                let peer1 = `[bbdo] [info] BBDO: we have extensions '${tls[t1]}' and peer has '${tls[t2]}'`
-                let peer2 = `[bbdo] [info] BBDO: we have extensions '${tls[t2]}' and peer has '${tls[t1]}'`
+                let peer1 = [`[bbdo] [info] BBDO: we have extensions '${tls[t1]}' and peer has '${tls[t2]}'`];
+                let peer2 = [`[bbdo] [info] BBDO: we have extensions '${tls[t2]}' and peer has '${tls[t1]}'`];
+
+                if (t1 == 'yes' && t2 == 'no')
+                    peer1.push("[bbdo] [error] BBDO: extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration.");
+                else if (t1 == 'no' && t2 == 'yes')
+                    peer2.push("[bbdo] [error] BBDO: extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration.");
+
                 console.log(centralBrokerMaster)
                 console.log(centralModuleMaster)
 
                 await Broker.writeConfigCentralModule(config_module)
                 await Broker.writeConfig(config_broker)
 
-                expect(await broker.start()).toBeTruthy()
-                expect(await engine.start()).toBeTruthy()
+                await expect(broker.start()).resolves.toBeTruthy()
+                await expect(engine.start()).resolves.toBeTruthy()
 
-                expect(await isBrokerAndEngineConnected()).toBeTruthy()
+                await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-                expect(await Broker.checkLogFileContains([peer1])).toBeTruthy()
-                expect(await Broker.checkLogFileCentralModuleContains([peer2])).toBeTruthy()
+                await expect(Broker.checkLogFileContains(peer1)).resolves.toBeTruthy()
+                await expect(Broker.checkLogFileCentralModuleContains(peer2)).resolves.toBeTruthy()
 
-                expect(await broker.stop()).toBeTruthy();
-                expect(await engine.stop()).toBeTruthy();
+                await expect(broker.stop()).resolves.toBeTruthy();
+                await expect(engine.stop()).resolves.toBeTruthy();
             }
         }
     }, 400000);
@@ -105,12 +111,12 @@ describe('engine and broker testing in same time for compression', () => {
             input => input.name === 'central-rrd-master-input'))
 
         // get hostname
-        const output = await shell.exec("hostname --fqdn")
+        const output = shell.exec("hostname --fqdn")
         const hostname = output.stdout.replace(/\n/g, '')
 
         // generates keys
-        await shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
-        await shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
+        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
+        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
 
         // update configuration file
         centralBrokerMaster["tls"] = "yes"
@@ -131,22 +137,22 @@ describe('engine and broker testing in same time for compression', () => {
         console.log(centralRrdMaster)
 
         // starts centreon
-        expect(await broker.start()).toBeTruthy()
-        expect(await engine.start()).toBeTruthy()
+        await expect(broker.start()).resolves.toBeTruthy()
+        await expect(engine.start()).resolves.toBeTruthy()
 
-        expect(await isBrokerAndEngineConnected()).toBeTruthy()
+        await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
         // checking logs 
-        expect(await Broker.checkLogFileContains(["[tls] [info] TLS: using certificates as credentials"])).toBeTruthy()
-        expect(await Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).toBeTruthy()
-        expect(await Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).toBeTruthy()
+        await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using certificates as credentials"])).resolves.toBeTruthy()
+        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
+        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
 
-        expect(await broker.stop()).toBeTruthy();
-        expect(await engine.stop()).toBeTruthy();
+        await expect(broker.stop()).resolves.toBeTruthy();
+        await expect(engine.stop()).resolves.toBeTruthy();
 
-        await shell.rm("/etc/centreon-broker/client.key")
-        await shell.rm("/etc/centreon-broker/client.crt")
-        await shell.rm("/etc/centreon-broker/server.key")
-        await shell.rm("/etc/centreon-broker/server.crt")
+        shell.rm("/etc/centreon-broker/client.key")
+        shell.rm("/etc/centreon-broker/client.crt")
+        shell.rm("/etc/centreon-broker/server.key")
+        shell.rm("/etc/centreon-broker/server.crt")
     }, 90000);
 });

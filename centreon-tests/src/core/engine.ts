@@ -47,7 +47,7 @@ export class Engine {
     }
 
     async checkCoredump() : Promise<boolean> {
-        let retval;
+        let retval: string;
         const cdList = shell.exec('ps ax').stdout.split('\n')
         retval = cdList.find(line => line.includes('/usr/lib/systemd/systemd-coredump'))
 
