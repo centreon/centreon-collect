@@ -22,7 +22,7 @@ DISTRIB="$1"
 # Frontend unit tests.
 if [ "$DISTRIB" = 'frontend' ] ; then
   # Launch frontend unit test container.
-  UT_IMAGE=registry.centreon.com/puppeteer:latest
+  UT_IMAGE=registry.centreon.com/puppeter:node-16
   docker pull $UT_IMAGE
   containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh $PROJECT`
 
