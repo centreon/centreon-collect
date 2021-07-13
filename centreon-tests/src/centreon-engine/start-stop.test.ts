@@ -5,7 +5,6 @@ import { Engine } from '../core/engine';
 
 shell.config.silent = true;
 
-
 describe("start and stop engine", () => {
     it('start/stop centengine', async () => {
         const engine = new Engine()
@@ -31,7 +30,7 @@ describe("start and stop engine", () => {
         }
     }, 120000);
 
-    it('Check custom config', async () => {
-        expect(await Engine.buildConfig()).toBeTruthy();
-    }, 120000)
+    //it('Check custom config', async () => {
+    //    expect(await Engine.buildConfig()).toBeTruthy();
+    //}, 120000)
 })
