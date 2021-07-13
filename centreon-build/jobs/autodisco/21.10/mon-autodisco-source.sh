@@ -49,9 +49,6 @@ done
 
 # build job pages
 cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react"
-npm ci
-npm run build
-# clean frontend sources
 cd ..
 rm -rf react
 # archive module
