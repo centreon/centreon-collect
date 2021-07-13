@@ -156,7 +156,7 @@ describe('engine and broker testing in same time for compression', () => {
         shell.rm("/etc/centreon-broker/server.crt")
     }, 90000);
 
-    it.only('tls with keys checks between broker - engine (bis)', async () => {
+    it('tls with keys checks between broker - engine (bis)', async () => {
         const broker = new Broker()
         const engine = new Engine()
 
