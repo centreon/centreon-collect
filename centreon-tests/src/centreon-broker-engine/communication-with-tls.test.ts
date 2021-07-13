@@ -156,7 +156,7 @@ describe('engine and broker testing in same time for compression', () => {
         shell.rm("/etc/centreon-broker/server.crt")
     }, 90000);
 
-    it('tls with keys checks between broker - engine (bis)', async () => {
+    it.only('tls with keys checks between broker - engine (bis)', async () => {
         const broker = new Broker()
         const engine = new Engine()
 
@@ -179,8 +179,8 @@ describe('engine and broker testing in same time for compression', () => {
         const hostname = output.stdout.replace(/\n/g, '')
 
         // generates keys
-        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
-        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
+        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
+        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
 
         // update configuration file
         centralBrokerMaster["tls"] = "yes"
@@ -210,9 +210,7 @@ describe('engine and broker testing in same time for compression', () => {
         await expect(broker.stop()).resolves.toBeTruthy();
         await expect(engine.stop()).resolves.toBeTruthy();
 
-        shell.rm("/etc/centreon-broker/client.key")
         shell.rm("/etc/centreon-broker/client.crt")
-        shell.rm("/etc/centreon-broker/server.key")
         shell.rm("/etc/centreon-broker/server.crt")
     }, 90000);
 
