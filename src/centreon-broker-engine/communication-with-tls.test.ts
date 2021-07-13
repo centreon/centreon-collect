@@ -92,7 +92,7 @@ describe('engine and broker testing in same time for compression', () => {
         }
     }, 400000);
 
-    it.only('tls with keys checks between broker - engine', async () => {
+    it('tls with keys checks between broker - engine', async () => {
         const broker = new Broker()
         const engine = new Engine()
 
@@ -155,4 +155,65 @@ describe('engine and broker testing in same time for compression', () => {
         shell.rm("/etc/centreon-broker/server.key")
         shell.rm("/etc/centreon-broker/server.crt")
     }, 90000);
+
+    it('tls with keys checks between broker - engine (bis)', async () => {
+        const broker = new Broker()
+        const engine = new Engine()
+
+        const config_broker = await Broker.getConfig()
+        const config_rrd = await Broker.getConfigCentralRrd()
+
+        const centralBrokerLoggers = config_broker['centreonBroker']['log']['loggers']
+
+        centralBrokerLoggers['bbdo'] = "info"
+        centralBrokerLoggers['tcp'] = "info"
+        centralBrokerLoggers['tls'] = "trace"
+
+        var centralBrokerMaster = config_broker['centreonBroker']['output'].find((
+            output => output.name === 'centreon-broker-master-rrd'))
+        const centralRrdMaster = config_rrd['centreonBroker']['input'].find((
+            input => input.name === 'central-rrd-master-input'))
+
+        // get hostname
+        const output = shell.exec("hostname --fqdn")
+        const hostname = output.stdout.replace(/\n/g, '')
+
+        // generates keys
+        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
+        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
+
+        // update configuration file
+        centralBrokerMaster["tls"] = "yes"
+        centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/server.crt"
+
+        centralRrdMaster["tls"] = "yes"
+        centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/client.crt"
+
+        // write changes in config_broker
+        await Broker.writeConfig(config_broker)
+        await Broker.writeConfigCentralRrd(config_rrd)
+
+        console.log(centralBrokerMaster)
+        console.log(centralRrdMaster)
+
+        // starts centreon
+        await expect(broker.start()).resolves.toBeTruthy()
+        await expect(engine.start()).resolves.toBeTruthy()
+
+        await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
+
+        // checking logs 
+        await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using anonymous client credentials"])).resolves.toBeTruthy()
+        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
+        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
+
+        await expect(broker.stop()).resolves.toBeTruthy();
+        await expect(engine.stop()).resolves.toBeTruthy();
+
+        shell.rm("/etc/centreon-broker/client.key")
+        shell.rm("/etc/centreon-broker/client.crt")
+        shell.rm("/etc/centreon-broker/server.key")
+        shell.rm("/etc/centreon-broker/server.crt")
+    }, 90000);
+
 });
