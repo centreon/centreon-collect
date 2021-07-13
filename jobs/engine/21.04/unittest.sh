@@ -30,7 +30,7 @@ fi
 CXXFLAGS="-std=c++11" $mycmake -DWITH_TESTING=1 /usr/local/src/centreon-engine
 
 # Build project.
-make -j 4
+make -j 8
 
 # Run unit tests.
 ./tests/ut --gtest_output=xml:/tmp/ut.xml
