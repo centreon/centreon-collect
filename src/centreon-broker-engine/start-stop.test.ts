@@ -1,10 +1,7 @@
-import sleep from 'await-sleep';
 import shell from 'shelljs';
-import { once } from 'events'
 import { Broker } from '../core/broker';
 import { Engine } from '../core/engine';
 import { isBrokerAndEngineConnected } from '../core/brokerEngine';
-import { broker } from 'shared';
 
 shell.config.silent = true;
 
@@ -26,69 +23,69 @@ describe('engine and broker testing in same time', () => {
     it('start/stop centreon broker/engine - broker first', async () => {
 
         const broker = new Broker(1);
-        expect(await broker.start()).toBeTruthy()
+        await expect(broker.start()).resolves.toBeTruthy()
 
         const engine = new Engine()
-        expect(await engine.start()).toBeTruthy()
+        await expect( engine.start()).resolves.toBeTruthy()
+        
+        await expect( isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        expect(await isBrokerAndEngineConnected()).toBeTruthy()
+        await expect( engine.stop()).resolves.toBeTruthy();
+        await expect( engine.start()).resolves.toBeTruthy()
 
-        expect(await engine.stop()).toBeTruthy();
-        expect(await engine.start()).toBeTruthy()
+        await expect( isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        expect(await isBrokerAndEngineConnected()).toBeTruthy()
+        await expect( engine.stop()).resolves.toBeTruthy();
+        await expect( broker.stop()).resolves.toBeTruthy();
 
-        expect(await engine.stop()).toBeTruthy();
-        expect(await broker.stop()).toBeTruthy();
-
-        expect(await broker.checkCoredump()).toBeFalsy()
-        expect(await engine.checkCoredump()).toBeFalsy()
+        await expect(broker.checkCoredump()).resolves.toBeFalsy()
+        await expect(engine.checkCoredump()).resolves.toBeFalsy()
 
     }, 60000);
 
 
     it('start/stop centreon broker/engine - engine first', async () => {
         const engine = new Engine()
-        expect(await engine.start()).toBeTruthy()
+        await expect(engine.start()).resolves.toBeTruthy()
 
         const broker = new Broker(1);
-        expect(await broker.start()).toBeTruthy()
+        await expect( broker.start()).resolves.toBeTruthy()
 
-        expect(await isBrokerAndEngineConnected()).toBeTruthy()
+        await expect( isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        expect(await broker.stop()).toBeTruthy();
-        expect(await broker.start()).toBeTruthy()
+        await expect( broker.stop()).resolves.toBeTruthy();
+        await expect( broker.start()).resolves.toBeTruthy()
 
-        expect(await isBrokerAndEngineConnected()).toBeTruthy()
+        await expect( isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        expect(await broker.stop()).toBeTruthy();
-        expect(await engine.stop()).toBeTruthy();
+        await expect( broker.stop()).resolves.toBeTruthy();
+        await expect( engine.stop()).resolves.toBeTruthy();
 
-        expect(await broker.checkCoredump()).toBeFalsy()
-        expect(await engine.checkCoredump()).toBeFalsy()
+        await expect( broker.checkCoredump()).resolves.toBeFalsy()
+        await expect( engine.checkCoredump()).resolves.toBeFalsy()
     }, 60000);
 
     it('should handle database service stop and start', async () => {
         const broker = new Broker();
 
-        await shell.exec('service mysql stop')
+        shell.exec('service mysql stop')
 
-        expect(await Broker.isMySqlRunning()).toBeTruthy()
+        await expect( Broker.isMySqlRunning()).resolves.toBeTruthy()
 
-        expect(await broker.start()).toBeTruthy()
+        await expect( broker.start()).resolves.toBeTruthy()
 
         const engine = new Engine()
-        expect(await engine.start()).toBeTruthy()
+        await expect( engine.start()).resolves.toBeTruthy()
 
-        expect(await isBrokerAndEngineConnected()).toBeTruthy()
+        await expect( isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        expect(await Broker.checkLogFileContains(['[core] [error] failover: global error: storage: Unable to initialize the storage connection to the database'])).toBeTruthy()
+        await expect( Broker.checkLogFileContains(['[core] [error] failover: global error: storage: Unable to initialize the storage connection to the database'])).resolves.toBeTruthy()
 
-        expect(await broker.stop()).toBeTruthy();
-        expect(await engine.stop()).toBeTruthy();
+        await expect( broker.stop()).resolves.toBeTruthy();
+        await expect( engine.stop()).resolves.toBeTruthy();
 
-        expect(await broker.checkCoredump()).toBeFalsy()
-        expect(await engine.checkCoredump()).toBeFalsy()
+        await expect( broker.checkCoredump()).resolves.toBeFalsy()
+        await expect( engine.checkCoredump()).resolves.toBeFalsy()
 
     }, 60000);
 });
