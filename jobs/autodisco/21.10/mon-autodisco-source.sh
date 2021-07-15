@@ -47,8 +47,14 @@ for i in "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/locale"
   rm -f "$i/LC_MESSAGES/messages.po"
 done
 
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n latest
+
 # build job pages
 cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react"
+npm ci
+npm run build
 cd ..
 rm -rf react
 # archive module
