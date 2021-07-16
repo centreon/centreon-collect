@@ -49,7 +49,7 @@ done
 
 sudo npm cache clean -f
 sudo npm install -g n
-sudo n latest
+sudo n 14.17.3
 
 # build job pages
 cd "../$PROJECT-$VERSION/www/modules/centreon-autodiscovery-server/react"
