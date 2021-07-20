@@ -20,5 +20,6 @@ php-xml
 php-zip
 rrdtool
 rrdtool-perl
+rrdtool-devel
 sudo
 which
