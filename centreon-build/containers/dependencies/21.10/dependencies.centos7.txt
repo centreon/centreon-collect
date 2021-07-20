@@ -36,6 +36,7 @@ rh-php73-php-xml
 rh-php73-php-zip
 rrdtool
 rrdtool-perl
+rrdtool-devel
 rsync
 sudo
 which
