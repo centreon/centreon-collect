@@ -15,7 +15,7 @@ fi
 # Release delivery.
 #
 if [ "$BUILD" '=' 'RELEASE' ] ; then
-  put_testing_source "standard" "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz" centreon-api-v2.html
+  put_testing_source "standard" "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz" centreon-api-v21.10.html
   copy_internal_rpms_to_testing "standard" "21.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
   copy_internal_rpms_to_testing "standard" "21.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
   TARGETVERSION="$VERSION"
@@ -27,8 +27,8 @@ else
   promote_canary_rpms_to_unstable "standard" "21.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
   promote_canary_rpms_to_unstable "standard" "21.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
   SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-  put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v2.html
-  $SSH_REPO aws s3 cp --acl public-read "/srv/sources/internal/web/$PROJECT-$VERSION-$RELEASE/centreon-api-v2.html" s3://centreon-documentation-prod/api/centreon-web/index.html
+  put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v21.10.html
+  $SSH_REPO aws s3 cp --acl public-read "/srv/sources/internal/web/$PROJECT-$VERSION-$RELEASE/centreon-api-v21.10.html" s3://centreon-documentation-prod/api/centreon-web/index.html
   $SSH_REPO aws cloudfront create-invalidation --distribution-id E3KVGH6VYVX7DP --paths /api/centreon-web/index.html
   TARGETVERSION='21.10'
 fi

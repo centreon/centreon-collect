@@ -37,7 +37,7 @@ fi
 # Build image.
 REGISTRY="registry.centreon.com"
 AUTODISCO_IMAGE="$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$DISTRIB"
-AUTODISCO_WIP_IMAGE="$REGISTRY/mon-autodisco-21.10-wip:$DISTRIB"
+AUTODISCO_WIP_IMAGE=$(echo "$REGISTRY/mon-autodisco-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 docker build --no-cache -t "$AUTODISCO_IMAGE" -f autodisco/Dockerfile .
 docker push "$AUTODISCO_IMAGE"
 docker tag "$AUTODISCO_IMAGE" "$AUTODISCO_WIP_IMAGE"

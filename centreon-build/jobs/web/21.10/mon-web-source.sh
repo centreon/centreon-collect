@@ -82,7 +82,7 @@ docker cp vendor.tar.gz "$containerid:/usr/local/src/"
 docker start -a "$containerid"
 rm -f "$PROJECT-$VERSION.tar.gz"
 docker cp "$containerid:/usr/local/src/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
-docker cp "$containerid:/usr/local/src/centreon-api-v2.html" centreon-api-v2.html
+docker cp "$containerid:/usr/local/src/centreon-api-v21.10.html" centreon-api-v21.10.html
 
 # Stop container.
 docker stop "$containerid"
