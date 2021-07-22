@@ -1,5 +1,5 @@
 # Base information.
-FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
+FROM @CENTREON_WEB_IMAGE@
 LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 
 # Install repository.
