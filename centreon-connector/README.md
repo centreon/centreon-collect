@@ -55,7 +55,7 @@ Centreon Clib.
 Centreon Connectors need Centreon Clib to be build. You should
 [install it first](https://github.com/centreon/centreon-clib).
 
-### CentOS
+### CentOS / Debian / Raspbian
 
 Compilation of this distribution is pretty straightforward.
 
@@ -107,27 +107,13 @@ pip3 install conan
 > you want to use a dependency from your package manager instead of conan,
 > you need to remove it from conanfile.txt.
 
-Then you have to add a remote conan repository, for that enter the command:
-
-```shell
-conan remote add centreon https://api.bintray.com/conan/centreon/centreon
-```
-
-Now, the list command should list two repositories:
-
-```shell
-conan remote list
-conan-center: https://conan.bintray.com [Verify SSL: True]
-centreon: https://api.bintray.com/conan/centreon/centreon [Verify SSL: True]
-```
-
 You can now prepare the compilation environment:
 
 ```shell
 git clone https://github.com/centreon/centreon-connectors
 mkdir -p centreon-connectors/build
 cd centreon-connectors/build
-conan install --remote centreon ..
+conan install --build missing ..
 cmake -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX_BINARY=/usr/lib64/centreon-connector -DWITH_TESTING=On ..
 ```
 
