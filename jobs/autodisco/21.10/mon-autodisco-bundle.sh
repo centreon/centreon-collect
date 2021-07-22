@@ -19,15 +19,22 @@ if [ "$#" -lt 1 ] ; then
 fi
 DISTRIB="$1"
 
+if [ $(curl https://registry.centreon.com/v2/mon-web-$BRANCH_NAME/tags/list -s | egrep  '^\{"name"' | wc -l) -eq 1 ]
+then
+    CENTREON_WEB_BRANCH_NAME=$BRANCH_NAME
+else
+    CENTREON_WEB_BRANCH_NAME=21.10
+fi
+
 # Pull base image.
-WEB_IMAGE=registry.centreon.com/mon-web-21.10:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-$CENTREON_WEB_BRANCH_NAME:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" < autodisco/21.10/Dockerfile.in > autodisco/Dockerfile
+sed "s/@CENTREON_WEB_IMAGE@/$WEB_IMAGE/g" < autodisco/21.10/Dockerfile.in > autodisco/Dockerfile
 if [ "$DISTRIB" = 'centos7' ] ; then
   sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 else
