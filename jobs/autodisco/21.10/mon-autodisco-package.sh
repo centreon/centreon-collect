@@ -63,8 +63,9 @@ else
   exit 1
 fi
 put_internal_rpms "21.10" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
+if [ "$BUILD" '=' 'QA' ] ; then
   copy_internal_rpms_to_canary "standard" "21.10" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+  promote_canary_rpms_to_unstable "standard" "21.10" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 fi
 
 # Create RPMs tarball.
