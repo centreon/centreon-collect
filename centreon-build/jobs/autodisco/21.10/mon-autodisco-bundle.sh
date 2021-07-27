@@ -34,7 +34,7 @@ docker pull $WEB_IMAGE
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@CENTREON_WEB_IMAGE@/$WEB_IMAGE/g" < autodisco/21.10/Dockerfile.in > autodisco/Dockerfile
+sed "s#@CENTREON_WEB_IMAGE@#$WEB_IMAGE#g" < autodisco/21.10/Dockerfile.in > autodisco/Dockerfile
 if [ "$DISTRIB" = 'centos7' ] ; then
   sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/autodisco/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 else
