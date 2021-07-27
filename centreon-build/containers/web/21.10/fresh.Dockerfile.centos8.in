@@ -32,7 +32,7 @@ RUN dnf clean all && \
     rm -f /etc/php-fpm.d/www.conf
 
 # License stuff.
-ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
+ENV CENTREON_IMP_SERVER HELLOWORLD:https://ppd-api.imp.centreon.com
 COPY web/21.10/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
