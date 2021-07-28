@@ -3,7 +3,7 @@ FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Set middleware server.
-ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000/api
+ENV CENTREON_IMP_SERVER HELLOWORLD:https://ppd-api.imp.centreon.com/api
 
 # Install repository.
 COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
