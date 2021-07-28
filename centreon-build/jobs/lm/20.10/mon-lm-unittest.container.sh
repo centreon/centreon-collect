@@ -25,7 +25,7 @@ mv build/phpunit.xml /tmp/ut-be.xml
 mv build/coverage.xml /tmp/coverage.xml
 mv build/checkstyle.xml /tmp/codestyle-be.xml
 
-cd "www/modules/centreon-license-manager/frontend/hooks"
+cd "www/modules/centreon-license-manager/frontend"
 
 # Run frontend unit tests and code style.
 npm run eslint -- -o checkstyle-fe.xml -f checkstyle
