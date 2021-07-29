@@ -8,6 +8,16 @@ shell.config.silent = true;
 describe('engine and broker testing in same time', () => {
 
     beforeEach(() => {
+        /* close instances of cbd if running */
+        if (Broker.isCbdAlreadyRunning()) {
+          shell.exec('systemctl stop cbd')
+        }
+
+        /* close instance of centengine if running */
+        if (Engine.isCentengineAlreadyRunning()) {
+          shell.exec('systemctl stop centengine')
+        }
+
         Broker.clearLogs()
         Broker.resetConfig()
     })
@@ -21,7 +31,6 @@ describe('engine and broker testing in same time', () => {
 
 
     it('start/stop centreon broker/engine - broker first', async () => {
-
         const broker = new Broker(1);
         await expect(broker.start()).resolves.toBeTruthy()
 
