@@ -90,6 +90,54 @@ export class Engine {
         return !!centreonEngineProcess;
     }
 
+    /**
+     *  this function checks if instances of centengine are actually running
+     * @param  {void} 
+     * @returns {Promise<Boolean>} true if found, else false
+     */
+    static isCentengineAlreadyRunning() : Boolean {
+        const cdList = shell.exec('systemctl status centengine').stdout.split('\n')
+        let retval;
+        retval = cdList.find(line => line.includes('running'))
+        if (retval)
+            return true
+        else
+            return false
+    }
+
+    /**
+     *  this function checks if instances of centengine are actually running
+     * @param  {void} 
+     * @returns {Boolean} true if found, else false
+     */
+    static isCentengineInstancesRunning() : Boolean {
+        let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/centengine').stdout.split('\n')
+
+        instances = instances.filter(String)
+
+        if (!(instances == undefined) || (instances.length == 0))
+            return true
+        else
+            return false
+    }
+
+     /**
+     *  this function close instances of cbd that are actually running
+     * @param  {void} 
+     * @returns {void} true if found, else false
+     */
+    static closeCentengineInstances() : void {
+        let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/centengine').stdout.split('\n')
+        instances = instances.filter(String)
+
+        for (let i = 0; i < instances.length; ++i) {
+          let str =  instances[i].trim().split(" ", 1)
+          let pid = +str
+          console.log(instances[i], pid)
+          shell.exec('kill -9 ' + pid)
+        }
+    }
+
     static createHost(id : number) : string {
         let a = id % 255;
         let q = Math.floor(id / 255);

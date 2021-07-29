@@ -13,19 +13,64 @@ shell.config.silent = true;
 
 describe('engine and broker testing in same time for compression', () => {
     beforeEach(() => {
+        /* close cbd if running */
+        if (Broker.isCbdAlreadyRunning()) {
+          shell.exec('systemctl stop cbd')
+        }
+
+        /* closes centengine if running */
+        if (Engine.isCentengineAlreadyRunning()) {
+          shell.exec('systemctl stop centengine')
+        }
+
+        /* closes instances of cbd if running */
+        if (Broker.isCbdInstancesRunning()) {
+          Broker.closeCbdInstances()
+        }
+
+        /* closes instances of centengine if running */
+        if (Engine.isCentengineInstancesRunning()) {
+          Engine.closeCentengineInstances()
+        }
+
         Broker.clearLogs()
         Broker.clearLogsCentralModule()
         Broker.resetConfig()
         Broker.resetConfigCentralModule()
         Broker.resetConfigCentralRrd()
+
+        if ((Broker.isCbdAlreadyRunning()) || (Engine.isCentengineAlreadyRunning())) {
+          console.log("program could not stop cbd or centengine")
+          process.exit(1)
+        }
     })
 
     afterAll(() => {
         beforeEach(() => {
-            Broker.clearLogs()
-            Broker.resetConfig()
-            Broker.resetConfigCentralModule()
-            Broker.resetConfigCentralRrd()
+          /* close instances of cbd if running */
+          if (Broker.isCbdAlreadyRunning()) {
+            shell.exec('systemctl stop cbd')
+          }
+
+          /* close instance of centengine if running */
+          if (Engine.isCentengineAlreadyRunning()) {
+            shell.exec('systemctl stop centengine')
+          }
+
+          /* closes instances of cbd if running */
+          if (Broker.isCbdInstancesRunning()) {
+            Broker.closeCbdInstances()
+          }
+
+          /* closes instances of centengine if running */
+          if (Engine.isCentengineInstancesRunning()) {
+            Engine.closeCentengineInstances()
+          }
+
+          Broker.clearLogs()
+          Broker.resetConfig()
+          Broker.resetConfigCentralModule()
+          Broker.resetConfigCentralRrd()
         })
     })
 
@@ -80,7 +125,7 @@ describe('engine and broker testing in same time for compression', () => {
 
                 await expect(broker.start()).resolves.toBeTruthy()
                 await expect(engine.start()).resolves.toBeTruthy()
-
+                
                 await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
                 await expect(Broker.checkLogFileContains(peer1)).resolves.toBeTruthy()
