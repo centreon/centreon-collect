@@ -18,6 +18,21 @@ describe("start and stop engine", () => {
       }
     })
 
+    afterAll(() => {
+        beforeEach(() => {
+          /* close instance of centengine if running */
+          if (Engine.isCentengineAlreadyRunning()) {
+            shell.exec('systemctl stop centengine')
+          }
+
+          /* closes instances of centengine if running */
+          if (Engine.isCentengineInstancesRunning()) {
+              Engine.closeCentengineInstances()
+          }
+        })
+    })
+
+
     it('start/stop centengine', async () => {
         const engine = new Engine()
         const isStarted = await engine.start();

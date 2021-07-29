@@ -24,8 +24,18 @@ describe('engine and broker testing in same time', () => {
 
     afterAll(() => {
         beforeEach(() => {
-            Broker.clearLogs()
-            Broker.resetConfig()
+          /* close instances of cbd if running */
+          if (Broker.isCbdAlreadyRunning()) {
+            shell.exec('systemctl stop cbd')
+          }
+
+          /* close instance of centengine if running */
+          if (Engine.isCentengineAlreadyRunning()) {
+            shell.exec('systemctl stop centengine')
+          }
+
+          Broker.clearLogs()
+          Broker.resetConfig()
         })
     })
 
