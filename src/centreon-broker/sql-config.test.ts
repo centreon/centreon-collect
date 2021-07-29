@@ -22,6 +22,16 @@ beforeEach(async () => {
 }, 30000)
 
 afterEach(async () => {
+    /* close instances of cbd if running */
+    if (Broker.isCbdAlreadyRunning()) {
+      shell.exec('systemctl stop cbd')
+    }
+
+    /* closes instances of cbd if running */
+    if (Broker.isCbdInstancesRunning()) {
+      Broker.closeCbdInstances()
+    }
+
     Broker.resetConfig();
 })
 
