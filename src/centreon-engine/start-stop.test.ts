@@ -2,14 +2,25 @@ import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
 import { Engine } from '../core/engine';
+import { Broker } from '../core/broker';
 
 shell.config.silent = true;
 
 describe("start and stop engine", () => {
     beforeEach(() => {
+      /* closes cbd if running */
+      if (Broker.isCbdAlreadyRunning()) {
+        shell.exec('systemctl stop cbd')
+      }
+
       /* close instance of centengine if running */
       if (Engine.isCentengineAlreadyRunning()) {
         shell.exec('systemctl stop centengine')
+      }
+
+      /* closes instances of cbd if running */
+      if (Broker.isCbdInstancesRunning()) {
+        Broker.closeCbdInstances()
       }
 
       /* closes instances of centengine if running */
@@ -20,9 +31,19 @@ describe("start and stop engine", () => {
 
     afterAll(() => {
         beforeEach(() => {
+          /* closes cbd if running */
+          if (Broker.isCbdAlreadyRunning()) {
+            shell.exec('systemctl stop cbd')
+          }
+
           /* close instance of centengine if running */
           if (Engine.isCentengineAlreadyRunning()) {
             shell.exec('systemctl stop centengine')
+          }
+
+          /* closes instances of cbd if running */
+          if (Broker.isCbdInstancesRunning()) {
+            Broker.closeCbdInstances()
           }
 
           /* closes instances of centengine if running */
