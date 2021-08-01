@@ -2,6 +2,7 @@ import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
 import { Broker } from '../core/broker';
+import { Engine } from '../core/engine';
 import fs from 'fs/promises'
 import { readFile } from 'fs';
 import { doesNotReject } from 'assert/strict';
@@ -13,11 +14,22 @@ beforeEach(async () => {
       shell.exec('systemctl stop cbd')
     }
 
+    /* closes centengine if running */
+    if (Engine.isCentengineAlreadyRunning()) {
+      shell.exec('systemctl stop centengine')
+    }
+
     /* closes instances of cbd if running */
     if (Broker.isCbdInstancesRunning()) {
       Broker.closeCbdInstances()
     }
 
+    /* closes instances of centengine if running */
+    if (Engine.isCentengineInstancesRunning()) {
+      Engine.closeCentengineInstances()
+    }
+
+    Broker.resetConfig();
     Broker.clearLogs();
 }, 30000)
 
@@ -27,9 +39,19 @@ afterEach(async () => {
       shell.exec('systemctl stop cbd')
     }
 
+    /* closes centengine if running */
+    if (Engine.isCentengineAlreadyRunning()) {
+      shell.exec('systemctl stop centengine')
+    }
+
     /* closes instances of cbd if running */
     if (Broker.isCbdInstancesRunning()) {
       Broker.closeCbdInstances()
+    }
+
+    /* closes instances of centengine if running */
+    if (Engine.isCentengineInstancesRunning()) {
+      Engine.closeCentengineInstances()
     }
 
     Broker.resetConfig();
