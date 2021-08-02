@@ -9,50 +9,16 @@ import { doesNotReject } from 'assert/strict';
 shell.config.silent = true;
 
 beforeEach(async () => {
-    /* close instances of cbd if running */
-    if (Broker.isCbdAlreadyRunning()) {
-      shell.exec('systemctl stop cbd')
-    }
-
-    /* closes centengine if running */
-    if (Engine.isCentengineAlreadyRunning()) {
-      shell.exec('systemctl stop centengine')
-    }
-
-    /* closes instances of cbd if running */
-    if (Broker.isCbdInstancesRunning()) {
-      Broker.closeCbdInstances()
-    }
-
-    /* closes instances of centengine if running */
-    if (Engine.isCentengineInstancesRunning()) {
-      Engine.closeCentengineInstances()
-    }
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
 
     Broker.resetConfig();
     Broker.clearLogs();
 }, 30000)
 
 afterEach(async () => {
-    /* close instances of cbd if running */
-    if (Broker.isCbdAlreadyRunning()) {
-      shell.exec('systemctl stop cbd')
-    }
-
-    /* closes centengine if running */
-    if (Engine.isCentengineAlreadyRunning()) {
-      shell.exec('systemctl stop centengine')
-    }
-
-    /* closes instances of cbd if running */
-    if (Broker.isCbdInstancesRunning()) {
-      Broker.closeCbdInstances()
-    }
-
-    /* closes instances of centengine if running */
-    if (Engine.isCentengineInstancesRunning()) {
-      Engine.closeCentengineInstances()
-    }
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
 
     Broker.resetConfig();
 })
