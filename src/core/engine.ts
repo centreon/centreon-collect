@@ -95,7 +95,7 @@ export class Engine {
      * @param  {void} 
      * @returns {Promise<Boolean>} true if found, else false
      */
-    static isCentengineAlreadyRunning() : Boolean {
+    static isCentengineServiceRunning() : Boolean {
         const cdList = shell.exec('systemctl status centengine').stdout.split('\n')
         let retval;
         retval = cdList.find(line => line.includes('running'))
@@ -137,6 +137,20 @@ export class Engine {
           shell.exec('kill -9 ' + pid)
         }
     }
+
+    static cleanAllInstances() : void {
+        /* close centengine if running */
+        if (Engine.isCentengineServiceRunning()) {
+          shell.exec('systemctl stop centengine')
+        }
+
+        /* closes instances of centengine if running */
+        if (Engine.isCentengineInstancesRunning()) {
+          Engine.closeCentengineInstances()
+        }
+
+    }
+
 
     static createHost(id : number) : string {
         let a = id % 255;

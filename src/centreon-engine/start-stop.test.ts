@@ -8,48 +8,14 @@ shell.config.silent = true;
 
 describe("start and stop engine", () => {
     beforeEach(() => {
-      /* closes cbd if running */
-      if (Broker.isCbdAlreadyRunning()) {
-        shell.exec('systemctl stop cbd')
-      }
-
-      /* close instance of centengine if running */
-      if (Engine.isCentengineAlreadyRunning()) {
-        shell.exec('systemctl stop centengine')
-      }
-
-      /* closes instances of cbd if running */
-      if (Broker.isCbdInstancesRunning()) {
-        Broker.closeCbdInstances()
-      }
-
-      /* closes instances of centengine if running */
-      if (Engine.isCentengineInstancesRunning()) {
-          Engine.closeCentengineInstances()
-      }
+       Broker.cleanAllInstances();
+       Engine.cleanAllInstances();
     })
 
     afterAll(() => {
         beforeEach(() => {
-          /* closes cbd if running */
-          if (Broker.isCbdAlreadyRunning()) {
-            shell.exec('systemctl stop cbd')
-          }
-
-          /* close instance of centengine if running */
-          if (Engine.isCentengineAlreadyRunning()) {
-            shell.exec('systemctl stop centengine')
-          }
-
-          /* closes instances of cbd if running */
-          if (Broker.isCbdInstancesRunning()) {
-            Broker.closeCbdInstances()
-          }
-
-          /* closes instances of centengine if running */
-          if (Engine.isCentengineInstancesRunning()) {
-              Engine.closeCentengineInstances()
-          }
+          Broker.cleanAllInstances();
+          Engine.cleanAllInstances();
         })
     })
 

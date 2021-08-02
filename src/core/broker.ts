@@ -272,7 +272,7 @@ export class Broker {
      * @param  {void} 
      * @returns {Promise<Boolean>} true if found, else false
      */
-    static isCbdAlreadyRunning() : Boolean {
+    static isCbdServiceRunning() : Boolean {
         /* checks if we have an active systemctl status */
         const cdList = shell.exec('systemctl status cbd').stdout.split('\n')
         let status;
@@ -314,6 +314,18 @@ export class Broker {
           let pid = +str
           console.log(instances[i], pid)
           shell.exec('kill -9 ' + pid)
+        }
+    }
+
+    static cleanAllInstances() : void {
+        /* close cbd if running */
+        if (Broker.isCbdServiceRunning()) {
+          shell.exec('systemctl stop cbd')
+        }
+
+        /* closes instances of cbd if running */
+        if (Broker.isCbdInstancesRunning()) {
+          Broker.closeCbdInstances()
         }
     }
 }

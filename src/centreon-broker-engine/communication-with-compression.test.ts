@@ -11,32 +11,15 @@ shell.config.silent = true;
 describe('engine and broker testing in same time for compression', () => {
 
     beforeEach(() => {
-        /* closes cbd if running */
-        if (Broker.isCbdAlreadyRunning()) {
-          shell.exec('systemctl stop cbd')
-        }
-
-        /* closes centengine if running */
-        if (Engine.isCentengineAlreadyRunning()) {
-          shell.exec('systemctl stop centengine')
-        }
-
-        /* closes instances of cbd if running */
-        if (Broker.isCbdInstancesRunning()) {
-          Broker.closeCbdInstances()
-        }
-
-        /* closes instances of centengine if running */
-        if (Engine.isCentengineInstancesRunning()) {
-          Engine.closeCentengineInstances()
-        }
+        Broker.cleanAllInstances();
+        Engine.cleanAllInstances();
 
         Broker.clearLogs()
         Broker.clearLogsCentralModule()
         Broker.resetConfig()
         Broker.resetConfigCentralModule()
 
-        if ((Broker.isCbdAlreadyRunning()) || (Engine.isCentengineAlreadyRunning())) {
+        if (Broker.isCbdServiceRunning() || Engine.isCentengineServiceRunning()) {
           console.log("program could not stop cbd or centengine")
           process.exit(1)
         }
@@ -45,26 +28,9 @@ describe('engine and broker testing in same time for compression', () => {
 
     afterAll(() => {
         beforeEach(() => {
-            /* closes cbd if running */
-            if (Broker.isCbdAlreadyRunning()) {
-              shell.exec('systemctl stop cbd')
-            }
-
-            /* closes centengine if running */
-            if (Engine.isCentengineAlreadyRunning()) {
-              shell.exec('systemctl stop centengine')
-            }
-
-            /* closes instances of cbd if running */
-            if (Broker.isCbdInstancesRunning()) {
-              Broker.closeCbdInstances()
-            }
-
-            /* closes instances of centengine if running */
-            if (Engine.isCentengineInstancesRunning()) {
-              Engine.closeCentengineInstances()
-            }
-
+            Broker.cleanAllInstances();
+            Engine.cleanAllInstances();
+   
             Broker.clearLogs()
             Broker.resetConfig()
             Broker.resetConfigCentralModule()
