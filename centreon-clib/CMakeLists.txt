@@ -38,7 +38,7 @@ set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
 
 # Include module to check existing libraries.
 include(CheckLibraryExists)
-
+include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 # Include module CTest if necessary.
 if (WITH_TESTING)
   include(CTest)
