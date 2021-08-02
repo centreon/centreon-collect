@@ -1,5 +1,6 @@
 {
     "dependencies": [
+	"perl(DateTime)",
         "perl(JSON::XS)",
         "perl(LWP::UserAgent)",
         "perl(LWP::Protocol::https)",
