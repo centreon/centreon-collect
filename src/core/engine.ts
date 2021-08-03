@@ -95,7 +95,7 @@ export class Engine {
      * @param  {void} 
      * @returns {Promise<Boolean>} true if found, else false
      */
-    static isCentengineServiceRunning() : Boolean {
+    static isServiceRunning() : Boolean {
         const cdList = shell.exec('systemctl status centengine').stdout.split('\n')
         let retval;
         retval = cdList.find(line => line.includes('running'))
@@ -110,7 +110,7 @@ export class Engine {
      * @param  {void} 
      * @returns {Boolean} true if found, else false
      */
-    static isCentengineInstancesRunning() : Boolean {
+    static isInstancesRunning() : Boolean {
         let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/centengine').stdout.split('\n')
 
         instances = instances.filter(String)
@@ -126,27 +126,27 @@ export class Engine {
      * @param  {void} 
      * @returns {void} true if found, else false
      */
-    static closeCentengineInstances() : void {
+    static closeInstances() : void {
         let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/centengine').stdout.split('\n')
         instances = instances.filter(String)
 
-        for (let i = 0; i < instances.length; ++i) {
-          let str =  instances[i].trim().split(" ", 1)
+        for (let i of instances) {
+          let str =  i.trim().split(" ", 1)
           let pid = +str
-          console.log(instances[i], pid)
+          console.log(i, pid)
           shell.exec('kill -9 ' + pid)
         }
     }
 
     static cleanAllInstances() : void {
         /* close centengine if running */
-        if (Engine.isCentengineServiceRunning()) {
+        if (Engine.isServiceRunning()) {
           shell.exec('systemctl stop centengine')
         }
 
         /* closes instances of centengine if running */
-        if (Engine.isCentengineInstancesRunning()) {
-          Engine.closeCentengineInstances()
+        if (Engine.isInstancesRunning()) {
+          Engine.closeInstances()
         }
 
     }
