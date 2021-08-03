@@ -14,7 +14,7 @@ describe('engine and broker testing in same time', () => {
         Broker.clearLogs()
         Broker.resetConfig()
 
-        if ((Broker.isCbdServiceRunning()) || (Engine.isCentengineServiceRunning())) {
+        if ((Broker.isServiceRunning()) || (Engine.isServiceRunning())) {
           console.log("program could not stop cbd or centengine")
           process.exit(1)
         }
