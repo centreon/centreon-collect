@@ -34,6 +34,10 @@ fi
 # Get committer.
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n latest
+
 # Create source tarballs (f*cking .gitattributes).
 rm -rf "../$PROJECT-$VERSION"
 mkdir "../$PROJECT-$VERSION"
