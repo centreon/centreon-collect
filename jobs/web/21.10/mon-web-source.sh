@@ -83,6 +83,7 @@ docker start -a "$containerid"
 rm -f "$PROJECT-$VERSION.tar.gz"
 docker cp "$containerid:/usr/local/src/$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION.tar.gz"
 docker cp "$containerid:/usr/local/src/centreon-api-v21.10.html" centreon-api-v21.10.html
+docker cp "$containerid:/usr/local/src/cypress-node-modules.tar.gz" "cypress-node-modules.tar.gz"
 
 # Stop container.
 docker stop "$containerid"
