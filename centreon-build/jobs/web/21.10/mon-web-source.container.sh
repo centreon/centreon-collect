@@ -45,7 +45,15 @@ redoc-cli bundle --options.hideDownloadButton=true doc/API/centreon-api-v21.10.y
 # Install Composer dependencies.
 composer install --no-dev --optimize-autoloader
 
+# Stash cypress dependencies
+cd tests/e2e
+git config --global url."https://github.com/".insteadOf git@github.com:
+git config --global url."https://".insteadOf ssh://
+npm ci
+rm -f "../../../cypress-node-modules.tar.gz"
+tar czf "../../../cypress-node-modules.tar.gz" "node_modules"
+
 # Create source tarballs.
-cd ..
+cd ../../..
 rm -f "$PROJECT-$VERSION.tar.gz"
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
