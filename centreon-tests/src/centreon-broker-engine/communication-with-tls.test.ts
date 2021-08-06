@@ -91,7 +91,7 @@ describe('engine and broker testing in same time for compression', () => {
 
                 await expect(broker.start()).resolves.toBeTruthy()
                 await expect(engine.start()).resolves.toBeTruthy()
-                
+
                 await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
                 await expect(Broker.checkLogFileContains(peer1)).resolves.toBeTruthy()
@@ -153,7 +153,7 @@ describe('engine and broker testing in same time for compression', () => {
 
         await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        // checking logs 
+        // checking logs
         await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using certificates as credentials"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
@@ -213,7 +213,7 @@ describe('engine and broker testing in same time for compression', () => {
 
         await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        // checking logs 
+        // checking logs
         await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using anonymous client credentials"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
