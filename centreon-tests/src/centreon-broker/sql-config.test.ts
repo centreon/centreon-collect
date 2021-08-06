@@ -2,16 +2,24 @@ import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
 import { Broker } from '../core/broker';
+import { Engine } from '../core/engine';
 import fs from 'fs/promises'
 import { readFile } from 'fs';
 import { doesNotReject } from 'assert/strict';
 shell.config.silent = true;
 
 beforeEach(async () => {
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
+
+    Broker.resetConfig();
     Broker.clearLogs();
 }, 30000)
 
 afterEach(async () => {
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
+
     Broker.resetConfig();
 })
 

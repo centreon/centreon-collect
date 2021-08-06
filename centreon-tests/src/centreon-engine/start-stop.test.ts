@@ -2,10 +2,24 @@ import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
 import { Engine } from '../core/engine';
+import { Broker } from '../core/broker';
 
 shell.config.silent = true;
 
 describe("start and stop engine", () => {
+    beforeEach(() => {
+       Broker.cleanAllInstances();
+       Engine.cleanAllInstances();
+    })
+
+    afterAll(() => {
+        beforeEach(() => {
+          Broker.cleanAllInstances();
+          Engine.cleanAllInstances();
+        })
+    })
+
+
     it('start/stop centengine', async () => {
         const engine = new Engine()
         const isStarted = await engine.start();

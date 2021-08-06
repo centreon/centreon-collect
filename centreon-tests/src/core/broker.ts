@@ -266,4 +266,66 @@ export class Broker {
         else
             return false
     }
+
+    /**
+     *  this function checks if instances of cbd are actually running
+     * @param  {void} 
+     * @returns {Promise<Boolean>} true if found, else false
+     */
+    static isServiceRunning() : Boolean {
+        /* checks if we have an active systemctl status */
+        const cdList = shell.exec('systemctl status cbd').stdout.split('\n')
+        let status;
+        status = cdList.find(line => line.includes('running'))
+
+        if (status)
+            return true
+        else
+            return false
+    }
+
+    /**
+     *  this function checks if instances of cbd are actually running
+     * @param  {void} 
+     * @returns {Boolean} true if found, else false
+     */
+    static isInstancesRunning() : Boolean {
+        let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/cbd').stdout.split('\n')
+
+        instances = instances.filter(String)
+
+        if (instances != undefined || instances.length == 0)
+            return true
+        else
+            return false
+    }
+
+    /**
+     *  this function close instances of cbd that are actually running
+     * @param  {void} 
+     * @returns {void} true if found, else false
+     */
+    static closeInstances() : void {
+        let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/cbd').stdout.split('\n')
+        instances = instances.filter(String)
+
+        for (let i of instances) {
+          let str =  i.trim().split(" ", 1)
+          let pid = +str
+          console.log(i, pid)
+          shell.exec('kill -9 ' + pid)
+        }
+    }
+
+    static cleanAllInstances() : void {
+        /* close cbd if running */
+        if (Broker.isServiceRunning()) {
+          shell.exec('systemctl stop cbd')
+        }
+
+        /* closes instances of cbd if running */
+        if (Broker.isInstancesRunning()) {
+          Broker.closeInstances()
+        }
+    }
 }

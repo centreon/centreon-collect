@@ -2,14 +2,25 @@ import sleep from 'await-sleep';
 import shell from 'shelljs';
 import { once } from 'events'
 import { Broker } from '../core/broker';
+import { Engine } from '../core/engine';
 
 shell.config.silent = true;
 
 describe('broker testing', () => {
-
     beforeEach(() => {
+        Broker.cleanAllInstances();
+        Engine.cleanAllInstances();
+
         Broker.clearLogs()
     })
+
+    afterAll(() => {
+        beforeEach(() => {
+          Broker.cleanAllInstances();
+          Engine.cleanAllInstances();
+        })
+    })
+
 
     it('start/stop centreon broker => no coredump', async () => {
         const broker = new Broker();

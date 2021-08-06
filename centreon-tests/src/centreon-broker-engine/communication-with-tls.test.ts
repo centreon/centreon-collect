@@ -13,19 +13,30 @@ shell.config.silent = true;
 
 describe('engine and broker testing in same time for compression', () => {
     beforeEach(() => {
+        Broker.cleanAllInstances();
+        Engine.cleanAllInstances();
+
         Broker.clearLogs()
         Broker.clearLogsCentralModule()
         Broker.resetConfig()
         Broker.resetConfigCentralModule()
         Broker.resetConfigCentralRrd()
+
+        if (Broker.isServiceRunning() || Engine.isServiceRunning()) {
+          console.log("program could not stop cbd or centengine")
+          process.exit(1)
+        }
     })
 
     afterAll(() => {
         beforeEach(() => {
-            Broker.clearLogs()
-            Broker.resetConfig()
-            Broker.resetConfigCentralModule()
-            Broker.resetConfigCentralRrd()
+          Broker.cleanAllInstances();
+          Engine.cleanAllInstances();
+
+          Broker.clearLogs()
+          Broker.resetConfig()
+          Broker.resetConfigCentralModule()
+          Broker.resetConfigCentralRrd()
         })
     })
 
@@ -142,7 +153,7 @@ describe('engine and broker testing in same time for compression', () => {
 
         await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        // checking logs 
+        // checking logs
         await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using certificates as credentials"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
@@ -202,7 +213,7 @@ describe('engine and broker testing in same time for compression', () => {
 
         await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
 
-        // checking logs 
+        // checking logs
         await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using anonymous client credentials"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
         await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
