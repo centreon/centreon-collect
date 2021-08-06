@@ -24,7 +24,7 @@ export RELEASE="$OLDRELEASE"
 
 # Publish RPMs.
 put_internal_rpms "21.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
+if [ "$BUILD" '=' 'REFERENCE' ] || [ "$BUILD" '=' 'QA' ] ; then
   copy_internal_rpms_to_canary "standard" "21.10" "el8" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
 fi
 
