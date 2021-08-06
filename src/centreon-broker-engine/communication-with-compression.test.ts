@@ -11,20 +11,31 @@ shell.config.silent = true;
 describe('engine and broker testing in same time for compression', () => {
 
     beforeEach(() => {
+        Broker.cleanAllInstances();
+        Engine.cleanAllInstances();
+
         Broker.clearLogs()
         Broker.clearLogsCentralModule()
         Broker.resetConfig()
         Broker.resetConfigCentralModule()
+
+        if (Broker.isServiceRunning() || Engine.isServiceRunning()) {
+          console.log("program could not stop cbd or centengine")
+          process.exit(1)
+        }
+
     })
 
     afterAll(() => {
         beforeEach(() => {
+            Broker.cleanAllInstances();
+            Engine.cleanAllInstances();
+
             Broker.clearLogs()
             Broker.resetConfig()
             Broker.resetConfigCentralModule()
         })
     })
-
 
     it('compression checks between broker - engine', async () => {
         const broker = new Broker()

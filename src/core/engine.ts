@@ -90,6 +90,68 @@ export class Engine {
         return !!centreonEngineProcess;
     }
 
+    /**
+     *  this function checks if instances of centengine are actually running
+     * @param  {void} 
+     * @returns {Promise<Boolean>} true if found, else false
+     */
+    static isServiceRunning() : Boolean {
+        const cdList = shell.exec('systemctl status centengine').stdout.split('\n')
+        let retval;
+        retval = cdList.find(line => line.includes('running'))
+        if (retval)
+            return true
+        else
+            return false
+    }
+
+    /**
+     *  this function checks if instances of centengine are actually running
+     * @param  {void} 
+     * @returns {Boolean} true if found, else false
+     */
+    static isInstancesRunning() : Boolean {
+        let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/centengine').stdout.split('\n')
+
+        instances = instances.filter(String)
+
+        if (instances != undefined || instances.length == 0)
+            return true
+        else
+            return false
+    }
+
+     /**
+     *  this function close instances of cbd that are actually running
+     * @param  {void} 
+     * @returns {void} true if found, else false
+     */
+    static closeInstances() : void {
+        let instances = shell.exec('ps ax |grep -v grep | grep /usr/sbin/centengine').stdout.split('\n')
+        instances = instances.filter(String)
+
+        for (let i of instances) {
+          let str =  i.trim().split(" ", 1)
+          let pid = +str
+          console.log(i, pid)
+          shell.exec('kill -9 ' + pid)
+        }
+    }
+
+    static cleanAllInstances() : void {
+        /* close centengine if running */
+        if (Engine.isServiceRunning()) {
+          shell.exec('systemctl stop centengine')
+        }
+
+        /* closes instances of centengine if running */
+        if (Engine.isInstancesRunning()) {
+          Engine.closeInstances()
+        }
+
+    }
+
+
     static createHost(id : number) : string {
         let a = id % 255;
         let q = Math.floor(id / 255);

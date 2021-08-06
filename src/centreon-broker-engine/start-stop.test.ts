@@ -8,20 +8,31 @@ shell.config.silent = true;
 describe('engine and broker testing in same time', () => {
 
     beforeEach(() => {
+        Broker.cleanAllInstances();
+        Engine.cleanAllInstances();
+        
         Broker.clearLogs()
         Broker.resetConfig()
+
+        if ((Broker.isServiceRunning()) || (Engine.isServiceRunning())) {
+          console.log("program could not stop cbd or centengine")
+          process.exit(1)
+        }
+
     })
 
     afterAll(() => {
         beforeEach(() => {
-            Broker.clearLogs()
-            Broker.resetConfig()
+          Broker.cleanAllInstances();
+          Engine.cleanAllInstances();
+
+          Broker.clearLogs()
+          Broker.resetConfig()
         })
     })
 
 
     it('start/stop centreon broker/engine - broker first', async () => {
-
         const broker = new Broker(1);
         await expect(broker.start()).resolves.toBeTruthy()
 
