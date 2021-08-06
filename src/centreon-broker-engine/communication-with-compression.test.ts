@@ -30,7 +30,7 @@ describe('engine and broker testing in same time for compression', () => {
         beforeEach(() => {
             Broker.cleanAllInstances();
             Engine.cleanAllInstances();
-   
+
             Broker.clearLogs()
             Broker.resetConfig()
             Broker.resetConfigCentralModule()

@@ -294,7 +294,7 @@ export class Broker {
 
         instances = instances.filter(String)
 
-        if (!(instances == undefined) || (instances.length == 0))
+        if (instances != undefined || instances.length == 0)
             return true
         else
             return false
