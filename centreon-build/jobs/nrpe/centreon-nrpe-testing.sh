@@ -7,7 +7,7 @@ set -x
 
 # Project.
 PROJECT=centreon-nrpe
-export VERSION=3.2.1
+export VERSION=4.0.2
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -30,7 +30,7 @@ rm -rf output-centos8
 mkdir output-centos8
 
 # Get source tarball.
-curl -Lo input/nrpe-3.2.1.tar.gz 'https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-3.2.1/nrpe-3.2.1.tar.gz'
+curl -Lo input/nrpe-4.0.2.tar.gz 'https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-4.0.2/nrpe-4.0.2.tar.gz'
 
 # Get packaging files.
 cp `dirname $0`/../../packaging/nrpe/* input/

@@ -40,13 +40,14 @@ Group:          System/Management
 
 %description -n centreon-nrpe3-plugin
 Plug-in for Centreon monitoring system.
+The centreon-nrpe packages contains the Nagios Remote Plug-ins Executor v4.0.2
 
 %package -n centreon-nrpe3-daemon
 Summary:        Nagios Remote Plug-ins Execution daemon
 Group:          System/Management
 
 %description -n centreon-nrpe3-daemon
-The centreon-nrpe packages contains the Nagios Remote Plug-ins Executor
+The centreon-nrpe packages contains the Nagios Remote Plug-ins Executor v4.0.2
 -- daemon which can execute predefined commands on the remote host.
 
 %prep
