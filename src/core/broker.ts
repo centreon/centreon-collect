@@ -42,8 +42,7 @@ export class Broker {
         if (this.instanceCount == 2)
             this.rrdProcess = shell.exec(`/usr/sbin/cbd /etc/centreon-broker/central-rrd.json`, { async: true, uid: Broker.CENTREON_BROKER_UID })
 
-        const isRunning = await this.isRunning(true, 20)
-        return isRunning;
+        return await this.isRunning(20);
     }
 
 
@@ -53,15 +52,14 @@ export class Broker {
      * @returns Promise<Boolean> true if correctly stopped, else false
      */
     async stop() : Promise<Boolean> {
-        if (await this.isRunning(true, 25)) {
+        if (await this.isRunning(25)) {
             let ret1 = this.process.kill()
+            
             let ret2 = true;
             if (this.instanceCount == 2)
                 ret2 = this.rrdProcess.kill()
 
-            return ret1 && ret2;
-            //const isRunning = await this.isRunning(false)
-            //return !isRunning;
+            return await this.isStopped()
         }
 
         return true;
@@ -76,7 +74,7 @@ export class Broker {
      * @param  {number=15} seconds number of seconds to wait for process to show in processlist
      * @returns Promise<Boolean>
      */
-    async isRunning(expected : boolean = true, seconds : number = 15) : Promise<boolean> {
+    async isRunning(seconds : number = 15) : Promise<boolean> {
         let centreonBrokerProcess;
         let centreonRddProcess;
 
@@ -88,20 +86,48 @@ export class Broker {
             if (this.instanceCount == 2)
                 centreonRddProcess = processList.find((process) => process.pid == this.rrdProcess.pid);
             else
-                centreonRddProcess = expected
+                centreonRddProcess = true
 
-            if (centreonBrokerProcess && centreonRddProcess && expected)
+            if (centreonBrokerProcess && centreonRddProcess)
                 return true;
-
-            if (expected == false && !centreonRddProcess && !centreonBrokerProcess)
-                return false;
 
             await sleep(500)
         }
 
-        return !expected;
+        return false;
     }
 
+    /**
+     * this function will check the list of all process running in current os
+     * to check that the current instance of broker is correctly running or not
+     *
+     * @param  {boolean=true} expected the expected value, true or false
+     * @param  {number=15} seconds number of seconds to wait for process to show in processlist
+     * @returns Promise<Boolean>
+     */
+    async isStopped(seconds : number = 15) : Promise<boolean> {
+        let centreonBrokerProcess;
+        let centreonRddProcess;
+
+        for (let i = 0; i < seconds * 2; ++i) {
+            const processList = await psList();
+
+            centreonBrokerProcess = processList.find((process) => process.pid == this.process.pid);
+
+            if (this.instanceCount == 2)
+                centreonRddProcess = processList.find((process) => process.pid == this.rrdProcess.pid);
+            else
+                centreonRddProcess = false
+
+            if (!centreonBrokerProcess && !centreonRddProcess)
+                return true;
+
+            await sleep(500)
+        }
+
+        return false;
+    }
+    
     async checkCoredump() : Promise<boolean> {
         let retval;
         const cdList = shell.exec('ps ax').stdout.split('\n')
