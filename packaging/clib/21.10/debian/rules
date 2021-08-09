@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+ABI=$(shell grep -q "ABI=1" CMakeLists.txt && echo -n 11)
+USE_CXX11=$(shell grep -q "ABI=1" CMakeLists.txt && echo -n 1 || echo -n 0)
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	conan install -s arch=$(ARCH) -s compiler.libcxx=libstdc++$(ABI) .
+	cmake -DWITH_PREFIX=/usr -DUSE_CXX11_ABI=$(USE_CXX11) .
+
+override_dh_auto_build:
+	make
+
+override_dh_auto_install:
+	make install DESTDIR=debian/centreon-clib

@@ -1,0 +1,13 @@
+Source: centreon-clib
+Section: net
+Priority: optional
+Maintainer: Matthieu Kermagoret <mkermagoret@centreon.com>
+Build-Depends: debhelper (>=10), cmake, lsb-base, make (>=3)
+Standards-Version: 3.9.8
+Homepage: https://github.com/centreon/centreon-clib
+
+Package: centreon-clib
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Common C++ library
+ for the Centreon software suite.
