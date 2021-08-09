@@ -78,7 +78,7 @@ backend& backend::operator=(backend const& right) {
  *  @return True if synchronize, otherwise false.
  */
 bool backend::enable_sync() const {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   return (_is_sync);
 }
 
@@ -88,7 +88,7 @@ bool backend::enable_sync() const {
  *  @param[in] enable  True to synchronize backends data.
  */
 void backend::enable_sync(bool enable) {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   _is_sync = enable;
 }
 
@@ -109,7 +109,7 @@ void backend::log(uint64_t types, uint32_t verbose, char const* msg) noexcept {
  *  @return True if pid is display, otherwise false.
  */
 bool backend::show_pid() const {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   return (_show_pid);
 }
 
@@ -119,7 +119,7 @@ bool backend::show_pid() const {
  *  @param[in] enable  Enable or disable display pid.
  */
 void backend::show_pid(bool enable) {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   _show_pid = enable;
 }
 
@@ -129,7 +129,7 @@ void backend::show_pid(bool enable) {
  *  @return Time precision is display, otherwise none.
  */
 time_precision backend::show_timestamp() const {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   return (_show_timestamp);
 }
 
@@ -139,7 +139,7 @@ time_precision backend::show_timestamp() const {
  *  @param[in] enable  Enable or disable display timestamp.
  */
 void backend::show_timestamp(time_precision val) {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   _show_timestamp = val;
 }
 
@@ -149,7 +149,7 @@ void backend::show_timestamp(time_precision val) {
  *  @return True if thread id is display, otherwise false.
  */
 bool backend::show_thread_id() const {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   return (_show_thread_id);
 }
 
@@ -159,7 +159,7 @@ bool backend::show_thread_id() const {
  *  @param[in] enable  Enable or disable display thread id.
  */
 void backend::show_thread_id(bool enable) {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   _show_thread_id = enable;
 }
 
@@ -189,8 +189,8 @@ void backend::_build_header(misc::stringifier& buffer) {
  *  @param[in] right  The object to copy.
  */
 void backend::_internal_copy(backend const& right) {
-  std::lock_guard<std::mutex> lock1(_lock);
-  std::lock_guard<std::mutex> lock2(right._lock);
+  std::lock_guard<std::recursive_mutex> lock1(_lock);
+  std::lock_guard<std::recursive_mutex> lock2(right._lock);
   _is_sync = right._is_sync;
   _show_pid = right._show_pid;
   _show_timestamp = right._show_timestamp;

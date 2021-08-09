@@ -79,7 +79,7 @@ file::~file() noexcept { close(); }
  *  Close file.
  */
 void file::close() noexcept {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
 
   if (!_out || _out == stdout || _out == stderr)
     return;
@@ -135,7 +135,7 @@ void file::log(uint64_t types,
     buffer.append(msg + last, i - last) << "\n";
   }
 
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   if (_out) {
     // Size control.
     if ((_max_size > 0) && (_size + buffer.size() > _max_size))
@@ -159,7 +159,7 @@ void file::log(uint64_t types,
  *  Open file.
  */
 void file::open() {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
 
   if (_out && _path.empty())
     return;
@@ -176,7 +176,7 @@ void file::open() {
  *  Close and open file.
  */
 void file::reopen() {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
 
   if (!_out || _out == stdout || _out == stderr)
     return;
