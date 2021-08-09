@@ -5,7 +5,7 @@ cp "${PROJECT}-${VERSION}.tar.gz" "debuildir/${PROJECT}_${VERSION}.orig.tar.gz"
 cd debuildir
 tar xzf "${PROJECT}_${VERSION}.orig.tar.gz"
 cd ..
-cp -r `dirname $0`/../../../packaging/clib/debian "debuildir/${PROJECT}-${VERSION}/"
+cp -r `dirname $0`/../../../packaging/clib/21.10/debian "debuildir/${PROJECT}-${VERSION}/"
 sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian10/g" < "debuildir/${PROJECT}-${VERSION}/debian/changelog.in" > "debuildir/${PROJECT}-${VERSION}/debian/changelog"
 
 # Launch debuild.
