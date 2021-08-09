@@ -19,7 +19,12 @@ mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
 # Install Conan, a C++ package manager.
-pip3 install conan urllib3==1.25.8
+# Pip is installed through the official repository because of urllib3 that is
+# too old when provided by Debian 10 repo.
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
+pip3 install conan
+ln -s /usr/local/bin/conan /usr/bin/conan
 
 # Pre-install dependencies
 mkdir /tmp/conan-pkgs
