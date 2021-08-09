@@ -38,7 +38,7 @@ mv composer.phar /usr/bin/composer
 chmod +x /usr/bin/composer
 
 # Install Conan, a C++ package manager.
-pip3 install conan urllib3>=1.25.10
+pip3 install conan urllib3==1.25.8
 ln -s /usr/local/bin/conan /usr/bin/conan
 
 # Pre-install conan dependencies
