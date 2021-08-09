@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class backend_test : public backend {
            uint32_t verbose,
            char const* msg,
            uint32_t size) noexcept {
-    std::lock_guard<std::mutex> lock(_lock);
+    std::lock_guard<std::recursive_mutex> lock(_lock);
 
     (void)types;
     (void)verbose;

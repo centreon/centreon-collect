@@ -55,7 +55,7 @@ syslogger::~syslogger() noexcept { close(); }
  *  Close syslog.
  */
 void syslogger::close() noexcept {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   closelog();
 }
 
@@ -79,7 +79,7 @@ void syslogger::log(uint64_t types,
   misc::stringifier header;
   _build_header(header);
 
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   syslog(LOG_ERR, "%s%s", header.data(), msg);
 }
 
@@ -87,7 +87,7 @@ void syslogger::log(uint64_t types,
  *  Open syslog.
  */
 void syslogger::open() {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   openlog(_id.c_str(), 0, _facility);
 }
 
@@ -95,7 +95,7 @@ void syslogger::open() {
  *  Close and open syslog.
  */
 void syslogger::reopen() {
-  std::lock_guard<std::mutex> lock(_lock);
+  std::lock_guard<std::recursive_mutex> lock(_lock);
   closelog();
   openlog(_id.c_str(), 0, _facility);
 }
