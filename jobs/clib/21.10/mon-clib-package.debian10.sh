@@ -9,7 +9,7 @@ cp -r `dirname $0`/../../../packaging/clib/21.10/debian "debuildir/${PROJECT}-${
 sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RELEASE}.debian10/g" < "debuildir/${PROJECT}-${VERSION}/debian/changelog.in" > "debuildir/${PROJECT}-${VERSION}/debian/changelog"
 
 # Launch debuild.
-containerid=`docker create registry.centreon.com/mon-build-dependencies-21.10:debian10 sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && debuild -us -uc -i"`
+containerid=`docker create registry.centreon.com/mon-build-dependencies-21.10:debian10 sh -c "cd /usr/local/src/debuildir/${PROJECT}-${VERSION} && export ARCH=x86_64 && debuild -us -uc -i"`
 docker cp debuildir "$containerid:/usr/local/src/debuildir"
 docker start -a "$containerid"
 
