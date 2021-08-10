@@ -71,32 +71,36 @@ stage('Source') {
 }
 
 try {
- /* stage('Sonar analysis') {
-    parallel 'centos7': {
-      node {
-        sh 'setup_centreon_build.sh'
+  stage('Sonar analysis') {
+    node {
+      sh 'setup_centreon_build.sh'
+      /* unittest.sh does not exist currently. ADD the missing script before restoring this part
 
-        sh './centreon-build/jobs/connector/${serie}/mon-connector-unittest.sh centos7'
-        step([
-          $class: 'XUnitBuilder',
-          thresholds: [
-            [$class: 'FailedThreshold', failureThreshold: '0'],
-            [$class: 'SkippedThreshold', failureThreshold: '0']
-          ],
-          tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
-        ])
+      sh "./centreon-build/jobs/connector/${serie}/mon-connector-unittest.sh centos7"
+      step([
+      $class: 'XUnitBuilder',
+        thresholds: [
+          [$class: 'FailedThreshold', failureThreshold: '0'],
+          [$class: 'SkippedThreshold', failureThreshold: '0']
+        ],
+        tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
+      ])
+      */
 
-        if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
-          withSonarQubeEnv('SonarQubeDev') {
-            sh "./centreon-build/jobs/connector/${serie}/mon-connector-analysis.sh"
-          }
-        }
+      withSonarQubeEnv('SonarQubeDev') {
+        sh "./centreon-build/jobs/connector/${serie}/mon-connector-analysis.sh"
       }
-   }
-    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-      error('Unit tests stage failure.');
     }
-  }*/
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        currentBuild.result = 'FAIL'
+      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error("Quality gate failure: ${qualityGate.status}.");
+    }
+  }
 
   stage('Package') {
     parallel 'centos7': {
