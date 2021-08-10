@@ -1,6 +1,7 @@
 /*
 ** Variables.
 */
+properties([buildDiscarder(logRotator(numToKeepStr: '10'))])
 def serie = '21.10'
 def maintenanceBranch = "${serie}.x"
 if (env.BRANCH_NAME.startsWith('release-')) {
@@ -11,15 +12,49 @@ if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'CI'
 }
 
+def buildBranch = env.BRANCH_NAME
+if (env.CHANGE_BRANCH) {
+  buildBranch = env.CHANGE_BRANCH
+}
+
+/*
+** Functions
+*/
+
+def isStableBuild() {
+  return ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE'))
+}
+
+def checkoutCentreonBuild(buildBranch) {
+  def getCentreonBuildGitConfiguration = { branchName -> [
+    $class: 'GitSCM',
+    branches: [[name: "refs/heads/${branchName}"]],
+    doGenerateSubmoduleConfigurations: false,
+    userRemoteConfigs: [[
+      $class: 'UserRemoteConfig',
+      url: "ssh://git@github.com/centreon/centreon-build.git"
+    ]]
+  ]}
+
+  dir('centreon-build') {
+    try {
+      checkout(getCentreonBuildGitConfiguration(buildBranch))
+    } catch(e) {
+      echo "branch '${buildBranch}' does not exist in centreon-build, then fallback to master"
+      checkout(getCentreonBuildGitConfiguration('master'))
+    }
+  }
+}
+
 /*
 ** Pipeline code.
 */
 stage('Source') {
   node {
-    sh 'setup_centreon_build.sh'
     dir('centreon-connector') {
       checkout scm
     }
+    checkoutCentreonBuild(buildBranch)
     sh "./centreon-build/jobs/connector/${serie}/mon-connector-source.sh"
     source = readProperties file: 'source.properties'
     publishHTML([
@@ -36,32 +71,36 @@ stage('Source') {
 }
 
 try {
- /* stage('Sonar analysis') {
-    parallel 'centos7': {
-      node {
-        sh 'setup_centreon_build.sh'
+  stage('Sonar analysis') {
+    node {
+      sh 'setup_centreon_build.sh'
+      /* unittest.sh does not exist currently. ADD the missing script before restoring this part
 
-        sh './centreon-build/jobs/connector/${serie}/mon-connector-unittest.sh centos7'
-        step([
-          $class: 'XUnitBuilder',
-          thresholds: [
-            [$class: 'FailedThreshold', failureThreshold: '0'],
-            [$class: 'SkippedThreshold', failureThreshold: '0']
-          ],
-          tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
-        ])
+      sh "./centreon-build/jobs/connector/${serie}/mon-connector-unittest.sh centos7"
+      step([
+      $class: 'XUnitBuilder',
+        thresholds: [
+          [$class: 'FailedThreshold', failureThreshold: '0'],
+          [$class: 'SkippedThreshold', failureThreshold: '0']
+        ],
+        tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
+      ])
+      */
 
-        if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
-          withSonarQubeEnv('SonarQube') {
-            sh "./centreon-build/jobs/connector/${serie}/mon-connector-analysis.sh"
-          }
-        }
+      withSonarQubeEnv('SonarQubeDev') {
+        sh "./centreon-build/jobs/connector/${serie}/mon-connector-analysis.sh"
       }
-   }
-    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-      error('Unit tests stage failure.');
     }
-  }*/
+    timeout(time: 10, unit: 'MINUTES') {
+      def qualityGate = waitForQualityGate()
+      if (qualityGate.status != 'OK') {
+        currentBuild.result = 'FAIL'
+      }
+    }
+    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
+      error("Quality gate failure: ${qualityGate.status}.");
+    }
+  }
 
   stage('Package') {
     parallel 'centos7': {
