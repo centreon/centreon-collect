@@ -8,6 +8,7 @@
 	"centreon/common/broadcom/fastpath",
         "snmp_standard/mode/interfaces.pm",
         "snmp_standard/mode/listinterfaces.pm",
+	"snmp_standard/mode/resources/",
         "network/ubiquiti/edge/snmp/"
     ]
 }
