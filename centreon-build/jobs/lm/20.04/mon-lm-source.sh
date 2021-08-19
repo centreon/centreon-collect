@@ -48,6 +48,11 @@ for i in "../$PROJECT-$VERSION/www/modules/centreon-license-manager/locale"/*.UT
   rm -f "$i/LC_MESSAGES/messages.po"
 done
 
+#setting the good node version
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n 14
+
 # Build frontend
 cd "../$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend/app"
 npm ci
