@@ -57,10 +57,7 @@ sudo n 14
 cd "../$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend/app"
 npm ci
 npm run build
-cd "../hooks/administration/extensions/manager/button"
-npm ci
-npm run build
-cd ../../../../..
+cd ..
 tar czf ../../../../../hooks.tar.gz hooks
 rm -rf hooks
 cd ../../../../..
