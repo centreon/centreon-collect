@@ -35,7 +35,7 @@ FEATURE_FILE=`echo "${2}" | sed -e "s#^tests/e2e/##"`
 
 # Get the current user ID for use in the Cypress.io image docker.
 #Otherwise it creates result files as "root:root" and impossible to delete them.
-UID="$(id -u)"
+UID="root"
 
 # Prepare Docker Compose file.
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g; s#@UID@#'$UID'#g; s#@FEATURE_FILE@#'$FEATURE_FILE'#g' < docker-compose.yml.in > docker-compose.yml
