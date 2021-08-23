@@ -21,7 +21,7 @@ WEB_IMAGE="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
 docker pull $WEB_IMAGE
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION"
+sudo rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 chmod g+s "$PROJECT-$VERSION/tests/e2e"
 
