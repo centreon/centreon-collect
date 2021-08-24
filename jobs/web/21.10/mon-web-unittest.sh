@@ -18,7 +18,7 @@ DISTRIB="centos7"
 DEV_TYPE="$1"
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION"
+sudo rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 
 if [ "$DEV_TYPE" = "backend" ]; then
