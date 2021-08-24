@@ -21,10 +21,10 @@ WEB_IMAGE="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
 docker pull $WEB_IMAGE
 
 # Fetch sources.
-rm -rf "$PROJECT-$VERSION"
+sudo rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
-rm -rf vendor
+sudo rm -rf vendor
 tar xzf "../vendor.tar.gz"
 cd ..
 
@@ -39,8 +39,8 @@ if [ -z "$alreadyset" ] ; then
 fi
 
 # Run acceptance tests.
-rm -rf ../xunit-reports
+sudo rm -rf ../xunit-reports
 mkdir ../xunit-reports
-rm -rf ../api-integration-test-logs
+sudo rm -rf ../api-integration-test-logs
 mkdir ../api-integration-test-logs
 ./vendor/bin/behat --config tests/api/behat.yml --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
