@@ -534,8 +534,8 @@ fi
 ######################################################
 %files web
 # Configuration
-%defattr(0664, centreon, centreon, 0775)
-%ghost %{_sysconfdir}/centreon/centreon.conf.php
+%defattr(0640, apache, apache, 0775)
+%{_sysconfdir}/centreon/centreon.conf.php
 
 #selinux
 #%defattr(-, root, root, -)
