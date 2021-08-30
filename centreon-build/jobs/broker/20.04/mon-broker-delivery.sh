@@ -15,7 +15,6 @@ fi
 
 MAJOR=`echo $VERSION | cut -d . -f 1,2`
 EL7RPMS=`echo output/x86_64/*.el7.*.rpm`
-EL8RPMS=`echo output/x86_64/*.el8.*.rpm`
 
 # Publish RPMs.
 if [ "$BUILD" '=' 'QA' ]
