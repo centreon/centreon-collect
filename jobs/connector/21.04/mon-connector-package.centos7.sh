@@ -10,9 +10,3 @@ cp `dirname $0`/../../../packaging/connector/21.04/centreon-connector.spectempla
 
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-21.04:centos7 input output
-
-# Publish RPMs.
-put_internal_rpms "21.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE" output/x86_64/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "21.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
-fi

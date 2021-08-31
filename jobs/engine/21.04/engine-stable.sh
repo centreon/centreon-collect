@@ -21,6 +21,8 @@ $SSH_REPO mv "/srv/sources/standard/testing/engine/$PROJECT-$VERSION-$RELEASE" "
 # Put sources online.
 upload_tarball_for_download "$PROJECT" "$VERSION" "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/$PROJECT/$PROJECT-$VERSION.tar.gz"
 
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "standard" "21.04" "el7" "x86_64" "engine" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "standard" "21.04" "el8" "x86_64" "engine" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "standard" "$MAJOR" "el7" "x86_64" "engine" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "standard" "$MAJOR" "el8" "x86_64" "engine" "$PROJECT-$VERSION-$RELEASE"
