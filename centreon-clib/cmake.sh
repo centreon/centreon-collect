@@ -220,10 +220,8 @@ else
     $conan install .. -s compiler.libcxx=libstdc++11 --build=missing
 fi
 
-if [ $maj = "Raspbian" ] ; then
+if [[ "$maj" =~ ^(Raspbian|Debian|Ubuntu)$ ]]; then
   CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_PREFIX_LIB=/usr/lib -DWITH_TESTING=On -DUSE_CXX11_ABI=1 $* ..
-elif [ $maj = "Debian" ] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On -DUSE_CXX11_ABI=1 $* ..
 else
   CXXFLAGS="-Wall -Wextra" $cmake -DWITH_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_PREFIX_LIB=/usr/lib64 -DWITH_TESTING=On -DUSE_CXX11_ABI=1 $* ..
 fi
