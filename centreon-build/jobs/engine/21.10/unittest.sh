@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 # Out-of-source build.
 rm -rf /tmp/build
@@ -30,7 +29,7 @@ fi
 CXXFLAGS="-std=c++11" $mycmake -DWITH_TESTING=1 /usr/local/src/centreon-engine
 
 # Build project.
-make -j 8
+make -j 9
 
 # Run unit tests.
 ./tests/ut --gtest_output=xml:/tmp/ut.xml

@@ -1,4 +1,0 @@
-- name: Centreon Jenkins master
-  hosts: ci-masters
-  roles:
-    - jenkins-master
