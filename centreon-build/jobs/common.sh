@@ -330,7 +330,7 @@ put_rpms () {
   PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
   METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" mkdir -p "$TARGET"
-  shift 8
+  shift 7
   scp -o StrictHostKeyChecking=no "$@" "cesync@yum.int.centreon.com:$TARGET"
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "ls -drc $PROJECT_LOCATION/* | head -n -6 | xargs rm -rf"
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
