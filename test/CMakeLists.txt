@@ -1,7 +1,6 @@
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 link_directories(${GTest_LIB_DIRS})
-
 add_executable(bin_test_process_output ${CMAKE_SOURCE_DIR}/test/bin_test_process_output.cc)
 
 
@@ -35,4 +34,4 @@ if (WITH_COVERAGE)
   set(GCOV gcov)
 endif ()
 add_test(NAME tests COMMAND ut-clib)
-target_link_libraries(ut-clib ${GTest_LIBS} pthread centreon_clib)
+target_link_libraries(ut-clib ${GTest_LIBS} pthread centreon_clib_shared)
