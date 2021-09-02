@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Project.
@@ -14,18 +11,18 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-#
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  copy_internal_source_to_testing "standard" "broker" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "21.10" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "21.10" "el8" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+EL7RPMS=`echo output/x86_64/*.el7.*.rpm`
+EL8RPMS=`echo output/x86_64/*.el8.*.rpm`
 
-#
-# CI delivery.
-#
-else
-  promote_canary_rpms_to_unstable "standard" "21.10" "el7" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
-  promote_canary_rpms_to_unstable "standard" "21.10" "el8" "x86_64" "broker" "$PROJECT-$VERSION-$RELEASE"
+# Publish RPMs.
+if [ "$BUILD" '=' 'QA' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'RELEASE' ]
+then
+  copy_internal_source_to_testing "standard" "broker" "$PROJECT-$VERSION-$RELEASE"
+  put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $EL8RPMS
 fi

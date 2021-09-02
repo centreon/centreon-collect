@@ -36,7 +36,7 @@ docker stop "$containerid"
 docker rm "$containerid"
 
 # Retrieve sources.
-rm -rf "$PROJECT-$VERSION"
+sudo rm -rf "$PROJECT-$VERSION"
 tar xzf "$PROJECT-$VERSION.tar.gz"
 export THREEDIGITVERSION=`echo $VERSION | cut -d - -f 1`
 rm -rf "centreon-$THREEDIGITVERSION" "centreon-$THREEDIGITVERSION.tar.gz"
