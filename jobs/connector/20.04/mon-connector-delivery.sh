@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 . `dirname $0`/../../common.sh
 
@@ -14,16 +13,12 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-#
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
+# Publish RPMs.
+if [ "$BUILD" '=' 'QA' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+elif [ "$BUILD" '=' 'RELEASE' ]
+then
   copy_internal_source_to_testing "standard" "connector" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "20.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
-
-#
-# CI delivery.
-#
-else
-  promote_canary_rpms_to_unstable "standard" "20.04" "el7" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE"
+  put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "connector" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
 fi

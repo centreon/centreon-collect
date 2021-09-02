@@ -66,4 +66,6 @@ put_internal_rpms "20.04" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RE
 if [ "$BUILD" '=' 'QA' ] ; then
   copy_internal_rpms_to_canary "standard" "20.04" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
   promote_canary_rpms_to_unstable "standard" "20.04" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+elif [ "$BUILD" '=' 'REFERENCE' ] ; then
+  copy_internal_rpms_to_canary "standard" "20.04" "$DISTRIB" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
 fi

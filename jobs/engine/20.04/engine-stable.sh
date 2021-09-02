@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 . `dirname $0`/../../common.sh
 
@@ -22,4 +21,4 @@ $SSH_REPO mv "/srv/sources/standard/testing/engine/$PROJECT-$VERSION-$RELEASE" "
 upload_tarball_for_download "$PROJECT" "$VERSION" "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/$PROJECT/$PROJECT-$VERSION.tar.gz"
 
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "standard" "20.04" "el7" "x86_64" "engine" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "standard" "$MAJOR" "el7" "x86_64" "engine" "$PROJECT-$VERSION-$RELEASE"
