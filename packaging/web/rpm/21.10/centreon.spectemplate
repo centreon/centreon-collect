@@ -582,6 +582,7 @@ fi
 %{_datadir}/centreon/bin/migrateWikiPages.php
 %{_datadir}/centreon/bin/centreon-partitioning.php
 %{_datadir}/centreon/bin/logAnalyserBroker
+%{_datadir}/centreon/bin/centreon-sanitize-images.php
 %{_bindir}/centFillTrapDB
 %{_bindir}/centreon_trap_send
 %{_bindir}/centreonSyncPlugins
