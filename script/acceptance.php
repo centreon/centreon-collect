@@ -253,7 +253,7 @@ if ($synchronize) {
 else {
     // Load configuration file.
     echo "[1/4] Loading configuration...\n";
-    require_once(xpath($centreon_build_dir . '/conf/acceptance.conf.php'));
+    require_once(xpath($centreon_build_dir . '/script/acceptance.conf.php'));
     if (!defined('_GITHUB_TOKEN_') || _GITHUB_TOKEN_ == "") {
         echo "Please fill your GitHub token in acceptance.conf.php file.\n";
         return (1);
