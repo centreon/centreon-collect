@@ -151,6 +151,20 @@ endif ()
 
 
 # Set options.
+option(WITH_ASAN "Add the libasan to check memory leaks and other memory issues." OFF)
+if (WITH_ASAN)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+endif ()
+
+option(WITH_TSAN "Add the libtsan to check threads and other multithreading issues." OFF)
+if (WITH_TSAN)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=thread")
+  set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=thread")
+endif ()
+
 set(UNIT_TEST "No")
 if (WITH_TESTING)
   set(UNIT_TEST "Yes")

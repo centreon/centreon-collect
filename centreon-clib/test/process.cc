@@ -19,6 +19,7 @@
 #include "com/centreon/process.hh"
 #include <gtest/gtest.h>
 #include <cstdlib>
+#include <future>
 #include <iostream>
 #include "com/centreon/clib.hh"
 #include "com/centreon/exceptions/basic.hh"
@@ -48,8 +49,7 @@ TEST(ClibProcess, ProcessKill) {
 }
 
 TEST(ClibProcess, ProcessOutput) {
-  int ac;
-  char* argv[2] = {"err", "out"};
+  const char* argv[2] = {"err", "out"};
 
   std::string cmd("./test/bin_test_process_output check_output ");
   cmd += argv[1];
@@ -76,6 +76,138 @@ TEST(ClibProcess, ProcessOutput) {
   ASSERT_EQ(p.exit_code(), EXIT_SUCCESS);
   ASSERT_EQ(total_write, sizeof(buffer_write));
   ASSERT_EQ(total_write, total_read);
+}
+
+TEST(ClibProcess, ProcessOutputThWrite) {
+  const char* argv[2]{"err", "out"};
+
+  std::string cmd("./test/bin_test_process_output check_output ");
+  cmd += argv[1];
+
+  static constexpr size_t size = 10 * 1024;
+  static constexpr size_t count = 30;
+
+  process p;
+  std::promise<bool> prm;
+  std::future<bool> running = prm.get_future();
+  std::thread th_exec([&p, &cmd, &prm] {
+    p.exec(cmd);
+    prm.set_value(true);
+  });
+
+  running.get();
+
+  std::thread th_write([&p] {
+    char buffer_write[size + 1];
+    buffer_write[size] = 0;
+    for (unsigned int i = 0; i < size; ++i)
+      buffer_write[i] = static_cast<char>('A' + i % 26);
+
+    for (int i = 0; i < count; i++) {
+      unsigned int total_write = 0;
+      do {
+        if (total_write < size)
+          total_write +=
+              p.write(buffer_write + total_write, size - total_write);
+      } while (total_write < size);
+    }
+    std::cout << "W ";
+    for (int i = 0; i < count; i++)
+      std::cout << buffer_write;
+    std::cout << std::endl;
+  });
+
+  std::string buffer_read;
+  do {
+    std::string data;
+    if (!strcmp(argv[1], "out"))
+      p.read(data);
+    else
+      p.read_err(data);
+    buffer_read += data;
+  } while (buffer_read.size() < size * count);
+
+  th_exec.join();
+  th_write.join();
+  p.update_ending_process(0);
+  p.wait();
+
+  std::cout << "R " << buffer_read << std::endl;
+  ASSERT_EQ(buffer_read.size(), size * count);
+  for (int i = 0, j = 0; i < size * count; i++) {
+    ASSERT_EQ(static_cast<char>('A' + j % 26), buffer_read[i]);
+    if (++j == size)
+      j = 0;
+  }
+
+  ASSERT_EQ(p.exit_code(), EXIT_SUCCESS);
+}
+
+TEST(ClibProcess, ProcessOutputThRead) {
+  const char* argv[2]{"err", "out"};
+
+  std::string cmd("./test/bin_test_process_output check_output ");
+  cmd += argv[1];
+
+  /* out or err? */
+  bool out = !strcmp(argv[1], "out");
+
+  static constexpr size_t size = 10 * 1024;
+  static constexpr size_t count = 30;
+
+  process p;
+  std::promise<bool> prm;
+  std::future<bool> running = prm.get_future();
+  std::thread th_exec([&p, &cmd, &prm] {
+    p.exec(cmd);
+    prm.set_value(true);
+  });
+
+  running.get();
+
+  char buffer_write[size + 1];
+  buffer_write[size] = 0;
+  for (unsigned int i = 0; i < size; ++i)
+    buffer_write[i] = static_cast<char>('A' + i % 26);
+
+  for (int i = 0; i < count; i++) {
+    unsigned int total_write = 0;
+    do {
+      if (total_write < size)
+        total_write += p.write(buffer_write + total_write, size - total_write);
+    } while (total_write < size);
+  }
+
+  std::cout << "W ";
+  for (int i = 0; i < count; i++)
+    std::cout << buffer_write;
+  std::cout << std::endl;
+
+  std::thread th_read([&p, &out] {
+    std::string buffer_read;
+    do {
+      std::string data;
+      if (out)
+        p.read(data);
+      else
+        p.read_err(data);
+      buffer_read += data;
+    } while (buffer_read.size() < size * count);
+
+    std::cout << "R " << buffer_read << std::endl;
+    for (int i = 0, j = 0; i < size * count; i++) {
+      ASSERT_EQ(static_cast<char>('A' + j % 26), buffer_read[i]);
+      if (++j == size)
+        j = 0;
+    }
+  });
+
+  th_exec.join();
+  th_read.join();
+  p.update_ending_process(0);
+  p.wait();
+
+  ASSERT_EQ(p.exit_code(), EXIT_SUCCESS);
 }
 
 TEST(ClibProcess, ProcessReturn) {
