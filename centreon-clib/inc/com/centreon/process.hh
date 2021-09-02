@@ -44,7 +44,20 @@ class process {
   enum stream { in = 0, out = 1, err = 2 };
 
  private:
+  /* Error buffer:
+   * * cleared by exec(),
+   * * content get and then cleared by read_err()
+   * * and filled by do_read() when an error in the process occures. This last
+   *   method is called by the process manager in its main loop when needed.
+   */
   std::string _buffer_err;
+
+  /* Output buffer:
+   * * cleared by exec(),
+   * * content get and then cleared by read()
+   * * and filled by do_read() when an output in the process occures. This last
+   *   method is called by the process manager in its main loop when needed.
+   */
   std::string _buffer_out;
   pid_t (*_create_process)(char**, char**);
   mutable std::condition_variable _cv_buffer_err;

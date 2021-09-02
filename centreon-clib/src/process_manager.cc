@@ -40,6 +40,7 @@ static int const DEFAULT_TIMEOUT = 200;
 process_manager::process_manager()
     : _update(true), _running{false}, _thread{&process_manager::_run, this} {
   std::unique_lock<std::mutex> lck(_running_m);
+  pthread_setname_np(_thread.native_handle(), "clib_prc_mgr");
   _running_cv.wait(lck, [this]() -> bool { return _running; });
 }
 
