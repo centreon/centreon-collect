@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 . `dirname $0`/../../common.sh
 
 # Project.
