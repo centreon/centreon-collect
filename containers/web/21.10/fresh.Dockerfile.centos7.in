@@ -30,7 +30,7 @@ RUN yum clean all && \
     rm -rf /tmp/fresh
 
 # License stuff.
-ENV CENTREON_IMP_SERVER HELLOWORLD:https://ppd-api.imp.centreon.com
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
 COPY web/21.10/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php73/php-fpm.d/centreon-license-manager.conf
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]

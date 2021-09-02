@@ -290,3 +290,91 @@ generate_summary() {
   php summary/index.php > summary/index.html
   rm -f summary/index.php summary/jobData.json
 }
+
+
+
+
+#Functions used by the new CI/CD workflow
+
+put_rpms () {
+
+  # "REPO" "$MAJOR" "DISTRIB" "REPOTYPE" "ARCH" "PROJECT" "FOLDER" 'RPMS'
+
+  # Checking if we push standard rpms or business modules
+  if [ "$1" = "standard" ] ; then
+    PROJECT_PATH=standard
+  elif [ "$1" = "business" ] ; then
+    PROJECT_PATH=centreon-business/1a97ff9985262bf3daf7a0919f9c59a6
+  elif [ "$1" = "lts" ] ; then
+    PROJECT_PATH=centreon-lts/1c0143e9c46ef424bc0c1ae9ba77203c17abf1cda7e
+  elif [ "$1" = "bam" ] ; then
+    PROJECT_PATH=centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3
+  elif [ "$1" = "map" ] ; then
+    PROJECT_PATH=centreon-map/bfcfef6922ae08bd2b641324188d8a5f
+  elif [ "$1" = "mbi" ] ; then
+    PROJECT_PATH=centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7
+  elif [ "$1" = "plugin-packs" ] ; then
+    PROJECT_PATH=plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f
+  fi
+
+  #Local variables for the parameters that are used to create the targer path
+  MAJOR=$2
+  DISTRIB=$3
+  REPOTYPE=$4
+  ARCH=$5
+  PROJECT=$6
+  FOLDER=$7
+  #Local variable for rpm put
+  TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
+  #Local variable for cleaning project directory to keep only six rpms projects
+  PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
+  METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" mkdir -p "$TARGET"
+  shift 7
+  scp -o StrictHostKeyChecking=no "$@" "cesync@yum.int.centreon.com:$TARGET"
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "ls -drc $PROJECT_LOCATION/* | head -n -6 | xargs rm -rf"
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
+  ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" aws cloudfront create-invalidation --distribution-id E34EBWWERP6QET --paths "/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
+}
+
+promote_rpms_from_testing_to_stable () {
+
+  # Checking if we push standard rpms or business modules
+  if [ "$1" = "standard" ] ; then
+    PROJECT_PATH=standard
+  elif [ "$1" = "business" ] ; then
+    PROJECT_PATH=centreon-business/1a97ff9985262bf3daf7a0919f9c59a6
+  elif [ "$1" = "lts" ] ; then
+    PROJECT_PATH=centreon-lts/1c0143e9c46ef424bc0c1ae9ba77203c17abf1cda7e
+  elif [ "$1" = "bam" ] ; then
+    PROJECT_PATH=centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3
+  elif [ "$1" = "map" ] ; then
+    PROJECT_PATH=centreon-map/bfcfef6922ae08bd2b641324188d8a5f
+  elif [ "$1" = "mbi" ] ; then
+    PROJECT_PATH=centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7
+  elif [ "$1" = "plugin-packs" ] ; then
+    PROJECT_PATH=plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f
+  fi
+  
+  #Local variables for the parameters that are used to create the targer path
+  MAJOR=$2
+  DISTRIB=$3
+  ARCH=$4
+  PROJECT=$5
+  FOLDER=$6
+
+  #Local variable for testing rpm dir
+  SOURCE="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/testing/$ARCH/$PROJECT/$FOLDER"
+  #Local variable for stable rpm dir
+  TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/stable/$ARCH/RPMS"
+  #Local variable for metadatas updates
+  METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/stable/$ARCH"
+
+  #Create directory and copy rpm from testing repo to the stable repo
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" mkdir -p "$TARGET"
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" cp $SOURCE/*.rpm $TARGET/
+
+  #Update metadatas and invalidate cache on cloudfront
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
+  ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" aws cloudfront create-invalidation --distribution-id E34EBWWERP6QET --paths "/$PROJECT_PATH/$MAJOR/$DISTRIB/stable/$ARCH/*"
+}
