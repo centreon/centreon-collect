@@ -97,11 +97,8 @@ try {
   if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
     stage('Delivery') {
       node("C++") {
-<<<<<<< HEAD
         unstash 'el7-rpms'
         unstash 'el8-rpms'
-=======
->>>>>>> 1703b5e... enh(ci) : New packaging workflow (#58)
         sh 'setup_centreon_build.sh'
         sh "./centreon-build/jobs/clib/${serie}/mon-clib-delivery.sh"
       }
