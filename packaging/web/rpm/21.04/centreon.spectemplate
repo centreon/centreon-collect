@@ -384,6 +384,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/logAnalyserBroker %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/changeRrdDsName.pl %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/migrateWikiPages.php %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/migrate_php74.sh %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/registerServerTopology.sh %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/registerServerTopologyTemplate %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/centreon-sanitize-images.php %buildroot%{_datadir}/centreon/bin/
@@ -579,6 +580,7 @@ fi
 %{_datadir}/centreon/bin/generateSqlLite
 %{_datadir}/centreon/bin/changeRrdDsName.pl
 %{_datadir}/centreon/bin/migrateWikiPages.php
+%{_datadir}/centreon/bin/migrate_php74.sh
 %{_datadir}/centreon/bin/centreon-partitioning.php
 %{_datadir}/centreon/bin/logAnalyserBroker
 %{_datadir}/centreon/bin/centreon-sanitize-images.php
