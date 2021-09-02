@@ -4,7 +4,7 @@
 properties([buildDiscarder(logRotator(numToKeepStr: '10'))])
 def serie = '21.10'
 def maintenanceBranch = "${serie}.x"
-def qaBranch = "dev-${serie}"
+def qaBranch = "dev-${serie}.x"
 
 if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'RELEASE'
