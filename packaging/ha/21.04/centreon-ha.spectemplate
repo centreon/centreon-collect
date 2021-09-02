@@ -123,10 +123,12 @@ This add-on is built to manage a failover solution for Centreon.
 %config(noreplace) %{_sysconfdir}/centreon-gorgone/config.d/cron.d/30-centreon-ha-centreon-statistics.yaml
 %{_sysconfdir}/sudoers.d/centreon-cluster
 %config(noreplace) %{_sysconfdir}/sysconfig/cbd_sql
+%config(noreplace) %{_sysconfdir}/sysconfig/cbd_rrd
 
 # systemd
 %defattr(-, root, root, -)
 %{_unitdir}/cbd-sql.service
+%{_unitdir}/cbd-rrd.service
 %{_unitdir}/centreon-central-sync.service
 
 
