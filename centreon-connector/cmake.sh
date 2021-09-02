@@ -114,11 +114,11 @@ elif [ -r /etc/issue ] ; then
   v=$(cmake --version)
   if [[ $v =~ "version 3" ]] ; then
     cmake='cmake'
-  elif [ $maj = "Debian" ] ; then
+  elif [ "$maj" = "Debian" ] || [ "$maj" = "Ubuntu" ]; then
     if $dpkg -l cmake ; then
       echo "Bad version of cmake..."
       exit 1
-    else
+  else
       echo -e "cmake is not installed, you could enter, as root:\n\tapt install -y cmake\n\n"
       cmake='cmake'
     fi
@@ -135,7 +135,7 @@ elif [ -r /etc/issue ] ; then
     exit 1
   fi
 
-  if [ $maj = "Debian" ] ; then
+  if [ "$maj" = "Debian" ] || [ "$maj" = "Ubuntu" ]; then
     pkgs=(
       python3
       python3-pip
