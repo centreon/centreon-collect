@@ -31,7 +31,7 @@ RUN dnf clean all && \
     chown apache:apache /var/log/php-fpm/centreon-error.log
 
 # License stuff.
-ENV CENTREON_IMP_SERVER HELLOWORLD:https://ppd-api.imp.centreon.com
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
 COPY web/20.10/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
