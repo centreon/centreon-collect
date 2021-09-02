@@ -1,6 +1,0 @@
----
-  - jenkins_job:
-      name: mon-containers-unittest-3.4-centos7
-      config: "{{ lookup('file', 'mon-containers-unittest.xml.in') | regex_replace('@SERIE@', '3.4') | regex_replace('@DISTRIB@', 'centos7')}}"
-      user: "{{ jenkins_user }}"
-      password: "{{ jenkins_password }}"

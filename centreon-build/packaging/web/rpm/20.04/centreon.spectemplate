@@ -347,6 +347,7 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0755 bin/logAnalyserBroker %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/changeRrdDsName.pl %buildroot%{_datadir}/centreon/bin/
 %{__install} -m 0755 bin/migrateWikiPages.php %buildroot%{_datadir}/centreon/bin/
+%{__install} -m 0755 bin/centreon-sanitize-images.php %buildroot%{_datadir}/centreon/bin/
 
 # Add new installation backup directory
 %{__install} -d -m 0775 %buildroot%{_localstatedir}/lib/centreon/installs
@@ -482,8 +483,8 @@ fi
 ######################################################
 %files web
 # Configuration
-%defattr(0664, centreon, centreon, 0775)
-%ghost %{_sysconfdir}/centreon/centreon.conf.php
+%defattr(0640, apache, apache, 0775)
+%{_sysconfdir}/centreon/centreon.conf.php
 
 # Cron
 %defattr(-, root, root, -)
@@ -517,6 +518,7 @@ fi
 %{_datadir}/centreon/bin/migrateWikiPages.php
 %{_datadir}/centreon/bin/centreon-partitioning.php
 %{_datadir}/centreon/bin/logAnalyserBroker
+%{_datadir}/centreon/bin/centreon-sanitize-images.php
 %{_bindir}/centFillTrapDB
 %{_bindir}/centreon_trap_send
 %{_bindir}/centreonSyncPlugins
@@ -661,8 +663,10 @@ sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 # Package centreon-poller-centreon-engine
 ######################################################
 %files poller-centreon-engine
-%defattr(0664, centreon, centreon, -)
+%defattr(0660, centreon, centreon, -)
 %config(noreplace) %{_sysconfdir}/centreon/conf.pm
+
+%defattr(0664, centreon, centreon, -)
 %config(noreplace) %{_sysconfdir}/centreon/centreontrapd.pm
 
 %defattr(-, centreon, centreon, 0775)
