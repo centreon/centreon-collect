@@ -303,12 +303,15 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -m 0644 additional/instCentWeb.conf %buildroot%{_sysconfdir}/centreon
 %{__install} -m 0644 additional/centreontrapd.pm %buildroot%{_sysconfdir}/centreon
 
+# Template configuration files.
+touch %buildroot%{_sysconfdir}/centreon/conf.pm
+touch %buildroot%{_sysconfdir}/centreon/centreon.conf.php
+
 # Install cron files
 %{__install} -d -m 0700 %buildroot%{_sysconfdir}/cron.d
 %{__cp} tmpl/install/centreon.cron %buildroot%{_sysconfdir}/cron.d/centreon
 %{__cp} tmpl/install/centstorage.cron %buildroot%{_sysconfdir}/cron.d/centstorage
 
-# Install httpd and PHP configuration
 %if 0%{?el7}
 %{__install} -d -m 0755 %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
@@ -452,10 +455,6 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %{__install} -d %buildroot%{_sysconfdir}/logrotate.d
 %{__cp} logrotate/* %buildroot%{_sysconfdir}/logrotate.d/
 
-# Template configuration files.
-touch %buildroot%{_sysconfdir}/centreon/centreon.conf.php
-touch %buildroot%{_sysconfdir}/centreon/conf.pm
-
 # Sudoers files
 %{__install} -d %buildroot%{_sysconfdir}/sudoers.d/
 %{__cp} tmpl/install/sudoersCentreonEngine %buildroot%{_sysconfdir}/sudoers.d/centreon
@@ -537,7 +536,7 @@ fi
 %files web
 # Configuration
 %defattr(0640, apache, apache, 0775)
-%{_sysconfdir}/centreon/centreon.conf.php
+%config(noreplace) %{_sysconfdir}/centreon/centreon.conf.php
 
 #selinux
 #%defattr(-, root, root, -)
