@@ -312,9 +312,6 @@ touch %buildroot%{_sysconfdir}/centreon/centreon.conf.php
 %{__cp} tmpl/install/centreon.cron %buildroot%{_sysconfdir}/cron.d/centreon
 %{__cp} tmpl/install/centstorage.cron %buildroot%{_sysconfdir}/cron.d/centstorage
 
-# Install httpd and PHP configuration
-%{__install} -d -m 0640 %buildroot%{_sysconfdir}/centreon/centreon.conf.php
-
 %if 0%{?el7}
 %{__install} -d -m 0755 %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
