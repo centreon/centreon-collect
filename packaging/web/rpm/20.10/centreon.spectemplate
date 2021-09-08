@@ -746,8 +746,10 @@ sed -i -e 's/mode => 1/mode => 0/g' /etc/centreon/centreontrapd.pm
 # Package centreon-poller-centreon-engine
 ######################################################
 %files poller-centreon-engine
-%defattr(0664, centreon, centreon, -)
+%defattr(0660, centreon, centreon, -)
 %config(noreplace) %{_sysconfdir}/centreon/conf.pm
+
+%defattr(0664, centreon, centreon, -)
 %config(noreplace) %{_sysconfdir}/centreon/centreontrapd.pm
 
 %defattr(-, root, root, -)
