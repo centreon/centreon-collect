@@ -516,7 +516,6 @@ fi
 %{_datadir}/centreon/bin/generateSqlLite
 %{_datadir}/centreon/bin/changeRrdDsName.pl
 %{_datadir}/centreon/bin/migrateWikiPages.php
-%{_datadir}/centreon/bin/migrate_php73.sh
 %{_datadir}/centreon/bin/centreon-partitioning.php
 %{_datadir}/centreon/bin/logAnalyserBroker
 %{_datadir}/centreon/bin/centreon-sanitize-images.php
