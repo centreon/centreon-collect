@@ -11,6 +11,8 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 cd "$PROJECT-$VERSION"
 find . -type f | xargs --delimiter='\n' sed -i -e "s/@COMMIT@/$COMMIT/g"
 
+sudo yum install -y rh-php72-php-intl
+
 # Generate lang files.
 # Special case for english front-end translation that uses french as base.
 mkdir -p www/locale/en_US.UTF-8/LC_MESSAGES
