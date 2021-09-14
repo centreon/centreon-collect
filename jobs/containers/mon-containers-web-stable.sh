@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 # Check arguments.
 if [ "$#" -lt 1 ] ; then
   echo "USAGE: $0 <6|7>"

@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Check arguments.
@@ -47,8 +44,6 @@ cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/21.10/fresh.Dockerfile.$DISTRIB.in" > web/fresh.Dockerfile
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/21.10/standard.Dockerfile.in > web/standard.Dockerfile
 sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/21.10/widgets.Dockerfile.in > web/widgets.Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/$REPODISTRIB/noarch/web/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-scp repo/centreon-internal.repo "$REPO_CREDS:/srv/yum/internal/21.10/$REPODISTRIB/noarch/web/$PROJECT-$VERSION-$RELEASE/"
 
 # Build 'fresh' image.
 docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .

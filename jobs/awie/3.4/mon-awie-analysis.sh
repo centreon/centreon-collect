@@ -17,6 +17,5 @@ tar xzf "$PROJECT-git.tar.gz"
 
 # Copy reports and run analysis.
 cd "$PROJECT"
-# override missing AMI requirement
-sudo apt-get install shellcheck
+
 sonar-scanner

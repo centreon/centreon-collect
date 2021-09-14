@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Project.
@@ -28,7 +25,6 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < bam/21.10/Dockerfile.in > bam/Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/bam/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="registry.centreon.com"

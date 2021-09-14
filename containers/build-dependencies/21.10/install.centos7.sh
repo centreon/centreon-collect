@@ -1,20 +1,17 @@
 #!/bin/sh
 
 set -e
-set -x
-
-cp /tmp/ca-centreon-internal.pem /etc/pki/ca-trust/source/anchors/
-update-ca-trust
 
 # Clean packages
 yum clean all
 
-# Install development repository.
-curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
+# Install Centreon repository.
+curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
-sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 yum-config-manager --enable 'centreon-testing*'
 yum-config-manager --enable 'centreon-unstable*'
+yum-config-manager --enable 'centreon-business-testing'
+yum-config-manager --enable 'centreon-business-unstable'
 
 # Install Software Collections (for PHP 7).
 curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm"

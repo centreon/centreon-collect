@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 # Base apt configuration.
 echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes

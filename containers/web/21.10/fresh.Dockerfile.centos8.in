@@ -3,11 +3,9 @@ FROM @BASE_IMAGE@
 LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Install repository.
-COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
 COPY web/21.10 /tmp/fresh
 
 RUN dnf clean all && \
-    dnf config-manager --setopt='exclude=centreon,centreon-base-config-centreon-engine,centreon-common,centreon-perl-libs' centreon-stable-noarch centreon-testing-noarch centreon-unstable-noarch --save && \
     # TEMPORARY FIX UNTIL FOLLOWING PACKAGES ARE AVAILABLE.
     mkdir -p /usr/lib64/centreon-connector && \
     mkdir -p /usr/lib/centreon/plugins && \
@@ -26,7 +24,6 @@ RUN dnf clean all && \
     /tmp/fresh/fresh.sh && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
     chmod +x /usr/share/centreon/container.sh && \
-    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     dnf clean all && \
     rm -rf /tmp/fresh && \
     rm -f /etc/php-fpm.d/www.conf

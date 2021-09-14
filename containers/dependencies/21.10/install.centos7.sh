@@ -1,11 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
-
-# Trust centreon internal certificate
-cp /tmp/ca-centreon-internal.pem /etc/pki/ca-trust/source/anchors/
-update-ca-trust
 
 # Clean packages
 yum clean all
@@ -25,10 +20,12 @@ localedef -i pt_PT -f UTF-8 pt_PT.UTF-8
 yum install curl nc
 
 # Install Centreon repository.
-curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
+curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
-sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 yum-config-manager --enable 'centreon-testing*'
+yum-config-manager --enable 'centreon-unstable*'
+yum-config-manager --enable 'centreon-business-testing'
+yum-config-manager --enable 'centreon-business-unstable'
 
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
@@ -43,5 +40,4 @@ xargs yum install < /tmp/dependencies.txt
 echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php73/php.d/centreon.ini
 
 # Clean packages
-yum-config-manager --enable 'centreon-unstable*'
 yum clean all

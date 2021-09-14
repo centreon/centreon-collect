@@ -1,9 +1,6 @@
 #!/bin/sh
 
-set -e
-set -x
-
-. `dirname $0`/../../common.sh
+. `dirname $0`/../common.sh
 
 # Project.
 PROJECT=centreon-license-manager
@@ -18,16 +15,17 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
 
 # Pull images.
-WEB_IMAGE=registry.centreon.com/mon-web-21.04:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-$MAJOR:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
-cp -r `dirname $0`/../../../containers centreon-build-containers
+cp -r `dirname $0`/../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s/@DISTRIB@/$DISTRIB/g" < lm/21.04/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
+sed "s/@DISTRIB@/$DISTRIB/g" < lm/$MAJOR/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
 if [ "$DISTRIB" = 'centos7' ] ; then
   DISTRIBCODENAME=el7
 elif [ "$DISTRIB" = 'centos8' ] ; then
@@ -36,12 +34,14 @@ else
   echo "Unsupported distribution $DISTRIB."
   exit 1
 fi
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.04/$DISTRIBCODENAME/noarch/lm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
+
+sed "s/@DISTRIBCODENAME@/$DISTRIBCODENAME/g" < lm/$MAJOR/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
+# @TODO : manage el8 centreon release rpm install (name structure)
 
 # Build image.
 REGISTRY="registry.centreon.com"
 LM_IMAGE="$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
-LM_WIP_IMAGE="$REGISTRY/mon-lm-21.04-wip:$DISTRIB"
+LM_WIP_IMAGE="$REGISTRY/mon-lm-$MAJOR-wip:$DISTRIB"
 docker build --no-cache -t "$LM_IMAGE" -f lm/lm.$DISTRIB.Dockerfile .
 docker push "$LM_IMAGE"
 docker tag "$LM_IMAGE" "$LM_WIP_IMAGE"

@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Project.
@@ -34,11 +31,6 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed -e "s#@BASE_IMAGE@#$WEB_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/21.10/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 sed -e "s#@BASE_IMAGE@#$PPM_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/21.10/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
-if [ "$DISTRIB" '=' centos7 ] ; then
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-else
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el8/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-fi
 
 # Build ppm image.
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .

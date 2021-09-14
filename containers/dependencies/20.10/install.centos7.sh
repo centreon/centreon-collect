@@ -20,9 +20,10 @@ yum install curl nc
 # Install Centreon repository.
 curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/20.10/el7/stable/noarch/RPMS/centreon-release-20.10-2.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
-sed -i -e 's#yum.centreon.com#srvi-repo.int.centreon.com/yum#g' /etc/yum.repos.d/centreon.repo
 yum-config-manager --enable 'centreon-testing*'
-
+yum-config-manager --enable 'centreon-unstable*'
+yum-config-manager --enable 'centreon-business-testing'
+yum-config-manager --enable 'centreon-business-unstable'
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 
@@ -36,5 +37,4 @@ xargs yum install < /tmp/dependencies.txt
 echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php72/php.d/centreon.ini
 
 # Clean packages
-yum-config-manager --enable 'centreon-unstable*'
 yum clean all

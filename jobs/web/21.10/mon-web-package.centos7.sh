@@ -22,11 +22,5 @@ docker-rpm-builder dir --verbose --sign-with `dirname $0`/../../ces.key registry
 export VERSION="$OLDVERSION"
 export RELEASE="$OLDRELEASE"
 
-# Publish RPMs.
-put_internal_rpms "21.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] || [ "$BUILD" '=' 'QA' ] ; then
-  copy_internal_rpms_to_canary "standard" "21.10" "el7" "noarch" "web" "$PROJECT-$VERSION-$RELEASE"
-fi
-
 # Create RPM tarball.
 tar czf rpms-centos7.tar.gz output

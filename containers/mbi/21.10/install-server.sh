@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 # Start services.
 service mysql start
 

@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # This job is run directly after mon-ppm-unittest on centos7.
@@ -31,6 +28,4 @@ sed -i -e "s/{PROJECT_TITLE}/$PROJECT/g" sonar-project.properties
 sed -i -e "s/{PROJECT_NAME}/$PROJECT_NAME/g" sonar-project.properties
 sed -i -e "s/{PROJECT_VERSION}/$VERSION/g" sonar-project.properties
 
-# override missing AMI requirement
-sudo apt-get install shellcheck
 sonar-scanner

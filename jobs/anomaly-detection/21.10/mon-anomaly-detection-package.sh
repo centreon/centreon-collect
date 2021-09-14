@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -x
 
 . `dirname $0`/../../common.sh
 
@@ -59,8 +58,4 @@ elif [ "$DISTRIB" = 'centos8' ] ; then
 else
   echo "Unsupported distribution $DISTRIB."
   exit 1
-fi
-put_internal_rpms "21.10" "$DISTRIB" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "21.10" "$DISTRIB" "noarch" "anomaly-detection" "$PROJECT-$VERSION-$RELEASE"
 fi

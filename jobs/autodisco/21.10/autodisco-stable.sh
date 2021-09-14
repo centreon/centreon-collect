@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Project.
@@ -24,5 +21,7 @@ $SSH_REPO aws s3 cp --acl public-read "/srv/sources/standard/stable/$PROJECT-$VE
 curl "$DL_URL/api/?token=ML2OA4P43FDF456FG3EREYUIBAHT521&product=$PROJECT&version=$VERSION-php73&extension=tar.gz&md5=$SRCHASH&ddos=0&dryrun=0"
 
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "standard" "21.10" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "standard" "21.10" "el8" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+
+promote_rpms_from_testing_to_stable "standard" "$MAJOR" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "standard" "$MAJOR" "el8" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"

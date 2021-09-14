@@ -10,11 +10,12 @@ RUN sed -i 's@http://ci.int.centreon.com:3000@http://middleware@g' /etc/opt/rh/r
 RUN sed -i 's@http://ci.int.centreon.com:3000@http://middleware@g' /etc/php-fpm.d/centreon-license-manager.conf
 
 # Install repository.
-COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+RUN yum remove -y centreon-release
+RUN yum install -y http://yum-1.centreon.com/standard/21.10/@DISTRIBCODENAME@/stable/noarch/RPMS/centreon-release-21.10-1.@DISTRIBCODENAME@.centos.noarch.rpm
+RUN yum-config-manager --enable 'centreon-unstable*'
 
 # Install package.
 RUN yum install -y centreon-license-manager && \
-    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
 # Install module in Centreon.
