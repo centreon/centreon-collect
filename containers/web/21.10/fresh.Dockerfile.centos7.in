@@ -5,9 +5,12 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 # Install repository.
 COPY web/21.10 /tmp/fresh
 
+RUN yum install rrdtool-1.4.8-9.el7 \
+    rrdtool-perl-1.4.8-9.el7
+    
 # Install Centreon software.
 RUN yum clean all && \
-    yum install -y centreon centreon-broker-influxdb libfaketime && \
+    yum install -y --exclude=rrdtool* centreon centreon-broker-influxdb libfaketime && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
     chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
