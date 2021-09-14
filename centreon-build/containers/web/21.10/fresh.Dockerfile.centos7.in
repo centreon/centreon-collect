@@ -5,9 +5,10 @@ LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 # Install repository.
 COPY web/21.10 /tmp/fresh
 
-RUN yum install rrdtool-1.4.8-9.el7 \
+#Temporary fix related to https://centreon.atlassian.net/browse/MON-11057
+RUN yum remove rrdtool-1.7.2-1.el7.centos.x86_64 && yum install rrdtool-1.4.8-9.el7 \
     rrdtool-perl-1.4.8-9.el7
-    
+
 # Install Centreon software.
 RUN yum clean all && \
     yum install -y --exclude=rrdtool* centreon centreon-broker-influxdb libfaketime && \
