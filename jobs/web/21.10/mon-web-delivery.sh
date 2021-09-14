@@ -24,7 +24,7 @@ then
   TARGETVERSION='21.10'
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
-  put_testing_source "standard" "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz" centreon-api-v21.10.html
+  put_testing_source "standard" "web" "centreon-web-$VERSION-$RELEASE" "centreon-web-$VERSION.tar.gz" centreon-api-v21.10.html
   put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
   TARGETVERSION="$VERSION"
