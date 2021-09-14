@@ -300,20 +300,20 @@ put_rpms () {
 
   # "REPO" "$MAJOR" "DISTRIB" "REPOTYPE" "ARCH" "PROJECT" "FOLDER" 'RPMS'
 
-  # Checking if we push standard rpms or business modules
+  # Checking if we push standard rpms or business modules for specific versions
   if [ "$1" = "standard" ] ; then
     PROJECT_PATH=standard
-  elif [ "$1" = "business" ] ; then
+  elif [ "$1" = "business" ] && [ "$2" = "21.10" -o "$2" = "21.04"] ; then
     PROJECT_PATH=centreon-business/1a97ff9985262bf3daf7a0919f9c59a6
-  elif [ "$1" = "lts" ] ; then
+  elif [ "$6" = "lts" ] ; then
     PROJECT_PATH=centreon-lts/1c0143e9c46ef424bc0c1ae9ba77203c17abf1cda7e
-  elif [ "$1" = "bam" ] ; then
+  elif [ "$6" = "bam" ] && [ "$2" = "20.04" -o "$2" = "20.10"] ; then
     PROJECT_PATH=centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3
-  elif [ "$1" = "map" ] ; then
+  elif [ "$6" = "map" ] && [ "$2" = "20.04" -o "$2" = "20.10"] ; then
     PROJECT_PATH=centreon-map/bfcfef6922ae08bd2b641324188d8a5f
-  elif [ "$1" = "mbi" ] ; then
+  elif [ "$6" = "mbi" ] && [ "$2" = "20.04" -o "$2" = "20.10"] ; then
     PROJECT_PATH=centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7
-  elif [ "$1" = "plugin-packs" ] ; then
+  elif [ "$6" = "plugin-packs" ] ; then
     PROJECT_PATH=plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f
   fi
 
@@ -342,17 +342,17 @@ promote_rpms_from_testing_to_stable () {
   # Checking if we push standard rpms or business modules
   if [ "$1" = "standard" ] ; then
     PROJECT_PATH=standard
-  elif [ "$1" = "business" ] ; then
+  elif [ "$1" = "business" ] && [ "$2" = "21.10" -o "$2" = "21.04"] ; then
     PROJECT_PATH=centreon-business/1a97ff9985262bf3daf7a0919f9c59a6
-  elif [ "$1" = "lts" ] ; then
+  elif [ "$6" = "lts" ] ; then
     PROJECT_PATH=centreon-lts/1c0143e9c46ef424bc0c1ae9ba77203c17abf1cda7e
-  elif [ "$1" = "bam" ] ; then
+  elif [ "$6" = "bam" ] && [ "$2" = "20.04" -o "$2" = "20.10"] ; then
     PROJECT_PATH=centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3
-  elif [ "$1" = "map" ] ; then
+  elif [ "$6" = "map" ] && [ "$2" = "20.04" -o "$2" = "20.10"] ; then
     PROJECT_PATH=centreon-map/bfcfef6922ae08bd2b641324188d8a5f
-  elif [ "$1" = "mbi" ] ; then
+  elif [ "$6" = "mbi" ] && [ "$2" = "20.04" -o "$2" = "20.10"] ; then
     PROJECT_PATH=centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7
-  elif [ "$1" = "plugin-packs" ] ; then
+  elif [ "$6" = "plugin-packs" ] ; then
     PROJECT_PATH=plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f
   fi
   

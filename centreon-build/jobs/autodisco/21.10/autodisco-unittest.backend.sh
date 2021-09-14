@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -x
-
 # Get project.
 PROJECT="centreon-autodiscovery"
 

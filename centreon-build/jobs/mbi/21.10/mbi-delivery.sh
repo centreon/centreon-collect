@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Project.
@@ -14,18 +11,13 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-#
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  copy_internal_source_to_testing "mbi" "mbi" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "mbi" "21.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "mbi" "21.10" "el8" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+EL7RPMS=`echo output/noarch/*.el7.*.rpm`
+EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
-#
-# CI delivery.
-#
-else
+# Publish RPMs.
+if [ "$BUILD" '=' 'QA' ]
+then
   # Set Docker images as latest.
   REGISTRY='registry.centreon.com'
   for distrib in centos7 centos8 ; do
@@ -39,8 +31,12 @@ else
     docker tag "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$distrib" "$REGISTRY/des-mbi-web-21.10:$distrib"
     docker push "$REGISTRY/des-mbi-web-21.10:$distrib"
   done
+  put_rpms "business" "$MAJOR" "el7" "unstable" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "unstable" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 
-  # Move RPMs to unstable.
-  promote_canary_rpms_to_unstable "mbi" "21.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
-  promote_canary_rpms_to_unstable "mbi" "21.10" "el8" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
+elif [ "$BUILD" '=' 'RELEASE' ]
+then
+  copy_internal_source_to_testing "mbi" "mbi" "$PROJECT-$VERSION-$RELEASE"
+  put_rpms "business" "$MAJOR" "el7" "testing" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "testing" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi

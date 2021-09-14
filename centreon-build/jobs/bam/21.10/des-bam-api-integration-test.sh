@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 SCRIPT_PATH=`dirname $0`
 
 . $SCRIPT_PATH/../../common.sh

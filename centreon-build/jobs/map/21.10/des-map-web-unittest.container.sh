@@ -12,7 +12,7 @@ rm -f /tmp/codestyle-be.xml
 chown -R root:root "/usr/local/src/$PROJECT"
 cd "/usr/local/src/$PROJECT"
 # @todo remove token
-composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
+ 
 composer install
 
 # Prepare build directory

@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 . `dirname $0`/../../common.sh
 
 # Project.
@@ -15,8 +12,9 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "mbi" "21.10" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "mbi" "21.10" "el8" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+promote_rpms_from_testing_to_stable "business" "$MAJOR" "el7" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "business" "$MAJOR" "el8" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
 
 # Move sources to the stable directory.
 SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'

@@ -12,7 +12,6 @@ rm -f /tmp/codestyle.xml
 
 # Install dependencies.
 cd /usr/local/src/$PROJECT/
-composer config --global github-oauth.github.com "2cf4c72854f10e4ef54ef5dde7cd41ab474fff71"
 composer install
 
 # Run unit tests.

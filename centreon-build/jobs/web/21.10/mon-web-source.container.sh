@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 # Prepare source directory.
 cd /usr/local/src
 tar xzf "$PROJECT-$VERSION.tar.gz"

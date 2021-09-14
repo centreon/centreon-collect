@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -x
-
 # Get project.
 PROJECT=centreon-pp-manager
 
@@ -14,7 +12,6 @@ rm -f /tmp/phpstan.xml
 # Install dependencies.
 chown -R root:root "/usr/local/src/$PROJECT"
 cd "/usr/local/src/$PROJECT"
-composer config --global github-oauth.github.com $GITHUB_TOKEN
 composer install
 
 # Prepare build directory

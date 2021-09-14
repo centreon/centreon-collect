@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
-
 # Project.
 PROJECT=centreon-mbi
 
@@ -29,11 +26,6 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < "mbi/21.10/server.Dockerfile.$DISTRIB.in" > mbi/server.Dockerfile
 sed "s/@DISTRIB@/$DISTRIB/g" < "mbi/21.10/web.Dockerfile.$DISTRIB.in" > mbi/web.Dockerfile
-if [ "$DISTRIB" = 'centos7' ] ; then
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/mbi/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-else
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el8/noarch/mbi/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-fi
 
 # Build image.
 REGISTRY="registry.centreon.com"

@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -x
-
 # Get project.
 PROJECT="centreon-web"
 
@@ -15,7 +13,7 @@ cd "/usr/local/src/$PROJECT"
 
 # Run frontend unit tests and code style.
 npm run eslint -- -o checkstyle-fe.xml -f checkstyle
-npm t -- --ci --reporters=jest-junit --runInBand
+npm t -- --ci --reporters=jest-junit
 
 # Move reports to expected places.
 mv junit.xml /tmp/ut-fe.xml
