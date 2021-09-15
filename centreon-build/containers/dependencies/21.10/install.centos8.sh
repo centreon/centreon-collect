@@ -23,7 +23,8 @@ dnf config-manager --set-enabled 'centreon-testing*'
 dnf config-manager --set-enabled 'centreon-unstable*'
 dnf config-manager --set-enabled 'centreon-business-testing*'
 dnf config-manager --set-enabled 'centreon-business-unstable*'
-
+dnf config-manager --set-enabled 'centreon-business-testing-noarch'
+dnf config-manager --set-enabled 'centreon-business-unstable-noarch'
 # Switch AppStream to install php73
 dnf module enable php:7.3
 
