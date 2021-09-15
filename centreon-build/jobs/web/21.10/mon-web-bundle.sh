@@ -72,7 +72,7 @@ docker push "$WIDGETS_WIP_IMG"
 #     docker push "$REGISTRY/$image-21.10:$distrib"
 #   done
 # done
-if [ "$DISTRIB" == "centos7" -o "$DISTRIB" == "centos8" ] ; then
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
   for image in mon-web-fresh mon-web mon-web-widgets ; do
      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.10:$DISTRIB"
