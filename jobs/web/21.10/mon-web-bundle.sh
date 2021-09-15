@@ -68,7 +68,7 @@ REGISTRY='registry.centreon.com'
 for image in mon-web-fresh mon-web mon-web-widgets ; do
   for distrib in centos7 centos8 ; do
     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
-    docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-21.10:$distrib"
+    docker push "$REGISTRY/$image-21.10:$distrib"
   done
 done
