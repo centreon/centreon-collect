@@ -19,9 +19,11 @@ localedef -i pt_PT -f UTF-8 pt_PT.UTF-8
 # Install base tools.
 yum install curl nc
 
-# Install Centreon repository.
+# Install Centreon repositories.
 curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
+curl -o centreon-release-business.rpm http://yum-1.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.10/el7/stable/noarch/RPMS/centreon-business-release-21.10-1.el7.centos.noarch.rpm
+yum install --nogpgcheck centreon-release-business.rpm
 yum-config-manager --enable 'centreon-testing*'
 yum-config-manager --enable 'centreon-unstable*'
 yum-config-manager --enable 'centreon-business-testing'
