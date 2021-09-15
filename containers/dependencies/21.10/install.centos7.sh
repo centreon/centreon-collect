@@ -28,6 +28,8 @@ yum-config-manager --enable 'centreon-testing*'
 yum-config-manager --enable 'centreon-unstable*'
 yum-config-manager --enable 'centreon-business-testing*'
 yum-config-manager --enable 'centreon-business-unstable*'
+yum-config-manager --enable 'centreon-business-testing-noarch'
+yum-config-manager --enable 'centreon-business-unstable-noarch'
 
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
