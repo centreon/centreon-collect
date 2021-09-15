@@ -63,12 +63,12 @@ docker push "$WIDGETS_IMG"
 docker tag "$WIDGETS_IMG" "$WIDGETS_WIP_IMG"
 docker push "$WIDGETS_WIP_IMG"
 
-# Set Docker images as latest.
-REGISTRY='registry.centreon.com'
-for image in mon-web-fresh mon-web mon-web-widgets ; do
-  for distrib in centos7 centos8 ; do
-    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-21.10:$distrib"
-    docker push "$REGISTRY/$image-21.10:$distrib"
-  done
-done
+# # Set Docker images as latest.
+# REGISTRY='registry.centreon.com'
+# for image in mon-web-fresh mon-web mon-web-widgets ; do
+#   for distrib in centos7 centos8 ; do
+#     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
+#     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-21.10:$distrib"
+#     docker push "$REGISTRY/$image-21.10:$distrib"
+#   done
+# done
