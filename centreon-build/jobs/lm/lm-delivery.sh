@@ -28,11 +28,3 @@ then
   put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi
-
-# Set Docker images as latest.
-REGISTRY='registry.centreon.com'
-for distrib in centos7 centos8 ; do
-  docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-lm-$TARGETVERSION:$distrib"
-  docker push "$REGISTRY/mon-lm-$TARGETVERSION:$distrib"
-done
