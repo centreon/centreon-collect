@@ -46,3 +46,10 @@ docker build --no-cache -t "$LM_IMAGE" -f lm/lm.$DISTRIB.Dockerfile .
 docker push "$LM_IMAGE"
 docker tag "$LM_IMAGE" "$LM_WIP_IMAGE"
 docker push "$LM_WIP_IMAGE"
+
+REGISTRY="registry.centreon.com"
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
+  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-lm-$TARGETVERSION:$DISTRIB"
+  docker push "$REGISTRY/mon-lm-$TARGETVERSION:$DISTRIB"
+fi
