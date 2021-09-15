@@ -18,7 +18,7 @@ EL7RPMS=`echo output/x86_64/*.el7.*.rpm`
 EL8RPMS=`echo output/x86_64/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' ]
+if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI'  ]
 then
   put_rpms "standard" "$MAJOR" "el7" "unstable" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
