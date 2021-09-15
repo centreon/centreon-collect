@@ -26,17 +26,6 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < lm/$MAJOR/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
-if [ "$DISTRIB" = 'centos7' ] ; then
-  DISTRIBCODENAME=el7
-elif [ "$DISTRIB" = 'centos8' ] ; then
-  DISTRIBCODENAME=el8
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
-
-sed "s/@DISTRIBCODENAME@/$DISTRIBCODENAME/g" < lm/$MAJOR/lm.Dockerfile.in > lm/lm.$DISTRIB.Dockerfile
-# @TODO : manage el8 centreon release rpm install (name structure)
 
 # Build image.
 REGISTRY="registry.centreon.com"
