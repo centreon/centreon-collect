@@ -2,6 +2,7 @@
 FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
+RUN yum install yum-utils
 # Install Centreon repositories.
 RUN curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm"
 RUN yum install --nogpgcheck centreon-release.rpm
