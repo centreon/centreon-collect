@@ -43,3 +43,12 @@ docker build --no-cache -t "$PPM_AUTODISCO_IMAGE" -f ppm/ppm-autodisco.Dockerfil
 docker push "$PPM_AUTODISCO_IMAGE"
 docker tag "$PPM_AUTODISCO_IMAGE" "$PPM_AUTODISCO_WIP_IMAGE"
 docker push "$PPM_AUTODISCO_WIP_IMAGE"
+
+REGISTRY="registry.centreon.com"
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  for image in mon-ppm mon-ppm-autodisco ; do
+    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.10:$DISTRIB"
+    docker push "$REGISTRY/$image-21.10:$DISTRIB"
+  done
+fi
