@@ -3,10 +3,6 @@ FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Centreon repositories.
-RUN yum-config-manager --enable 'centreon-testing*'
-RUN yum-config-manager --enable 'centreon-unstable*'
-RUN yum-config-manager --enable 'centreon-business-testing*'
-RUN yum-config-manager --enable 'centreon-business-unstable*'
 RUN yum install -y centreon-bam-server && \
     yum clean all
 
