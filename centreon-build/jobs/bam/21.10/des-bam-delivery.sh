@@ -18,13 +18,13 @@ EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
 then
   copy_internal_source_to_testing "standard" "bam" "$PROJECT-$VERSION-$RELEASE"
-  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "business" "$MAJOR" "el7" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
   TARGETVERSION='21.10'
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
-  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "business" "$MAJOR" "el7" "testing" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "testing" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
   TARGETVERSION="$VERSION"
   # Set Docker images as latest.
   REGISTRY='registry.centreon.com'
