@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -e
+set -x
 
 # Clean packages
 dnf clean all
@@ -9,6 +10,7 @@ dnf clean all
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
 dnf install dnf-plugins-core
+dnf install langpacks-en glibc-all-langpacks -y
 dnf config-manager --set-enabled 'PowerTools'
 
 # Install base tools.
