@@ -24,7 +24,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 # Launch mon-unittest container.
 UT_IMAGE=registry.centreon.com/mon-unittest-21.10:$DISTRIB
 docker pull $UT_IMAGE
-containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh`
+containerid=`docker create -e "GITHUB_TOKEN=$GITHUB_TOKEN" $UT_IMAGE /usr/local/bin/unittest.sh`
 
 # Copy sources to container.
 docker cp `dirname $0`/mon-ppm-unittest.container.sh "$containerid:/usr/local/bin/unittest.sh"
