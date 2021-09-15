@@ -62,3 +62,13 @@ docker build --no-cache -t "$WIDGETS_IMG" -f web/widgets.Dockerfile .
 docker push "$WIDGETS_IMG"
 docker tag "$WIDGETS_IMG" "$WIDGETS_WIP_IMG"
 docker push "$WIDGETS_WIP_IMG"
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+for image in mon-web-fresh mon-web mon-web-widgets ; do
+  for distrib in centos7 centos8 ; do
+    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
+    docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
+  done
+done

@@ -28,13 +28,4 @@ then
   put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
   TARGETVERSION="$VERSION"
-  # Set Docker images as latest.
-  REGISTRY='registry.centreon.com'
-  for image in mon-web-fresh mon-web mon-web-widgets ; do
-    for distrib in centos7 centos8 ; do
-      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
-      docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
-    done
-  done
 fi
