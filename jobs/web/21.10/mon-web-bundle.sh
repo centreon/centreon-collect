@@ -78,3 +78,4 @@ if [ "$DISTRIB" == "el7" -o "$DISTRIB" == "el8" ] ; then
      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.10:$DISTRIB"
      docker push "$REGISTRY/$image-21.10:$DISTRIB"
   done
+fi
