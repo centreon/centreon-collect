@@ -21,8 +21,8 @@ curl -o centreon-release-business.rpm http://yum-1.centreon.com/centreon-busines
 dnf install --nogpgcheck centreon-release-business.rpm
 dnf config-manager --set-enabled 'centreon-testing*'
 dnf config-manager --set-enabled 'centreon-unstable*'
-dnf config-manager --set-enabled 'centreon-business-testing'
-dnf config-manager --set-enabled 'centreon-business-unstable'
+dnf config-manager --set-enabled 'centreon-business-testing*'
+dnf config-manager --set-enabled 'centreon-business-unstable*'
 
 # Switch AppStream to install php73
 dnf module enable php:7.3
