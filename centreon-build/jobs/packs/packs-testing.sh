@@ -35,7 +35,11 @@ for json in *.json ; do
   echo '{"data": {"type": "pluginpack", "attributes": { "slug": "'$slug'", "information": ' > /tmp/query.json
   cat < "$json" >> ../query.json
   echo '}}}' >> ../query.json
+  echo "Plugin pack update payload:"
+  cat ../query.json
   curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $TOKEN" -X POST -d '@-' "$MIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
+  echo "Plugin pack update in the middleware response:"
+  cat ${PPOUTPUT}
   ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
   curl -s -X PATCH "$MIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
     -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
