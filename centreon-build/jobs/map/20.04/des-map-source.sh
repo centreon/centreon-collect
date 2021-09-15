@@ -46,6 +46,10 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 # Installation of the dependency packages verified by the "package-lock.json" file
 # present in the web repository of centreon-map, which therefore allows to obtain
 # the "node_modules".
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n 10
+
 npm ci
 
 # Generate sources of Centreon Map web client.
