@@ -28,18 +28,15 @@ MIDDLEWARE='https://api.imp.centreon.com/api'
 TOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "b46567488e4140d921b76cc063678af3dfeace77" }' "$MIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
 PPDMIDDLEWARE='https://ppd-api.imp.centreon.com/api'
 PPDTOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "batchimport", "token": "3d3e1700e611b1c7113694c14c51126bcb1f2604" }' "$PPDMIDDLEWARE/auth/application" | python -c "import sys, json; print json.load(sys.stdin)['token']"`
+QUERY=$(mktemp)
 PPOUTPUT=$(mktemp)
 cd "$PROJECT-$VERSION"
 for json in *.json ; do
   slug=`python -c "import sys, json; print json.load(sys.stdin)['information']['slug']" < "$json"`
-  echo '{"data": {"type": "pluginpack", "attributes": { "slug": "'$slug'", "information": ' > /tmp/query.json
-  cat < "$json" >> ../query.json
-  echo '}}}' >> ../query.json
-  echo "Plugin pack update payload:"
-  cat ../query.json
-  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $TOKEN" -X POST -d '@-' "$MIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT}
-  echo "Plugin pack update in the middleware response:"
-  cat ${PPOUTPUT}
+  echo '{"data": {"type": "pluginpack", "attributes": { "slug": "'$slug'", "information": ' > ${QUERY}
+  cat < "$json" >> ${QUERY}
+  echo '}}}' >> ${QUERY}
+  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $TOKEN" -X POST -d '@-' "$MIDDLEWARE/pluginpack/pluginpack" < ${QUERY} > ${PPOUTPUT}
   ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
   curl -s -X PATCH "$MIDDLEWARE/pluginpack/pluginpack/$ppId/catalog" \
     -d "{\"data\":{\"id\":$ppId,\"type\":\"pluginpack\",\"attributes\":{\"catalog_level\":4}}}" \
@@ -47,7 +44,7 @@ for json in *.json ; do
     -H "content-type: application/json"
 
   #ppd
-  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ../query.json > ${PPOUTPUT} || true
+  curl -s -H "Content-Type: application/json" -H "centreon-imp-token: $PPDTOKEN" -X POST -d '@-' "$PPDMIDDLEWARE/pluginpack/pluginpack" < ${QUERY} > ${PPOUTPUT} || true
 
   if grep -q "data" "${PPOUTPUT}"; then
     ppId=$(cat ${PPOUTPUT} | python -c "import sys, json; print json.load(sys.stdin)['data']['id']")
