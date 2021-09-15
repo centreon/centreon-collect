@@ -26,8 +26,8 @@ curl -o centreon-release-business.rpm http://yum-1.centreon.com/centreon-busines
 yum install --nogpgcheck centreon-release-business.rpm
 yum-config-manager --enable 'centreon-testing*'
 yum-config-manager --enable 'centreon-unstable*'
-yum-config-manager --enable 'centreon-business-testing'
-yum-config-manager --enable 'centreon-business-unstable'
+yum-config-manager --enable 'centreon-business-testing*'
+yum-config-manager --enable 'centreon-business-unstable*'
 
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
