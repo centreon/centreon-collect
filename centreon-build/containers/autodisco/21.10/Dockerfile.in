@@ -3,7 +3,7 @@ FROM @CENTREON_WEB_IMAGE@
 LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 
 # Install package.
-RUN yum install -y --enablerepo='centreon-unstable*' centreon-auto-discovery-server centreon-license-manager && \
+RUN yum install -y centreon-auto-discovery-server centreon-license-manager && \
     yum clean all
 
 # Install module in Centreon.
