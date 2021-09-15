@@ -3,8 +3,6 @@ FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Centreon repositories.
-RUN curl -o centreon-release-business.rpm http://yum-1.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.10/el7/stable/noarch/RPMS/centreon-business-release-21.10-1.el7.centos.noarch.rpm
-RUN yum install --nogpgcheck centreon-release-business.rpm
 RUN yum-config-manager --enable 'centreon-testing*'
 RUN yum-config-manager --enable 'centreon-unstable*'
 RUN yum-config-manager --enable 'centreon-business-testing*'
