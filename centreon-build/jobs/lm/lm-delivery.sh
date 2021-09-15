@@ -14,17 +14,17 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
 fi
 
 MAJOR=`echo $VERSION | cut -d . -f 1,2`
-EL7RPMS=`echo output/x86_64/*.el7.*.rpm`
-EL8RPMS=`echo output/x86_64/*.el8.*.rpm`
+EL7RPMS=`echo output/noarch/*.el7.*.rpm`
+EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI'  ]
+if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
 then
-  put_rpms "standard" "$MAJOR" "el7" "unstable" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
   copy_internal_source_to_testing "standard" "lm" "$PROJECT-$VERSION-$RELEASE"
-  put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "lm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "lm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi
