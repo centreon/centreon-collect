@@ -6,6 +6,19 @@ set -e
 
 # Project.
 PROJECT=centreon-anomaly-detection
+# Get version.
+cd "$PROJECT"
+VERSION=`grep mod_release www/modules/$PROJECT/conf.php | cut -d '"' -f 4`
+export VERSION="$VERSION"
+
+# Get release.
+COMMIT=`git log -1 HEAD --pretty=format:%h`
+now=`date +%s`
+if [ "$BUILD" '=' 'RELEASE' ] ; then
+  export RELEASE="$BUILD_NUMBER"
+else
+  export RELEASE="$now.$COMMIT"
+fi
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
