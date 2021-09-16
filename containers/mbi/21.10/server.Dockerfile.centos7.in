@@ -2,10 +2,6 @@
 FROM registry.centreon.com/mon-dependencies-21.10:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Install Centreon Business repository.
-RUN curl -o centreon-business-release.rpm "https://yum.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.10/el7/stable/noarch/RPMS/centreon-business-release-21.10-1.el7.centos.noarch.rpm"
-RUN yum clean all && yum install --nogpgcheck centreon-business-release.rpm
-
 # Install packages.
 RUN yum clean all && yum install centreon-bi-reporting-server MariaDB-server
 
