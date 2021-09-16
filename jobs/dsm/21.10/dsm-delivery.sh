@@ -16,7 +16,7 @@ EL7RPMS=`echo output/noarch/*.el7.*.rpm`
 EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' ]
+if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
 then
   put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "dsm" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "dsm" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
