@@ -21,7 +21,7 @@ yum install curl nc
 curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/20.10/el7/stable/noarch/RPMS/centreon-release-20.10-2.el7.centos.noarch.rpm"
 curl -o centreon-bam-release.rpm "http://yum-1.centreon.com/centreon-bam/d4e1d7d3e888f596674453d1f20ff6d3/20.10/el7/stable/noarch/RPMS/centreon-bam-release-20.10-2.el7.centos.noarch.rpm"
 curl -o centreon-mbi-release.rpm "http://yum-1.centreon.com/centreon-mbi/5e0524c1c4773a938c44139ea9d8b4d7/20.10/el7/stable/noarch/RPMS/centreon-mbi-release-20.10-2.el7.centos.noarch.rpm"
-curl -o centreon-map-release.rpm "http://yum-1.centreon.com/centreon-map/bfcfef6922ae08bd2b641324188d8a5f/20.10/el7/stable/noarch/centreon-map-release-20.10-2.el7.centos.noarch.rpm"
+curl -o centreon-map-release.rpm "http://yum-1.centreon.com/centreon-map/bfcfef6922ae08bd2b641324188d8a5f/20.10/el7/stable/noarch/RPMS/centreon-map-release-20.10-2.el7.centos.noarch.rpm"
 
 yum install --nogpgcheck centreon-release.rpm
 yum install --nogpgcheck centreon-bam-release.rpm
