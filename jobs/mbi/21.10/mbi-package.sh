@@ -50,6 +50,6 @@ server' | parallel docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key
 
 mkdir -p output/noarch
 for i in engine etl report reporting-server ; do
-  mv output-$i/* output/noarch
+  mv output-$i/noarch/* output/noarch
 done
 tar czf rpms-$DISTRIB.tar.gz output
