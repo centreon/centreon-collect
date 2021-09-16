@@ -47,15 +47,6 @@ docker pull "$BUILD_IMG"
 cp "$PROJECT-$VERSION.tar.gz" input/
 cp `dirname $0`"/../../../packaging/anomaly-detection/21.10/$PROJECT.spectemplate" input/
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
+tar czf rpms-$DISTRIB.tar.gz output
 export VERSION="$OLDVERSION"
 export RELEASE="$OLDRELEASE"
-
-# Copy files to server.
-if [ "$DISTRIB" = 'centos7' ] ; then
-  DISTRIB=el7
-elif [ "$DISTRIB" = 'centos8' ] ; then
-  DISTRIB=el8
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
