@@ -28,11 +28,6 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < awie/21.10/awie.Dockerfile.in > awie/Dockerfile
-if [ "$DISTRIB" '=' 'centos7' ] ; then
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/awie/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-else
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el8/noarch/awie/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-fi
 
 # Build image.
 REGISTRY="registry.centreon.com"
@@ -42,3 +37,10 @@ docker build --no-cache -t "$AWIE_IMAGE" -f awie/Dockerfile .
 docker push "$AWIE_IMAGE"
 docker tag "$AWIE_IMAGE" "$AWIE_WIP_IMAGE"
 docker push "$AWIE_WIP_IMAGE"
+
+REGISTRY="registry.centreon.com"
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
+  docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-awie-21.10:$DISTRIB"
+  docker push "$REGISTRY/mon-awie-21.10:$DISTRIB"
+fi

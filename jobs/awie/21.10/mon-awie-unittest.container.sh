@@ -30,9 +30,7 @@ rm -f /tmp/codestyle-be.xml
 
 # Install dependencies.
 chown -R root:root "/usr/local/src/$PROJECT"
-cd "/usr/local/src/$PROJECT"
-# @TODO remove credentials
- 
+cd "/usr/local/src/$PROJECT" 
 composer install
 
 # Prepare build directory
