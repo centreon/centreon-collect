@@ -15,15 +15,15 @@ yum install curl nc
 
 # Install Centreon repositories.
 curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm"
-yum install --nogpgcheck centreon-release.rpm
+dnf install --nogpgcheck centreon-release.rpm
 curl -o centreon-release-business.rpm "http://yum-1.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.04/el8/stable/noarch/RPMS/centreon-business-release-21.04-4.el8.noarch.rpm"
-yum install --nogpgcheck centreon-release-business.rpm
-yum-config-manager --enable 'centreon-testing*'
-yum-config-manager --enable 'centreon-unstable*'
-yum-config-manager --enable 'centreon-business-testing*'
-yum-config-manager --enable 'centreon-business-unstable*'
-yum-config-manager --enable 'centreon-business-testing-noarch'
-yum-config-manager --enable 'centreon-business-unstable-noarch'
+dnf install --nogpgcheck centreon-release-business.rpm
+dnf config-manager --set-enabled 'centreon-testing*'
+dnf config-manager --set-enabled 'centreon-unstable*'
+dnf config-manager --set-enabled 'centreon-business-testing*'
+dnf config-manager --set-enabled 'centreon-business-unstable*'
+dnf config-manager --set-enabled 'centreon-business-testing-noarch'
+dnf config-manager --set-enabled 'centreon-business-unstable-noarch'
 
 # Switch AppStream to install php73
 dnf module enable php:7.3
