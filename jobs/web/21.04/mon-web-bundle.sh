@@ -15,17 +15,6 @@ if [ "$#" -lt 1 ] ; then
   exit 1
 fi
 DISTRIB="$1"
-case "$DISTRIB" in
-  centos7)
-    REPODISTRIB=el7
-    ;;
-  centos8)
-    REPODISTRIB=el8
-    ;;
-  *)
-    echo "Unsupported distribution $DISTRIB."
-    exit 1
-esac
 
 # Target images.
 REGISTRY="registry.centreon.com"
@@ -47,8 +36,6 @@ cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/21.04/fresh.Dockerfile.$DISTRIB.in" > web/fresh.Dockerfile
 sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/21.04/standard.Dockerfile.in > web/standard.Dockerfile
 sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/21.04/widgets.Dockerfile.in > web/widgets.Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.04/$REPODISTRIB/noarch/web/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-scp repo/centreon-internal.repo "$REPO_CREDS:/srv/yum/internal/21.04/$REPODISTRIB/noarch/web/$PROJECT-$VERSION-$RELEASE/"
 
 # Build 'fresh' image.
 docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .
@@ -67,3 +54,13 @@ docker build --no-cache -t "$WIDGETS_IMG" -f web/widgets.Dockerfile .
 docker push "$WIDGETS_IMG"
 docker tag "$WIDGETS_IMG" "$WIDGETS_WIP_IMG"
 docker push "$WIDGETS_WIP_IMG"
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  for image in mon-web-fresh mon-web mon-web-widgets ; do
+     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.04:$DISTRIB"
+     docker push "$REGISTRY/$image-21.04:$DISTRIB"
+  done
+fi
