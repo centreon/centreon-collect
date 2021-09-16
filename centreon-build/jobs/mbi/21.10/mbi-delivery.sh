@@ -16,21 +16,8 @@ EL7RPMS=`echo output/noarch/*.el7.*.rpm`
 EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' ]
+if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
 then
-  # Set Docker images as latest.
-  REGISTRY='registry.centreon.com'
-  for distrib in centos7 centos8 ; do
-    # -server- image.
-    docker pull "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$distrib" "$REGISTRY/des-mbi-server-21.10:$distrib"
-    docker push "$REGISTRY/des-mbi-server-21.10:$distrib"
-
-    # -web- image.
-    docker pull "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$distrib" "$REGISTRY/des-mbi-web-21.10:$distrib"
-    docker push "$REGISTRY/des-mbi-web-21.10:$distrib"
-  done
   put_rpms "business" "$MAJOR" "el7" "unstable" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "business" "$MAJOR" "el8" "unstable" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 

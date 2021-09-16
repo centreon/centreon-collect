@@ -47,3 +47,9 @@ etl
 report
 reporting-server
 server' | parallel docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input-{} output-{}
+
+mkdir -p output/noarch
+for i in engine etl report reporting-server ; do
+  mv output-$i/* output/noarch
+done
+tar czf rpms-$DISTRIB.tar.gz output
