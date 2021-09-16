@@ -17,13 +17,18 @@ localedef -i pt_PT -f UTF-8 pt_PT.UTF-8
 # Install base tools.
 yum install curl nc
 
-# Install Centreon repository.
-curl -o centreon-release.rpm "http://srvi-repo.int.centreon.com/yum/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-2.el7.centos.noarch.rpm"
+# Install Centreon repositories.
+curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm"
 yum install --nogpgcheck centreon-release.rpm
+curl -o centreon-release-business.rpm "http://yum-1.centreon.com/centreon-business/1a97ff9985262bf3daf7a0919f9c59a6/21.04/el7/stable/noarch/RPMS/centreon-business-release-21.04-4.el7.centos.noarch.rpm"
+yum install --nogpgcheck centreon-release-business.rpm
 yum-config-manager --enable 'centreon-testing*'
 yum-config-manager --enable 'centreon-unstable*'
-yum-config-manager --enable 'centreon-business-testing'
-yum-config-manager --enable 'centreon-business-unstable'
+yum-config-manager --enable 'centreon-business-testing*'
+yum-config-manager --enable 'centreon-business-unstable*'
+yum-config-manager --enable 'centreon-business-testing-noarch'
+yum-config-manager --enable 'centreon-business-unstable-noarch'
+
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 
