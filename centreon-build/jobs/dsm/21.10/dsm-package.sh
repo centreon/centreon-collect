@@ -48,3 +48,4 @@ cp `dirname $0`/../../../packaging/dsm/src/* input/
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 export VERSION="$OLDVERSION"
 export RELEASE="$OLDRELEASE"
+tar czf rpms-$DISTRIB.tar.gz output
