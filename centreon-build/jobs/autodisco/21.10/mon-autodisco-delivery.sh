@@ -20,11 +20,9 @@ if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
 then
   put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
-  TARGETVERSION='21.10'
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
   copy_internal_source_to_testing "standard" "autodisco" "$PROJECT-$VERSION-$RELEASE"
   put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
-  TARGETVERSION="$VERSION"
 fi

@@ -17,8 +17,6 @@ rm -f /tmp/phpstan.xml
 # Install dependencies.
 chown -R root:root "/usr/local/src/$PROJECT"
 cd "/usr/local/src/$PROJECT"
-# @TODO remove credentials
- 
 composer install
 
 # Prepare build directory
@@ -36,7 +34,7 @@ composer run-script phpstan:ci > build/phpstan.xml
 # Run frontend unit tests and code style.
 cd "$FEDIR"
 npm run eslint -- -o checkstyle-fe.xml -f checkstyle
-npm t -- --ci --reporters=jest-junit --runInBand
+npm t -- --ci --reporters=jest-junit
 cd ../../../..
 
 # Move reports to expected places.

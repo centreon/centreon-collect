@@ -14,34 +14,18 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-#
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  # Copy artifacts.
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+EL7RPMS=`echo output/noarch/*.el7.*.rpm`
+EL8RPMS=`echo output/noarch/*.el8.*.rpm`
+
+# Publish RPMs.
+if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'RELEASE' ]
+then
   copy_internal_source_to_testing "standard" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "21.04" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "21.04" "el8" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-
-  # Docker image target version.
-  TARGETVERSION="$VERSION"
-
-#
-# CI delivery.
-#
-else
-  # Move RPMs to unstable.
-  promote_canary_rpms_to_unstable "standard" "21.04" "el7" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-  promote_canary_rpms_to_unstable "standard" "21.04" "el8" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE"
-
-  # Docker image target version.
-  TARGETVERSION='21.04'
+  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "autodisco" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi
-
-# Set Docker images as latest.
-REGISTRY='registry.centreon.com'
-for distrib in centos7 centos8 ; do
-  docker pull "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib"
-  docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$distrib" "$REGISTRY/mon-autodisco-$TARGETVERSION:$distrib"
-  docker push "$REGISTRY/mon-autodisco-$TARGETVERSION:$distrib"
-done

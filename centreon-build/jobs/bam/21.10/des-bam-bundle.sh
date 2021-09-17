@@ -34,3 +34,10 @@ docker build --no-cache -t "$BAM_IMAGE" -f bam/Dockerfile .
 docker push "$BAM_IMAGE"
 docker tag "$BAM_IMAGE" "$BAM_WIP_IMAGE"
 docker push "$BAM_WIP_IMAGE"
+
+REGISTRY="registry.centreon.com"
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  docker pull "$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB"
+  docker tag "$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-bam-21.10:$DISTRIB"
+  docker push "$REGISTRY/des-bam-21.10:$DISTRIB"
+fi

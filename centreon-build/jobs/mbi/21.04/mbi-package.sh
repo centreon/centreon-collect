@@ -51,17 +51,8 @@ report
 reporting-server
 server' | parallel docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input-{} output-{}
 
-# Copy files to server.
-if [ "$DISTRIB" = 'centos7' ] ; then
-  DISTRIB=el7
-elif [ "$DISTRIB" = 'centos8' ] ; then
-  DISTRIB=el8
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
-
-put_internal_rpms "21.04" "$DISTRIB" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE" output-engine/noarch/*.rpm output-etl/noarch/*.rpm output-report/noarch/*.rpm output-reporting-server/noarch/*.rpm output-server/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "mbi" "21.04" "$DISTRIB" "noarch" "mbi" "$PROJECT-$VERSION-$RELEASE"
-fi
+mkdir -p output/noarch
+for i in engine etl report reporting-server ; do
+  mv output-$i/noarch/* output/noarch
+done
+tar czf rpms-$DISTRIB.tar.gz output
