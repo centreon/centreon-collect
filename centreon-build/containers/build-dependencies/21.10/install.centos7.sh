@@ -10,8 +10,6 @@ curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el7/stabl
 yum install --nogpgcheck centreon-release.rpm
 yum-config-manager --enable 'centreon-testing*'
 yum-config-manager --enable 'centreon-unstable*'
-yum-config-manager --enable 'centreon-business-testing'
-yum-config-manager --enable 'centreon-business-unstable'
 
 # Install Software Collections (for PHP 7).
 curl -o centos-release-scl-rh.rpm "http://mirror.centos.org/centos-7/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm"

@@ -3,7 +3,7 @@ FROM @BASE_IMAGE@
 MAINTAINER Kevin Duret <kduret@centreon.com>
 
 # Install package.
-RUN yum install --enablerepo='centreon-testing*' --enablerepo='centreon-unstable*' -y centreon-auto-discovery-server && \
+RUN yum install -y centreon-auto-discovery-server && \
     yum clean all
 
 # Install license

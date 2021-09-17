@@ -2,12 +2,8 @@
 FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
-# Install repository.
-COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
-
 # Install package.
 RUN yum install -y centreon-pp-manager && \
-    rm -f /etc/yum.repos.d/centreon-internal.repo && \
     yum clean all
 
 # Install Plugin Pack JSON files.
