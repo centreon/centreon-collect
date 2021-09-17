@@ -29,11 +29,6 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < "mbi/21.04/server.Dockerfile.$DISTRIB.in" > mbi/server.Dockerfile
 sed "s/@DISTRIB@/$DISTRIB/g" < "mbi/21.04/web.Dockerfile.$DISTRIB.in" > mbi/web.Dockerfile
-if [ "$DISTRIB" = 'centos7' ] ; then
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.04/el7/noarch/mbi/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-else
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.04/el8/noarch/mbi/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-fi
 
 # Build image.
 REGISTRY="registry.centreon.com"
@@ -49,3 +44,16 @@ docker push "$MBI_SERVER_IMAGE"
 docker push "$MBI_SERVER_WIP_IMAGE"
 docker push "$MBI_WEB_IMAGE"
 docker push "$MBI_WEB_WIP_IMAGE"
+
+# Set Docker images as latest.
+REGISTRY='registry.centreon.com'
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  # -server- image.
+  docker pull "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB"
+  docker tag "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-mbi-server-21.04:$DISTRIB"
+  docker push "$REGISTRY/des-mbi-server-21.04:$DISTRIB"
+  # -web- image.
+  docker pull "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB"
+  docker tag "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-mbi-web-21.04:$DISTRIB"
+  docker push "$REGISTRY/des-mbi-web-21.04:$DISTRIB"
+fi

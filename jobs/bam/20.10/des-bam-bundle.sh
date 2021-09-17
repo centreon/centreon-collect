@@ -28,7 +28,6 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < bam/20.10/Dockerfile.in > bam/Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#20.10/el7/noarch/bam/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="registry.centreon.com"
@@ -38,3 +37,10 @@ docker build --no-cache -t "$BAM_IMAGE" -f bam/Dockerfile .
 docker push "$BAM_IMAGE"
 docker tag "$BAM_IMAGE" "$BAM_WIP_IMAGE"
 docker push "$BAM_WIP_IMAGE"
+
+REGISTRY="registry.centreon.com"
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  docker pull "$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB"
+  docker tag "$REGISTRY/des-bam-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-bam-20.10:$DISTRIB"
+  docker push "$REGISTRY/des-bam-20.10:$DISTRIB"
+fi

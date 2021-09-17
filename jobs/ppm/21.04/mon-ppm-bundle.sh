@@ -34,11 +34,6 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed -e "s#@BASE_IMAGE@#$WEB_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/21.04/ppm.Dockerfile.in > ppm/ppm.Dockerfile
 sed -e "s#@BASE_IMAGE@#$PPM_IMAGE#g" -e "s#@DISTRIB@#$DISTRIB#g" < ppm/21.04/ppm-autodisco.Dockerfile.in > ppm/ppm-autodisco.Dockerfile
-if [ "$DISTRIB" '=' centos7 ] ; then
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.04/el7/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-else
-  sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.04/el8/noarch/ppm/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-fi
 
 # Build ppm image.
 docker build --no-cache -t "$PPM_IMAGE" -f ppm/ppm.Dockerfile .
@@ -51,3 +46,12 @@ docker build --no-cache -t "$PPM_AUTODISCO_IMAGE" -f ppm/ppm-autodisco.Dockerfil
 docker push "$PPM_AUTODISCO_IMAGE"
 docker tag "$PPM_AUTODISCO_IMAGE" "$PPM_AUTODISCO_WIP_IMAGE"
 docker push "$PPM_AUTODISCO_WIP_IMAGE"
+
+REGISTRY="registry.centreon.com"
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  for image in mon-ppm mon-ppm-autodisco ; do
+    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.04:$DISTRIB"
+    docker push "$REGISTRY/$image-21.04:$DISTRIB"
+  done
+fi
