@@ -2,12 +2,8 @@
 FROM registry.centreon.com/mon-web-20.10:@DISTRIB@
 LABEL maintainer="Kevin Duret <kduret@centreon.com>"
 
-# Install repository.
-COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
-
 # Install package.
-RUN yum install -y --enablerepo='centreon-unstable*' centreon-auto-discovery-server centreon-license-manager && \
-    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+RUN yum install centreon-auto-discovery-server centreon-license-manager && \
     yum clean all
 
 # Install module in Centreon.
