@@ -41,7 +41,7 @@ MW_TOKEN=`curl -s -H "Content-Type: application/json" -X POST -d '{ "name": "bat
 
 # get list of pp versions not yet released
 IFS='
-' pp_query_output=$(curl -s "$MIDDLEWARE/pluginpack/pluginpack?filter[released]=0" \
+' pp_query_output=$(curl -s "$MIDDLEWARE/pluginpack/pluginpack?filter[released]=0&page[size]=10000" \
     -H "centreon-imp-token: $MW_TOKEN" | python $PACKS_SCRIPTS_PATH/get_pp_from_mw_output.py)
 
 # one by one, set them released
