@@ -57,3 +57,11 @@ docker build --no-cache -t "$WEB_IMAGE" -f map/web.$DISTRIB.Dockerfile .
 docker push "$WEB_IMAGE"
 docker tag "$WEB_IMAGE" "$WEB_WIP_IMAGE"
 docker push "$WEB_WIP_IMAGE"
+
+if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+  for image in des-map-server des-map-web ; do
+     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.10:$DISTRIB"
+     docker push "$REGISTRY/$image-21.10:$DISTRIB"
+  done
+fi
