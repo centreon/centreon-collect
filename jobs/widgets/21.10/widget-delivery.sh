@@ -20,10 +20,10 @@ EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 # Publish RPMs.
 if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
 then  
-  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
-  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi
