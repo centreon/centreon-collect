@@ -53,20 +53,8 @@ docker cp "$containerid:/usr/local/src/$PROJECT-server-$VERSIONSERVER" "$PROJECT
 docker stop "$containerid"
 docker rm "$containerid"
 
-# Upload artifacts.
-if [ "$DISTRIB" = 'centos7' ] ; then
-  DISTRIB=el7
-elif [ "$DISTRIB" = 'centos8' ] ; then
-  DISTRIB=el8
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
 FILES_MAP_SERVER=`find "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/target/rpm/" -name '*.rpm'`
-put_internal_rpms "21.10" "$DISTRIB" "noarch" "map-server$flavor" "$PROJECT-server-$VERSIONSERVER-$RELEASE" $FILES_MAP_SERVER
-SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO rpm --resign "/srv/yum/internal/21.10/$DISTRIB/noarch/map-server$flavor/$PROJECT-server-$VERSIONSERVER-$RELEASE/*.rpm"
-$SSH_REPO createrepo "/srv/yum/internal/21.10/$DISTRIB/noarch/map-server$flavor/$PROJECT-server-$VERSIONSERVER-$RELEASE"
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "map" "21.10" "$DISTRIB" "noarch" "map-server$flavor" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-fi
+rm -rf output
+mkdir -p output/noarch/
+cp $FILES_MAP_SERVER output/noarch/
+tar czf rpms-$DISTRIB.tar.gz output
