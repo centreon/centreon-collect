@@ -50,11 +50,5 @@ docker pull registry.centreon.com/mon-build-dependencies-21.10:$DISTRIB
 # Build RPMs.
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key registry.centreon.com/mon-build-dependencies-21.10:$DISTRIB input output
 
-# Publish RPMs.
-put_internal_rpms "21.10" "$DISTRIBCODENAME" "noarch" "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE" output/noarch/*.rpm
-if [ "$BUILD" '=' 'REFERENCE' ] ; then
-  copy_internal_rpms_to_canary "standard" "21.10" "$DISTRIBCODENAME" "noarch" "widget-$WIDGET" "$PROJECT-$VERSION-$RELEASE"
-fi
-
 # Create RPMs tarball.
 tar czf "rpms-$DISTRIB.tar.gz" output
