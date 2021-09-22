@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
+#include <unistd.h>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <iostream>
-#include <unistd.h>
 
 /**
  *  Find line into the environement.
@@ -33,8 +33,8 @@
 static bool find(char const* data, char** env) {
   for (unsigned int i(0); env[i]; ++i)
     if (!strcmp(data, env[i]))
-      return (true);
-  return (false);
+      return true;
+  return false;
 }
 
 /**
@@ -48,8 +48,19 @@ static bool find(char const* data, char** env) {
 static int check_env(char** ref, char** env) {
   for (unsigned int i(0); ref[i]; ++i)
     if (!find(ref[i], env))
-      return (EXIT_FAILURE);
-  return (EXIT_SUCCESS);
+      return EXIT_FAILURE;
+  return EXIT_SUCCESS;
+}
+
+/**
+ * @brief Write "check_stdout" into the stdout.
+ *
+ * @return EXIT_SUCCESS.
+ */
+static int check_stdout(int d) {
+  sleep(d);
+  printf("check_stdout\n");
+  return EXIT_SUCCESS;
 }
 
 /**
@@ -58,7 +69,7 @@ static int check_env(char** ref, char** env) {
  *  @param[in] type If type if "err" write data on stderr,
  *                  otherwise write on stdout.
  *
- *  @return The total bytes written.
+ *  @return EXIT_SUCCESS.
  */
 static int check_output(char const* type) {
   int output(strcmp(type, "err") ? 1 : 2);
@@ -67,7 +78,7 @@ static int check_output(char const* type) {
   char buffer[1024];
   while ((size = read(0, buffer, sizeof(buffer))) > 0)
     total += write(output, buffer, size);
-  return (EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
 
 /**
@@ -78,8 +89,9 @@ static int check_output(char const* type) {
 static void usage(char const* appname) {
   std::cerr << "usage: " << appname << std::endl
             << "  check_env key1=value1 keyx=valuex..." << std::endl
-            << "  check_output err|out" << std::endl << "  check_return value"
-            << std::endl << "  check_sleep value" << std::endl;
+            << "  check_output err|out" << std::endl
+            << "  check_return value" << std::endl
+            << "  check_sleep value" << std::endl;
   exit(EXIT_FAILURE);
 }
 
@@ -90,22 +102,23 @@ int main(int argc, char** argv, char** env) {
   try {
     if (argc != 1) {
       if (!strcmp(argv[1], "check_env"))
-        return (check_env(argv + 2, env));
+        return check_env(argv + 2, env);
       if (argc == 3) {
         if (!strcmp(argv[1], "check_output"))
-          return (check_output(argv[2]));
+          return check_output(argv[2]);
         if (!strcmp(argv[1], "check_return"))
-          return (atoi(argv[2]));
+          return atoi(argv[2]);
         if (!strcmp(argv[1], "check_sleep")) {
           int timeout(atoi(argv[2]));
           sleep(timeout);
-          return (timeout);
+          return timeout;
         }
+        if (!strcmp(argv[1], "check_stdout"))
+          return check_stdout(atoi(argv[2]));
       }
     }
     usage(argv[0]);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     std::cerr << "error:" << e.what() << std::endl;
     return (EXIT_FAILURE);
   }

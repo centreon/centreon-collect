@@ -16,10 +16,10 @@
 ** For more information : contact@centreon.com
 */
 
-#include <cstdlib>
-#include <syslog.h>
-#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/syslogger.hh"
+#include <syslog.h>
+#include <cstdlib>
+#include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/stringifier.hh"
 
 using namespace com::centreon::logging;
@@ -49,7 +49,9 @@ syslogger::syslogger(std::string const& id,
 /**
  *  Default destructor.
  */
-syslogger::~syslogger() noexcept { close(); }
+syslogger::~syslogger() noexcept {
+  close();
+}
 
 /**
  *  Close syslog.

@@ -16,10 +16,10 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/exceptions/basic.hh"
 #include <cstdio>
 #include <cstring>
 #include "com/centreon/misc/stringifier.hh"
-#include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon::exceptions;
 
@@ -73,7 +73,9 @@ basic& basic::operator=(basic const& other) {
  *
  *  @return Basic message.
  */
-char const* basic::what() const throw() { return (_buffer.data()); }
+char const* basic::what() const throw() {
+  return (_buffer.data());
+}
 
 /**
  *  Internal copy method.

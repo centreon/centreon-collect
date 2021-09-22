@@ -64,7 +64,7 @@ class backend_test : public backend {
   std::string _buffer;
   uint32_t _nb_call;
 };
-}
+}  // namespace logging
 
 CC_END()
 

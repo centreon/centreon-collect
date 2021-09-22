@@ -16,13 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/logging/engine.hh"
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/logging/backend.hh"
-#include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::logging;
 
@@ -89,8 +89,7 @@ void engine::log(unsigned long long types,
   std::lock_guard<std::mutex> lock(_mtx);
   for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
        end(_backends.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     if (((*it)->types & types) && (*it)->verbose >= verbose)
       (*it)->obj->log(types, verbose, msg, size);
 }
@@ -107,8 +106,7 @@ bool engine::remove(unsigned long id) {
   std::lock_guard<std::mutex> lock(_mtx);
   for (std::vector<backend_info*>::iterator it(_backends.begin()),
        end(_backends.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     if ((*it)->id == id) {
       delete *it;
       _backends.erase(it);
@@ -155,15 +153,16 @@ void engine::reopen() {
   std::lock_guard<std::mutex> lock(_mtx);
   for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
        end(_backends.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     (*it)->obj->reopen();
 }
 
 /**
  *  Default constructor.
  */
-engine::engine() : _id(0) { memset(_list_types, 0, sizeof(_list_types)); }
+engine::engine() : _id(0) {
+  memset(_list_types, 0, sizeof(_list_types));
+}
 
 /**
  *  Destructor.
@@ -171,8 +170,7 @@ engine::engine() : _id(0) { memset(_list_types, 0, sizeof(_list_types)); }
 engine::~engine() throw() {
   for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
        end(_backends.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     delete *it;
 }
 
@@ -183,8 +181,7 @@ void engine::_rebuild_types() {
   memset(_list_types, 0, sizeof(_list_types));
   for (std::vector<backend_info*>::const_iterator it(_backends.begin()),
        end(_backends.end());
-       it != end;
-       ++it) {
+       it != end; ++it) {
     for (unsigned int i(0); i <= (*it)->verbose; ++i)
       _list_types[i] |= (*it)->types;
   }

@@ -38,87 +38,133 @@ static int const DEFAULT_TIMEOUT = 200;
  *  internal function instance().
  */
 process_manager::process_manager()
-    : _update(true), _running{false}, _thread{&process_manager::_run, this} {
+    : _update{true}, _running{false}, _finished{false} {
   std::unique_lock<std::mutex> lck(_running_m);
+  _thread = std::thread(&process_manager::_run, this);
   pthread_setname_np(_thread.native_handle(), "clib_prc_mgr");
   _running_cv.wait(lck, [this]() -> bool { return _running; });
+}
+
+/**
+ * @brief Send a kill signal to all the children processes. This method is
+ * called from _run().
+ */
+void process_manager::_stop_processes() noexcept {
+  // Kill all running process.
+  for (auto it = _processes_pid.begin(), end = _processes_pid.end(); it != end;
+       ++it) {
+    try {
+      it->second->kill();
+    } catch (const std::exception& e) {
+      (void)e;
+    }
+  }
 }
 
 /**
  *  Destructor.
  */
 process_manager::~process_manager() noexcept {
-  // Kill all running process.
-  {
-    std::lock_guard<std::mutex> lock(_lock_processes);
-    for (auto it = _processes_pid.begin(), end = _processes_pid.end();
-         it != end; ++it) {
-      try {
-        it->second->kill();
-      } catch (const std::exception& e) {
-        (void)e;
-      }
-    }
-  }
-
-  // Exit process manager thread.
-  //_close(_fds_exit[1]);
-
   // Waiting the end of the process manager thread.
   _running = false;
+  _finished = true;
   _thread.join();
 
-  {
-    std::lock_guard<std::mutex> lock(_lock_processes);
-
-    // Release memory.
-    _fds.clear();
-
-    // Waiting all process.
-    int status(0);
-    auto time_limit =
-        std::chrono::system_clock::now() + std::chrono::seconds(10);
-    int ret = ::waitpid(-1, &status, WNOHANG);
-    while (ret >= 0 || (ret < 0 && errno == EINTR)) {
-      if (ret == 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      ret = ::waitpid(-1, &status, WNOHANG);
-      if (std::chrono::system_clock::now() >= time_limit)
-        break;
-    }
+  // Waiting all process.
+  int status = 0;
+  auto time_limit = std::chrono::system_clock::now() + std::chrono::seconds(10);
+  int ret = ::waitpid(-1, &status, WNOHANG);
+  while (ret >= 0 || (ret < 0 && errno == EINTR)) {
+    if (ret == 0)
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ret = ::waitpid(-1, &status, WNOHANG);
+    if (std::chrono::system_clock::now() >= time_limit)
+      break;
   }
 }
 
 /**
- *  Add a process to the process manager.
+ * @brief Add asynchronously a process to the process_manager. Only during
+ * the _update_list() call, the process will be really integrated.
+ *
+ * @param p
+ */
+void process_manager::add(process* p) {
+  if (_running) {
+    std::lock_guard<std::mutex> lck(_add_m);
+    _processes.emplace_back(p->_process, p);
+    _update = true;
+  }
+}
+
+/**
+ * @brief Called by process::wait(). It waits for processes to be totally
+ * removed from the process_manager.
+ */
+void process_manager::wait_for_update() const noexcept {
+  std::unique_lock<std::mutex> lck(_running_m);
+  _running_cv.wait(lck, [this] { return !_update; });
+}
+
+/**
+ *  Update processes and file descriptors lists so we can then poll fd changes
+ *  and wait for processes status changes. This method is only called by
+ *  the _run() one.
  *
  *  @param[in] p    The process to manage.
  *  @param[in] obj  The object to notify.
  */
-void process_manager::add(process* p) {
-  // Check viability pointer.
-  assert(p);
+void process_manager::_update_list() {
+  std::deque<std::pair<pid_t, process*>> my_processes;
+  {
+    std::lock_guard<std::mutex> lck(_add_m);
+    std::swap(_processes, my_processes);
+    // Disable update.
+    _update = false;
+  }
 
-  // We lock _lock_processes before to avoid deadlocks
-  std::lock_guard<std::mutex> lock(_lock_processes);
+  {
+    for (auto& p : my_processes) {
+      // Monitor err/out output if necessary.
+      if (p.second->_enable_stream[process::out]) {
+        _processes_fd[p.second->_stream[process::out]] = p.second;
+      }
+      if (p.second->_enable_stream[process::err]) {
+        _processes_fd[p.second->_stream[process::err]] = p.second;
+      }
+    }
 
-  // Monitor err/out output if necessary.
-  if (p->_enable_stream[process::out])
-    _processes_fd[p->_stream[process::out]] = p;
-  if (p->_enable_stream[process::err])
-    _processes_fd[p->_stream[process::err]] = p;
+    if (_processes_fd.size() != _fds.size())
+      _fds.resize(_processes_fd.size());
 
-  // Add timeout to kill process if necessary.
-  if (p->_timeout)
-    _processes_timeout.insert({p->_timeout, p});
+    auto itt = _fds.begin();
+    for (auto it = _processes_fd.begin(), end = _processes_fd.end(); it != end;
+         ++it) {
+      itt->fd = it->first;
+      itt->events = POLLIN | POLLPRI | POLL_HUP;
+      itt->revents = 0;
+      ++itt;
+    }
+  }
 
-  // Need to update file descriptor list.
-  _update = true;
+  {
+    std::lock_guard<std::mutex> lock(_timeout_m);
+    for (auto& p : my_processes) {
+      // Add timeout to kill process if necessary.
+      if (p.second->_timeout)
+        _processes_timeout.insert({p.second->_timeout, p.second});
+    }
+  }
 
   // Add pid process to use waitpid.
-  _processes_pid[p->_process] = p;
+  for (auto& p : my_processes)
+    _processes_pid[p.first] = p.second;
 
-  // write(_fds_exit[1], "up", 2);
+  {
+    // Notification for process::wait()
+    std::lock_guard<std::mutex> lck(_running_m);
+    _running_cv.notify_all();
+  }
 }
 
 /**
@@ -132,38 +178,21 @@ process_manager& process_manager::instance() {
 }
 
 /**
- *  close syscall wrapper.
- *
- *  @param[in, out] fd The file descriptor to close.
- */
-void process_manager::_close(int& fd) noexcept {
-  if (fd >= 0) {
-    while (::close(fd) < 0 && errno == EINTR)
-      std::this_thread::yield();
-  }
-  fd = -1;
-}
-
-/**
- *  Close stream.
+ *  Close stream. This method is called by the _run() one.
  *
  *  @param[in] fd  The file descriptor to close.
  */
 void process_manager::_close_stream(int fd) noexcept {
   try {
-    process* p;
     // Get process to link with fd and remove this
     // fd to the process manager.
-    {
-      std::lock_guard<std::mutex> lock(_lock_processes);
-      _update = true;
-      std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
-      if (it == _processes_fd.end())
-        throw basic_error() << "invalid fd: not found in processes fd list";
+    _update = true;
+    std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
+    if (it == _processes_fd.end())
+      throw basic_error() << "invalid fd: not found in processes fd list";
 
-      p = it->second;
-      _processes_fd.erase(it);
-    }
+    process* p = it->second;
+    _processes_fd.erase(it);
 
     // Update process informations.
     p->do_close(fd);
@@ -181,7 +210,7 @@ void process_manager::_erase_timeout(process* p) {
   // Check process viability.
   if (!p || !p->_timeout)
     return;
-  std::lock_guard<std::mutex> lock(_lock_processes);
+  std::lock_guard<std::mutex> lock(_timeout_m);
   auto range = _processes_timeout.equal_range(p->_timeout);
   for (auto it = range.first; it != range.second; ++it) {
     if (it->second == p) {
@@ -195,7 +224,7 @@ void process_manager::_erase_timeout(process* p) {
  *  Kill process to reach the timeout.
  */
 void process_manager::_kill_processes_timeout() noexcept {
-  std::lock_guard<std::mutex> lock(_lock_processes);
+  std::lock_guard<std::mutex> lock(_timeout_m);
   // Get the current time.
   std::time_t now(time(nullptr));
 
@@ -213,7 +242,7 @@ void process_manager::_kill_processes_timeout() noexcept {
 }
 
 /**
- *  Read stream.
+ *  Read stream. Called from _run().
  *
  *  @param[in] fd  The file descriptor to read.
  *
@@ -225,8 +254,7 @@ uint32_t process_manager::_read_stream(int fd) noexcept {
     process* p;
     // Get process to link with fd.
     {
-      std::lock_guard<std::mutex> lock(_lock_processes);
-      std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
+      auto it = _processes_fd.find(fd);
       if (it == _processes_fd.end()) {
         _update = true;
         throw basic_error() << "invalid fd: not found in processes fd list";
@@ -256,11 +284,14 @@ void process_manager::_run() {
       // Update the file descriptor list.
       if (_update)
         _update_list();
+      if (_finished)
+        _stop_processes();
 
       if (!_running && _fds.size() == 0 && _processes_pid.size() == 0 &&
           _orphans_pid.size() == 0)
         break;
 
+      assert(_processes_fd.size() == _fds.size());
       int ret = poll(_fds.data(), _fds.size(), DEFAULT_TIMEOUT);
       if (ret < 0) {
         if (errno == EINTR)
@@ -305,7 +336,8 @@ void process_manager::_run() {
 }
 
 /**
- *  Update process informations at the end of the process.
+ *  Update process informations at the end of the process. Called from the same
+ *  thread as _run().
  *
  *  @param[in] p       The process to update informations.
  *  @param[in] status  The status of the process to set.
@@ -320,52 +352,24 @@ void process_manager::_update_ending_process(process* p, int status) noexcept {
 }
 
 /**
- *  Update list of file descriptors to watch.
- */
-void process_manager::_update_list() {
-  std::lock_guard<std::mutex> lock(_lock_processes);
-
-  // Set file descriptor to wait event.
-  if (_processes_fd.size() != _fds.size())
-    _fds.resize(_processes_fd.size());
-
-  auto itt = _fds.begin();
-  for (auto it = _processes_fd.begin(), end = _processes_fd.end(); it != end;
-       ++it) {
-    itt->fd = it->first;
-    itt->events = POLLIN | POLLPRI | POLL_HUP;
-    itt->revents = 0;
-    ++itt;
-  }
-  // Disable update.
-  _update = false;
-}
-
-/**
- *  Waiting orphans pid.
+ *  Waiting orphans pid. Called from _run().
  */
 void process_manager::_wait_orphans_pid() noexcept {
   try {
-    std::unique_lock<std::mutex> lock(_lock_processes);
     std::deque<orphan>::iterator it = _orphans_pid.begin();
     while (it != _orphans_pid.end()) {
-      process* p(nullptr);
       // Get process to link with pid and remove this pid
       // to the process manager.
-      {
-        auto it_p = _processes_pid.find(it->pid);
-        if (it_p == _processes_pid.end()) {
-          ++it;
-          continue;
-        }
-        p = it_p->second;
-        _processes_pid.erase(it_p);
+      auto it_p = _processes_pid.find(it->pid);
+      if (it_p == _processes_pid.end()) {
+        ++it;
+        continue;
       }
+      process* p = it_p->second;
+      _processes_pid.erase(it_p);
 
       // Update process.
-      lock.unlock();
       _update_ending_process(p, it->status);
-      lock.lock();
 
       // Erase orphan pid.
       it = _orphans_pid.erase(it);
@@ -376,12 +380,13 @@ void process_manager::_wait_orphans_pid() noexcept {
 }
 
 /**
- *  Waiting finished process.
+ *  Waiting finished process. Called from _run().
  */
 void process_manager::_wait_processes() noexcept {
   try {
     for (;;) {
       int status = 0;
+      assert(_processes_fd.size() <= _fds.size());
       pid_t pid(::waitpid(-1, &status, WNOHANG));
       // No process are finished.
       if (pid <= 0)
@@ -390,20 +395,18 @@ void process_manager::_wait_processes() noexcept {
       process* p = nullptr;
       // Get process to link with pid and remove this pid
       // to the process manager.
-      {
-        std::lock_guard<std::mutex> lock(_lock_processes);
-        auto it = _processes_pid.find(pid);
-        if (it == _processes_pid.end()) {
-          _orphans_pid.push_back(orphan(pid, status));
-          continue;
-        }
-        p = it->second;
-        _processes_pid.erase(it);
+      auto it = _processes_pid.find(pid);
+      if (it == _processes_pid.end()) {
+        _orphans_pid.emplace_back(pid, status);
+        _update = true;
+        continue;
       }
+      p = it->second;
+      _processes_pid.erase(it);
 
       // Update process.
       if (WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL)
-        p->_is_timeout = true;
+        p->set_timeout(true);
       _update_ending_process(p, status);
     }
   } catch (const std::exception& e) {
