@@ -1,9 +1,0 @@
-{
-    "dependencies": [
-        "centreon-plugins-sudoers",
-        "perl",
-        "nmap",
-        "perl(JSON::XS)",
-        "perl(XML::Simple)"
-    ]
-}

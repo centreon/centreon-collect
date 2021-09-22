@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libnet-dns-perl",
-        "libtime-hires-perl"
-    ]
-}

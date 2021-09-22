@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl(Net::TFTP)",
-        "perl(Time::HiRes)"
-    ]
-}

@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libauthen-radius-perl",
-        "libtime-hires-perl"
-    ]
-}

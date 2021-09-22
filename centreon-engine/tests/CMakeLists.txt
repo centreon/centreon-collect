@@ -37,10 +37,10 @@ if (WITH_TESTING)
   include_directories(${PROJECT_SOURCE_DIR}/enginerpc)
   add_definitions(-DENGINERPC_TESTS_PATH="${TESTS_DIR}/enginerpc")
 
-  add_executable(rpc_client
+  add_executable(rpc_client_engine
       ${TESTS_DIR}/enginerpc/client.cc)
 
-  target_link_libraries(rpc_client cerpc ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
+  target_link_libraries(rpc_client_engine cerpc ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
 
   add_executable("bin_connector_test_run"
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
@@ -124,19 +124,19 @@ if (WITH_TESTING)
   # Unit test executable.
   include_directories(${TESTS_DIR})
 
-  add_executable(ut ${ut_sources})
+  add_executable(ut_engine ${ut_sources})
 
-  add_test(NAME tests COMMAND ut)
+  add_test(NAME tests COMMAND ut_engine)
 
   if (WITH_COVERAGE)
     set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
     SETUP_TARGET_FOR_COVERAGE(
         NAME test-coverage
-        EXECUTABLE ut
-        DEPENDENCIES ut
+        EXECUTABLE ut_engine
+        DEPENDENCIES ut_engine
     )
     set(GCOV gcov)
   endif ()
-  target_link_libraries(ut ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
+  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
 
 endif ()

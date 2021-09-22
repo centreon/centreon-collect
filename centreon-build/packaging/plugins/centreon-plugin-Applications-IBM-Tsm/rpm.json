@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl",
-        "plink",
-        "perl(DateTime)"
-    ]
-}

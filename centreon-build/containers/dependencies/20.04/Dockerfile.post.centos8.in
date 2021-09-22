@@ -1,3 +1,0 @@
-RUN /usr/libexec/mysql-prepare-db-dir
-RUN rm -f /lib/systemd/system/mariadb.service
-COPY dependencies/@VERSION@/mysql-init.sh /etc/init.d/mysql

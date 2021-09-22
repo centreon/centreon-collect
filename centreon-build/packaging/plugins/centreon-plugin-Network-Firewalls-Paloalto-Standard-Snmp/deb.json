@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-	"libdatetime-perl",
-        "libsnmp-perl"
-    ]
-}

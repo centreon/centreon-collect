@@ -1,1 +1,0 @@
-COPY build-dependencies/@VERSION@/macros.drb /etc/rpm/macros.drb

@@ -17,44 +17,46 @@
 ##
 
 # Generate code to dynamically load modules.
-add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/perl/src/xs_init.cc"
-  COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${CMAKE_SOURCE_DIR}/perl/src/xs_init.cc")
+add_custom_command(OUTPUT "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc"
+  COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc")
 
-include_directories(${CMAKE_SOURCE_DIR}/perl/inc/)
+include_directories(${PROJECT_SOURCE_DIR}/perl/inc/)
+link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 # Perl connector.
 add_executable(centreon_connector_perl
   # Sources.
-  ${CMAKE_SOURCE_DIR}/common/src/log.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/main.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/checks/check.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/checks/result.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/checks/timeout.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/embedded_perl.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/multiplexer.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/options.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/orders/parser.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/pipe_handle.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/policy.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/reporter.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/script.cc
-  ${CMAKE_SOURCE_DIR}/perl/src/xs_init.cc
+  ${PROJECT_SOURCE_DIR}/common/src/log.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/main.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/checks/result.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/checks/timeout.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/multiplexer.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/options.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/pipe_handle.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/reporter.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/script.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
   # Headers.
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/check.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/listener.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/result.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/timeout.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/embedded_perl.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/multiplexer.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/namespace.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/options.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/listener.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/pipe_handle.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
-  ${CMAKE_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/reporter.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/check.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/listener.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/result.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/timeout.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/embedded_perl.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/multiplexer.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/namespace.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/options.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/listener.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/pipe_handle.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
+  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/reporter.hh
   )
 
-target_link_libraries(centreon_connector_perl ${CLIB_LIBRARIES} ${PERL_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+add_dependencies(centreon_connector_perl centreon_clib_shared)
 
 # Installation path.
 if (WITH_PREFIX)

@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libdigest-md5-perl",
-        "libjmx-jmx4perl-perl"
-    ]
-}

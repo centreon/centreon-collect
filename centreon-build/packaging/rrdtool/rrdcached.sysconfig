@@ -1,3 +1,0 @@
-# Settings for rrdcached
-OPTIONS="-l unix:/var/rrdtool/rrdcached/rrdcached.sock -s rrdcached -m 664 -b /var/rrdtool/rrdcached"
-RRDC_USER=rrdcached

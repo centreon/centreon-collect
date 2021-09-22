@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libopenwsman-perl",
-        "libmime-base64-perl"
-    ]
-}

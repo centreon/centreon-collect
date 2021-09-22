@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libsoap-lite-perl",
-        "libposix-perl"
-    ]
-}

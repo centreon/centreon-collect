@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "plink",
-	"perl(Libssh::Session)"
-    ]
-}

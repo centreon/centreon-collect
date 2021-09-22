@@ -1,5 +1,0 @@
-#!/bin/sh
-
-deluser www-data centreon || true
-deluser centreon || true
-delgroup centreon || true
