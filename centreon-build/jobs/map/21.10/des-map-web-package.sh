@@ -42,4 +42,4 @@ export VERSION="$VERSIONWEB"
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_IMG" input output
 export VERSION="$OLDVERSION"
 
-tar czf rpms-$DISTRIB.tar.gz output
+tar czf rpms-web-$DISTRIB.tar.gz output
