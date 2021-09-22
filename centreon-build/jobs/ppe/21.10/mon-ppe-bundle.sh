@@ -28,7 +28,6 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s/@DISTRIB@/$DISTRIB/g" < ppe/21.10/ppe.Dockerfile.in > ppe/Dockerfile
-sed "s#@PROJECT@#$PROJECT#g;s#@SUBDIR@#21.10/el7/noarch/ppe/$PROJECT-$VERSION-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
 
 # Build image.
 REGISTRY="registry.centreon.com"
