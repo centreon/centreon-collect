@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "libtime-hires-perl",
+        "libio-socket-ssl-perl"
+    ]
+}

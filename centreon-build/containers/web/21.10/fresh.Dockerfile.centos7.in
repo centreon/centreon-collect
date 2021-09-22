@@ -1,0 +1,31 @@
+# Base information.
+FROM @BASE_IMAGE@
+LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
+
+# Install repository.
+COPY web/21.10 /tmp/fresh
+
+# Install Centreon software.
+RUN yum clean all && \
+    yum install -y centreon centreon-broker-influxdb libfaketime && \
+    cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
+    cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
+    chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
+    cp /tmp/fresh/autoinstall.php /usr/share/centreon/autoinstall.php && \
+    cp /tmp/fresh/configuration/* /usr/share/centreon/www/install/tmp/ && \
+    chown -R apache.apache /usr/share/centreon/www/install/tmp && \
+    chmod +x /tmp/fresh/fresh.sh && \
+    touch /var/opt/rh/rh-php73/log/php-fpm/centreon-error.log && \
+    chown apache:apache /var/opt/rh/rh-php73/log/php-fpm/centreon-error.log && \
+    cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
+    /tmp/fresh/fresh.sh && \
+    cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
+    chmod +x /usr/share/centreon/container.sh && \
+    yum clean all && \
+    rm -rf /tmp/fresh
+
+# License stuff.
+ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
+COPY web/21.10/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php73/php-fpm.d/centreon-license-manager.conf
+
+ENTRYPOINT ["/usr/share/centreon/container.sh"]

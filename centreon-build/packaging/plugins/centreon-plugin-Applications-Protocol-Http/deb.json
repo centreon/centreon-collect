@@ -1,0 +1,13 @@
+{
+    "dependencies": [
+        "libjson-path-perl",
+        "libjson-perl",
+        "libtime-hires-perl",
+        "libxml-xpath-perl",
+        "liblwp-useragent-perl",
+        "liblwp-protocol-https-perl",
+        "libio-socket-ssl-perl",
+        "liburi-perl",
+        "libhttp-proxypac-perl"
+    ]
+}

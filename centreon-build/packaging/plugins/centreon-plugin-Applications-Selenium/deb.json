@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "libtime-hires-perl",
+        "libxml-xpath-perl",
+        "libwww-selenium-perl"
+    ]
+}

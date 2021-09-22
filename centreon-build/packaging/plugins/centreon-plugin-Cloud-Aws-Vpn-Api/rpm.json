@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "perl(JSON::XS)",
+        "perl(DateTime)"
+    ]
+}

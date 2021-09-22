@@ -1,0 +1,387 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$USER1$\\\\/$_HOSTNRPECLIENT$ -H $HOSTADDRESS$ -p $_HOSTNRPEPORT$ -t $_HOSTNRPETIMEOUT$ $_HOSTNRPEEXTRAOPTIONS$ -c check_centreon_plugins -a \\'$_SERVICEPLUGIN$\\' \\'$_SERVICEMODE$\\'  \\' --name=\\\\\\\"$_SERVICEFILTER$\\\\\\\" --regexp --add-counters=\\\\\\\"$_SERVICEADDCOUNTERS$\\\\\\\" $_SERVICETHRESHOLDS$  --statefile-dir=\\\\\\\"$_SERVICESTATEFILEDIR$\\\\\\\" $_SERVICEEXTRAOPTIONS$\\'\\\"",
+            "name": "App-IIS-NRPE-WebServices-Statistics-GLOBAL",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/$_HOSTNRPECLIENT$ -H $HOSTADDRESS$ -p $_HOSTNRPEPORT$ -t $_HOSTNRPETIMEOUT$ $_HOSTNRPEEXTRAOPTIONS$ -c check_centreon_plugins -a \\'$_SERVICEPLUGIN$\\' \\'$_SERVICEMODE$\\'  \\' --name=\\\\\\\"$_SERVICENAME$\\\\\\\" --add-counters=\\\\\\\"$_SERVICEADDCOUNTERS$\\\\\\\" $_SERVICETHRESHOLDS$ --statefile-dir=\\\\\\\"$_SERVICESTATEFILEDIR$\\\\\\\" $_SERVICEEXTRAOPTIONS$\\'\\\"",
+            "name": "App-IIS-NRPE-WebServices-Statistics-NAME",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/$_HOSTNRPECLIENT$ -H $HOSTADDRESS$ -p $_HOSTNRPEPORT$ -t $_HOSTNRPETIMEOUT$ $_HOSTNRPEEXTRAOPTIONS$ -c check_centreon_plugins -a \\'$_SERVICEPLUGIN$\\' \\'$_SERVICEMODE$\\'  \\' --$_SERVICETHRESHOLD$ --pools=\\\\\\\"$_SERVICEPOOLS$\\\\\\\" $_SERVICEEXTRAOPTIONS$\\'\\\"",
+            "name": "App-IIS-NRPE-ApplicationPool-State-NAME",
+            "type": 2
+        },
+        {
+            "line": "\\\"$USER1$\\\\/$_HOSTNRPECLIENT$ -H $HOSTADDRESS$ -p $_HOSTNRPEPORT$ -t $_HOSTNRPETIMEOUT$ $_HOSTNRPEEXTRAOPTIONS$ -c check_centreon_plugins -a \\'$_SERVICEPLUGIN$\\' \\'$_SERVICEMODE$\\'  \\' --$_SERVICETHRESHOLD$ --auto  $_SERVICEEXTRAOPTIONS$\\'\\\"",
+            "name": "App-IIS-NRPE-ApplicationPool-State-AUTO",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Windows IIS >= 7.x using NRPE protocol",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "",
+            "macros": [
+                {
+                    "key": "$_HOSTNRPECLIENT$",
+                    "value": "check_centreon_nrpe"
+                },
+                {
+                    "key": "$_HOSTNRPEEXTRAOPTIONS$",
+                    "value": "-u -m 8192"
+                },
+                {
+                    "key": "$_HOSTNRPEPORT$",
+                    "value": "5666"
+                },
+                {
+                    "key": "$_HOSTNRPETIMEOUT$",
+                    "value": "30"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-IIS-NRPE",
+            "parent_template": [
+                "generic-active-host"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-IIS-Services-NRPE"
+            ]
+        }
+    ],
+    "images": [],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.2"
+            },
+            {
+                "name": "operatingsystems-windows-nrpe",
+                "version": "3.0.3"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor Microsoft IIS webserver via Nsclient++:\r\n* ApplicationPools (auto or by name)\r\n* IIS Services\r\n* Webservices (global or by name)"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un serveur web Microsoft IIS via Nsclient++ :\r\n* ApplicationPools (auto or by name)\r\n* IIS Services\r\n* Webservices (global or by name)"
+            }
+        ],
+        "discovery_category": "applications",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### Centreon Plugin\r\nInstall this plugin on each needed poller:\r\n\r\n    # install centreon-nrpe-plugin\r\n\r\n### Nsclient++\r\nThis plugin pack requires the use of:\r\n* the IIS plugin provided [here](https://forge.centreon.com/projects/centreon-plugins/repository)\r\n* NSClient++ package provided by Merethis, installed and configured on your target server as described on [documentation]( http://documentation.centreon.com)\r\n\r\nNote: Web Management Tools have to be installed on the IIS Server\r\n\r\nNote: If you use the NSClient++ installer provided by Merethis, the\r\nplugin is already included in centreon\\_plugins.exe configured in\r\nNSClient++\r\n\r\n## Centreon Configuration\r\n### Create a new IIS server\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"58%\" />\r\n<col width=\"41%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>Apps-IIS-NRPE</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.\r\n\r\nBy default, the host template checks IIS services. Go to plugin-pack\r\nmanager to see other services available.",
+        "name": "Microsoft IIS Server",
+        "requirement": [],
+        "slug": "applications-webservers-iis-nrpe",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "HTTP",
+            "HTTPS",
+            "IIS",
+            "Microsoft",
+            "SNMP",
+            "Web server",
+            "Windows"
+        ],
+        "update_date": "1466510527",
+        "version": "3.0.6",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier si les services W3SVC, IISADMIN et WAS fonctionnent.}\r\n\r\n{EN: Check if the W3SVC,IISADMIN and WAS services are running.}",
+            "active_checks_enabled": 2,
+            "alias": "IIS-Services",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "name in ('W3SVC', 'IISADMIN', 'WAS')"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-IIS-Services-NRPE",
+            "normal_check_interval": 5,
+            "parent_template": "OS-Windows-Services-Generic-Name-NRPE",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier l'\u00e9tat des services Windows.}\r\n\r\n{EN: Check windows services states.}",
+            "active_checks_enabled": 2,
+            "alias": "Services-Generic-Name",
+            "command_name": "OS-Windows-NRPE-Services-Name",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "not state_is_ok()"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEDETAILSYNTAX$",
+                    "password": false,
+                    "value": "${name}=${state} (${start_type})"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXCLUDE$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": "name in ('TEST')"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEOK$",
+                    "password": false,
+                    "value": "state_is_ok()"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICESERVICE$",
+                    "password": false,
+                    "value": "*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETOPSYNTAX$",
+                    "password": false,
+                    "value": "${problem_list}"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": ""
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXCLUDE2$",
+                    "password": false,
+                    "value": ""
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "OS-Windows-Services-Generic-Name-NRPE",
+            "normal_check_interval": 5,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le de performances des sites IIS.}\r\n\r\n{EN: Check performances of IIS sites.}",
+            "active_checks_enabled": 2,
+            "alias": "WebServices-Global",
+            "command_name": "App-IIS-NRPE-WebServices-Statistics-GLOBAL",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPLUGIN$",
+                    "password": false,
+                    "value": "apps::iis::local::plugin"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "webservice-statistics"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEFILTER$",
+                    "password": false,
+                    "value": ".*"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICESTATEFILEDIR$",
+                    "password": false,
+                    "value": "scripts/centreon/tmp"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--statefile-concat-cwd --verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-IIS-WebServices-Global-NRPE",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le de performances d'un site IIS.}\r\n\r\n{EN: Check performances of an IIS site.}",
+            "active_checks_enabled": 2,
+            "alias": "WebService-Generic-Name",
+            "command_name": "App-IIS-NRPE-WebServices-Statistics-NAME",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPLUGIN$",
+                    "password": false,
+                    "value": "apps::iis::local::plugin"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "webservice-statistics"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICESTATEFILEDIR$",
+                    "password": false,
+                    "value": "scripts/centreon/tmp"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--statefile-concat-cwd"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-IIS-WebService-Generic-Name-NRPE",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier si l'\u00e9tat des \"application pools\".}\r\n\r\n{EN: Check states of application pools.}",
+            "active_checks_enabled": 2,
+            "alias": "ApplicationPools-Generic-Name",
+            "command_name": "App-IIS-NRPE-ApplicationPool-State-NAME",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPLUGIN$",
+                    "password": false,
+                    "value": "apps::iis::local::plugin"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "applicationpool-state"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETHRESHOLD$",
+                    "password": false,
+                    "value": "critical"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-IIS-ApplicationPools-Generic-Name-NRPE",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        },
+        {
+            "_comment": "{FR: Contr\u00f4le permettant de v\u00e9rifier si les \"application pools\" en mode d\u00e9marrage automatique sont \"started\".}\r\n\r\n{EN: Check if auto-start application pools are in state \"started\".}",
+            "active_checks_enabled": 2,
+            "alias": "ApplicationPools-Auto",
+            "command_name": "App-IIS-NRPE-ApplicationPool-State-AUTO",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEPLUGIN$",
+                    "password": false,
+                    "value": "apps::iis::local::plugin"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEMODE$",
+                    "password": false,
+                    "value": "applicationpool-state"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETHRESHOLD$",
+                    "password": false,
+                    "value": "critical"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICEEXTRAOPTIONS$",
+                    "password": false,
+                    "value": "--verbose"
+                }
+            ],
+            "max_check_attempts": 3,
+            "name": "App-IIS-ApplicationPools-Auto-NRPE",
+            "normal_check_interval": 10,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 2,
+            "retry_check_interval": 1,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

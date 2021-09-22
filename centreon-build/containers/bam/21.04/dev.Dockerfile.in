@@ -1,0 +1,33 @@
+# Base information.
+FROM registry.centreon.com/des-bam-21.04:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+ENV MODULEPATH centreon-bam-server/www/modules/centreon-bam-server
+
+# Update to the latest Engine and Broker.
+# COPY centreon-bam-server/@DISTRIB@/*.rpm /tmp/
+# RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
+
+# Database.
+COPY web/21.04/install-centreon-module.php /tmp/install-centreon-module.php
+COPY bam/21.04/dev.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+COPY $MODULEPATH/sql /usr/share/centreon/www/modules/centreon-bam-server/sql
+RUN find /usr/share/centreon/www/modules/centreon-bam-server/sql -type f -exec sed -i -e 's/@DB_CENTSTORAGE@/centreon_storage/g' {} ';'
+RUN /tmp/install.sh
+
+# Sources.
+COPY $MODULEPATH/locale /usr/share/centreon/www/modules/centreon-bam-server/locale
+COPY $MODULEPATH/php /usr/share/centreon/www/modules/centreon-bam-server/php
+COPY $MODULEPATH/checklist /usr/share/centreon/www/modules/checklist
+COPY $MODULEPATH/upgrade /usr/share/centreon/www/modules/centreon-bam-server/upgrade
+COPY $MODULEPATH/tools /usr/share/centreon/www/modules/centreon-bam-server/tools
+COPY $MODULEPATH/engine /usr/share/centreon/www/modules/centreon-bam-server/engine
+COPY $MODULEPATH/webServices /usr/share/centreon/www/modules/centreon-bam-server/webServices
+COPY $MODULEPATH/widgets /usr/share/centreon/www/modules/centreon-bam-server/widgets
+COPY $MODULEPATH/generate_files /usr/share/centreon/www/modules/centreon-bam-server/generate_files
+COPY $MODULEPATH/getGraph /usr/share/centreon/www/modules/centreon-bam-server/getGraph
+COPY $MODULEPATH/centreon-clapi /usr/share/centreon/www/modules/centreon-bam-server/centreon-clapi
+COPY $MODULEPATH/api_modules /usr/share/centreon/www/modules/centreon-bam-server/api_modules
+COPY $MODULEPATH/hooks /usr/share/centreon/www/modules/centreon-bam-server/hooks
+COPY $MODULEPATH/core /usr/share/centreon/www/modules/centreon-bam-server/core

@@ -1,0 +1,29 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon AWIE",
+        "shortname": "awie"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "21.04"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/21.04/el7/noarch/awie/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/mon-awie-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/awie/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon Plugin Pack Manager",
+        "shortname": "ppm"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "20.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/20.10/el7/noarch/ppm/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos8",
+            "url": "@REPOSITORY@/yum/internal/20.10/el8/noarch/ppm/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/mon-ppm-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos8",
+            "url": "@REGISTRY@/mon-ppm-@VERSION@-@RELEASE@:centos8"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/ppm/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}

@@ -1,0 +1,59 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon Web",
+        "shortname": "web"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "21.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/21.10/el7/noarch/web/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos8",
+            "url": "@REPOSITORY@/yum/internal/21.10/el8/noarch/web/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+	{
+	    "displayname": "Docker standard image",
+	    "flavor": "centos7",
+	    "url": "@REGISTRY@/mon-web-@VERSION@-@RELEASE@:centos7"
+	},
+	{
+	    "displayname": "Docker standard image",
+	    "flavor": "centos8",
+	    "url": "@REGISTRY@/mon-web-@VERSION@-@RELEASE@:centos8"
+	},
+        {
+            "displayname": "Docker image (no resources)",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/mon-web-fresh-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Docker image (no resources)",
+            "flavor": "centos8",
+            "url": "@REGISTRY@/mon-web-fresh-@VERSION@-@RELEASE@:centos8"
+        },
+        {
+            "displayname": "Docker widgets image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/mon-web-widgets-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Docker widgets image",
+            "flavor": "centos8",
+            "url": "@REGISTRY@/mon-web-widgets-@VERSION@-@RELEASE@:centos8"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/web/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}

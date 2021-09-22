@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "perl(JSON::XS)",
+        "perl(DateTime)"
+    ],
+    "custom_pkg_data": "Obsoletes:    centreon-plugin-Cloud-Aws-Api"
+}

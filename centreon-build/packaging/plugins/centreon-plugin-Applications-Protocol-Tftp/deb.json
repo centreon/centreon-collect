@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "libnet-tftp-perl",
+        "libtime-hires-perl"
+    ]
+}

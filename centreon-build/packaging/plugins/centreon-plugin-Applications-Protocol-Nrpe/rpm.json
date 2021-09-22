@@ -1,0 +1,16 @@
+{
+    "dependencies": [
+        "perl(JSON)",
+        "perl(URI::Encode)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(HTTP::ProxyPAC)",
+        "perl(Convert::Binary::C)",
+        "perl(Digest::CRC)",
+        "perl(IO::Socket::INET6)",
+        "perl(IO::Socket)",
+        "perl(Socket)"
+    ]
+}

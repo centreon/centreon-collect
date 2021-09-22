@@ -1,0 +1,9 @@
+{
+    "dependencies": [
+        "libdbi-perl",
+        "libdigest-md5-perl",
+        "libdata-dumper-perl",
+        "libtime-hires-perl",
+        "libposix-perl"
+    ]
+}

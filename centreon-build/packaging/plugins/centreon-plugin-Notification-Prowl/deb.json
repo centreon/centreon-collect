@@ -1,0 +1,11 @@
+{
+    "dependencies": [
+	"libxml-simple-perl",
+        "liblwp-useragent-perl",
+        "liblwp-protocol-https-perl",
+        "libio-socket-ssl-perl",
+        "liburi-perl",
+        "libhttp-proxypac-perl",
+        "libhttp-cookies-perl"
+    ]
+}

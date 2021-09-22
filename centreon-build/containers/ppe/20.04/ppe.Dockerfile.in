@@ -1,0 +1,17 @@
+# Base information.
+FROM registry.centreon.com/mon-ppm-autodisco-20.04:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install repository.
+COPY repo/centreon-internal.repo /etc/yum.repos.d/centreon-internal.repo
+
+# Install package.
+RUN yum install -y centreon-export && \
+    rm -f /etc/yum.repos.d/centreon-internal.repo && \
+    yum clean all
+
+# Install script.
+COPY web/20.04/install-centreon-module.php /tmp/install-centreon-module.php
+COPY ppe/20.04/ppe-install.sh /tmp/ppe-install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/ppe-install.sh
+RUN /tmp/ppe-install.sh

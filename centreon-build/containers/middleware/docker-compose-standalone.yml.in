@@ -1,0 +1,16 @@
+version: '2'
+services:
+  middleware:
+    image: @MIDDLEWARE_IMAGE@
+    ports:
+    - "3000"
+    - "3306"
+    extra_hosts:
+    - "crm.int.centreon.com:10.24.11.73"
+    - "support.centreon.com:10.30.2.62"
+  openldap:
+    image: registry.centreon.com/mon-openldap:latest
+  redis:
+    image: redis:latest
+  sqs:
+    image: roribio16/alpine-sqs:latest

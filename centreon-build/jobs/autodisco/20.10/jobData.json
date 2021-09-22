@@ -1,0 +1,39 @@
+{
+    "project": {
+        "codename": "@PROJECT@",
+        "displayname": "Centreon Autodiscovery",
+        "shortname": "autodisco"
+    },
+    "version": {
+        "full": "@VERSION@",
+        "release": "@RELEASE@",
+        "serie": "20.10"
+    },
+    "artifacts": [
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos7",
+            "url": "@REPOSITORY@/yum/internal/20.10/el7/noarch/autodisco/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "RPM repository",
+            "flavor": "centos8",
+            "url": "@REPOSITORY@/yum/internal/20.10/el8/noarch/autodisco/@PROJECT@-@VERSION@-@RELEASE@"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos7",
+            "url": "@REGISTRY@/mon-autodisco-@VERSION@-@RELEASE@:centos7"
+        },
+        {
+            "displayname": "Docker image",
+            "flavor": "centos8",
+            "url": "@REGISTRY@/mon-autodisco-@VERSION@-@RELEASE@:centos8"
+        },
+        {
+            "displayname": "Sources",
+            "flavor": "",
+            "url": "@REPOSITORY@/sources/internal/autodisco/@PROJECT@-@VERSION@-@RELEASE@"
+        }
+    ]
+}
