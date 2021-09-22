@@ -36,15 +36,6 @@ cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 sed "s#@BASE_IMAGE@#$DEP_IMAGE#g" < map/21.10/server.Dockerfile.in > map/server.$DISTRIB.Dockerfile
 sed "s#@BASE_IMAGE@#$BASE_IMAGE#g" < map/21.10/web.Dockerfile.in > map/web.$DISTRIB.Dockerfile
-if [ "$DISTRIB" = 'centos7' ] ; then
-  sed "s#@PROJECT@#map-web#g;s#@SUBDIR@#21.10/el7/noarch/map-web/$PROJECT-web-$VERSIONWEB-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-  sed "s#@PROJECT@#map-server#g;s#@SUBDIR@#21.10/el7/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
-  sed "s#@PROJECT@#map-server-ng#g;s#@SUBDIR@#21.10/el7/noarch/map-server-ng/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
-else
-  sed "s#@PROJECT@#map-web#g;s#@SUBDIR@#21.10/el8/noarch/map-web/$PROJECT-web-$VERSIONWEB-$RELEASE#g" < repo/centreon-internal.repo.in > repo/centreon-internal.repo
-  sed "s#@PROJECT@#map-server#g;s#@SUBDIR@#21.10/el8/noarch/map-server/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
-  sed "s#@PROJECT@#map-server-ng#g;s#@SUBDIR@#21.10/el8/noarch/map-server-ng/$PROJECT-server-$VERSIONSERVER-$RELEASE#g" < repo/centreon-internal.repo.in >> repo/centreon-internal.repo
-fi
 
 # Server image.
 docker build --no-cache -t "$SERVER_IMAGE" -f map/server.$DISTRIB.Dockerfile .
