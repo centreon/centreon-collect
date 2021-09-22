@@ -16,11 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/logging/file.hh"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/logging/file.hh"
 #include "com/centreon/misc/stringifier.hh"
 
 using namespace com::centreon::logging;
@@ -73,7 +73,9 @@ file::file(std::string const& path,
 /**
  *  Default destructor.
  */
-file::~file() noexcept { close(); }
+file::~file() noexcept {
+  close();
+}
 
 /**
  *  Close file.
@@ -96,7 +98,9 @@ void file::close() noexcept {
  *
  *  @return The filename string.
  */
-std::string const& file::filename() const noexcept { return (_path); }
+std::string const& file::filename() const noexcept {
+  return (_path);
+}
 
 /**
  *  Write message into the file.

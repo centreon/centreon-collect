@@ -252,8 +252,7 @@ TEST(ClibIO, FileStreamWrite) {
   tmp_file_stream.open(tmp_file_name, "w");
 
   // NULL write.
-  ASSERT_THROW(
-    tmp_file_stream.write(NULL, 1), exceptions::basic);
+  ASSERT_THROW(tmp_file_stream.write(NULL, 1), exceptions::basic);
 
   // Real write.
   char const* data("some data");

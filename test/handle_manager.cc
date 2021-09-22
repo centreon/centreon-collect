@@ -16,47 +16,58 @@
  * For more information : contact@centreon.com
  *
  */
+#include "com/centreon/handle_manager.hh"
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include "com/centreon/handle_listener.hh"
-#include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/task_manager.hh"
 
 using namespace com::centreon;
 
-class     listener : public handle_listener {
+class listener : public handle_listener {
  public:
   listener() = delete;
-  listener(
-      handle& ref_h,
-      bool want_read,
-      bool want_write)
+  listener(handle& ref_h, bool want_read, bool want_write)
       : _is_call(false),
         _ref_h(ref_h),
         _want_read(want_read),
         _want_write(want_write) {}
   ~listener() noexcept {}
-  void    error(handle& h) { if (&_ref_h == &h) _is_call = true; }
-  bool    is_call() const throw () { return (_is_call); }
-  void    read(handle& h) { if (&_ref_h == &h) _is_call = true; }
-  bool    want_read(handle& h) { (void)h; return (_want_read); }
-  bool    want_write(handle& h) { (void)h; return (_want_write); }
-  void    write(handle& h) { if (&_ref_h == &h) _is_call = true; }
+  void error(handle& h) {
+    if (&_ref_h == &h)
+      _is_call = true;
+  }
+  bool is_call() const throw() { return (_is_call); }
+  void read(handle& h) {
+    if (&_ref_h == &h)
+      _is_call = true;
+  }
+  bool want_read(handle& h) {
+    (void)h;
+    return (_want_read);
+  }
+  bool want_write(handle& h) {
+    (void)h;
+    return (_want_write);
+  }
+  void write(handle& h) {
+    if (&_ref_h == &h)
+      _is_call = true;
+  }
 
  private:
-  bool    _is_call;
+  bool _is_call;
   handle& _ref_h;
-  bool    _want_read;
-  bool    _want_write;
+  bool _want_read;
+  bool _want_write;
 };
 
 static bool null_task_manager() {
   try {
     handle_manager hm;
     hm.multiplex();
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -80,8 +91,7 @@ static bool empty_handle_manager() {
     task_manager tm;
     handle_manager hm(&tm);
     hm.multiplex();
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (false);
   }
@@ -89,7 +99,6 @@ static bool empty_handle_manager() {
 }
 
 static bool basic_multiplex_close() {
-  ::close(STDIN_FILENO);
   task_manager tm;
   handle_manager hm(&tm);
   io::file_stream fs(stdin);
@@ -107,8 +116,7 @@ static bool null_handle() {
     io::file_stream fs(stdin);
     listener l(fs, true, true);
     hm.add(nullptr, &l);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -120,8 +128,7 @@ static bool null_listener() {
     handle_manager hm;
     io::file_stream fs;
     hm.add(&fs, nullptr);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -136,13 +143,11 @@ static bool basic_add() {
     listener l(fs, false, false);
     hm.add(&fs, &l);
     hm.remove(&fs);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (false);
   }
   return (true);
-
 }
 
 static bool double_add() {
@@ -154,14 +159,12 @@ static bool double_add() {
     hm.add(&fs, &l);
     try {
       hm.add(&fs, &l);
-    }
-    catch (std::exception const& e) {
+    } catch (std::exception const& e) {
       (void)e;
       hm.remove(&fs);
       return (true);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
   }
   return (false);
@@ -175,16 +178,12 @@ TEST(ClibHandleManager, Add) {
 }
 
 TEST(ClibHandleManager, Ctor) {
-  ASSERT_NO_THROW(
-      {
-        handle_manager hm(nullptr);
-      }
+  ASSERT_NO_THROW({ handle_manager hm(nullptr); }
 
-      {
-        task_manager tm;
-        handle_manager hm(&tm);
-      }
-  );
+                  {
+                    task_manager tm;
+                    handle_manager hm(&tm);
+                  });
 }
 
 TEST(ClibHandleManager, Multiplex) {

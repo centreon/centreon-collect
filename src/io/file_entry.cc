@@ -16,12 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/io/file_entry.hh"
+#include <libgen.h>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <libgen.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/io/file_entry.hh"
 
 using namespace com::centreon::io;
 
@@ -37,14 +37,18 @@ file_entry::file_entry(char const* path) : _path(path ? path : "") {
 /**
  *  Constructor overload.
  */
-file_entry::file_entry(std::string const& path) : _path(path) { refresh(); }
+file_entry::file_entry(std::string const& path) : _path(path) {
+  refresh();
+}
 
 /**
  *  Copy constructor.
  *
  *  @param[in] right  The object to copy.
  */
-file_entry::file_entry(file_entry const& right) { _internal_copy(right); }
+file_entry::file_entry(file_entry const& right) {
+  _internal_copy(right);
+}
 
 /**
  *  Destructor.
@@ -152,7 +156,9 @@ bool file_entry::is_regular() const noexcept {
  *
  *  @return The path.
  */
-std::string const& file_entry::path() const noexcept { return _path; }
+std::string const& file_entry::path() const noexcept {
+  return _path;
+}
 
 /**
  *  Set the file entry path.
@@ -191,7 +197,9 @@ void file_entry::refresh() {
  *
  *  @return The file size.
  */
-unsigned long long file_entry::size() const noexcept { return _sbuf.st_size; }
+unsigned long long file_entry::size() const noexcept {
+  return _sbuf.st_size;
+}
 
 /**
  *  Internal copy.

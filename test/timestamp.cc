@@ -16,9 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+#include "com/centreon/timestamp.hh"
 #include <gtest/gtest.h>
 #include <iostream>
-#include "com/centreon/timestamp.hh"
 
 using namespace com::centreon;
 

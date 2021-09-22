@@ -21,7 +21,6 @@
 
 #include <string>
 #include "com/centreon/logging/engine.hh"
-#include "com/centreon/namespace.hh"
 #include "com/centreon/misc/stringifier.hh"
 
 CC_BEGIN()
@@ -59,7 +58,7 @@ class temp_logger {
   unsigned long long _type;
   unsigned int _verbose;
 };
-}
+}  // namespace logging
 
 CC_END()
 

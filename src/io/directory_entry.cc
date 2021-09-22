@@ -16,13 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/io/directory_entry.hh"
+#include <dirent.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <dirent.h>
-#include <unistd.h>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/io/directory_entry.hh"
 
 using namespace com::centreon::io;
 
@@ -107,7 +107,9 @@ std::string directory_entry::current_path() {
  *
  *  @return The directory entry.
  */
-file_entry const& directory_entry::entry() const noexcept { return _entry; }
+file_entry const& directory_entry::entry() const noexcept {
+  return _entry;
+}
 
 /**
  *  Get the list of all entry into a directory.

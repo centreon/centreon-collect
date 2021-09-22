@@ -16,23 +16,23 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/io/file_stream.hh"
+#include <fcntl.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
-#include <fcntl.h>
 #include <fstream>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon::io;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Constructor.
@@ -47,7 +47,9 @@ file_stream::file_stream(FILE* stream, bool auto_close)
 /**
  *  Destructor.
  */
-file_stream::~file_stream() throw() { close(); }
+file_stream::~file_stream() throw() {
+  close();
+}
 
 /**
  *  Close file stream.
@@ -125,7 +127,8 @@ com::centreon::native_handle file_stream::get_native_handle() {
     if (retval < 0) {
       char const* msg(strerror(errno));
       throw(basic_error() << "could not get native handle from "
-                             "file stream: " << msg);
+                             "file stream: "
+                          << msg);
     }
   }
   return retval;
@@ -154,8 +157,7 @@ void file_stream::open(char const* path, char const* mode) {
       continue;
     return;
   }
-  int ret(0);
-  while ((ret = fcntl(fd, F_SETFD, flags | FD_CLOEXEC)) < 0) {
+  while (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
     if (errno == EINTR)
       continue;
     return;
@@ -237,8 +239,7 @@ bool file_stream::rename(char const* old_filename, char const* new_filename) {
       unsigned int len;
       while ((len = file_read.read(data, sizeof(data))))
         file_write.write(data, len);
-    }
-    catch (...) {
+    } catch (...) {
       return false;
     }
   }

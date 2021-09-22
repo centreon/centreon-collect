@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#include <iostream>
 #include "com/centreon/misc/argument.hh"
+#include <iostream>
 
 using namespace com::centreon::misc;
 
@@ -48,7 +48,9 @@ argument::argument(std::string const& long_name,
  *
  *  @param[in] right  The object to copy.
  */
-argument::argument(argument const& right) { _internal_copy(right); }
+argument::argument(argument const& right) {
+  _internal_copy(right);
+}
 
 /**
  *  Default destructor.
@@ -104,14 +106,18 @@ std::string const& argument::get_description() const throw() {
  *
  *  @return True if argument is set.
  */
-bool argument::get_is_set() const throw() { return (_is_set); }
+bool argument::get_is_set() const throw() {
+  return (_is_set);
+}
 
 /**
  *  Get if argument need to has value.
  *
  *  @return True if argument need a value, otherwise false.
  */
-bool argument::get_has_value() const throw() { return (_has_value); }
+bool argument::get_has_value() const throw() {
+  return (_has_value);
+}
 
 /**
  *  Get the long name of the argument.
@@ -127,14 +133,18 @@ std::string const& argument::get_long_name() const throw() {
  *
  *  @return The name.
  */
-char argument::get_name() const throw() { return (_name); }
+char argument::get_name() const throw() {
+  return (_name);
+}
 
 /**
  *  Get the value.
  *
  *  @return The value.
  */
-std::string const& argument::get_value() const throw() { return (_value); }
+std::string const& argument::get_value() const throw() {
+  return (_value);
+}
 
 /**
  *  Set the argument description.
@@ -150,14 +160,18 @@ void argument::set_description(std::string const& description) {
  *
  *  @param[in] val  True if the argument is set.
  */
-void argument::set_is_set(bool val) throw() { _is_set = val; }
+void argument::set_is_set(bool val) throw() {
+  _is_set = val;
+}
 
 /**
  *  Set is the argument need a value.
  *
  *  @param[in] val  True if the argument need a value.
  */
-void argument::set_has_value(bool val) throw() { _has_value = val; }
+void argument::set_has_value(bool val) throw() {
+  _has_value = val;
+}
 
 /**
  *  Set the long name of the argument.
@@ -173,14 +187,18 @@ void argument::set_long_name(std::string const& long_name) {
  *
  *  @param[in] name  The name.
  */
-void argument::set_name(char name) { _name = name; }
+void argument::set_name(char name) {
+  _name = name;
+}
 
 /**
  *  Set the value of the argument.
  *
  *  @param[in] value  The value.
  */
-void argument::set_value(std::string const& value) { _value = value; }
+void argument::set_value(std::string const& value) {
+  _value = value;
+}
 
 /**
  *  Internal copy.

@@ -51,14 +51,14 @@ process::process(process_listener* listener,
                  bool in_stream,
                  bool out_stream,
                  bool err_stream)
-    : _create_process(&_create_process_with_setpgid),
-      _enable_stream{in_stream, out_stream, err_stream},
-      _stream{-1, -1, -1},
+    : _enable_stream{in_stream, out_stream, err_stream},
+      _listener{listener},
+      _timeout{0},
       _is_timeout{false},
-      _listener(listener),
-      _process(static_cast<pid_t>(-1)),
-      _status(0),
-      _timeout(0) {}
+      _status{0},
+      _stream{-1, -1, -1},
+      _process{-1},
+      _create_process{&_create_process_with_setpgid} {}
 
 /**
  *  Destructor.
@@ -85,8 +85,8 @@ timestamp const& process::end_time() const noexcept {
  *  @return True is process run, otherwise false.
  */
 bool process::_is_running() const noexcept {
-  return _process != static_cast<pid_t>(-1) || _stream[in] != -1 ||
-         _stream[out] != -1 || _stream[err] != -1;
+  return _process != -1 || _stream[in] != -1 || _stream[out] != -1 ||
+         _stream[err] != -1;
 }
 
 /**
@@ -190,7 +190,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
     _dup2(std[2], STDERR_FILENO);
     for (int32_t i = 0; i < 3; ++i) {
       _close(std[i]);
-      _close(pipe_stream[i][i == in ? 0 : 1]);
+      //_close(pipe_stream[i][i == in ? 0 : 1]);
       _stream[i] = pipe_stream[i][i == in ? 1 : 0];
     }
 
@@ -258,17 +258,20 @@ process::status process::exit_status() const noexcept {
 /**
  *  Kill process.
  */
-void process::kill() {
+void process::kill(int sig) {
   std::lock_guard<std::mutex> lock(_lock_process);
-  _kill(SIGKILL);
+  _kill(sig);
 }
 
 void process::update_ending_process(int status) {
   // Update process informations.
   std::unique_lock<std::mutex> lock(_lock_process);
+  if (!_is_running())
+    return;
+
   _end_time = timestamp::now();
   _status = status;
-  _process = static_cast<pid_t>(-1);
+  _process = -1;
   _close(_stream[in]);
   if (!_is_running()) {
     // Notify listener if necessary.
@@ -291,8 +294,8 @@ void process::update_ending_process(int status) {
 void process::read(std::string& data) {
   std::unique_lock<std::mutex> lock(_lock_process);
   // If buffer is empty and stream is open, we waiting data.
-  if (_buffer_out.empty() && _stream[out] != -1)
-    _cv_buffer_out.wait(lock);
+  _cv_buffer_out.wait(
+      lock, [this] { return !_buffer_out.empty() || _stream[out] == -1; });
   // Switch content.
   data.clear();
   data.swap(_buffer_out);
@@ -306,8 +309,8 @@ void process::read(std::string& data) {
 void process::read_err(std::string& data) {
   std::unique_lock<std::mutex> lock(_lock_process);
   // If buffer is empty and stream is open, we waiting data.
-  if (_buffer_err.empty() && _stream[err] != -1)
-    _cv_buffer_err.wait(lock);
+  _cv_buffer_err.wait(
+      lock, [this] { return !_buffer_err.empty() || _stream[err] == -1; });
   // Switch content.
   data.clear();
   data.swap(_buffer_err);
@@ -361,6 +364,7 @@ void process::terminate() {
 void process::wait() const {
   std::unique_lock<std::mutex> lock(_lock_process);
   _cv_process_running.wait(lock, [this] { return !_is_running(); });
+  process_manager::instance().wait_for_update();
 }
 
 /**
@@ -606,8 +610,7 @@ int process::_dup(int oldfd) {
  *  @param[in] newfd New FD.
  */
 void process::_dup2(int oldfd, int newfd) {
-  int ret(0);
-  while ((ret = dup2(oldfd, newfd)) < 0) {
+  while (dup2(oldfd, newfd) < 0) {
     if (errno == EINTR)
       continue;
     char const* msg(strerror(errno));
@@ -695,11 +698,14 @@ void process::_set_cloexec(int fd) {
     char const* msg(strerror(errno));
     throw basic_error() << "Could not get file descriptor flags: " << msg;
   }
-  int ret(0);
-  while ((ret = fcntl(fd, F_SETFD, flags | FD_CLOEXEC)) < 0) {
+  while (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
     if (errno == EINTR)
       continue;
-    char const* msg(strerror(errno));
-    throw basic_error() << "Could not set close-on-exec flag: " << msg;
+    throw basic_error() << "Could not set close-on-exec flag: "
+                        << strerror(errno);
   }
+}
+
+void process::set_timeout(bool timeout) {
+  _is_timeout = timeout;
 }
