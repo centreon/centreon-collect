@@ -150,7 +150,8 @@ TEST(SSHOrders, Execute) {
             << "            " << info1.cmds.front() << std::endl;
   ASSERT_EQ(info1.callback, fake_listener::cb_execute);
   ASSERT_EQ(info1.cmd_id, 1478523697531598258ull);
-  ASSERT_LT(comparison_timeout.to_mseconds() - info1.timeout.to_mseconds(), 1);
+  std::cout << "Time: " << (comparison_timeout.to_mseconds() - info1.timeout.to_mseconds()) << std::endl;
+  ASSERT_LE(comparison_timeout.to_mseconds() - info1.timeout.to_mseconds(), 1);
   ASSERT_EQ(info1.host, "localhost");
   ASSERT_EQ(info1.user, "root");
   ASSERT_EQ(info1.password, "myverysecretpassword");
