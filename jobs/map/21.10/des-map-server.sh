@@ -57,4 +57,4 @@ FILES_MAP_SERVER=`find "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-ser
 rm -rf output
 mkdir -p output/noarch/
 cp $FILES_MAP_SERVER output/noarch/
-tar czf rpms-$DISTRIB.tar.gz output
+tar czf rpms$flavor-$DISTRIB.tar.gz output
