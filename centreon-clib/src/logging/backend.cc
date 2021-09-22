@@ -16,21 +16,21 @@
 ** For more information : contact@centreon.com
 */
 
-#include <cstring>
-#include <sys/types.h>
-#include <thread>
-#include <unistd.h>
 #include "com/centreon/logging/backend.hh"
+#include <sys/types.h>
+#include <unistd.h>
+#include <cstring>
+#include <thread>
 #include "com/centreon/misc/stringifier.hh"
 #include "com/centreon/timestamp.hh"
 
 using namespace com::centreon::logging;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Constructor.
@@ -52,7 +52,9 @@ backend::backend(bool is_sync,
 /**
  *  Copy constructor.
  */
-backend::backend(backend const& right) { _internal_copy(right); }
+backend::backend(backend const& right) {
+  _internal_copy(right);
+}
 
 /**
  *  Destructor.

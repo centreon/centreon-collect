@@ -16,18 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/misc/command_line.hh"
 #include <cctype>
 #include <cstring>
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/misc/command_line.hh"
 
 using namespace com::centreon::misc;
 
 /**************************************
-*                                     *
-*           Public Methods            *
-*                                     *
-**************************************/
+ *                                     *
+ *           Public Methods            *
+ *                                     *
+ **************************************/
 
 /**
  *  Default constructor.
@@ -68,7 +68,9 @@ command_line::command_line(command_line const& right) : _argv(NULL) {
 /**
  *  Destructor.
  */
-command_line::~command_line() throw() { _release(); }
+command_line::~command_line() throw() {
+  _release();
+}
 
 /**
  *  Copy operator.
@@ -110,14 +112,18 @@ bool command_line::operator!=(command_line const& right) const throw() {
  *
  *  @return Size.
  */
-int command_line::get_argc() const throw() { return (_argc); }
+int command_line::get_argc() const throw() {
+  return (_argc);
+}
 
 /**
  *  Get the array of arguments.
  *
  *  @return Array arguments.
  */
-char** command_line::get_argv() const throw() { return (_argv); }
+char** command_line::get_argv() const throw() {
+  return (_argv);
+}
 
 /**
  *  Parse command line and store arguments.
@@ -217,7 +223,7 @@ void command_line::parse(char const* cmdline, unsigned int size) {
 
   // Put tokens in table.
   _size = 0;
-  _argv = new char* [_argc + 1];
+  _argv = new char*[_argc + 1];
   _argv[_argc] = NULL;
   for (int i(0); i < _argc; ++i) {
     _argv[i] = str + _size;
@@ -242,10 +248,10 @@ void command_line::parse(std::string const& cmdline) {
 }
 
 /**************************************
-*                                     *
-*           Private Methods           *
-*                                     *
-**************************************/
+ *                                     *
+ *           Private Methods           *
+ *                                     *
+ **************************************/
 
 /**
  *  Internal copy.
@@ -258,7 +264,7 @@ void command_line::_internal_copy(command_line const& right) {
     _size = right._size;
     _release();
     if (right._argv) {
-      _argv = new char* [_argc + 1];
+      _argv = new char*[_argc + 1];
       _argv[0] = new char[_size];
       _argv[_argc] = NULL;
       memcpy(_argv[0], right._argv[0], _size);

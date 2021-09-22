@@ -20,7 +20,10 @@
 #define CC_PROCESS_POSIX_HH
 
 #include <sys/types.h>
+#include <array>
+#include <atomic>
 #include <condition_variable>
+#include <csignal>
 #include <mutex>
 #include <string>
 #include "com/centreon/timestamp.hh"
@@ -38,6 +41,24 @@ class process_manager;
  */
 class process {
   friend class process_manager;
+
+  /* Constants */
+  const std::array<bool, 3> _enable_stream;
+  process_listener* const _listener;
+
+  /* Constants except during exec() call */
+  uint32_t _timeout;
+
+  /* Constants except when they are initialized at exec() and closed when
+   * process is over. */
+  std::atomic_bool _is_timeout;
+  std::atomic_int _status;
+  std::array<int, 3> _stream;
+  pid_t _process;
+
+  /* Almost never changed, we have two such functions, one with pgid and the
+   * other without. */
+  pid_t (*_create_process)(char**, char**);
 
  public:
   enum status { normal = 0, crash = 1, timeout = 2 };
@@ -59,20 +80,12 @@ class process {
    *   method is called by the process manager in its main loop when needed.
    */
   std::string _buffer_out;
-  pid_t (*_create_process)(char**, char**);
   mutable std::condition_variable _cv_buffer_err;
   mutable std::condition_variable _cv_buffer_out;
   mutable std::condition_variable _cv_process_running;
-  const std::array<bool, 3> _enable_stream;
-  std::array<int, 3> _stream;
   timestamp _end_time;
-  bool _is_timeout;
-  process_listener* _listener;
   mutable std::mutex _lock_process;
-  pid_t _process;
   timestamp _start_time;
-  int _status;
-  uint32_t _timeout;
 
   static void _close(int& fd) noexcept;
   static pid_t _create_process_with_setpgid(char** args, char** env);
@@ -101,7 +114,7 @@ class process {
   void exec(std::string const& cmd, uint32_t timeout = 0);
   int exit_code() const noexcept;
   status exit_status() const noexcept;
-  void kill();
+  void kill(int sig = SIGKILL);
   void read(std::string& data);
   void read_err(std::string& data);
   void setpgid_on_exec(bool enable) noexcept;
@@ -110,9 +123,10 @@ class process {
   void terminate();
   void wait() const;
   bool wait(uint32_t timeout) const;
-  void update_ending_process(int status);
   uint32_t write(std::string const& data);
   uint32_t write(void const* data, uint32_t size);
+  void update_ending_process(int status);
+  void set_timeout(bool timeout);
 };
 
 CC_END()

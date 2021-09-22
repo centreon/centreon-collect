@@ -16,9 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/misc/stringifier.hh"
 #include <cstdio>
 #include <cstring>
-#include "com/centreon/misc/stringifier.hh"
 
 using namespace com::centreon::misc;
 
@@ -244,21 +244,27 @@ stringifier& stringifier::append(char const* str, unsigned int size) throw() {
  *
  *  @return The pointer on data.
  */
-char const* stringifier::data() const throw() { return (_buffer); }
+char const* stringifier::data() const throw() {
+  return (_buffer);
+}
 
 /**
  *  Get precision.
  *
  *  @return The precision.
  */
-int stringifier::precision() const throw() { return (_precision); }
+int stringifier::precision() const throw() {
+  return (_precision);
+}
 
 /**
  *  Set precision.
  *
  *  @param[in] val  The precision.
  */
-void stringifier::precision(int val) throw() { _precision = val; }
+void stringifier::precision(int val) throw() {
+  _precision = val;
+}
 
 /**
  *  Reset the internal buffer to the empty string.
@@ -273,7 +279,9 @@ void stringifier::reset() throw() {
  *
  *  @return The size of the buffer.
  */
-unsigned int stringifier::size() const throw() { return (_current); }
+unsigned int stringifier::size() const throw() {
+  return (_current);
+}
 
 /**
  *  Insert data into the current buffer.
@@ -323,8 +331,8 @@ stringifier& stringifier::_insert(char const* format,
   if (size + _current > _size) {
     if (!_realloc(size + _current))
       return (*this);
-    if ((ret = snprintf(
-             _buffer + _current, _size - _current, format, limit, val)) < 0)
+    if ((ret = snprintf(_buffer + _current, _size - _current, format, limit,
+                        val)) < 0)
       return (*this);
   }
   _current += ret;
@@ -368,8 +376,7 @@ bool stringifier::_realloc(unsigned int new_size) throw() {
     if (_static_buffer != _buffer)
       delete[] _buffer;
     _buffer = new_buffer;
-  }
-  catch (...) {
+  } catch (...) {
     return (false);
   }
   return (true);

@@ -18,14 +18,14 @@
  */
 #include <gtest/gtest.h>
 
-#include <iostream>
-#include <string>
 #include <limits.h>
 #include <math.h>
-#include "com/centreon/misc/stringifier.hh"
+#include <iostream>
+#include <string>
 #include "com/centreon/misc/argument.hh"
 #include "com/centreon/misc/command_line.hh"
 #include "com/centreon/misc/get_options.hh"
+#include "com/centreon/misc/stringifier.hh"
 
 using namespace com::centreon::misc;
 
@@ -71,8 +71,7 @@ static bool check(std::string const& cmdline,
         return (false);
     if (argv[cmd.get_argc()])
       return (false);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (false);
   }
@@ -83,8 +82,7 @@ static bool check_invalid_cmdline() {
   try {
     command_line cmd;
     cmd.parse("'12 12");
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -122,8 +120,7 @@ static bool check_unknown_option() {
     args.push_back("param3");
 
     my_options opt(args);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -139,8 +136,7 @@ static bool check_require_argument() {
     args.push_back("--test");
 
     my_options opt(args);
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -152,8 +148,7 @@ static bool invalid_long_name() {
     std::vector<std::string> args;
     my_options opt(args);
     opt.get_argument("unknown");
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -168,8 +163,7 @@ static bool valid_long_name() {
     argument const& a2(opt.get_argument("help"));
     (void)a1;
     (void)a2;
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (false);
   }
@@ -181,8 +175,7 @@ static bool invalid_name() {
     std::vector<std::string> args;
     my_options opt(args);
     opt.get_argument('*');
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (true);
   }
@@ -197,8 +190,7 @@ static bool valid_name() {
     argument const& a2(opt.get_argument('h'));
     (void)a1;
     (void)a2;
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     (void)e;
     return (false);
   }
@@ -210,9 +202,10 @@ static bool check_double(double d) {
   buffer << d;
   char* ptr(NULL);
   double converted(strtod(buffer.data(), &ptr));
-  return (ptr && !*ptr && (fabs(d - converted)
-                           // Roughly 0.1% error margin.
-                           <= (fabs(d / 1000) + 2 * DBL_EPSILON)));
+  return (ptr && !*ptr &&
+          (fabs(d - converted)
+           // Roughly 0.1% error margin.
+           <= (fabs(d / 1000) + 2 * DBL_EPSILON)));
 }
 
 /**
@@ -239,8 +232,8 @@ TEST(ClibMisc, ArgumentCtor) {
 }
 
 TEST(ClibMisc, ArgumentCopy) {
-  argument ref(
-      "help", 'c', "this help", true, true, "help:\n --help, -h  this help");
+  argument ref("help", 'c', "this help", true, true,
+               "help:\n --help, -h  this help");
 
   argument arg1(ref);
   ASSERT_TRUE(check_argument(ref, arg1));
@@ -250,8 +243,8 @@ TEST(ClibMisc, ArgumentCopy) {
 }
 
 TEST(ClibMisc, ArgumentEqual) {
-  argument ref(
-      "help", 'c', "this help", true, true, "help:\n --help, -h  this help");
+  argument ref("help", 'c', "this help", true, true,
+               "help:\n --help, -h  this help");
 
   argument arg1(ref);
   ASSERT_TRUE(ref == arg1);
@@ -261,8 +254,8 @@ TEST(ClibMisc, ArgumentEqual) {
 }
 
 TEST(ClibMisc, ArgumentNotEqual) {
-  argument ref(
-      "help", 'c', "this help", true, true, "help:\n --help, -h  this help");
+  argument ref("help", 'c', "this help", true, true,
+               "help:\n --help, -h  this help");
 
   argument arg1(ref);
   ASSERT_EQ(ref, arg1);
