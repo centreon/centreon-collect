@@ -16,8 +16,8 @@ fi
 
 MAJOR=`echo $VERSION | cut -d . -f 1,2`
 
-SERVEREL7RPMS=`echo output/noarch/centreon-map-server-*.el7.*.rpm`
-SERVEREL8RPMS=`echo output/noarch/centreon-map-server-*.el8.*.rpm`
+SERVEREL7RPMS=`echo output/noarch/centreon-map-server-$MAJOR*.el7.*.rpm`
+SERVEREL8RPMS=`echo output/noarch/centreon-map-server-$MAJOR*.el8.*.rpm`
 NGEL7RPMS=`echo output/noarch/centreon-map-server-ng*.el7.*.rpm`
 NGEL8RPMS=`echo output/noarch/centreon-map-server-ng*.el8.*.rpm`
 WEBEL7RPMS=`echo output/noarch/centreon-map-web*.el7.*.rpm`
