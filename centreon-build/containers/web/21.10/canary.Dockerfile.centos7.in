@@ -6,7 +6,7 @@ COPY web/21.10 /tmp/fresh
 
 # Install Centreon software.
 RUN yum clean all && \
-    yum-config-manager --disable centreon-\* && \
+    yum-config-manager --disable centreon-unstable\* && \
     yum-config-manager --enable centreon-canary-noarch && \
     yum-config-manager --enable centreon-canary && \
     yum install -y centreon centreon-broker-influxdb libfaketime && \
