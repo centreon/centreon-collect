@@ -6,8 +6,9 @@ COPY web/21.10 /tmp/fresh
 
 # Install Centreon software.
 RUN yum clean all && \
-    yum-config-manager enable centreon-canary-noarch && \
-    yum-config-manager enable centreon-canary && \
+    yum-config-manager --disable centreon-\*
+    yum-config-manager --enable centreon-canary-noarch && \
+    yum-config-manager --enable centreon-canary && \
     yum install -y centreon centreon-broker-influxdb libfaketime && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \

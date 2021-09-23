@@ -6,8 +6,9 @@ COPY web/21.10 /tmp/fresh
 
 RUN dnf clean all && \
     # TEMPORARY FIX UNTIL FOLLOWING PACKAGES ARE AVAILABLE.
-    yum-config-manager enable centreon-canary-noarch && \
-    yum-config-manager enable centreon-canary && \
+    dnf config-manager --disablerepo centreon-\*
+    dnf config-manager --enablerepo  centreon-canary-noarch && \
+    dnf config-manager --enablerepo  centreon-canary && \
     mkdir -p /usr/lib64/centreon-connector && \
     mkdir -p /usr/lib/centreon/plugins && \
     dnf install centreon centreon-broker-influxdb libfaketime && \
