@@ -43,7 +43,8 @@ rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
 
-if [ "$BUILD" == "CI" ] ; then
+if [ "$BUILD" '=' 'CI' ]
+then
   # Build 'canary' image based on canary repo rpms.
   sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/21.10/canary.Dockerfile.$DISTRIB.in" > web/canary.Dockerfile
   docker build --no-cache --ulimit 'nofile=40000' -t "$CANARY_IMG" -f web/canary.Dockerfile .
@@ -74,7 +75,7 @@ else
   docker push "$WIDGETS_WIP_IMG"
 fi
 
-if [ "$BUILD" == "REFERENCE" ]
+if [ "$BUILD" '=' 'REFERENCE' ]
 then
   if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
     for image in mon-web-fresh mon-web mon-web-widgets ; do
