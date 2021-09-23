@@ -6,7 +6,7 @@ COPY web/21.10 /tmp/fresh
 
 RUN dnf clean all && \
     # TEMPORARY FIX UNTIL FOLLOWING PACKAGES ARE AVAILABLE.
-    dnf config-manager --disablerepo centreon-\*
+    dnf config-manager --disablerepo centreon-\* && \
     dnf config-manager --enablerepo  centreon-canary-noarch && \
     dnf config-manager --enablerepo  centreon-canary && \
     mkdir -p /usr/lib64/centreon-connector && \
