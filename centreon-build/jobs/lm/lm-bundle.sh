@@ -37,8 +37,11 @@ docker tag "$LM_IMAGE" "$LM_WIP_IMAGE"
 docker push "$LM_WIP_IMAGE"
 
 REGISTRY="registry.centreon.com"
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
-  docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-lm-21.10:$DISTRIB"
-  docker push "$REGISTRY/mon-lm-21.10:$DISTRIB"
+
+if [ "$BUILD" == "REFERENCE" ] ; then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    docker pull "$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/mon-lm-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-lm-$MAJOR:$DISTRIB"
+    docker push "$REGISTRY/mon-lm-$MAJOR:$DISTRIB"
+  fi
 fi

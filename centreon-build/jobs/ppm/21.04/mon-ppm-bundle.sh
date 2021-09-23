@@ -48,10 +48,12 @@ docker tag "$PPM_AUTODISCO_IMAGE" "$PPM_AUTODISCO_WIP_IMAGE"
 docker push "$PPM_AUTODISCO_WIP_IMAGE"
 
 REGISTRY="registry.centreon.com"
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  for image in mon-ppm mon-ppm-autodisco ; do
-    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
-    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.04:$DISTRIB"
-    docker push "$REGISTRY/$image-21.04:$DISTRIB"
-  done
+if [ "$BUILD" == "REFERENCE" ] ; then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    for image in mon-ppm mon-ppm-autodisco ; do
+      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.04:$DISTRIB"
+      docker push "$REGISTRY/$image-21.04:$DISTRIB"
+    done
+  fi
 fi

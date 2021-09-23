@@ -43,8 +43,11 @@ docker tag "$AUTODISCO_IMAGE" "$AUTODISCO_WIP_IMAGE"
 docker push "$AUTODISCO_WIP_IMAGE"
 
 REGISTRY="registry.centreon.com"
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  docker pull "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$DISTRIB"
-  docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-autodisco-21.10:$DISTRIB"
-  docker push "$REGISTRY/mon-autodisco-21.10:$DISTRIB"
+if [ "$BUILD" == "REFERENCE" ]
+then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    docker pull "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/mon-autodisco-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-autodisco-21.10:$DISTRIB"
+    docker push "$REGISTRY/mon-autodisco-21.10:$DISTRIB"
+  fi
 fi

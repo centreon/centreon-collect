@@ -27,6 +27,7 @@ esac
 # Target images.
 REGISTRY="registry.centreon.com"
 BASE_IMG="$REGISTRY/mon-dependencies-21.10:$DISTRIB"
+CANARY_IMG="$REGISTRY/mon-web-canary-$VERSION-$RELEASE:$DISTRIB"
 FRESH_IMG="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 FRESH_WIP_IMG=$(echo "$REGISTRY/mon-web-fresh-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 STANDARD_IMG="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
@@ -41,41 +42,45 @@ docker pull "$BASE_IMG"
 rm -rf centreon-build-containers
 cp -r `dirname $0`/../../../containers centreon-build-containers
 cd centreon-build-containers
-sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/21.10/fresh.Dockerfile.$DISTRIB.in" > web/fresh.Dockerfile
-sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/21.10/standard.Dockerfile.in > web/standard.Dockerfile
-sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/21.10/widgets.Dockerfile.in > web/widgets.Dockerfile
 
-# Build 'fresh' image.
-docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .
-docker push "$FRESH_IMG"
-docker tag "$FRESH_IMG" "$FRESH_WIP_IMG"
-docker push "$FRESH_WIP_IMG"
+if [ "$BUILD" == "CI" ] ; then
+  # Build 'canary' image based on canary repo rpms.
+  sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/21.10/canary.Dockerfile.$DISTRIB.in" > web/canary.Dockerfile
+  docker build --no-cache --ulimit 'nofile=40000' -t "$CANARY_IMG" -f web/canary.Dockerfile .
+  docker push "$CANARY_IMG"
+  docker tag "$CANARY_IMG" "$CANARY_WIP_IMG"
+  docker push "$CANARY_WIP_IMG"
+else
+  sed "s#@BASE_IMAGE@#$BASE_IMG#g" < "web/21.10/fresh.Dockerfile.$DISTRIB.in" > web/fresh.Dockerfile
+  sed "s#@BASE_IMAGE@#$FRESH_IMG#g" < web/21.10/standard.Dockerfile.in > web/standard.Dockerfile
+  sed "s#@BASE_IMAGE@#$STANDARD_IMG#g" < web/21.10/widgets.Dockerfile.in > web/widgets.Dockerfile
 
-# Build 'standard' image.
-docker build --no-cache -t "$STANDARD_IMG" -f web/standard.Dockerfile .
-docker push "$STANDARD_IMG"
-docker tag "$STANDARD_IMG" "$STANDARD_WIP_IMG"
-docker push "$STANDARD_WIP_IMG"
+  # Build 'fresh' image.
+  docker build --no-cache --ulimit 'nofile=40000' -t "$FRESH_IMG" -f web/fresh.Dockerfile .
+  docker push "$FRESH_IMG"
+  docker tag "$FRESH_IMG" "$FRESH_WIP_IMG"
+  docker push "$FRESH_WIP_IMG"
 
-# Build 'widgets' image.
-docker build --no-cache -t "$WIDGETS_IMG" -f web/widgets.Dockerfile .
-docker push "$WIDGETS_IMG"
-docker tag "$WIDGETS_IMG" "$WIDGETS_WIP_IMG"
-docker push "$WIDGETS_WIP_IMG"
+  # Build 'standard' image.
+  docker build --no-cache -t "$STANDARD_IMG" -f web/standard.Dockerfile .
+  docker push "$STANDARD_IMG"
+  docker tag "$STANDARD_IMG" "$STANDARD_WIP_IMG"
+  docker push "$STANDARD_WIP_IMG"
 
-# # Set Docker images as latest.
-# REGISTRY='registry.centreon.com'
-# for image in mon-web-fresh mon-web mon-web-widgets ; do
-#   for distrib in centos7 centos8 ; do
-#     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-#     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-21.10:$distrib"
-#     docker push "$REGISTRY/$image-21.10:$distrib"
-#   done
-# done
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  for image in mon-web-fresh mon-web mon-web-widgets ; do
-     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
-     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.10:$DISTRIB"
-     docker push "$REGISTRY/$image-21.10:$DISTRIB"
-  done
+  # Build 'widgets' image.
+  docker build --no-cache -t "$WIDGETS_IMG" -f web/widgets.Dockerfile .
+  docker push "$WIDGETS_IMG"
+  docker tag "$WIDGETS_IMG" "$WIDGETS_WIP_IMG"
+  docker push "$WIDGETS_WIP_IMG"
+fi
+
+if [ "$BUILD" == "REFERENCE" ]
+then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    for image in mon-web-fresh mon-web mon-web-widgets ; do
+      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-21.10:$DISTRIB"
+      docker push "$REGISTRY/$image-21.10:$DISTRIB"
+    done
+  fi
 fi

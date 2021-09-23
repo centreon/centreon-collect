@@ -68,10 +68,13 @@ docker push "$WIDGETS_WIP_IMG"
 
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  for image in mon-web-fresh mon-web mon-web-widgets ; do
-     docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
-     docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-20.10:$DISTRIB"
-     docker push "$REGISTRY/$image-20.10:$DISTRIB"
-  done
+if [ "$BUILD" == "REFERENCE" ]
+then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    for image in mon-web-fresh mon-web mon-web-widgets ; do
+      docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB"
+      docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/$image-20.10:$DISTRIB"
+      docker push "$REGISTRY/$image-20.10:$DISTRIB"
+    done
+  fi
 fi
