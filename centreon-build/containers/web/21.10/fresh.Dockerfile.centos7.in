@@ -8,10 +8,10 @@ COPY web/21.10 /tmp/fresh
 # Install Centreon software.
 RUN yum clean all && \
     yum install -y centreon centreon-broker-influxdb libfaketime \
-    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632391933.a86895b/centreon-license-manager-21.10.0-beta.1.1632391933.a86895b.el7.centos.noarch.rpm \
-    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632391933.a86895b/centreon-license-manager-common-21.10.0-beta.1.1632391933.a86895b.el7.centos.noarch.rpm \
-    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/ppm/centreon-pp-manager-21.10.0-beta.1-1632390690.439d158/centreon-pp-manager-21.10.0-beta.1.1632390690.439d158.el7.centos.noarch.rpm \
-    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/autodisco/centreon-autodiscovery-21.10.0-beta.1-1632391889.a24d4ea/centreon-auto-discovery-server-21.10.0-beta.1.1632391889.a24d4ea.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632419978.c17e29a/centreon-license-manager-21.10.0-beta.1.1632419978.c17e29a.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632419978.c17e29a/centreon-license-manager-common-21.10.0-beta.1.1632419978.c17e29a.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/ppm/centreon-pp-manager-21.10.0-beta.1-1632421697.1157e1f/centreon-pp-manager-21.10.0-beta.1.1632421697.1157e1f.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/autodisco/centreon-autodiscovery-21.10.0-beta.1-1632423785.5126752/centreon-auto-discovery-server-21.10.0-beta.1.1632423785.5126752.el7.centos.noarch.rpm \
     && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
