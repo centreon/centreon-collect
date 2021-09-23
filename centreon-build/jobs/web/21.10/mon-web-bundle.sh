@@ -28,6 +28,7 @@ esac
 REGISTRY="registry.centreon.com"
 BASE_IMG="$REGISTRY/mon-dependencies-21.10:$DISTRIB"
 CANARY_IMG="$REGISTRY/mon-web-canary-$VERSION-$RELEASE:$DISTRIB"
+CANARY_WIP_IMG=$(echo "$REGISTRY/mon-web-canary-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 FRESH_IMG="$REGISTRY/mon-web-fresh-$VERSION-$RELEASE:$DISTRIB"
 FRESH_WIP_IMG=$(echo "$REGISTRY/mon-web-fresh-$BRANCH_NAME:$DISTRIB" | sed -e 's/\(.*\)/\L\1/')
 STANDARD_IMG="$REGISTRY/mon-web-$VERSION-$RELEASE:$DISTRIB"
