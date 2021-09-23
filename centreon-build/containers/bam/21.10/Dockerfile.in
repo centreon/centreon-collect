@@ -1,6 +1,5 @@
 # Base information.
 FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
-MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Centreon repositories.
 RUN yum install -y centreon-bam-server && \

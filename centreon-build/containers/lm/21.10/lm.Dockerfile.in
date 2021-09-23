@@ -1,6 +1,5 @@
 # Base information.
 FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
-LABEL maintainer="Matthieu Kermagoret <mkermagoret@centreon.com>"
 
 # Set middleware server
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api

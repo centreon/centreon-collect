@@ -9,13 +9,8 @@ dnf update libarchive
 dnf install centreon-clib centreon-clib-devel
 
 # Install PHPUnit.
-curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-8.phar
+curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-9.phar
 chmod +x /usr/local/bin/phpunit
-
-# Install Xdebug PHP extension (for PHPUnit code coverage).
-dnf install make php-devel
-pecl install xdebug
-echo 'zend_extension=/usr/lib64/php/modules/xdebug.so' >> /etc/php.d/10-xdebug.ini
 
 # Install Node.js and related elements.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
@@ -23,8 +18,10 @@ dnf install --nogpgcheck -y nodejs
 npm install -g gulp
 npm install -g redoc-cli
 
+# Install Xdebug PHP extension (for PHPUnit code coverage).
+dnf install php php-cli php-dom php-json php-mbstring php-pecl-xdebug3
+
 # Install Composer.
-dnf install -y php php-cli php-dom php-json php-mbstring
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer

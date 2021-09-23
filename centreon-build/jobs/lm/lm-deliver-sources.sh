@@ -47,7 +47,7 @@ done
 
 case $MAJOR in
 
-  21.10 | 21.04)
+  21.10)
     # Build frontend
     cd "../$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend/"
     npm ci
@@ -56,7 +56,26 @@ case $MAJOR in
     tar czf ../../../../frontend.tar.gz frontend
     rm -rf frontend
     cd ../../../..
-    tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"    
+    tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+
+    # Send it to srvi-repo
+    curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=80" 'https://encode.centreon.com/index.php' -o "$PROJECT-$VERSION-php80.tar.gz"
+    put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+    put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php80.tar.gz"
+    put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "frontend.tar.gz"
+    put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
+    ;;
+
+  21.04)
+    # Build frontend
+    cd "../$PROJECT-$VERSION/www/modules/centreon-license-manager/frontend/"
+    npm ci
+    npm run build
+    cd ..
+    tar czf ../../../../frontend.tar.gz frontend
+    rm -rf frontend
+    cd ../../../..
+    tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
 
     # Send it to srvi-repo
     curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=73" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php73.tar.gz"
@@ -75,8 +94,8 @@ case $MAJOR in
     tar czf ../../../../frontend.tar.gz frontend
     rm -rf frontend
     cd ../../../..
-    tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"   
-    
+    tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
+
     # Send it to srvi-repo
     curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=72" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php72.tar.gz"
     put_internal_source "lm" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"

@@ -35,6 +35,10 @@ if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../api-integration-test-logs\n      web: docker-compose-web.yml#g' tests/api/behat.yml
 fi
 
+# ignore php 8 requirement in composer.json
+rm -rf composer.lock vendor
+composer install --ignore-platform-reqs
+
 # Run acceptance tests.
 sudo rm -rf ../xunit-reports
 mkdir ../xunit-reports

@@ -7,7 +7,12 @@ COPY web/21.10 /tmp/fresh
 
 # Install Centreon software.
 RUN yum clean all && \
-    yum install -y centreon centreon-broker-influxdb libfaketime && \
+    yum install -y centreon centreon-broker-influxdb libfaketime \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632391933.a86895b/centreon-license-manager-21.10.0-beta.1.1632391933.a86895b.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632391933.a86895b/centreon-license-manager-common-21.10.0-beta.1.1632391933.a86895b.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/ppm/centreon-pp-manager-21.10.0-beta.1-1632390690.439d158/centreon-pp-manager-21.10.0-beta.1.1632390690.439d158.el7.centos.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el7/unstable/noarch/autodisco/centreon-autodiscovery-21.10.0-beta.1-1632391889.a24d4ea/centreon-auto-discovery-server-21.10.0-beta.1.1632391889.a24d4ea.el7.centos.noarch.rpm \
+    && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
     chmod +x /etc/init.d/centengine /etc/init.d/cbd && \
@@ -15,8 +20,8 @@ RUN yum clean all && \
     cp /tmp/fresh/configuration/* /usr/share/centreon/www/install/tmp/ && \
     chown -R apache.apache /usr/share/centreon/www/install/tmp && \
     chmod +x /tmp/fresh/fresh.sh && \
-    touch /var/opt/rh/rh-php73/log/php-fpm/centreon-error.log && \
-    chown apache:apache /var/opt/rh/rh-php73/log/php-fpm/centreon-error.log && \
+    touch /var/log/php-fpm/centreon-error.log && \
+    chown apache:apache /var/log/php-fpm/centreon-error.log && \
     cp -r /tmp/fresh/run /usr/share/centreon/container.d && \
     /tmp/fresh/fresh.sh && \
     cp /tmp/fresh/run.sh /usr/share/centreon/container.sh && \
@@ -26,6 +31,6 @@ RUN yum clean all && \
 
 # License stuff.
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://ci.int.centreon.com:3000
-COPY web/21.10/php-fpm/centreon-license-manager.conf /etc/opt/rh/rh-php73/php-fpm.d/centreon-license-manager.conf
+COPY web/21.10/php-fpm/centreon-license-manager.conf /etc/php-fpm.d/centreon-license-manager.conf
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]

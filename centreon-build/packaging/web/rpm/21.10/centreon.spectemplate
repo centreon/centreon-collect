@@ -6,13 +6,6 @@
 
 #%define selinuxdevel %{_datadir}/selinux/devel
 
-# Define PHP prefix.
-%if 0%{?el7}
-%define php_prefix rh-php73-
-%else
-%define php_prefix %{nil}
-%endif
-
 Summary:    Centreon, Network & System Monitoring
 Name:       %{name}
 Version:    %{version}
@@ -72,9 +65,9 @@ Requires(post): sed
 Requires(post): sudo
 BuildRequires:  dos2unix
 BuildRequires:  gettext
-BuildRequires:  %{php_prefix}php-cli
-BuildRequires:  %{php_prefix}php-mbstring
-BuildRequires:  %{php_prefix}php-xml
+BuildRequires:  php-cli
+BuildRequires:  php-mbstring
+BuildRequires:  php-xml
 BuildRequires:  nodejs
 BuildRequires:  systemd
 #BuildRequires:  selinux-policy-devel
@@ -118,25 +111,24 @@ Requires:   initscripts
 %if 0%{?el7}
 Requires:   httpd24
 Requires:   mysql
-Requires:   rh-php73
 %else
 Requires:   httpd
 Requires:   mariadb
 %endif
-Requires:   %{php_prefix}php-cli
-Requires:   %{php_prefix}php-pdo
-Requires:   %{php_prefix}php-mysqlnd
-Requires:   %{php_prefix}php-gd
-Requires:   %{php_prefix}php-xml
-Requires:   %{php_prefix}php-mbstring
-Requires:   %{php_prefix}php-ldap
-Requires:   %{php_prefix}php-snmp
-Requires:   %{php_prefix}php-intl
-Requires:   %{php_prefix}php-fpm
-Requires:   %{php_prefix}php-curl
-Requires:   %{php_prefix}php-zip
-Requires:   %{php_prefix}php-pear
-Requires:   %{php_prefix}php-json
+Requires:   php-cli
+Requires:   php-pdo
+Requires:   php-mysqlnd
+Requires:   php-gd
+Requires:   php-xml
+Requires:   php-mbstring
+Requires:   php-ldap
+Requires:   php-snmp
+Requires:   php-intl
+Requires:   php-fpm
+Requires:   php-curl
+Requires:   php-zip
+Requires:   php-pear
+Requires:   php-json
 Requires:   openssl
 Requires:   perl-DBD-MySQL
 Requires:   perl-DBI
@@ -311,22 +303,16 @@ find . -type f | grep -v additional/centreon-macroreplacement.txt | xargs --deli
 %if 0%{?el7}
 %{__install} -d -m 0755 %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot/opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php73/php.d
-%{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/opt/rh/rh-php73/php.d/50-centreon.ini
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/opt/rh/rh-php73/php-fpm.d
-%{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/opt/rh/rh-php73/php-fpm.d/centreon.conf
-%{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/rh-php73-php-fpm.service.d
-%{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/rh-php73-php-fpm.service.d/centreon.conf
 %else
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/httpd/conf.d
 %{__cp} additional/centreon-apache.conf %buildroot%{_sysconfdir}/httpd/conf.d/10-centreon.conf
+%endif
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/php.d
 %{__install} -m 0644 additional/php.ini %buildroot%{_sysconfdir}/php.d/50-centreon.ini
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/php-fpm.d
 %{__install} -m 0644 additional/php-fpm.conf %buildroot%{_sysconfdir}/php-fpm.d/centreon.conf
 %{__install} -d -m 0755 %buildroot%{_sysconfdir}/systemd/system/php-fpm.service.d
 %{__install} -m 0644 additional/php-fpm-systemd.conf %buildroot%{_sysconfdir}/systemd/system/php-fpm.service.d/centreon.conf
-%endif
 
 # Install systemd configuration files
 %{__install} -d -m 0755 %buildroot%{_unitdir}
@@ -478,11 +464,7 @@ export HOUR=$(awk 'BEGIN{srand(); print int(rand()*24)}')
 sed -i -E "s/0\s0(.*)centreon\-send\-stats\.php(.*)/$MIN $HOUR\1centreon-send-stats.php\2/" /etc/cron.d/centreon
 
 # Create HASH secret for Symfony application
-%if 0%{?el7}
-REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /opt/rh/rh-php73/root/usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
-%else
 REPLY=($(dd if=/dev/urandom bs=32 count=1 status=none | /usr/bin/php -r "echo bin2hex(fread(STDIN, 32));")); sed -i "s/%APP_SECRET%/$REPLY/g" %{_datadir}/centreon/.env*
-%endif
 
 ######################################################
 # Package centreon-common
@@ -554,15 +536,12 @@ fi
 %defattr(-, root, root, -)
 %if 0%{?el7}
 %config(noreplace) /opt/rh/httpd24/root/etc/httpd/conf.d/10-centreon.conf
-%config(noreplace) %{_sysconfdir}/opt/rh/rh-php73/php.d/50-centreon.ini
-%config(noreplace) %{_sysconfdir}/opt/rh/rh-php73/php-fpm.d/centreon.conf
-%config(noreplace) %{_sysconfdir}/systemd/system/rh-php73-php-fpm.service.d/centreon.conf
 %else
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/10-centreon.conf
+%endif
 %config(noreplace) %{_sysconfdir}/php.d/50-centreon.ini
 %config(noreplace) %{_sysconfdir}/php-fpm.d/centreon.conf
 %config(noreplace) %{_sysconfdir}/systemd/system/php-fpm.service.d/centreon.conf
-%endif
 
 # Symfony environment files
 %config(noreplace) %{_datadir}/centreon/.env
@@ -639,11 +618,10 @@ fi
 
 %if 0%{?el7}
 systemctl try-restart httpd24-httpd || :
-systemctl try-restart %{php_prefix}php-fpm || :
 %else
 systemctl try-restart httpd || :
-systemctl try-restart php-fpm || :
 %endif
+systemctl try-restart php-fpm || :
 
 #%preun web
 #setsebool -P httpd_unified off 2>/dev/null || :

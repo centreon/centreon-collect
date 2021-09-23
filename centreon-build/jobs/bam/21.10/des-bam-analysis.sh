@@ -8,16 +8,8 @@
 PROJECT=centreon-bam-server
 PROJECT_NAME="Centreon Bam Server"
 
-# Retrieve copy of git repository.
-curl -o "$PROJECT-git.tar.gz" "http://srvi-repo.int.centreon.com/sources/internal/bam/$PROJECT-$VERSION-$RELEASE/$PROJECT-git.tar.gz"
-rm -rf "$PROJECT"
-tar xzf "$PROJECT-git.tar.gz"
-
 # Copy reports and run analysis.
-cd "$PROJECT"
-cp ../ut-be.xml .
-cp ../coverage-be.xml .
-sed -i -e 's#/usr/local/src/centreon-bam-server/##g' coverage-be.xml
+cd "$PROJECT-$VERSION"
 
 # environment values required to replace sonarQube project versioning and binding
 #   sonar.projectKey="{PROJECT_TITLE}"

@@ -32,6 +32,11 @@ yum-config-manager --enable 'centreon-business-unstable*'
 yum-config-manager --enable 'centreon-business-testing-noarch'
 yum-config-manager --enable 'centreon-business-unstable-noarch'
 
+# Install remi repository
+curl -o remi-release-7.rpm https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+yum install remi-release-7.rpm
+yum-config-manager --enable remi-php80
+
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
 
@@ -42,7 +47,7 @@ yum install centos-release-scl
 xargs yum install < /tmp/dependencies.txt
 
 # Configuration.
-echo 'date.timezone = Europe/Paris' > /etc/opt/rh/rh-php73/php.d/centreon.ini
+echo 'date.timezone = Europe/Paris' > /etc/php.d/centreon.ini
 
 # Clean packages
 yum clean all

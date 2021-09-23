@@ -10,11 +10,15 @@ dnf clean all
 echo 'http_caching=none' >> /etc/yum.conf
 echo 'assumeyes=1' >> /etc/yum.conf
 dnf install dnf-plugins-core
-dnf install langpacks-en glibc-all-langpacks -y
-dnf config-manager --set-enabled 'PowerTools'
+dnf install langpacks-en glibc-all-langpacks
 
 # Install base tools.
-yum install curl nc
+dnf install curl nc
+
+# Install remi repository
+curl -o remi-release-8.rpm https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+dnf install remi-release-8.rpm
+dnf config-manager --set-enabled 'powertools'
 
 # Install Centreon repositories.
 curl -o centreon-release.rpm "http://yum-1.centreon.com/standard/21.10/el8/stable/noarch/RPMS/centreon-release-21.10-1.el8.noarch.rpm"
@@ -27,8 +31,9 @@ dnf config-manager --set-enabled 'centreon-business-testing*'
 dnf config-manager --set-enabled 'centreon-business-unstable*'
 dnf config-manager --set-enabled 'centreon-business-testing-noarch'
 dnf config-manager --set-enabled 'centreon-business-unstable-noarch'
-# Switch AppStream to install php73
-dnf module enable php:7.3
+# Switch AppStream to install php8.0
+dnf module reset php
+dnf module install php:remi-8.0
 
 # Install Node.js.
 curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -

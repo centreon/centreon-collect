@@ -1,4 +1,2 @@
 COPY dependencies/@VERSION@/init/mysql /etc/init.d/mysql
 RUN chmod +x /etc/init.d/mysql
-
-ENV PATH=$PATH:/opt/rh/rh-php73/root/usr/bin

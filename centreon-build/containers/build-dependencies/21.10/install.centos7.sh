@@ -19,6 +19,11 @@ yum install centos-release-scl-rh.rpm
 head -n 12 < /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo > /tmp/scl-rh.repo
 mv /tmp/scl-rh.repo /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
 
+# Install remi repository
+curl -o remi-release-7.rpm https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+yum install remi-release-7.rpm
+yum-config-manager --enable remi-php80
+
 # Install required build dependencies for all Centreon projects.
 xargs yum install < /tmp/build-dependencies.txt
 
@@ -31,8 +36,7 @@ yum install --nogpgcheck -y nodejs
 npm install -g redoc-cli
 
 # Install Composer.
-yum install -y rh-php73-php rh-php73-php-cli rh-php73-php-dom rh-php73-php-mbstring rh-php73-php-intl rh-php73-php-pdo devtoolset-9
-export PATH="$PATH:/opt/rh/rh-php73/root/usr/bin"
+yum install -y php-cli php-dom php-mbstring php-intl php-pdo devtoolset-9
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer

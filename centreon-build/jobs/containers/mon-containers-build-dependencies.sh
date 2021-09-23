@@ -29,7 +29,7 @@ DISTRIB="$2"
 
 # Prepare Dockerfile.
 rm -rf centreon-build-containers
-cp -r /opt/centreon-build/containers centreon-build-containers
+cp -r `dirname $0`/../../containers centreon-build-containers
 cd centreon-build-containers
 cp build-dependencies/Dockerfile.in build-dependencies/Dockerfile
 if [ -e "build-dependencies/$VERSION/Dockerfile.post.$DISTRIB.in" ] ; then

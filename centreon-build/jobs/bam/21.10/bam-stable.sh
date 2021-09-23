@@ -16,8 +16,8 @@ SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO mv "/srv/sources/bam/testing/bam/$PROJECT-$VERSION-$RELEASE" "/srv/sources/bam/stable/"
 
 # Put sources online.
-SRCHASH=`$SSH_REPO "cat /srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz | md5sum | cut -d ' ' -f 1"`
-$SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-21.10/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php73.tar.gz"
+SRCHASH=`$SSH_REPO "cat /srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php80.tar.gz | md5sum | cut -d ' ' -f 1"`
+$SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php80.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-21.10/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php80.tar.gz"
 
 # Move RPMs to the stable repository.
 MAJOR=`echo $VERSION | cut -d . -f 1,2`

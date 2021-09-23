@@ -11,7 +11,7 @@
 
 # Project.
 PROJECT=centreon-bam-server
-tar czf "$PROJECT-git.tar.gz" "$PROJECT"
+
 curl -o centreon-translations.php 'https://raw.githubusercontent.com/centreon/centreon/master/bin/centreon-translations.php'
 
 # Get version.
@@ -45,29 +45,35 @@ for i in "../$PROJECT-$VERSION/www/modules/centreon-bam-server/locale"/*.UTF-8 ;
   php ../centreon-translations.php $lang "$i/LC_MESSAGES/messages.po" "$i/LC_MESSAGES/messages.ser"
   rm -f "$i/LC_MESSAGES/messages.po"
 done
-cd "../$PROJECT-$VERSION/www/modules/centreon-bam-server/react"
-OLDDIR=`pwd`
-find . -name package.json | xargs dirname > reacttargets.txt
-for i in `cat reacttargets.txt` ; do
-  cd "$OLDDIR/$i"
-  npm ci
-  npm run build
-done
-cd "$OLDDIR/../../../../.."
+
+cd ..
+tar czf "$PROJECT-$VERSION-git.tar.gz" "$PROJECT-$VERSION"
+
+# temporary fix to solve the beberlei/assert requirement, needed for acceptation tests
+# @TODO build a container with these packages to be able to execute tests on it directly
+#sudo apt-get update
+#sudo apt-get install -y php-intl
+cd "$PROJECT-$VERSION"
+composer install --ignore-platform-reqs
+rm -rf ../vendor
+mv vendor ../
+cd ..
+tar czf "vendor.tar.gz" "vendor"
+
+cd "$PROJECT-$VERSION/www/modules/centreon-bam-server/react"
+npm ci
+npm run build
+cd "../../../../.."
+rm -rf node_modules
+mv "$PROJECT-$VERSION/www/modules/centreon-bam-server/react/node_modules" ./
+tar czf "node_modules.tar.gz" "node_modules"
 rm -rf "$PROJECT-$VERSION/www/modules/centreon-bam-server/react"
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT-$VERSION"
-cd "$PROJECT"
-echo '/* -export-ignore' > .git/info/attributes
-git archive --prefix="$PROJECT-$VERSION-full/" HEAD | gzip > "../$PROJECT-$VERSION-full.tar.gz"
-rm -f .git/info/attributes
-cd ..
 
 # Send it to srvi-repo.
-curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=73" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-$VERSION-php73.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-full.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION-php73.tar.gz"
-put_internal_source "bam" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-git.tar.gz"
+curl -F "file=@$PROJECT-$VERSION.tar.gz" -F "version=80" 'https://encode.centreon.com/index.php' -o "$PROJECT-$VERSION-php80.tar.gz"
+
+mv "$PROJECT-$VERSION-git.tar.gz" "$PROJECT-$VERSION.tar.gz"
 
 # Generate properties files for downstream jobs.
 cat > source.properties << EOF

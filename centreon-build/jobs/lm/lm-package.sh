@@ -26,8 +26,10 @@ mkdir output
 # Fetch sources.
 if [ "$MAJOR" = "20.10" -o "$MAJOR" = "20.04" ] ; then
   PHPVERSION=php72
-else
+elif [ "$MAJOR" = "21.04" ] ; then
   PHPVERSION=php73
+else
+  PHPVERSION=php80
 fi
 
 rm -rf "$PROJECT-$VERSION-$PHPVERSION.tar.gz" "$PROJECT-$VERSION-$PHPVERSION"

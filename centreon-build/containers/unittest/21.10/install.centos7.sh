@@ -8,15 +8,13 @@ xargs yum install < /tmp/build-dependencies.txt
 yum install centreon-clib centreon-clib-devel
 
 # Install PHPUnit.
-curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-8.phar
+curl -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-9.phar
 chmod +x /usr/local/bin/phpunit
 
 # Install Xdebug PHP extension (for PHPUnit code coverage).
-yum install rh-php73-php-pecl-xdebug
+yum install php php-cli rh-php73-php-dom rh-php73-php-mbstring php-pecl-xdebug3
 
 # Install Composer.
-yum install -y rh-php73-php rh-php73-php-cli rh-php73-php-dom rh-php73-php-mbstring
-export PATH="$PATH:/opt/rh/rh-php73/root/usr/bin"
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer

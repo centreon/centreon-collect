@@ -3,7 +3,6 @@ httpd
 libgcrypt
 lua
 mariadb-server
-php
 php-cli
 php-curl
 php-fpm

@@ -1,5 +1,5 @@
 # Base information.
-FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
+FROM registry.centreon.com/mon-web-21.10.0-beta.1-1628167828.637c53ef4f:@DISTRIB@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
 
 # Install Centreon MBI web interface.
