@@ -13,7 +13,7 @@ EL7RPMS=`echo output/noarch/*.el7.*.rpm`
 EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
+if [ "$BUILD" '=' 'QA' ]
 then  
   put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v21.10.html
   put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
@@ -28,4 +28,8 @@ then
   put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
   TARGETVERSION="$VERSION"
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
 fi
