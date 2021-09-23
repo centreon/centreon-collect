@@ -11,7 +11,12 @@ RUN dnf clean all && \
     dnf config-manager --enablerepo  centreon-canary && \
     mkdir -p /usr/lib64/centreon-connector && \
     mkdir -p /usr/lib/centreon/plugins && \
-    dnf install centreon centreon-broker-influxdb libfaketime && \
+    dnf install centreon centreon-broker-influxdb libfaketime \
+    http://yum-1.centreon.com/standard/21.10/el8/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632223846.62e5e72/centreon-license-manager-21.10.0-beta.1.1632223846.62e5e72.el8.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el8/unstable/noarch/lm/centreon-license-manager-21.10.0-beta.1-1632223846.62e5e72/centreon-license-manager-common-21.10.0-beta.1.1632223846.62e5e72.el8.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el8/unstable/noarch/ppm/centreon-pp-manager-21.10.0-beta.1-1632227304.b54ebe9/centreon-pp-manager-21.10.0-beta.1.1632227304.b54ebe9.el8.noarch.rpm \
+    http://yum-1.centreon.com/standard/21.10/el8/unstable/noarch/autodisco/centreon-autodiscovery-21.10.0-beta.1-1632228270.b9d3c3d/centreon-auto-discovery-server-21.10.0-beta.1.1632228270.b9d3c3d.el8.noarch.rpm \
+    && \
     mkdir /run/php-fpm && \
     cp /tmp/fresh/centengine.sh /etc/init.d/centengine && \
     cp /tmp/fresh/cbd.sh /etc/init.d/cbd && \
