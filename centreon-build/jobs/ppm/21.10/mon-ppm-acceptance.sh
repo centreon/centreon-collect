@@ -49,6 +49,10 @@ if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      ppm: docker-compose-ppm.yml\n      ppm_autodisco: docker-compose-ppm-autodisco.yml\n      ppm_squid_simple: docker-compose-ppm-squid-simple.yml\n      ppm_squid_basic_auth: docker-compose-ppm-squid-basic-auth.yml#g' behat.yml
 fi
 
+# ignore php 8 requirement in composer.json
+rm -rf composer.lock vendor
+composer install --ignore-platform-reqs
+
 # Run acceptance tests.
 rm -rf ../xunit-reports
 mkdir ../xunit-reports

@@ -24,7 +24,8 @@ else
 fi
 
 # Pull base image.
-WEB_IMAGE=registry.centreon.com/mon-web-$CENTREON_WEB_BRANCH_NAME:$DISTRIB
+#WEB_IMAGE=registry.centreon.com/mon-web-$CENTREON_WEB_BRANCH_NAME:$DISTRIB
+WEB_IMAGE=registry.centreon.com/mon-web-21.10.0-beta.1-1632468206.159a78837e:$DISTRIB
 docker pull $WEB_IMAGE
 
 # Prepare Dockerfiles.
