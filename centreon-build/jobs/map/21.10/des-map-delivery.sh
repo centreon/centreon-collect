@@ -24,7 +24,7 @@ WEBEL7RPMS=`echo output/noarch/centreon-map-web*.el7.*.rpm`
 WEBEL8RPMS=`echo output/noarch/centreon-map-web*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
+if [ "$BUILD" '=' 'QA' ]
 then
   put_rpms "business" "$MAJOR" "el7" "unstable" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL7RPMS
   put_rpms "business" "$MAJOR" "el8" "unstable" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL8RPMS
@@ -40,4 +40,12 @@ then
   put_rpms "business" "$MAJOR" "el8" "testing" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL8RPMS
   put_rpms "business" "$MAJOR" "el7" "testing" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL7RPMS
   put_rpms "business" "$MAJOR" "el8" "testing" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL8RPMS
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "business" "$MAJOR" "el7" "canary" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "canary" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL8RPMS
+  put_rpms "business" "$MAJOR" "el7" "canary" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "canary" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL8RPMS
+  put_rpms "business" "$MAJOR" "el7" "canary" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "canary" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL8RPMS
 fi

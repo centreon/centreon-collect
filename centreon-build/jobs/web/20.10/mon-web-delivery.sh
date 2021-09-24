@@ -29,4 +29,8 @@ then
   put_testing_source "standard" "web" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz" centreon-api-v2.html
   put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
 fi

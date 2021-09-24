@@ -18,13 +18,17 @@ EL7RPMS=`echo output/noarch/*.el7.*.rpm`
 EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
+if [ "$BUILD" '=' 'QA' ]
 then
-  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "lm" "centreon-licenses-manager-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "lm" "centreon-licenses-manager-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "lm" "centreon-license-manager-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "lm" "centreon-license-manager-$VERSION-$RELEASE" $EL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
   copy_internal_source_to_testing "standard" "lm" "$PROJECT-$VERSION-$RELEASE"
-  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "lm" "centreon-licenses-manager-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "lm" "centreon-licenses-manager-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "lm" "centreon-license-manager-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "lm" "centreon-license-manager-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "lm" "centreon-license-manager-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "lm" "centreon-license-manager-$VERSION-$RELEASE" $EL8RPMS
 fi
