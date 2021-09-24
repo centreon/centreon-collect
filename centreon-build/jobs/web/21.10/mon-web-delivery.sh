@@ -14,7 +14,7 @@ EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
 if [ "$BUILD" '=' 'QA' ]
-then  
+then
   put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v21.10.html
   put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
