@@ -1,5 +1,5 @@
 # Base information.
-FROM registry.centreon.com/mon-web-21.10.0-beta.1-1632468206.159a78837e:@DISTRIB@
+FROM registry.centreon.com/mon-web-21.10:@DISTRIB@
 
 # Set middleware server
 ENV CENTREON_IMP_SERVER HELLOWORLD:http://middleware:3000/api
