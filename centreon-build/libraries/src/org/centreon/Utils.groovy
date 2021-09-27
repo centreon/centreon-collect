@@ -12,8 +12,7 @@ class Utils implements Serializable {
     }
     this.script.println("Build branch is ${this.script.env.BUILD_BRANCH}")
 
-
-    def matcher = script.env.CHANGE_URL =~ /github.com\/centreon\/(.+?)\//
+    def matcher = this.script.scm.getUserRemoteConfigs()[0].getUrl() =~ /github.com\/centreon\/(.+?)\.git/
     assert matcher instanceof java.util.regex.Matcher
     assert 1 == matcher.count
     this.script.env.GIT_PROJECT_NAME = matcher[0][1]
