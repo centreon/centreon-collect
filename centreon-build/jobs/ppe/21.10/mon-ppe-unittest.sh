@@ -27,7 +27,7 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 # Launch mon-unitttest container.
 UT_IMAGE=registry.centreon.com/mon-unittest-21.10:$DISTRIB
 docker pull $UT_IMAGE
-containerid=`docker create $UT_IMAGE /usr/local/bin/unittest-phing $PROJECT`
+containerid=`docker create $UT_IMAGE /usr/local/bin/unittest.sh $PROJECT`
 
 # Copy sources to container.
 docker cp "$PROJECT-$VERSION" "$containerid:/usr/local/src/$PROJECT"
