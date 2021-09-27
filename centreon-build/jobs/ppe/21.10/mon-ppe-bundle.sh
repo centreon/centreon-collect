@@ -37,3 +37,12 @@ docker build --no-cache -t "$PPE_IMAGE" -f ppe/Dockerfile .
 docker push "$PPE_IMAGE"
 docker tag "$PPE_IMAGE" "$PPE_WIP_IMAGE"
 docker push "$PPE_WIP_IMAGE"
+
+if [ "$BUILD" '=' 'REFERENCE' ]
+then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    docker pull "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/mon-ppe-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-ppe-21.10:$DISTRIB"
+    docker push "$REGISTRY/mon-ppe-21.10:$DISTRIB"
+  fi
+fi
