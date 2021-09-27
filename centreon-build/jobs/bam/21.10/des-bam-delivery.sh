@@ -18,7 +18,6 @@ EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 # Publish RPMs.
 if [ "$BUILD" '=' 'QA' ]
 then
-  copy_internal_source_to_testing "standard" "bam" "$PROJECT-$VERSION-$RELEASE"
   put_rpms "business" "$MAJOR" "el7" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "business" "$MAJOR" "el8" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
