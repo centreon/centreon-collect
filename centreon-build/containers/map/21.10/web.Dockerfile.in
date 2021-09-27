@@ -1,7 +1,7 @@
 # Base information.
 FROM @BASE_IMAGE@
 MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
-
+RUN yum update
 RUN yum install -y centreon-bam-server centreon-map4-web-client && \
     yum clean all
 COPY web/21.10/install-centreon-module.php /tmp/install-centreon-module.php
