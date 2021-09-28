@@ -38,7 +38,10 @@ yum install remi-release-7.rpm
 yum-config-manager --enable remi-php80
 
 # Install Node.js.
-curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n latest
 
 # Install Software Collections repository.
 yum install centos-release-scl
