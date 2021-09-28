@@ -14,45 +14,39 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
 
-#
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  if [ "$PRODUCT" '=' 'desktop' -o "$PRODUCT" '=' 'all' ] ; then
-    copy_internal_source_to_testing "map" "map-desktop" "$PROJECT-desktop-$VERSION-$RELEASE"
-  fi
-  if [ "$PRODUCT" '=' 'server' -o "$PRODUCT" '=' 'all' ] ; then
-    copy_internal_rpms_to_testing "map" "20.10" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-    copy_internal_rpms_to_testing "map" "20.10" "el7" "noarch" "map-server-ng" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-    copy_internal_rpms_to_testing "map" "20.10" "el8" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-    copy_internal_rpms_to_testing "map" "20.10" "el8" "noarch" "map-server-ng" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-  fi
-  if [ "$PRODUCT" '=' 'web' -o "$PRODUCT" '=' 'all' ] ; then
-    copy_internal_rpms_to_testing "map" "20.10" "el7" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE"
-    copy_internal_rpms_to_testing "map" "20.10" "el8" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE"
-  fi
-  TARGETVERSION="$VERSION"
+SERVEREL7RPMS=`echo output/noarch/centreon-map-server-$MAJOR*.el7.*.rpm`
+SERVEREL8RPMS=`echo output/noarch/centreon-map-server-$MAJOR*.el8.*.rpm`
+NGEL7RPMS=`echo output/noarch/centreon-map-server-ng*.el7.*.rpm`
+NGEL8RPMS=`echo output/noarch/centreon-map-server-ng*.el8.*.rpm`
+WEBEL7RPMS=`echo output/noarch/centreon-map-web*.el7.*.rpm`
+WEBEL8RPMS=`echo output/noarch/centreon-map-web*.el8.*.rpm`
 
-#
-# CI delivery.
-#
-else
-  promote_canary_rpms_to_unstable "map" "20.10" "el7" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE"
-  promote_canary_rpms_to_unstable "map" "20.10" "el7" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-  promote_canary_rpms_to_unstable "map" "20.10" "el7" "noarch" "map-server-ng" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-  promote_canary_rpms_to_unstable "map" "20.10" "el8" "noarch" "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE"
-  promote_canary_rpms_to_unstable "map" "20.10" "el8" "noarch" "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-  promote_canary_rpms_to_unstable "map" "20.10" "el8" "noarch" "map-server-ng" "$PROJECT-server-$VERSIONSERVER-$RELEASE"
-  TARGETVERSION='20.10'
+# Publish RPMs.
+if [ "$BUILD" '=' 'QA' ]
+then
+  put_rpms "map" "$MAJOR" "el7" "unstable" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "unstable" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL8RPMS
+  put_rpms "map" "$MAJOR" "el7" "unstable" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "unstable" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL8RPMS
+  put_rpms "map" "$MAJOR" "el7" "unstable" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "unstable" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL8RPMS
+elif [ "$BUILD" '=' 'RELEASE' ]
+then
+  put_rpms "map" "$MAJOR" "el7" "testing" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "testing" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL8RPMS
+  put_rpms "map" "$MAJOR" "el7" "testing" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "testing" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL8RPMS
+  put_rpms "map" "$MAJOR" "el7" "testing" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "testing" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL8RPMS
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "map" "$MAJOR" "el7" "canary" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "canary" "noarch" "map-server" "centreon-map-server-$VERSIONSERVER-$RELEASE" $SERVEREL8RPMS
+  put_rpms "map" "$MAJOR" "el7" "canary" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "canary" "noarch" "map-server-ng" "centreon-map-server-$VERSIONSERVER-$RELEASE" $NGEL8RPMS
+  put_rpms "map" "$MAJOR" "el7" "canary" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL7RPMS
+  put_rpms "map" "$MAJOR" "el8" "canary" "noarch" "map-web" "centreon-map-web-$VERSIONWEB-$RELEASE" $WEBEL8RPMS
 fi
 
-# Set Docker images as latest.
-REGISTRY='registry.centreon.com'
-for image in des-map-server des-map-web ; do
-  for distrib in centos7 centos8 ; do
-    docker pull "$REGISTRY/$image-$VERSION-$RELEASE:$distrib"
-    docker tag "$REGISTRY/$image-$VERSION-$RELEASE:$distrib" "$REGISTRY/$image-$TARGETVERSION:$distrib"
-    docker push "$REGISTRY/$image-$TARGETVERSION:$distrib"
-  done
-done
