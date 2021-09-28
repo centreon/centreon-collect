@@ -53,15 +53,6 @@ docker cp "$containerid:/usr/local/src/$PROJECT-server-$VERSIONSERVER" "$PROJECT
 docker stop "$containerid"
 docker rm "$containerid"
 
-# Upload artifacts.
-if [ "$DISTRIB" = 'centos7' ] ; then
-  DISTRIB=el7
-elif [ "$DISTRIB" = 'centos8' ] ; then
-  DISTRIB=el8
-else
-  echo "Unsupported distribution $DISTRIB."
-  exit 1
-fi
 FILES_MAP_SERVER=`find "$PROJECT-server-$VERSIONSERVER/map-server-parent/map-server-packaging/target/rpm/" -name '*.rpm'`
 rm -rf output
 mkdir -p output/noarch/
