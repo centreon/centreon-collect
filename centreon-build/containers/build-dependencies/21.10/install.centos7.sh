@@ -28,11 +28,15 @@ yum-config-manager --enable remi-php80
 xargs yum install < /tmp/build-dependencies.txt
 
 # Install Node.js and related elements.
-curl --silent --location https://rpm.nodesource.com/setup_16.x | bash -
+curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
 # nodesource-release installs an invalid repository that we remove now.
 #head -n 8 /etc/yum.repos.d/nodesource-el7.repo > /etc/yum.repos.d/nodesource-el7.repo.new
 #mv /etc/yum.repos.d/nodesource-el7.repo{.new,}
 yum install --nogpgcheck -y nodejs
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n latest
+
 npm install -g redoc-cli
 
 # Install Composer.
