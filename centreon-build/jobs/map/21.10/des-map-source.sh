@@ -88,9 +88,9 @@ for flavor in '' '-ng' ; do
 done
 
 # Send it to srvi-repo.
-curl -F "file=@$PROJECT-web-client-$VERSIONWEB.tar.gz" -F "version=73" 'http://encode.int.centreon.com/api/index.php' -o "$PROJECT-web-client-$VERSIONWEB-php73.tar.gz"
+curl -F "file=@$PROJECT-web-client-$VERSIONWEB.tar.gz" -F "version=80" 'https://encode.centreon.com/index.php' -o "$PROJECT-web-client-$VERSIONWEB-php80.tar.gz"
 put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB.tar.gz"
-put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB-php73.tar.gz"
+put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT-web-client-$VERSIONWEB-php80.tar.gz"
 put_internal_source "map-web" "$PROJECT-web-$VERSIONWEB-$RELEASE" "$PROJECT/web/packaging/$PROJECT-web-client.spectemplate"
 put_internal_source "map-desktop" "$PROJECT-desktop-$VERSION-$RELEASE" "$PROJECT-desktop-$VERSION.tar.gz"
 put_internal_source "map-server" "$PROJECT-server-$VERSIONSERVER-$RELEASE" "$PROJECT-server-$VERSIONSERVER.tar.gz"
