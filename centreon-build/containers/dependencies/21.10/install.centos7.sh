@@ -42,9 +42,9 @@ curl --silent --location https://rpm.nodesource.com/setup_14.x | bash -
 head -n 8 /etc/yum.repos.d/nodesource-el7.repo > /etc/yum.repos.d/nodesource-el7.repo.new
 mv /etc/yum.repos.d/nodesource-el7.repo{.new,}
 yum install --nogpgcheck -y nodejs
-sudo npm cache clean -f
-sudo npm install -g n
-sudo n latest
+npm cache clean -f
+npm install -g n
+n latest
 
 # Install Software Collections repository.
 yum install centos-release-scl
