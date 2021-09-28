@@ -68,7 +68,7 @@ docker push "$WIDGETS_WIP_IMG"
 
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
-if [ "$BUILD" == "REFERENCE" ]
+if [ "$BUILD" '=' 'REFERENCE' ]
 then
   if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
     for image in mon-web-fresh mon-web mon-web-widgets ; do
