@@ -333,7 +333,8 @@ put_rpms () {
   shift 7
   scp -o StrictHostKeyChecking=no "$@" "cesync@yum.int.centreon.com:$TARGET"
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "ls -drc $PROJECT_LOCATION/* | head -n -6 | xargs rm -rf"
-  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "sh /home/cesync/scripts/updaterepo.sh $METADATAS"
+  #ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
   ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" aws cloudfront create-invalidation --distribution-id E34EBWWERP6QET --paths "/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
 }
 
