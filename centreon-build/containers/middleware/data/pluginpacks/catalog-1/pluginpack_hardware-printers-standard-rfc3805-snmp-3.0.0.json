@@ -42,7 +42,9 @@
             "macros": [],
             "max_check_attempts": 0,
             "name": "HW-Printer-standard-rfc3805",
-            "parent_template": "generic-active-host",
+            "parent_template": [
+                "generic-active-host"
+            ],
             "passive_checks_enabled": 2,
             "services": [
                 "HW-Printer-PaperTray-Usage-standard-SNMP",

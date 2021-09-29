@@ -30,7 +30,9 @@
             ],
             "max_check_attempts": 0,
             "name": "App-Monitoring-Centreon-Database",
-            "parent_template": "generic-active-host",
+            "parent_template": [
+                "generic-active-host"
+            ],
             "passive_checks_enabled": 2,
             "services": [
                 "App-Centreon-MySQL-Partitioning-custom"
