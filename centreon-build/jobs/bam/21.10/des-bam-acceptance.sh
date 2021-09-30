@@ -43,9 +43,4 @@ mkdir ../xunit-reports
 rm -rf ../acceptance-logs
 mkdir ../acceptance-logs
 
-# temporary fix to solve the beberlei/assert requirement, needed for acceptation tests
-# @TODO build a container with these packages to be able to execute tests on it directly
-sudo apt-get update
-sudo apt-get install -y php-intl
-
 ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
