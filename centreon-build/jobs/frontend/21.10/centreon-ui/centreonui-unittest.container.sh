@@ -11,7 +11,11 @@ rm -f /tmp/codestyle.xml
 
 # Install dependencies.
 chown -R root:root "/usr/local/centreon-frontend"
-cd "/usr/local/centreon-frontend/packages/centreon-ui"
+
+cd "/usr/local/centreon-frontend"
+npm ci --legacy-peer-deps
+
+cd "packages/centreon-ui"
 npm ci --legacy-peer-deps
 
 # Run frontend unit tests and code style.
