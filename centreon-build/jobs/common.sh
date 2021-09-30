@@ -356,7 +356,7 @@ promote_rpms_from_testing_to_stable () {
   elif [ "$1" = "plugin-packs" ] ; then
     PROJECT_PATH=plugin-packs/2e83f5ff110c44a9cab8f8c7ebbe3c4f
   fi
-  
+
   #Local variables for the parameters that are used to create the targer path
   MAJOR=$2
   DISTRIB=$3
