@@ -11,13 +11,10 @@ rm -f /tmp/codestyle.xml
 
 # Install dependencies.
 chown -R root:root "/usr/local/centreon-frontend"
-cd "/usr/local/centreon-frontend"
-rm -rf node_modules
-
+cd "/usr/local/centreon-frontend/packages/centreon-ui"
 npm ci --legacy-peer-deps
-cd "packages/centreon-ui"
-# Run frontend unit tests and code style.
 
+# Run frontend unit tests and code style.
 npm run eslint -- -o checkstyle.xml -f checkstyle
 npm run build:storybook
 npm t -- --ci --reporters=jest-junit
