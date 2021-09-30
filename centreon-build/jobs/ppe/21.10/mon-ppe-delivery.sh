@@ -1,6 +1,9 @@
 #!/bin/sh
 
-set -e
+. `dirname $0`/../../common.sh
+
+# Project.
+PROJECT=centreon-export
 
 # Check arguments.
 if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
@@ -13,18 +16,17 @@ EL7RPMS=`echo output/noarch/*.el7.*.rpm`
 EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA']
+if [ "$BUILD" '=' 'QA' ]
 then
-  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "export" "centreon-export-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "export" "centreon-export-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "ppe" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "ppe" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
-  copy_internal_source_to_testing "mbi" "mbi" "$PROJECT-$VERSION-$RELEASE"
-  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "export" "centreon-export-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "export" "centreon-export-$VERSION-$RELEASE" $EL8RPMS
-fi
+  copy_internal_source_to_testing "standard" "ppe" "$PROJECT-$VERSION-$RELEASE"
+  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "ppe" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "ppe" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 elif [ "$BUILD" '=' 'CI' ]
 then
-  put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "export" "centreon-export-$VERSION-$RELEASE" $EL7RPMS
-  put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "export" "centreon-export-$VERSION-$RELEASE" $EL8RPMS
+  put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "ppe" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "ppe" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi

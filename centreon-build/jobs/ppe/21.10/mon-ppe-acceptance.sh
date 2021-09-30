@@ -13,7 +13,7 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   echo "You need to specify VERSION and RELEASE environment variables."
   exit 1
 fi
-if [ "$#" -lt 1 ] ; then
+if [ "$#" -lt 2 ] ; then
   echo "USAGE: $0 <centos7|...>"
   exit 1
 fi
@@ -35,15 +35,20 @@ tar xzf "$PROJECT-$VERSION.tar.gz"
 sed 's#@WEB_IMAGE@#'$WEB_IMAGE'#g' < `dirname $0`/../../../containers/web/21.10/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-web.yml"
 sed 's#@WEB_IMAGE@#'$PPE_IMAGE'#g' < `dirname $0`/../../../containers/web/21.10/docker-compose.yml.in > "$PROJECT-$VERSION/docker-compose-ppe.yml"
 
-# Run acceptance tests.
+# Prepare behat.yml.
 cd "$PROJECT-$VERSION"
-rm -rf ../xunit-reports
-mkdir ../xunit-reports
-rm -rf ../acceptance-logs
-mkdir ../acceptance-logs
-composer install
 alreadyset=`grep docker-compose-ppe.yml < behat.yml || true`
 if [ -z "$alreadyset" ] ; then
   sed -i 's#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:#    Centreon\\Test\\Behat\\Extensions\\ContainerExtension:\n      log_directory: ../acceptance-logs\n      web: docker-compose-web.yml\n      ppe: docker-compose-ppe.yml#g' behat.yml
 fi
-ls features/*.feature | parallel ./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports/{/.}" "{}" || true
+
+# ignore php 8 requirement in composer.json
+rm -rf composer.lock vendor
+composer install --ignore-platform-reqs
+
+# Run acceptance tests.
+rm -rf ../xunit-reports
+mkdir ../xunit-reports
+rm -rf ../acceptance-logs
+mkdir ../acceptance-logs
+./vendor/bin/behat --format=pretty --out=std --format=junit --out="../xunit-reports" "$2"
