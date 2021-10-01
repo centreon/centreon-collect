@@ -12,10 +12,6 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-# Move sources to the stable directory.
-SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
-$SSH_REPO mv "/srv/sources/standard/testing/web/$PROJECT-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
-
 # Put sources online.
 upload_tarball_for_download "$PROJECT" "$VERSION" "/srv/sources/standard/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/centreon/$PROJECT-$VERSION.tar.gz"
 
