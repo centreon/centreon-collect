@@ -121,7 +121,7 @@ put_testing_rpms () {
     scp "$@" "$REPO_CREDS:$DIR/$NEWDIR"
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $REPOROOT --path "$REPOSUBDIR" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $REPOROOT --path "$REPOSUBDIR" --confirm
   done
 }
 
@@ -157,7 +157,7 @@ copy_internal_rpms_to_canary () {
     done
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/canary/$4" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/canary/$4" --confirm
   done
 }
 
@@ -182,7 +182,7 @@ copy_internal_rpms_to_unstable () {
     done
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/unstable/$4" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/unstable/$4" --confirm
   done
 }
 
@@ -207,7 +207,7 @@ copy_internal_rpms_to_testing () {
     done
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/testing/$4" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/testing/$4" --confirm
   done
 }
 
@@ -231,7 +231,7 @@ promote_canary_rpms_to_unstable () {
     done
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/unstable/$4" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/unstable/$4" --confirm
   done
 }
 
@@ -255,7 +255,7 @@ promote_unstable_rpms_to_testing () {
     done
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/testing/$4" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/testing/$4" --confirm
   done
 }
 
@@ -279,7 +279,7 @@ promote_testing_rpms_to_stable () {
     done
     scp "$UPDATEREPODIR/updaterepo.sh" "$REPO_CREDS:$DESTFILE"
     ssh "$REPO_CREDS" sh $DESTFILE $REPO
-    $UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/stable/$4" --confirm
+    #$UPDATEREPODIR/sync-repo.sh --project $TARGETPROJECT --path "/$2/$3/stable/$4" --confirm
   done
 }
 
@@ -334,7 +334,6 @@ put_rpms () {
   scp -o StrictHostKeyChecking=no "$@" "cesync@yum.int.centreon.com:$TARGET"
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "ls -drc $PROJECT_LOCATION/* | head -n -6 | xargs rm -rf"
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "sh /home/cesync/scripts/updaterepo.sh $METADATAS"
-  #ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
   ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" aws cloudfront create-invalidation --distribution-id E34EBWWERP6QET --paths "/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
 }
 
@@ -376,6 +375,6 @@ promote_rpms_from_testing_to_stable () {
   ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" cp $SOURCE/*.rpm $TARGET/
 
   #Update metadatas and invalidate cache on cloudfront
-  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" createrepo "$METADATAS"
+  ssh -o StrictHostKeyChecking=no "cesync@yum.int.centreon.com" "sh /home/cesync/scripts/updaterepo.sh $METADATAS"
   ssh -o StrictHostKeyChecking=no "ubuntu@srvi-repo.int.centreon.com" aws cloudfront create-invalidation --distribution-id E34EBWWERP6QET --paths "/$PROJECT_PATH/$MAJOR/$DISTRIB/stable/$ARCH/*"
 }
