@@ -34,5 +34,9 @@ docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS7" i
 docker-rpm-builder dir --sign-with `dirname $0`/../../ces.key "$BUILD_CENTOS8" input output-centos8
 
 # Copy files to server.
-put_testing_rpms "standard" "21.04" "el7" "x86_64" "fingerprint" "fingerprint" output-centos7/x86_64/*.rpm
-put_testing_rpms "standard" "21.04" "el8" "x86_64" "fingerprint" "fingerprint" output-centos8/x86_64/*.rpm
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+EL7RPMS=`echo output-centos7/noarch/*.el7.*.rpm`
+EL8RPMS=`echo output-centos8/noarch/*.el8.*.rpm`
+
+put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "fingerprint" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+put_rpms "standard" "$MAJOR" "el8" "testing" "x86_64" "fingerprint" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS

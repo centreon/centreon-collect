@@ -116,29 +116,8 @@ if [ "$atleastoneplugin" -ne 0 ] ; then
   docker-rpm-builder dir --sign-with `dirname $0`/../ces.key "$BUILD_IMG_CENTOS8" input output-centos8
   rm -f output-centos8/noarch/centreon-plugin-$VERSION-*
 
-  # Copy files to server.
-  put_internal_rpms "3.4" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "20.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "20.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
-  put_internal_rpms "21.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "21.04" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
-  put_internal_rpms "21.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos7/noarch/*.rpm
-  put_internal_rpms "21.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE" output-centos8/noarch/*.rpm
-  if [ "$BRANCH_NAME" '=' 'master' ] ; then
-    copy_internal_rpms_to_unstable "standard" "3.4" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "19.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "19.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "20.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "20.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "20.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "21.04" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "21.04" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "21.10" "el7" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-    copy_internal_rpms_to_unstable "standard" "21.10" "el8" "noarch" "plugins" "$PROJECT-$VERSION-$RELEASE"
-  fi
+  tar czf rpms-centos7.tar.gz output-centos7
+  tar czf rpms-centos8.tar.gz output-centos8
 
   # Populate cache.
   scp -r "cache-$VERSION-$RELEASE" "$REPO_CREDS:/srv/cache/plugins/unstable/"

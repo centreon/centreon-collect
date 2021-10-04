@@ -19,7 +19,7 @@ EL7RPMS=`echo output/noarch/*.el7.*.rpm`
 EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
 # Publish RPMs.
-if [ "$BUILD" '=' 'QA' -o "$BUILD" '=' 'CI' ]
+if [ "$BUILD" '=' 'QA' ]
 then
   copy_internal_source_to_testing "standard" "bam" "$PROJECT-$VERSION-$RELEASE"
   put_rpms "business" "$MAJOR" "el7" "unstable" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
@@ -28,4 +28,8 @@ elif [ "$BUILD" '=' 'RELEASE' ]
 then
   put_rpms "business" "$MAJOR" "el7" "testing" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "business" "$MAJOR" "el8" "testing" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "business" "$MAJOR" "el7" "canary" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "business" "$MAJOR" "el8" "canary" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi

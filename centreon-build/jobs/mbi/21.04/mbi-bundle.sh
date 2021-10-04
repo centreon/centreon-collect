@@ -47,13 +47,16 @@ docker push "$MBI_WEB_WIP_IMAGE"
 
 # Set Docker images as latest.
 REGISTRY='registry.centreon.com'
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  # -server- image.
-  docker pull "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB"
-  docker tag "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-mbi-server-21.04:$DISTRIB"
-  docker push "$REGISTRY/des-mbi-server-21.04:$DISTRIB"
-  # -web- image.
-  docker pull "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB"
-  docker tag "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-mbi-web-21.04:$DISTRIB"
-  docker push "$REGISTRY/des-mbi-web-21.04:$DISTRIB"
+if [ "$BUILD" '=' 'REFERENCE' ]
+then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    # -server- image.
+    docker pull "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/des-mbi-server-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-mbi-server-21.04:$DISTRIB"
+    docker push "$REGISTRY/des-mbi-server-21.04:$DISTRIB"
+    # -web- image.
+    docker pull "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/des-mbi-web-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/des-mbi-web-21.04:$DISTRIB"
+    docker push "$REGISTRY/des-mbi-web-21.04:$DISTRIB"
+  fi
 fi

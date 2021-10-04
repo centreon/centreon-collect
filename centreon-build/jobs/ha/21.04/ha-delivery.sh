@@ -14,19 +14,22 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-#
-# Release delivery.
-#
-if [ "$BUILD" '=' 'RELEASE' ] ; then
-  # Copy build artifacts.
-  copy_internal_source_to_testing "standard" "ha" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "21.04" "el7" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE"
-  copy_internal_rpms_to_testing "standard" "21.04" "el8" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE"
+MAJOR=`echo $VERSION | cut -d . -f 1,2`
+EL7RPMS=`echo output/noarch/*.el7.*.rpm`
+EL8RPMS=`echo output/noarch/*.el8.*.rpm`
 
-#
-# CI delivery.
-#
-else
-  promote_canary_rpms_to_unstable "standard" "21.04" "el7" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE"
-  promote_canary_rpms_to_unstable "standard" "21.04" "el8" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE"
+# Publish RPMs.
+if [ "$BUILD" '=' 'QA' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "unstable" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "unstable" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'RELEASE' ]
+then
+  copy_internal_source_to_testing "standard" "ha" "$PROJECT-$VERSION-$RELEASE"
+  put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
+elif [ "$BUILD" '=' 'CI' ]
+then
+  put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE" $EL7RPMS
+  put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "ha" "$PROJECT-$VERSION-$RELEASE" $EL8RPMS
 fi

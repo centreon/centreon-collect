@@ -39,8 +39,11 @@ docker tag "$AWIE_IMAGE" "$AWIE_WIP_IMAGE"
 docker push "$AWIE_WIP_IMAGE"
 
 REGISTRY="registry.centreon.com"
-if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
-  docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
-  docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-awie-21.04:$DISTRIB"
-  docker push "$REGISTRY/mon-awie-21.04:$DISTRIB"
+if [ "$BUILD" = "REFERENCE" ]
+then
+  if [ "$DISTRIB" = "centos7" -o "$DISTRIB" = "centos8" ] ; then
+    docker pull "$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB"
+    docker tag "$REGISTRY/mon-awie-$VERSION-$RELEASE:$DISTRIB" "$REGISTRY/mon-awie-21.04:$DISTRIB"
+    docker push "$REGISTRY/mon-awie-21.04:$DISTRIB"
+  fi
 fi

@@ -23,8 +23,8 @@ SRCHASH=`$SSH_REPO "cat /srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJ
 $SSH_REPO aws s3 cp --acl public-read "/srv/sources/bam/stable/$PROJECT-$VERSION-$RELEASE/$PROJECT-$VERSION-php73.tar.gz" "s3://centreon-download/enterprises/centreon-bam/centreon-bam-21.04/centreon-bam-$VERSION/$SRCHASH/$PROJECT-$VERSION-php73.tar.gz"
 
 # Move RPMs to the stable repository.
-promote_testing_rpms_to_stable "business" "21.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
-promote_testing_rpms_to_stable "business" "21.04" "el8" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "business" "21.04" "el7" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "business" "21.04" "el8" "noarch" "bam" "$PROJECT-$VERSION-$RELEASE"
 
 # Download link.
 echo 'https://download.centreon.com/?action=product&product=centreon-bam&version='$VERSION'&secKey='$SRCHASH

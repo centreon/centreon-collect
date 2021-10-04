@@ -14,5 +14,5 @@ if [ -z "$VERSION" -o -z "$RELEASE" ] ; then
   exit 1
 fi
 
-promote_testing_rpms_to_stable "standard" "20.10" "el7" "x86_64" "fingerprint" "fingerprint"
-promote_testing_rpms_to_stable "standard" "20.10" "el8" "x86_64" "fingerprint" "fingerprint"
+promote_rpms_from_testing_to_stable "standard" "20.10" "el7" "x86_64" "fingerprint" "$PROJECT-$VERSION-$RELEASE"
+promote_rpms_from_testing_to_stable "standard" "20.10" "el8" "x86_64" "fingerprint" "$PROJECT-$VERSION-$RELEASE"
