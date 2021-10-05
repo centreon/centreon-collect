@@ -26,7 +26,7 @@ elif [ "$BUILD" '=' 'RELEASE' ]
 then
   put_rpms "standard" "$MAJOR" "el7" "testing" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "testing" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL8RPMS
-elif [ "$BUILD" '=' 'Ci' ]
+elif [ "$BUILD" '=' 'CI' ]
 then
   put_rpms "standard" "$MAJOR" "el7" "canary" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL7RPMS
   put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "widget-$WIDGET" "centreon-$PROJECT-$VERSION-$RELEASE" $EL8RPMS
