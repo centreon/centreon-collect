@@ -1,6 +1,5 @@
 # Base information.
 FROM centos:8.2.2004
-MAINTAINER Laurent Pinsivy <lpinsivy@centreon.com>
 
 # Dependencies.
 #RUN dnf install -y lftp wget openssh-clients unzip yum-utils createrepo mkisofs isomd5sum python38 sudo xz-utils

@@ -8,7 +8,7 @@ set -x
 # ---------------
 
 VERSION="$1"
-if [ "$VERSION" '!=' '20.04' -a "$VERSION" '!=' '20.10' -a "$VERSION" '!=' '21.04' ] ; then
+if [ "$VERSION" '!=' '20.04' -a "$VERSION" '!=' '20.10' -a "$VERSION" '!=' '21.04' -a "$VERSION" '!=' '21.10' ] ; then
   echo "Unsupported version $VERSION"
   exit 1
 fi
@@ -29,32 +29,34 @@ mount -t iso9660 -o loop CentOS-7-x86_64-Minimal-1908.iso mount/
 cp -Rp mount centreon-iso
 umount mount
 
-# ----------------------------------------
-# Download and install Centreon repository
-# ----------------------------------------
+
+# -------------------------------------------------------------
+# Download and install repositories (scl, epel, remi, Centreon)
+# -------------------------------------------------------------
+
+yum install -y yum-utils centos-release-scl
 
 yum -y --disablerepo=updates install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centos-release-scl
 yum -y --disablerepo=updates install centos-release-scl
 
 if [ "$VERSION" = '20.04' ] ; then
-  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-20.04-1.el7.centos.noarch.rpm
+  yum install -y https://yum.centreon.com/standard/20.04/el7/stable/noarch/RPMS/centreon-release-20.04-1.el7.centos.noarch.rpm
 elif [ "$VERSION" = '20.10' ] ; then
-  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/20.10/el7/stable/noarch/RPMS/centreon-release-20.10-2.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-20.10-2.el7.centos.noarch.rpm
+  yum install -y https://yum.centreon.com/standard/20.10/el7/stable/noarch/RPMS/centreon-release-20.10-2.el7.centos.noarch.rpm
+elif [ "$VERSION" = '21.04' ] ; then
+  yum install -y https://yum.centreon.com/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm
 else
-  wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/21.04/el7/stable/noarch/RPMS/centreon-release-21.04-4.el7.centos.noarch.rpm
-  yum -y --disablerepo=updates install --nogpgcheck centreon-iso/Packages/centreon-release-21.04-4.el7.centos.noarch.rpm
+  yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+  yum install -y https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+  yum-config-manager --enable remi-php80
+  yum install -y https://yum.centreon.com/standard/21.10/el7/stable/noarch/RPMS/centreon-release-21.10-1.el7.centos.noarch.rpm
 fi
-
-#sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
 
 # -----------------------------------------
 # Download packages for basic configuration
 # -----------------------------------------
 
 # Retrieve the necessary packages.
-yum -y --disablerepo=updates install yum-utils
 yum -y --disablerepo=updates --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
 
 # Unpack the addon Anaconda Centreon and create the file "product.img"

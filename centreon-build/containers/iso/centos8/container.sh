@@ -8,7 +8,7 @@ set -x
 # ---------------
 
 VERSION="$1"
-if [ "$VERSION" '!=' '20.10' ] ; then
+if [ "$VERSION" '!=' '20.10' -a "$VERSION" '!=' '21.04' -a "$VERSION" '!=' '21.10' ] ; then
   echo "Unsupported version $VERSION"
   exit 1
 fi
@@ -29,23 +29,30 @@ mount -t iso9660 -o loop CentOS-8.2.2004-x86_64-minimal.iso mount/
 cp -Rp mount centreon-iso
 umount mount
 
-# ----------------------------------------
-# Download and install Centreon repository
-# ----------------------------------------
+# --------------------------------------------------------
+# Download and install repositories (epel, remi, Centreon)
+# --------------------------------------------------------
 
-yum -y install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ dnf-plugins-core epel-release
-yum -y install dnf-plugins-core epel-release
-wget -P centreon-iso/Packages http://srvi-repo.int.centreon.com/yum/standard/20.10/el8/stable/noarch/RPMS/centreon-release-20.10-2.el8.noarch.rpm
-yum -y install --nogpgcheck centreon-iso/Packages/centreon-release-20.10-2.el8.noarch.rpm
-sed -i -e 's|yum.centreon.com|srvi-repo.int.centreon.com/yum|g' /etc/yum.repos.d/centreon.repo
+dnf install -y dnf-plugins-core epel-release
+
+if [ "$VERSION" = '20.10' ] ; then
+  dnf install -y https://yum.centreon.com/standard/20.10/el8/stable/noarch/RPMS/centreon-release-20.10-2.el8.noarch.rpm
+elif [ "$VERSION" = '21.04' ] ; then
+  dnf install -y https://yum.centreon.com/standard/21.04/el8/stable/noarch/RPMS/centreon-release-21.04-4.el8.noarch.rpm
+else
+  dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+  dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+  dnf config-manager --set-enabled 'powertools'
+  dnf module reset php
+  dnf module install php:remi-8.0
+  dnf install -y https://yum.centreon.com/standard/21.10/el8/stable/noarch/RPMS/centreon-release-21.10-1.el8.noarch.rpm
+fi
 
 # -----------------------------------------
 # Download packages for basic configuration
 # -----------------------------------------
 
 # Retrieve the necessary packages.
-yum -y install yum-utils
-dnf config-manager --set-enabled PowerTools
 yum -y --enablerepo='centreon-testing*' install --nogpgcheck --downloadonly --downloaddir=centreon-iso/Packages/ centreon-base-config-centreon-engine centreon 'centreon-widget-*' mariadb-server centreon-poller-centreon-engine
 
 # Unpack the addon Anaconda Centreon and create the file "product.img"
