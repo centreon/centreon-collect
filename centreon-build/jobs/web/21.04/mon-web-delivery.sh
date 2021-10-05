@@ -33,6 +33,7 @@ then
   put_rpms "standard" "$MAJOR" "el8" "canary" "noarch" "web" "centreon-web-$VERSION-$RELEASE" $EL8RPMS
 elif  [ "$BUILD" '=' 'REFERENCE' ]
 then
+  put_internal_source "web" "$PROJECT-$VERSION-$RELEASE" centreon-api-v2.html
   SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
   $SSH_REPO aws s3 cp --acl public-read "/srv/sources/internal/web/centreon-web-$VERSION-$RELEASE/centreon-api-v2.html" s3://centreon-documentation-prod/api/centreon-web/index.html
   $SSH_REPO aws cloudfront create-invalidation --distribution-id E3KVGH6VYVX7DP --paths /api/centreon-web/index.html
