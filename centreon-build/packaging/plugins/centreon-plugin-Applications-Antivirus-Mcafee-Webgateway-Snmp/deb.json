@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "libsnmp-perl",
+        "libdigest-md5-perl",
+        "libdatetime-perl"
+    ]
+}

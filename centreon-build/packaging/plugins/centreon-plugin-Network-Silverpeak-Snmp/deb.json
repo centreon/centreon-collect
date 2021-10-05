@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "libsnmp-perl",
+        "libtime-hires-perl"
+    ]
+}

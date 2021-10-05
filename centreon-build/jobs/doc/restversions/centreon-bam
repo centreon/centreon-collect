@@ -1,0 +1,5 @@
+                ['latest', '/docs/centreon-bam/@LANG@/latest/'],
+                ['19.10.x', '/docs/centreon-bam/@LANG@/19.10.x/'],
+                ['19.04.x', '/docs/centreon-bam/@LANG@/19.04.x/'],
+                ['18.10.x', '/docs/centreon-bam/@LANG@/18.10.x/'],
+                ['3.6.x', '/docs/centreon-bam/@LANG@/3.6.x/']

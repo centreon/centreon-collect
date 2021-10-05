@@ -1,0 +1,3 @@
+                ['latest', '/docs/centreon-auto-discovery/@LANG@/latest/'],
+                ['19.04', '/docs/centreon-auto-discovery/@LANG@/19.04/'],
+                ['18.10', '/docs/centreon-auto-discovery/@LANG@/18.10/']

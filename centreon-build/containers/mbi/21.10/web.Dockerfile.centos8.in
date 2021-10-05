@@ -1,0 +1,17 @@
+# Base information.
+FROM registry.centreon.com/mon-web-21.10.0-beta.1-1628167828.637c53ef4f:@DISTRIB@
+MAINTAINER Matthieu Kermagoret <mkermagoret@centreon.com>
+
+# Install Centreon MBI web interface.
+RUN dnf clean all && \
+    dnf install -y centreon-bi-server && \
+    dnf clean all
+
+# Install license file.
+COPY mbi/mbi.license /etc/centreon/license.d/mbi.license
+
+# Install Centreon MBI web interface.
+COPY web/21.10/install-centreon-module.php /tmp/install-centreon-module.php
+COPY mbi/21.10/install-web.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+RUN /tmp/install.sh

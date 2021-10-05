@@ -1,0 +1,11 @@
+{
+    "dependencies": [
+        "perl(JSON::XS)",
+        "perl(Digest::SHA)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(HTTP::ProxyPAC)"
+    ]
+}

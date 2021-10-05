@@ -1,0 +1,8 @@
+{
+    "dependencies": [
+        "libdbd-sybase-perl",
+        "libdbi-perl",
+        "libtime-hires-perl",
+        "libposix-perl"
+    ]
+}

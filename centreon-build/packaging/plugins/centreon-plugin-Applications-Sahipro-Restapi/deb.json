@@ -1,0 +1,12 @@
+{
+    "dependencies": [
+        "libtime-hires-perl",
+	"libdatetime-perl",
+        "libxml-simple-perl",
+	"liblwp-useragent-perl",
+        "liblwp-protocol-https-perl",
+        "libio-socket-ssl-perl",
+        "liburi-perl",
+        "libhttp-proxypac-perl"
+    ]
+}

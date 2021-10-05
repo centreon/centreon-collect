@@ -1,0 +1,2 @@
+RUN yum remove 'php*'
+ENV PATH=$PATH:/opt/rh/rh-php72/root/usr/bin

@@ -1,0 +1,6 @@
+{
+    "dependencies": [
+        "libtime-hires-perl",
+        "libemail-send-smtp-gmail-perl"
+    ]
+}

@@ -1,0 +1,9 @@
+cmake
+gcc
+gcc-c++
+git
+make
+libgnutls-devel
+libgcrypt-devel
+lsb
+rrdtool-devel

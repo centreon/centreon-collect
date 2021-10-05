@@ -1,0 +1,16 @@
+dn: cn=@NAME@,ou=users,dc=centreon,dc=com
+changetype: add
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: mailAccount
+cn: @NAME@
+uid: @NAME@
+uidNumber: @UID@
+gidNumber: 1000
+homeDirectory: /home/@NAME@
+loginShell: /bin/bash
+gecos: @NAME@
+userPassword: @NAME@
+mail: @NAME@@localhost
+

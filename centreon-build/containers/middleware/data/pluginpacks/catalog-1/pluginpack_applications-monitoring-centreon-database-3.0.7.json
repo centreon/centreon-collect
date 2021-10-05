@@ -1,0 +1,161 @@
+{
+    "commands": [
+        {
+            "line": "\\\"$CENTREONPLUGINS$\\\\/centreon_centreon_database.pl --plugin=database::mysql::plugin --dyn-mode=apps::centreon::sql::mode::partitioning --host=\\'$HOSTADDRESS$\\' --username=\\'$_HOSTMYSQLUSERNAME$\\' --password=\\'$_HOSTMYSQLPASSWORD$\\' --tablename=\\'$_SERVICETABLENAME1$\\' --tablename=\\'$_SERVICETABLENAME2$\\' --tablename=\\'$_SERVICETABLENAME3$\\' --tablename=\\'$_SERVICETABLENAME4$\\' --warning=\\'$_SERVICEWARNING$\\' --critical=\\'$_SERVICECRITICAL$\\'\\\"",
+            "name": "App-Centreon-MySQL-Partitioning",
+            "type": 2
+        }
+    ],
+    "host_templates": [
+        {
+            "active_checks_enabled": 2,
+            "alias": "Template to check Centreon Database Server",
+            "check_interval": 0,
+            "checks_enabled": 2,
+            "discovery_validator": "",
+            "icon": "App-Centreon-64.png",
+            "macros": [
+                {
+                    "key": "$_HOSTMYSQLPORT$",
+                    "value": "3306"
+                },
+                {
+                    "key": "$_HOSTMYSQLUSERNAME$",
+                    "value": "centreon"
+                }
+            ],
+            "max_check_attempts": 0,
+            "name": "App-Monitoring-Centreon-Database",
+            "parent_template": [
+                "generic-active-host",
+                "OS-Linux-SNMP",
+                "App-DB-MySQL"
+            ],
+            "passive_checks_enabled": 2,
+            "services": [
+                "App-Centreon-MySQL-Partitioning"
+            ]
+        }
+    ],
+    "images": [
+        {
+            "icon": "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",
+            "name": "App-Centreon-64.png"
+        }
+    ],
+    "information": {
+        "author": "Centreon",
+        "changelog": "* New export with comment on services template",
+        "dependencies": [
+            {
+                "name": "base-generic",
+                "version": "3.0.2"
+            },
+            {
+                "name": "applications-databases-mysql",
+                "version": "3.0.4"
+            },
+            {
+                "name": "operatingsystems-linux-snmp",
+                "version": "3.0.5"
+            }
+        ],
+        "description": [
+            {
+                "lang": "en",
+                "value": "Plugin pack to monitor the Centreon databases server:\r\n* Partitionning\r\n\r\n"
+            },
+            {
+                "lang": "fr",
+                "value": "Plugin pack pour surveiller un serveur de base de donn\u00e9es Centreon :\r\n* Partitionnement"
+            }
+        ],
+        "discovery_category": "centreon",
+        "email": "imp@centreon.com",
+        "icon": "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",
+        "monitoring_procedure": "# Monitoring procedure\r\n## Prerequisites\r\n### Centreon Plugin\r\nInstall this plugin on each needed poller:\r\n\r\n    # yum install ces-plugins-Applications-Monitoring-Centreon-Database\r\n\r\n## SQL\r\nConnect to your Database\r\n\r\n### SNMP\r\nEnable SNMP Agent\r\n\r\n## Centreon Configuration\r\n### Create a new Centreon Database server\r\nGo to *Configuration &gt; Hosts* and click *Add*. Then, fill the form as\r\nshown by the following table:\r\n\r\n<table>\r\n<colgroup>\r\n<col width=\"55%\" />\r\n<col width=\"44%\" />\r\n</colgroup>\r\n<thead>\r\n<tr class=\"header\">\r\n<th align=\"left\">Field</th>\r\n<th align=\"left\">Value</th>\r\n</tr>\r\n</thead>\r\n<tbody>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host name</p></td>\r\n<td align=\"left\"><p><em>Name of the host</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Alias</p></td>\r\n<td align=\"left\"><p><em>Host description</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>IP</p></td>\r\n<td align=\"left\"><p><em>Host IP Address</em></p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p>Monitored from</p></td>\r\n<td align=\"left\"><p><em>Monitoring Poller to use</em></p></td>\r\n</tr>\r\n<tr class=\"odd\">\r\n<td align=\"left\"><p>Host Multiple Templates</p></td>\r\n<td align=\"left\"><p>App-Monitoring-Centreon-Database-custom</p></td>\r\n</tr>\r\n<tr class=\"even\">\r\n<td align=\"left\"><p><em>Relations &gt; Parent Hostgroups</em> tab</p></td>\r\n<td align=\"left\"></td>\r\n</tr>\r\n</tbody>\r\n</table>\r\n\r\nClick on the *Save* button.",
+        "name": "Centreon DB",
+        "requirement": [
+            {
+                "name": "ces-plugins-Applications-Monitoring-Centreon-Database",
+                "version": "20160324-1"
+            }
+        ],
+        "slug": "applications-monitoring-centreon-database",
+        "status": "stable",
+        "status_message": "",
+        "tags": [
+            "Centreon",
+            "DBMS",
+            "MariaDB",
+            "MySQL",
+            "Replication",
+            "SGBD",
+            "SQL",
+            "Synchronisation",
+            "Synchronization"
+        ],
+        "update_date": "1466510361",
+        "version": "3.0.7",
+        "website": "www.centreon.com"
+    },
+    "service_templates": [
+        {
+            "_comment": "{FR: Contr\u00f4le la cr\u00e9ation de partitions MySQL.}\r\n\r\n{EN: Check if your MySQL partitions are up to date.}",
+            "active_checks_enabled": 1,
+            "alias": "Partitioning",
+            "command_name": "App-Centreon-MySQL-Partitioning",
+            "discovery_list_mode": "",
+            "icon": "",
+            "is_volatile": 2,
+            "macros": [
+                {
+                    "description": "",
+                    "key": "$_SERVICEWARNING$",
+                    "password": false,
+                    "value": "7:"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICECRITICAL$",
+                    "password": false,
+                    "value": "3:"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETABLENAME1$",
+                    "password": false,
+                    "value": "centreon_storage.data_bin"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETABLENAME2$",
+                    "password": false,
+                    "value": "centreon_storage.logs"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETABLENAME3$",
+                    "password": false,
+                    "value": "centreon_storage.log_archive_service"
+                },
+                {
+                    "description": "",
+                    "key": "$_SERVICETABLENAME4$",
+                    "password": false,
+                    "value": "centreon_storage.log_archive_host"
+                }
+            ],
+            "max_check_attempts": 5,
+            "name": "App-Centreon-MySQL-Partitioning",
+            "normal_check_interval": 1440,
+            "parent_template": "generic-active-service",
+            "passive_checks_enabled": 0,
+            "retry_check_interval": 5,
+            "timeperiod": ""
+        }
+    ],
+    "timeperiods": {
+        "timeperiod": []
+    }
+}

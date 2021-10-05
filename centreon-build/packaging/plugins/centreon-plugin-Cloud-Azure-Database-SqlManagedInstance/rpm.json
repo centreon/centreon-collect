@@ -1,0 +1,15 @@
+{
+    "dependencies": [
+        "perl(JSON::XS)",
+        "perl(DateTime)",
+        "perl(Digest::MD5)",
+        "perl(Digest::SHA)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(URI::Encode)",
+        "perl(HTTP::ProxyPAC)"
+    ]
+}
+

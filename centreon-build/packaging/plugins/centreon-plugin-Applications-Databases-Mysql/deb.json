@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "libdbi-perl",
+        "libdbd-mysql-perl",
+        "libtime-hires-perl"
+    ]
+}

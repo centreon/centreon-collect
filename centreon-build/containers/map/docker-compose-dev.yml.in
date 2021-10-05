@@ -1,0 +1,29 @@
+version: '2'
+services:
+  web:
+    image: @WEB_IMAGE@
+    ports:
+    - "80"
+    - "3306"
+    dns:
+    - "10.50.1.1"
+    volumes:
+    - "@SOURCE_DIR@/module:/usr/share/centreon/www/modules/centreon-map4-web-client"
+    - "@SOURCE_DIR@/widget:/usr/share/centreon/www/widgets/centreon-map4-web-client"
+  map:
+    image: @MAP_IMAGE@
+    ports:
+    - "8080"
+    - "8443"
+    dns:
+    - "10.50.1.1"
+  webdriver:
+    image: registry.centreon.com/standalone-chrome-debug:3.141.59-oxygen
+    environment:
+    - "SCREEN_WIDTH=1600"
+    - "SCREEN_HEIGHT=2000"
+    ports:
+    - "4444"
+    - "5900"
+    volumes:
+    - /dev/shm:/dev/shm

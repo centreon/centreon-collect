@@ -1,0 +1,13 @@
+{
+    "dependencies": [
+        "perl(JSON::Path)",
+        "perl(JSON)",
+        "perl(Time::HiRes)",
+        "perl(XML::XPath)",
+        "perl(LWP::UserAgent)",
+        "perl(LWP::Protocol::https)",
+        "perl(IO::Socket::SSL)",
+        "perl(URI)",
+        "perl(HTTP::ProxyPAC)"
+    ]
+}

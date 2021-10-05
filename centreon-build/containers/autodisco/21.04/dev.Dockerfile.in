@@ -1,0 +1,25 @@
+# Base information.
+FROM registry.centreon.com/mon-autodisco-21.04:@DISTRIB@
+LABEL maintainer="Kevin Duret <kduret@centreon.com>"
+
+ENV MODULEPATH centreon-autodiscovery/www/modules/centreon-autodiscovery-server
+ENV WEBMODULEPATH /usr/share/centreon/www/modules/centreon-autodiscovery-server
+
+# Update to the latest Engine and Broker.
+COPY centreon-bam-server/@DISTRIB@/*.rpm /tmp/
+RUN yum -y --nogpgcheck '--disablerepo=*' update /tmp/*.rpm
+
+# Database.
+COPY web/21.04/install-centreon-module.php /tmp/install-centreon-module.php
+COPY web/21.04/dev.sh /tmp/install.sh
+RUN chmod +x /tmp/install-centreon-module.php /tmp/install.sh
+COPY $MODULEPATH/sql $WEBMODULEPATH/sql
+RUN /tmp/install.sh
+
+# Sources.
+COPY $MODULEPATH/UPGRADE $WEBMODULEPATH/UPGRADE
+COPY $MODULEPATH/class $WEBMODULEPATH/class
+COPY $MODULEPATH/common $WEBMODULEPATH/common
+COPY $MODULEPATH/cron $WEBMODULEPATH/images
+COPY $MODULEPATH/lib $WEBMODULEPATH/lib
+COPY $MODULEPATH/views $WEBMODULEPATH/views
