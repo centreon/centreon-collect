@@ -36,11 +36,13 @@ add_library("${SIMUMOD}" SHARED
 )
 # Prettier name.
 set_target_properties("${SIMUMOD}" PROPERTIES PREFIX "")
+link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Location
 get_property(SIMUMOD_MODULE
   TARGET "${SIMUMOD}"
   PROPERTY LOCATION)
 set(SIMUMOD_MODULE "${SIMUMOD_MODULE}" PARENT_SCOPE)
+add_dependencies("${SIMUMOD}" centreon_clib_shared)
 
-target_link_libraries("${SIMUMOD}" "${CLIB_LIBRARIES}")
+target_link_libraries("${SIMUMOD}" centreon_clib)

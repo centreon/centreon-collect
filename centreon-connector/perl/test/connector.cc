@@ -26,7 +26,7 @@
 #include "com/centreon/process.hh"
 
 using namespace com::centreon;
-static std::string perl_connector = BUILD_PATH "/perl/centreon_connector_perl";
+static std::string perl_connector = BUILD_PATH "/centreon-connector/perl/centreon_connector_perl";
 
 static constexpr const char cmd1[] =
     "2\x00"
@@ -73,7 +73,7 @@ static constexpr const char scripts[] =
   "2\0"                \
   "4242\0"             \
   "3\0"                \
-  "123456789\0" BUILD_PATH "/../perl/test/timeout_kill.pl\0\0\0\0"
+  "123456789\0" BUILD_PATH "/../centreon-connector/perl/test/timeout_kill.pl\0\0\0\0"
 #define TimeoutKillRESULT \
   "3\0"                   \
   "4242\0"                \
@@ -86,7 +86,7 @@ static constexpr const char scripts[] =
   "2\0"                \
   "4242\0"             \
   "3\0"                \
-  "123456789\0" BUILD_PATH "/../perl/test/timeout_term.pl\0\0\0\0"
+  "123456789\0" BUILD_PATH "/../centreon-connector/perl/test/timeout_term.pl\0\0\0\0"
 
 class TestConnector : public testing::Test {
  public:

@@ -24,6 +24,7 @@ set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
 
 # Include directories.
 include_directories("${MODULE_DIR}/inc")
+link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # mod_externalcmd target.
 add_library(
@@ -51,8 +52,8 @@ get_property(
   TARGET "externalcmd"
   PROPERTY LOCATION)
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-# Link target with libraries.
-target_link_libraries(externalcmd "${CLIB_LIBRARIES}")
+# Link target add_dependencies(externalcmd centreon_clib_shared)
+target_link_libraries(externalcmd centreon_clib)
 
 # Install rule.
 install(TARGETS "externalcmd"

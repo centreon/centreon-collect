@@ -173,7 +173,7 @@ class EngineRpc : public TestEngine {
     std::list<std::string> retval;
     char path[1024];
     std::ostringstream oss;
-    oss << "tests/rpc_client " << command;
+    oss << "tests/rpc_client_engine " << command;
 
     FILE* fp = popen(oss.str().c_str(), "r");
     while (fgets(path, sizeof(path), fp) != nullptr) {
