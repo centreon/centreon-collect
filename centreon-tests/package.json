@@ -1,0 +1,54 @@
+{
+  "name": "centreon-tests",
+  "jest": {
+    "verbose": true
+  },
+  "version": "0.0.1",
+  "description": "Tests for centreon plateform",
+  "dependencies": {
+    "await-sleep": "0.0.1",
+    "fs.promises": "^0.1.2",
+    "p-iteration": "^1.1.8",
+    "ps-list": "^7.2.0",
+    "shelljs": "^0.8.4",
+    "typescript-formatter": "^7.2.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.2",
+    "@babel/plugin-proposal-class-properties": "^7.12.1",
+    "@babel/plugin-transform-runtime": "^7.12.10",
+    "@babel/preset-env": "^7.14.2",
+    "@babel/runtime": "^7.12.5",
+    "@types/jest": "^26.0.23",
+    "@types/node": "^15.6.1",
+    "@types/shelljs": "^0.8.8",
+    "@typescript-eslint/eslint-plugin": "^4.10.0",
+    "@typescript-eslint/parser": "^4.10.0",
+    "awesome-typescript-loader": "^5.2.1",
+    "babel-eslint": "^10.1.0",
+    "babel-jest": "^26.6.3",
+    "babel-loader": "^8.2.2",
+    "eslint": "^7.2.0",
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-babel": "^5.3.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-prefer-arrow-functions": "^3.0.1",
+    "eslint-plugin-prettier": "^3.3.0",
+    "eslint-plugin-sort-keys-fix": "^1.1.1",
+    "eslint-plugin-typescript-sort-keys": "^1.6.0",
+    "jest": "^26.6.3",
+    "prettier": "^2.2.1",
+    "ramda": "^0.27.1",
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.2.4"
+  },
+  "scripts": {
+    "test": "jest --runInBand --verbose"
+  },
+  "author": "Centreon Team",
+  "license": "ISC"
+}
