@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl(SNMP)"
-    ],
-    "custom_pkg_data": "Obsoletes:    centreon-plugin-App-Video-Openheadend-Snmp"
-}

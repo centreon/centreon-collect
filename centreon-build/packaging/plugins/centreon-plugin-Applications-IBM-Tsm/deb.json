@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl",
-        "plink",
-        "libdatetime-perl"
-    ]
-}

@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl",
-        "libxml-simple-perl"
-    ]
-}

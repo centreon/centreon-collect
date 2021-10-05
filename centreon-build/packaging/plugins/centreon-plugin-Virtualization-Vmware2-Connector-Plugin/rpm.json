@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl(JSON)",
-        "perl(ZMQ::LibZMQ4)",
-        "perl(UUID)"
-    ]
-}

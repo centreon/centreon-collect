@@ -1,2 +1,0 @@
-COPY dependencies/@VERSION@/init/mysql /etc/init.d/mysql
-RUN chmod +x /etc/init.d/mysql

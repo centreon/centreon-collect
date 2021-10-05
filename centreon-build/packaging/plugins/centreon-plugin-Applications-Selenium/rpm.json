@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl(Time::HiRes)",
-        "perl(XML::XPath)",
-        "perl(WWW::Selenium)"
-    ]
-}

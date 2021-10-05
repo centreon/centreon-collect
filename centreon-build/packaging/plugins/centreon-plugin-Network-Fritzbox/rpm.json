@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl(SOAP::Lite)",
-        "perl(POSIX)"
-    ]
-}

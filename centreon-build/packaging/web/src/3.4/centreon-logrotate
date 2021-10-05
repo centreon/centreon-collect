@@ -1,9 +1,0 @@
-/var/log/centreon/*.log {
-compress
-daily
-notifempty
-copytruncate
-missingok
-rotate 7
-size 20M
-}

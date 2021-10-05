@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libjmx-jmx4perl-perl",
-        "libjson-path-perl"
-    ]
-}

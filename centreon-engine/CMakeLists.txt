@@ -69,6 +69,7 @@ link_directories(${OpenSSL_LIB_DIRS})
 link_directories(${c-ares_LIB_DIRS})
 link_directories(${ZLIB_LIB_DIRS})
 link_directories(${nlohmann_json_LIB_DIRS})
+link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Version.
 set(CENTREON_ENGINE_MAJOR 21)
@@ -207,15 +208,15 @@ else ()
 endif ()
 
 # Configuration directory.
-if (WITH_PREFIX_CONF)
-  set(PREFIX_CONF "${WITH_PREFIX_CONF}")
+if (WITH_PREFIX_CONF_ENGINE)
+  set(PREFIX_CONF "${WITH_PREFIX_CONF_ENGINE}")
 else ()
   set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
 endif ()
 
 # Library directory.
-if (WITH_PREFIX_LIB)
-  set(PREFIX_LIB "${WITH_PREFIX_LIB}")
+if (WITH_PREFIX_LIB_ENGINE)
+  set(PREFIX_LIB "${WITH_PREFIX_LIB_ENGINE}")
 else ()
   set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine")
 endif ()
@@ -272,15 +273,15 @@ else ()
 endif ()
 
 # User used to run Centreon Engine.
-if (WITH_USER)
-  set(USER "${WITH_USER}")
+if (WITH_USER_ENGINE)
+  set(USER "${WITH_USER_ENGINE}")
 else ()
   set(USER "root")
 endif ()
 
 # Group used to run Centreon Engine.
-if (WITH_GROUP)
-  set(GROUP "${WITH_GROUP}")
+if (WITH_GROUP_ENGINE)
+  set(GROUP "${WITH_GROUP_ENGINE}")
 else ()
   set(GROUP "root")
 endif ()
@@ -625,27 +626,30 @@ include_directories(enginerpc)
 # Library engine target.
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
+add_dependencies(cce_core centreon_clib_shared)
 
 # Link target with required libraries.
 target_link_libraries(cce_core ${nlohmann_json_LIBS}
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
-  ${CLIB_LIBRARIES}
+  centreon_clib
   ${fmt_LIBRARIES}
 )
 
 # centengine target.
 add_executable("centengine" "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
+add_dependencies(centengine centreon_clib_shared)
 get_property(CENTENGINE_BINARY TARGET "centengine" PROPERTY LOCATION)
 
 # Link centengine with required libraries.
-target_link_libraries(centengine ${CLIB_LIBRARIES} "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
+target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
-target_link_libraries("centenginestats" ${CLIB_LIBRARIES})
+add_dependencies("centenginestats" centreon_clib_shared)
+target_link_libraries("centenginestats" centreon_clib)
 get_property(CENTENGINESTATS_BINARY TARGET "centenginestats" PROPERTY LOCATION)
 
 # Unit tests.
@@ -798,4 +802,4 @@ message(STATUS "    - Package                     ${PACKAGE_LIST}")
 message(STATUS "")
 message(STATUS "  Libraries")
 message(STATUS "    - clib include directory      ${CLIB_INCLUDE_DIR}")
-message(STATUS "    - clib library directory      ${CLIB_LIBRARIES}")
+message(STATUS "    - clib library directory      centreon_clib")

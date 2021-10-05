@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "libnet-telnet-perl",
-        "libtime-hires-perl",
-        "libjson-perl"
-    ]
-}

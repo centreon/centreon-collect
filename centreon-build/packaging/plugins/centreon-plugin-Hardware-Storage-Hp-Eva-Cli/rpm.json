@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl",
-        "perl(XML::Simple)"
-    ]
-}

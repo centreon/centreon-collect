@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl(DBI)",
-        "perl(Time::HiRes)"
-    ]
-}

@@ -22,44 +22,46 @@ if (WITH_KNOWN_HOSTS_CHECK)
   add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
 endif ()
 
-include_directories(${CMAKE_SOURCE_DIR}/ssh/inc)
+include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
+link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 # SSH connector.
 add_executable(centreon_connector_ssh
   # Sources.
-  ${CMAKE_SOURCE_DIR}/common/src/log.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/main.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/checks/check.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/checks/result.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/checks/timeout.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/multiplexer.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/options.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/orders/parser.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/orders/options.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/policy.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/reporter.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/sessions/credentials.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/sessions/session.cc
-  ${CMAKE_SOURCE_DIR}/ssh/src/sessions/socket_handle.cc
+  ${PROJECT_SOURCE_DIR}/common/src/log.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/main.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/checks/result.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/checks/timeout.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/multiplexer.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/options.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/orders/parser.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/policy.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/reporter.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/sessions/credentials.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
+  ${PROJECT_SOURCE_DIR}/ssh/src/sessions/socket_handle.cc
   # Headers.
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/check.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/listener.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/result.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/timeout.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/multiplexer.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/namespace.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/options.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/listener.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/parser.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/options.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/policy.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/reporter.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/credentials.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/listener.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/session.hh
-  ${CMAKE_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/socket_handle.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/check.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/listener.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/result.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/checks/timeout.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/multiplexer.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/namespace.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/options.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/listener.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/parser.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/orders/options.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/policy.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/reporter.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/credentials.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/listener.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/session.hh
+  ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/socket_handle.hh
 )
 target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
-  ${CLIB_LIBRARIES} ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+  centreon_clib ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+add_dependencies(centreon_connector_ssh centreon_clib_shared)
 
 # Installation path.
 if (WITH_PREFIX)

@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl(SNMP)",
-        "perl(Digest::MD5)",
-        "perl(DateTime)"
-    ]
-}

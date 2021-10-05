@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl(JMX::Jmx4Perl)",
-        "perl(JSON::Path)"
-    ]
-}

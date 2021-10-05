@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "libtime-hires-perl",
-        "libnet-ntp-perl"
-    ]
-}

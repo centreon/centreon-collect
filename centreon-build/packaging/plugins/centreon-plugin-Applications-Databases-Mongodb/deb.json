@@ -1,8 +1,0 @@
-{
-    "dependencies": [
-        "libtime-hires-perl",
-        "libdatetime-perl",
-        "libmongodb-perl",
-	"liburi-encode-perl"
-    ]
-}
