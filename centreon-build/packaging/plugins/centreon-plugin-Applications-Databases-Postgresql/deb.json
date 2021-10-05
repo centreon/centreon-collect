@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "libdbi-perl",
-        "libtime-hires-perl",
-        "libposix-perl"
-    ]
-}

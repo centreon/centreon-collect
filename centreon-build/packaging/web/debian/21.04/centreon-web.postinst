@@ -1,5 +1,0 @@
-#!/bin/sh
-
-if [ "$1" = "configure" ] ; then
-  chown -R centreon:centreon /usr/share/centreon
-fi

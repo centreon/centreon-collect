@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "libxml-libxml-perl",
-	"libdbi-perl",
-        "libdbd-mysql-perl"
-    ]
-}

@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl",
-        "plink",
-        "libxml-simple-perl"
-    ]
-}

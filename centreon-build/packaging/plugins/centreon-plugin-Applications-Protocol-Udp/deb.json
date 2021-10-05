@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "centreon-plugins-sudoers",
-        "libio-select-perl",
-        "libio-socket-inet-perl"
-    ]
-}

@@ -1,7 +1,0 @@
-{
-    "dependencies": [
-        "perl(Net::Telnet)",
-        "perl(Time::HiRes)",
-        "perl(JSON)"
-    ]
-}

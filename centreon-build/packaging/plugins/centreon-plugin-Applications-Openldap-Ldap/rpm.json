@@ -1,6 +1,0 @@
-{
-    "dependencies": [
-        "perl(Time::HiRes)",
-        "perl(Net::LDAP)"
-    ]
-}
