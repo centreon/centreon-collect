@@ -1,0 +1,9 @@
+[requires]
+gtest/cci.20210126
+nlohmann_json/3.9.1
+fmt/7.1.3
+grpc/1.37.0
+
+[generators]
+cmake_paths
+cmake_find_package
