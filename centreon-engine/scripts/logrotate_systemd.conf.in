@@ -1,0 +1,27 @@
+@VAR_DIR@/centengine.log {
+  compress
+  create 640 @USER@ @GROUP@
+  daily
+  delaycompress
+  missingok
+  olddir @LOG_ARCHIVE_DIR@
+  createolddir 755 @USER@ @GROUP@
+  rotate 365
+  postrotate
+    systemctl reload centengine
+  endscript
+}
+
+@VAR_DIR@/centengine.debug {
+  compress
+  create 640 @USER@ @GROUP@
+  delaycompress
+  missingok
+  olddir @LOG_ARCHIVE_DIR@
+  createolddir 755 @USER@ @GROUP@
+  rotate 5
+  size   1G
+  postrotate
+    systemctl reload centengine
+  endscript
+}
