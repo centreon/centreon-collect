@@ -86,7 +86,7 @@ if (WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/ssh/test/reporter.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/sessions.cc
     )
-
+  add_dependencies(ut_connector centreon_clib_shared)
   target_link_libraries(ut_connector ${GTest_LIBS} centreon_clib ${PERL_LIBRARIES} ${fmt_LIBS} ${spdlog_LIBS} ${LIBSSH2_LIBRARIES})
-add_dependencies(ut_connector centreon_clib_shared)
+
 endif (WITH_TESTING)

@@ -52,7 +52,7 @@ get_property(
   TARGET "externalcmd"
   PROPERTY LOCATION)
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-# Link target add_dependencies(externalcmd centreon_clib_shared)
+add_dependencies(externalcmd centreon_clib_shared)
 target_link_libraries(externalcmd centreon_clib)
 
 # Install rule.
