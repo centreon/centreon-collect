@@ -54,9 +54,9 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/reporter.hh
   )
-
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
 add_dependencies(centreon_connector_perl centreon_clib_shared)
+target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
+
 
 # Installation path.
 if (WITH_PREFIX)
