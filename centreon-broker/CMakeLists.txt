@@ -206,15 +206,15 @@ else ()
 endif ()
 
 # Configuration directory.
-if (WITH_PREFIX_CONF)
-  set(PREFIX_CONF "${WITH_PREFIX_CONF}")
+if (WITH_PREFIX_CONF_BROKER)
+  set(PREFIX_CONF "${WITH_PREFIX_CONF_BROKER}")
 else ()
   set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
 endif ()
 
 # Library directory.
-if (WITH_PREFIX_LIB)
-  set(PREFIX_LIB "${WITH_PREFIX_LIB}")
+if (WITH_PREFIX_LIB_BROKER)
+  set(PREFIX_LIB "${WITH_PREFIX_LIB_BROKER}")
 else ()
   set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib")
 endif ()
@@ -241,15 +241,15 @@ else ()
 endif ()
 
 # User.
-if (WITH_USER)
-  set(USER "${WITH_USER}")
+if (WITH_USER_BROKER)
+  set(USER "${WITH_USER_BROKER}")
 else ()
   set(USER "root")
 endif ()
 
 # Group.
-if (WITH_GROUP)
-  set(GROUP "${WITH_GROUP}")
+if (WITH_GROUP_BROKER)
+  set(GROUP "${WITH_GROUP_BROKER}")
 else ()
   set(GROUP "root")
 endif ()

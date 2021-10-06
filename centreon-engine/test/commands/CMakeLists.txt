@@ -19,13 +19,16 @@
 
 # Set directories.
 set(TEST_DIR "${TEST_DIR}/commands")
+link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Test binary.
 add_executable("bin_connector_test_run" "${TEST_DIR}/bin_connector_test_run.cc")
-target_link_libraries("bin_connector_test_run" ${CLIB_LIBRARIES})
+add_dependencies("bin_connector_test_run" centreon_clib_shared)
+target_link_libraries("bin_connector_test_run" centreon_clib)
 
 add_executable("bin_test_run" "${TEST_DIR}/bin_test_run.cc")
-target_link_libraries("bin_test_run" ${CLIB_LIBRARIES})
+add_dependencies("bin_test_run" centreon_clib_shared)
+target_link_libraries("bin_test_run" centreon_clib)
 
 # Test connector.
 add_executable("connector_ctor" "${TEST_DIR}/connector_ctor.cc")
