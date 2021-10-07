@@ -1,0 +1,3 @@
+debian/tmp-centreon-collect/etc/centreon-engine/*       etc/centreon-engine
+debian/tmp-centreon-collect/usr/sbin/centengine         usr/sbin
+debian/tmp-centreon-collect/usr/sbin/centenginestats    usr/sbin
