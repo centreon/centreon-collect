@@ -17,7 +17,7 @@
             "loggers": {
                 "core": "info",
                 "config": "error",
-                "sql": "error",
+                "sql": "debug",
                 "processing": "error",
                 "perfdata": "error",
                 "bbdo": "error",
@@ -52,7 +52,8 @@
                 "db_user": "centreon",
                 "db_password": "centreon",
                 "db_name": "centreon_storage",
-                "queries_per_transaction": "1",
+                "queries_per_transaction": "1000",
+                "connections_count": "3",
                 "read_timeout": "1",
                 "type": "sql"
             },
@@ -81,10 +82,11 @@
                 "db_user": "centreon",
                 "db_password": "centreon",
                 "db_name": "centreon_storage",
-                "queries_per_transaction": "1",
+                "queries_per_transaction": "1000",
                 "read_timeout": "1",
                 "check_replication": "no",
                 "store_in_data_bin": "yes",
+                "connections_count": "3",
                 "insert_in_index_data": "1",
                 "type": "storage"
             }

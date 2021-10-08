@@ -17,5 +17,8 @@ workspace.*
 .env.local
 
 src/config/centreon-engine/*.cfg
+src/config/centreon-engine/config*/*
 tags
 .ctags
+
+*.pem

@@ -1,228 +1,403 @@
-import sleep from 'await-sleep';
-import shell from 'shelljs';
-import { once } from 'events'
-import { Broker } from '../core/broker';
-import { Engine } from '../core/engine';
-import { isBrokerAndEngineConnected } from '../core/brokerEngine';
-import { broker } from 'shared';
+import sleep from "await-sleep";
+import shell from "shelljs";
+import { once } from "events";
+import { Broker, BrokerType } from "../core/broker";
+import { Engine } from "../core/engine";
+import { isBrokerAndEngineConnected } from "../core/brokerEngine";
+import { broker } from "shared";
 
-import util from 'util';
-import process from 'process';
+import util from "util";
+import process from "process";
+import { rmSync } from "fs";
 
 shell.config.silent = true;
 
-describe('engine and broker testing in same time for compression', () => {
+describe("engine and broker testing in same time for compression", () => {
+  beforeEach(() => {
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
+
+    Broker.clearLogs(BrokerType.central);
+    Broker.clearLogs(BrokerType.module);
+    Broker.resetConfig(BrokerType.central);
+    Broker.resetConfig(BrokerType.module);
+    Broker.resetConfig(BrokerType.rrd);
+
+    if (Broker.isServiceRunning() || Engine.isServiceRunning()) {
+      console.log("program could not stop cbd or centengine");
+      process.exit(1);
+    }
+  });
+
+  afterAll(() => {
     beforeEach(() => {
+      Broker.clearLogs(BrokerType.central);
+      Broker.resetConfig(BrokerType.central);
+      Broker.resetConfig(BrokerType.module);
+      Broker.resetConfig(BrokerType.rrd);
+    });
+  });
+
+  it("TLS without keys checks between broker - engine", async () => {
+    const broker = new Broker();
+    const engine = new Engine();
+    await Engine.buildConfigs();
+    await Engine.installConfigs();
+
+    let tls = {
+      yes: "TLS",
+      no: "",
+      auto: "TLS",
+    };
+
+    const config_broker = await Broker.getConfig(BrokerType.central);
+    const config_module = await Broker.getConfig(BrokerType.module);
+
+    const centralModuleLoggers =
+      config_module["centreonBroker"]["log"]["loggers"];
+    const centralBrokerLoggers =
+      config_broker["centreonBroker"]["log"]["loggers"];
+
+    centralModuleLoggers["bbdo"] = "info";
+    centralBrokerLoggers["bbdo"] = "info";
+
+    const centralModuleMaster = config_module["centreonBroker"]["output"].find(
+      (output) => output.name === "central-module-master-output"
+    );
+    centralModuleMaster["compression"] = "no";
+    const centralBrokerMaster = config_broker["centreonBroker"]["input"].find(
+      (input) => input.name === "central-broker-master-input"
+    );
+    centralBrokerMaster["compression"] = "no";
+
+    for (let t1 in tls) {
+      for (let t2 in tls) {
+        Broker.clearLogs(BrokerType.central);
+        Broker.clearLogs(BrokerType.module);
+
+        // Central
+        centralBrokerMaster["tls"] = t1;
+
+        // Module
+        centralModuleMaster["tls"] = t2;
+
+        let central: string[] = [
+          `[bbdo] [info] BBDO: we have extensions '${tls[t1]}' and peer has '${tls[t2]}'`,
+        ];
+        let module: string[] = [
+          `[bbdo] [info] BBDO: we have extensions '${tls[t2]}' and peer has '${tls[t1]}'`,
+        ];
+
+        if (t1 == "yes" && t2 == "no")
+          central.push(
+            "[bbdo] [error] BBDO: extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration."
+          );
+        else if (t1 == "no" && t2 == "yes")
+          module.push(
+            "[bbdo] [error] BBDO: extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration."
+          );
+
+        console.log(centralBrokerMaster);
+        console.log(centralModuleMaster);
+
+        await Broker.writeConfig(BrokerType.module, config_module);
+        await Broker.writeConfig(BrokerType.central, config_broker);
+
+        const started1 = await broker.start();
+        const started2 = await engine.start();
+
+        let connected = false;
+        let checkLog1 = false;
+        let checkLog2 = false;
+        let stopped1 = false;
+        let stopped2 = false;
+
+        if (started1 && started2) {
+          connected = await isBrokerAndEngineConnected();
+
+          checkLog1 = await broker.checkCentralLogContains(central);
+          checkLog2 = await broker.checkModuleLogContains(module);
+
+          stopped1 = await broker.stop();
+          stopped2 = await engine.stop();
+        }
         Broker.cleanAllInstances();
         Engine.cleanAllInstances();
 
-        Broker.clearLogs()
-        Broker.clearLogsCentralModule()
-        Broker.resetConfig()
-        Broker.resetConfigCentralModule()
-        Broker.resetConfigCentralRrd()
+        expect(started1).toBeTruthy();
+        expect(started2).toBeTruthy();
+        expect(connected).toBeTruthy();
+        expect(checkLog1).toBeTruthy();
+        expect(checkLog2).toBeTruthy();
+        expect(stopped1).toBeTruthy();
+        expect(stopped2).toBeTruthy();
+      }
+    }
+  }, 400000);
 
-        if (Broker.isServiceRunning() || Engine.isServiceRunning()) {
-          console.log("program could not stop cbd or centengine")
-          process.exit(1)
-        }
-    })
+  it("tls with keys checks between broker - engine", async () => {
+    const broker = new Broker();
+    const engine = new Engine();
 
-    afterAll(() => {
-        beforeEach(() => {
-          Broker.cleanAllInstances();
-          Engine.cleanAllInstances();
+    const config_broker = await Broker.getConfig(BrokerType.central);
+    const config_rrd = await Broker.getConfig(BrokerType.rrd);
 
-          Broker.clearLogs()
-          Broker.resetConfig()
-          Broker.resetConfigCentralModule()
-          Broker.resetConfigCentralRrd()
-        })
-    })
+    const centralBrokerLoggers =
+      config_broker["centreonBroker"]["log"]["loggers"];
 
-    it('tls without keys checks between broker - engine', async () => {
-        const broker = new Broker()
-        const engine = new Engine()
+    centralBrokerLoggers["bbdo"] = "info";
+    centralBrokerLoggers["tcp"] = "info";
+    centralBrokerLoggers["tls"] = "trace";
 
-        let tls = {
-            yes: 'TLS',
-            no: '',
-            auto: 'TLS'
-        }
+    var centralBrokerMaster = config_broker["centreonBroker"]["output"].find(
+      (output) => output.name === "centreon-broker-master-rrd"
+    );
+    const centralRrdMaster = config_rrd["centreonBroker"]["input"].find(
+      (input) => input.name === "central-rrd-master-input"
+    );
 
-        const config_broker = await Broker.getConfig()
-        const config_module = await Broker.getConfigCentralModule()
+    // get hostname
+    const output = shell.exec("hostname --fqdn");
+    const hostname = output.stdout.replace(/\n/g, "");
 
-        const centralModuleLoggers = config_module['centreonBroker']['log']['loggers']
-        const centralBrokerLoggers = config_broker['centreonBroker']['log']['loggers']
+    // generate keys
+    shell.exec(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN='" +
+        hostname
+    );
+    shell.exec(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN='" +
+        hostname
+    );
 
-        centralModuleLoggers['bbdo'] = "info"
-        centralModuleLoggers['core'] = "trace"
+    // update configuration file
+    centralBrokerMaster["tls"] = "yes";
+    centralBrokerMaster["private_key"] = "/etc/centreon-broker/client.key";
+    centralBrokerMaster["public_cert"] = "/etc/centreon-broker/client.crt";
+    centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/server.crt";
 
-        centralBrokerLoggers['bbdo'] = "info"
-        centralBrokerLoggers['core'] = "trace"
+    centralRrdMaster["tls"] = "yes";
+    centralRrdMaster["private_key"] = "/etc/centreon-broker/server.key";
+    centralRrdMaster["public_cert"] = "/etc/centreon-broker/server.crt";
+    centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/client.crt";
 
-        const centralModuleMaster = config_module['centreonBroker']['output'].find((
-            output => output.name === 'central-module-master-output'))
-        const centralBrokerMaster = config_broker['centreonBroker']['input'].find((
-            input => input.name === 'central-broker-master-input'))
+    // write changes in config_broker
+    await Broker.writeConfig(BrokerType.central, config_broker);
+    await Broker.writeConfig(BrokerType.rrd, config_rrd);
 
-        for (let t1 in tls) {
-            for (let t2 in tls) {
-                Broker.clearLogs()
-                Broker.clearLogsCentralModule()
+    console.log(centralBrokerMaster);
+    console.log(centralRrdMaster);
 
-                centralBrokerMaster['tls'] = t1
-                centralModuleMaster['tls'] = t2
+    // starts centreon
+    const started1: boolean = await broker.start();
+    const started2: boolean = await engine.start();
 
-                let peer1 = [`[bbdo] [info] BBDO: we have extensions '${tls[t1]}' and peer has '${tls[t2]}'`];
-                let peer2 = [`[bbdo] [info] BBDO: we have extensions '${tls[t2]}' and peer has '${tls[t1]}'`];
+    let connected: boolean;
+    let checkLog1: boolean = false;
+    let stopped1: boolean = false;
+    let stopped2: boolean = false;
 
-                if (t1 == 'yes' && t2 == 'no')
-                    peer1.push("[bbdo] [error] BBDO: extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration.");
-                else if (t1 == 'no' && t2 == 'yes')
-                    peer2.push("[bbdo] [error] BBDO: extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration.");
+    if (started1 && started2) {
+      connected = await isBrokerAndEngineConnected();
 
-                console.log(centralBrokerMaster)
-                console.log(centralModuleMaster)
+      // checking logs
+      checkLog1 = await broker.checkCentralLogContains([
+        "[tls] [info] TLS: using certificates as credentials",
+        "[tls] [debug] TLS: performing handshake",
+        "[tls] [debug] TLS: successful handshake",
+      ]);
 
-                await Broker.writeConfigCentralModule(config_module)
-                await Broker.writeConfig(config_broker)
+      stopped1 = await broker.stop();
+      stopped2 = await engine.stop();
+    }
 
-                await expect(broker.start()).resolves.toBeTruthy()
-                await expect(engine.start()).resolves.toBeTruthy()
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
 
-                await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
+    rmSync("/etc/centreon-broker/client.key");
+    rmSync("/etc/centreon-broker/client.crt");
+    rmSync("/etc/centreon-broker/server.key");
+    rmSync("/etc/centreon-broker/server.crt");
 
-                await expect(Broker.checkLogFileContains(peer1)).resolves.toBeTruthy()
-                await expect(Broker.checkLogFileCentralModuleContains(peer2)).resolves.toBeTruthy()
+    expect(started1).toBeTruthy();
+    expect(started2).toBeTruthy();
+    expect(connected).toBeTruthy();
+    expect(checkLog1).toBeTruthy();
+    expect(stopped1).toBeTruthy();
+    expect(stopped2).toBeTruthy();
+  }, 90000);
 
-                await expect(broker.stop()).resolves.toBeTruthy();
-                await expect(engine.stop()).resolves.toBeTruthy();
-            }
-        }
-    }, 400000);
+  it("Anonymous TLS with CA between broker - engine", async () => {
+    const broker = new Broker();
+    const engine = new Engine();
 
-    it('tls with keys checks between broker - engine', async () => {
-        const broker = new Broker()
-        const engine = new Engine()
+    const config_broker = await Broker.getConfig(BrokerType.central);
+    const config_rrd = await Broker.getConfig(BrokerType.rrd);
 
-        const config_broker = await Broker.getConfig()
-        const config_rrd = await Broker.getConfigCentralRrd()
+    const centralBrokerLoggers =
+      config_broker["centreonBroker"]["log"]["loggers"];
 
-        const centralBrokerLoggers = config_broker['centreonBroker']['log']['loggers']
+    centralBrokerLoggers["bbdo"] = "info";
+    centralBrokerLoggers["tcp"] = "info";
+    centralBrokerLoggers["tls"] = "trace";
 
-        centralBrokerLoggers['bbdo'] = "info"
-        centralBrokerLoggers['tcp'] = "info"
-        centralBrokerLoggers['tls'] = "trace"
+    var centralBrokerMaster = config_broker["centreonBroker"]["output"].find(
+      (output) => output.name === "centreon-broker-master-rrd"
+    );
+    const centralRrdMaster = config_rrd["centreonBroker"]["input"].find(
+      (input) => input.name === "central-rrd-master-input"
+    );
 
-        var centralBrokerMaster = config_broker['centreonBroker']['output'].find((
-            output => output.name === 'centreon-broker-master-rrd'))
-        const centralRrdMaster = config_rrd['centreonBroker']['input'].find((
-            input => input.name === 'central-rrd-master-input'))
+    // get hostname
+    const output = shell.exec("hostname --fqdn");
+    const hostname = output.stdout.replace(/\n/g, "");
 
-        // get hostname
-        const output = shell.exec("hostname --fqdn")
-        const hostname = output.stdout.replace(/\n/g, '')
+    // generates keys
+    shell.exec(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out /etc/centreon-broker/server.crt -subj '/CN='" +
+        hostname
+    );
+    shell.exec(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out /etc/centreon-broker/client.crt -subj '/CN='" +
+        hostname
+    );
 
-        // generates keys
-        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
-        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
+    // update configuration file
+    centralBrokerMaster["tls"] = "yes";
+    centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/server.crt";
 
-        // update configuration file
-        centralBrokerMaster["tls"] = "yes"
-        centralBrokerMaster["private_key"] = "/etc/centreon-broker/client.key"
-        centralBrokerMaster["public_cert"] = "/etc/centreon-broker/client.crt"
-        centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/server.crt"
+    centralRrdMaster["tls"] = "yes";
+    centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/client.crt";
 
-        centralRrdMaster["tls"] = "yes"
-        centralRrdMaster["private_key"] = "/etc/centreon-broker/server.key"
-        centralRrdMaster["public_cert"] = "/etc/centreon-broker/server.crt"
-        centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/client.crt"
+    // write changes in config_broker
+    await Broker.writeConfig(BrokerType.central, config_broker);
+    await Broker.writeConfig(BrokerType.rrd, config_rrd);
 
-        // write changes in config_broker
-        await Broker.writeConfig(config_broker)
-        await Broker.writeConfigCentralRrd(config_rrd)
+    console.log(centralBrokerMaster);
+    console.log(centralRrdMaster);
 
-        console.log(centralBrokerMaster)
-        console.log(centralRrdMaster)
+    // starts centreon
+    const started1: boolean = await broker.start();
+    const started2: boolean = await engine.start();
 
-        // starts centreon
-        await expect(broker.start()).resolves.toBeTruthy()
-        await expect(engine.start()).resolves.toBeTruthy()
+    let connected: boolean;
+    let checkLog1: boolean = false;
+    let stopped1: boolean = false;
+    let stopped2: boolean = false;
 
-        await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
+    if (started1 && started2) {
+      connected = await isBrokerAndEngineConnected();
 
-        // checking logs
-        await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using certificates as credentials"])).resolves.toBeTruthy()
-        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
-        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
+      // checking logs
+      checkLog1 = await broker.checkCentralLogContains([
+        "[tls] [info] TLS: using anonymous client credentials",
+        "[tls] [debug] TLS: performing handshake",
+        "[tls] [debug] TLS: successful handshake",
+      ]);
 
-        await expect(broker.stop()).resolves.toBeTruthy();
-        await expect(engine.stop()).resolves.toBeTruthy();
+      stopped1 = await broker.stop();
+      stopped2 = await engine.stop();
+    }
 
-        shell.rm("/etc/centreon-broker/client.key")
-        shell.rm("/etc/centreon-broker/client.crt")
-        shell.rm("/etc/centreon-broker/server.key")
-        shell.rm("/etc/centreon-broker/server.crt")
-    }, 90000);
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
 
-    it('tls with keys checks between broker - engine (bis)', async () => {
-        const broker = new Broker()
-        const engine = new Engine()
+    rmSync("/etc/centreon-broker/client.crt");
+    rmSync("/etc/centreon-broker/server.crt");
 
-        const config_broker = await Broker.getConfig()
-        const config_rrd = await Broker.getConfigCentralRrd()
+    expect(started1).toBeTruthy();
+    expect(started2).toBeTruthy();
+    expect(connected).toBeTruthy();
+    expect(checkLog1).toBeTruthy();
+    expect(stopped1).toBeTruthy();
+    expect(stopped2).toBeTruthy();
+  }, 90000);
 
-        const centralBrokerLoggers = config_broker['centreonBroker']['log']['loggers']
+  it("TLS with keys checks between broker - engine (common name)", async () => {
+    const broker = new Broker();
+    const engine = new Engine();
 
-        centralBrokerLoggers['bbdo'] = "info"
-        centralBrokerLoggers['tcp'] = "info"
-        centralBrokerLoggers['tls'] = "trace"
+    const config_broker = await Broker.getConfig(BrokerType.central);
+    const config_rrd = await Broker.getConfig(BrokerType.rrd);
 
-        var centralBrokerMaster = config_broker['centreonBroker']['output'].find((
-            output => output.name === 'centreon-broker-master-rrd'))
-        const centralRrdMaster = config_rrd['centreonBroker']['input'].find((
-            input => input.name === 'central-rrd-master-input'))
+    const centralBrokerLoggers =
+      config_broker["centreonBroker"]["log"]["loggers"];
 
-        // get hostname
-        const output = shell.exec("hostname --fqdn")
-        const hostname = output.stdout.replace(/\n/g, '')
+    centralBrokerLoggers["bbdo"] = "info";
+    centralBrokerLoggers["tcp"] = "info";
+    centralBrokerLoggers["tls"] = "trace";
 
-        // generates keys
-        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out /etc/centreon-broker/server.crt -subj '/CN='" + hostname)
-        shell.exec("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out /etc/centreon-broker/client.crt -subj '/CN='" + hostname)
+    var centralBrokerMaster = config_broker["centreonBroker"]["output"].find(
+      (output) => output.name === "centreon-broker-master-rrd"
+    );
+    const centralRrdMaster = config_rrd["centreonBroker"]["input"].find(
+      (input) => input.name === "central-rrd-master-input"
+    );
 
-        // update configuration file
-        centralBrokerMaster["tls"] = "yes"
-        centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/server.crt"
+    // get hostname
+    const output = await shell.exec("hostname --fqdn");
 
-        centralRrdMaster["tls"] = "yes"
-        centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/client.crt"
+    // generates keys
+    shell.exec(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/server.key -out /etc/centreon-broker/server.crt -subj '/CN=centreon'"
+    );
+    shell.exec(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /etc/centreon-broker/client.key -out /etc/centreon-broker/client.crt -subj '/CN=centreon'"
+    );
 
-        // write changes in config_broker
-        await Broker.writeConfig(config_broker)
-        await Broker.writeConfigCentralRrd(config_rrd)
+    // update configuration file
+    centralBrokerMaster["tls"] = "yes";
+    centralBrokerMaster["private_key"] = "/etc/centreon-broker/client.key";
+    centralBrokerMaster["public_cert"] = "/etc/centreon-broker/client.crt";
+    centralBrokerMaster["ca_certificate"] = "/etc/centreon-broker/server.crt";
+    centralBrokerMaster["tls_hostname"] = "centreon";
 
-        console.log(centralBrokerMaster)
-        console.log(centralRrdMaster)
+    centralRrdMaster["tls"] = "yes";
+    centralRrdMaster["private_key"] = "/etc/centreon-broker/server.key";
+    centralRrdMaster["public_cert"] = "/etc/centreon-broker/server.crt";
+    centralRrdMaster["ca_certificate"] = "/etc/centreon-broker/client.crt";
 
-        // starts centreon
-        await expect(broker.start()).resolves.toBeTruthy()
-        await expect(engine.start()).resolves.toBeTruthy()
+    // write changes in config_broker
+    await Broker.writeConfig(BrokerType.central, config_broker);
+    await Broker.writeConfig(BrokerType.rrd, config_rrd);
 
-        await expect(isBrokerAndEngineConnected()).resolves.toBeTruthy()
+    console.log(centralBrokerMaster);
+    console.log(centralRrdMaster);
 
-        // checking logs
-        await expect(Broker.checkLogFileContains(["[tls] [info] TLS: using anonymous client credentials"])).resolves.toBeTruthy()
-        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: performing handshake"])).resolves.toBeTruthy()
-        await expect(Broker.checkLogFileContains(["[tls] [debug] TLS: successful handshake"])).resolves.toBeTruthy()
+    // starts centreon
+    const started1: boolean = await broker.start();
+    const started2: boolean = await engine.start();
 
-        await expect(broker.stop()).resolves.toBeTruthy();
-        await expect(engine.stop()).resolves.toBeTruthy();
+    let connected: boolean;
+    let checkLog1: boolean = false;
+    let stopped1: boolean = false;
+    let stopped2: boolean = false;
 
-        shell.rm("/etc/centreon-broker/client.crt")
-        shell.rm("/etc/centreon-broker/server.crt")
-    }, 90000);
+    if (started1 && started2) {
+      connected = await isBrokerAndEngineConnected();
 
+      // checking logs
+      checkLog1 = await broker.checkCentralLogContains([
+        "[tls] [info] TLS: using certificates as credentials",
+        "[tls] [debug] TLS: performing handshake",
+        "[tls] [debug] TLS: performing handshake",
+        "[tls] [info] TLS: common name 'centreon' used for certificate verification",
+      ]);
+
+      stopped1 = await broker.stop();
+      stopped2 = await engine.stop();
+    }
+
+    Broker.cleanAllInstances();
+    Engine.cleanAllInstances();
+
+    rmSync("/etc/centreon-broker/client.key");
+    rmSync("/etc/centreon-broker/client.crt");
+    rmSync("/etc/centreon-broker/server.key");
+    rmSync("/etc/centreon-broker/server.crt");
+
+    expect(started1).toBeTruthy();
+    expect(started2).toBeTruthy();
+    expect(connected).toBeTruthy();
+  }, 90000);
 });
