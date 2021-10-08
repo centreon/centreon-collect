@@ -27,7 +27,7 @@ describe("engine and broker testing in same time for compression", () => {
       console.log("program could not stop cbd or centengine");
       process.exit(1);
     }
-  });
+  }, 30000);
 
   afterAll(() => {
     beforeEach(() => {
@@ -36,7 +36,7 @@ describe("engine and broker testing in same time for compression", () => {
       Broker.resetConfig(BrokerType.module);
       Broker.resetConfig(BrokerType.rrd);
     });
-  });
+  }, 30000);
 
   it("TLS without keys checks between broker - engine", async () => {
     const broker = new Broker();

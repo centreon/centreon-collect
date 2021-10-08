@@ -26,7 +26,7 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
       console.log("program could not stop cbd or centengine");
       process.exit(1);
     }
-  });
+  }, 30000);
 
   /* RRD metric deletion */
   it("BRRDDM1: RRD metric deletion", async () => {

@@ -10,7 +10,7 @@ describe("start and stop engine", () => {
   beforeEach(() => {
     Broker.cleanAllInstances();
     Engine.cleanAllInstances();
-  });
+  }, 30000);
 
   it("ESS1: start/stop centengine", async () => {
     const engine = new Engine();
