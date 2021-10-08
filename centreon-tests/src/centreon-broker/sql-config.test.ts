@@ -17,10 +17,6 @@ beforeEach(async () => {
   Broker.clearLogs(BrokerType.central);
 }, 30000);
 
-afterEach(async () => {
-  Broker.cleanAllInstances();
-});
-
 it("BDB1: should deny access when database name exists but is not the good one for sql output", async () => {
   const config = await Broker.getConfig(BrokerType.central);
   const centralBrokerMasterSql = config["centreonBroker"]["output"].find(
@@ -397,4 +393,3 @@ it("BDBM1: start broker/engine and then start MySQL", async () => {
     expect(conCount).toEqual(count);
   }
 }, 80000);
-

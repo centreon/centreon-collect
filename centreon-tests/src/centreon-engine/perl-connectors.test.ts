@@ -14,7 +14,7 @@ describe("start and stop engine", () => {
 
     Engine.cleanAllInstances();
     Engine.clearLogs();
-  });
+  }, 30000);
 
   it("EPC1: Check with perl connector", async () => {
     const engine = new Engine();
