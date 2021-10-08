@@ -22,7 +22,7 @@ describe("engine and broker testing in same time", () => {
       console.log("program could not stop cbd or centengine");
       process.exit(1);
     }
-  });
+  }, 30000);
 
   it("BESS1: start/stop centreon broker/engine - start: broker first, stop: broker first", async () => {
     console.log("BESS1");

@@ -26,14 +26,14 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
       console.log("program could not stop cbd or centengine");
       process.exit(1);
     }
-  });
+  }, 30000);
 
   afterAll(() => {
     beforeEach(async () => {
       await Engine.cleanAllInstances();
       await Broker.cleanAllInstances();
     });
-  });
+  }, 30000);
 
   it("New host group", async () => {
     const broker = new Broker(2);
