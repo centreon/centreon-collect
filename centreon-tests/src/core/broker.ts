@@ -401,8 +401,8 @@ export class Broker {
         break;
       case BrokerType.module:
         logname = Broker.CENTREON_BROKER_MODULE_LOGS_PATH;
-        uid = Broker.CENTREON_BROKER_UID;
-        gid = Broker.CENTREON_BROKER_GID;
+        uid = Broker.CENTREON_ENGINE_UID;
+        gid = Broker.CENTREON_ENGINE_GID;
         break;
       case BrokerType.rrd:
         logname = Broker.CENTREON_BROKER_RRD_LOGS_PATH;
@@ -410,11 +410,11 @@ export class Broker {
         gid = Broker.CENTREON_BROKER_GID;
         break;
     }
-    if (existsSync(logname)) {
+    if (existsSync(logname))
       rmSync(logname);
-      writeFileSync(logname, "");
-      chownSync(logname, uid, gid);
-    }
+
+    writeFileSync(logname, "");
+    chownSync(logname, uid, gid);
   }
 
   static clearRetention(type: BrokerType): void {
