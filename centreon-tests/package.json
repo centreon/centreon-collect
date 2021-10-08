@@ -9,9 +9,9 @@
     "await-sleep": "0.0.1",
     "fs.promises": "^0.1.2",
     "p-iteration": "^1.1.8",
+    "promise-mysql": "^5.0.4",
     "ps-list": "^7.2.0",
-    "shelljs": "^0.8.4",
-    "typescript-formatter": "^7.2.2"
+    "shelljs": "^0.8.4"
   },
   "devDependencies": {
     "@babel/core": "^7.14.2",
@@ -28,7 +28,7 @@
     "babel-eslint": "^10.1.0",
     "babel-jest": "^26.6.3",
     "babel-loader": "^8.2.2",
-    "eslint": "^7.2.0",
+    "eslint": "^7.32.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^7.1.0",

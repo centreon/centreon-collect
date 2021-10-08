@@ -15,16 +15,16 @@
             "filename": "",
             "max_size": 0,
             "loggers": {
-                "core": "info",
-                "config": "error",
-                "sql": "error",
-                "processing": "error",
-                "perfdata": "error",
-                "bbdo": "error",
-                "tcp": "error",
-                "tls": "error",
-                "lua": "error",
-                "bam": "error"
+                "core": "debug",
+                "config": "debug",
+                "sql": "debug",
+                "processing": "debug",
+                "perfdata": "debug",
+                "bbdo": "debug",
+                "tcp": "debug",
+                "tls": "debug",
+                "lua": "debug",
+                "bam": "debug"
             }
         },
         "output": [
