@@ -102,9 +102,9 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian buster packaging and signing': {
     node("C++") {
-      dir('centreon-collect-centos8') {
+      dir('centreon-collect-debian10') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
+        sh 'docker run -i --entrypoint /src/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
         stash name: 'Debian10', includes: '*.deb'
         archiveArtifacts artifacts: "*.deb"
         sh 'rm -rf *.deb'
