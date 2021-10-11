@@ -2,82 +2,84 @@ Source: centreon-collect
 Section: net
 Priority: optional
 Maintainer: Luiz Costa <me@luizgustavo.pro.br>
-Build-Depends: 
-    debhelper-compat (=12),
-    gcc,
-    g++,
-    cmake,
-    pkg-config,
-    libmariadb3,
-    librrd-dev,
-    libgnutls28-dev,
-    ninja-build,
-    liblua5.3-dev,
-    python3,
-    python3-pip,
-    libperl-dev,
-    libssh2-1-dev,
-    libgcrypt20-dev
+Build-Depends: cmake,
+               debhelper-compat (=12),
+               g++,
+               gcc,
+               libgcrypt20-dev,
+               libgnutls28-dev,
+               liblua5.3-dev,
+               libmariadb3,
+               libperl-dev,
+               librrd-dev,
+               libssh2-1-dev,
+               ninja-build,
+               pkg-config,
+               python3,
+               python3-pip
 Standards-Version: 4.5.0
 Homepage: https://wwww.centreon.com
 
 Package: centreon-clib
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-clib-dev
 Architecture: any
-Depends: centreon-clib, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-clib, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-engine
 Architecture: any
-Depends: centreon-clib, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-clib, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-engine-extcommands
 Architecture: any
-Depends: centreon-engine, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-connector-perl
 Architecture: any
-Depends: centreon-engine, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-connector-ssh
 Architecture: any
-Depends: centreon-engine, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-broker
 Architecture: any
-Depends: centreon-clib, centreon-engine, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-clib, centreon-engine, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
 Package: centreon-broker-core
 Architecture: any
-Depends: centreon-broker, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-broker, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Broker core components.
  Contains all Centreon Broker components shared by cbd or cbmod.
 
 Package: centreon-broker-cbmod
 Architecture: any
-Depends: centreon-engine, centreon-broker-core, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-broker-core,
+         centreon-engine,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Centreon Broker module for Centreon Engine.
  Listen for monitoring events of Centreon Engine and convert them the
  Centreon Broker way.
 
 Package: centreon-broker-dev
 Architecture: any
-Depends: centreon-broker-core, ${shlibs:Depends}, ${misc:Depends}
+Depends: centreon-broker-core, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Broker development files.
  Include files needed to develop a module for Centreon Broker.

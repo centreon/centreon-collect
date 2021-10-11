@@ -1,2 +1,2 @@
-debian/tmp-centreon-collect/usr/lib64/pkgconfig/centreon-clib.pc    usr/lib64/pkgconfig
 debian/tmp-centreon-collect/usr/lib64/libcentreon_clib.so           usr/lib64
+debian/tmp-centreon-collect/usr/lib64/pkgconfig/centreon-clib.pc    usr/lib64/pkgconfig
