@@ -102,13 +102,13 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian buster packaging and signing': {
     node("C++") {
-      dir('centreon-collect-debian10') {
+      dir('centreon-collect') {
         checkout scm
       }
-        sh 'docker run -i --entrypoint /src/centreon-collect-debian10/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
-        stash name: 'Debian10', includes: 'centreon-collect-debian10/*.deb'
-        archiveArtifacts artifacts: "centreon-collect-debian10/*.deb"
-        sh 'rm -rf centreon-collect-debian10/*.deb'
+        sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
+        stash name: 'Debian10', includes: 'centreon-collect/*.deb'
+        archiveArtifacts artifacts: "centreon-collect/*.deb"
+        sh 'rm -rf centreon-collect/*.deb'
     }
   },
     'debian bulseye Build and UT': {
@@ -121,13 +121,13 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian bulseye packaging and signing': {
     node("C++") {
-      dir('centreon-collect-debian11') {
+      dir('centreon-collect') {
         checkout scm
       }
-      sh 'docker run -i --entrypoint /src/centreon-collect-debian11/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
-      stash name: 'Debian11', includes: 'centreon-collect-debian11/*.deb'
-      archiveArtifacts artifacts: "centreon-collect-debian11/*.deb"
-      sh 'rm -rf centreon-collect-debian11/*.deb'
+      sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
+      stash name: 'Debian11', includes: 'centreon-collect/*.deb'
+      archiveArtifacts artifacts: "centreon-collect/*.deb"
+      sh 'rm -rf centreon-collect/*.deb'
     }
   }  
 }
