@@ -17,7 +17,7 @@ fi
 
 # mkdir -p centreon-collect
 # cp -rv * centreon-collect
-tar czpvf centreon-collect-$DISTRIB.tar.gz centreon-collect
+tar czpvf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
 mv ci/debian .
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
