@@ -1,4 +1,4 @@
-FROM debian:bulseye
+FROM debian:bullseye
 RUN apt-get -y update && \
     apt-get -y install cmake \ 
     curl \
