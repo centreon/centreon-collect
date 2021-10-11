@@ -25,6 +25,7 @@
 #include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/storage/metric_mapping.hh"
 #include "com/centreon/broker/storage/rebuild.hh"
+#include "com/centreon/broker/storage/rebuild2.hh"
 #include "com/centreon/broker/storage/remove_graph.hh"
 #include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/broker/storage/stream.hh"
@@ -112,6 +113,10 @@ void broker_module_init(void const* arg) {
       e.register_event(io::events::storage, storage::de_metric_mapping,
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
+      log_v2::bbdo()->info("registering protobuf rebuild2 as {:x}:{:x}",
+          io::events::protobuf, storage::de_rebuild2);
+      e.register_event(io::events::protobuf, storage::de_rebuild2, "rebuild2",
+          &storage::rebuild2::operations);
     }
 
     // Register storage layer.

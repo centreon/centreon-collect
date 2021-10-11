@@ -413,6 +413,7 @@ static io::raw* serialize(const io::data& e) {
   std::deque<std::vector<char>> queue;
 
   // Get event info (mapping).
+  log_v2::bbdo()->info("looking for type {:x}", e.type());
   const io::event_info* info = io::events::instance().get_event_info(e.type());
   if (info) {
     // Serialization buffer.

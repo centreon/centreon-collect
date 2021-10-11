@@ -51,6 +51,7 @@ class events {
     bam = 6,
     extcmd = 7,
     generator = 8,
+    protobuf = 9,
     internal = 65535
   };
   // Internal events used by the core.
