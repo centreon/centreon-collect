@@ -1,8 +1,9 @@
 FROM debian:buster
+RUN apt-get -y update && \
+    apt-get -y install curl
 RUN curl http://ftp.fr.debian.org/debian/pool/main/d/dwz/dwz_0.13-5~bpo10+1_amd64.deb --output dwz_0.13-5~bpo10+1_amd64.deb
 RUN apt-get -y update && \
-    apt-get -y install cmake \ 
-    curl \
+    apt-get -y install cmake \
     gcc \
     g++ \
     pkg-config \
