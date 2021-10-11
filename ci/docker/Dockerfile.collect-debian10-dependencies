@@ -1,4 +1,5 @@
 FROM debian:buster
+RUN curl http://ftp.fr.debian.org/debian/pool/main/d/dwz/dwz_0.13-5~bpo10+1_amd64.deb --output dwz_0.13-5~bpo10+1_amd64.deb
 RUN apt-get -y update && \
     apt-get -y install cmake \ 
     curl \
@@ -15,7 +16,20 @@ RUN apt-get -y update && \
     python3-pip \
     libperl-dev \
     libssh2-1-dev \
-    libgcrypt20-dev
+    libgcrypt20-dev \
+    dh-make \
+    aptitude \
+    lintian \
+    pbuilder \
+    quilt \
+    git-buildpackage \
+    debmake \
+    devscripts \
+    fakeroot \
+    dwz \
+    locales && \
+    rm -rf /var/lib/apt/lists/* && \
+    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 RUN python3 get-pip.py
 RUN pip3 install conan
