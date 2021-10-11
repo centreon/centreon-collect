@@ -1,1 +1,2 @@
-debian/tmp-centreon-collect/usr/sbin/*   usr/sbin
+debian/tmp-centreon-collect/usr/sbin/cbd   usr/sbin
+debian/tmp-centreon-collect/usr/sbin/cbwd   usr/sbin
