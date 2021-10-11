@@ -266,8 +266,12 @@ events::events() {
                  "instance_broadcast", &instance_broadcast::operations,
                  instance_broadcast::entries);
 
+  // Register PROTOBUF events
+  int cat = register_category("protobuf", io::events::protobuf);
+  assert(cat == io::events::protobuf);
+
   // Register BBDO
-  int cat = register_category("bbdo", io::events::bbdo);
+  cat = register_category("bbdo", io::events::bbdo);
   assert(cat == io::events::bbdo);
 
   // Register BBDO events.

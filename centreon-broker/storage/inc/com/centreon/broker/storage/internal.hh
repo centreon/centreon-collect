@@ -31,7 +31,8 @@ enum data_element {
   de_remove_graph,
   de_status,
   de_index_mapping,
-  de_metric_mapping
+  de_metric_mapping,
+  de_rebuild2
 };
 }  // namespace storage
 
