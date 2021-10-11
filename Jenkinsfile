@@ -104,11 +104,11 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-debian10') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
-        stash name: 'Debian10', includes: '*.deb'
-        archiveArtifacts artifacts: "*.deb"
-        sh 'rm -rf *.deb'
       }
+        sh 'docker run -i --entrypoint /src/centreon-collect-debian10/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
+        stash name: 'Debian10', includes: 'centreon-collect-debian10/*.deb'
+        archiveArtifacts artifacts: "centreon-collect-debian10/*.deb"
+        sh 'rm -rf centreon-collect-debian10/*.deb'
     }
   },
     'debian bulseye Build and UT': {
@@ -123,11 +123,11 @@ stage('Build / Unit tests // Packaging / Signing') {
     node("C++") {
       dir('centreon-collect-debian11') {
         checkout scm
-        sh 'docker run -i --entrypoint /src/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Dbeian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
-        stash name: 'Debian11', includes: '*.deb'
-        archiveArtifacts artifacts: "*.deb"
-        sh 'rm -rf *.deb'
       }
+      sh 'docker run -i --entrypoint /src/centreon-collect-debian11/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
+      stash name: 'Debian11', includes: 'centreon-collect-debian11/*.deb'
+      archiveArtifacts artifacts: "centreon-collect-debian11/*.deb"
+      sh 'rm -rf centreon-collect-debian11/*.deb'
     }
   }  
 }
