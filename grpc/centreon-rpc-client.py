@@ -364,7 +364,8 @@ if __name__ == "__main__":
   json_args   = ""
   client      = None 
 
-  sys.argv += "--component=broker --port=51001 --exe=GetVersion".split()
+  # The following line is just used to debug.
+  #sys.argv += "--component=broker --port=51001 --exe=GetVersion".split()
 
   try:
     opts, args = getopt.getopt(sys.argv[1:], "vhlc:p:f:a:d:e:",
