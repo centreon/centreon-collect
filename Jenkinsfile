@@ -115,7 +115,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
         stash name: 'Debian10', includes: '*.deb'
         archiveArtifacts artifacts: "*.deb"
-        sh 'rm -rf *.deb'
+        // sh 'rm -rf *.deb'
     }
   },
     'debian bulseye Build and UT': {
@@ -136,7 +136,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
       stash name: 'Debian11', includes: '*.deb'
       archiveArtifacts artifacts: "*.deb"
-      sh 'rm -rf *.deb'
+      // sh 'rm -rf *.deb'
     }
   }  
 }
