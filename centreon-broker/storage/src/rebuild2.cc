@@ -31,4 +31,13 @@ rebuild2::rebuild2()
 static io::data* new_rebuild2() {
   return new rebuild2;
 }
-io::event_info::event_operations const rebuild2::operations = {&new_rebuild2};
+
+static std::string serialize_rebuild2(std::shared_ptr<io::data> d) {
+  std::string retval;
+  auto r = static_cast<rebuild2*>(d.get());
+  if (!r->SerializeToString(&retval))
+    throw msg_fmt("Unable to serialize rebuild2 object");
+  return retval;
+}
+
+io::event_info::event_operations const rebuild2::operations = {&new_rebuild2, &serialize_rebuild2};
