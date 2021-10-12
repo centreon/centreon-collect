@@ -108,7 +108,7 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian buster packaging and signing': {
     node("C++") {
-      // deleteDir()
+      deleteDir()
       dir('centreon-collect') {
         checkout scm
       }
@@ -129,7 +129,7 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian bulseye packaging and signing': {
     node("C++") {
-      // deleteDir()
+      deleteDir()
       dir('centreon-collect') {
         checkout scm
       }
