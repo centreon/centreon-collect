@@ -20,7 +20,6 @@
 #define CCB_IO_EVENT_INFO_HH
 
 #include <cstddef>
-#include <memory>
 #include <string>
 
 #include "com/centreon/broker/namespace.hh"
@@ -48,7 +47,7 @@ class event_info {
  public:
   struct event_operations {
     io::data* (*constructor)();
-    std::string (*serializer)(std::shared_ptr<io::data> d);
+    std::string (*serialize)(const io::data& e);
   };
 
  private:

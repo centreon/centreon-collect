@@ -44,12 +44,6 @@ index_mapping::index_mapping(uint64_t index_id,
       host_id{host_id},
       service_id{service_id} {}
 
-/**************************************
- *                                     *
- *           Static Objects            *
- *                                     *
- **************************************/
-
 // Mapping.
 mapping::entry const index_mapping::entries[] = {
     mapping::entry(&index_mapping::index_id,
@@ -68,4 +62,4 @@ static io::data* new_index_mapping() {
   return new index_mapping;
 }
 io::event_info::event_operations const index_mapping::operations = {
-    &new_index_mapping};
+    &new_index_mapping, nullptr};
