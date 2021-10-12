@@ -110,4 +110,4 @@ static io::data* new_metric_mapping() {
   return new metric_mapping;
 }
 io::event_info::event_operations const metric_mapping::operations = {
-    &new_metric_mapping};
+    &new_metric_mapping, nullptr, nullptr};

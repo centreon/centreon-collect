@@ -46,4 +46,4 @@ static io::data* new_remove_graph() {
   return new remove_graph;
 }
 io::event_info::event_operations const remove_graph::operations = {
-    &new_remove_graph};
+    &new_remove_graph, nullptr, nullptr};

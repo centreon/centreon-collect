@@ -64,8 +64,8 @@ ba_event& ba_event::operator=(ba_event const& other) {
  */
 bool ba_event::operator==(ba_event const& other) const {
   return ba_id == other.ba_id && first_level == other.first_level &&
-          end_time == other.end_time && in_downtime == other.in_downtime &&
-          start_time == other.start_time && status == other.status;
+         end_time == other.end_time && in_downtime == other.in_downtime &&
+         start_time == other.start_time && status == other.status;
 }
 
 /**
@@ -98,4 +98,5 @@ mapping::entry const ba_event::entries[] = {
 static io::data* new_ba_event() {
   return new ba_event;
 }
-io::event_info::event_operations const ba_event::operations = {&new_ba_event};
+io::event_info::event_operations const ba_event::operations = {
+    &new_ba_event, nullptr, nullptr};

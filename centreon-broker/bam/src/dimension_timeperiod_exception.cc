@@ -101,4 +101,4 @@ static io::data* new_dimension_timeperiod_exception() {
 }
 io::event_info::event_operations const
     dimension_timeperiod_exception::operations = {
-        &new_dimension_timeperiod_exception};
+        &new_dimension_timeperiod_exception, nullptr, nullptr};

@@ -123,4 +123,4 @@ static io::data* new_custom_var_status() {
   return new custom_variable_status;
 }
 io::event_info::event_operations const custom_variable_status::operations = {
-    &new_custom_var_status};
+    &new_custom_var_status, nullptr, nullptr};

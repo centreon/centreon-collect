@@ -125,4 +125,4 @@ static io::data* new_dimension_ba_event() {
   return new dimension_ba_event;
 }
 io::event_info::event_operations const dimension_ba_event::operations = {
-    &new_dimension_ba_event};
+    &new_dimension_ba_event, nullptr, nullptr};

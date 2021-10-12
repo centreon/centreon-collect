@@ -104,4 +104,5 @@ mapping::entry const ba_status::entries[] = {
 static io::data* new_ba_status() {
   return new ba_status;
 }
-io::event_info::event_operations const ba_status::operations = {&new_ba_status};
+io::event_info::event_operations const ba_status::operations = {
+    &new_ba_status, nullptr, nullptr};

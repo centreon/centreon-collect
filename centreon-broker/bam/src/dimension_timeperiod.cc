@@ -73,4 +73,4 @@ static io::data* new_dimension_timeperiod() {
   return new dimension_timeperiod(0, "");
 }
 io::event_info::event_operations const dimension_timeperiod::operations = {
-    &new_dimension_timeperiod};
+    &new_dimension_timeperiod, nullptr, nullptr};

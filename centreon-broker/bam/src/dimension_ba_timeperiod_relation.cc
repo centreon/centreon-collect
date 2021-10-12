@@ -109,6 +109,7 @@ mapping::entry const dimension_ba_timeperiod_relation::entries[] = {
 static io::data* new_dimension_ba_timeperiod_relation() {
   return new dimension_ba_timeperiod_relation;
 }
+
 io::event_info::event_operations const
     dimension_ba_timeperiod_relation::operations = {
-        &new_dimension_ba_timeperiod_relation};
+        &new_dimension_ba_timeperiod_relation, nullptr, nullptr};

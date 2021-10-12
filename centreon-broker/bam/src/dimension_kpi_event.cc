@@ -145,4 +145,4 @@ static io::data* new_dimension_kpi_event() {
   return new dimension_kpi_event(0);
 }
 io::event_info::event_operations const dimension_kpi_event::operations = {
-    &new_dimension_kpi_event};
+    &new_dimension_kpi_event, nullptr, nullptr};

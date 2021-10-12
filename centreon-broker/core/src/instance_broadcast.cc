@@ -101,4 +101,4 @@ static io::data* new_instance_broadcast() {
   return new instance_broadcast;
 }
 io::event_info::event_operations const instance_broadcast::operations = {
-    &new_instance_broadcast};
+    &new_instance_broadcast, nullptr, nullptr};

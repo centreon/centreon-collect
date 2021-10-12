@@ -95,4 +95,4 @@ static io::data* new_host_dep() {
   return (new host_dependency);
 }
 io::event_info::event_operations const host_dependency::operations = {
-    &new_host_dep};
+    &new_host_dep, nullptr, nullptr};

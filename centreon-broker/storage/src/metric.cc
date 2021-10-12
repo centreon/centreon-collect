@@ -100,4 +100,5 @@ mapping::entry const metric::entries[] = {
 static io::data* new_metric() {
   return new metric;
 }
-io::event_info::event_operations const metric::operations = {&new_metric};
+io::event_info::event_operations const metric::operations = {&new_metric,
+                                                             nullptr, nullptr};

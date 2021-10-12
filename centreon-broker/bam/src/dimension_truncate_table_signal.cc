@@ -40,4 +40,4 @@ static io::data* new_dimension_truncate_table_signal() {
 }
 io::event_info::event_operations const
     dimension_truncate_table_signal::operations = {
-        &new_dimension_truncate_table_signal};
+        &new_dimension_truncate_table_signal, nullptr, nullptr};

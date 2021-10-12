@@ -115,4 +115,5 @@ static io::data* new_kpi_event() {
   return new kpi_event(0, 0, 0);
 }
 
-io::event_info::event_operations const kpi_event::operations = {&new_kpi_event};
+io::event_info::event_operations const kpi_event::operations = {
+    &new_kpi_event, nullptr, nullptr};

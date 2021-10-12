@@ -112,4 +112,5 @@ mapping::entry const module::entries[] = {
 static io::data* new_module() {
   return new module;
 }
-io::event_info::event_operations const module::operations = {&new_module};
+io::event_info::event_operations const module::operations = {&new_module,
+                                                             nullptr, nullptr};
