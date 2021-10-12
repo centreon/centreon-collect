@@ -415,16 +415,16 @@ static io::raw* serialize(const io::data& e) {
   // Get event info (mapping).
   const io::event_info* info = io::events::instance().get_event_info(e.type());
   if (info) {
-    // Serialization buffer.
-    queue.emplace_back(std::vector<char>());
-    auto* header = &queue.back();
-    header->resize(BBDO_HEADER_SIZE);
-    queue.emplace_back(std::vector<char>());
-    auto* content = &queue.back();
-
     // Serialize properties of the object.
     const mapping::entry* current_entry = info->get_mapping();
     if (current_entry) {
+      // Serialization buffer.
+      queue.emplace_back(std::vector<char>());
+      auto* header = &queue.back();
+      header->resize(BBDO_HEADER_SIZE);
+      queue.emplace_back(std::vector<char>());
+      auto* content = &queue.back();
+
       for (mapping::entry const* current_entry(info->get_mapping());
            !current_entry->is_null(); ++current_entry) {
         // Skip entries that should not be serialized.
@@ -500,6 +500,10 @@ static io::raw* serialize(const io::data& e) {
           htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
 
     } else {
+      // Serialization buffer.
+      queue.emplace_back(std::vector<char>());
+      auto* content = &queue.back();
+      content->resize(BBDO_HEADER_SIZE);
       /* Here is the protobuf case: no mapping */
       std::string r{info->get_operations().serialize(e)};
       size_t size = r.size();
@@ -507,33 +511,29 @@ static io::raw* serialize(const io::data& e) {
       while (size > 0) {
         if (size < 0xffff) {
           content->insert(content->end(), it, r.end());
-          *(reinterpret_cast<uint16_t*>(header->data() + 2)) = htonl(size);
-          *(reinterpret_cast<uint32_t*>(header->data() + 4)) = htonl(e.type());
-          *(reinterpret_cast<uint32_t*>(header->data() + 8)) =
+          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htonl(size);
+          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
+          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
               htonl(e.source_id);
-          *(reinterpret_cast<uint32_t*>(header->data() + 12)) =
+          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
               htonl(e.destination_id);
 
-          *(reinterpret_cast<uint16_t*>(header->data())) = htons(
-              misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
+          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
+              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
           break;
         } else {
           content->insert(content->end(), it, it + 0xffff);
-          *(reinterpret_cast<uint16_t*>(header->data() + 2)) = 0xffff;
-          *(reinterpret_cast<uint32_t*>(header->data() + 4)) = htonl(e.type());
-          *(reinterpret_cast<uint32_t*>(header->data() + 8)) =
+          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = 0xffff;
+          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
+          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
               htonl(e.source_id);
-          *(reinterpret_cast<uint32_t*>(header->data() + 12)) =
+          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
               htonl(e.destination_id);
 
-          *(reinterpret_cast<uint16_t*>(header->data())) = htons(
-              misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
+          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
+              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
           size -= 0xffff;
           it += 0xffff;
-          queue.emplace_back(std::vector<char>());
-          header = &queue.back();
-          header->resize(BBDO_HEADER_SIZE);
-          content = header;
         }
       }
     }

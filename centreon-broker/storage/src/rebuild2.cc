@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/storage/rebuild2.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
@@ -32,11 +33,11 @@ static io::data* new_rebuild2() {
   return new rebuild2;
 }
 
-static std::string serialize_rebuild2(std::shared_ptr<io::data> d) {
+static std::string serialize_rebuild2(const io::data& e) {
   std::string retval;
-  auto r = static_cast<rebuild2*>(d.get());
-  if (!r->SerializeToString(&retval))
-    throw msg_fmt("Unable to serialize rebuild2 object");
+  auto r = static_cast<const rebuild2*>(&e);
+  if (!r->obj.SerializeToString(&retval))
+    throw com::centreon::exceptions::msg_fmt("Unable to serialize rebuild2 object");
   return retval;
 }
 

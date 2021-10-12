@@ -100,6 +100,11 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 
   std::shared_ptr<storage::rebuild2> r(std::make_shared<storage::rebuild2>());
   r->obj.set_metric_id(1234);
+  for (int i = 0; i < 20; i++) {
+  Point* p = r->obj.add_data();
+  p->set_ctime(i);
+  p->set_value(i * i);
+      }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
   bbdo::stream stm(true);
@@ -110,11 +115,16 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
   stm.write(r);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
-  ASSERT_EQ(mem1.size(), 276u);
-  // The size is 276 - 16: 16 is the header size.
-//  ASSERT_EQ(htonl(*reinterpret_cast<uint32_t const*>(&mem1[0] + 150)),
-//            0x55667788u);
-//  ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 260u);
+  ASSERT_EQ(mem1.size(), 268u);
+  // The size is 268 - 16: 16 is the header size.
+  for (int i = 0; i < 268; i++) {
+    printf("%02x ", static_cast<unsigned int>(0xff & mem1[i]));
+    if ((i & 0xf) == 0)
+      std::cout << std::endl;
+  }
+  std::cout << std::endl;
+
+  ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 252u);
 //  ASSERT_EQ(htonl(*reinterpret_cast<uint32_t const*>(&mem1[0] + 91)), 12345u);
 //  ASSERT_EQ(std::string(&mem1[0] + 265), "Bonjour");
 //

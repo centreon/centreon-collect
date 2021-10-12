@@ -70,12 +70,6 @@ void inherited_downtime::_internal_copy(inherited_downtime const& other) {
   in_downtime = other.in_downtime;
 }
 
-/**************************************
- *                                     *
- *           Static Objects            *
- *                                     *
- **************************************/
-
 // Mapping.
 mapping::entry const inherited_downtime::entries[] = {
     mapping::entry(&bam::inherited_downtime::ba_id,
@@ -89,4 +83,4 @@ static io::data* new_inherited_downtime() {
   return new inherited_downtime;
 }
 io::event_info::event_operations const inherited_downtime::operations = {
-    &new_inherited_downtime};
+    &new_inherited_downtime, nullptr};
