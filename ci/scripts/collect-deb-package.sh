@@ -23,4 +23,6 @@ rm -rf debian
 mv ci/debian .
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
 debuild-pbuilder
+mkdir $DISTRIB
+mv *.deb $DISTRIB/
 
