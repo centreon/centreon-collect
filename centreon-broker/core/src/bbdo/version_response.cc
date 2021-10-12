@@ -55,4 +55,4 @@ static auto new_version_response() -> io::data* {
   return new version_response;
 }
 io::event_info::event_operations const version_response::operations = {
-    &new_version_response};
+    &new_version_response, nullptr, nullptr};

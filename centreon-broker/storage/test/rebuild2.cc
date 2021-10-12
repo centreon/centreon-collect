@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
+#include <google/protobuf/util/message_differencer.h>
 #include <fstream>
 #include <list>
 #include <memory>
@@ -38,6 +39,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
+using namespace google::protobuf::util;
 
 class into_memory : public io::stream {
  public:
@@ -101,10 +103,10 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
   std::shared_ptr<storage::rebuild2> r(std::make_shared<storage::rebuild2>());
   r->obj.set_metric_id(1234);
   for (int i = 0; i < 20; i++) {
-  Point* p = r->obj.add_data();
-  p->set_ctime(i);
-  p->set_value(i * i);
-      }
+    Point* p = r->obj.add_data();
+    p->set_ctime(i);
+    p->set_value(i * i);
+  }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
   bbdo::stream stm(true);
@@ -119,34 +121,23 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
   // The size is 268 - 16: 16 is the header size.
   for (int i = 0; i < 268; i++) {
     printf("%02x ", static_cast<unsigned int>(0xff & mem1[i]));
-    if ((i & 0xf) == 0)
-      std::cout << std::endl;
+    if ((i & 0x1f) == 0)
+      puts("");
   }
-  std::cout << std::endl;
+  puts("");
 
   ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 252u);
-//  ASSERT_EQ(htonl(*reinterpret_cast<uint32_t const*>(&mem1[0] + 91)), 12345u);
-//  ASSERT_EQ(std::string(&mem1[0] + 265), "Bonjour");
-//
-//  ASSERT_EQ(std::string(&mem1[0] + 265), "Bonjour");
-//  svc->host_id = 78113;
-//  svc->service_id = 18;
-//  svc->output = "Conjour";
-//  stm.write(svc);
-//  std::vector<char> const& mem2 = memory_stream->get_memory();
-//
-//  ASSERT_EQ(mem2.size(), 276u);
-//  ASSERT_EQ(htonl(*reinterpret_cast<uint32_t const*>(&mem1[0] + 91)), 78113u);
-//  // The size is 276 - 16: 16 is the header size.
-//  ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 260u);
-//
-//  // Check checksum
-//  ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0])), 33491u);
-//
-//  ASSERT_EQ(std::string(&mem1[0] + 265), "Conjour");
+
+  std::shared_ptr<io::data> e;
+  stm.read(e, time(nullptr) + 1000);
+  std::shared_ptr<storage::rebuild2> new_r =
+      std::static_pointer_cast<storage::rebuild2>(e);
+  ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
+  //  ASSERT_EQ(svc->perf_data, new_svc->perf_data);
+  //  ASSERT_EQ(svc->last_time_ok, new_svc->last_time_ok);
 }
 
-//TEST_F(StorageRebuild2Test, WriteLongService) {
+// TEST_F(StorageRebuild2Test, WriteLongService) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -173,7 +164,8 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //
 //  ASSERT_EQ(mem1.size(), 70285u);
 //
-//  // The buffer is too big. So it is splitted into several -- here 2 -- buffers.
+//  // The buffer is too big. So it is splitted into several -- here 2 --
+//  buffers.
 //  // The are concatenated, keeped into the same block, but a new header is
 //  // inserted in the "middle" of the buffer: Something like this:
 //  //     HEADER | BUFFER1 | HEADER | BUFFER2
@@ -194,7 +186,7 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //            10233u);
 //}
 //
-//TEST_F(StorageRebuild2Test, WriteReadService) {
+// TEST_F(StorageRebuild2Test, WriteReadService) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -238,7 +230,7 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //  ASSERT_EQ(svc->last_time_ok, new_svc->last_time_ok);
 //}
 //
-//TEST_F(StorageRebuild2Test, ShortPersistentFile) {
+// TEST_F(StorageRebuild2Test, ShortPersistentFile) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -282,7 +274,7 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //  std::remove("/tmp/test_output");
 //}
 //
-//TEST_F(StorageRebuild2Test, LongPersistentFile) {
+// TEST_F(StorageRebuild2Test, LongPersistentFile) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -326,7 +318,7 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //  std::remove("/tmp/long_output");
 //}
 //
-//TEST_F(StorageRebuild2Test, WriteReadBadChksum) {
+// TEST_F(StorageRebuild2Test, WriteReadBadChksum) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -365,7 +357,7 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //  ASSERT_EQ(new_svc->perf_data, std::string("value=18.0"));
 //}
 //
-//TEST_F(StorageRebuild2Test, ServiceTooShort) {
+// TEST_F(StorageRebuild2Test, ServiceTooShort) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -411,7 +403,7 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //  ASSERT_TRUE(e == nullptr);
 //}
 //
-//TEST_F(StorageRebuild2Test, ServiceTooShortAndAGoodOne) {
+// TEST_F(StorageRebuild2Test, ServiceTooShortAndAGoodOne) {
 //  config::applier::modules modules;
 //  modules.load_file("./neb/10-neb.so");
 //
@@ -459,4 +451,3 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
 //  ASSERT_EQ(new_svc->output, std::string("SecondOutput"));
 //  ASSERT_EQ(new_svc->perf_data, std::string("metric=3.14"));
 //}
-

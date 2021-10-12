@@ -264,7 +264,7 @@ void stream::_flush() {
     // Compress data.
     std::shared_ptr<io::raw> compressed(new io::raw);
     std::vector<char>& data(compressed->get_buffer());
-    data = std::move(zlib::compress(_wbuffer, _level));
+    data = zlib::compress(_wbuffer, _level);
     log_v2::core()->debug(
         "compression: {:x} compressed {} bytes to {} bytes (level {})",
         static_cast<void*>(this), _wbuffer.size(), compressed->size(), _level);

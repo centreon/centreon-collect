@@ -25,8 +25,7 @@ using namespace com::centreon::broker::storage;
 /**
  *  Default constructor.
  */
-rebuild2::rebuild2()
-    : io::data(rebuild2::static_type()) {}
+rebuild2::rebuild2() : io::data(rebuild2::static_type()) {}
 
 // Operations.
 static io::data* new_rebuild2() {
@@ -37,8 +36,19 @@ static std::string serialize_rebuild2(const io::data& e) {
   std::string retval;
   auto r = static_cast<const rebuild2*>(&e);
   if (!r->obj.SerializeToString(&retval))
-    throw com::centreon::exceptions::msg_fmt("Unable to serialize rebuild2 object");
+    throw com::centreon::exceptions::msg_fmt(
+        "Unable to serialize rebuild2 object");
   return retval;
 }
 
-io::event_info::event_operations const rebuild2::operations = {&new_rebuild2, &serialize_rebuild2};
+static io::data* unserialize_rebuild2(const char* buffer, size_t size) {
+  std::unique_ptr<storage::rebuild2> retval =
+      std::make_unique<storage::rebuild2>();
+  if (!retval->obj.ParseFromArray(buffer, size))
+    throw com::centreon::exceptions::msg_fmt(
+        "Unable to unserialize rebuild2 object");
+  return retval.release();
+}
+
+io::event_info::event_operations const rebuild2::operations = {
+    &new_rebuild2, &serialize_rebuild2, unserialize_rebuild2};

@@ -84,12 +84,6 @@ void dimension_ba_bv_relation_event::_internal_copy(
   bv_id = other.bv_id;
 }
 
-/**************************************
- *                                     *
- *           Static Objects            *
- *                                     *
- **************************************/
-
 // Mapping.
 mapping::entry const dimension_ba_bv_relation_event::entries[] = {
     mapping::entry(&bam::dimension_ba_bv_relation_event::ba_id,
@@ -106,4 +100,4 @@ static io::data* new_dimension_ba_bv_relation_event() {
 }
 io::event_info::event_operations const
     dimension_ba_bv_relation_event::operations = {
-        &new_dimension_ba_bv_relation_event};
+        &new_dimension_ba_bv_relation_event, nullptr, nullptr};

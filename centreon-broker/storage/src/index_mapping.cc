@@ -62,4 +62,4 @@ static io::data* new_index_mapping() {
   return new index_mapping;
 }
 io::event_info::event_operations const index_mapping::operations = {
-    &new_index_mapping, nullptr};
+    &new_index_mapping, nullptr, nullptr};

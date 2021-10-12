@@ -83,4 +83,4 @@ static io::data* new_inherited_downtime() {
   return new inherited_downtime;
 }
 io::event_info::event_operations const inherited_downtime::operations = {
-    &new_inherited_downtime, nullptr};
+    &new_inherited_downtime, nullptr, nullptr};

@@ -68,4 +68,4 @@ static io::data* new_kpi_status() {
   return new kpi_status(0);
 }
 io::event_info::event_operations const kpi_status::operations = {
-    &new_kpi_status};
+    &new_kpi_status, nullptr, nullptr};

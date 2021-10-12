@@ -9,7 +9,9 @@ message Point {
 }
 
 message Rebuild {
-  uint64 index_id = 1;
-  uint64 metric_id = 2;
+  oneof type {
+    uint64 index_id = 1;
+    uint64 metric_id = 2;
+  }
   repeated Point data = 3;
 }

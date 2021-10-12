@@ -123,4 +123,4 @@ static io::data* new_ba_duration_event() {
   return new ba_duration_event;
 }
 io::event_info::event_operations const ba_duration_event::operations = {
-    &new_ba_duration_event};
+    &new_ba_duration_event, nullptr, nullptr};

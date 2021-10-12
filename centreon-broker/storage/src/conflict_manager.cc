@@ -148,7 +148,7 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_max_log_queries = queries_per_transaction;
       _singleton->_ref_count++;
       _singleton->_thread =
-          std::move(std::thread(&conflict_manager::_callback, _singleton));
+          std::thread(&conflict_manager::_callback, _singleton);
       pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
       return true;
     }

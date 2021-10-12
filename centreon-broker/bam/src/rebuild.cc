@@ -63,4 +63,5 @@ mapping::entry const rebuild::entries[] = {
 static io::data* new_rebuild() {
   return new rebuild;
 }
-io::event_info::event_operations const rebuild::operations = {&new_rebuild};
+io::event_info::event_operations const rebuild::operations = {&new_rebuild,
+                                                              nullptr, nullptr};

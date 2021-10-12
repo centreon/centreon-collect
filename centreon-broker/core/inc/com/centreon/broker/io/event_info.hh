@@ -48,6 +48,7 @@ class event_info {
   struct event_operations {
     io::data* (*constructor)();
     std::string (*serialize)(const io::data& e);
+    io::data* (*unserialize)(const char* buffer, size_t size);
   };
 
  private:

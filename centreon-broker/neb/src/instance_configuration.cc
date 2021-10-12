@@ -89,7 +89,7 @@ static io::data* new_ic() {
   return (new instance_configuration);
 }
 io::event_info::event_operations const instance_configuration::operations = {
-    &new_ic};
+    &new_ic, nullptr, nullptr};
 
 /**************************************
  *                                     *

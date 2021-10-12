@@ -210,7 +210,7 @@ void parser::parse_perfdata(uint32_t host_id,
     }
 
     if (end - s + 1 > 0) {
-      std::string name(std::move(std::string(s, end - s + 1)));
+      std::string name(s, end - s + 1);
       name.resize(misc::string::adjust_size_utf8(
           name, get_metrics_col_size(metrics_metric_name)));
       p.name(std::move(name));
@@ -258,7 +258,7 @@ void parser::parse_perfdata(uint32_t host_id,
     // Extract unit.
     size_t t = strcspn(tmp, " \t\n\r;");
     {
-      std::string unit(std::move(std::string(tmp, t)));
+      std::string unit(tmp, t);
       unit.resize(misc::string::adjust_size_utf8(
           unit, get_metrics_col_size(metrics_unit_name)));
       p.unit(std::move(unit));

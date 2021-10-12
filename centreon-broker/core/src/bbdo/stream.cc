@@ -228,72 +228,93 @@ static uint32_t set_ulong(io::data& t,
 static io::data* unserialize(uint32_t event_type,
                              uint32_t source_id,
                              uint32_t destination_id,
-                             char const* buffer,
+                             const char* buffer,
                              uint32_t size) {
   // Get event info (operations and mapping).
   io::event_info const* info(io::events::instance().get_event_info(event_type));
   if (info) {
     // Create object.
-    std::unique_ptr<io::data> t(info->get_operations().constructor());
-    if (t) {
-      t->source_id = source_id;
-      t->destination_id = destination_id;
-      // Browse all mapping to unserialize the object.
-      for (const mapping::entry* current_entry = info->get_mapping();
-           !current_entry->is_null(); ++current_entry)
-        // Skip entries that should not be serialized.
-        if (current_entry->get_serialize()) {
-          uint32_t rb;
-          switch (current_entry->get_type()) {
-            case mapping::source::BOOL:
-              rb = set_boolean(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::DOUBLE:
-              rb = set_double(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::INT:
-              rb = set_integer(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::SHORT:
-              rb = set_short(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::STRING:
-              rb = set_string(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::TIME:
-              rb = set_timestamp(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::UINT:
-              rb = set_uint(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::ULONG:
-              rb = set_ulong(*t, *current_entry, buffer, size);
-              break;
+    if (info->get_mapping()) {
+      std::unique_ptr<io::data> t(info->get_operations().constructor());
+      if (t) {
+        t->source_id = source_id;
+        t->destination_id = destination_id;
+        // Browse all mapping to unserialize the object.
+        for (const mapping::entry* current_entry = info->get_mapping();
+             !current_entry->is_null(); ++current_entry)
+          // Skip entries that should not be serialized.
+          if (current_entry->get_serialize()) {
+            uint32_t rb;
+            switch (current_entry->get_type()) {
+              case mapping::source::BOOL:
+                rb = set_boolean(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::DOUBLE:
+                rb = set_double(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::INT:
+                rb = set_integer(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::SHORT:
+                rb = set_short(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::STRING:
+                rb = set_string(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::TIME:
+                rb = set_timestamp(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::UINT:
+                rb = set_uint(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::ULONG:
+                rb = set_ulong(*t, *current_entry, buffer, size);
+                break;
 
-            default:
-              log_v2::bbdo()->error(
-                  "BBDO: invalid mapping for object of type '{0}': {1} is not "
-                  "a known type ID",
-                  info->get_name(), current_entry->get_type());
-              throw msg_fmt(
-                  "BBDO: invalid mapping for "
-                  "object of type '{}"
-                  "': {}"
-                  " is not a known type ID",
-                  info->get_name(), current_entry->get_type());
+              default:
+                log_v2::bbdo()->error(
+                    "BBDO: invalid mapping for object of type '{0}': {1} is "
+                    "not "
+                    "a known type ID",
+                    info->get_name(), current_entry->get_type());
+                throw msg_fmt(
+                    "BBDO: invalid mapping for "
+                    "object of type '{}"
+                    "': {}"
+                    " is not a known type ID",
+                    info->get_name(), current_entry->get_type());
+            }
+            buffer += rb;
+            size -= rb;
           }
-          buffer += rb;
-          size -= rb;
-        }
-      return t.release();
+        return t.release();
+      } else {
+        log_v2::bbdo()->error(
+            "BBDO: cannot create object of ID {} whereas it has been "
+            "registered",
+            event_type);
+        throw msg_fmt(
+            "BBDO: cannot create object of ID {}"
+            " whereas it has been registered",
+            event_type);
+      }
     } else {
-      log_v2::bbdo()->error(
-          "BBDO: cannot create object of ID {} whereas it has been registered",
-          event_type);
-      throw msg_fmt(
-          "BBDO: cannot create object of ID {}"
-          " whereas it has been registered",
-          event_type);
+      std::unique_ptr<io::data> t(
+          info->get_operations().unserialize(buffer, size));
+      if (t) {
+        t->source_id = source_id;
+        t->destination_id = destination_id;
+      } else {
+        log_v2::bbdo()->error(
+            "BBDO: cannot create object of ID {} whereas it has been "
+            "registered",
+            event_type);
+        throw msg_fmt(
+            "BBDO: cannot create object of ID {} whereas it has been "
+            "registered",
+            event_type);
+      }
+      return t.release();
     }
   } else {
     log_v2::bbdo()->info(
@@ -511,7 +532,7 @@ static io::raw* serialize(const io::data& e) {
       while (size > 0) {
         if (size < 0xffff) {
           content->insert(content->end(), it, r.end());
-          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htonl(size);
+          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htons(size);
           *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
           *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
               htonl(e.source_id);

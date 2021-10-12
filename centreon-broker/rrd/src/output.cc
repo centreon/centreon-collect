@@ -31,6 +31,7 @@
 #include "com/centreon/broker/storage/events.hh"
 #include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/storage/perfdata.hh"
+#include "com/centreon/broker/storage/rebuild2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
@@ -278,6 +279,25 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.push_back(d);
       }
       break;
+    case storage::rebuild2::static_type(): {
+      std::shared_ptr<storage::rebuild2> e{
+          std::static_pointer_cast<storage::rebuild2>(d)};
+      std::string path;
+      if (e->obj.has_index_id()) {
+        log_v2::rrd()->debug("RRD: complete rebuild request for status {}",
+                             e->obj.index_id());
+        // Generate path.
+        path = fmt::format("{}{}.rrd", _status_path, e->obj.index_id());
+      } else {
+        log_v2::rrd()->debug("RRD: complete rebuild request for metric {}",
+                             e->obj.metric_id());
+        // Generate path.
+        path = fmt::format("{}{}.rrd", _metrics_path, e->obj.metric_id());
+      }
+
+      for (auto& p : e->obj.data()) {
+      }
+    } break;
     case storage::rebuild::static_type(): {
       // Debug message.
       std::shared_ptr<storage::rebuild> e(

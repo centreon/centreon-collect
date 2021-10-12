@@ -90,14 +90,14 @@ grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
       for (auto& obj : value) {
         object["module" + obj["name"].get<std::string>()] = obj;
       }
-      response->set_str_arg(std::move(object.dump()));
+      response->set_str_arg(object.dump());
       break;
 
     case GenericNameOrIndex::kStr:
       for (auto& obj : value) {
         if (obj["name"].get<std::string>() == request->str()) {
           found = true;
-          response->set_str_arg(std::move(object.dump()));
+          response->set_str_arg(object.dump());
           break;
         }
       }
@@ -145,14 +145,14 @@ grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
       for (auto& obj : value) {
         object["module" + obj["name"].get<std::string>()] = obj;
       }
-      response->set_str_arg(std::move(object.dump()));
+      response->set_str_arg(object.dump());
       break;
 
     case GenericNameOrIndex::kStr:
       for (auto& obj : value) {
         if (obj["name"].get<std::string>() == request->str()) {
           found = true;
-          response->set_str_arg(std::move(obj.dump()));
+          response->set_str_arg(obj.dump());
           break;
         }
       }
@@ -168,7 +168,7 @@ grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
                             grpc::string("idx too big"));
 
       object = value[request->idx()];
-      response->set_str_arg(std::move(object.dump()));
+      response->set_str_arg(object.dump());
       break;
 
     default:
@@ -185,34 +185,31 @@ grpc::Status broker_impl::GetGenericStats(
   nlohmann::json object;
   stats::get_generic_stats(object);
 
-  response->set_str_arg(std::move(object.dump()));
+  response->set_str_arg(object.dump());
   return grpc::Status::OK;
 }
 
 grpc::Status broker_impl::GetSqlConnectionStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const GenericInt* request, 
-                                      SqlConnectionStats* response) {
+                                                __attribute__((unused)),
+                                                const GenericInt* request,
+                                                SqlConnectionStats* response) {
   uint32_t index = request->value();
   stats::center::instance().get_sql_connection_stats(index, response);
   return grpc::Status::OK;
 }
 
-
-grpc::Status broker_impl::GetConflictManagerStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const ::google::protobuf::Empty* request
-                                      __attribute__((unused)),
-                                      ConflictManagerStats* response) {
+grpc::Status broker_impl::GetConflictManagerStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    ConflictManagerStats* response) {
   stats::center::instance().get_conflict_manager_stats(response);
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlConnectionSize(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const ::google::protobuf::Empty* request
-                                      __attribute__((unused)),
-                                      GenericSize* response) {
+grpc::Status broker_impl::GetSqlConnectionSize(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    GenericSize* response) {
   stats::center::instance().get_sql_connection_size(response);
   return grpc::Status::OK;
 }

@@ -94,4 +94,4 @@ static io::data* new_dimension_timeperiod_exclusion() {
 }
 io::event_info::event_operations const
     dimension_timeperiod_exclusion::operations = {
-        &new_dimension_timeperiod_exclusion};
+        &new_dimension_timeperiod_exclusion, nullptr, nullptr};

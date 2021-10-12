@@ -122,4 +122,4 @@ static io::data* new_custom_var() {
   return new custom_variable;
 }
 io::event_info::event_operations const custom_variable::operations = {
-    &new_custom_var};
+    &new_custom_var, nullptr, nullptr};
