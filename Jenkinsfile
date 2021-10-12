@@ -113,7 +113,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         checkout scm
       }
         sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
-        stash name: 'Debian10', includes: 'Debian10'
+        stash name: 'Debian10', includes: 'Debian10/*.deb'
         archiveArtifacts artifacts: "Debian10"
         // sh 'rm -rf *.deb'
         deleteDir()
@@ -135,7 +135,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         checkout scm
       }
       sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
-      stash name: 'Debian11', includes: 'Debian11'
+      stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11"
       // sh 'rm -rf *.deb'
       deleteDir()
