@@ -13,8 +13,8 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	cd build && \
-	make -j${CPU_COUNT}
+	make -j9
 
 override_dh_auto_install:
 	cd build && \
-	make -j${CPU_COUNT} install DESTDIR=../debian/tmp-centreon-collect
+	make -j9 install DESTDIR=../debian/tmp-centreon-collect
