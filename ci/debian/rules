@@ -1,5 +1,6 @@
 #!/usr/bin/make -f
 export DH_VERBOSE=1
+export CPU_COUNT=$(nproc --all)
 
 %:
 	dh $@  
@@ -12,8 +13,8 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	cd build && \
-	make -j9
+	make -j${CPU_COUNT}
 
 override_dh_auto_install:
 	cd build && \
-	make -j9 install DESTDIR=../debian/tmp-centreon-collect
+	make -j${CPU_COUNT} install DESTDIR=../debian/tmp-centreon-collect
