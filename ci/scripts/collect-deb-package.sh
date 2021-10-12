@@ -19,6 +19,7 @@ fi
 # cp -rv * centreon-collect
 tar czpvf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
+rm -rf debian
 mv ci/debian .
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
 debuild-pbuilder
