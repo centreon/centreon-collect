@@ -1,4 +1,5 @@
-# engine-rpc-client.py
+#!/usr/bin/python3
+# centreon-rpc-client.py
 # last modified 17.08.2021
 # file to communicate with gRPC methods
 
@@ -196,9 +197,9 @@ class gRPC_client:
       for type in gRPC_types:
         if f.type == type.value:
           if f.type == gRPC_types.TYPE_MESSAGE.value:
-            self.get_grpc_message_info(current_msg_dsc, f, n+1)
+            self.get_grpc_message_info(current_msg_dsc, f, string_space + 1)
           elif f.type == gRPC_types.TYPE_ENUM.value:
-            result_str = self.get_grpc_enum_info(m_input, f, 3, result_str)
+            result_str = self.get_grpc_enum_info(parent_message_descriptor, f, 3, result_str)
           else:
             result_str += str_format + " \"{}\": {},\n".format(f.name, type.name)
 
@@ -222,8 +223,8 @@ class gRPC_client:
     for v in current_msg_dsc.values:
       result_str += str_format + " {}".format(v.name) + '\n'
 
-    reurn_str += str_format + "}" + '\n'
-    return return_str
+    result_str += str_format + "}" + '\n'
+    return result_str
 
 
   # Launch a gRPC method
@@ -362,6 +363,9 @@ if __name__ == "__main__":
   input_file  = ""
   json_args   = ""
   client      = None 
+
+  # The following line is just used to debug.
+  #sys.argv += "--component=broker --port=51001 --exe=GetVersion".split()
 
   try:
     opts, args = getopt.getopt(sys.argv[1:], "vhlc:p:f:a:d:e:",
