@@ -230,14 +230,14 @@ class gRPC_client:
   # Launch a gRPC method
   def exe(self, method_name, message):
     try:
-      str_to_eval = "self.stub." + method_name + "(message)"
+      str_to_eval = "self.stub.{}(message)".format(method_name)
       check = eval(str_to_eval)
-      response_str = google.protobuf.text_format.MessageToString(check)
+      response_str = google.protobuf.json_format.MessageToJson(check, including_default_value_fields=True, preserving_proto_field_name=True, indent=2)
     except grpc.RpcError as e:
       sys.exit(f"code={e.code()}, message={e.details()}")
     else:
       if not isBlank(response_str):
-        print(f"gRPC response :\n\n{response_str}")
+        print(response_str)
       elif VERBOSE_MODE:
         print(grpc.StatusCode.OK)
 
@@ -253,7 +253,10 @@ def json_to_message(client, method_name, json_datas):
   if m.input_type.name == "Empty":
     mod = __import__('google.protobuf.empty_pb2', fromlist=[m.input_type.name])
   else:
-    mod = __import__('engine_pb2', fromlist=[m.input_type.name])
+    if client.component == 'broker':
+      mod = __import__('broker_pb2', fromlist=[m.input_type.name])
+    else:
+      mod = __import__('engine_pb2', fromlist=[m.input_type.name])
 
   try:
     c = getattr(mod, m.input_type.name)
@@ -365,7 +368,7 @@ if __name__ == "__main__":
   client      = None 
 
   # The following line is just used to debug.
-  #sys.argv += "--component=broker --port=51001 --exe=GetVersion".split()
+  #sys.argv += "--port=51001 --component=broker --exe=GetSqlConnectionStats --args={\"value\":0}".split()
 
   try:
     opts, args = getopt.getopt(sys.argv[1:], "vhlc:p:f:a:d:e:",
