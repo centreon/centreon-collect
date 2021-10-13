@@ -112,7 +112,7 @@ void policy::on_execute(unsigned long long cmd_id,
     pid_t child(chk->execute(cmd_id, cmd, timeout));
     _checks[child] = chk.release();
   } catch (std::exception const& e) {
-    log::core()->info("execution of check {0} failed {1}", cmd_id, e.what());
+    log::core()->info("execution of check {} failed {}", cmd_id, e.what());
     checks::result r;
     r.set_command_id(cmd_id);
     on_result(r);
@@ -170,7 +170,7 @@ bool policy::run() {
     pid_t child(waitpid(0, &status, WNOHANG));
     while (child != 0 && child != (pid_t)-1) {
       // Handle process termination.
-      log::core()->info("process {0} exited with status {1}", status);
+      log::core()->info("process {0} exited with status {1}", child, status);
       std::map<pid_t, checks::check*>::iterator it;
       it = _checks.find(child);
       if (it != _checks.end()) {
