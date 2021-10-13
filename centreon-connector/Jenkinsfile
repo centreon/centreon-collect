@@ -4,25 +4,24 @@
 properties([buildDiscarder(logRotator(numToKeepStr: '10'))])
 def serie = '21.10'
 def maintenanceBranch = "${serie}.x"
+def qaBranch = "dev-${serie}.x"
+
 if (env.BRANCH_NAME.startsWith('release-')) {
   env.BUILD = 'RELEASE'
 } else if ((env.BRANCH_NAME == 'master') || (env.BRANCH_NAME == maintenanceBranch)) {
   env.BUILD = 'REFERENCE'
+} else if ((env.BRANCH_NAME == 'develop') || (env.BRANCH_NAME == qaBranch)) {
+  env.BUILD = 'QA'
 } else {
   env.BUILD = 'CI'
-}
-
-def buildBranch = env.BRANCH_NAME
-if (env.CHANGE_BRANCH) {
-  buildBranch = env.CHANGE_BRANCH
 }
 
 /*
 ** Functions
 */
-
-def isStableBuild() {
-  return ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE'))
+def buildBranch = env.BRANCH_NAME
+if (env.CHANGE_BRANCH) {
+  buildBranch = env.CHANGE_BRANCH
 }
 
 def checkoutCentreonBuild(buildBranch) {
@@ -50,7 +49,7 @@ def checkoutCentreonBuild(buildBranch) {
 ** Pipeline code.
 */
 stage('Source') {
-  node {
+  node("C++") {
     dir('centreon-connector') {
       checkout scm
     }
@@ -71,25 +70,30 @@ stage('Source') {
 }
 
 try {
-  stage('Sonar analysis') {
-    node {
-      sh 'setup_centreon_build.sh'
-      /* unittest.sh does not exist currently. ADD the missing script before restoring this part
-
-      sh "./centreon-build/jobs/connector/${serie}/mon-connector-unittest.sh centos7"
-      step([
-      $class: 'XUnitBuilder',
-        thresholds: [
-          [$class: 'FailedThreshold', failureThreshold: '0'],
-          [$class: 'SkippedThreshold', failureThreshold: '0']
-        ],
-        tools: [[$class: 'GoogleTestType', pattern: 'ut.xml']]
-      ])
-      */
-
-      withSonarQubeEnv('SonarQubeDev') {
-        sh "./centreon-build/jobs/connector/${serie}/mon-connector-analysis.sh"
+  stage('Packaging // Sonar analysis // Quality Gate') {
+    parallel 'packaging centos7': {
+      node("C++") {
+        sh 'setup_centreon_build.sh'
+        sh "./centreon-build/jobs/connector/${serie}/mon-connector-package.sh centos7"
+        stash name: 'el7-rpms', includes: "output/x86_64/*.rpm"
+        archiveArtifacts artifacts: "output/x86_64/*.rpm"
       }
+    },
+    'packaging centos8': {
+      node("C++") {
+        sh 'setup_centreon_build.sh'
+        sh "./centreon-build/jobs/connector/${serie}/mon-connector-package.sh centos8"
+        stash name: 'el8-rpms', includes: "output/x86_64/*.rpm"
+        archiveArtifacts artifacts: "output/x86_64/*.rpm"
+      }
+    },
+    'Sonar analysis and Quality Gate': {
+      node("C++") {
+        sh 'setup_centreon_build.sh'
+        withSonarQubeEnv('SonarQubeDev') {
+          sh "./centreon-build/jobs/connector/${serie}/mon-connector-analysis.sh"
+        }
+      }  
     }
     timeout(time: 10, unit: 'MINUTES') {
       def qualityGate = waitForQualityGate()
@@ -98,31 +102,15 @@ try {
       }
     }
     if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-      error("Quality gate failure: ${qualityGate.status}.");
+      error('Packaging // Sonar analysis // Quality Gate failure');
     }
   }
 
-  stage('Package') {
-    parallel 'centos7': {
-      node {
-        sh 'setup_centreon_build.sh'
-        sh "./centreon-build/jobs/connector/${serie}/mon-connector-package.sh centos7"
-      }
-    },
-    'centos8': {
-      node {
-        sh 'setup_centreon_build.sh'
-        sh "./centreon-build/jobs/connector/${serie}/mon-connector-package.sh centos8"
-      }
-    }
-    if ((currentBuild.result ?: 'SUCCESS') != 'SUCCESS') {
-      error('Package stage failure.');
-    }
-  }
-
-  if ((env.BUILD == 'RELEASE') || (env.BUILD == 'REFERENCE')) {
+  if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
     stage('Delivery') {
-      node {
+      node("C++") {
+        unstash 'el7-rpms'
+        unstash 'el8-rpms'
         sh 'setup_centreon_build.sh'
         sh "./centreon-build/jobs/connector/${serie}/mon-connector-delivery.sh"
       }

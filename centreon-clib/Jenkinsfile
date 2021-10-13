@@ -62,7 +62,6 @@ try {
       node("C++") {
         sh 'setup_centreon_build.sh'
         sh "./centreon-build/jobs/clib/${serie}/mon-clib-package.sh centos7"
-        archiveArtifacts artifacts: "output/x86_64/*.rpm"
         stash name: 'el7-rpms', includes: "output/x86_64/*.rpm"
         archiveArtifacts artifacts: "output/x86_64/*.rpm"
         sh 'rm -rf output' 
