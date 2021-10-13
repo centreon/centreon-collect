@@ -116,7 +116,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         stash name: 'Debian10', includes: 'Debian10/*.deb'
         archiveArtifacts artifacts: "Debian10/*"
         // sh 'rm -rf *.deb'
-        deleteDir()
+        // deleteDir()
     }
   },
     'debian bulseye Build and UT': {
@@ -138,7 +138,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
       // sh 'rm -rf *.deb'
-      deleteDir()
+      // deleteDir()
     }
   }  
 }
