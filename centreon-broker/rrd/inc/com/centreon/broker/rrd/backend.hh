@@ -20,6 +20,7 @@
 #define CCB_RRD_BACKEND_HH
 
 #include <ctime>
+#include <list>
 #include <string>
 
 #include "com/centreon/broker/namespace.hh"
@@ -55,6 +56,7 @@ class backend {
                     short value_type = 0) = 0;
   virtual void remove(std::string const& filename) = 0;
   virtual void update(time_t t, std::string const& value) = 0;
+  virtual void update(const std::list<std::string>& pts) = 0;
 };
 }  // namespace rrd
 

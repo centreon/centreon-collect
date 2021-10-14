@@ -101,7 +101,8 @@ TEST_F(StorageRebuild2Test, WriteRebuild2) {
   modules.load_file("./storage/20-storage.so");
 
   std::shared_ptr<storage::rebuild2> r(std::make_shared<storage::rebuild2>());
-  r->obj.set_metric_id(1234);
+  r->obj.mutable_metric()->set_metric_id(1234);
+  r->obj.mutable_metric()->set_value_type(0);
   for (int i = 0; i < 20; i++) {
     Point* p = r->obj.add_data();
     p->set_ctime(i);

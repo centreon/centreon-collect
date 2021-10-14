@@ -53,6 +53,7 @@ class lib : public backend {
             short value_type = 0);
   void remove(std::string const& filename);
   void update(time_t t, std::string const& value);
+  void update(const std::list<std::string>& pts);
 
  private:
   creator _creator;
