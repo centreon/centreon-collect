@@ -288,6 +288,9 @@ class cached : public backend {
                              _filename, e.what() + 5);
     }
   }
+
+  void update(const std::list<std::string>& pts) {
+  }
 };
 }  // namespace rrd
 

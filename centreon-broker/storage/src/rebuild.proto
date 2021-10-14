@@ -8,10 +8,17 @@ message Point {
   int32 status = 3;
 }
 
+message Metric {
+  int32 value_type = 1;
+  uint64 metric_id = 2;
+}
+
 message Rebuild {
   oneof type {
     uint64 index_id = 1;
-    uint64 metric_id = 2;
+    Metric metric = 2;
   }
-  repeated Point data = 3;
+  uint32 interval = 3;
+  uint32 length = 4;
+  repeated Point data = 5;
 }

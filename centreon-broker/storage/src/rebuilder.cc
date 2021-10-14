@@ -275,7 +275,8 @@ void rebuilder::_rebuild_metric(mysql& ms,
 
 #ifdef USE_PROTOBUF
   auto r = std::make_shared<storage::rebuild2>();
-  r->obj.set_metric_id(metric_id);
+  r->obj.mutable_metric()->set_metric_id(metric_id);
+  r->obj.mutable_metric()->set_value_type(metric_type);
 #else
   // Send rebuild start event.
   _send_rebuild_event(false, metric_id, false);
@@ -371,6 +372,8 @@ void rebuilder::_rebuild_status(mysql& ms,
 #ifdef USE_PROTOBUF
   auto r = std::make_shared<storage::rebuild2>();
   r->obj.set_index_id(index_id);
+  r->obj.set_interval(interval);
+  r->obj.set_length(length);
 #else
   // Send rebuild start event.
   _send_rebuild_event(false, index_id, true);

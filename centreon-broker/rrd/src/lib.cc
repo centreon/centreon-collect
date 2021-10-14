@@ -35,12 +35,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Constructor.
  *
@@ -168,4 +162,7 @@ void lib::update(time_t t, std::string const& value) {
       log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
                            _filename, msg);
   }
+}
+
+void lib::update(const std::list<std::string>& pts) {
 }

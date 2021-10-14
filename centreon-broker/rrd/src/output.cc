@@ -18,10 +18,10 @@
 
 #include "com/centreon/broker/rrd/output.hh"
 
+#include <fmt/format.h>
 #include <cassert>
 #include <cstdlib>
 #include <iomanip>
-#include <sstream>
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -191,7 +191,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             fmt::format("{}{}.rrd", _metrics_path, e->metric_id));
 
         // Check that metric is not being rebuild.
-        rebuild_cache::iterator it(_metrics_rebuild.find(metric_path));
+        rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
         if (e->is_for_rebuild || it == _metrics_rebuild.end()) {
           // Write metrics RRD.
           try {
@@ -202,39 +202,39 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             _backend.open(metric_path, e->rrd_len, e->ctime - 1, interval,
                           e->value_type);
           }
-          std::ostringstream oss;
+          std::string v;
           switch (e->value_type) {
             case storage::perfdata::gauge:
-              oss << std::fixed << e->value;
+              v = fmt::format("{:f}", e->value);
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type GAUGE with {}", e->metric_id,
-                  oss.str());
+                  v);
               break;
             case storage::perfdata::counter:
-              oss << static_cast<uint64_t>(e->value);
+              v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type COUNTER with {}", e->metric_id,
-                  oss.str());
+                  v);
               break;
             case storage::perfdata::derive:
-              oss << static_cast<int64_t>(e->value);
+              v = fmt::format("{}", static_cast<int64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type DERIVE with {}", e->metric_id,
-                  oss.str());
+                  v);
               break;
             case storage::perfdata::absolute:
-              oss << static_cast<uint64_t>(e->value);
+              v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type ABSOLUTE with {}",
-                  e->metric_id, oss.str());
+                  e->metric_id, v);
               break;
             default:
-              oss << std::fixed << e->value;
+              v = fmt::format("{:f}", e->value);
               log_v2::rrd()->trace("RRD: update metric {} of type {} with {}",
-                                   e->metric_id, e->value_type, oss.str());
+                                   e->metric_id, e->value_type, v);
               break;
           }
-          _backend.update(e->ctime, oss.str());
+          _backend.update(e->ctime, v);
         } else
           // Cache value.
           it->second.push_back(d);
@@ -283,19 +283,79 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       std::shared_ptr<storage::rebuild2> e{
           std::static_pointer_cast<storage::rebuild2>(d)};
       std::string path;
+      std::list<std::string> lst;
       if (e->obj.has_index_id()) {
         log_v2::rrd()->debug("RRD: complete rebuild request for status {}",
                              e->obj.index_id());
         // Generate path.
         path = fmt::format("{}{}.rrd", _status_path, e->obj.index_id());
+        time_t start_time = time(nullptr);
+        if (!e->obj.data().empty())
+          start_time = e->obj.data()[0].ctime() - 1;
+        for (auto& p : e->obj.data()) {
+          std::string v;
+          switch (p.status()) {
+            case 0:
+              lst.emplace_back(fmt::format("{}:{}", p.ctime(), 100));
+              break;
+            case 1:
+              lst.emplace_back(fmt::format("{}:{}", p.ctime(), 75));
+              break;
+            case 2:
+              lst.emplace_back(fmt::format("{}:{}", p.ctime(), 0));
+              break;
+            default:
+              lst.emplace_back(fmt::format("{}:", p.ctime()));
+              break;
+          }
+        }
+        _backend.remove(path);
+        try {
+          _backend.open(path);
+        } catch (exceptions::open const& b) {
+          time_t interval{e->obj.interval() ? e->obj.interval() : 60};
+          _backend.open(path, e->obj.length(), start_time, interval);
+        }
+        _backend.update(lst);
       } else {
         log_v2::rrd()->debug("RRD: complete rebuild request for metric {}",
-                             e->obj.metric_id());
+                             e->obj.metric().metric_id());
+        time_t start_time = time(nullptr);
+        if (!e->obj.data().empty())
+          start_time = e->obj.data()[0].ctime() - 1;
         // Generate path.
-        path = fmt::format("{}{}.rrd", _metrics_path, e->obj.metric_id());
-      }
-
-      for (auto& p : e->obj.data()) {
+        path = fmt::format("{}{}.rrd", _metrics_path, e->obj.metric().metric_id());
+        std::string v;
+        switch (e->obj.metric().value_type()) {
+          case storage::perfdata::gauge:
+            for (auto& p : e->obj.data())
+              lst.emplace_back(fmt::format("{}:{:f}", p.ctime(), p.value()));
+            break;
+          case storage::perfdata::counter:
+          case storage::perfdata::absolute:
+            for (auto& p : e->obj.data())
+              lst.emplace_back(fmt::format("{}:{}", p.ctime(),
+                                           static_cast<uint64_t>(p.value())));
+            break;
+          case storage::perfdata::derive:
+            for (auto& p : e->obj.data())
+              lst.emplace_back(fmt::format("{}:{}", p.ctime(),
+                                           static_cast<int64_t>(p.value())));
+            break;
+          default:
+            for (auto& p : e->obj.data())
+              lst.emplace_back(fmt::format("{}:{:f}", p.ctime(), p.value()));
+            break;
+        }
+        _backend.remove(path);
+        try {
+          _backend.open(path);
+        } catch (exceptions::open const& b) {
+          time_t interval{e->obj.interval() ? e->obj.interval() : 60};
+          _backend.open(path, e->obj.length(), start_time, interval,
+                        e->obj.metric().value_type());
+        }
+        _backend.update(lst);
       }
     } break;
     case storage::rebuild::static_type(): {
