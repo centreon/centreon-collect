@@ -130,7 +130,7 @@ class cached : public backend {
    *
    *  @param[in] command Command to send.
    */
-  void _send_to_cached(std::string const& command) {
+  void _send_to_cached(const std::string& command) {
     std::error_code err;
 
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
@@ -290,6 +290,20 @@ class cached : public backend {
   }
 
   void update(const std::list<std::string>& pts) {
+    log_v2::rrd()->debug("RRD: updating file '{}' with {} values", _filename,
+                         pts.size());
+
+    std::string cmd{
+        fmt::format("UPDATE {} {}\n", _filename, fmt::join(pts, " "))};
+    try {
+      _send_to_cached(cmd);
+    } catch (msg_fmt const& e) {
+      if (!strstr(e.what(), "illegal attempt to update using time"))
+        throw exceptions::update(e.what());
+      else
+        log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
+                             _filename, e.what() + 5);
+    }
   }
 };
 }  // namespace rrd

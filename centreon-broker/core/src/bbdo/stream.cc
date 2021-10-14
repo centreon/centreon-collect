@@ -521,15 +521,15 @@ static io::raw* serialize(const io::data& e) {
           htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
 
     } else {
-      // Serialization buffer.
-      queue.emplace_back(std::vector<char>());
-      auto* content = &queue.back();
-      content->resize(BBDO_HEADER_SIZE);
       /* Here is the protobuf case: no mapping */
       std::string r{info->get_operations().serialize(e)};
       size_t size = r.size();
       auto it = r.begin();
       while (size > 0) {
+        // Serialization buffer.
+        queue.emplace_back(std::vector<char>());
+        auto* content = &queue.back();
+        content->resize(BBDO_HEADER_SIZE);
         if (size < 0xffff) {
           content->insert(content->end(), it, r.end());
           *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htons(size);
