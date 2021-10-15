@@ -60,9 +60,6 @@ TEST(EmbeddedPerl, RunSimple1) {
 }
 
 TEST(EmbeddedPerl, RunSimple2) {
-  // Return value.
-  int retval(EXIT_FAILURE);
-
   // Write simple Perl script.
   std::string script_path(com::centreon::io::file_stream::temp_path());
   ASSERT_NO_THROW({
