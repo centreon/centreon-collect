@@ -51,7 +51,7 @@ void applier::serviceescalation::add_object(
                             "hosts / host groups / services / service groups";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new escalation for service '"
       << obj.service_description().front() << "' of host '"
       << obj.hosts().front() << "'";
@@ -104,7 +104,8 @@ void applier::serviceescalation::add_object(
  */
 void applier::serviceescalation::expand_objects(configuration::state& s) {
   // Browse all escalations.
-  logger(logging::dbg_config, logging::more) << "Expanding service escalations";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Expanding service escalations";
 
   configuration::set_serviceescalation expanded;
   for (configuration::set_serviceescalation::const_iterator
@@ -167,7 +168,7 @@ void applier::serviceescalation::modify_object(
 void applier::serviceescalation::remove_object(
     configuration::serviceescalation const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing a service escalation.";
 
   // Find service escalation.
@@ -184,7 +185,7 @@ void applier::serviceescalation::remove_object(
       engine::service::services.find({host_name, description})};
   /* ... and its escalations */
   if (sit == engine::service::services.end()) {
-    logger(logging::dbg_config, logging::more)
+    engine_logger(logging::dbg_config, logging::more)
         << "Cannot find service '" << host_name << "/" << description
         << "' - already removed.";
     service_exists = false;
@@ -203,7 +204,7 @@ void applier::serviceescalation::remove_object(
                                       it->second.get(), &tv);
 
       if (service_exists) {
-        logger(logging::dbg_config, logging::more)
+        engine_logger(logging::dbg_config, logging::more)
             << "Service '" << host_name << "/" << description
             << "' found - removing escalation from it.";
         std::list<escalation*>& srv_escalations(sit->second->get_escalations());
@@ -237,7 +238,7 @@ void applier::serviceescalation::remove_object(
 void applier::serviceescalation::resolve_object(
     configuration::serviceescalation const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service escalation.";
 
   // Find service escalation

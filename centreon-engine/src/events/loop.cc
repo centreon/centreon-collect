@@ -72,9 +72,9 @@ void loop::clear() {
  */
 void loop::run() {
   // Debug message.
-  logger(dbg_functions, basic) << "events::loop::run()";
+  engine_logger(dbg_functions, basic) << "events::loop::run()";
 
-  logger(log_info_message, basic)
+  engine_logger(log_info_message, basic)
       << "Configuration loaded, main loop starting.";
 
   // Initialize some time members.
@@ -102,7 +102,7 @@ void loop::run() {
 loop::loop() : _need_reload(0), _reload_running(false) {}
 
 static void apply_conf(std::atomic<bool>* reloading) {
-  logger(log_info_message, more) << "Starting to reload configuration.";
+  engine_logger(log_info_message, more) << "Starting to reload configuration.";
   try {
     configuration::state config;
     {
@@ -111,13 +111,13 @@ static void apply_conf(std::atomic<bool>* reloading) {
       p.parse(path, config);
     }
     configuration::applier::state::instance().apply(config);
-    logger(log_info_message, basic)
+    engine_logger(log_info_message, basic)
         << "Configuration reloaded, main loop continuing.";
   } catch (std::exception const& e) {
-    logger(log_config_error, most) << "Error: " << e.what();
+    engine_logger(log_config_error, most) << "Error: " << e.what();
   }
   *reloading = false;
-  logger(log_info_message, more) << "Reload configuration finished.";
+  engine_logger(log_info_message, more) << "Reload configuration finished.";
 }
 
 /**
@@ -132,7 +132,7 @@ void loop::_dispatching() {
 
     // If we don't have any events to handle, exit.
     if (_event_list_high.empty() && _event_list_low.empty()) {
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "There aren't any events that need to be handled! "
           << "Exiting...";
       break;
@@ -146,13 +146,13 @@ void loop::_dispatching() {
 
     // Start reload configuration.
     if (_need_reload) {
-      logger(log_info_message, most) << "Need reload.";
+      engine_logger(log_info_message, most) << "Need reload.";
       if (!reloading) {
-        logger(log_info_message, most) << "Reloading...";
+        engine_logger(log_info_message, most) << "Reloading...";
         reloading = true;
         std::async(std::launch::async, apply_conf, &reloading);
       } else
-        logger(log_info_message, most) << "Already reloading...";
+        engine_logger(log_info_message, most) << "Already reloading...";
 
       _need_reload = 0;
     }
@@ -180,20 +180,22 @@ void loop::_dispatching() {
     _last_time = current_time;
 
     // Log messages about event lists.
-    logger(dbg_events, more) << "** Event Check Loop";
+    engine_logger(dbg_events, more) << "** Event Check Loop";
     if (!_event_list_high.empty())
-      logger(dbg_events, more)
+      engine_logger(dbg_events, more)
           << "Next High Priority Event Time: "
           << my_ctime(&(*_event_list_high.begin())->run_time);
     else
-      logger(dbg_events, more) << "No high priority events are scheduled...";
+      engine_logger(dbg_events, more)
+          << "No high priority events are scheduled...";
     if (!_event_list_low.empty())
-      logger(dbg_events, more)
+      engine_logger(dbg_events, more)
           << "Next Low Priority Event Time:  "
           << my_ctime(&(*_event_list_low.begin())->run_time);
     else
-      logger(dbg_events, more) << "No low priority events are scheduled...";
-    logger(dbg_events, more)
+      engine_logger(dbg_events, more)
+          << "No low priority events are scheduled...";
+    engine_logger(dbg_events, more)
         << "Current/Max Service Checks: " << currently_running_service_checks
         << '/' << config->max_parallel_service_checks();
 
@@ -245,14 +247,14 @@ void loop::_dispatching() {
           // Move it at least 5 seconds (to overcome the current peak),
           // with a random 10 seconds (to spread the load).
           nudge_seconds = 5 + (rand() % 10);
-          logger(dbg_events | dbg_checks, basic)
+          engine_logger(dbg_events | dbg_checks, basic)
               << "**WARNING** Max concurrent service checks ("
               << currently_running_service_checks << "/"
               << config->max_parallel_service_checks()
               << ") has been reached!  Nudging " << temp_service->get_hostname()
               << ":" << temp_service->get_description() << " by "
               << nudge_seconds << " seconds...";
-          logger(log_runtime_warning, basic)
+          engine_logger(log_runtime_warning, basic)
               << "\tMax concurrent service checks ("
               << currently_running_service_checks << "/"
               << config->max_parallel_service_checks()
@@ -264,7 +266,7 @@ void loop::_dispatching() {
 
         // Don't run a service check if active checks are disabled.
         if (!config->execute_service_checks()) {
-          logger(dbg_events | dbg_checks, more)
+          engine_logger(dbg_events | dbg_checks, more)
               << "We're not executing service checks right now, "
               << "so we'll skip this event.";
           run_event = false;
@@ -319,7 +321,7 @@ void loop::_dispatching() {
 
         // Don't run a host check if active checks are disabled.
         if (!config->execute_host_checks()) {
-          logger(dbg_events | dbg_checks, more)
+          engine_logger(dbg_events | dbg_checks, more)
               << "We're not executing host checks right now, "
               << "so we'll skip this event.";
           run_event = false;
@@ -363,7 +365,7 @@ void loop::_dispatching() {
         // We may have just removed the only item from the list.
 
         // Handle the event.
-        logger(dbg_events, more) << "Running event...";
+        engine_logger(dbg_events, more) << "Running event...";
         temp_event->handle_timed_event();
 
         // Reschedule the event if necessary.
@@ -375,7 +377,7 @@ void loop::_dispatching() {
       }
       // Wait a while so we don't hog the CPU...
       else {
-        logger(dbg_events, most)
+        engine_logger(dbg_events, most)
             << "Did not execute scheduled event. Idling for a bit...";
         uint64_t d = static_cast<uint64_t>(config->sleep_time() * 1000000000);
         std::this_thread::sleep_for(std::chrono::nanoseconds(d));
@@ -386,7 +388,7 @@ void loop::_dispatching() {
               current_time < (*_event_list_high.begin())->run_time) &&
              (_event_list_low.empty() ||
               current_time < (*_event_list_low.begin())->run_time)) {
-      logger(dbg_events, most)
+      engine_logger(dbg_events, most)
           << "No events to execute at the moment. Idling for a bit...";
 
       // Check for external commands if we're supposed to check as
@@ -447,7 +449,7 @@ void loop::adjust_check_scheduling() {
   host* hst(nullptr);
   com::centreon::engine::service* svc(nullptr);
 
-  logger(dbg_functions, basic) << "adjust_check_scheduling()";
+  engine_logger(dbg_functions, basic) << "adjust_check_scheduling()";
 
   /* TODO:
      - Track host check overhead on a per-host basis
@@ -606,25 +608,25 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
   int seconds{0};
   long time_difference = current_time - last_time;
 
-  logger(dbg_functions, basic) << "compensate_for_system_time_change()";
+  engine_logger(dbg_functions, basic) << "compensate_for_system_time_change()";
 
   // we moved back in time...
   if (time_difference < 0) {
     get_time_breakdown(-time_difference, &days, &hours, &minutes, &seconds);
-    logger(dbg_events, basic)
+    engine_logger(dbg_events, basic)
         << "Detected a backwards time change of " << days << "d " << hours
         << "h " << minutes << "m " << seconds << "s.";
   }
   // we moved into the future...
   else {
     get_time_breakdown(time_difference, &days, &hours, &minutes, &seconds);
-    logger(dbg_events, basic)
+    engine_logger(dbg_events, basic)
         << "Detected a forwards time change of " << days << "d " << hours
         << "h " << minutes << "m " << seconds << "s.";
   }
 
   // log the time change.
-  logger(log_process_info | log_runtime_warning, basic)
+  engine_logger(log_process_info | log_runtime_warning, basic)
       << "Warning: A system time change of " << days << "d " << hours << "h "
       << minutes << "m " << seconds << "s ("
       << (time_difference < 0 ? "backwards" : "forwards")
@@ -760,7 +762,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
  *  @param[in] event_list_tail The tail of the event list.
  */
 void loop::add_event(timed_event* event, loop::priority priority) {
-  logger(dbg_functions, basic) << "add_event()";
+  engine_logger(dbg_functions, basic) << "add_event()";
 
   timed_event_list* list;
 
@@ -799,7 +801,7 @@ void loop::add_event(timed_event* event, loop::priority priority) {
 }
 
 void loop::remove_downtime(uint64_t downtime_id) {
-  logger(dbg_functions, basic) << "loop::remove_downtime()";
+  engine_logger(dbg_functions, basic) << "loop::remove_downtime()";
 
   for (auto it = _event_list_high.begin(), end = _event_list_high.end();
        it != end; ++it) {
@@ -823,7 +825,7 @@ void loop::remove_downtime(uint64_t downtime_id) {
  *  @param[in,out] event_list_tail The tail of the event list.
  */
 void loop::remove_event(timed_event* event, loop::priority priority) {
-  logger(dbg_functions, basic) << "loop::remove_event()";
+  engine_logger(dbg_functions, basic) << "loop::remove_event()";
 
   // send event data to broker.
   broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
@@ -867,7 +869,7 @@ timed_event* loop::find_event(loop::priority priority,
                               void* data) {
   timed_event_list* list;
 
-  logger(dbg_functions, basic) << "resort_event_list()";
+  engine_logger(dbg_functions, basic) << "resort_event_list()";
 
   // move current event list to temp list.
   if (priority == loop::low)
@@ -890,7 +892,7 @@ timed_event* loop::find_event(loop::priority priority,
  *  @param[in,out] event_list_tail The tail of the event list.
  */
 void loop::reschedule_event(timed_event* event, loop::priority priority) {
-  logger(dbg_functions, basic) << "reschedule_event()";
+  engine_logger(dbg_functions, basic) << "reschedule_event()";
 
   // reschedule recurring events...
   if (event->recurring) {
@@ -928,7 +930,7 @@ void loop::reschedule_event(timed_event* event, loop::priority priority) {
 void loop::resort_event_list(loop::priority priority) {
   timed_event_list* list;
 
-  logger(dbg_functions, basic) << "resort_event_list()";
+  engine_logger(dbg_functions, basic) << "resort_event_list()";
 
   // move current event list to temp list.
   if (priority == loop::low)

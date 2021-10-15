@@ -40,7 +40,7 @@ dependency::dependency(std::string const& dependent_hostname,
       _circular_path_checked{false},
       _contains_circular_path{false} {
   if (dependent_hostname.empty() || hostname.empty()) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
     throw engine_error() << "Could not create execution "
                          << "dependency of '" << dependent_hostname << "' on '"

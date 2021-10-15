@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
 
     // Just display the license.
     if (display_license) {
-      logger(logging::log_info_message, logging::basic)
+      engine_logger(logging::log_info_message, logging::basic)
           << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING << "\n"
           << "\n"
           << "Copyright 1999-2009 Ethan Galstad\n"
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
     }
     // If requested or if an error occured, print usage.
     else if (error || display_help) {
-      logger(logging::log_info_message, logging::basic)
+      engine_logger(logging::log_info_message, logging::basic)
           << "Usage: " << argv[0] << " [options] <main_config_file>\n"
           << "\n"
           << "Basics:\n"
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
 
         configuration::applier::state::instance().apply(config);
 
-        logger(logging::log_info_message, logging::basic)
+        engine_logger(logging::log_info_message, logging::basic)
             << "\n"
             << "Checked " << commands::command::commands.size()
             << " commands.\n"
@@ -272,9 +272,9 @@ int main(int argc, char* argv[]) {
 
         retval = (config_errors ? EXIT_FAILURE : EXIT_SUCCESS);
       } catch (std::exception const& e) {
-        logger(logging::log_config_error, logging::basic)
+        engine_logger(logging::log_config_error, logging::basic)
             << "Error while processing a config file: " << e.what();
-        logger(logging::log_config_error, logging::basic)
+        engine_logger(logging::log_config_error, logging::basic)
             << "One or more problems occurred while processing "
                "the config files.\n\n" ERROR_CONFIGURATION;
       }
@@ -296,7 +296,8 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
-            logger(logging::log_config_error, logging::basic) << e.what();
+            engine_logger(logging::log_config_error, logging::basic)
+                << e.what();
           }
         }
 
@@ -306,7 +307,7 @@ int main(int argc, char* argv[]) {
         display_scheduling_info();
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {
-        logger(logging::log_config_error, logging::basic) << e.what();
+        engine_logger(logging::log_config_error, logging::basic) << e.what();
       }
     }
     // Diagnostic.
@@ -349,7 +350,8 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
-            logger(logging::log_config_error, logging::basic) << e.what();
+            engine_logger(logging::log_config_error, logging::basic)
+                << e.what();
           }
         }
 
@@ -402,7 +404,7 @@ int main(int argc, char* argv[]) {
         event_start = time(NULL);
         mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
-        logger(logging::log_info_message, logging::basic)
+        engine_logger(logging::log_info_message, logging::basic)
             << "Event loop start at " << string::ctime(event_start);
 
         // Start monitoring all services (doesn't return until a
@@ -410,7 +412,7 @@ int main(int argc, char* argv[]) {
         com::centreon::engine::events::loop::instance().run();
 
         if (sigshutdown)
-          logger(logging::log_process_info, logging::basic)
+          engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
 
         // Send program data to broker.
@@ -428,13 +430,13 @@ int main(int argc, char* argv[]) {
 
         // Shutdown stuff.
         if (sigshutdown)
-          logger(logging::log_process_info, logging::basic)
+          engine_logger(logging::log_process_info, logging::basic)
               << "Successfully shutdown ... (PID=" << getpid() << ")";
 
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {
         // Log.
-        logger(logging::log_runtime_error, logging::basic)
+        engine_logger(logging::log_runtime_error, logging::basic)
             << "Error: " << e.what();
 
         // Send program data to broker.
@@ -449,7 +451,8 @@ int main(int argc, char* argv[]) {
     delete[] config_file;
     config_file = NULL;
   } catch (std::exception const& e) {
-    logger(logging::log_runtime_error, logging::basic) << "Error: " << e.what();
+    engine_logger(logging::log_runtime_error, logging::basic)
+        << "Error: " << e.what();
   }
 
   // Unload singletons and global objects.

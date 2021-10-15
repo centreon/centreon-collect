@@ -260,19 +260,21 @@ host::host(uint64_t host_id,
       _initial_state{initial_state} {
   // Make sure we have the data we need.
   if (name.empty() || address.empty()) {
-    logger(log_config_error, basic) << "Error: Host name or address is nullptr";
+    engine_logger(log_config_error, basic)
+        << "Error: Host name or address is nullptr";
     throw engine_error() << "Could not register host '" << name << "'";
   }
   if (host_id == 0) {
-    logger(log_config_error, basic) << "Error: Host must contain a host id "
-                                       "because it comes from a database";
+    engine_logger(log_config_error, basic)
+        << "Error: Host must contain a host id "
+           "because it comes from a database";
     throw engine_error() << "Could not register host '" << name << "'";
   }
 
   // Check if the host already exists.
   uint64_t id{host_id};
   if (is_host_exist(id)) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: Host '" << name << "' has already been defined";
     throw engine_error() << "Could not register host '" << name << "'";
   }
@@ -313,14 +315,14 @@ void host::add_child_host(host* child) {
 void host::add_parent_host(std::string const& host_name) {
   // Make sure we have the data we need.
   if (host_name.empty()) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "add child link called with bad host_name";
     throw engine_error() << "add child link called with bad host_name";
   }
 
   // A host cannot be a parent/child of itself.
   if (_name == host_name) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: Host '" << _name << "' cannot be a child/parent of itself";
     throw engine_error() << "host is child/parent itself";
   }
@@ -1176,7 +1178,7 @@ int host::log_event() {
   }
   std::string const& state_type(tab_state_type[get_state_type()]);
 
-  logger(log_options, basic)
+  engine_logger(log_options, basic)
       << "HOST ALERT: " << get_name() << ";" << state << ";" << state_type
       << ";" << get_current_attempt() << ";" << get_plugin_output();
 
@@ -1192,7 +1194,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   struct timeval start_time_hires;
   struct timeval end_time_hires;
 
-  logger(dbg_functions, basic) << "handle_async_host_check_result_3x()";
+  engine_logger(dbg_functions, basic) << "handle_async_host_check_result_3x()";
 
   /* make sure we have what we need */
   if (!queued_check_result)
@@ -1210,9 +1212,9 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   if (execution_time < 0.0)
     execution_time = 0.0;
 
-  logger(dbg_checks, more) << "** Handling async check result for host '"
-                           << get_name() << "'...";
-  logger(dbg_checks, most)
+  engine_logger(dbg_checks, more)
+      << "** Handling async check result for host '" << get_name() << "'...";
+  engine_logger(dbg_checks, most)
       << "\tCheck Type:         "
       << (queued_check_result->get_check_type() == check_active ? "Active"
                                                                 : "Passive")
@@ -1241,13 +1243,13 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
    * check results */
   if (queued_check_result->get_check_type() == check_passive) {
     if (!config->accept_passive_host_checks()) {
-      logger(dbg_checks, basic)
+      engine_logger(dbg_checks, basic)
           << "Discarding passive host check result because passive host "
              "checks are disabled globally.";
       return ERROR;
     }
     if (!get_accept_passive_checks()) {
-      logger(dbg_checks, basic)
+      engine_logger(dbg_checks, basic)
           << "Discarding passive host check result because passive checks "
              "are disabled for this host.";
       return ERROR;
@@ -1271,7 +1273,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   if ((queued_check_result->get_check_options() &
        CHECK_OPTION_FRESHNESS_CHECK) &&
       is_result_fresh(current_time, false)) {
-    logger(dbg_checks, basic)
+    engine_logger(dbg_checks, basic)
         << "Discarding host freshness check result because the host is "
            "currently fresh (race condition avoided).";
     return OK;
@@ -1363,7 +1365,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
   std::replace(temp_str.begin(), temp_str.end(), ';', ':');
   set_plugin_output(temp_str);
 
-  logger(dbg_checks, most)
+  engine_logger(dbg_checks, most)
       << "Parsing check output...\n"
       << "Short Output:\n"
       << (get_plugin_output().empty() ? "NULL" : get_plugin_output()) << "\n"
@@ -1385,7 +1387,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
     /* if there was some error running the command, just skip it (this shouldn't
      * be happening) */
     if (!queued_check_result->get_exited_ok()) {
-      logger(log_runtime_warning, basic)
+      engine_logger(log_runtime_warning, basic)
           << "Warning:  Check of host '" << get_name()
           << "' did not exit properly!";
 
@@ -1399,7 +1401,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
     /* make sure the return code is within bounds */
     else if (queued_check_result->get_return_code() < 0 ||
              queued_check_result->get_return_code() > 3) {
-      logger(log_runtime_warning, basic)
+      engine_logger(log_runtime_warning, basic)
           << "Warning: return (code of "
           << queued_check_result->get_return_code() << " for check of host '"
           << get_name() << "' was out of bounds."
@@ -1458,8 +1460,9 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
                           reschedule_check, true,
                           config->cached_host_check_horizon());
 
-  logger(dbg_checks, more) << "** Async check result for host '" << get_name()
-                           << "' handled: new state=" << get_current_state();
+  engine_logger(dbg_checks, more)
+      << "** Async check result for host '" << get_name()
+      << "' handled: new state=" << get_current_state();
 
   /* high resolution start time for event broker */
   start_time_hires = queued_check_result->get_start_time();
@@ -1489,9 +1492,9 @@ int host::run_scheduled_check(int check_options, double latency) {
   time_t next_valid_time = 0L;
   bool time_is_valid = true;
 
-  logger(dbg_functions, basic) << "run_scheduled_host_check_3x()";
+  engine_logger(dbg_functions, basic) << "run_scheduled_host_check_3x()";
 
-  logger(dbg_checks, basic)
+  engine_logger(dbg_checks, basic)
       << "Attempting to run scheduled check of host '" << get_name()
       << "': check options=" << check_options << ", latency=" << latency;
 
@@ -1501,7 +1504,7 @@ int host::run_scheduled_check(int check_options, double latency) {
 
   /* an error occurred, so reschedule the check */
   if (result == ERROR) {
-    logger(dbg_checks, more)
+    engine_logger(dbg_checks, more)
         << "Unable to run scheduled host check at this time";
 
     /* only attempt to (re)schedule checks that should get checked... */
@@ -1536,13 +1539,13 @@ int host::run_scheduled_check(int check_options, double latency) {
 
         set_next_check((time_t)(next_valid_time + (60 * 60 * 24 * 7)));
 
-        logger(log_runtime_warning, basic)
+        engine_logger(log_runtime_warning, basic)
             << "Warning: Check of host '" << get_name()
             << "' could not be "
                "rescheduled properly.  Scheduling check for next week... "
             << " next_check  " << get_next_check();
 
-        logger(dbg_checks, more)
+        engine_logger(dbg_checks, more)
             << "Unable to find any valid times to reschedule the next"
                " host check!";
       }
@@ -1551,7 +1554,7 @@ int host::run_scheduled_check(int check_options, double latency) {
         set_next_check(next_valid_time);
         set_should_be_scheduled(true);
 
-        logger(dbg_checks, more)
+        engine_logger(dbg_checks, more)
             << "Rescheduled next host check for " << my_ctime(&next_valid_time);
       }
     }
@@ -1579,20 +1582,20 @@ int host::run_async_check(int check_options,
                           bool reschedule_check,
                           bool* time_is_valid,
                           time_t* preferred_time) noexcept {
-  logger(dbg_functions, basic)
+  engine_logger(dbg_functions, basic)
       << "host::run_async_check, check_options=" << check_options
       << ", latency=" << latency << ", scheduled_check=" << scheduled_check
       << ", reschedule_check=" << reschedule_check;
 
   // Preamble.
   if (!get_check_command_ptr()) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: Attempt to run active check on host '" << get_name()
         << "' with no check command";
     return ERROR;
   }
 
-  logger(dbg_checks, basic)
+  engine_logger(dbg_checks, basic)
       << "** Running async check of host '" << get_name() << "'...";
 
   // Check if the host is viable now.
@@ -1608,7 +1611,7 @@ int host::run_async_check(int check_options,
 
   // Don't execute a new host check if one is already running.
   if (get_is_executing() && !(check_options & CHECK_OPTION_FORCE_EXECUTION)) {
-    logger(dbg_checks, basic)
+    engine_logger(dbg_checks, basic)
         << "A check of this host (" << get_name()
         << ") is already being executed, so we'll pass for the moment...";
     return OK;
@@ -1628,21 +1631,22 @@ int host::run_async_check(int check_options,
 
   // Host check was cancel by NEB module. Reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: Some broker module cancelled check of host '" << get_name()
         << "'";
     return ERROR;
   }
   // Host check was overriden by NEB module.
   else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    logger(dbg_functions, basic)
+    engine_logger(dbg_functions, basic)
         << "Some broker module overrode check of host '" << get_name()
         << "' so we'll bail out";
     return OK;
   }
 
   // Checking starts.
-  logger(dbg_functions, basic) << "Checking host '" << get_name() << "'...";
+  engine_logger(dbg_functions, basic)
+      << "Checking host '" << get_name() << "'...";
 
   // Clear check options.
   if (scheduled_check)
@@ -1731,7 +1735,7 @@ int host::run_async_check(int check_options,
       checks::checker::instance().add_check_result_to_reap(
           check_result_info.release());
 
-      logger(log_runtime_warning, basic)
+      engine_logger(log_runtime_warning, basic)
           << "Error: Host check command execution failed: " << e.what();
     }
   } while (retry);
@@ -1753,9 +1757,9 @@ bool host::schedule_check(time_t check_time, int options) {
   timed_event* temp_event = nullptr;
   int use_original_event = true;
 
-  logger(dbg_functions, basic) << "schedule_host_check()";
+  engine_logger(dbg_functions, basic) << "schedule_host_check()";
 
-  logger(dbg_checks, basic)
+  engine_logger(dbg_checks, basic)
       << "Scheduling a "
       << (options & CHECK_OPTION_FORCE_EXECUTION ? "forced" : "non-forced")
       << ", active check of host '" << get_name() << "' @ "
@@ -1763,7 +1767,8 @@ bool host::schedule_check(time_t check_time, int options) {
 
   /* don't schedule a check if active checks of this host are disabled */
   if (!get_checks_enabled() && !(options & CHECK_OPTION_FORCE_EXECUTION)) {
-    logger(dbg_checks, basic) << "Active checks are disabled for this host.";
+    engine_logger(dbg_checks, basic)
+        << "Active checks are disabled for this host.";
     return false;
   }
 
@@ -1784,7 +1789,7 @@ bool host::schedule_check(time_t check_time, int options) {
   /* we found another host check event for this host in the queue - what should
    * we do? */
   if (temp_event) {
-    logger(dbg_checks, most)
+    engine_logger(dbg_checks, most)
         << "Found another host check event for this host @ "
         << my_ctime(&temp_event->run_time);
 
@@ -1797,7 +1802,7 @@ bool host::schedule_check(time_t check_time, int options) {
        * original, so use it instead */
       if ((options & CHECK_OPTION_FORCE_EXECUTION) &&
           (check_time < temp_event->run_time)) {
-        logger(dbg_checks, most)
+        engine_logger(dbg_checks, most)
             << "New host check event is forced and occurs before the "
                "existing event, so the new event be used instead.";
         use_original_event = false;
@@ -1809,7 +1814,7 @@ bool host::schedule_check(time_t check_time, int options) {
       /* the new event is a forced check, so use it instead */
       if ((options & CHECK_OPTION_FORCE_EXECUTION)) {
         use_original_event = false;
-        logger(dbg_checks, most)
+        engine_logger(dbg_checks, most)
             << "New host check event is forced, so it will be used "
                "instead of the existing event.";
       }
@@ -1818,14 +1823,14 @@ bool host::schedule_check(time_t check_time, int options) {
          than the original, so use it instead */
       else if (check_time < temp_event->run_time) {
         use_original_event = false;
-        logger(dbg_checks, most)
+        engine_logger(dbg_checks, most)
             << "New host check event occurs before the existing (older) "
                "event, so it will be used instead.";
       }
 
       /* the new event is older, so override the existing one */
       else {
-        logger(dbg_checks, most)
+        engine_logger(dbg_checks, most)
             << "New host check event occurs after the existing event, "
                "so we'll ignore it.";
       }
@@ -1840,7 +1845,7 @@ bool host::schedule_check(time_t check_time, int options) {
 
   /* use the new event */
   if (!use_original_event) {
-    logger(dbg_checks, most) << "Scheduling new host check event.";
+    engine_logger(dbg_checks, most) << "Scheduling new host check event.";
 
     /* set the next host check time */
     set_next_check(check_time);
@@ -1856,7 +1861,7 @@ bool host::schedule_check(time_t check_time, int options) {
     if (temp_event != nullptr)
       set_next_check(temp_event->run_time);
 
-    logger(dbg_checks, most)
+    engine_logger(dbg_checks, most)
         << "Keeping original host check event (ignoring the new one).";
   }
 
@@ -1883,9 +1888,9 @@ void host::check_for_flapping(bool update,
   double low_curve_value = 0.75;
   double high_curve_value = 1.25;
 
-  logger(dbg_functions, basic) << "host::check_for_flapping()";
+  engine_logger(dbg_functions, basic) << "host::check_for_flapping()";
 
-  logger(dbg_flapping, more)
+  engine_logger(dbg_flapping, more)
       << "Checking host '" << get_name() << "' for flapping...";
 
   time(&current_time);
@@ -1971,7 +1976,7 @@ void host::check_for_flapping(bool update,
 
   set_percent_state_change(curved_percent_change);
 
-  logger(dbg_flapping, most)
+  engine_logger(dbg_flapping, most)
       << com::centreon::logging::setprecision(2) << "LFT=" << low_threshold
       << ", HFT=" << high_threshold << ", CPC=" << curved_percent_change
       << ", PSC=" << curved_percent_change << "%";
@@ -2000,7 +2005,7 @@ void host::check_for_flapping(bool update,
     if ((get_current_state() != host::state_up) || get_is_flapping())
       is_flapping = true;
   }
-  logger(dbg_flapping, more)
+  engine_logger(dbg_flapping, more)
       << "Host " << (is_flapping ? "is" : "is not") << " flapping ("
       << curved_percent_change << "% state change).";
 
@@ -2018,12 +2023,13 @@ void host::set_flap(double percent_change,
                     double high_threshold,
                     double low_threshold,
                     bool allow_flapstart_notification) {
-  logger(dbg_functions, basic) << "set_host_flap()";
+  engine_logger(dbg_functions, basic) << "set_host_flap()";
 
-  logger(dbg_flapping, more) << "Host '" << get_name() << "' started flapping!";
+  engine_logger(dbg_flapping, more)
+      << "Host '" << get_name() << "' started flapping!";
 
   /* log a notice - this one is parsed by the history CGI */
-  logger(log_runtime_warning, basic)
+  engine_logger(log_runtime_warning, basic)
       << com::centreon::logging::setprecision(1)
       << "HOST FLAPPING ALERT: " << get_name()
       << ";STARTED; Host appears to have started flapping (" << percent_change
@@ -2067,13 +2073,13 @@ void host::set_flap(double percent_change,
 void host::clear_flap(double percent_change,
                       double high_threshold,
                       double low_threshold) {
-  logger(dbg_functions, basic) << "host::clear_flap()";
+  engine_logger(dbg_functions, basic) << "host::clear_flap()";
 
-  logger(dbg_flapping, basic)
+  engine_logger(dbg_flapping, basic)
       << "Host '" << get_name() << "' stopped flapping.";
 
   /* log a notice - this one is parsed by the history CGI */
-  logger(log_info_message, basic)
+  engine_logger(log_info_message, basic)
       << com::centreon::logging::setprecision(1)
       << "HOST FLAPPING ALERT: " << get_name()
       << ";STOPPED; Host appears to have stopped flapping (" << percent_change
@@ -2116,7 +2122,7 @@ void host::check_for_expired_acknowledgement() {
     if (get_acknowledgement_timeout() > 0) {
       time_t now(time(nullptr));
       if (get_last_acknowledgement() + get_acknowledgement_timeout() >= now) {
-        logger(log_info_message, basic)
+        engine_logger(log_info_message, basic)
             << "Acknowledgement of host '" << get_name() << "' just expired";
         set_problem_has_been_acknowledged(false);
         set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
@@ -2132,7 +2138,7 @@ int host::handle_state() {
   bool state_change = false;
   time_t current_time;
 
-  logger(dbg_functions, basic) << "handle_host_state()";
+  engine_logger(dbg_functions, basic) << "handle_host_state()";
 
   /* get current time */
   time(&current_time);
@@ -2282,7 +2288,7 @@ bool host::verify_check_viability(int check_options,
   time_t preferred_time = 0L;
   int check_interval = 0;
 
-  logger(dbg_functions, basic) << "check_host_check_viability_3x()";
+  engine_logger(dbg_functions, basic) << "check_host_check_viability_3x()";
 
   /* get the check interval to use if we need to reschedule the check */
   if (this->get_state_type() == soft &&
@@ -2360,8 +2366,8 @@ int host::notify_contact(nagios_macros* mac,
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
   int neb_result;
 
-  logger(dbg_functions, basic) << "notify_contact_of_host()";
-  logger(dbg_notifications, most)
+  engine_logger(dbg_functions, basic) << "notify_contact_of_host()";
+  engine_logger(dbg_notifications, most)
       << "** Notifying contact '" << cntct->get_name() << "'";
 
   /* get start time */
@@ -2404,7 +2410,7 @@ int host::notify_contact(nagios_macros* mac,
     if (raw_command.empty())
       continue;
 
-    logger(dbg_notifications, most)
+    engine_logger(dbg_notifications, most)
         << "Raw notification command: " << raw_command;
 
     /* process any macros contained in the argument */
@@ -2414,7 +2420,7 @@ int host::notify_contact(nagios_macros* mac,
 
     /* run the notification command... */
 
-    logger(dbg_notifications, most)
+    engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
 
     /* log the notification to program log file */
@@ -2443,7 +2449,7 @@ int host::notify_contact(nagios_macros* mac,
             .append(host_state_str)
             .append(")");
 
-      logger(log_host_notification, basic)
+      engine_logger(log_host_notification, basic)
           << "HOST NOTIFICATION: " << cntct->get_name() << ';'
           << this->get_name() << ';' << host_notification_state << ";"
           << cmd->get_name() << ';' << this->get_plugin_output() << info;
@@ -2455,14 +2461,14 @@ int host::notify_contact(nagios_macros* mac,
       my_system_r(mac, processed_command, config->notification_timeout(),
                   &early_timeout, &exectime, out, 0);
     } catch (std::exception const& e) {
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "Error: can't execute host notification '" << cntct->get_name()
           << "' : " << e.what();
     }
 
     /* check to see if the notification timed out */
     if (early_timeout) {
-      logger(log_host_notification | log_runtime_warning, basic)
+      engine_logger(log_host_notification | log_runtime_warning, basic)
           << "Warning: Contact '" << cntct->get_name()
           << "' host notification command '" << processed_command
           << "' timed out after " << config->notification_timeout()
@@ -2507,9 +2513,9 @@ void host::update_notification_flags() {
 void host::disable_flap_detection() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
-  logger(dbg_functions, basic) << "disable_host_flap_detection()";
+  engine_logger(dbg_functions, basic) << "disable_host_flap_detection()";
 
-  logger(dbg_functions, more)
+  engine_logger(dbg_functions, more)
       << "Disabling flap detection for host '" << get_name() << "'.";
 
   /* nothing to do... */
@@ -2535,9 +2541,9 @@ void host::disable_flap_detection() {
 void host::enable_flap_detection() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
-  logger(dbg_functions, basic) << "host::enable_flap_detection()";
+  engine_logger(dbg_functions, basic) << "host::enable_flap_detection()";
 
-  logger(dbg_flapping, more)
+  engine_logger(dbg_flapping, more)
       << "Enabling flap detection for host '" << get_name() << "'.";
 
   /* nothing to do... */
@@ -2571,7 +2577,7 @@ bool host::is_valid_escalation_for_notification(escalation const* e,
   uint32_t notification_number;
   time_t current_time;
 
-  logger(dbg_functions, basic)
+  engine_logger(dbg_functions, basic)
       << "host::is_valid_escalation_for_notification()";
 
   /* get the current time */
@@ -2637,7 +2643,8 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   int tminutes = 0;
   int tseconds = 0;
 
-  logger(dbg_checks, most) << "Checking freshness of host '" << _name << "'...";
+  engine_logger(dbg_checks, most)
+      << "Checking freshness of host '" << _name << "'...";
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -2653,9 +2660,9 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   } else
     freshness_threshold = get_freshness_threshold();
 
-  logger(dbg_checks, most) << "Freshness thresholds: host="
-                           << get_freshness_threshold()
-                           << ", use=" << freshness_threshold;
+  engine_logger(dbg_checks, most)
+      << "Freshness thresholds: host=" << get_freshness_threshold()
+      << ", use=" << freshness_threshold;
 
   /* calculate expiration time */
   /* CHANGED 11/10/05 EG - program start is only used in expiration time
@@ -2677,12 +2684,10 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
-  logger(dbg_checks, most) << "HBC: " << has_been_checked()
-                           << ", PS: " << program_start
-                           << ", ES: " << event_start
-                           << ", LC: " << get_last_check()
-                           << ", CT: " << current_time
-                           << ", ET: " << expiration_time;
+  engine_logger(dbg_checks, most)
+      << "HBC: " << has_been_checked() << ", PS: " << program_start
+      << ", ES: " << event_start << ", LC: " << get_last_check()
+      << ", CT: " << current_time << ", ET: " << expiration_time;
 
   /* the results for the last check of this host are stale */
   if (expiration_time < current_time) {
@@ -2693,7 +2698,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
 
     /* log a warning */
     if (log_this)
-      logger(log_runtime_warning, basic)
+      engine_logger(log_runtime_warning, basic)
           << "Warning: The results of host '" << _name << "' are stale by "
           << days << "d " << hours << "h " << minutes << "m " << seconds
           << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
@@ -2701,7 +2706,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
           << "s).  I'm forcing an immediate check of"
              " the host.";
 
-    logger(dbg_checks, more)
+    engine_logger(dbg_checks, more)
         << "Check results for host '" << _name << "' are stale by " << days
         << "d " << hours << "h " << minutes << "m " << seconds
         << "s (threshold=" << tdays << "d " << thours << "h " << tminutes
@@ -2711,7 +2716,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
 
     return false;
   } else
-    logger(dbg_checks, more)
+    engine_logger(dbg_checks, more)
         << "Check results for host '" << this->get_name() << "' are fresh.";
 
   return true;
@@ -2720,7 +2725,8 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
 /* handles the details for a host when flap detection is disabled (globally or
  * per-host) */
 void host::handle_flap_detection_disabled() {
-  logger(dbg_functions, basic) << "handle_host_flap_detection_disabled()";
+  engine_logger(dbg_functions, basic)
+      << "handle_host_flap_detection_disabled()";
 
   /* if the host was flapping, remove the flapping indicator */
   if (get_is_flapping()) {
@@ -2732,7 +2738,7 @@ void host::handle_flap_detection_disabled() {
     this->set_flapping_comment_id(0);
 
     /* log a notice - this one is parsed by the history CGI */
-    logger(log_info_message, basic)
+    engine_logger(log_info_message, basic)
         << "HOST FLAPPING ALERT: " << this->get_name()
         << ";DISABLED; Flap detection has been disabled";
 
@@ -2756,7 +2762,7 @@ int host::perform_on_demand_check(enum host::host_state* check_return_code,
                                   int check_options,
                                   int use_cached_result,
                                   unsigned long check_timestamp_horizon) {
-  logger(dbg_functions, basic) << "perform_on_demand_host_check()";
+  engine_logger(dbg_functions, basic) << "perform_on_demand_host_check()";
 
   perform_on_demand_check_3x(check_return_code, check_options,
                              use_cached_result, check_timestamp_horizon);
@@ -2770,9 +2776,9 @@ int host::perform_on_demand_check_3x(host::host_state* check_result_code,
                                      unsigned long check_timestamp_horizon) {
   int result = OK;
 
-  logger(dbg_functions, basic) << "perform_on_demand_host_check_3x()";
+  engine_logger(dbg_functions, basic) << "perform_on_demand_host_check_3x()";
 
-  logger(dbg_checks, basic)
+  engine_logger(dbg_checks, basic)
       << "** On-demand check for host '" << _name << "'...";
 
   /* check the status of the host */
@@ -2787,7 +2793,7 @@ int host::run_sync_check_3x(enum host::host_state* check_result_code,
                             int check_options,
                             int use_cached_result,
                             unsigned long check_timestamp_horizon) {
-  logger(dbg_functions, basic)
+  engine_logger(dbg_functions, basic)
       << "run_sync_host_check_3x: hst=" << this
       << ", check_options=" << check_options
       << ", use_cached_result=" << use_cached_result
@@ -2798,7 +2804,7 @@ int host::run_sync_check_3x(enum host::host_state* check_result_code,
                                          use_cached_result,
                                          check_timestamp_horizon);
   } catch (std::exception const& e) {
-    logger(log_runtime_error, basic) << "Error: " << e.what();
+    engine_logger(log_runtime_error, basic) << "Error: " << e.what();
     return ERROR;
   }
   return OK;
@@ -2822,9 +2828,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
   int run_async_check = true;
   bool has_parent;
 
-  logger(dbg_functions, basic) << "process_host_check_result_3x()";
+  engine_logger(dbg_functions, basic) << "process_host_check_result_3x()";
 
-  logger(dbg_checks, more)
+  engine_logger(dbg_checks, more)
       << "HOST: " << _name << ", ATTEMPT=" << get_current_attempt() << "/"
       << get_max_attempts() << ", CHECK TYPE="
       << (get_check_type() == check_active ? "ACTIVE" : "PASSIVE")
@@ -2848,14 +2854,14 @@ int host::process_check_result_3x(enum host::host_state new_state,
    * commands by getting dropped in checkresults dir */
   if (get_check_type() == check_passive) {
     if (config->log_passive_checks())
-      logger(log_passive_check, basic)
+      engine_logger(log_passive_check, basic)
           << "PASSIVE HOST CHECK: " << _name << ";" << new_state << ";"
           << get_plugin_output();
   }
 
   /******* HOST WAS DOWN/UNREACHABLE INITIALLY *******/
   if (_current_state != host::state_up) {
-    logger(dbg_checks, more) << "Host was DOWN/UNREACHABLE.";
+    engine_logger(dbg_checks, more) << "Host was DOWN/UNREACHABLE.";
 
     /***** HOST IS NOW UP *****/
     /* the host just recovered! */
@@ -2872,9 +2878,10 @@ int host::process_check_result_3x(enum host::host_state new_state,
       else
         set_state_type(soft);
 
-      logger(dbg_checks, more) << "Host experienced a "
-                               << (get_state_type() == hard ? "HARD" : "SOFT")
-                               << " recovery (it's now UP).";
+      engine_logger(dbg_checks, more)
+          << "Host experienced a "
+          << (get_state_type() == hard ? "HARD" : "SOFT")
+          << " recovery (it's now UP).";
 
       /* reschedule the next check of the host at the normal interval */
       reschedule_check = true;
@@ -2884,7 +2891,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
       /* propagate checks to immediate parents if they are not already UP */
       /* we do this because a parent host (or grandparent) may have recovered
        * somewhere and we should catch the recovery as soon as possible */
-      logger(dbg_checks, more) << "Propagating checks to parent host(s)...";
+      engine_logger(dbg_checks, more)
+          << "Propagating checks to parent host(s)...";
 
       for (host_map_unsafe::iterator it{parent_hosts.begin()},
            end{parent_hosts.end()};
@@ -2892,7 +2900,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         if (!it->second)
           continue;
         if (it->second->get_current_state() != host::state_up) {
-          logger(dbg_checks, more)
+          engine_logger(dbg_checks, more)
               << "Check of parent host '" << it->first << "' queued.";
           check_hostlist.push_back(it->second);
         }
@@ -2901,7 +2909,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
       /* propagate checks to immediate children if they are not already UP */
       /* we do this because children may currently be UNREACHABLE, but may (as a
        * result of this recovery) switch to UP or DOWN states */
-      logger(dbg_checks, more) << "Propagating checks to child host(s)...";
+      engine_logger(dbg_checks, more)
+          << "Propagating checks to child host(s)...";
 
       for (host_map_unsafe::iterator it{child_hosts.begin()},
            end{child_hosts.end()};
@@ -2909,7 +2918,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         if (!it->second)
           continue;
         if (it->second->get_current_state() != host::state_up) {
-          logger(dbg_checks, more)
+          engine_logger(dbg_checks, more)
               << "Check of child host '" << it->first << "' queued.";
           check_hostlist.push_back(it->second);
         }
@@ -2919,7 +2928,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
     /***** HOST IS STILL DOWN/UNREACHABLE *****/
     /* we're still in a problem state... */
     else {
-      logger(dbg_checks, more) << "Host is still DOWN/UNREACHABLE.";
+      engine_logger(dbg_checks, more) << "Host is still DOWN/UNREACHABLE.";
 
       /* passive checks are treated as HARD states by default... */
       if (get_check_type() == check_passive &&
@@ -2976,12 +2985,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /******* HOST WAS UP INITIALLY *******/
   else {
-    logger(dbg_checks, more) << "Host was UP.";
+    engine_logger(dbg_checks, more) << "Host was UP.";
 
     /***** HOST IS STILL UP *****/
     /* either the host never went down since last check */
     if (new_state == host::state_up) {
-      logger(dbg_checks, more) << "Host is still UP.";
+      engine_logger(dbg_checks, more) << "Host is still UP.";
 
       /* set the current state */
       _current_state = host::state_up;
@@ -2997,11 +3006,11 @@ int host::process_check_result_3x(enum host::host_state new_state,
     }
     /***** HOST IS NOW DOWN/UNREACHABLE *****/
     else {
-      logger(dbg_checks, more) << "Host is now DOWN/UNREACHABLE.";
+      engine_logger(dbg_checks, more) << "Host is now DOWN/UNREACHABLE.";
 
       /***** SPECIAL CASE FOR HOSTS WITH MAX_ATTEMPTS==1 *****/
       if (get_max_attempts() == 1) {
-        logger(dbg_checks, more) << "Max attempts = 1!.";
+        engine_logger(dbg_checks, more) << "Max attempts = 1!.";
 
         /* set the state type */
         set_state_type(hard);
@@ -3023,7 +3032,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         if (get_check_type() == check_active) {
           has_parent = false;
 
-          logger(dbg_checks, more)
+          engine_logger(dbg_checks, more)
               << "** WARNING: Max attempts = 1, so we have to run serial "
                  "checks of all parent hosts!";
 
@@ -3035,7 +3044,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
             has_parent = true;
 
-            logger(dbg_checks, more)
+            engine_logger(dbg_checks, more)
                 << "Running serial check parent host '" << it->first << "'...";
 
             /* run an immediate check of the parent host */
@@ -3045,7 +3054,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
             /* bail out as soon as we find one parent host that is UP */
             if (parent_state == host::state_up) {
-              logger(dbg_checks, more)
+              engine_logger(dbg_checks, more)
                   << "Parent host is UP, so this one is DOWN.";
 
               /* set the current state */
@@ -3057,11 +3066,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
           if (!has_parent) {
             /* host has no parents, so its up */
             if (parent_hosts.empty()) {
-              logger(dbg_checks, more) << "Host has no parents, so it's DOWN.";
+              engine_logger(dbg_checks, more)
+                  << "Host has no parents, so it's DOWN.";
               _current_state = host::state_down;
             } else {
               /* no parents were up, so this host is UNREACHABLE */
-              logger(dbg_checks, more)
+              engine_logger(dbg_checks, more)
                   << "No parents were UP, so this host is UNREACHABLE.";
               _current_state = host::state_unreachable;
             }
@@ -3081,7 +3091,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* propagate checks to immediate children if they are not UNREACHABLE */
         /* we do this because we may now be blocking the route to child hosts */
-        logger(dbg_checks, more)
+        engine_logger(dbg_checks, more)
             << "Propagating check to immediate non-UNREACHABLE child hosts...";
 
         for (host_map_unsafe::iterator it{child_hosts.begin()},
@@ -3090,7 +3100,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
           if (!it->second)
             continue;
           if (it->second->get_current_state() != host::state_unreachable) {
-            logger(dbg_checks, more)
+            engine_logger(dbg_checks, more)
                 << "Check of child host '" << it->first << "' queued.";
             check_hostlist.push_back(it->second);
           }
@@ -3145,7 +3155,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
          * and blocked our route */
         /* checking the parents ASAP will allow us to better determine the final
          * state (DOWN/UNREACHABLE) of this host later */
-        logger(dbg_checks, more)
+        engine_logger(dbg_checks, more)
             << "Propagating checks to immediate parent hosts that "
                "are UP...";
 
@@ -3156,14 +3166,14 @@ int host::process_check_result_3x(enum host::host_state new_state,
             continue;
           if (it->second->get_current_state() == host::state_up) {
             check_hostlist.push_back(it->second);
-            logger(dbg_checks, more)
+            engine_logger(dbg_checks, more)
                 << "Check of host '" << it->first << "' queued.";
           }
         }
 
         /* propagate checks to immediate children if they are not UNREACHABLE */
         /* we do this because we may now be blocking the route to child hosts */
-        logger(dbg_checks, more)
+        engine_logger(dbg_checks, more)
             << "Propagating checks to immediate non-UNREACHABLE "
                "child hosts...";
 
@@ -3173,7 +3183,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
           if (!it->second)
             continue;
           if (it->second->get_current_state() != host::state_unreachable) {
-            logger(dbg_checks, more)
+            engine_logger(dbg_checks, more)
                 << "Check of child host '" << it->first << "' queued.";
             check_hostlist.push_back(it->second);
           }
@@ -3186,7 +3196,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
            * notifications AND execution */
           /* we do to help ensure that the dependency checks are accurate before
            * it comes time to notify */
-          logger(dbg_checks, more)
+          engine_logger(dbg_checks, more)
               << "Propagating predictive dependency checks to hosts this "
                  "one depends on...";
 
@@ -3198,7 +3208,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
             if (temp_dependency->dependent_host_ptr == this &&
                 temp_dependency->master_host_ptr != nullptr) {
               master_host = (host*)temp_dependency->master_host_ptr;
-              logger(dbg_checks, more)
+              engine_logger(dbg_checks, more)
                   << "Check of host '" << master_host->get_name()
                   << "' queued.";
               check_hostlist.push_back(master_host);
@@ -3209,20 +3219,20 @@ int host::process_check_result_3x(enum host::host_state new_state,
     }
   }
 
-  logger(dbg_checks, more) << "Pre-handle_host_state() Host: " << _name
-                           << ", Attempt=" << get_current_attempt() << "/"
-                           << get_max_attempts() << ", Type="
-                           << (get_state_type() == hard ? "HARD" : "SOFT")
-                           << ", Final State=" << _current_state;
+  engine_logger(dbg_checks, more)
+      << "Pre-handle_host_state() Host: " << _name
+      << ", Attempt=" << get_current_attempt() << "/" << get_max_attempts()
+      << ", Type=" << (get_state_type() == hard ? "HARD" : "SOFT")
+      << ", Final State=" << _current_state;
 
   /* handle the host state */
   handle_state();
 
-  logger(dbg_checks, more) << "Post-handle_host_state() Host: " << _name
-                           << ", Attempt=" << get_current_attempt() << "/"
-                           << get_max_attempts() << ", Type="
-                           << (get_state_type() == hard ? "HARD" : "SOFT")
-                           << ", Final State=" << _current_state;
+  engine_logger(dbg_checks, more)
+      << "Post-handle_host_state() Host: " << _name
+      << ", Attempt=" << get_current_attempt() << "/" << get_max_attempts()
+      << ", Type=" << (get_state_type() == hard ? "HARD" : "SOFT")
+      << ", Final State=" << _current_state;
 
   /******************** POST-PROCESSING STUFF *********************/
 
@@ -3248,7 +3258,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
    * checks, unless overridden above) */
   bool sent = false;
   if (reschedule_check) {
-    logger(dbg_checks, more)
+    engine_logger(dbg_checks, more)
         << "Rescheduling next check of host at " << my_ctime(&next_check);
 
     /* default is to reschedule host check unless a test below fails... */
@@ -3302,7 +3312,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
     run_async_check = true;
     temp_host = *it;
 
-    logger(dbg_checks, most)
+    engine_logger(dbg_checks, most)
         << "ASYNC CHECK OF HOST: " << temp_host->get_name()
         << ", CURRENTTIME: " << current_time
         << ", LASTHOSTCHECK: " << temp_host->get_last_check()
@@ -3335,21 +3345,22 @@ enum host::host_state host::determine_host_reachability() {
   enum host::host_state state = host::state_down;
   bool is_host_present = false;
 
-  logger(dbg_functions, basic) << "determine_host_reachability()";
+  engine_logger(dbg_functions, basic) << "determine_host_reachability()";
 
-  logger(dbg_checks, most) << "Determining state of host '" << _name
-                           << "': current state=" << _current_state;
+  engine_logger(dbg_checks, most) << "Determining state of host '" << _name
+                                  << "': current state=" << _current_state;
 
   /* host is UP - no translation needed */
   if (_current_state == host::state_up) {
     state = host::state_up;
-    logger(dbg_checks, most) << "Host is UP, no state translation needed.";
+    engine_logger(dbg_checks, most)
+        << "Host is UP, no state translation needed.";
   }
 
   /* host has no parents, so it is DOWN */
   else if (parent_hosts.size() == 0) {
     state = host::state_down;
-    logger(dbg_checks, most) << "Host has no parents, so it is DOWN.";
+    engine_logger(dbg_checks, most) << "Host has no parents, so it is DOWN.";
   }
 
   /* check all parent hosts to see if we're DOWN or UNREACHABLE */
@@ -3365,15 +3376,16 @@ enum host::host_state host::determine_host_reachability() {
         is_host_present = true;
         /* set the current state */
         state = host::state_down;
-        logger(dbg_checks, most) << "At least one parent (" << it->first
-                                 << ") is up, so host is DOWN.";
+        engine_logger(dbg_checks, most) << "At least one parent (" << it->first
+                                        << ") is up, so host is DOWN.";
         break;
       }
     }
     /* no parents were up, so this host is UNREACHABLE */
     if (!is_host_present) {
       state = host::state_unreachable;
-      logger(dbg_checks, most) << "No parents were up, so host is UNREACHABLE.";
+      engine_logger(dbg_checks, most)
+          << "No parents were up, so host is UNREACHABLE.";
     }
   }
 
@@ -3397,7 +3409,7 @@ std::list<hostgroup*>& host::get_parent_groups() {
  * @return true if it is authorized.
  */
 bool host::authorized_by_dependencies(dependency::types dependency_type) const {
-  logger(dbg_functions, basic) << "host::authorized_by_dependencies()";
+  engine_logger(dbg_functions, basic) << "host::authorized_by_dependencies()";
 
   auto p(hostdependency::hostdependencies.equal_range(_name));
   for (hostdependency_mmap::const_iterator it{p.first}, end{p.second};
@@ -3449,13 +3461,13 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
 void host::check_result_freshness() {
   time_t current_time = 0L;
 
-  logger(dbg_functions, basic) << "check_host_result_freshness()";
-  logger(dbg_checks, most)
+  engine_logger(dbg_functions, basic) << "check_host_result_freshness()";
+  engine_logger(dbg_checks, most)
       << "Attempting to check the freshness of host check results...";
 
   /* bail out if we're not supposed to be checking freshness */
   if (!config->check_host_freshness()) {
-    logger(dbg_checks, most) << "Host freshness checking is disabled.";
+    engine_logger(dbg_checks, most) << "Host freshness checking is disabled.";
     return;
   }
 
@@ -3511,14 +3523,13 @@ void host::check_result_freshness() {
  *
  */
 void host::adjust_check_attempt(bool is_active) {
-  logger(dbg_functions, basic) << "adjust_host_check_attempt_3x()";
+  engine_logger(dbg_functions, basic) << "adjust_host_check_attempt_3x()";
 
-  logger(dbg_checks, most) << "Adjusting check attempt number for host '"
-                           << _name
-                           << "': current attempt=" << get_current_attempt()
-                           << "/" << get_max_attempts()
-                           << ", state=" << _current_state
-                           << ", state type=" << get_state_type();
+  engine_logger(dbg_checks, most)
+      << "Adjusting check attempt number for host '" << _name
+      << "': current attempt=" << get_current_attempt() << "/"
+      << get_max_attempts() << ", state=" << _current_state
+      << ", state type=" << get_state_type();
 
   /* if host is in a hard state, reset current attempt number */
   if (get_state_type() == notifier::hard)
@@ -3534,8 +3545,8 @@ void host::adjust_check_attempt(bool is_active) {
   else if (get_current_attempt() < get_max_attempts())
     set_current_attempt(get_current_attempt() + 1);
 
-  logger(dbg_checks, most) << "New check attempt number = "
-                           << get_current_attempt();
+  engine_logger(dbg_checks, most)
+      << "New check attempt number = " << get_current_attempt();
 }
 
 /* check for hosts that never returned from a check... */
@@ -3543,7 +3554,7 @@ void host::check_for_orphaned() {
   time_t current_time = 0L;
   time_t expected_time = 0L;
 
-  logger(dbg_functions, basic) << "check_for_orphaned_hosts()";
+  engine_logger(dbg_functions, basic) << "check_for_orphaned_hosts()";
 
   /* get the current time */
   time(&current_time);
@@ -3570,12 +3581,12 @@ void host::check_for_orphaned() {
      * the results haven't come back in... */
     if (expected_time < current_time) {
       /* log a warning */
-      logger(log_runtime_warning, basic)
+      engine_logger(log_runtime_warning, basic)
           << "Warning: The check of host '" << it->second->get_name()
           << "' looks like it was orphaned (results never came back).  "
              "I'm scheduling an immediate check of the host...";
 
-      logger(dbg_checks, more)
+      engine_logger(dbg_checks, more)
           << "Host '" << it->second->get_name()
           << "' was orphaned, so we're scheduling an immediate check...";
 
@@ -3620,7 +3631,7 @@ void host::resolve(int& w, int& e) {
   try {
     notifier::resolve(warnings, errors);
   } catch (std::exception const& e) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: Host '" << _name
         << "' has problem in its notifier part: " << e.what();
   }
@@ -3633,7 +3644,7 @@ void host::resolve(int& w, int& e) {
   }
 
   if (services.empty()) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Warning: Host '" << _name
         << "' has no services associated with it!";
     ++w;
@@ -3642,7 +3653,7 @@ void host::resolve(int& w, int& e) {
          it != end; ++it) {
       service_map::const_iterator found{service::services.find(it->first)};
       if (found == service::services.end() || !found->second) {
-        logger(log_verification_error, basic)
+        engine_logger(log_verification_error, basic)
             << "Error: Host '" << _name << "' has a service '"
             << it->first.second << "' that does not exist!";
         ++errors;
@@ -3658,10 +3669,10 @@ void host::resolve(int& w, int& e) {
        it != end; it++) {
     host_map::const_iterator it_host{host::hosts.find(it->first)};
     if (it_host == host::hosts.end() || !it_host->second) {
-      logger(log_verification_error, basic) << "Error: '" << it->first
-                                            << "' is not a "
-                                               "valid parent for host '"
-                                            << _name << "'!";
+      engine_logger(log_verification_error, basic) << "Error: '" << it->first
+                                                   << "' is not a "
+                                                      "valid parent for host '"
+                                                   << _name << "'!";
       errors++;
     } else {
       it->second = it_host->second.get();
@@ -3672,7 +3683,7 @@ void host::resolve(int& w, int& e) {
 
   /* check for illegal characters in host name */
   if (contains_illegal_object_chars(_name.c_str())) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: The name of host '" << _name
         << "' contains one or more illegal characters.";
     errors++;
@@ -3681,7 +3692,7 @@ void host::resolve(int& w, int& e) {
   // Check for sane recovery options.
   if (get_notifications_enabled() && get_notify_on(notifier::up) &&
       !get_notify_on(notifier::down) && !get_notify_on(notifier::unreachable)) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Warning: Recovery notification option in host '"
         << get_display_name()
         << "' definition doesn't make any sense - specify down and/or "

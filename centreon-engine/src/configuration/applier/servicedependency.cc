@@ -71,7 +71,7 @@ void applier::servicedependency::add_object(
         << obj.hosts().front() << "'";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new service dependency of service '"
       << obj.dependent_service_description().front() << "' of host '"
       << obj.dependent_hosts().front() << "' on service '"
@@ -242,7 +242,7 @@ void applier::servicedependency::modify_object(
 void applier::servicedependency::remove_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing a service dependency.";
 
   // Find service dependency.
@@ -271,7 +271,7 @@ void applier::servicedependency::remove_object(
 void applier::servicedependency::resolve_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service dependency.";
 
   // Find service dependency.

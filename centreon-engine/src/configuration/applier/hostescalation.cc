@@ -50,7 +50,7 @@ void applier::hostescalation::add_object(
         << "Could not create host escalation with multiple hosts / host groups";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new escalation for host '" << *obj.hosts().begin() << "'.";
 
   // Add escalation to the global configuration set.
@@ -149,7 +149,8 @@ void applier::hostescalation::modify_object(
 void applier::hostescalation::remove_object(
     configuration::hostescalation const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more) << "Removing a host escalation.";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Removing a host escalation.";
 
   // Find host escalation.
   std::string const& host_name{*obj.hosts().begin()};
@@ -161,7 +162,7 @@ void applier::hostescalation::remove_object(
   host_map::iterator hit{engine::host::hosts.find(host_name)};
   /* ... and its escalations */
   if (hit == engine::host::hosts.end()) {
-    logger(logging::dbg_config, logging::more)
+    engine_logger(logging::dbg_config, logging::more)
         << "Cannot find host '" << host_name << "' - already removed.";
     host_exists = false;
   } else
@@ -194,7 +195,7 @@ void applier::hostescalation::remove_object(
                                       it->second.get(), &tv);
 
       if (host_exists) {
-        logger(logging::dbg_config, logging::more)
+        engine_logger(logging::dbg_config, logging::more)
             << "Host '" << host_name
             << "' found - removing escalation from it.";
         std::list<escalation*>& escalations(hit->second->get_escalations());
@@ -226,7 +227,8 @@ void applier::hostescalation::remove_object(
 void applier::hostescalation::resolve_object(
     configuration::hostescalation const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more) << "Resolving a host escalation.";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Resolving a host escalation.";
 
   // Find host escalation
   bool found{false};

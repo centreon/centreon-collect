@@ -416,7 +416,7 @@ int grab_standard_service_macro_r(nagios_macros* mac,
     }
     // Non-existent macro.
     else {
-      logger(dbg_macros, basic)
+      engine_logger(dbg_macros, basic)
           << "UNHANDLED SERVICE MACRO #" << macro_type << "! THIS IS A BUG!";
       retval = ERROR;
     }

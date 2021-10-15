@@ -58,14 +58,14 @@ hostgroup::hostgroup(uint64_t id,
       _action_url{action_url} {
   // Make sure we have the data we need.
   if (name.empty()) {
-    logger(log_config_error, basic) << "Error: Hostgroup name is NULL";
+    engine_logger(log_config_error, basic) << "Error: Hostgroup name is NULL";
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
 
   // Check if the host group already exist.
   hostgroup_map::const_iterator found(hostgroup::hostgroups.find(name));
   if (found != hostgroup::hostgroups.end()) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: Hostgroup '" << name << "' has already been defined";
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
@@ -161,7 +161,7 @@ void hostgroup::resolve(int& w, int& e) {
        it != end; ++it) {
     host_map::const_iterator it_host{host::hosts.find(it->first)};
     if (it_host == host::hosts.end() || !it_host->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Host '" << it->first << "' specified in host group '"
           << get_group_name() << "' is not defined anywhere!";
       it->second = nullptr;
@@ -185,7 +185,7 @@ void hostgroup::resolve(int& w, int& e) {
 
   // Check for illegal characters in hostgroup name.
   if (contains_illegal_object_chars(get_group_name().c_str())) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: The name of hostgroup '" << get_group_name()
         << "' contains one or more illegal characters.";
     errors++;

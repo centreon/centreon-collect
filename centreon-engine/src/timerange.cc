@@ -32,13 +32,13 @@ using namespace com::centreon::engine::logging;
 timerange::timerange(uint64_t start, uint64_t end) {
   // Make sure we have the data we need.
   if (start > 86400) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: Start time " << start << " is not valid for timeperiod";
     throw engine_error() << "Could not create timerange "
                          << "start'" << start << "' end '" << end << "'";
   }
   if (end > 86400) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: End time " << end << " is not value for timeperiod";
     throw engine_error() << "Could not create timerange "
                          << "start'" << start << "' end '" << end << "'";

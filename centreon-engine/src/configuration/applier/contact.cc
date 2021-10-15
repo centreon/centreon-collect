@@ -77,7 +77,7 @@ applier::contact::~contact() throw() {}
  */
 void applier::contact::add_object(configuration::contact const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new contact '" << obj.contact_name() << "'.";
 
   // Add contact to the global configuration set.
@@ -191,7 +191,7 @@ void applier::contact::expand_objects(configuration::state& s) {
  */
 void applier::contact::modify_object(configuration::contact const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying contact '" << obj.contact_name() << "'.";
 
   // Find old configuration.
@@ -352,7 +352,7 @@ void applier::contact::modify_object(configuration::contact const& obj) {
  */
 void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing contact '" << obj.contact_name() << "'.";
 
   // Find contact.
@@ -385,7 +385,7 @@ void applier::contact::remove_object(configuration::contact const& obj) {
  */
 void applier::contact::resolve_object(configuration::contact const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact '" << obj.contact_name() << "'.";
 
   // Find contact.

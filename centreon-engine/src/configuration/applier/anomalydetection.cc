@@ -98,7 +98,7 @@ void applier::anomalydetection::add_object(
                          << obj.service_description() << "'";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
 
@@ -234,7 +234,7 @@ void applier::anomalydetection::modify_object(
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying new anomalydetection '" << service_description
       << "' of host '" << host_name << "'.";
 
@@ -441,7 +441,7 @@ void applier::anomalydetection::remove_object(
 
   assert(obj.key().first);
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing anomalydetection '" << service_description << "' of host '"
       << host_name << "'.";
 
@@ -490,7 +490,7 @@ void applier::anomalydetection::remove_object(
 void applier::anomalydetection::resolve_object(
     configuration::anomalydetection const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
 

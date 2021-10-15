@@ -127,7 +127,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
        it != end; ++it) {
     /* Check members */
     if (!it->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Contact '" << it->first << "' specified in contact group '"
           << _name << "' is not defined anywhere!";
       errors++;
@@ -137,7 +137,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
 
   /* Check for illegal characters in contact group name. */
   if (contains_illegal_object_chars(const_cast<char*>(_name.c_str()))) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: The name of contact group '" << _name
         << "' contains one or more illegal characters.";
     errors++;

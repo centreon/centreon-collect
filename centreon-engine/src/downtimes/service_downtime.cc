@@ -18,9 +18,9 @@
  */
 
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include <fmt/format.h>
-#include <cstdint>
+#include <stdint.h>
 #include <map>
+#include <sstream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -178,7 +178,7 @@ void service_downtime::print(std::ostream& os) const {
 }
 
 int service_downtime::unschedule() {
-  logger(dbg_functions, basic) << "service_downtime::unschedule()";
+  engine_logger(dbg_functions, basic) << "service_downtime::unschedule()";
   service_map::const_iterator found(
       service::services.find({get_hostname(), get_service_description()}));
 
@@ -206,7 +206,7 @@ int service_downtime::unschedule() {
 
     /* log a notice - this is parsed by the history CGI */
     if (found->second->get_scheduled_downtime_depth() == 0) {
-      logger(log_info_message, basic)
+      engine_logger(log_info_message, basic)
           << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
           << found->second->get_description()
           << ";CANCELLED; Scheduled downtime "
@@ -221,7 +221,7 @@ int service_downtime::unschedule() {
 }
 
 int service_downtime::subscribe() {
-  logger(dbg_functions, basic) << "service_downtime::subscribe()";
+  engine_logger(dbg_functions, basic) << "service_downtime::subscribe()";
 
   service_map::const_iterator found(
       service::services.find({get_hostname(), get_service_description()}));
@@ -259,14 +259,14 @@ int service_downtime::subscribe() {
         "period.",
         type_string, start_time_string, end_time_string, hours, minutes);
 
-  logger(dbg_downtime, basic) << "Scheduled Downtime Details:";
-  logger(dbg_downtime, basic) << " Type:        Service Downtime\n"
-                                 " Host:        "
-                              << found->second->get_hostname()
-                              << "\n"
-                                 " Service:     "
-                              << found->second->get_description();
-  logger(dbg_downtime, basic)
+  engine_logger(dbg_downtime, basic) << "Scheduled Downtime Details:";
+  engine_logger(dbg_downtime, basic) << " Type:        Service Downtime\n"
+                                        " Host:        "
+                                     << found->second->get_hostname()
+                                     << "\n"
+                                        " Service:     "
+                                     << found->second->get_description();
+  engine_logger(dbg_downtime, basic)
       << " Fixed/Flex:  " << (is_fixed() ? "Fixed\n" : "Flexible\n")
       << " Start:       " << start_time_string
       << "\n"
@@ -284,11 +284,11 @@ int service_downtime::subscribe() {
 
   /* add a non-persistent comment to the host or service regarding the scheduled
    * outage */
-  auto com{std::make_shared<comment>(
-      comment::service, comment::downtime, found->second->get_host_id(),
-      found->second->get_service_id(), time(nullptr),
-      "(Centreon Engine Process)", msg, false, comment::internal, false,
-      (time_t)0)};
+  std::shared_ptr<comment> com{
+      new comment(comment::service, comment::downtime,
+                  found->second->get_host_id(), found->second->get_service_id(),
+                  time(nullptr), "(Centreon Engine Process)", oss.str(), false,
+                  comment::internal, false, (time_t)0)};
 
   comment::comments.insert({com->get_comment_id(), com});
   _comment_id = com->get_comment_id();
@@ -321,7 +321,7 @@ int service_downtime::handle() {
   time_t event_time(0L);
   int attr(0);
 
-  logger(dbg_functions, basic) << "handle_downtime()";
+  engine_logger(dbg_functions, basic) << "handle_downtime()";
 
   service_map::const_iterator found(
       service::services.find({get_hostname(), get_service_description()}));
@@ -376,7 +376,7 @@ int service_downtime::handle() {
     found->second->dec_scheduled_downtime_depth();
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
-      logger(dbg_downtime, basic)
+      engine_logger(dbg_downtime, basic)
           << "Service '" << found->second->get_description() << "' on host '"
           << found->second->get_hostname()
           << "' has exited from a period of "
@@ -384,7 +384,7 @@ int service_downtime::handle() {
           << get_downtime_id() << ").";
 
       /* log a notice - this one is parsed by the history CGI */
-      logger(log_info_message, basic)
+      engine_logger(log_info_message, basic)
           << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
           << found->second->get_description()
           << ";STOPPED; Service has exited from a period of scheduled "
@@ -445,7 +445,7 @@ int service_downtime::handle() {
         get_downtime_id(), nullptr);
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
-      logger(dbg_downtime, basic)
+      engine_logger(dbg_downtime, basic)
           << "Service '" << found->second->get_description() << "' on host '"
           << found->second->get_hostname()
           << "' has entered a period of scheduled "
@@ -453,7 +453,7 @@ int service_downtime::handle() {
           << get_downtime_id() << ").";
 
       /* log a notice - this one is parsed by the history CGI */
-      logger(log_info_message, basic)
+      engine_logger(log_info_message, basic)
           << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
           << found->second->get_description()
           << ";STARTED; Service has entered a period of scheduled "
@@ -509,7 +509,7 @@ std::string const& service_downtime::get_service_description() const {
 }
 
 void service_downtime::schedule() {
-  logger(dbg_functions, basic) << "service_downtime::schedule()";
+  engine_logger(dbg_functions, basic) << "service_downtime::schedule()";
   downtime_manager::instance().add_downtime(this);
 
   /* send data to event broker */

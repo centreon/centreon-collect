@@ -295,241 +295,243 @@ service& service::operator=(service const& other) {
  */
 bool service::operator==(service const& other) const throw() {
   if (!object::operator==(other)) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => object don't match";
     return false;
   }
   if (_acknowledgement_timeout != other._acknowledgement_timeout) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "acknowledgement_timeout don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "acknowledgement_timeout don't match";
     return false;
   }
   if (_action_url != other._action_url) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => action_url don't match";
     return false;
   }
   if (_checks_active != other._checks_active) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => checks_active don't match";
     return false;
   }
   if (_checks_passive != other._checks_passive) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => checks_passive don't match";
     return false;
   }
   if (_check_command != other._check_command) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => checks_passive don't match";
     return false;
   }
   if (_check_command_is_important != other._check_command_is_important) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => check_command don't match";
     return false;
   }
   if (_check_freshness != other._check_freshness) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => check_freshness don't match";
     return false;
   }
   if (_check_interval != other._check_interval) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => check_interval don't match";
     return false;
   }
   if (_check_period != other._check_period) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => check_period don't match";
     return false;
   }
   if (_contactgroups != other._contactgroups) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => contactgroups don't match";
     return false;
   }
   if (_contacts != other._contacts) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => contacts don't match";
     return false;
   }
   if (std::operator!=(_customvariables, other._customvariables)) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => customvariables don't match";
     return false;
   }
   if (_display_name != other._display_name) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => display_name don't match";
     return false;
   }
   if (_event_handler != other._event_handler) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => event_handler don't match";
     return false;
   }
   if (_event_handler_enabled != other._event_handler_enabled) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => event_handler don't match";
     return false;
   }
   if (_first_notification_delay != other._first_notification_delay) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "first_notification_delay don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "first_notification_delay don't match";
     return false;
   }
   if (_flap_detection_enabled != other._flap_detection_enabled) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "flap_detection_enabled don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "flap_detection_enabled don't match";
     return false;
   }
   if (_flap_detection_options != other._flap_detection_options) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "flap_detection_options don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "flap_detection_options don't match";
     return false;
   }
   if (_freshness_threshold != other._freshness_threshold) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "freshness_threshold don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "freshness_threshold don't match";
     return false;
   }
   if (_high_flap_threshold != other._high_flap_threshold) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "high_flap_threshold don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "high_flap_threshold don't match";
     return false;
   }
   if (_hostgroups != other._hostgroups) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => hostgroups don't match";
     return false;
   }
   if (_hosts != other._hosts) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => _hosts don't match";
     return false;
   }
   if (_icon_image != other._icon_image) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => icon_image don't match";
     return false;
   }
   if (_icon_image_alt != other._icon_image_alt) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => icon_image_alt don't match";
     return false;
   }
   if (_initial_state != other._initial_state) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => initial_state don't match";
     return false;
   }
   if (_is_volatile != other._is_volatile) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => is_volatile don't match";
     return false;
   }
   if (_low_flap_threshold != other._low_flap_threshold) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => low_flap_threshold don't match";
     return false;
   }
   if (_max_check_attempts != other._max_check_attempts) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => max_check_attempts don't match";
     return false;
   }
   if (_notes != other._notes) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => notes don't match";
     return false;
   }
   if (_notes_url != other._notes_url) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => notes_url don't match";
     return false;
   }
   if (_notifications_enabled != other._notifications_enabled) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "notifications_enabled don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "notifications_enabled don't match";
     return false;
   }
   if (_notification_interval != other._notification_interval) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "notification_interval don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "notification_interval don't match";
     return false;
   }
   if (_notification_options != other._notification_options) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "notification_options don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "notification_options don't match";
     return false;
   }
   if (_notification_period != other._notification_period) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "notification_period don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "notification_period don't match";
     return false;
   }
   if (_obsess_over_service != other._obsess_over_service) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "obsess_over_service don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "obsess_over_service don't match";
     return false;
   }
   if (_process_perf_data != other._process_perf_data) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => process_perf_data don't match";
     return false;
   }
   if (_retain_nonstatus_information != other._retain_nonstatus_information) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "retain_nonstatus_information don't match";
+    engine_logger(dbg_config, more)
+        << "configuration::service::equality => "
+           "retain_nonstatus_information don't match";
     return false;
   }
   if (_retain_status_information != other._retain_status_information) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "retain_status_information don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "retain_status_information don't match";
     return false;
   }
   if (_retry_interval != other._retry_interval) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => retry_interval don't match";
     return false;
   }
   if (_recovery_notification_delay != other._recovery_notification_delay) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "recovery_notification_delay don't match";
+    engine_logger(dbg_config, more)
+        << "configuration::service::equality => "
+           "recovery_notification_delay don't match";
     return false;
   }
   if (_servicegroups != other._servicegroups) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => servicegroups don't match";
     return false;
   }
   if (_service_description != other._service_description) {
-    logger(dbg_config, more) << "configuration::service::equality => "
-                                "service_description don't match";
+    engine_logger(dbg_config, more) << "configuration::service::equality => "
+                                       "service_description don't match";
     return false;
   }
   if (_host_id != other._host_id) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => host_id don't match";
     return false;
   }
   if (_service_id != other._service_id) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => service_id don't match";
     return false;
   }
   if (_stalking_options != other._stalking_options) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => stalking_options don't match";
     return false;
   }
   if (_timezone != other._timezone) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::service::equality => timezone don't match";
     return false;
   }
-  logger(dbg_config, more) << "configuration::service::equality => OK";
+  engine_logger(dbg_config, more) << "configuration::service::equality => OK";
   return true;
 }
 
@@ -1496,7 +1498,7 @@ bool service::_set_event_handler_enabled(bool value) {
  */
 bool service::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  logger(log_verification_error, basic)
+  engine_logger(log_verification_error, basic)
       << "Warning: service failure_prediction_enabled is deprecated."
       << " This option will not be supported in 20.04.";
   ++config_warnings;
@@ -1512,7 +1514,7 @@ bool service::_set_failure_prediction_enabled(bool value) {
  */
 bool service::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  logger(log_verification_error, basic)
+  engine_logger(log_verification_error, basic)
       << "Warning: service failure_prediction_options is deprecated."
       << " This option will not be supported in 20.04.";
   ++config_warnings;
@@ -1827,7 +1829,7 @@ bool service::_set_obsess_over_service(bool value) {
  */
 bool service::_set_parallelize_check(bool value) {
   (void)value;
-  logger(log_verification_error, basic)
+  engine_logger(log_verification_error, basic)
       << "Warning: service parallelize_check is deprecated"
       << " This option will not be supported in 20.04.";
   ++config_warnings;

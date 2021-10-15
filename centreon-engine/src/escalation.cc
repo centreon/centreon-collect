@@ -122,7 +122,7 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
         timeperiod::timeperiods.find(get_escalation_period())};
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Escalation period '" << get_escalation_period()
           << "' specified in escalation is not defined anywhere!";
       errors++;
@@ -140,7 +140,7 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
         contactgroup::contactgroups.find(it->first)};
 
     if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Contact group '" << it->first
           << "' specified in escalation for this notifier is not defined "
              "anywhere!";

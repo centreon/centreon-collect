@@ -107,7 +107,7 @@ void applier::service::add_object(configuration::service const& obj) {
                          << obj.service_description() << "'";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new service '" << obj.service_description() << "' of host '"
       << *obj.hosts().begin() << "'.";
 
@@ -288,7 +288,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying new service '" << service_description << "' of host '"
       << host_name << "'.";
 
@@ -490,7 +490,7 @@ void applier::service::remove_object(configuration::service const& obj) {
 
   assert(obj.key().first);
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing service '" << service_description << "' of host '"
       << host_name << "'.";
 
@@ -547,7 +547,7 @@ void applier::service::remove_object(configuration::service const& obj) {
  */
 void applier::service::resolve_object(configuration::service const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving service '" << obj.service_description() << "' of host '"
       << *obj.hosts().begin() << "'.";
 
