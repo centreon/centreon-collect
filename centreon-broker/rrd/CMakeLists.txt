@@ -73,6 +73,8 @@ add_library("${RRD}" SHARED
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
 
+add_dependencies(${RRD} STORAGE)
+
 # Compile with librrd flags.
 if (LIBRRD_CFLAGS)
   get_source_file_property(RRD_SOURCE_CXXFLAGS "${SRC_DIR}/lib.cc" COMPILE_FLAGS)
