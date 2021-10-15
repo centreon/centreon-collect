@@ -31,9 +31,11 @@ enum data_element {
   de_remove_graph,
   de_status,
   de_index_mapping,
-  de_metric_mapping,
-  de_rebuild2
+  de_metric_mapping
 };
+  // This is our first protobuf element inserted in BBDO. Mix it with
+  // others data_elements would lead us to some conflicts.
+  constexpr int32_t de_rebuild2 = 1;
 }  // namespace storage
 
 CCB_END()
