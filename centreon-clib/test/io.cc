@@ -62,8 +62,8 @@ TEST(ClibIO, DirFilter) {
   std::list<io::file_entry> lst_de(entry.entry_list("io_directory_entry*"));
 
   ASSERT_GE(lst_all.size(), lst_point.size() + lst_de.size());
-  ASSERT_GE(lst_point.size(), 2);
-  ASSERT_LT(lst_de.size(), 2);
+  ASSERT_GE(lst_point.size(), 2u);
+  ASSERT_LT(lst_de.size(), 2u);
 }
 
 TEST(ClibIO, FileEntryCopy) {
@@ -205,6 +205,7 @@ TEST(ClibIO, FileStreamRead) {
     tmp_file_stream.open(tmp_file_name, "r");
     ASSERT_FALSE(tmp_file_stream.read(buffer, sizeof(buffer)) == 0);
   }
+  ASSERT_EQ(retval, 0);
 }
 
 TEST(ClibIO, FileStreamRename) {
