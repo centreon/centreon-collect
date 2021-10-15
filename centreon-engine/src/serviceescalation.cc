@@ -71,7 +71,7 @@ std::string const& serviceescalation::get_description() const {
  */
 bool serviceescalation::is_viable(int state,
                                   uint32_t notification_number) const {
-  logger(dbg_functions, basic) << "serviceescalation::is_viable()";
+  engine_logger(dbg_functions, basic) << "serviceescalation::is_viable()";
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
@@ -97,7 +97,7 @@ void serviceescalation::resolve(int& w, int& e) {
   service_map::const_iterator found{
       service::services.find({get_hostname(), get_description()})};
   if (found == service::services.end() || !found->second) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: Service '" << get_description() << "' on host '"
         << get_hostname()
         << "' specified in service escalation is not defined anywhere!";
@@ -111,7 +111,7 @@ void serviceescalation::resolve(int& w, int& e) {
   try {
     escalation::resolve(w, errors);
   } catch (std::exception const& ee) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
   }
 

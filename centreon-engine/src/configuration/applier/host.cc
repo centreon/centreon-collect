@@ -51,7 +51,7 @@ applier::host::~host() throw() {}
  */
 void applier::host::add_object(configuration::host const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new host '" << obj.host_name() << "'.";
 
   // Add host to the global configuration set.
@@ -198,7 +198,7 @@ void applier::host::expand_objects(configuration::state& s) {
  */
 void applier::host::modify_object(configuration::host const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying host '" << obj.host_name() << "'.";
 
   // Find the configuration object.
@@ -409,7 +409,7 @@ void applier::host::modify_object(configuration::host const& obj) {
  */
 void applier::host::remove_object(configuration::host const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing host '" << obj.host_name() << "'.";
 
   // Find host.
@@ -459,7 +459,7 @@ void applier::host::remove_object(configuration::host const& obj) {
  */
 void applier::host::resolve_object(configuration::host const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving host '" << obj.host_name() << "'.";
 
   // If it is the very first host to be resolved,

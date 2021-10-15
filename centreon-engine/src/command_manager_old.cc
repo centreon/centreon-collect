@@ -62,11 +62,12 @@ void command_manager::execute() {
 }
 
 /* submits a passive service check result for later processing */
-int command_manager::process_passive_service_check(time_t check_time,
-                                  const std::string& host_name,
-                                  const std::string& svc_description,
-                                  uint32_t return_code,
-                                  const std::string& output) {
+int command_manager::process_passive_service_check(
+    time_t check_time,
+    const std::string& host_name,
+    const std::string& svc_description,
+    uint32_t return_code,
+    const std::string& output) {
   const std::string* real_host_name = nullptr;
 
   /* skip this service check result if we aren't accepting passive service
@@ -95,7 +96,7 @@ int command_manager::process_passive_service_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
@@ -106,7 +107,7 @@ int command_manager::process_passive_service_check(time_t check_time,
   service_map::const_iterator found(
       service::services.find({*real_host_name, svc_description}));
   if (found == service::services.end() || !found->second) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
@@ -123,19 +124,11 @@ int command_manager::process_passive_service_check(time_t check_time,
   timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
 
   check_result* result =
-      new check_result(service_check,
-                       found->second.get(),
-                       checkable::check_passive,
-                       CHECK_OPTION_NONE,
-                       false,
+      new check_result(service_check, found->second.get(),
+                       checkable::check_passive, CHECK_OPTION_NONE, false,
                        static_cast<double>(tv.tv_sec - check_time) +
                            static_cast<double>(tv.tv_usec) / 1000000.0,
-                       set_tv,
-                       set_tv,
-                       false,
-                       true,
-                       return_code,
-                       output);
+                       set_tv, set_tv, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3)
@@ -150,9 +143,9 @@ int command_manager::process_passive_service_check(time_t check_time,
 
 /* process passive host check result */
 int command_manager::process_passive_host_check(time_t check_time,
-                               const std::string& host_name,
-                               uint32_t return_code,
-                               const std::string& output) {
+                                                const std::string& host_name,
+                                                uint32_t return_code,
+                                                const std::string& output) {
   const std::string* real_host_name = nullptr;
 
   /* skip this host check result if we aren't accepting passive host checks */
@@ -180,7 +173,7 @@ int command_manager::process_passive_host_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
     return ERROR;
@@ -197,19 +190,11 @@ int command_manager::process_passive_host_check(time_t check_time,
   tv_start.tv_usec = 0;
 
   check_result* result =
-      new check_result(host_check,
-                       it->second.get(),
-                       checkable::check_passive,
-                       CHECK_OPTION_NONE,
-                       false,
+      new check_result(host_check, it->second.get(), checkable::check_passive,
+                       CHECK_OPTION_NONE, false,
                        static_cast<double>(tv.tv_sec - check_time) +
                            static_cast<double>(tv.tv_usec) / 1000000.0,
-                       tv_start,
-                       tv_start,
-                       false,
-                       true,
-                       return_code,
-                       output);
+                       tv_start, tv_start, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3)

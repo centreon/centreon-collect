@@ -49,7 +49,7 @@ applier::command::~command() throw() {}
  */
 void applier::command::add_object(configuration::command const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new command '" << obj.command_name() << "'.";
 
   // Add command to the global configuration set.
@@ -94,7 +94,7 @@ void applier::command::expand_objects(configuration::state& s) {
  */
 void applier::command::modify_object(configuration::command const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying command '" << obj.command_name() << "'.";
 
   // Find old configuration.
@@ -154,7 +154,7 @@ void applier::command::modify_object(configuration::command const& obj) {
  */
 void applier::command::remove_object(configuration::command const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing command '" << obj.command_name() << "'.";
 
   // Find command.

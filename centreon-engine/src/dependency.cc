@@ -40,7 +40,7 @@ dependency::dependency(std::string const& dependent_hostname,
       _circular_path_checked{false},
       _contains_circular_path{false} {
   if (dependent_hostname.empty() || hostname.empty()) {
-    logger(log_config_error, basic)
+    engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
     throw engine_error() << "Could not create execution "
                          << "dependency of '" << dependent_hostname << "' on '"
@@ -64,7 +64,9 @@ void dependency::set_dependent_hostname(std::string const& dependent_hostname) {
   _dependent_hostname = dependent_hostname;
 }
 
-std::string const& dependency::get_hostname() const { return _hostname; }
+std::string const& dependency::get_hostname() const {
+  return _hostname;
+}
 
 void dependency::set_hostname(std::string const& hostname) {
   _hostname = hostname;
@@ -78,13 +80,17 @@ void dependency::set_dependency_period(std::string const& dependency_period) {
   _dependency_period = dependency_period;
 }
 
-bool dependency::get_inherits_parent() const { return _inherits_parent; }
+bool dependency::get_inherits_parent() const {
+  return _inherits_parent;
+}
 
 void dependency::set_inherits_parent(bool inherits_parent) {
   _inherits_parent = inherits_parent;
 }
 
-bool dependency::get_fail_on_pending() const { return _fail_on_pending; }
+bool dependency::get_fail_on_pending() const {
+  return _fail_on_pending;
+}
 
 void dependency::set_fail_on_pending(bool fail_on_pending) {
   _fail_on_pending = fail_on_pending;

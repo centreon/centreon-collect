@@ -391,7 +391,7 @@ int grab_standard_hostgroup_macro_r(nagios_macros* mac,
       break;
 
     default:
-      logger(dbg_macros, basic)
+      engine_logger(dbg_macros, basic)
           << "UNHANDLED HOSTGROUP MACRO #" << macro_type << "! THIS IS A BUG!";
       return ERROR;
   }
@@ -470,8 +470,8 @@ int grab_standard_servicegroup_macro_r(nagios_macros* mac,
       break;
 
     default:
-      logger(dbg_macros, basic) << "UNHANDLED SERVICEGROUP MACRO #"
-                                << macro_type << "! THIS IS A BUG!";
+      engine_logger(dbg_macros, basic) << "UNHANDLED SERVICEGROUP MACRO #"
+                                       << macro_type << "! THIS IS A BUG!";
       return ERROR;
   }
 
@@ -558,7 +558,7 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
     } break;
 
     default:
-      logger(dbg_macros, basic)
+      engine_logger(dbg_macros, basic)
           << "UNHANDLED CONTACT MACRO #" << macro_type << "! THIS IS A BUG!";
       return ERROR;
   }
@@ -618,8 +618,8 @@ int grab_standard_contactgroup_macro(
       break;
 
     default:
-      logger(dbg_macros, basic) << "UNHANDLED CONTACTGROUP MACRO #"
-                                << macro_type << "! THIS IS A BUG!";
+      engine_logger(dbg_macros, basic) << "UNHANDLED CONTACTGROUP MACRO #"
+                                       << macro_type << "! THIS IS A BUG!";
       return ERROR;
   }
   return OK;
