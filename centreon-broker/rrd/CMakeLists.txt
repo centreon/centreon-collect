@@ -61,6 +61,8 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
+  "${PROJECT_SOURCE_DIR}/storage/src/rebuild.pb.cc"
+  "${PROJECT_SOURCE_DIR}/storage/src/rebuild.pb.h"
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"
@@ -72,8 +74,6 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
-
-add_dependencies(${RRD} STORAGE)
 
 # Compile with librrd flags.
 if (LIBRRD_CFLAGS)
