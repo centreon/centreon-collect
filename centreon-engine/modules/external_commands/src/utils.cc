@@ -68,7 +68,7 @@ int open_command_file(void) {
     /* create the external command file as a named pipe (FIFO) */
     if (mkfifo(config->command_file().c_str(),
                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) != 0) {
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "Error: Could not create external command file '"
           << config->command_file() << "' as named pipe: (" << errno << ") -> "
           << strerror(errno)
@@ -85,7 +85,7 @@ int open_command_file(void) {
   /* NOTE: file must be opened read-write for poll() to work */
   if ((command_file_fd =
            open(config->command_file().c_str(), O_RDWR | O_NONBLOCK)) < 0) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: Could not open external command file for reading "
            "via open(): ("
         << errno << ") -> " << strerror(errno);
@@ -97,7 +97,7 @@ int open_command_file(void) {
     int flags;
     flags = fcntl(command_file_fd, F_GETFL);
     if (flags < 0) {
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "Error: Could not get file descriptor flags on external "
              "command via fcntl(): ("
           << errno << ") -> " << strerror(errno);
@@ -105,7 +105,7 @@ int open_command_file(void) {
     }
     flags |= FD_CLOEXEC;
     if (fcntl(command_file_fd, F_SETFL, flags) == -1) {
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "Error: Could not set close-on-exec flag on external "
              "command via fcntl(): ("
           << errno << ") -> " << strerror(errno);
@@ -115,7 +115,7 @@ int open_command_file(void) {
 
   /* re-open the FIFO for use with fgets() */
   if ((command_file_fp = (FILE*)fdopen(command_file_fd, "r")) == NULL) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: Could not open external command file for "
            "reading via fdopen(): ("
         << errno << ") -> " << strerror(errno);
@@ -124,7 +124,7 @@ int open_command_file(void) {
 
   /* initialize worker thread */
   if (init_command_file_worker_thread() == ERROR) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: Could not initialize command file worker thread.";
 
     /* close the command file */
@@ -202,17 +202,17 @@ static void command_file_worker_thread() {
     if (pollval == -1) {
       switch (errno) {
         case EBADF:
-          logger(logging_options, basic)
+          engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): EBADF";
           break;
 
         case ENOMEM:
-          logger(logging_options, basic)
+          engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): ENOMEM";
           break;
 
         case EFAULT:
-          logger(logging_options, basic)
+          engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): EFAULT";
           break;
 
@@ -225,7 +225,7 @@ static void command_file_worker_thread() {
           break;
 
         default:
-          logger(logging_options, basic)
+          engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): Unknown errno value.";
           break;
       }

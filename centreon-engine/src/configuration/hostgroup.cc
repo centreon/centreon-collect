@@ -90,42 +90,42 @@ hostgroup& hostgroup::operator=(hostgroup const& right) {
  */
 bool hostgroup::operator==(hostgroup const& right) const throw() {
   if (!object::operator==(right)) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => object don't match";
     return false;
   }
   if (_action_url != right._action_url) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => action url don't match";
     return false;
   }
   if (_alias != right._alias) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => alias don't match";
     return false;
   }
   if (_hostgroup_id != right._hostgroup_id) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => hostgroup id don't match";
     return false;
   }
   if (_hostgroup_name != right._hostgroup_name) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => hostgroup name don't match";
     return false;
   }
   if (_members != right._members) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => members don't match";
     return false;
   }
   if (_notes != right._notes) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => notes don't match";
     return false;
   }
   if (_notes_url != right._notes_url) {
-    logger(dbg_config, more)
+    engine_logger(dbg_config, more)
         << "configuration::hostgroup::equality => notes url don't match";
     return false;
   }

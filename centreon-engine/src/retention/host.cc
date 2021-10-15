@@ -1098,7 +1098,7 @@ bool host::_set_last_state_change(time_t value) {
 bool host::_set_last_time_down(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Warning: Host last time down cannot be in the future (bad value: "
         << value << ")";
     value = now;
@@ -1115,7 +1115,7 @@ bool host::_set_last_time_down(time_t value) {
 bool host::_set_last_time_unreachable(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Warning: Host last time unreachable cannot be in the future (bad "
            "value: "
         << value << ")";
@@ -1133,7 +1133,7 @@ bool host::_set_last_time_unreachable(time_t value) {
 bool host::_set_last_time_up(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Warning: Host last time up cannot be in the future (bad value: "
         << value << ")";
     value = now;

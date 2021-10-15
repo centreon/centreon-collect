@@ -60,7 +60,7 @@ void applier::hostdependency::add_object(
                          << *obj.hosts().begin() << "'";
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new host dependency of host '"
       << *obj.dependent_hosts().begin() << "' on host '" << *obj.hosts().begin()
       << "'.";
@@ -201,7 +201,8 @@ void applier::hostdependency::modify_object(
 void applier::hostdependency::remove_object(
     configuration::hostdependency const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more) << "Removing a host dependency.";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Removing a host dependency.";
 
   // Find host dependency.
   hostdependency_mmap::iterator it(
@@ -230,7 +231,8 @@ void applier::hostdependency::remove_object(
 void applier::hostdependency::resolve_object(
     configuration::hostdependency const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more) << "Resolving a host dependency.";
+  engine_logger(logging::dbg_config, logging::more)
+      << "Resolving a host dependency.";
 
   // Find host escalation
   hostdependency_mmap::iterator it{

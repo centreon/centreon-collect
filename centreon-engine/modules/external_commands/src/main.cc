@@ -109,10 +109,10 @@ extern "C" int nebmodule_deinit(int flags, int reason) {
     shutdown_command_file_worker_thread();
     close_command_file();
   } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
   } catch (...) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'";
   }
   return (0);
@@ -154,7 +154,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
   try {
     // Open the command file (named pipe) for reading.
     if (open_command_file() != OK) {
-      logger(log_process_info | log_runtime_error, basic)
+      engine_logger(log_process_info | log_runtime_error, basic)
           << "Bailing out due to errors encountered while trying to "
           << "initialize the external command file ... "
           << "(PID=" << getpid() << ")";
@@ -167,11 +167,11 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
       throw(engine_error() << "register callback failed");
     }
   } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
     return (1);
   } catch (...) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'.";
     return (1);
   }
