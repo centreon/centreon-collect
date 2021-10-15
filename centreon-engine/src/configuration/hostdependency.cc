@@ -195,7 +195,7 @@ void hostdependency::check_validity() const {
     std::string dependend_host_name(!_dependent_hosts->empty()
                                         ? *_dependent_hosts->begin()
                                         : *_dependent_hostgroups->begin());
-    logger(log_config_warning, basic)
+    engine_logger(log_config_warning, basic)
         << "Warning: Ignoring lame host dependency of '" << dependend_host_name
         << "' on host/hostgroups '" << host_name << "'.";
   }

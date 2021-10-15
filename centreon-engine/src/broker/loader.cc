@@ -120,14 +120,15 @@ unsigned int loader::load_directory(std::string const& dir) {
     try {
       module = add_module(dir + "/" + f.file_name(), config_file);
       module->open();
-      logger(log_info_message, basic)
+      engine_logger(log_info_message, basic)
           << "Event broker module '" << f.file_name()
           << "' initialized successfully.";
       ++loaded;
     } catch (error const& e) {
       del_module(module);
-      logger(log_runtime_error, basic) << "Error: Could not load module '"
-                                       << f.file_name() << "' -> " << e.what();
+      engine_logger(log_runtime_error, basic)
+          << "Error: Could not load module '" << f.file_name() << "' -> "
+          << e.what();
     }
   }
   return loaded;
@@ -144,7 +145,7 @@ void loader::unload_modules() {
       (*it)->close();
     } catch (...) {
     }
-    logger(dbg_eventbroker, basic)
+    engine_logger(dbg_eventbroker, basic)
         << "Module '" << (*it)->get_filename() << "' unloaded successfully.";
   }
   _modules.clear();

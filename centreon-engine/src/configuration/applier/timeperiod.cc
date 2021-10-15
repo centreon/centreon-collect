@@ -64,7 +64,7 @@ applier::timeperiod& applier::timeperiod::operator=(
  */
 void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new time period '" << obj.timeperiod_name() << "'.";
 
   // Add time period to the global configuration set.
@@ -106,7 +106,7 @@ void applier::timeperiod::expand_objects(configuration::state& s) {
  */
 void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying time period '" << obj.timeperiod_name() << "'.";
 
   // Find old configuration.
@@ -173,7 +173,7 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing time period '" << obj.timeperiod_name() << "'.";
 
   // Find time period.
@@ -203,7 +203,7 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving time period '" << obj.timeperiod_name() << "'.";
 
   // Find time period.

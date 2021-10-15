@@ -276,7 +276,7 @@ void servicedependency::check_validity() const {
       else
         msg << "host '" << _hosts->front() << "'";
     }
-    logger(log_config_warning, basic) << msg.str();
+    engine_logger(log_config_warning, basic) << msg.str();
   }
 
   return;

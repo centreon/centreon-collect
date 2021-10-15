@@ -205,7 +205,7 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
                            _message.c_str(), _escalated, contacts_notified,
                            nullptr);
 
-  logger(dbg_notifications, basic)
+  engine_logger(dbg_notifications, basic)
       << contacts_notified << " contacts were notified.";
   return OK;
 }

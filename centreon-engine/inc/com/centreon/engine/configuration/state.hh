@@ -449,7 +449,7 @@ class state {
           return (false);
         (obj.*ptr)(val);
       } catch (std::exception const& e) {
-        logger(logging::log_config_error, logging::basic) << e.what();
+        engine_logger(logging::log_config_error, logging::basic) << e.what();
         return (false);
       }
       return (true);
@@ -462,7 +462,7 @@ class state {
       try {
         (obj.*ptr)(value);
       } catch (std::exception const& e) {
-        logger(logging::log_config_error, logging::basic) << e.what();
+        engine_logger(logging::log_config_error, logging::basic) << e.what();
         return (false);
       }
       return (true);

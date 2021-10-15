@@ -63,7 +63,7 @@ int xrddefault_grab_config_info(char const* main_config_file) {
 
   /* open the main config file for reading */
   if ((thefile = mmap_fopen(main_config_file)) == NULL) {
-    logger(dbg_retentiondata, most)
+    engine_logger(dbg_retentiondata, most)
         << "Error: Cannot open main configuration file '" << main_config_file
         << "' for reading!";
 
@@ -157,7 +157,7 @@ int xrddefault_initialize_retention_data(char const* config_file) {
     if ((xrddefault_retention_file_fd =
              open(xrddefault_retention_file, O_WRONLY | O_CREAT,
                   S_IRUSR | S_IWUSR)) == -1) {
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "Error: Unable to open retention file '"
           << xrddefault_retention_file << "': " << strerror(errno);
       return (ERROR);
@@ -189,11 +189,11 @@ int xrddefault_cleanup_retention_data(char const* config_file) {
 /******************************************************************/
 
 int xrddefault_save_state_information() {
-  logger(dbg_functions, basic) << "xrddefault_save_state_information()";
+  engine_logger(dbg_functions, basic) << "xrddefault_save_state_information()";
 
   /* make sure we have everything */
   if (xrddefault_retention_file == NULL || xrddefault_retention_file_fd == -1) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: We don't have the required file names to store "
            "retention data!";
     return (ERROR);
@@ -613,7 +613,7 @@ int xrddefault_save_state_information() {
       (fsync(xrddefault_retention_file_fd) == -1) ||
       (lseek(xrddefault_retention_file_fd, 0, SEEK_SET) == (off_t)-1)) {
     char const* msg(strerror(errno));
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: Unable to update retention file '"
         << xrddefault_retention_file << "': " << msg;
     return (ERROR);
@@ -627,7 +627,7 @@ int xrddefault_save_state_information() {
     ssize_t wb(write(xrddefault_retention_file_fd, data_ptr, size));
     if (wb <= 0) {
       char const* msg(strerror(errno));
-      logger(log_runtime_error, basic)
+      engine_logger(log_runtime_error, basic)
           << "Error: Unable to update retention file '"
           << xrddefault_retention_file << "': " << msg;
       return (ERROR);
@@ -697,11 +697,11 @@ int xrddefault_read_state_information() {
   double runtime[2];
   int found_directive = FALSE;
 
-  logger(dbg_functions, basic) << "xrddefault_read_state_information()";
+  engine_logger(dbg_functions, basic) << "xrddefault_read_state_information()";
 
   /* make sure we have what we need */
   if (xrddefault_retention_file == NULL) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: We don't have a filename for retention data!";
     return (ERROR);
   }

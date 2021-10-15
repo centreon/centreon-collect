@@ -107,7 +107,7 @@ checkable::checkable(std::string const& display_name,
         oss << " - ";
       oss << "Invalid freshness_threshold: value should be positive or 0";
     }
-    logger(log_config_error, basic) << oss.str();
+    engine_logger(log_config_error, basic) << oss.str();
     throw engine_error() << "Could not register checkable '" << display_name
                          << "'";
   }

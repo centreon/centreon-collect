@@ -111,7 +111,7 @@ void handle::close() {
       func_deinit deinit(
           (func_deinit)_handle->resolve_proc("nebmodule_deinit"));
       if (!deinit)
-        logger(log_info_message, basic)
+        engine_logger(log_info_message, basic)
             << "Cannot resolve symbole 'nebmodule_deinit' in module '"
             << _filename << "'.";
       else

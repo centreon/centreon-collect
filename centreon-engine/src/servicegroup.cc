@@ -59,8 +59,9 @@ servicegroup::servicegroup(uint64_t id,
       _action_url{action_url} {
   // Check if the service group already exist.
   if (is_servicegroup_exist(group_name)) {
-    logger(log_config_error, basic) << "Error: Servicegroup '" << group_name
-                                    << "' has already been defined";
+    engine_logger(log_config_error, basic)
+        << "Error: Servicegroup '" << group_name
+        << "' has already been defined";
     throw engine_error() << "Could not register service group '" << group_name
                          << "'";
   }
@@ -168,7 +169,7 @@ void servicegroup::resolve(int& w, int& e) {
     service_map::const_iterator found(service::services.find(it->first));
 
     if (found == service::services.end() || !found->second) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Service '" << it->first.second << "' on host '"
           << it->first.first << "' specified in service group '" << _group_name
           << "' is not defined anywhere!";
@@ -192,7 +193,7 @@ void servicegroup::resolve(int& w, int& e) {
 
   // Check for illegal characters in servicegroup name.
   if (contains_illegal_object_chars(_group_name.c_str())) {
-    logger(log_verification_error, basic)
+    engine_logger(log_verification_error, basic)
         << "Error: The name of servicegroup '" << _group_name
         << "' contains one or more illegal characters.";
     errors++;

@@ -67,7 +67,7 @@ applier::servicegroup& applier::servicegroup::operator=(
  */
 void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new servicegroup '" << obj.servicegroup_name() << "'";
 
   // Add service group to the global configuration set.
@@ -126,7 +126,7 @@ void applier::servicegroup::expand_objects(configuration::state& s) {
 void applier::servicegroup::modify_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying servicegroup '" << obj.servicegroup_name() << "'";
 
   // Find old configuration.
@@ -192,7 +192,7 @@ void applier::servicegroup::modify_object(
 void applier::servicegroup::remove_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing servicegroup '" << obj.servicegroup_name() << "'";
 
   // Find service group.
@@ -220,7 +220,7 @@ void applier::servicegroup::remove_object(
 void applier::servicegroup::resolve_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing service group '" << obj.servicegroup_name() << "'";
 
   // Find service group.
@@ -246,7 +246,7 @@ void applier::servicegroup::_resolve_members(
   // Only process if servicegroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    logger(logging::dbg_config, logging::more)
+    engine_logger(logging::dbg_config, logging::more)
         << "Resolving members of service group '" << obj.servicegroup_name()
         << "'";
 

@@ -109,7 +109,7 @@ int command_manager::process_passive_service_check(
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
@@ -120,7 +120,7 @@ int command_manager::process_passive_service_check(
   service_map::const_iterator found(
       service::services.find({*real_host_name, svc_description}));
   if (found == service::services.end() || !found->second) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
@@ -186,7 +186,7 @@ int command_manager::process_passive_host_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
     return ERROR;

@@ -70,7 +70,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   std::string const& name(obj.contactgroup_name());
 
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new contactgroup '" << name << "'.";
 
   if (engine::contactgroup::contactgroups.find(name) !=
@@ -89,7 +89,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
        it != end; ++it) {
     contact_map::iterator ct_it{engine::contact::contacts.find(*it)};
     if (ct_it == engine::contact::contacts.end()) {
-      logger(log_verification_error, basic)
+      engine_logger(log_verification_error, basic)
           << "Error: Contact '" << *it << "' specified in contact group '"
           << cg->get_name() << "' is not defined anywhere!";
       throw engine_error() << "Error: Cannot resolve contact group "
@@ -134,7 +134,7 @@ void applier::contactgroup::expand_objects(configuration::state& s) {
 void applier::contactgroup::modify_object(
     configuration::contactgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying contactgroup '" << obj.contactgroup_name() << "'";
 
   // Find old configuration.
@@ -170,7 +170,7 @@ void applier::contactgroup::modify_object(
          it != end; ++it) {
       contact_map::const_iterator ct_it{engine::contact::contacts.find(*it)};
       if (ct_it == engine::contact::contacts.end()) {
-        logger(log_verification_error, basic)
+        engine_logger(log_verification_error, basic)
             << "Error: Contact '" << *it << "' specified in contact group '"
             << it_obj->second->get_name() << "' is not defined anywhere!";
         throw engine_error() << "Error: Cannot resolve contact group "
@@ -200,7 +200,7 @@ void applier::contactgroup::modify_object(
 void applier::contactgroup::remove_object(
     configuration::contactgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing contactgroup '" << obj.contactgroup_name() << "'";
 
   // Find contact group.
@@ -231,7 +231,7 @@ void applier::contactgroup::remove_object(
 void applier::contactgroup::resolve_object(
     configuration::contactgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact group '" << obj.contactgroup_name() << "'";
 
   // Find contact group.
@@ -257,7 +257,7 @@ void applier::contactgroup::_resolve_members(
   // Only process if contactgroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    logger(logging::dbg_config, logging::more)
+    engine_logger(logging::dbg_config, logging::more)
         << "Resolving members of contact group '" << obj.contactgroup_name()
         << "'";
 
