@@ -45,7 +45,7 @@ applier::connector::~connector() noexcept {}
  */
 void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new connector '" << obj.connector_name() << "'.";
 
   // Expand command line.
@@ -82,7 +82,7 @@ void applier::connector::expand_objects(configuration::state& s) {
  */
 void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying connector '" << obj.connector_name() << "'.";
 
   // Find old configuration.
@@ -122,7 +122,7 @@ void applier::connector::modify_object(configuration::connector const& obj) {
  */
 void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing connector '" << obj.connector_name() << "'.";
 
   // Find connector.

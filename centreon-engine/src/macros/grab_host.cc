@@ -454,7 +454,7 @@ int grab_standard_host_macro_r(nagios_macros* mac,
     }
     // Non-existent macro.
     else {
-      logger(dbg_macros, basic)
+      engine_logger(dbg_macros, basic)
           << "UNHANDLED HOST MACRO #" << macro_type << "! THIS IS A BUG!";
       retval = ERROR;
     }

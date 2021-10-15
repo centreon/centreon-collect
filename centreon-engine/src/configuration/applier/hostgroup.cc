@@ -55,7 +55,7 @@ applier::hostgroup::~hostgroup() throw() {}
  */
 void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Creating new hostgroup '" << obj.hostgroup_name() << "'.";
 
   // Add host group to the global configuration state.
@@ -109,7 +109,7 @@ void applier::hostgroup::expand_objects(configuration::state& s) {
  */
 void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Modifying hostgroup '" << obj.hostgroup_name() << "'";
 
   // Find old configuration.
@@ -168,7 +168,7 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
  */
 void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Removing host group '" << obj.hostgroup_name() << "'";
 
   // Find host group.
@@ -196,7 +196,7 @@ void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
  */
 void applier::hostgroup::resolve_object(configuration::hostgroup const& obj) {
   // Logging.
-  logger(logging::dbg_config, logging::more)
+  engine_logger(logging::dbg_config, logging::more)
       << "Resolving host group '" << obj.hostgroup_name() << "'";
 
   // Find host group.
@@ -221,7 +221,7 @@ void applier::hostgroup::_resolve_members(configuration::state& s
   // Only process if hostgroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    logger(logging::dbg_config, logging::more)
+    engine_logger(logging::dbg_config, logging::more)
         << "Resolving members of host group '" << obj.hostgroup_name() << "'";
 
     // Mark object as resolved.

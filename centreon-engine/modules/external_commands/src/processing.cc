@@ -579,7 +579,7 @@ processing::processing()
 processing::~processing() noexcept {}
 
 bool processing::execute(const std::string& cmdstr) const {
-  logger(dbg_functions, basic) << "processing external command";
+  engine_logger(dbg_functions, basic) << "processing external command";
 
   char const* cmd{cmdstr.c_str()};
   size_t len{cmdstr.size()};
@@ -626,7 +626,7 @@ bool processing::execute(const std::string& cmdstr) const {
       command_id = it->second.id;
     else if (command_name[0] != '_') {
       lock.unlock();
-      logger(log_external_command | log_runtime_warning, basic)
+      engine_logger(log_external_command | log_runtime_warning, basic)
           << "Warning: Unrecognized external command -> " << command_name;
       return false;
     }
@@ -640,15 +640,16 @@ bool processing::execute(const std::string& cmdstr) const {
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
     // Passive checks are logged in checks.c.
     if (config->log_passive_checks())
-      logger(log_passive_check, basic)
+      engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
   } else if (config->log_external_commands())
-    logger(log_external_command, basic)
+    engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
 
-  logger(dbg_external_command, more) << "External command id: " << command_id
-                                     << "\nCommand entry time: " << entry_time
-                                     << "\nCommand arguments: " << args;
+  engine_logger(dbg_external_command, more)
+      << "External command id: " << command_id
+      << "\nCommand entry time: " << entry_time
+      << "\nCommand arguments: " << args;
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, NEBFLAG_NONE,
@@ -695,7 +696,7 @@ void processing::_wrapper_read_state_information() {
     retention::applier::state app_state;
     app_state.apply(*config, state);
   } catch (std::exception const& e) {
-    logger(log_runtime_error, basic)
+    engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
   }
   return;

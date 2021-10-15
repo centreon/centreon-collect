@@ -57,7 +57,7 @@ using namespace com::centreon::engine::logging;
 /* checks for the existence of the external command file and processes all
  * commands found in it */
 int check_for_external_commands() {
-  logger(dbg_functions, basic) << "check_for_external_commands()";
+  engine_logger(dbg_functions, basic) << "check_for_external_commands()";
 
   /* bail out if we shouldn't be checking for external commands */
   if (!config->check_external_commands())
@@ -119,20 +119,22 @@ int check_for_external_commands() {
  *  @return OK on success.
  */
 int process_external_commands_from_file(char const* file, int delete_file) {
-  logger(dbg_functions, basic) << "process_external_commands_from_file()";
+  engine_logger(dbg_functions, basic)
+      << "process_external_commands_from_file()";
 
   if (!file)
     return ERROR;
 
-  logger(dbg_external_command, more)
+  engine_logger(dbg_external_command, more)
       << "Processing commands from file '" << file << "'.  File will "
       << (delete_file ? "be" : "NOT be") << " deleted after processing.";
 
   /* open the config file for reading */
   mmapfile* thefile(nullptr);
   if ((thefile = mmap_fopen(file)) == nullptr) {
-    logger(log_info_message, basic) << "Error: Cannot open file '" << file
-                                    << "' to process external commands!";
+    engine_logger(log_info_message, basic)
+        << "Error: Cannot open file '" << file
+        << "' to process external commands!";
     return ERROR;
   }
 
@@ -544,7 +546,7 @@ int process_passive_service_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
@@ -555,7 +557,7 @@ int process_passive_service_check(time_t check_time,
   service_map::const_iterator found(
       service::services.find({real_host_name, svc_description}));
   if (found == service::services.end() || !found->second) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
@@ -664,7 +666,7 @@ int process_passive_host_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    logger(log_runtime_warning, basic)
+    engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
     return ERROR;
