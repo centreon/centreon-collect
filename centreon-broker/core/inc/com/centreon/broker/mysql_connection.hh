@@ -90,9 +90,9 @@ class mysql_connection {
   std::string _name;
   int _port;
   std::atomic<connection_state> _state;
-  uint32_t _qps;
 
   SqlConnectionStats* _stats;
+  uint32_t _qps;
 
   /* mutex to protect the string access in _error */
   mutable std::mutex _error_m;
