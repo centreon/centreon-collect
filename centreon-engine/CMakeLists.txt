@@ -58,11 +58,13 @@ find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 
+add_definitions(${spdlog_DEFINITIONS})
 include_directories(${gRPC_INCLUDE_DIRS})
 include_directories(${absl_INCLUDE_DIRS})
 include_directories(${protobuf_INCLUDE_DIRS})
 include_directories(${nlohmann_json_INCLUDE_DIRS})
 include_directories(${fmt_INCLUDE_DIRS})
+include_directories(${spdlog_INCLUDE_DIRS})
 
 link_directories(${protobuf_LIB_DIRS})
 link_directories(${gRPC_LIB_DIRS})
@@ -70,6 +72,7 @@ link_directories(${OpenSSL_LIB_DIRS})
 link_directories(${c-ares_LIB_DIRS})
 link_directories(${ZLIB_LIB_DIRS})
 link_directories(${nlohmann_json_LIB_DIRS})
+link_directories(${spdlog_LIB_DIRS})
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Version.
@@ -532,6 +535,7 @@ set(
   "${SRC_DIR}/hostdependency.cc"
   "${SRC_DIR}/hostescalation.cc"
   "${SRC_DIR}/hostgroup.cc"
+  "${SRC_DIR}/log_v2.cc"
   "${SRC_DIR}/macros.cc"
   "${SRC_DIR}/nebmods.cc"
   "${SRC_DIR}/notification.cc"
@@ -577,6 +581,7 @@ set(
   "${INC_DIR}/com/centreon/engine/hostdependency.hh"
   "${INC_DIR}/com/centreon/engine/hostescalation.hh"
   "${INC_DIR}/com/centreon/engine/hostgroup.hh"
+  "${INC_DIR}/com/centreon/engine/log_v2.hh"
   "${INC_DIR}/com/centreon/engine/logging.hh"
   "${INC_DIR}/com/centreon/engine/macros.hh"
   "${INC_DIR}/com/centreon/engine/nebcallbacks.hh"
@@ -636,6 +641,7 @@ target_link_libraries(cce_core ${nlohmann_json_LIBS}
   ${SOCKET_LIBRARIES}
   centreon_clib
   ${fmt_LIBRARIES}
+  ${spdlog_LIBS}
 )
 
 # centengine target.
