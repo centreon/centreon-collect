@@ -1,8 +1,0 @@
-[requires]
-gtest/cci.20210126
-fmt/7.1.3
-spdlog/1.8.5
-
-[generators]
-cmake_paths
-cmake_find_package
