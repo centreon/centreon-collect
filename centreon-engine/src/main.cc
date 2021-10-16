@@ -1,7 +1,7 @@
 /*
 ** Copyright 1999-2009 Ethan Galstad
 ** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2017 Centreon
+** Copyright 2011-2021 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -57,6 +57,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine;
 
@@ -272,11 +273,23 @@ int main(int argc, char* argv[]) {
 
         retval = (config_errors ? EXIT_FAILURE : EXIT_SUCCESS);
       } catch (std::exception const& e) {
+        log_v2::config()->error("Error while processing a config file: {}",
+                                e.what());
         engine_logger(logging::log_config_error, logging::basic)
             << "Error while processing a config file: " << e.what();
+
+        log_v2::config()->error(
+            "One or more problems occurred while processing the config files. "
+            "Check your configuration file(s) to ensure that they contain "
+            "valid directives and data definitions. If you are upgrading from "
+            "a previous version of Centreon Engine, you should be aware that "
+            "some variables/definitions may have been removed or modified in "
+            "this version. Make sure to read the documentation regarding the "
+            "config files, as well as the version changelog to find out what "
+            "has changed.");
         engine_logger(logging::log_config_error, logging::basic)
-            << "One or more problems occurred while processing "
-               "the config files.\n\n" ERROR_CONFIGURATION;
+            << "One or more problems occurred while processing the config "
+               "files.\n\n" ERROR_CONFIGURATION;
       }
     }
     // We're just testing scheduling.
@@ -296,6 +309,8 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
+            log_v2::config()->error("Error while parsing the retention: {}",
+                                    e.what());
             engine_logger(logging::log_config_error, logging::basic)
                 << e.what();
           }
@@ -307,6 +322,7 @@ int main(int argc, char* argv[]) {
         display_scheduling_info();
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {
+        log_v2::config()->error("{}", e.what());
         engine_logger(logging::log_config_error, logging::basic) << e.what();
       }
     }
@@ -350,6 +366,7 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
+            log_v2::config()->error("{}", e.what());
             engine_logger(logging::log_config_error, logging::basic)
                 << e.what();
           }
