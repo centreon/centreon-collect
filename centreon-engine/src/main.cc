@@ -58,6 +58,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine;
 
