@@ -56,6 +56,7 @@ find_package(c-ares REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 
 include_directories(${gRPC_INCLUDE_DIRS})
 include_directories(${absl_INCLUDE_DIRS})

@@ -54,7 +54,6 @@ set(RRD "70-rrd")
 set(RRD "${RRD}" PARENT_SCOPE)
 add_library("${RRD}" SHARED
   # Sources.
-  "${SRC_DIR}/backend.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/creator.cc"
   "${SRC_DIR}/factory.cc"

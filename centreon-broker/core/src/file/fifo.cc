@@ -115,7 +115,7 @@ void fifo::_open_fifo() {
   // Stat failed, probably because of inexistant file.
   if (::stat(_path.c_str(), &s) != 0) {
     char const* msg(strerror(errno));
-    log_v2::config()->info("stats: cannot stat() '{}'", _path);
+    log_v2::config()->info("stats: cannot stat() '{}': {}", _path, msg);
 
     // Create FIFO.
     if (::mkfifo(_path.c_str(),
@@ -134,6 +134,6 @@ void fifo::_open_fifo() {
   _fd = ::open(_path.c_str(), O_RDWR | O_NONBLOCK);
   if (_fd == -1) {
     const char* msg(::strerror(errno));
-    throw msg_fmt("fifo: can't open file '{}' : {}", _path, msg);
+    throw msg_fmt("fifo: can't open file '{}': {}", _path, msg);
   }
 }

@@ -486,8 +486,8 @@ TEST(ClibMisc, GetOptionsCtor) {
   args.push_back("param3");
 
   my_options opt(args);
-  ASSERT_EQ(opt.get_parameters().size(), 3);
-  ASSERT_EQ(opt.get_arguments().size(), 5);
+  ASSERT_EQ(opt.get_parameters().size(), 3u);
+  ASSERT_EQ(opt.get_arguments().size(), 5u);
 }
 
 TEST(ClibMisc, GetOptionsCtorInvalid) {
