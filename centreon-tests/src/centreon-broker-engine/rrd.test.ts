@@ -2,10 +2,11 @@ import shell from "shelljs";
 import { Broker, BrokerType } from "../core/broker";
 import { Engine } from "../core/engine";
 import { isBrokerAndEngineConnected } from "../core/brokerEngine";
-import { readdirSync } from "fs";
+import { readdirSync, statSync } from "fs";
 import { readdir } from "fs/promises";
 import sleep from "await-sleep";
 import { createConnection } from "promise-mysql";
+import { exit } from "process";
 
 shell.config.silent = true;
 
@@ -13,6 +14,17 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
   beforeEach(async () => {
     await Engine.cleanAllInstances();
     await Broker.cleanAllInstances();
+    let s = statSync("/var/lib/centreon/metrics");
+    if (s.uid != Broker.CENTREON_BROKER_UID) {
+      console.error("The folder '/var/lib/centreon/metrics'");
+      exit(1);
+    }
+    s = statSync("/var/lib/centreon/status");
+    if (s.uid != Broker.CENTREON_BROKER_UID) {
+      console.error("The folder '/var/lib/centreon/status'");
+      exit(1);
+    }
+    expect(s.uid).toEqual(Broker.CENTREON_BROKER_UID);
     Broker.startMysql();
     Broker.clearLogs(BrokerType.central);
     Broker.clearRetention(BrokerType.central);
@@ -99,8 +111,8 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
     const stopped2: boolean = await broker.stop();
     db.end();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     console.log("Checking results");
     expect(dbResult).toBeTruthy();

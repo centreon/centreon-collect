@@ -8,9 +8,9 @@ import { broker } from "shared";
 shell.config.silent = true;
 
 describe("engine and broker testing in same time for compression", () => {
-  beforeEach(() => {
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+  beforeEach(async () => {
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     Broker.clearLogs(BrokerType.central);
     Broker.clearLogs(BrokerType.module);
@@ -116,8 +116,8 @@ describe("engine and broker testing in same time for compression", () => {
           stopped1 = await broker.stop();
           stopped2 = await engine.stop();
         }
-        Broker.cleanAllInstances();
-        Engine.cleanAllInstances();
+        await Broker.cleanAllInstances();
+        await Engine.cleanAllInstances();
 
         expect(started1).toBeTruthy();
         expect(started2).toBeTruthy();

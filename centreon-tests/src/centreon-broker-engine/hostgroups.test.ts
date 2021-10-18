@@ -90,8 +90,8 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
     const stopped1: boolean = await engine.stop();
     const stopped2: boolean = await broker.stop();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -155,8 +155,8 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
     const stopped1 = await engine.stop();
     const stopped2 = await broker.stop();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();

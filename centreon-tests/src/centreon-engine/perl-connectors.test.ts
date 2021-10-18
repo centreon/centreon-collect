@@ -6,13 +6,13 @@ import { Broker, BrokerType } from "../core/broker";
 shell.config.silent = true;
 
 describe("start and stop engine", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     Broker.resetConfig(BrokerType.central);
     Broker.resetConfig(BrokerType.module);
     Broker.resetConfig(BrokerType.rrd);
-    Broker.cleanAllInstances();
+    await Broker.cleanAllInstances();
 
-    Engine.cleanAllInstances();
+    await Engine.cleanAllInstances();
     Engine.clearLogs();
   }, 30000);
 
@@ -28,7 +28,7 @@ describe("start and stop engine", () => {
     const stopped = await engine.stop();
     const cd = await engine.checkCoredump();
 
-    Engine.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started).toBeTruthy();
     expect(checkDebug).toBeTruthy();

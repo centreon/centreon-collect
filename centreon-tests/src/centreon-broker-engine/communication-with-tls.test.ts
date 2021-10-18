@@ -13,9 +13,9 @@ import { rmSync } from "fs";
 shell.config.silent = true;
 
 describe("engine and broker testing in same time for compression", () => {
-  beforeEach(() => {
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+  beforeEach(async () => {
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     Broker.clearLogs(BrokerType.central);
     Broker.clearLogs(BrokerType.module);
@@ -121,8 +121,8 @@ describe("engine and broker testing in same time for compression", () => {
           stopped1 = await broker.stop();
           stopped2 = await engine.stop();
         }
-        Broker.cleanAllInstances();
-        Engine.cleanAllInstances();
+        await Broker.cleanAllInstances();
+        await Engine.cleanAllInstances();
 
         expect(started1).toBeTruthy();
         expect(started2).toBeTruthy();
@@ -211,8 +211,8 @@ describe("engine and broker testing in same time for compression", () => {
       stopped2 = await engine.stop();
     }
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     rmSync("/etc/centreon-broker/client.key");
     rmSync("/etc/centreon-broker/client.crt");
@@ -299,8 +299,8 @@ describe("engine and broker testing in same time for compression", () => {
       stopped2 = await engine.stop();
     }
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     rmSync("/etc/centreon-broker/client.crt");
     rmSync("/etc/centreon-broker/server.crt");
@@ -388,8 +388,8 @@ describe("engine and broker testing in same time for compression", () => {
       stopped2 = await engine.stop();
     }
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     rmSync("/etc/centreon-broker/client.key");
     rmSync("/etc/centreon-broker/client.crt");

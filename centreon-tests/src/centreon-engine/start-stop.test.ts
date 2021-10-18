@@ -7,9 +7,9 @@ import { Broker } from "../core/broker";
 shell.config.silent = true;
 
 describe("start and stop engine", () => {
-  beforeEach(() => {
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+  beforeEach(async () => {
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
   }, 30000);
 
   it("ESS1: start/stop centengine", async () => {
@@ -18,7 +18,7 @@ describe("start and stop engine", () => {
     const started = await engine.start();
     const stopped = await engine.stop();
 
-    Engine.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started).toBeTruthy();
     expect(stopped).toBeTruthy();

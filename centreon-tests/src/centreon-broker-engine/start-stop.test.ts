@@ -40,8 +40,8 @@ describe("engine and broker testing in same time", () => {
     const cd1 = await broker.checkCoredump();
     const cd2 = await engine.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -76,8 +76,8 @@ describe("engine and broker testing in same time", () => {
     const cd1 = await broker.checkCoredump();
     const cd3 = await engine.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -116,8 +116,8 @@ describe("engine and broker testing in same time", () => {
     const cd1 = await engine.checkCoredump();
     const cd3 = await broker.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -174,8 +174,8 @@ describe("engine and broker testing in same time", () => {
     const cd3 = await engine.checkCoredump();
     const cd4 = await broker.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -233,8 +233,8 @@ describe("engine and broker testing in same time", () => {
     const cd3 = await broker.checkCoredump();
     const cd4 = await engine.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -282,8 +282,8 @@ describe("engine and broker testing in same time", () => {
     const cd2: boolean = await broker.checkCoredump();
     const cd3: boolean = await engine.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();
@@ -327,8 +327,8 @@ describe("engine and broker testing in same time", () => {
     const cd2: boolean = await broker.checkCoredump();
     const cd3: boolean = await engine.checkCoredump();
 
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
 
     expect(started1).toBeTruthy();
     expect(started2).toBeTruthy();

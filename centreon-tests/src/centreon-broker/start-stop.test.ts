@@ -6,9 +6,9 @@ import { Engine } from "../core/engine";
 shell.config.silent = true;
 
 describe("broker testing", () => {
-  beforeEach(() => {
-    Broker.cleanAllInstances();
-    Engine.cleanAllInstances();
+  beforeEach(async () => {
+    await Broker.cleanAllInstances();
+    await Engine.cleanAllInstances();
     Broker.clearLogs(BrokerType.central);
     Broker.resetConfig(BrokerType.central);
     Broker.resetConfig(BrokerType.rrd);
@@ -28,7 +28,7 @@ describe("broker testing", () => {
       isStopped = await broker.stop();
     }
     let cd = await broker.checkCoredump();
-    Broker.cleanAllInstances();
+    await Broker.cleanAllInstances();
     expect(isStarted).toBeTruthy();
     expect(isStopped).toBeTruthy();
     expect(cd).toBeFalsy();
@@ -48,7 +48,7 @@ describe("broker testing", () => {
       isStopped = await broker.stop();
     }
     let cd: boolean = await broker.checkCoredump();
-    Broker.cleanAllInstances();
+    await Broker.cleanAllInstances();
     expect(isStarted).toBeTruthy();
     expect(isStopped).toBeTruthy();
     expect(cd).toBeFalsy();
@@ -75,7 +75,7 @@ describe("broker testing", () => {
     if (isStarted) {
       isStopped = await broker.stop();
     }
-    Broker.cleanAllInstances();
+    await Broker.cleanAllInstances();
     expect(isStarted).toBeTruthy();
     expect(isStopped).toBeTruthy();
     expect(await broker.checkCoredump()).toBeFalsy();
@@ -91,7 +91,7 @@ describe("broker testing", () => {
       const cd = await broker.checkCoredump();
 
       /* Little cleanup */
-      Broker.cleanAllInstances();
+      await Broker.cleanAllInstances();
 
       expect(isStarted).toBeTruthy();
       expect(isStopped).toBeTruthy();
@@ -108,7 +108,7 @@ describe("broker testing", () => {
       const isStopped = await broker.stop();
 
       /* Little cleanup */
-      Broker.cleanAllInstances();
+      await Broker.cleanAllInstances();
 
       expect(isStarted).toBeTruthy();
       expect(isStopped).toBeTruthy();
