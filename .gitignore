@@ -89,3 +89,5 @@ build/*
 cmake-build-debug/*
 centreon-clib/script/*
 centreon-clib/inc/com/centreon/clib/version.hh
+
+ci/repo/*.deb

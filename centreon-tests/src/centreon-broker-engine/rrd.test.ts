@@ -60,25 +60,29 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
 
     const connected1 = await isBrokerAndEngineConnected();
 
-    /* We need to get a metric : ls /var/lib/centreon/metrics/*.rrd | head*/
-    let files = readdirSync("/var/lib/centreon/metrics");
-    let metricfile: string;
-    for (let f of files) {
-      if (f.match(/[0-9]+\.rrd/)) {
-        metricfile = f;
-        break;
-      }
-    }
-    console.log(`Trying to delete file '${metricfile}'`);
-    let metric = metricfile.split(".")[0];
-    console.log(`Metric '${metric}' to remove`);
-
     const db = await createConnection({
       database: "centreon_storage",
       host: "localhost",
       user: "centreon",
       password: "centreon",
     });
+    /* Let's get all the metric_id from the database */
+    let rows = await db.query(
+      `SELECT metric_id FROM metrics ORDER BY metric_id`
+    );
+
+    /* We need to get a metric : ls /var/lib/centreon/metrics/*.rrd | head*/
+    let files = readdirSync("/var/lib/centreon/metrics");
+    let metric: string;
+    for (let m in rows) {
+      if (files.some((v) => v === m + ".rrd")) {
+        metric = m;
+        break;
+      }
+    }
+    console.log(`Trying to delete file '${metric}.rrd'`);
+    console.log(`Metric '${metric}' to remove`);
+
     await db.query(
       `UPDATE index_data i LEFT JOIN metrics m ON i.id=m.index_id SET i.to_delete=1 WHERE m.metric_id=${metric}`
     );
@@ -97,6 +101,7 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
         dbResult = true;
       } else await sleep(5000);
     }
+    let metricfile = metric + ".rrd";
     while (Date.now() < limit && !fileResult) {
       files = await readdir("/var/lib/centreon/metrics");
       fileResult = files.every((v) => v !== metricfile);
