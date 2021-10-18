@@ -46,7 +46,7 @@ TEST(SSHChecks, ResultAssign) {
   r1.set_exit_code(7536);
   r1.set_output("baz qux");
 
-  ASSERT_EQ(r1.get_command_id(), 42);
+  ASSERT_EQ(r1.get_command_id(), 42u);
   ASSERT_EQ(r1.get_error(), "foo bar");
   ASSERT_EQ(r1.get_executed(), false);
   ASSERT_EQ(r1.get_exit_code(), 7536);

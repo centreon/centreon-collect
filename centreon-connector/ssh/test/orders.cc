@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,10 +45,9 @@ TEST(SSHOrders, Close) {
   p.read(bh);
 
   // Listener must have received eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 1);
+  ASSERT_EQ(listnr.get_callbacks().size(), 1u);
   ASSERT_EQ(listnr.get_callbacks().begin()->callback, fake_listener::cb_eof);
 }
-
 
 TEST(SSHOrders, CtorDefault) {
   // Object.
@@ -75,7 +74,7 @@ TEST(SSHOrders, Eof) {
   p.read(bh);
 
   // Listener must have received eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 1);
+  ASSERT_EQ(listnr.get_callbacks().size(), 1u);
   ASSERT_EQ(listnr.get_callbacks().begin()->callback, fake_listener::cb_eof);
 }
 
@@ -92,7 +91,7 @@ TEST(SSHOrders, Error) {
   p.error(bh);
 
   // Listener must have received error.
-  ASSERT_EQ(listnr.get_callbacks().size(), 1);
+  ASSERT_EQ(listnr.get_callbacks().size(), 1u);
   ASSERT_EQ(listnr.get_callbacks().begin()->callback, fake_listener::cb_error);
 }
 
@@ -125,7 +124,7 @@ TEST(SSHOrders, Execute) {
   p.read(bh);
 
   // Listener must have received execute and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 2);
+  ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;
   timestamp comparison_timeout(timestamp::now() + 4242);
   info1 = *listnr.get_callbacks().begin();
@@ -154,7 +153,7 @@ TEST(SSHOrders, Execute) {
   ASSERT_EQ(info1.host, "localhost");
   ASSERT_EQ(info1.user, "root");
   ASSERT_EQ(info1.password, "myverysecretpassword");
-  ASSERT_EQ(info1.cmds.size(), 1);
+  ASSERT_EQ(info1.cmds.size(), 1u);
   ASSERT_EQ(info1.cmds.front(), "mycheck to execute with some args");
   ASSERT_EQ(info2.callback, fake_listener::cb_eof);
 
@@ -181,7 +180,7 @@ TEST(SSHOrders, ExecuteInvalidId) {
   p.read(bh);
 
   // Listener must have received errors and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 3);
+  ASSERT_EQ(listnr.get_callbacks().size(), 3u);
 
   fake_listener::callback_info info1, info2, info3;
   std::list<fake_listener::callback_info>::const_iterator it;
@@ -213,7 +212,7 @@ TEST(SSHOrders, ExecuteInvalidStartTime) {
   p.read(bh);
 
   // Listener must have received errors and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 2);
+  ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;
   std::list<fake_listener::callback_info>::const_iterator it;
   it = listnr.get_callbacks().begin();
@@ -245,7 +244,7 @@ TEST(SSHOrders, ExecuteInvalidTimeout) {
   int retval(0);
 
   // Listener must have received errors and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 2);
+  ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;
   std::list<fake_listener::callback_info>::const_iterator it;
   it = listnr.get_callbacks().begin();
@@ -313,16 +312,15 @@ TEST(SSHOrders, ExecuteNotEnoughArgs) {
   p.read(bh);
 
   // Listener must have received errors and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 14);
+  ASSERT_EQ(listnr.get_callbacks().size(), 14u);
 
   fake_listener::callback_info info[13];
   std::list<fake_listener::callback_info>::const_iterator it;
   it = listnr.get_callbacks().begin();
-  for (auto & i : info)
+  for (auto& i : info)
     i = *(it++);
-  for (auto & i : info) {
-    std::cout << fake_listener::cb_error << ": " << i.callback
-              << std::endl;
+  for (auto& i : info) {
+    std::cout << fake_listener::cb_error << ": " << i.callback << std::endl;
     ASSERT_EQ(i.callback, fake_listener::cb_error);
   }
 
@@ -346,7 +344,7 @@ TEST(SSHOrders, InvalidCommand) {
   p.read(bh);
 
   // Listener must have received error.
-  ASSERT_EQ(listnr.get_callbacks().size(), 2);
+  ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;
   info1 = *listnr.get_callbacks().begin();
   info2 = *++listnr.get_callbacks().begin();
@@ -373,7 +371,7 @@ TEST(SSHOrders, Quit) {
   p.read(bh);
 
   // Listener must have received quit and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 2);
+  ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;
   info1 = *listnr.get_callbacks().begin();
   info2 = *++listnr.get_callbacks().begin();
@@ -498,7 +496,7 @@ TEST(SSHOrders, Version) {
   p.read(bh);
 
   // Listener must have received version and eof.
-  ASSERT_EQ(listnr.get_callbacks().size(), 2);
+  ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;
   info1 = *listnr.get_callbacks().begin();
   info2 = *++listnr.get_callbacks().begin();

@@ -17,25 +17,20 @@
  *
  */
 
-#include <fstream>
 #include <gtest/gtest.h>
-#include <com/centreon/engine/configuration/parser.hh>
 #include <com/centreon/engine/configuration/applier/hostescalation.hh>
+#include <com/centreon/engine/configuration/parser.hh>
+#include <fstream>
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 
-
 class ApplierGlobal : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given host configuration without host_id
@@ -62,7 +57,7 @@ TEST_F(ApplierGlobal, pollerId) {
   configuration::parser parser;
   configuration::state st;
 
-  ASSERT_EQ(st.poller_id(), 0);
+  ASSERT_EQ(st.poller_id(), 0u);
 
   std::remove("/tmp/test-config.cfg");
 
@@ -73,14 +68,14 @@ TEST_F(ApplierGlobal, pollerId) {
   parser.parse("/tmp/test-config.cfg", st);
   std::remove("/tmp/test-config.cfg");
 
-  ASSERT_EQ(st.poller_id(), 42);
+  ASSERT_EQ(st.poller_id(), 42u);
 }
 
 TEST_F(ApplierGlobal, RpcPort) {
   configuration::parser parser;
   configuration::state st;
 
-  ASSERT_EQ(st.rpc_port(), 0);
+  ASSERT_EQ(st.rpc_port(), 0u);
 
   std::remove("/tmp/test-config.cfg");
 
@@ -91,5 +86,5 @@ TEST_F(ApplierGlobal, RpcPort) {
   parser.parse("/tmp/test-config.cfg", st);
   std::remove("/tmp/test-config.cfg");
 
-  ASSERT_EQ(st.rpc_port(), 42);
+  ASSERT_EQ(st.rpc_port(), 42u);
 }

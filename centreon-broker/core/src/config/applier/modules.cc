@@ -167,6 +167,10 @@ bool modules::load_file(const std::string& filename, const void* arg) {
   if (found == _handles.end()) {
     log_v2::core()->info("modules: attempt to load module '{}'", filename);
     void* h = dlopen(filename.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+    if (!h)
+      log_v2::config()->error("modules: could not load module '{}': {}",
+          filename, dlerror());
+
     if (_check_module(filename, h)) {
       void* parents = dlsym(h, handle::parents_list);
       if (parents) {

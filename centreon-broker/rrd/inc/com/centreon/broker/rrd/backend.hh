@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -39,9 +39,9 @@ namespace rrd {
  */
 class backend {
  public:
-  backend();
+  backend() = default;
   backend(backend const& b) = delete;
-  virtual ~backend();
+  virtual ~backend() noexcept = default;
   backend& operator=(backend const& b) = delete;
   virtual void begin() = 0;
   virtual void clean() = 0;

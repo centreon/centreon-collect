@@ -49,8 +49,28 @@ set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 ##################################
 
-
 add_subdirectory(centreon-broker)
 add_subdirectory(centreon-clib)
 add_subdirectory(centreon-engine)
 add_subdirectory(centreon-connector)
+
+add_custom_target(test-broker
+    WORKING_DIRECTORY centreon-broker
+    COMMAND test/ut
+    )
+add_custom_target(test-engine
+    WORKING_DIRECTORY centreon-engine
+    COMMAND tests/ut_engine
+    )
+add_custom_target(test-clib
+    WORKING_DIRECTORY centreon-clib
+    COMMAND test/ut-clib
+    )
+add_custom_target(test-connector
+    WORKING_DIRECTORY centreon-connector
+    COMMAND ut_connector
+    )
+
+add_custom_target(test
+    DEPENDS test-broker test-engine test-clib test-connector
+    )
