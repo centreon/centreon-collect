@@ -5,7 +5,7 @@ import { Engine } from "./engine";
 export const isBrokerAndEngineConnected = async (
   port: number = 5669
 ): Promise<boolean> => {
-  const limit = Date.now() + 20000;
+  const limit = Date.now() + 50000;
   while (Date.now() < limit) {
     const ssResultCbd = shell.exec(`ss -plant | grep ${port}`);
     let lines: string[] = ssResultCbd.stdout.split("\n");

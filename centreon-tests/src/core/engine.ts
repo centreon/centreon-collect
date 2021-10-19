@@ -117,7 +117,7 @@ export class Engine {
   async stop(): Promise<boolean> {
     for (let p of this.processes) p.kill();
 
-    return this.isStopped(25);
+    return this.isStopped(60);
   }
 
   static clearLogs(): void {

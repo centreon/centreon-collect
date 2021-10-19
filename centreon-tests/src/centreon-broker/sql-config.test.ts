@@ -195,6 +195,7 @@ describe("SQL tests", () => {
   }, 250000);
 
   it("BDB7: should deny access when database user password is wrong for perfdata/sql", async () => {
+    console.log(`BDB7`);
     const config = await Broker.getConfig(BrokerType.central);
     const centralBrokerMasterSql = config["centreonBroker"]["output"].find(
       (output) => output.name === "central-broker-master-sql"
@@ -226,6 +227,7 @@ describe("SQL tests", () => {
   }, 100000);
 
   it("BDB8: should deny access when database user password is wrong for perfdata", async () => {
+    console.log(`BDB8`);
     const config = await Broker.getConfig(BrokerType.central);
     const centralBrokerMasterPerfdata = config["centreonBroker"]["output"].find(
       (output) => output.name === "central-broker-master-perfdata"
@@ -254,6 +256,7 @@ describe("SQL tests", () => {
   }, 65000);
 
   it("BDB9: should deny access when database user password is wrong for sql", async () => {
+    console.log(`BDB9`);
     const config = await Broker.getConfig(BrokerType.central);
     const centralBrokerMasterSql = config["centreonBroker"]["output"].find(
       (output) => output.name === "central-broker-master-sql"
@@ -282,6 +285,7 @@ describe("SQL tests", () => {
   }, 65000);
 
   it("BDB10: should connect when database user password is good for sql/perfdata", async () => {
+    console.log(`BDB10`);
     const broker = new Broker();
     const started = await broker.start();
 
@@ -303,6 +307,7 @@ describe("SQL tests", () => {
   }, 65000);
 
   it("BEDB2: start broker/engine and then start MySQL", async () => {
+    console.log(`BEDB2`);
     Broker.stopMysql();
     const broker = new Broker();
     const engine = new Engine();
@@ -351,6 +356,7 @@ describe("SQL tests", () => {
   }, 80000);
 
   it("BDBM1: start broker/engine and then start MySQL", async () => {
+    console.log(`BDBM1`);
     Broker.startMysql();
     for (let count of [4, 6]) {
       const config = await Broker.getConfig(BrokerType.central);

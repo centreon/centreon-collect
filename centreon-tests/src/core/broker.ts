@@ -98,7 +98,7 @@ export class Broker {
 
       if (this.instanceCount == 2) this.rrdProcess.kill(SIGTERM);
 
-      return this.isStopped(60);
+      return this.isStopped(120);
     }
     return true;
   }
@@ -364,7 +364,7 @@ export class Broker {
 
   async checkCentralLogContains(
     strings: string[],
-    seconds: number = 15
+    seconds: number = 30
   ): Promise<boolean> {
     return await this.checkLogFileContains(
       BrokerType.central,
@@ -375,14 +375,14 @@ export class Broker {
 
   async checkRrdLogContains(
     strings: string[],
-    seconds: number = 15
+    seconds: number = 30
   ): Promise<boolean> {
     return await this.checkLogFileContains(BrokerType.rrd, strings, seconds);
   }
 
   async checkModuleLogContains(
     strings: string[],
-    seconds: number = 15
+    seconds: number = 45
   ): Promise<boolean> {
     return await this.checkLogFileContains(BrokerType.module, strings, seconds);
   }
@@ -410,8 +410,7 @@ export class Broker {
         gid = Broker.CENTREON_BROKER_GID;
         break;
     }
-    if (existsSync(logname))
-      rmSync(logname);
+    if (existsSync(logname)) rmSync(logname);
 
     writeFileSync(logname, "");
     chownSync(logname, uid, gid);
