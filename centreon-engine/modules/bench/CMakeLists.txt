@@ -24,7 +24,7 @@ if (WITH_BENCH)
   include_directories("${SRC_DIR}/passive")
   include_directories("${SRC_DIR}/plugins")
   configure_file("${SRC_DIR}/passive/paths.hh.in" "${SRC_DIR}/passive/paths.hh")
-link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+  link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
   # Passive checks benchmarking module.
   add_library("bench_passive_module" SHARED
@@ -39,8 +39,8 @@ link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
   add_executable("centengine_bench_passive"
     "${SRC_DIR}/passive/engine_cfg.cc"
     "${SRC_DIR}/passive/main.cc")
-add_dependencies("centengine_bench_passive" centreon_clib_shared)
-  target_link_libraries("centengine_bench_passive" ${CLIB_LIBRARIES})
+  add_dependencies("centengine_bench_passive" centreon_clib_shared)
+  target_link_libraries("centengine_bench_passive" centreon_clib)
   install(TARGETS "centengine_bench_passive"
     DESTINATION "${PREFIX_BIN}"
     COMPONENT "bench")
