@@ -128,5 +128,5 @@ describe("engine and broker testing in same time for compression", () => {
         expect(stopped2).toBeTruthy();
       }
     }
-  }, 400000);
+  }, 600000);
 });

@@ -104,7 +104,7 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
     expect(connected2).toBeTruthy();
     expect(stopped1).toBeTruthy();
     expect(stopped2).toBeTruthy();
-  }, 120000);
+  }, 220000);
 
   it("Many New host groups", async () => {
     const broker = new Broker(2);
@@ -167,5 +167,5 @@ describe("engine reloads with new hosts and hostgroups configurations", () => {
     expect(checkLog5).toBeTruthy();
     expect(stopped1).toBeTruthy();
     expect(stopped2).toBeTruthy();
-  }, 120000);
+  }, 220000);
 });
