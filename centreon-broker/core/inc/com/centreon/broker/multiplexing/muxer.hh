@@ -29,6 +29,7 @@
 
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_file.hh"
+#include "com/centreon/broker/multiplexing/engine.hh"
 
 CCB_BEGIN()
 
@@ -68,6 +69,8 @@ class muxer : public io::stream {
   std::string _memory_file() const;
   void _push_to_queue(std::shared_ptr<io::data> const& event);
   std::string _queue_file() const;
+
+  MuxerStats *_stats;
 
  public:
   muxer(std::string const& name, bool persistent = false);

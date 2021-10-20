@@ -50,7 +50,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _mux(mux),
       _update(false)/*,
       _stats{stats::center::instance().register_failover()}*/ {
-  multiplexing::engine::instance().subscribe(_mux.get());
+  //multiplexing::engine::instance().subscribe(_mux.get());
   log_v2::core()->trace("failover '{}' construction.", _name);
 }
 
@@ -58,7 +58,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
  *  Destructor.
  */
 failover::~failover() {
-  multiplexing::engine::instance().unsubscribe(_mux.get());
+  //multiplexing::engine::instance().unsubscribe(_mux.get());
   //stats::center::instance().unregister_failover(_stats);
   exit();
 }

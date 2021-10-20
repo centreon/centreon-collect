@@ -138,7 +138,7 @@ TEST_F(BrokerRpc, GetConflictManagerStats) {
   std::cout << output.front();
   brpc.shutdown();
 }
-
+/*
 TEST_F(BrokerRpc, GetFailoverStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   FailoverStats *_stats = stats::center::instance().register_failover();
@@ -149,6 +149,19 @@ TEST_F(BrokerRpc, GetFailoverStats) {
   stats::center::instance().update(mux->mutable_unacknowledged_events(), std::string("unaev"));
 
   auto output = execute("GetFailoverStats");
+
+  brpc.shutdown();
+}
+*/
+TEST_F(BrokerRpc, GetMuxerStats) {
+  brokerrpc brpc("0.0.0.0", 40000, "test");
+  MuxerStats *_stats = stats::center::instance().register_muxer();
+
+  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, true);
+  stats::center::instance().update(_stats->mutable_queue_file(), std::string("qufl"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("unaev"));
+
+  auto output = execute("GetMuxerStats");
 
   brpc.shutdown();
 }

@@ -48,7 +48,8 @@ muxer::muxer(std::string const& name, bool persistent)
     : io::stream("muxer"),
       _events_size(0),
       _name(name),
-      _persistent(persistent) {
+      _persistent(persistent),
+      _stats{stats::center::instance().register_muxer()} {
   // Load head queue file back in memory.
   if (_persistent) {
     try {
@@ -100,6 +101,7 @@ muxer::muxer(std::string const& name, bool persistent)
  *  Destructor.
  */
 muxer::~muxer() noexcept {
+  stats::center::instance().unregister_muxer(_stats);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
   _clean();

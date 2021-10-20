@@ -120,19 +120,6 @@ SqlConnectionStats* center::register_mysql_connection() {
   return retval.get();
 }
 
-FailoverStats *center::register_failover(void) {
-  std::promise<FailoverStats *> p;
-  std::future<FailoverStats *> retval = p.get_future();
-  _strand.post([this, &p]{
-    auto fs = _stats.add_failovers();
-    p.set_value(fs);
-  });
-  return retval.get();
-}
-
-bool center::unregister_failover(FailoverStats *fs) {
-}
-
 bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
@@ -150,6 +137,26 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   return retval.get();
 }
 
+/*
+FailoverStats *center::register_failover(void) {
+  std::promise<FailoverStats *> p;
+  std::future<FailoverStats *> retval = p.get_future();
+  _strand.post([this, &p]{
+    auto fs = _stats.add_failovers();
+    p.set_value(fs);
+  });
+  return retval.get();
+}
+
+bool center::unregister_failover(FailoverStats *fs) {
+}
+*/
+
+MuxerStats *center::register_muxer(void) {
+}
+
+bool center::unregister_muxer(MuxerStats *ms) {
+}
 
 /**
  * @brief When a feeder needs to write statistics, it primarily has to
