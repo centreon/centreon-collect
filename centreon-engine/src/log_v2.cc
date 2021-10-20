@@ -15,9 +15,12 @@
 **
 ** For more information : contact@centreon.com
 */
+
 #include "com/centreon/engine/log_v2.hh"
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/null_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/syslog_sink.h>
+#include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine;
 using namespace spdlog;
@@ -44,6 +47,18 @@ log_v2::log_v2() {
   _config_log->set_level(_levels_map["info"]);
   _config_log->flush_on(_levels_map["info"]);
   _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+}
+
+void log_v2::apply(const configuration::state& config) {
+  if (verify_config || test_scheduling)
+    return;
+
+  if (config.use_syslog()) {
+    auto syslog_sink = std::make_shared<sinks::syslog_sink_mt>("centreon-engine", 0, 0, true);
+    spdlog::sinks_init_list sink_list = {
+      syslog_sink };
+    _config_log->sinks().push_back(std::move(syslog_sink));
+  }
 }
 
 spdlog::logger* log_v2::config() {
