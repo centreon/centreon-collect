@@ -25,6 +25,7 @@
 #include <map>
 #include <memory>
 
+#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/namespace.hh"
 
 CCE_BEGIN()
@@ -37,6 +38,7 @@ class log_v2 {
   ~log_v2() noexcept = default;
 
   public:
+  void apply(const configuration::state& config);
   static const std::array<std::string, 1> loggers;
 
   static log_v2& instance();
