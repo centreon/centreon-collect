@@ -56,7 +56,7 @@ class feeder : public stat_visitable {
   std::atomic_bool _should_exit;
 
   std::unique_ptr<io::stream> _client;
-  multiplexing::subscriber _subscriber;
+  multiplexing::muxer _mux;
 
   // This mutex is used for the stat thread.
   mutable misc::shared_mutex _client_m;
