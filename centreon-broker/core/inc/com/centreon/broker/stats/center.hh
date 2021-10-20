@@ -75,7 +75,9 @@ class center {
   // ModuleStats* register_modules(void);
   SqlConnectionStats* register_mysql_connection();
   ConflictManagerStats* register_conflict_manager();
+  FailoverStats *register_failover(void);
   bool unregister_mysql_connection(SqlConnectionStats* connection);
+  bool unregister_failover(FailoverStats *);
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);
   // bool unregister_endpoint(const std::string& name);

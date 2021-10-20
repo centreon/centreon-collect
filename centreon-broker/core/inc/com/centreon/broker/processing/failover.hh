@@ -63,7 +63,7 @@ class failover : public endpoint {
 
  public:
   failover(std::shared_ptr<io::endpoint> endp,
-           std::shared_ptr<multiplexing::subscriber> sbscrbr,
+           std::shared_ptr<multiplexing::muxer> mux,
            std::string const& name);
   failover(failover const& other) = delete;
   failover& operator=(failover const& other) = delete;
@@ -79,6 +79,12 @@ class failover : public endpoint {
   void set_failover(std::shared_ptr<processing::failover> fo);
   void set_retry_interval(time_t retry_interval);
   void update() override;
+
+  void update_stats(void) {
+    _stats->mutable_mux()->set_queue_file_enabled(_mux->get_queue_file_enabled());
+    _stats->mutable_mux()->set_queue_file(_mux->get_queue_file());
+    _stats->mutable_mux()->set_unacknowledged_events(_mux->get_unaknowledged_events());
+  }
 
  protected:
   // From stat_visitable
@@ -100,7 +106,7 @@ class failover : public endpoint {
   volatile bool _initialized;
   time_t _next_timeout;
   volatile time_t _retry_interval;
-  std::shared_ptr<multiplexing::subscriber> _subscriber;
+  std::shared_ptr<multiplexing::muxer> _mux;
   volatile bool _update;
 
   // Status.
@@ -110,6 +116,8 @@ class failover : public endpoint {
   // Stream.
   std::shared_ptr<io::stream> _stream;
   mutable std::timed_mutex _stream_m;
+
+  FailoverStats *_stats;
 };
 }  // namespace processing
 

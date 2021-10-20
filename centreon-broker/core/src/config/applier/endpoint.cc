@@ -163,7 +163,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v2::core()->debug("creating endpoint {}", ep.name);
       // Create subscriber and endpoint.
-      std::shared_ptr<multiplexing::subscriber> s(_create_subscriber(ep));
+      std::shared_ptr<multiplexing::muxer> s(_create_muxer(ep));
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e(_create_endpoint(ep, is_acceptor));
       std::unique_ptr<processing::endpoint> endp;
@@ -329,16 +329,16 @@ void endpoint::unload() {
  *
  *  @return The subscriber of the chain.
  */
-multiplexing::subscriber* endpoint::_create_subscriber(config::endpoint& cfg) {
+multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
   // Build filtering elements.
   std::unordered_set<uint32_t> read_elements(_filters(cfg.read_filters));
   std::unordered_set<uint32_t> write_elements(_filters(cfg.write_filters));
 
   // Create subscriber.
-  std::unique_ptr<multiplexing::subscriber> s(
-      new multiplexing::subscriber(cfg.name, true));
-  s->get_muxer().set_read_filters(read_elements);
-  s->get_muxer().set_write_filters(write_elements);
+  std::unique_ptr<multiplexing::muxer> s(
+      new multiplexing::muxer(cfg.name, true));
+  s->set_read_filters(read_elements);
+  s->set_write_filters(write_elements);
   return s.release();
 }
 
@@ -352,7 +352,7 @@ multiplexing::subscriber* endpoint::_create_subscriber(config::endpoint& cfg) {
  */
 processing::failover* endpoint::_create_failover(
     config::endpoint& cfg,
-    std::shared_ptr<multiplexing::subscriber> sbscrbr,
+    std::shared_ptr<multiplexing::muxer> mux,
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
@@ -377,7 +377,7 @@ processing::failover* endpoint::_create_failover(
           "as failover for endpoint '{}'",
           front_failover, cfg.name);
     failovr = std::shared_ptr<processing::failover>(
-        _create_failover(*it, sbscrbr, e, l));
+        _create_failover(*it, mux, e, l));
 
     // Add secondary failovers
     for (std::list<std::string>::const_iterator
@@ -405,7 +405,7 @@ processing::failover* endpoint::_create_failover(
 
   // Return failover thread.
   std::unique_ptr<processing::failover> fo(
-      new processing::failover(endp, sbscrbr, cfg.name));
+      new processing::failover(endp, mux, cfg.name));
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);
