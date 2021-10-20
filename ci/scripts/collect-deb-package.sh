@@ -17,14 +17,13 @@ fi
 
 # mkdir -p centreon-collect
 # cp -rv * centreon-collect
+rm -rf centreon-collect/debian
+rm -rf centreon-collect/build
 tar czpvf centreon-collect-$VERSION.tar.gz centreon-collect
 cd centreon-collect/
-rm -rf debian
-rm -rf build
 mv ci/debian .
 debmake -f "${AUTHOR}" -e "${AUTHOR_EMAIL}" -u "$VERSION" -r "$RELEASE"
 debuild-pbuilder
 cd ../
 mkdir $DISTRIB
 mv *.deb $DISTRIB/
-

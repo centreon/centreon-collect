@@ -1,1 +1,1 @@
-debian/tmp-centreon-collect/usr/bin/centreon_connector_ssh usr/bin
+debian/tmp-centreon-collect/usr/lib64/centreon-connector/centreon_connector_ssh usr/bin
