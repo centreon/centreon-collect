@@ -49,6 +49,7 @@
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
@@ -1172,6 +1173,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     // Apply logging configurations.
     applier::logging::instance().apply(new_cfg);
+    log_v2::instance().apply(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);
