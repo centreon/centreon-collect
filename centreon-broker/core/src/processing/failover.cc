@@ -22,8 +22,6 @@
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -50,8 +48,8 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _next_timeout(0),
       _retry_interval(30),
       _mux(mux),
-      _update(false),
-      _stats{stats::center::instance().register_failover()} {
+      _update(false)/*,
+      _stats{stats::center::instance().register_failover()}*/ {
   multiplexing::engine::instance().subscribe(_mux.get());
   log_v2::core()->trace("failover '{}' construction.", _name);
 }
@@ -61,7 +59,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
  */
 failover::~failover() {
   multiplexing::engine::instance().unsubscribe(_mux.get());
-  stats::center::instance().unregister_failover(_stats);
+  //stats::center::instance().unregister_failover(_stats);
   exit();
 }
 

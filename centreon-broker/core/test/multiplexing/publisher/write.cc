@@ -27,7 +27,6 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 
 using namespace com::centreon::broker;
 
@@ -53,9 +52,9 @@ TEST_F(PublisherWrite, Write) {
     // Subscriber.
     std::unordered_set<uint32_t> filters;
     filters.insert(io::raw::static_type());
-    multiplexing::subscriber s("core_multiplexing_publisher_write", "");
-    s.get_muxer().set_read_filters(filters);
-    s.get_muxer().set_write_filters(filters);
+    multiplexing::muxer mux("core_multiplexing_publisher_write", "");
+    mux.set_read_filters(filters);
+    mux.set_write_filters(filters);
 
     // Publish event.
     {
@@ -78,7 +77,7 @@ TEST_F(PublisherWrite, Write) {
     std::array<std::string, 2> messages{MSG1, MSG2};
     for (auto& m : messages) {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      mux.read(data, 0);
       if (!data || data->type() != io::raw::static_type())
         retval |= 1;
       else {

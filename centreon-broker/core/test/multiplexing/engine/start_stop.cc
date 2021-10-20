@@ -26,7 +26,6 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -57,9 +56,9 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Subscriber.
     std::unordered_set<uint32_t> filters;
     filters.insert(io::raw::static_type());
-    multiplexing::subscriber s("core_multiplexing_engine_start_stop", false);
-    s.get_muxer().set_read_filters(filters);
-    s.get_muxer().set_write_filters(filters);
+    multiplexing::muxer mux("core_multiplexing_engine_start_stop", false);
+    mux.set_read_filters(filters);
+    mux.set_write_filters(filters);
 
     // Send events through engine.
     std::array<std::string, 2> messages{MSG1, MSG2};
@@ -73,7 +72,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Should read no events from subscriber.
     {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      mux.read(data, 0);
       if (data)
         throw msg_fmt("error at step #1");
     }
@@ -84,7 +83,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Read retained events.
     for (auto& m : messages) {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      mux.read(data, 0);
       if (!data || data->type() != io::raw::static_type())
         throw msg_fmt("error at step #2");
       else {
@@ -105,7 +104,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Read event.
     {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      mux.read(data, 0);
       if (!data || data->type() != io::raw::static_type())
         throw msg_fmt("error at step #4");
       else {
@@ -129,7 +128,7 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Read no event.
     {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      mux.read(data, 0);
       if (data)
         throw msg_fmt("error at step #6");
     }

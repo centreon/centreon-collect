@@ -26,7 +26,6 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "hooker.hh"
 
@@ -58,9 +57,9 @@ TEST_F(Hook, EngineWorks) {
     // Subscriber.
     std::unordered_set<uint32_t> filters;
     filters.insert(io::raw::static_type());
-    multiplexing::subscriber s("core_multiplexing_engine_hook", "");
-    s.get_muxer().set_read_filters(filters);
-    s.get_muxer().set_write_filters(filters);
+    multiplexing::muxer mux("core_multiplexing_engine_hook", "");
+    mux.set_read_filters(filters);
+    mux.set_write_filters(filters);
 
     // Hook.
     hooker h;
@@ -80,7 +79,7 @@ TEST_F(Hook, EngineWorks) {
     // Should read no events from subscriber.
     {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      mux.read(data, 0);
       if (data)
         throw msg_fmt("error at step #1");
     }
@@ -113,7 +112,7 @@ TEST_F(Hook, EngineWorks) {
                                           HOOKMSG2, MSG3, HOOKMSG2, HOOKMSG3};
       for (auto& m : messages) {
         std::shared_ptr<io::data> d;
-        s.get_muxer().read(d, 0);
+        mux.read(d, 0);
         if (!d || (d->type() != io::raw::static_type()))
           throw msg_fmt("error at step #2");
         else {
@@ -123,7 +122,7 @@ TEST_F(Hook, EngineWorks) {
         }
       }
       std::shared_ptr<io::data> d;
-      s.get_muxer().read(d, 0);
+      mux.read(d, 0);
       if (d)
         throw msg_fmt("error at step #4");
     }

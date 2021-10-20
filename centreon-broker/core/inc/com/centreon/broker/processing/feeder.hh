@@ -27,7 +27,7 @@
 #include <thread>
 
 #include "com/centreon/broker/misc/shared_mutex.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
 

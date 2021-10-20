@@ -520,7 +520,6 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/multiplexing/hooker.hh
   ${INC_DIR}/multiplexing/muxer.hh
   ${INC_DIR}/multiplexing/publisher.hh
-  ${INC_DIR}/multiplexing/subscriber.hh
   ${INC_DIR}/mysql.hh
   ${INC_DIR}/pool.hh
   ${INC_DIR}/database/mysql_bind.hh

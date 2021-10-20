@@ -26,7 +26,7 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
+//#include "com/centreon/broker/multiplexing/subscriber.hh"
 
 using namespace com::centreon::broker;
 
@@ -50,28 +50,28 @@ TEST_F(SubscriberTest, DefaultConstructor) {
   // Subscriber.
   std::unordered_set<uint32_t> filters;
   filters.insert(io::raw::static_type());
-  multiplexing::subscriber s("core_multiplexing_subscriber_ctor_default", "");
-  s.get_muxer().set_read_filters(filters);
-  s.get_muxer().set_write_filters(filters);
+  multiplexing::muxer mux("core_multiplexing_subscriber_ctor_default", "");
+  mux.set_read_filters(filters);
+  mux.set_write_filters(filters);
 
   // Check that subscriber is empty.
   std::shared_ptr<io::data> event;
-  s.get_muxer().read(event, 0);
+  mux.read(event, 0);
   ASSERT_FALSE(event);
 
   // Write data to subscriber.
   std::shared_ptr<io::raw> data = std::make_shared<io::raw>();
   data->append(MSG);
-  s.get_muxer().write(std::static_pointer_cast<io::data>(data));
+  mux.write(std::static_pointer_cast<io::data>(data));
 
   // Fetch event.
-  s.get_muxer().read(event, 0);
+  mux.read(event, 0);
   ASSERT_TRUE(event);
   ASSERT_EQ(event->type(), io::raw::static_type());
   ASSERT_TRUE(strncmp(std::static_pointer_cast<io::raw>(event)->const_data(),
                       MSG.c_str(), MSG.size()) == 0);
 
   // Try reading again.
-  s.get_muxer().read(event, 0);
+  mux.read(event, 0);
   ASSERT_FALSE(event);
 }
