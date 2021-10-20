@@ -38,6 +38,17 @@ Depends: centreon-clib, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine is a monitoring engine, compatible with Nagios
  configuration, designed to monitor hosts and services on your network.
 
+Package: centreon-engine-dev
+Architecture: any
+Depends: centreon-clib-dev, ${misc:Depends}, ${shlibs:Depends}
+Description: Centreon Engine devel provide include files to develop Centreon Engine
+ Modules or Centreon Engine Connector.
+
+Package: centreon-engine-bench
+Architecture: any
+Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
+Description: Some Centreon Engine benchmarking tools.
+
 Package: centreon-engine-extcommands
 Architecture: any
 Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
@@ -56,6 +67,12 @@ Package: centreon-connector-ssh
 Architecture: any
 Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Connector SSH provide persistante connection between checks.
+
+Package: centreon-connector
+Architecture: any
+Depends: centreon-connector-perl, centreon-connector-ssh, ${misc:Depends}, ${shlibs:Depends}
+Description: Centreon Connector provide a monitoring tools, compatible with
+ Centreon-Engine configuration, designed to monitor and manage system.
 
 Package: centreon-broker
 Architecture: any
