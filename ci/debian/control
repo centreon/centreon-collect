@@ -44,6 +44,11 @@ Depends: centreon-clib-dev, ${misc:Depends}, ${shlibs:Depends}
 Description: Centreon Engine devel provide include files to develop Centreon Engine
  Modules or Centreon Engine Connector.
 
+Package: centreon-engine-bench
+Architecture: any
+Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
+Description: Some Centreon Engine benchmarking tools.
+
 Package: centreon-engine-extcommands
 Architecture: any
 Depends: centreon-engine, ${misc:Depends}, ${shlibs:Depends}
