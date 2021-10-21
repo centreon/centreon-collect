@@ -11,7 +11,7 @@ ENGINE_HOME = "/var/lib/centreon-engine"
 #SCRIPT_DIR: str = dirname(sys.argv[0]) + "scripts/"
 SCRIPT_DIR: str = dirname(__file__) + "/scripts/"
 
-class Engine:
+class EngineInstance:
     def __init__(self, count: int):
         self.last_service_id = 0
         self.hosts = []
@@ -250,8 +250,8 @@ define connector {
 
 def config_engine(num: int):
   global engine
-  engine = Engine(num)
+  engine = EngineInstance(num)
 
-def get_instances_count():
+def get_engines_count():
   return engine.instances
 

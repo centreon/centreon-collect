@@ -2,7 +2,7 @@
 Documentation	Centreon Engine only start/stop tests
 Library	Process
 Library	OperatingSystem
-Library	ConfigEngine.py
+Library	Engine.py
 
 *** Test cases ***
 ESS1: Start-Stop one instance of engine and no coredump
@@ -23,7 +23,7 @@ Remove Logs
 
 Start Stop Instances
 	[Arguments]	${interval}
-	${count}=	Get Instances Count
+	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
 		${alias}=	Catenate	SEPARATOR=	conf	${idx}
 		${conf}=	Catenate	SEPARATOR=	/etc/centreon-engine/config	${idx}	/centengine.cfg

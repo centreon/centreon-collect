@@ -107,7 +107,7 @@ config = {
     }}
 }}""",
 
-"module": """{
+"module": """{{
     "centreonBroker": {{
         "broker_id": {},
         "broker_name": "{}",
