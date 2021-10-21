@@ -2,7 +2,7 @@
 Documentation	Centreon Broker only start/stop tests
 Library	Process
 Library	OperatingSystem
-Library	BrokerConfig.py
+Library	Broker.py
 
 *** Test cases ***
 BSS1: Start-Stop two instances of broker and no coredump
@@ -62,4 +62,3 @@ Remove Logs
 
 *** Variables ***
 ${BROKER_LOG}	/var/log/centreon-broker
-
