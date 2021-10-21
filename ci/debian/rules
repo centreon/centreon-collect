@@ -26,7 +26,7 @@ override_dh_auto_configure:
 		-DWITH_PREFIX_LIB_BROKER=/usr/lib64/nagios \
 		-DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine \
 		-DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine \
-		-DWITH_PREFIX_LIB_CLIB=/usr/lib64/ \
+		-DWITH_PREFIX_LIB_CLIB=/usr/lib/ \
 		-DWITH_RW_DIR=/var/lib/centreon-engine/rw \
 		-DWITH_VAR_DIR=/var/log/centreon-engine \
 		-DWITH_MODULE_SIMU=On \
