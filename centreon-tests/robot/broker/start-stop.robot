@@ -53,10 +53,9 @@ Start Stop Service
 Start Stop Instance
 	[Arguments]	${interval}
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json
+	Sleep	${interval}
 	${result}=	Terminate Process
 	Should Be True	${result.rc} == -15 or ${result.rc} == 0
-	Sleep	${interval}
-	Terminate Process
 
 Remove Logs
 	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log ${BROKER_LOG}${/}central-module-master.log

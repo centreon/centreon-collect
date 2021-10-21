@@ -252,3 +252,6 @@ def config_engine(num: int):
   global engine
   engine = Engine(num)
 
+def get_instances_count():
+  return engine.instances
+
