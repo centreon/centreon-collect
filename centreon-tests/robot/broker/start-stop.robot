@@ -20,7 +20,8 @@ BSS5: Start-Stop with reversed connection on TCP acceptor with only one instance
 	[Tags]	Broker	start-stop
 	Remove Logs
 	Config Broker	central
-	Config Output	central	centreon-broker-master-rrd	one_peer_retention
+	Broker Config Output Set	central	centreon-broker-master-rrd	one_peer_retention_mode	yes
+	Broker Config Output Remove	central	centreon-broker-master-rrd	host
 	Repeat Keyword	5 times	Start Stop Instance	1s
 
 BSS2: Start/Stop 10 times broker with 300ms interval and no coredump
@@ -44,18 +45,16 @@ Start Stop Service
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
 	${result1}=	Terminate Process	b1
-	Should Be True	${result1.rc} == -15 or ${result1.rc} == 0
-	Terminate Process	b1
+	Should Be Equal As Integers	${result1.rc}	0
 	${result2}=	Terminate Process	b2
-	Should Be True	${result2.rc} == -15 or ${result2.rc} == 0
-	Terminate Process	b2
+	Should Be Equal As Integers	${result2.rc}	0
 
 Start Stop Instance
 	[Arguments]	${interval}
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json
 	Sleep	${interval}
 	${result}=	Terminate Process
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0
+	Should Be Equal As Integers	${result.rc}	0
 
 Remove Logs
 	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log ${BROKER_LOG}${/}central-module-master.log

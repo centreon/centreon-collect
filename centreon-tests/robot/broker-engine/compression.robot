@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation	Centreon Broker and Engine start/stop tests
+Documentation	Centreon Broker and Engine communication with or without compression
 Library	Process
 Library	OperatingSystem
 Library	../engine/Engine.py
@@ -7,60 +7,17 @@ Library	../broker/Broker.py
 Library	Common.py
 
 *** Test cases ***
-BESS1: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+BECC1: Broker/Engine communication - broker with compression=yes and engine with compression=yes
 	[Tags]	Broker	Engine	start-stop
 	Remove Logs
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
+	Broker Config Input set	central	central-broker-master-input	compression	yes
+	Broker Config Output set	module	central-module-master-output	compression	yes
 	Start Broker
 	Start Engine
-	Sleep	5s
-	${result}=	Check Connections
-	Should Be True	${result}
-	Stop Broker
-	Stop Engine
-
-BESS2: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-	[Tags]	Broker	Engine	start-stop
-	Remove Logs
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Start Broker
-	Start Engine
-	Sleep	5s
-	${result}=	Check Connections
-	Should Be True	${result}
-	Stop Engine
-	Stop Broker
-
-BESS3: Start-Stop Broker/Engine - Engine started first - Engine stopped first
-	[Tags]	Broker	Engine	start-stop
-	Remove Logs
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Start Engine
-	Start Broker
-	Sleep	5s
-	${result}=	Check Connections
-	Should Be True	${result}
-	Stop Engine
-	Stop Broker
-
-BESS4: Start-Stop Broker/Engine - Engine started first - Broker stopped first
-	[Tags]	Broker	Engine	start-stop
-	Remove Logs
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-	Start Engine
-	Start Broker
 	Sleep	5s
 	${result}=	Check Connections
 	Should Be True	${result}

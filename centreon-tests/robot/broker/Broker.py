@@ -1,3 +1,4 @@
+from robot.api import logger
 import json
 
 config = {
@@ -253,7 +254,7 @@ def config_broker(name):
     f.write(config[name].format(broker_id, broker_name))
     f.close()
 
-def config_output(name, output, value):
+def broker_config_output_set(name, output, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name == 'module':
@@ -264,13 +265,61 @@ def config_output(name, output, value):
     buf = f.read()
     f.close()
     conf = json.loads(buf)
-    output_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["output"]) if elem["name"] == "centreon-broker-master-rrd"][0]
-    if value == "one_peer_retention":
-        if "host" in output_dict:
-            output_dict.pop("host")
-        output_dict["one_peer_retention_mode"] = "yes"
+    output_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["output"]) if elem["name"] == output][0]
+    output_dict[key] = value
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
-#config_output("central", "centreon-broker-master-rrd", "one_peer_retention")
+def broker_config_output_remove(name, output, key):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    output_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["output"]) if elem["name"] == output][0]
+    if key in output_dict:
+      output_dict.pop(key)
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+def broker_config_input_set(name, inp, key, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    input_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
+    input_dict[key] = value
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+def broker_config_input_remove(name, inp, key):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    input_dict = [elem for i, elem in enumerate(conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
+    if key in input_dict:
+      input_dict.pop(key)
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()

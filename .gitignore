@@ -89,3 +89,6 @@ build/*
 cmake-build-debug/*
 centreon-clib/script/*
 centreon-clib/inc/com/centreon/clib/version.hh
+output.xml
+log.html
+report.html
