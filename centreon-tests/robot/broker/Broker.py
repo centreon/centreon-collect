@@ -323,3 +323,22 @@ def broker_config_input_remove(name, inp, key):
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
+
+def broker_config_log(name, key, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    loggers = conf["centreonBroker"]["log"]["loggers"]
+    loggers[key] = value
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
