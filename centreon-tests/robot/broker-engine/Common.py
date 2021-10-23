@@ -82,6 +82,9 @@ def create_key_and_certificate(host: str, key: str, cert: str):
   else:
     retval = getoutput("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {} -subj '/CN={}'".format(key, cert, host))
 
+def create_certificate(host: str, cert: str):
+  create_key_and_certificate(host, "", cert)
+
 #now = "2021-10-22 16:36:59.519"
 #print(find_in_log("/var/log/centreon-broker/central-broker-master.log", now, ["extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration'", "we have extensions 'COMPRESSION' and peer has ''"]))
 #logger.console(check_connection(5669, 16088, 16219))
