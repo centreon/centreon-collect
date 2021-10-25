@@ -1,5 +1,8 @@
+import time
 from robot.api import logger
 import json
+
+TIMEOUT = 30
 
 config = {
     "central": """{{
@@ -341,4 +344,60 @@ def broker_config_log(name, key, value):
     f.write(json.dumps(conf, indent=2))
     f.close()
 
+def check_broker_stats_exists(name, key1, key2):
+  limit = time.time() + TIMEOUT
+  while time.time() < limit:
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
+    retry = True
+    while retry:
+      retry = False
+      f = open("/var/lib/centreon-broker/{}".format(filename), "r")
+      buf = f.read()
+      f.close()
 
+      try:
+        conf = json.loads(buf)
+      except:
+        retry = True
+    if key1 in conf:
+      if key2 in conf[key1]:
+        return True
+    time.sleep(1)
+  return False
+
+def check_broker_stats_size(name, key):
+  limit = time.time() + TIMEOUT
+  retval = 0
+  while time.time() < limit:
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
+    retry = True
+    while retry:
+      retry = False
+      f = open("/var/lib/centreon-broker/{}".format(filename), "r")
+      buf = f.read()
+      f.close()
+      try:
+        conf = json.loads(buf)
+      except:
+        retry = True
+
+    if key in conf:
+      value = len(conf[key])
+    else:
+      value = 0
+    if value > retval:
+      retval = value
+    elif retval != 0:
+      return retval
+    time.sleep(5)
+  return retval
