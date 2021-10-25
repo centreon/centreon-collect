@@ -38,6 +38,14 @@ def get_date(d: str):
     retval = parser.parse(d[:-6])
   return retval
 
+def find_in_log_with_timeout(log: str, date, content, timeout:int):
+  limit = time.time() + TIMEOUT
+  while time.time() < limit:
+    if find_in_log(log, date, content):
+      return True
+    time.sleep(5)
+  return False
+
 def find_in_log(log: str, date, content):
   my_date = parser.parse(date)
   f = open(log, "r")
@@ -59,14 +67,13 @@ def find_in_log(log: str, date, content):
   for c in content:
     found = False
     for i in range(idx, len(lines)):
-      if i == 4822:
-        print("attention")
       line = lines[i]
       if c in line:
+        logger.console("\"{}\" found at line {}".format(c, idx))
         found = True
         break
     if not found:
-      logger.console("Unable to find from {} (line {}): {}".format(date, idx, c))
+      logger.console("Unable to find from {} (from line {}): {}".format(date, idx, c))
       return False
 
   return True
@@ -84,6 +91,12 @@ def create_key_and_certificate(host: str, key: str, cert: str):
 
 def create_certificate(host: str, cert: str):
   create_key_and_certificate(host, "", cert)
+
+def start_mysql():
+  getoutput("systemctl start mysql")
+
+def stop_mysql():
+  getoutput("systemctl stop mysql")
 
 #now = "2021-10-22 16:36:59.519"
 #print(find_in_log("/var/log/centreon-broker/central-broker-master.log", now, ["extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration'", "we have extensions 'COMPRESSION' and peer has ''"]))
