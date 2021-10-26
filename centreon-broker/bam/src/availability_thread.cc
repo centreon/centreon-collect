@@ -22,7 +22,6 @@
 
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/global_lock.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
