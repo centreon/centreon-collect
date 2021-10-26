@@ -32,7 +32,6 @@
 #include <sstream>
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/global_lock.hh"
 #include "com/centreon/broker/notification/stream.hh"
 #include "com/centreon/broker/notification/utilities/data_loggers.hh"
 #include "com/centreon/engine/common.hh"
