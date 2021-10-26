@@ -74,11 +74,20 @@ class query_preparator {
   query_preparator(uint32_t event_id,
                    event_unique const& unique = event_unique(),
                    excluded_fields const& excluded = excluded_fields());
-  query_preparator(query_preparator const& other);
-  ~query_preparator();
-  query_preparator& operator=(query_preparator const& other);
+  ~query_preparator() noexcept = default;
+  query_preparator(query_preparator const&) = delete;
+  query_preparator& operator=(query_preparator const&) = delete;
   database::mysql_stmt prepare_insert(mysql& q, bool ignore = false);
+  database::mysql_stmt prepare_insert_into(
+      mysql& q,
+      const std::string& table,
+      const std::unordered_map<int32_t, std::string>& mapping,
+      bool ignore = false);
   database::mysql_stmt prepare_update(mysql& q);
+  database::mysql_stmt prepare_update_table(
+      mysql& q,
+      const std::string& table,
+      const std::unordered_map<int32_t, std::string>& mapping);
   database::mysql_stmt prepare_insert_or_update(mysql& ms);
   database::mysql_stmt prepare_delete(mysql& q);
 

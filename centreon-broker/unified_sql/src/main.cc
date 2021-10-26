@@ -119,7 +119,7 @@ void broker_module_init(void const* arg) {
       /* Let's register the message to ask rrd for remove metrics. This is
        * pb_remove_graph_message. */
       e.register_event(make_type(io::storage, storage::de_remove_graph_message),
-                       "remove_graphs_message",
+                       "RemoveGraphMessage",
                        &storage::pb_remove_graph_message::operations);
     }
 

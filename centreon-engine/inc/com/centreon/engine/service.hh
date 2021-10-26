@@ -177,8 +177,8 @@ class service : public notifier {
   void update_notification_flags() override;
   void check_for_expired_acknowledgement();
   void schedule_acknowledgement_expiration();
-  bool operator==(service const& other) = delete;
-  bool operator!=(service const& other) = delete;  // throw();
+  bool operator==(service const&) = delete;
+  bool operator!=(service const&) = delete;
   bool is_valid_escalation_for_notification(escalation const* e,
                                             int options) const override;
   bool is_result_fresh(time_t current_time, int log_this);

@@ -47,8 +47,6 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 include_directories("${INC_DIR}")
 include_directories("${INC_DIR}/compatibility")
 
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
-
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Version.
@@ -520,7 +518,9 @@ set(
 # Subdirectories with core features.
 add_subdirectory(src/broker)
 add_subdirectory(src/checks)
-add_subdirectory(conf)
+if (WITH_CONF)
+  add_subdirectory(conf)
+endif ()
 add_subdirectory(src/downtimes)
 add_subdirectory(src/configuration)
 add_subdirectory(src/commands)
@@ -540,13 +540,13 @@ add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
 
 # Link target with required libraries.
-target_link_libraries(cce_core ${nlohmann_json_LIBS}
+target_link_libraries(cce_core CONAN_PKG::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
   ${SOCKET_LIBRARIES}
   centreon_clib
   ${fmt_LIBRARIES}
-  ${spdlog_LIBS}
+  CONAN_PKG::spdlog
 )
 
 # centengine target.
@@ -555,7 +555,7 @@ set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
-target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
+target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")

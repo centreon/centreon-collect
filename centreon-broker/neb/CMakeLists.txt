@@ -22,6 +22,8 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
 include_directories("${INC_DIR}")
 
+get_protobuf_files(service)
+
 # NEB sources.
 set(NEB_SOURCES
   # Sources.
@@ -59,6 +61,7 @@ set(NEB_SOURCES
   ${SRC_DIR}/service_group_member.cc
   ${SRC_DIR}/service_status.cc
   ${SRC_DIR}/status.cc
+  ${proto_pb_service}
   ${INC_DIR}/com/centreon/broker/neb/acknowledgement.hh
   ${INC_DIR}/com/centreon/broker/neb/check.hh
   ${INC_DIR}/com/centreon/broker/neb/comment.hh
@@ -117,9 +120,10 @@ add_library("${NEB}" SHARED
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} nebbase)
+target_link_libraries(${NEB} nebbase CONAN_PKG::spdlog)
 #  "-Wl,--whole-archive" nebbase "-Wl,--no-whole-archive")
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
+add_dependencies("${NEB}" service)
 install(TARGETS "${NEB}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"
 )
@@ -214,9 +218,9 @@ set_property(TARGET "${CBMOD}"
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Flags needed to include all symbols in shared library.
   target_link_libraries("${CBMOD}"
-    "-Wl,--whole-archive" "rokerbase" "-Wl,--no-whole-archive" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${asio_LIBS} ${OpenSSL_LIBS})
+    "-Wl,--whole-archive" "rokerbase" "-Wl,--no-whole-archive" CONAN_PKG::nlohmann_json CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::asio CONAN_PKG::openssl CONAN_PKG::protobuf)
 else ()
-  target_link_libraries("${CBMOD}" "rokerbase" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${asio_LIBS} ${OpenSSL_LIBS})
+  target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::asio CONAN_PKG::openssl CONAN_PKG::protobuf)
 endif ()
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 

@@ -1,5 +1,5 @@
 /*
-** Copyright 2015 Centreon
+** Copyright 2015, 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/broker/query_preparator.hh"
-
-#include <sstream>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -44,35 +42,83 @@ query_preparator::query_preparator(
     : _event_id(event_id), _excluded(excluded), _unique(unique) {}
 
 /**
- *  Copy constructor.
+ * @brief Prepare an INSERT query. The function waits for the table to insert
+ * into, and a mapping between indexes and column names. Indexes come from the
+ * protobuf declaration of the object.
  *
- *  @param[in] other  Object to copy.
+ * @param ms  the mysql object, owner of the prepared statements.
+ * @param table The table concerned by the INSERT.
+ * @param mapping The correspondance between indexes and column names.
+ * @param ignore A boolean telling if error should be ignored.
+ *
+ * @return The prepared statement.
  */
-query_preparator::query_preparator(query_preparator const& other) {
-  _event_id = other._event_id;
-  _excluded = other._excluded;
-  _unique = other._unique;
-}
+mysql_stmt query_preparator::prepare_insert_into(
+    mysql& ms,
+    const std::string& table,
+    const std::unordered_map<int32_t, std::string>& mapping,
+    bool ignore) {
+  std::map<std::string, int> bind_mapping;
+  // Find event info.
+  io::event_info const* info(io::events::instance().get_event_info(_event_id));
+  if (!info)
+    throw msg_fmt(
+        "could not prepare insertion query for event of type {}: "
+        "event is not registered",
+        _event_id);
 
-/**
- *  Destructor.
- */
-query_preparator::~query_preparator() {}
+  // Build query string.
+  std::string query;
+  if (ignore)
+    query = fmt::format("INSERT IGNORE INTO {} (", table);
+  else
+    query = fmt::format("INSERT INTO {} (", table);
 
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-query_preparator& query_preparator::operator=(query_preparator const& other) {
-  if (this != &other) {
-    _event_id = other._event_id;
-    _excluded = other._excluded;
-    _unique = other._unique;
+  const mapping::entry* entries = info->get_mapping();
+  if (entries)
+    throw msg_fmt(
+        "prepare_insert_into only works with BBDO with embedded protobuf message");
+
+  /* Here is the protobuf case : no mapping */
+  const google::protobuf::Descriptor* desc =
+        google::protobuf::DescriptorPool::generated_pool()
+                ->FindMessageTypeByName(fmt::format("com.centreon.broker.{}",
+                      info->get_name()));
+
+  int size = 0;
+  for (auto it = mapping.begin(); it != mapping.end(); ++it) {
+    if (it->first < desc->field_count()) {
+      const std::string& entry_name = desc->field(it->first)->name();
+      log_v2::sql()->info("In message {}: object at position {} gives {}",
+                          info->get_name(), it->first,
+                          entry_name);
+      query.append(entry_name);
+      query.append(",");
+      bind_mapping.emplace(fmt::format(":{}", entry_name), size++);
+    } else
+      throw msg_fmt("Index in mapping out of range compared to protobuf message '{}'",
+          info->get_name());
+
   }
-  return *this;
+  query.resize(query.size() - 1);
+  query.append(") VALUE(");
+  query.reserve(query.size() + 2 * size);
+  for (int i = 0; i < size; i++)
+    query.append("?,");
+  query.resize(query.size() - 1);
+  query.append(")");
+
+  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  // Prepare statement.
+  mysql_stmt retval;
+  try {
+    retval = ms.prepare_query(query, bind_mapping);
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "could not prepare insertion query for event '{}' in table '{}': {}",
+        info->get_name(), info->get_table_v2(), e.what());
+  }
+  return retval;
 }
 
 /**
@@ -101,34 +147,57 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
 
   query.append(info->get_table_v2());
   query.append(" (");
-  mapping::entry const* entries(info->get_mapping());
-  for (int i(0); !entries[i].is_null(); ++i) {
-    char const* entry_name;
-    entry_name = entries[i].get_name_v2();
-    if (!entry_name || !entry_name[0] ||
-        (_excluded.find(entry_name) != _excluded.end()))
-      continue;
-    query.append(entry_name);
-    query.append(", ");
-  }
-  query.resize(query.size() - 2);
-  query.append(") VALUES(");
-  std::string key;
-  int size(0);
-  for (int i(0); !entries[i].is_null(); ++i) {
-    char const* entry_name;
-    entry_name = entries[i].get_name_v2();
-    if (!entry_name || !entry_name[0] ||
-        (_excluded.find(entry_name) != _excluded.end()))
-      continue;
-    key = std::string(":");
-    key.append(entry_name);
-    bind_mapping.insert(std::make_pair(key, size++));
-    query.append("?,");
-  }
-  query.resize(query.size() - 1);
-  query.append(")");
+  const mapping::entry* entries = info->get_mapping();
+  if (entries) {
+    for (int i = 0; !entries[i].is_null(); ++i) {
+      char const* entry_name;
+      entry_name = entries[i].get_name_v2();
+      if (!entry_name || !entry_name[0] ||
+          (_excluded.find(entry_name) != _excluded.end()))
+        continue;
+      query.append(entry_name);
+      query.append(", ");
+    }
+    query.resize(query.size() - 2);
+    query.append(") VALUES(");
+    int size = 0;
+    for (int i = 0; !entries[i].is_null(); ++i) {
+      char const* entry_name;
+      entry_name = entries[i].get_name_v2();
+      if (!entry_name || !entry_name[0] ||
+          (_excluded.find(entry_name) != _excluded.end()))
+        continue;
+      bind_mapping.insert(
+          std::make_pair(fmt::format(":{}", entry_name), size++));
+      query.append("?,");
+    }
+    query.resize(query.size() - 1);
+    query.append(")");
 
+  } else {
+    /* Here is the protobuf case : no mapping */
+    const google::protobuf::Descriptor* desc =
+          google::protobuf::DescriptorPool::generated_pool()
+                  ->FindMessageTypeByName(fmt::format("com.centreon.broker.{}",
+                        info->get_name()));
+
+    int size = 0;
+    for (int i = 0; i < desc->field_count(); i++) {
+      //log_v2::neb()->info("{}", desc->field(i)->name());
+      const std::string entry_name = desc->field(i)->name();
+      query.append(entry_name);
+      query.append(",");
+      bind_mapping.insert(
+          std::make_pair(fmt::format(":{}", entry_name), size++));
+    }
+    query.resize(query.size() - 1);
+    query.append(") VALUE(");
+    for (int i = 0; i < size; i++)
+      query.append("?,");
+
+    query.resize(query.size() - 1);
+    query.append(")");
+  }
   log_v2::sql()->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
@@ -273,6 +342,81 @@ mysql_stmt query_preparator::prepare_update(mysql& ms) {
 
   for (std::map<std::string, int>::iterator it(where_bind_mapping.begin()),
        end(where_bind_mapping.end());
+       it != end; ++it)
+    query_bind_mapping.insert(
+        std::make_pair(it->first, it->second + query_size));
+
+  // Prepare statement.
+  mysql_stmt retval;
+  try {
+    retval = ms.prepare_query(query, query_bind_mapping);
+  } catch (std::exception const& e) {
+    throw msg_fmt(
+        "could not prepare update query for event '{}': on table '{}': {}",
+        info->get_name(), info->get_table_v2(), e.what());
+  }
+  return retval;
+}
+
+/**
+ *  Prepare update query for specified event.
+ *
+ *  @param[out] q  Database query, prepared and ready to run.
+ */
+mysql_stmt query_preparator::prepare_update_table(mysql& ms,
+    const std::string& table,
+    const std::unordered_map<int32_t, std::string>& mapping) {
+  std::map<std::string, int> query_bind_mapping;
+  std::map<std::string, int> where_bind_mapping;
+  // Find event info.
+  io::event_info const* info(io::events::instance().get_event_info(_event_id));
+  if (!info)
+    throw msg_fmt(
+        "could not prepare update query for event of type {}:"
+        "event is not registered",
+        _event_id);
+
+  // Build query string.
+  std::string query(fmt::format("UPDATE {} SET ", table));
+  std::string where(" WHERE ");
+  const mapping::entry* entries(info->get_mapping());
+  if (entries)
+    throw msg_fmt("prepare_update_table only works with BBDO with embedded protobuf message");
+  std::string key;
+  int query_size(0);
+  int where_size(0);
+
+  /* Here is the protobuf case : no mapping */
+  const google::protobuf::Descriptor* desc =
+        google::protobuf::DescriptorPool::generated_pool()
+                ->FindMessageTypeByName(fmt::format("com.centreon.broker.{}",
+                      info->get_name()));
+
+  for (auto it = mapping.begin(); it != mapping.end(); ++it) {
+    if (it->first < desc->field_count()) {
+      const std::string& entry_name = desc->field(it->first)->name();
+      log_v2::sql()->info("In message {}: object at position {} gives {}",
+                          info->get_name(), it->first, entry_name);
+      // Standard field.
+      if (_unique.find(entry_name) == _unique.end()) {
+        query.append(entry_name);
+        key = fmt::format(":{}", entry_name);
+        query.append("=?,");
+        query_bind_mapping.insert(std::make_pair(key, query_size++));
+      }
+      // Part of ID field.
+      else {
+        where.append(entry_name);
+        where.append("=? AND ");
+        key = fmt::format(":{}", entry_name);
+        where_bind_mapping.insert(std::make_pair(key, where_size++));
+      }
+    }
+  }
+  query.resize(query.size() - 1);
+  query.append(where, 0, where.size() - 5);
+
+  for (auto it = where_bind_mapping.begin(), end = where_bind_mapping.end();
        it != end; ++it)
     query_bind_mapping.insert(
         std::make_pair(it->first, it->second + query_size));

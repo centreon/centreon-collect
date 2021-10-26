@@ -89,7 +89,7 @@ if (LIBRRD_CFLAGS)
       COMPILE_FLAGS "${LIBRRD_CFLAGS}")
   endif ()
 endif ()
-target_link_libraries("${RRD}" ${LIBRRD_LDFLAGS} bbdo_storage)
+target_link_libraries("${RRD}" ${LIBRRD_LDFLAGS} bbdo_storage CONAN_PKG::spdlog)
 
 # Testing.
 if (WITH_TESTING)

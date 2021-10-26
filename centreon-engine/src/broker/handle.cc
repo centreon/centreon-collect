@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2016 Centreon
+** Copyright 2011-2013,2016, 2021 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -28,30 +28,14 @@
 using namespace com::centreon::engine::broker;
 using namespace com::centreon::engine::logging;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Constructor.
  *
  *  @param[in] filename The module filename.
  *  @param[in] args     The module args.
  */
-handle::handle(std::string const& filename, std::string const& args)
+handle::handle(const std::string& filename, const std::string& args)
     : _args(args), _filename(filename), _name(filename) {
-  broker::compatibility::instance().create_module(this);
-}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right The object to copy.
- */
-handle::handle(handle const& right) {
-  _internal_copy(right);
   broker::compatibility::instance().create_module(this);
 }
 
@@ -63,19 +47,6 @@ handle::~handle() noexcept {
 }
 
 /**
- *  Assignment operator.
- *
- *  @param[in] right The object to copy.
- *
- *  @return This object.
- */
-handle& handle::operator=(handle const& right) {
-  if (this != &right)
-    _internal_copy(right);
-  return *this;
-}
-
-/**
  *  Default egality operator.
  *
  *  @param[in] right The object to compare.
@@ -83,12 +54,11 @@ handle& handle::operator=(handle const& right) {
  *  @return true or false.
  */
 bool handle::operator==(handle const& right) const noexcept {
-  return ((_args == right._args) && (_author == right._author) &&
-          (_copyright == right._copyright) &&
-          (_description == right._description) &&
-          (_filename == right._filename) && (_license == right._license) &&
-          (_name == right._name) && (_version == right._version) &&
-          (_handle.get() == right._handle.get()));
+  return _args == right._args && _author == right._author &&
+         _copyright == right._copyright && _description == right._description &&
+         _filename == right._filename && _license == right._license &&
+         _name == right._name && _version == right._version &&
+         _handle.get() == right._handle.get();
 }
 
 /**
@@ -133,7 +103,7 @@ void handle::close() {
  *
  *  @return The arguments.
  */
-std::string const& handle::get_args() const noexcept {
+const std::string& handle::get_args() const noexcept {
   return _args;
 }
 
@@ -142,7 +112,7 @@ std::string const& handle::get_args() const noexcept {
  *
  *  @return The author name.
  */
-std::string const& handle::get_author() const noexcept {
+const std::string& handle::get_author() const noexcept {
   return _author;
 }
 
@@ -151,7 +121,7 @@ std::string const& handle::get_author() const noexcept {
  *
  *  @return The copyright.
  */
-std::string const& handle::get_copyright() const noexcept {
+const std::string& handle::get_copyright() const noexcept {
   return _copyright;
 }
 
@@ -160,7 +130,7 @@ std::string const& handle::get_copyright() const noexcept {
  *
  *  @return The description.
  */
-std::string const& handle::get_description() const noexcept {
+const std::string& handle::get_description() const noexcept {
   return _description;
 }
 
@@ -169,7 +139,7 @@ std::string const& handle::get_description() const noexcept {
  *
  *  @return The filename.
  */
-std::string const& handle::get_filename() const noexcept {
+const std::string& handle::get_filename() const noexcept {
   return _filename;
 }
 
@@ -187,7 +157,7 @@ com::centreon::library* handle::get_handle() const noexcept {
  *
  *  @return The license.
  */
-std::string const& handle::get_license() const noexcept {
+const std::string& handle::get_license() const noexcept {
   return _license;
 }
 
@@ -196,7 +166,7 @@ std::string const& handle::get_license() const noexcept {
  *
  *  @return The name.
  */
-std::string const& handle::get_name() const noexcept {
+const std::string& handle::get_name() const noexcept {
   return _name;
 }
 
@@ -205,7 +175,7 @@ std::string const& handle::get_name() const noexcept {
  *
  *  @return The version.
  */
-std::string const& handle::get_version() const noexcept {
+const std::string& handle::get_version() const noexcept {
   return _version;
 }
 
@@ -248,7 +218,6 @@ void handle::open() {
     close();
     throw;
   }
-  return;
 }
 
 /**
@@ -257,7 +226,7 @@ void handle::open() {
  *  @param[in] filename The module filename.
  *  @param[in] args The module arguments.
  */
-void handle::open(std::string const& filename, std::string const& args) {
+void handle::open(const std::string& filename, const std::string& args) {
   if (is_loaded())
     return;
 
@@ -265,7 +234,6 @@ void handle::open(std::string const& filename, std::string const& args) {
   _filename = filename;
   _args = args;
   open();
-  return;
 }
 
 /**
@@ -278,7 +246,6 @@ void handle::reload() {
   func_reload routine((func_reload)_handle->resolve_proc("nebmodule_reload"));
   if (routine)
     routine();
-  return;
 }
 
 /**
@@ -286,10 +253,9 @@ void handle::reload() {
  *
  *  @param[in] The author name.
  */
-void handle::set_author(std::string const& author) {
+void handle::set_author(const std::string& author) {
   _author = author;
   broker::compatibility::instance().author_module(this);
-  return;
 }
 
 /**
@@ -297,10 +263,9 @@ void handle::set_author(std::string const& author) {
  *
  *  @param[in] The copyright.
  */
-void handle::set_copyright(std::string const& copyright) {
+void handle::set_copyright(const std::string& copyright) {
   _copyright = copyright;
   broker::compatibility::instance().copyright_module(this);
-  return;
 }
 
 /**
@@ -308,10 +273,9 @@ void handle::set_copyright(std::string const& copyright) {
  *
  *  @param[in] The description.
  */
-void handle::set_description(std::string const& description) {
+void handle::set_description(const std::string& description) {
   _description = description;
   broker::compatibility::instance().description_module(this);
-  return;
 }
 
 /**
@@ -319,10 +283,9 @@ void handle::set_description(std::string const& description) {
  *
  *  @param[in] The license.
  */
-void handle::set_license(std::string const& license) {
+void handle::set_license(const std::string& license) {
   _license = license;
   broker::compatibility::instance().license_module(this);
-  return;
 }
 
 /**
@@ -330,10 +293,9 @@ void handle::set_license(std::string const& license) {
  *
  *  @param[in] The name.
  */
-void handle::set_name(std::string const& name) {
+void handle::set_name(const std::string& name) {
   _name = name;
   broker::compatibility::instance().name_module(this);
-  return;
 }
 
 /**
@@ -341,32 +303,7 @@ void handle::set_name(std::string const& name) {
  *
  *  @param[in] The version.
  */
-void handle::set_version(std::string const& version) {
+void handle::set_version(const std::string& version) {
   _version = version;
   broker::compatibility::instance().version_module(this);
-  return;
-}
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void handle::_internal_copy(handle const& right) {
-  _args = right._args;
-  _author = right._author;
-  _copyright = right._copyright;
-  _description = right._description;
-  _filename = right._filename;
-  _handle = right._handle;
-  _license = right._license;
-  _name = right._name;
-  _version = right._version;
-  return;
 }

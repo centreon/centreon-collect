@@ -70,6 +70,7 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_service_status,
     &stream::_process_instance_configuration,
     &stream::_process_responsive_instance,
+    &stream::_process_pb_service_status,
 };
 
 stream::stream(const database_config& dbcfg,

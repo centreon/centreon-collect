@@ -27,36 +27,38 @@ set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 get_protobuf_files(rebuild_message)
 get_protobuf_files(remove_graph_message)
+get_protobuf_files(service)
 
 # Storage module.
 set(UNIFIED_SQL "20-unified_sql")
 set(UNIFIED_SQL "${UNIFIED_SQL}" PARENT_SCOPE)
 add_library("${UNIFIED_SQL}" SHARED
   # Sources.
-  "${SRC_DIR}/connector.cc"
-  "${SRC_DIR}/factory.cc"
-  "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/rebuilder.cc"
-  "${SRC_DIR}/stored_timestamp.cc"
-  "${SRC_DIR}/stream.cc"
-  "${SRC_DIR}/stream_sql.cc"
-  "${SRC_DIR}/stream_storage.cc"
+  ${SRC_DIR}/connector.cc
+  ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/main.cc
+  ${SRC_DIR}/rebuilder.cc
+  ${SRC_DIR}/stored_timestamp.cc
+  ${SRC_DIR}/stream.cc
+  ${SRC_DIR}/stream_sql.cc
+  ${SRC_DIR}/stream_storage.cc
   ${proto_rebuild_message}
   ${proto_remove_graph_message}
+  ${proto_service}
   # Headers.
-  "${INC_DIR}/connector.hh"
-  "${INC_DIR}/events.hh"
-  "${INC_DIR}/factory.hh"
-  "${INC_DIR}/internal.hh"
-  "${INC_DIR}/rebuilder.hh"
-  "${INC_DIR}/stored_timestamp.hh"
-  "${INC_DIR}/stream.hh"
+  ${INC_DIR}/connector.hh
+  ${INC_DIR}/events.hh
+  ${INC_DIR}/factory.hh
+  ${INC_DIR}/internal.hh
+  ${INC_DIR}/rebuilder.hh
+  ${INC_DIR}/stored_timestamp.hh
+  ${INC_DIR}/stream.hh
 )
 set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-add_dependencies("${UNIFIED_SQL}" rebuild_message remove_graph_message)
-target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage)
+add_dependencies("${UNIFIED_SQL}" rebuild_message remove_graph_message service)
+target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage CONAN_PKG::spdlog)
 
 # Testing.
 if (WITH_TESTING)

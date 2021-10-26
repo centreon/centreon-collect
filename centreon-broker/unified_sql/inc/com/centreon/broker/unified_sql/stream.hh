@@ -295,6 +295,8 @@ class stream : public io::stream {
   void _process_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
+  void _process_pb_service_status(const std::shared_ptr<io::data>& d);
+
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
 
   void _load_deleted_instances();

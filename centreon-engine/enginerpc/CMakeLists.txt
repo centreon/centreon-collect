@@ -32,28 +32,24 @@ include_directories(
 
 find_package(Protobuf REQUIRED)
 
-include_directories(${gRPC_INCLUDE_DIRS})
-include_directories(${absl_INCLUDE_DIRS})
-include_directories(${protobuf_INCLUDE_DIRS})
+include_directories(${CONAN_INCLUDE_DIRS_GRPC})
+#include_directories(${absl_INCLUDE_DIRS})
+#include_directories(${protobuf_INCLUDE_DIRS})
 
-link_directories(${protobuf_LIB_DIRS})
-link_directories(${gRPC_LIB_DIRS})
-
-set(PROTOBUF_PREFIX "${protobuf_LIB_DIRS}/..")
-message(STATUS "${PROTOBUF_PREFIX}/bin/protoc")
-set(GRPC_PREFIX "${gRPC_LIB_DIRS}/..")
+#link_directories(${protobuf_LIB_DIRS})
+#link_directories(${gRPC_LIB_DIRS})
 
 add_custom_command(
   DEPENDS ${ENGINERPC_DIR}/engine.proto
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.grpc.pb.h
-  COMMAND ${PROTOBUF_PREFIX}/bin/protoc
-  ARGS --plugin=protoc-gen-grpc=${GRPC_PREFIX}/bin/grpc_cpp_plugin --proto_path=${ENGINERPC_DIR} --grpc_out="${ENGINERPC_DIR}" ${ENGINERPC_DIR}/engine.proto
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+  ARGS --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin --proto_path=${ENGINERPC_DIR} --grpc_out="${ENGINERPC_DIR}" ${ENGINERPC_DIR}/engine.proto
 
   DEPENDS ${ENGINERPC_DIR}/engine.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${ENGINERPC_DIR}/engine.pb.cc ${ENGINERPC_DIR}/engine.pb.h
-  COMMAND ${PROTOBUF_PREFIX}/bin/protoc
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
   ARGS --cpp_out="${ENGINERPC_DIR}" --proto_path=${ENGINERPC_DIR} ${ENGINERPC_DIR}/engine.proto
 )
 
@@ -71,7 +67,7 @@ add_library(
   ${ENGINERPC_DIR}/engine.pb.cc
   ${ENGINERPC_DIR}/engine.grpc.pb.h
   ${ENGINERPC_DIR}/engine.pb.h)
-target_link_libraries(cerpc ${protobuf_LIBS})
+target_link_libraries(cerpc CONAN_PKG::protobuf)
 
 # mod_enginerpc target.
 add_library(

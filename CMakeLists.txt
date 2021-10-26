@@ -58,49 +58,22 @@ set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 ##################################
 
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup(TARGETS)
+
 include(GNUInstallDirs)
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
-if (WITH_TESTING)
-  find_package(GTest REQUIRED)
-endif ()
+
+option(WITH_CONF "Install configuration files." ON)
 
 set(protobuf_MODULE_COMPATIBLE True)
 
-find_package(asio REQUIRED)
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(c-ares REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(Protobuf REQUIRED)
-find_package(gRPC REQUIRED)
-
 add_definitions(${spdlog_DEFINITIONS})
 
-include_directories(${nlohmann_json_INCLUDE_DIRS})
-include_directories(${fmt_INCLUDE_DIRS})
-include_directories(${spdlog_INCLUDE_DIRS})
-include_directories(${asio_INCLUDE_DIRS})
-include_directories(${protobuf_INCLUDE_DIRS})
-include_directories(${absl_INCLUDE_DIRS})
-include_directories(${gRPC_INCLUDE_DIRS})
-include_directories(${ZLIB_INCLUDE_DIRS})
-include_directories(${CMAKE_SOURCE_DIR})
-
-link_directories(${nlohmann_json_LIB_DIRS})
-link_directories(${fmt_LIB_DIRS})
-link_directories(${spdlog_LIB_DIRS})
-link_directories(${protobuf_LIB_DIRS})
-link_directories(${gRPC_LIB_DIRS})
-link_directories(${c-ares_LIB_DIRS})
-link_directories(${OpenSSL_LIB_DIRS})
-link_directories(${ZLIB_LIB_DIRS})
-
-set(PROTOBUF_PREFIX "${protobuf_LIB_DIRS}/..")
+include_directories(${CMAKE_SOURCE_DIR}
+                    ${CONAN_INCLUDE_DIRS})
 
 add_subdirectory(bbdo)
 add_subdirectory(centreon-broker)

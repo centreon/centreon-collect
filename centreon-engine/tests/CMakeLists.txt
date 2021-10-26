@@ -20,8 +20,8 @@
 
 # Enable unit tests or not .
 if (WITH_TESTING)
-  include_directories(${GTest_INCLUDE_DIRS})
-  link_directories(${GTest_LIB_DIRS})
+#  include_directories(${GTest_INCLUDE_DIRS})
+#link_directories(${GTest_LIB_DIRS})
 
 # Tests directory.
   # Add root inclusion direction.
@@ -37,7 +37,7 @@ if (WITH_TESTING)
   add_executable(rpc_client_engine
       ${TESTS_DIR}/enginerpc/client.cc)
 
-  target_link_libraries(rpc_client_engine cerpc ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl pthread)
+  target_link_libraries(rpc_client_engine cerpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
 
   add_executable("bin_connector_test_run"
       "${TESTS_DIR}/commands/bin_connector_test_run.cc")
@@ -135,6 +135,7 @@ if (WITH_TESTING)
     )
     set(GCOV gcov)
   endif ()
-  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} ${GTest_LIBS} ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} ${fmt_LIBS} dl)
+  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib CONAN_PKG::fmt dl)
+#  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib CONAN_PKG::fmt dl)
 
 endif ()

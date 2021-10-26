@@ -103,6 +103,27 @@ uint32_t events::register_event(uint32_t type_id,
 }
 
 /**
+ * @brief Register an event.
+ *
+ * @param event_id Event ID within the category.
+ * @param name Name of the event.
+ * @param ops event operations
+ * @param table The table in the database v2 (default one).
+ *
+ * @return The type of this new event.
+ */
+uint32_t events::register_event(uint32_t type_id,
+                                const std::string& name,
+                                event_info::event_operations const* ops,
+                                const std::string& table) {
+  auto found = _elements.find(type_id);
+  /* The registration is made only if not already done. */
+  if (found == _elements.end())
+    _elements.emplace(std::piecewise_construct, std::forward_as_tuple(type_id),
+                      std::forward_as_tuple(name, ops, nullptr, table));
+  return type_id;
+}
+/**
  *  Unregister an event.
  *
  *  @param[in] type_id  Type ID.

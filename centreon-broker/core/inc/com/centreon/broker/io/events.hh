@@ -63,6 +63,11 @@ class events {
                           event_info::event_operations const* ops = nullptr,
                           mapping::entry const* entries = nullptr,
                           std::string const& table_v2 = std::string());
+  uint32_t register_event(uint32_t type_id,
+                          std::string const& name,
+                          event_info::event_operations const* ops,
+                          const std::string& table);
+
   void unregister_event(uint32_t type_id);
 
   // Event browsing.

@@ -43,6 +43,7 @@ add_library(conflictmgr STATIC
 set(CONFLICTMGR conflictmgr PARENT_SCOPE)
 set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
+target_link_libraries(conflictmgr CONAN_PKG::spdlog)
 
 # Storage module.
 set(STORAGE "20-storage")

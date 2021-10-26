@@ -29,7 +29,7 @@
 
 using namespace com::centreon::broker;
 
-class Service : public ::testing::Test {
+class ServiceTest : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -38,7 +38,7 @@ class Service : public ::testing::Test {
 /**
  *  Check service's assignment operator.
  */
-TEST_F(Service, Assign) {
+TEST_F(ServiceTest, Assign) {
   // Object #1.
   neb::service s1;
   std::vector<randval> randvals1;
@@ -63,7 +63,7 @@ TEST_F(Service, Assign) {
 /**
  *  Check service's copy constructor.
  */
-TEST_F(Service, CopyCtor) {
+TEST_F(ServiceTest, CopyCtor) {
   // Object #1.
   neb::service s1;
   std::vector<randval> randvals1;
@@ -84,7 +84,7 @@ TEST_F(Service, CopyCtor) {
 /**
  *  Check service's default constructor.
  */
-TEST_F(Service, DefaultCtor) {
+TEST_F(ServiceTest, DefaultCtor) {
   // Object.
   neb::service s;
 

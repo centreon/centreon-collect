@@ -28,7 +28,7 @@ foreach(name IN LISTS protobuf_files)
     add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
         DEPENDS ${full_proto_file}
         COMMENT "Generating interface files of the bbdo file ${proto_file}"
-        COMMAND ${PROTOBUF_PREFIX}/bin/protoc
+        COMMAND ${Protobuf_PROTOC_EXECUTABLE}
         ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
         VERBATIM
         )

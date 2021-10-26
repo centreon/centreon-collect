@@ -54,6 +54,7 @@ extern "C" {
 #endif /* C++ */
 
 int neb_set_module_info(void* handle, int type, char const* data);
+void neb_set_module_extra_info(void* handle, const char* key, const char* value);
 
 #ifdef __cplusplus
 }

@@ -42,7 +42,7 @@ add_library("${SIMU}" SHARED
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${SIMU}" ${LUA_LIBRARIES})
+target_link_libraries("${SIMU}" ${LUA_LIBRARIES} CONAN_PKG::spdlog)
 set_target_properties("${SIMU}" PROPERTIES PREFIX "")
 
 # Testing.

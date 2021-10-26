@@ -100,7 +100,7 @@ int neb_load_all_modules() {
   try {
     broker::loader& loader(broker::loader::instance());
 
-    std::string const& mod_dir(config->broker_module_directory());
+    const std::string& mod_dir(config->broker_module_directory());
     if (!mod_dir.empty())
       loader.load_directory(mod_dir);
 
@@ -290,7 +290,7 @@ int neb_unload_module(broker::handle* module, int flags, int reason) {
 /****************************************************************************/
 
 /* sets module information */
-int neb_set_module_info(void* handle, int type, char const* data) {
+int neb_set_module_info(void* handle, int type, const char* data) {
   if (handle == NULL)
     return NEBERROR_NOMODULE;
 
