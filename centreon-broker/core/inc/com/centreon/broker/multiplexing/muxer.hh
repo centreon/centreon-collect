@@ -26,6 +26,7 @@
 #include <queue>
 #include <string>
 #include <unordered_set>
+#include <iterator>
 
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_file.hh"
@@ -99,11 +100,11 @@ class muxer : public io::stream {
   static std::string memory_file(std::string const& name);
   static std::string queue_file(std::string const& name);
 
-  bool get_queue_file_enabled(void) {
+  bool get_queue_file_enabled(void) const noexcept {
     std::lock_guard<std::mutex> lock(_mutex);
     return _file.get();
   }
-  const std::string get_queue_file(void) {
+  const std::string get_queue_file(void) const noexcept {
     std::lock_guard<std::mutex> lock(_mutex);
     if (_file.get()) {
       nlohmann::json queue_file;
@@ -111,9 +112,10 @@ class muxer : public io::stream {
       return queue_file;
     }
   }
-  const std::string get_unaknowledged_events(void) {
+  const std::string get_unaknowledged_events(void) const noexcept {
     std::lock_guard<std::mutex> lock(_mutex);
-    return std::to_string(std::distance(_events.begin(), _pos));
+    return std::to_string(std::distance(_events.begin(),
+      static_cast<std::list<std::shared_ptr<io::data>>::const_iterator>(_pos)));
   }
 };
 }  // namespace multiplexing

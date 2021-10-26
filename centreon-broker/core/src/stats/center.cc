@@ -27,6 +27,8 @@
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/broker/log_v2.hh"
 
+#include <iterator>
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
 using namespace google::protobuf::util;
@@ -153,9 +155,30 @@ bool center::unregister_failover(FailoverStats *fs) {
 */
 
 MuxerStats *center::register_muxer(void) {
+  std::promise<MuxerStats *> p;
+  std::future<MuxerStats *> retval = p.get_future();
+  _strand.post([this, &p]{
+    auto ms = _stats.add_muxers();
+    p.set_value(ms);
+  });
+  return retval.get();
 }
 
 bool center::unregister_muxer(MuxerStats *ms) {
+  std::promise<bool> p;
+  std::future<bool> retval = p.get_future();
+  _strand.post([this, &p, ms] {
+    for (auto
+             it = _stats.mutable_muxers()->begin(),
+             end = _stats.mutable_muxers()->end();
+             it != end; ++it) {
+      if (&(*it) == ms) {
+        _stats.mutable_muxers()->erase(it);
+        break;
+      }
+    }
+  });
+  return retval.get();
 }
 
 /**

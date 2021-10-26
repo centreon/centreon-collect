@@ -81,13 +81,7 @@ class failover : public endpoint {
   void set_failover(std::shared_ptr<processing::failover> fo);
   void set_retry_interval(time_t retry_interval);
   void update() override;
-  /*
-  void update_stats(void) {
-    _stats->mutable_mux()->set_queue_file_enabled(_mux->get_queue_file_enabled());
-    _stats->mutable_mux()->set_queue_file(_mux->get_queue_file());
-    _stats->mutable_mux()->set_unacknowledged_events(_mux->get_unaknowledged_events());
-  }
-  */
+
  protected:
   // From stat_visitable
   std::string const& _get_read_filters() const override;
