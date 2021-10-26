@@ -421,7 +421,6 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/mapping/entry.cc
   ${SRC_DIR}/misc/diagnostic.cc
   ${SRC_DIR}/misc/filesystem.cc
-  ${SRC_DIR}/misc/global_lock.cc
   ${SRC_DIR}/misc/misc.cc
   ${SRC_DIR}/misc/processing_speed_computer.cc
   ${SRC_DIR}/misc/string.cc
