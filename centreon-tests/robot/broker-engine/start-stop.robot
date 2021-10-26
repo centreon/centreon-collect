@@ -16,7 +16,6 @@ BESS1: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 	Config Broker	rrd
 	Start Broker
 	Start Engine
-	Sleep	5s
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Broker
@@ -31,7 +30,6 @@ BESS2: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 	Config Broker	rrd
 	Start Broker
 	Start Engine
-	Sleep	5s
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Engine
@@ -46,7 +44,6 @@ BESS3: Start-Stop Broker/Engine - Engine started first - Engine stopped first
 	Config Broker	rrd
 	Start Engine
 	Start Broker
-	Sleep	5s
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Engine
@@ -61,11 +58,26 @@ BESS4: Start-Stop Broker/Engine - Engine started first - Broker stopped first
 	Config Broker	rrd
 	Start Engine
 	Start Broker
-	Sleep	5s
 	${result}=	Check Connections
 	Should Be True	${result}
 	Stop Broker
 	Stop Engine
+
+BESS5: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
+	[Tags]	Broker	Engine	start-stop
+	Remove Logs
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config Broker	rrd
+	Engine Config Set Value	${0}	debug_level	${-1}
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}
+	Stop Broker
+	Stop Engine
+
 
 *** Keywords ***
 Remove Logs
@@ -106,9 +118,7 @@ Check Connections
 		${alias}=	Catenate	SEPARATOR=	e	${idx}
 		${pid2}=	Get Process Id	${alias}
 		${retval}=	Check Connection	5669	${pid1}	${pid2}
-		IF	${retval} == ${False}
-			[Return]	${False}
-		END
+		Return From Keyword If	${retval} == ${False}	${False}
 	END
 	${pid2}=	Get Process Id	b2
 	${retval}=	Check Connection	5670	${pid1}	${pid2}

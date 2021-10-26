@@ -255,3 +255,16 @@ def config_engine(num: int):
 def get_engines_count():
   return engine.instances
 
+def engine_config_set_value(idx: int, key: str, value: str):
+  filename = "/etc/centreon-engine/config{}/centengine.cfg".format(idx)
+  f = open(filename, "r")
+  lines = f.readlines()
+  f.close()
+
+  for i in range(len(lines)):
+    if lines[i].startswith(key + "="):
+      lines[i] = "{}={}\n".format(key, value)
+
+  f = open(filename, "w")
+  f.writelines(lines)
+  f.close()
