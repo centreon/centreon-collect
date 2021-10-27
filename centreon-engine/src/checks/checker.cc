@@ -420,15 +420,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   if (new_logs)
     log_v2::functions()->trace("checker::_execute_sync: hst={:x}", (void*)hst);
 
-  // Preamble.
-  if (!hst)
-    throw engine_error() << "Attempt to run synchronous check on invalid host";
-  if (!hst->get_check_command_ptr())
-    throw engine_error() << "Attempt to run synchronous active check on host '"
-                         << hst->get_name() << "' with no check command";
-
-  engine_logger(dbg_checks, basic)
-      << "** Executing sync check of host '" << hst->get_name() << "'...";
+  << "** Executing sync check of host '" << hst->get_name() << "'...";
 
   // Send broker event.
   timeval start_time;
