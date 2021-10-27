@@ -354,7 +354,7 @@ void muxer::statistics(nlohmann::json& tree) {
   if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk).count() > 1000) {
     _clk = now;
     _stats->set_queue_file_enabled(queue_file_enabled);
-    //_stats->set_queue_file(queue_file.dump());
+    _stats->set_queue_file(_queue_file());
     _stats->set_unacknowledged_events(std::to_string(unacknowledged));
   }
 }
