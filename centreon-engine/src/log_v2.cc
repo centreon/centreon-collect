@@ -64,6 +64,26 @@ void log_v2::apply(const configuration::state& config) {
   else
     sinks.push_back(std::make_shared<sinks::stdout_color_sink_mt>());
 
+  int64_t debug_level = config.debug_level() << 32;
+  auto conf_logger = [pid = config.log_pid(), debug_level, &sinks](logging::type_value t, const std::string& name) {
+    auto logger =
+      std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
+    if (debug_level & t) {
+      logger->set_level(_levels_map["trace"]);
+      logger->flush_on(_levels_map["trace"]);
+    }
+    else {
+      logger->set_level(_levels_map["info"]);
+      logger->flush_on(_levels_map["info"]);
+    }
+    if (pid)
+      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+    else
+      logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+    return logger;
+  };
+
+  _functions_log = conf_logger(engine::logging::dbg_functions, "functions");
   _config_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
   _config_log->set_level(_levels_map["info"]);
@@ -90,4 +110,8 @@ spdlog::logger* log_v2::config() {
 
 spdlog::logger* log_v2::process() {
   return instance()._process_log.get();
+}
+
+spdlog::logger* log_v2::functions() {
+  return instance()._functions_log.get();
 }
