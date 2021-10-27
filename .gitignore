@@ -92,3 +92,5 @@ centreon-clib/inc/com/centreon/clib/version.hh
 output.xml
 log.html
 report.html
+
+ci/repo/*
