@@ -96,6 +96,8 @@ muxer::muxer(std::string const& name, bool persistent)
   log_v2::perfdata()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
+
+  engine::instance().subscribe(this);
 }
 
 /**
@@ -103,6 +105,7 @@ muxer::muxer(std::string const& name, bool persistent)
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_stats);
+  engine::instance().unsubscribe(this);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
   _clean();

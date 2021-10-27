@@ -177,6 +177,7 @@ bool center::unregister_muxer(MuxerStats *ms) {
         break;
       }
     }
+    p.set_value(true);
   });
   return retval.get();
 }

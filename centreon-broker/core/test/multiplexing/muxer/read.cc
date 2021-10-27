@@ -30,12 +30,17 @@ class MultiplexingMuxerRead : public ::testing::Test {
   void SetUp() override {
     try {
       config::applier::init(0, "test_broker");
+      stats::center::load();
     } catch (std::exception const& e) {
       (void)e;
     }
   }
 
-  void TearDown() override { config::applier::deinit(); }
+  void TearDown() override {
+    _m.reset();
+    stats::center::unload();
+    config::applier::deinit();
+  }
 
   void setup(std::string const& name) {
     _m = std::make_unique<multiplexing::muxer>(name, false);
