@@ -33,6 +33,7 @@ class log_v2 {
   static std::map<std::string, spdlog::level::level_enum> _levels_map;
   std::string _log_name;
   std::shared_ptr<spdlog::logger> _config_log;
+  std::shared_ptr<spdlog::logger> _functions_log;
   std::shared_ptr<spdlog::logger> _process_log;
 
   log_v2();
@@ -44,6 +45,7 @@ class log_v2 {
 
   static log_v2& instance();
   static spdlog::logger* config();
+  static spdlog::logger* functions();
   static spdlog::logger* process();
 };
 CCE_END()
