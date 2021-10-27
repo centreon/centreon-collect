@@ -27,6 +27,7 @@
 #include <string>
 #include <unordered_set>
 #include <iterator>
+#include <chrono>
 
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_file.hh"
@@ -72,6 +73,7 @@ class muxer : public io::stream {
   std::string _queue_file() const;
 
   MuxerStats *_stats;
+  std::chrono::time_point<std::chrono::system_clock> _clk;
 
  public:
   muxer(std::string const& name, bool persistent = false);
@@ -100,6 +102,7 @@ class muxer : public io::stream {
   static std::string memory_file(std::string const& name);
   static std::string queue_file(std::string const& name);
 
+  /*
   bool get_queue_file_enabled(void) const noexcept {
     std::lock_guard<std::mutex> lock(_mutex);
     return _file.get();
@@ -117,6 +120,7 @@ class muxer : public io::stream {
     return std::to_string(std::distance(_events.begin(),
       static_cast<std::list<std::shared_ptr<io::data>>::const_iterator>(_pos)));
   }
+  */
 };
 }  // namespace multiplexing
 

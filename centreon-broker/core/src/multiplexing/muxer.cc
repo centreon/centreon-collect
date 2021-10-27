@@ -49,7 +49,8 @@ muxer::muxer(std::string const& name, bool persistent)
       _events_size(0),
       _name(name),
       _persistent(persistent),
-      _stats{stats::center::instance().register_muxer()} {
+      _stats{stats::center::instance().register_muxer()},
+      _clk{std::chrono::system_clock::now()} {
   // Load head queue file back in memory.
   if (_persistent) {
     try {
@@ -343,6 +344,16 @@ void muxer::statistics(nlohmann::json& tree) const {
   for (auto it = _events.begin(); it != _pos; ++it)
     ++unacknowledged;
   tree["unacknowledged_events"] = unacknowledged;
+
+  // Check when last write happened
+  // Write data to stats
+  auto now = std::chrono::time_point<std::chrono::system_clock>(std::chrono::system_clock::now());
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk).count() > 1000) {
+    _clk = now;
+    _stats->set_queue_file_enabled(queue_file_enabled);
+    //_stats->set_queue_file(queue_file.dump());
+    _stats->set_unacknowledged_events(std::to_string(unacknowledged));
+  }
 }
 
 /**
