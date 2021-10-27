@@ -216,3 +216,12 @@ grpc::Status broker_impl::GetSqlConnectionSize(grpc::ServerContext* context
   stats::center::instance().get_sql_connection_size(response);
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
+                                      __attribute__((unused)),
+                                      const GenericInt* request,
+                                      MuxerStats* response) {
+  uint32_t index = request->value();
+  stats::center::instance().get_muxer_stats(index, response);
+  return grpc::Status::OK;
+}

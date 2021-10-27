@@ -13,7 +13,7 @@ service Broker {
   rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetConflictManagerStats(google.protobuf.Empty) returns (ConflictManagerStats) {}
   //rpc GetFailoverStats(google.protobuf.Empty) returns (FailoverStats) {}
-  rpc GetMuxerStats(google.protobuf.Empty) returns (MuxerStats) {}
+  rpc GetMuxerStats(GenericInt) returns (MuxerStats) {}
 
   rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetModulesStats(GenericNameOrIndex) returns (GenericString) {}

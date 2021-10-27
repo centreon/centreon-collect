@@ -415,3 +415,26 @@ void center::get_conflict_manager_stats(ConflictManagerStats* response) {
 int center::get_json_stats_file_creation(void) {
   return _json_stats_file_creation;
 }
+
+void center::get_muxer_stats(uint32_t index, MuxerStats *response) {
+  std::promise<bool> p;
+  std::future<bool> done = p.get_future();
+  _strand.post([&s = this->_stats, &p, &index, response] {
+      uint32_t i = 0;
+      for (auto it = s.muxers().begin(),
+        end = s.muxers().end();
+        it != end; ++it, ++i) {
+            if (index == i) {
+              *response = (*it);
+            }
+      }
+
+      if (i > index) {
+        log_v2::sql()->info("muxers: index out of range in get muxers stats");
+      }
+      p.set_value(true);
+  });
+
+  // We wait for the response.
+  done.get();
+}

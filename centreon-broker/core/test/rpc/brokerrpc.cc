@@ -161,7 +161,11 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   stats::center::instance().update(_stats->mutable_queue_file(), std::string("qufl"));
   stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("unaev"));
 
-  auto output = execute("GetMuxerStats");
+  std::list<std::string> output = execute("GetMuxerStats 0");
+
+  std::cout << "[[" << output.size() << "]]" << std::endl;
+  for (auto &s : output)
+    std::cout << "{{" << s << "}}" << std::endl;
 
   brpc.shutdown();
 }

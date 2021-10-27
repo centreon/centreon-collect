@@ -59,6 +59,10 @@ class broker_impl final : public Broker::Service {
                                 const GenericNameOrIndex* request,
                                 GenericString* response) override;
 
+  grpc::Status GetMuxerStats(grpc::ServerContext*,
+                                const GenericInt*,
+                                MuxerStats*) override;
+
  public:
   void set_broker_name(std::string const& s) { _broker_name = s; };
 };

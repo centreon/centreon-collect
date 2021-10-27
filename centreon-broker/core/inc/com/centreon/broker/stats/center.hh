@@ -84,6 +84,7 @@ class center {
 
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);
+  void get_muxer_stats(uint32_t, MuxerStats *);
 
   // bool unregister_endpoint(const std::string& name);
   // bool unregister_feeder(EndpointStats* ep_stats, const std::string& name);
