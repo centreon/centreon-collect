@@ -23,6 +23,7 @@
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/retention/dump.hh"
@@ -579,8 +580,12 @@ processing::processing()
 processing::~processing() noexcept {}
 
 bool processing::execute(const std::string& cmdstr) const {
+#ifdef OLD_LOGS
   engine_logger(dbg_functions, basic) << "processing external command";
-
+#endif
+#ifdef NEW_LOGS
+  log_v2::functions()->trace("processing external command");
+#endif
   char const* cmd{cmdstr.c_str()};
   size_t len{cmdstr.size()};
 
