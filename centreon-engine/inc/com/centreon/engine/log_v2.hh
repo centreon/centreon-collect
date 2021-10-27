@@ -32,17 +32,19 @@ CCE_BEGIN()
 class log_v2 {
   static std::map<std::string, spdlog::level::level_enum> _levels_map;
   std::string _log_name;
-  std::unique_ptr<spdlog::logger> _config_log;
+  std::shared_ptr<spdlog::logger> _config_log;
+  std::shared_ptr<spdlog::logger> _process_log;
 
   log_v2();
   ~log_v2() noexcept = default;
 
-  public:
+ public:
   void apply(const configuration::state& config);
-  static const std::array<std::string, 1> loggers;
+  static const std::array<std::string, 2> loggers;
 
   static log_v2& instance();
   static spdlog::logger* config();
+  static spdlog::logger* process();
 };
 CCE_END()
 
