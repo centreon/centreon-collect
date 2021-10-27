@@ -94,7 +94,7 @@ class muxer : public io::stream {
   uint32_t get_event_queue_size() const;
   void nack_events();
   void remove_queue_files();
-  void statistics(nlohmann::json& tree) const override;
+  void statistics(nlohmann::json& tree);
   void wake();
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;

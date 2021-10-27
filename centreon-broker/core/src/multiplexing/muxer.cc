@@ -326,7 +326,7 @@ void muxer::nack_events() {
  *
  *  @param[out] buffer Output buffer.
  */
-void muxer::statistics(nlohmann::json& tree) const {
+void muxer::statistics(nlohmann::json& tree) {
   // Lock object.
   std::lock_guard<std::mutex> lock(_mutex);
 
@@ -347,7 +347,7 @@ void muxer::statistics(nlohmann::json& tree) const {
 
   // Check when last write happened
   // Write data to stats
-  auto now = std::chrono::time_point<std::chrono::system_clock>(std::chrono::system_clock::now());
+  auto now(std::chrono::system_clock::now());
   if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk).count() > 1000) {
     _clk = now;
     _stats->set_queue_file_enabled(queue_file_enabled);
