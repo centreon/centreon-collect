@@ -1190,12 +1190,16 @@ void applier::state::_processing(configuration::state& new_cfg,
       engine_logger(log_process_info, basic)
           << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
           << " starting ... (PID=" << getpid() << ")";
+      log_v2::process()->info("Centreon Engine {} starting ... (PID={})",
+                              CENTREON_ENGINE_VERSION_STRING, getpid());
 
       // Log the local time - may be different than clock
       // time due to timezone offset.
       engine_logger(log_process_info, basic)
           << "Local time is " << string::ctime(program_start) << "\n"
           << "LOG VERSION: " << LOG_VERSION_2;
+      log_v2::process()->info("Local time is {}", string::ctime(program_start));
+      log_v2::process()->info("LOG VERSION: {}", LOG_VERSION_2);
     }
 
     //
