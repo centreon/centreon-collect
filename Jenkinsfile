@@ -33,7 +33,6 @@ if (env.BRANCH_NAME.startsWith('release-')) {
 */
 stage('Deliver sources') {
   node("C++") {
-    // deleteDir()
     dir('centreon-collect-centos7') {
       checkout scm
       loadCommonScripts()
@@ -51,7 +50,6 @@ stage('Deliver sources') {
 stage('Build / Unit tests // Packaging / Signing') {
   parallel 'centos7 Build and UT': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
@@ -64,7 +62,6 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'centos7 rpm packaging and signing': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect-centos7') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el7" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
@@ -77,7 +74,6 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'centos8 Build and UT': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect-centos8') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-centos8-dependencies:21.10'
@@ -86,7 +82,6 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'centos8 rpm packaging and signing': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect-centos8') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-rpm-package.sh -v "$PWD:/src" -e DISTRIB="el8" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-centos8-dependencies:21.10'
@@ -99,7 +94,6 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian buster Build and UT': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect-debian10') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
@@ -108,20 +102,16 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian buster packaging and signing': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect') {
         checkout scm
       }
         sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian10" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian10-dependencies:21.10'
         stash name: 'Debian10', includes: 'Debian10/*.deb'
         archiveArtifacts artifacts: "Debian10/*"
-        // sh 'rm -rf *.deb'
-        // deleteDir()
     }
   },
     'debian bulseye Build and UT': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect-debian11') {
         checkout scm
         sh 'docker run -i --entrypoint /src/ci/scripts/collect-unit-tests.sh -v "$PWD:/src" registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
@@ -130,15 +120,12 @@ stage('Build / Unit tests // Packaging / Signing') {
   },
   'debian bulseye packaging and signing': {
     node("C++") {
-      // deleteDir()
       dir('centreon-collect') {
         checkout scm
       }
       sh 'docker run -i --entrypoint /src/centreon-collect/ci/scripts/collect-deb-package.sh -v "$PWD:/src" -e DISTRIB="Debian11" -e VERSION=$VERSION -e RELEASE=$RELEASE registry.centreon.com/centreon-collect-debian11-dependencies:21.10'
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
-      // sh 'rm -rf *.deb'
-      // deleteDir()
     }
   }  
 }
@@ -148,7 +135,6 @@ if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
     node("C++") {
       unstash 'el8-rpms'
       unstash 'el7-rpms'
-      // deleteDir()
       dir('centreon-collect-delivery') {
         checkout scm
         loadCommonScripts()
