@@ -38,9 +38,6 @@
 extern "C" {
 #endif /* C++ */
 
-#define OLD_LOGS
-#define NEW_LOGS
-
 extern int config_errors;
 extern int config_warnings;
 
