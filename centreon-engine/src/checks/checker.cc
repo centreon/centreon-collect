@@ -26,13 +26,13 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/interruption.hh"
-#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::logging;
@@ -97,12 +97,12 @@ void checker::clear() noexcept {
  *  Reap and process all results received by execution process.
  */
 void checker::reap() {
-#ifdef OLD_LOGS
-  engine_logger(dbg_functions, basic) << "checker::reap";
-#endif
-#ifdef NEW_LOGS
-  log_v2::functions()->trace("checker::reap()");
-#endif
+  if (old_logs)
+    engine_logger(dbg_functions, basic) << "checker::reap";
+
+  if (new_logs)
+    log_v2::functions()->trace("checker::reap()");
+
   engine_logger(dbg_checks, basic) << "Starting to reap check results.";
 
   // Time to start reaping.
@@ -217,18 +217,18 @@ void checker::run_sync(host* hst,
                        int check_options,
                        int use_cached_result,
                        unsigned long check_timestamp_horizon) {
-#ifdef OLD_LOGS
-  engine_logger(dbg_functions, basic)
-      << "checker::run: hst=" << hst << ", check_options=" << check_options
-      << ", use_cached_result=" << use_cached_result
-      << ", check_timestamp_horizon=" << check_timestamp_horizon;
-#endif
-#ifdef NEW_LOGS
-  log_v2::functions()->trace(
-       "checker::run: hst={:x}, check_options={}"
-       ", use_cached_result={}"
-       ", check_timestamp_horizon={}", (void*)hst, check_options, use_cached_result, check_timestamp_horizon);
-#endif
+  if (old_logs)
+    engine_logger(dbg_functions, basic)
+        << "checker::run: hst=" << hst << ", check_options=" << check_options
+        << ", use_cached_result=" << use_cached_result
+        << ", check_timestamp_horizon=" << check_timestamp_horizon;
+
+  if (new_logs)
+    log_v2::functions()->trace(
+        "checker::run: hst={:x}, check_options={}"
+        ", use_cached_result={}"
+        ", check_timestamp_horizon={}",
+        (void*)hst, check_options, use_cached_result, check_timestamp_horizon);
 
   // Preamble.
   if (!hst)
@@ -369,12 +369,11 @@ checker::~checker() noexcept {
  */
 void checker::finished(commands::result const& res) noexcept {
   // Debug message.
-#ifdef OLD_LOGS
-  engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
-#endif
-#ifdef NEW_LOGS
-  log_v2::functions()->trace("checker::finished: res={:x}", (void*)(&res));
-#endif
+  if (old_logs)
+    engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
+
+  if (new_logs)
+    log_v2::functions()->trace("checker::finished: res={:x}", (void*)(&res));
 
   std::unique_lock<std::mutex> lock(_mut_reap);
   auto it_id = _waiting_check_result.find(res.command_id);
@@ -414,12 +413,12 @@ void checker::finished(commands::result const& res) noexcept {
  * host::state_down).
  */
 com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
-#ifdef OLD_LOGS
-  engine_logger(dbg_functions, basic) << "checker::_execute_sync: hst=" << hst;
-#endif
-#ifdef NEW_LOGS
-  log_v2::functions()->trace("checker::_execute_sync: hst={:x}", (void*)hst);
-#endif
+  if (old_logs)
+    engine_logger(dbg_functions, basic)
+        << "checker::_execute_sync: hst=" << hst;
+
+  if (new_logs)
+    log_v2::functions()->trace("checker::_execute_sync: hst={:x}", (void*)hst);
 
   // Preamble.
   if (!hst)

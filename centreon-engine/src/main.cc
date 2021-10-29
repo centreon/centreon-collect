@@ -174,128 +174,127 @@ int main(int argc, char* argv[]) {
 
     // Just display the license.
     if (display_license) {
-#ifdef OLD_LOGS
-      engine_logger(logging::log_info_message, logging::basic)
-          << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
-          << "\n"
-             "\n"
-             "Copyright 1999-2009 Ethan Galstad\n"
-             "Copyright 2009-2010 Nagios Core Development Team and Community "
-             "Contributors\n"
-             "Copyright 2011-2021 Centreon\n"
-             "\n"
-             "This program is free software: you can redistribute it and/or\n"
-             "modify it under the terms of the GNU General Public License "
-             "version 2\n"
-             "as published by the Free Software Foundation.\n"
-             "\n"
-             "Centreon Engine is distributed in the hope that it will be "
-             "useful,\n"
-             "but WITHOUT ANY WARRANTY; without even the implied warranty "
-             "of\n"
-             "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
-             "GNU\n"
-             "General Public License for more details.\n"
-             "\n"
-             "You should have received a copy of the GNU General Public "
-             "License\n"
-             "along with this program. If not, see\n"
-             "<http://www.gnu.org/licenses/>.";
-#endif
-#ifdef NEW_LOGS
-      std::cout
-          << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
-          << "\n"
-             "\n"
-             "Copyright 1999-2009 Ethan Galstad\n"
-             "Copyright 2009-2010 Nagios Core Development Team and Community "
-             "Contributors\n"
-             "Copyright 2011-2021 Centreon\n"
-             "\n"
-             "This program is free software: you can redistribute it and/or\n"
-             "modify it under the terms of the GNU General Public License "
-             "version 2\n"
-             "as published by the Free Software Foundation.\n"
-             "\n"
-             "Centreon Engine is distributed in the hope that it will be "
-             "useful,\n"
-             "but WITHOUT ANY WARRANTY; without even the implied warranty "
-             "of\n"
-             "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
-             "GNU\n"
-             "General Public License for more details.\n"
-             "\n"
-             "You should have received a copy of the GNU General Public "
-             "License\n"
-             "along with this program. If not, see\n"
-             "<http://www.gnu.org/licenses/>.";
-#endif
+      if (old_logs)
+        engine_logger(logging::log_info_message, logging::basic)
+            << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
+            << "\n"
+               "\n"
+               "Copyright 1999-2009 Ethan Galstad\n"
+               "Copyright 2009-2010 Nagios Core Development Team and Community "
+               "Contributors\n"
+               "Copyright 2011-2021 Centreon\n"
+               "\n"
+               "This program is free software: you can redistribute it and/or\n"
+               "modify it under the terms of the GNU General Public License "
+               "version 2\n"
+               "as published by the Free Software Foundation.\n"
+               "\n"
+               "Centreon Engine is distributed in the hope that it will be "
+               "useful,\n"
+               "but WITHOUT ANY WARRANTY; without even the implied warranty "
+               "of\n"
+               "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+               "GNU\n"
+               "General Public License for more details.\n"
+               "\n"
+               "You should have received a copy of the GNU General Public "
+               "License\n"
+               "along with this program. If not, see\n"
+               "<http://www.gnu.org/licenses/>.";
+      if (new_logs)
+        std::cout
+            << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
+            << "\n"
+               "\n"
+               "Copyright 1999-2009 Ethan Galstad\n"
+               "Copyright 2009-2010 Nagios Core Development Team and Community "
+               "Contributors\n"
+               "Copyright 2011-2021 Centreon\n"
+               "\n"
+               "This program is free software: you can redistribute it and/or\n"
+               "modify it under the terms of the GNU General Public License "
+               "version 2\n"
+               "as published by the Free Software Foundation.\n"
+               "\n"
+               "Centreon Engine is distributed in the hope that it will be "
+               "useful,\n"
+               "but WITHOUT ANY WARRANTY; without even the implied warranty "
+               "of\n"
+               "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+               "GNU\n"
+               "General Public License for more details.\n"
+               "\n"
+               "You should have received a copy of the GNU General Public "
+               "License\n"
+               "along with this program. If not, see\n"
+               "<http://www.gnu.org/licenses/>.";
+
       retval = EXIT_SUCCESS;
     }
     // If requested or if an error occured, print usage.
     else if (error || display_help) {
-#ifdef OLD_LOGS
-      engine_logger(logging::log_info_message, logging::basic)
-          << "Usage: " << argv[0] << " [options] <main_config_file>\n"
-          << "\n"
-          << "Basics:\n"
-          << "  -h, --help                  Print help.\n"
-          << "  -V, --license, --version    Print software version and "
-             "license.\n"
-          << "\n"
-          << "Configuration:\n"
-          << "  -v, --verify-config         Verify all configuration data.\n"
-          << "  -s, --test-scheduling       Shows projected/recommended "
-             "check\n"
-          << "                              scheduling and other diagnostic "
-             "info\n"
-          << "                              based on the current "
-             "configuration\n"
-          << "                              files.\n"
-          << "  -x, --dont-verify-paths     Don't check for circular object "
-             "paths -\n"
-          << "                              USE WITH CAUTION !\n"
-          << "  -D, --diagnose              Generate a diagnostic file.\n"
-          << "\n"
-          << "Online:\n"
-          << "  Website                     https://www.centreon.com\n"
-          << "  Reference documentation     "
-             "https://documentation.centreon.com/docs/centreon-engine/en/"
-             "latest/\n"
-          << "  Sources                     "
-             "https://github.com/centreon/centreon-engine";
-#endif
-#ifdef NEW_LOGS
-      std::cout
-          << "Usage: " << argv[0] << " [options] <main_config_file>\n"
-          << "\n"
-          << "Basics:\n"
-          << "  -h, --help                  Print help.\n"
-          << "  -V, --license, --version    Print software version and "
-             "license.\n"
-          << "\n"
-          << "Configuration:\n"
-          << "  -v, --verify-config         Verify all configuration data.\n"
-          << "  -s, --test-scheduling       Shows projected/recommended "
-             "check\n"
-          << "                              scheduling and other diagnostic "
-             "info\n"
-          << "                              based on the current "
-             "configuration\n"
-          << "                              files.\n"
-          << "  -x, --dont-verify-paths     Don't check for circular object "
-             "paths -\n"
-          << "                              USE WITH CAUTION !\n"
-          << "  -D, --diagnose              Generate a diagnostic file.\n"
-          << "\n"
-          << "Online:\n"
-          << "  Website                     https://www.centreon.com\n"
-          << "  Reference documentation     "
-             "https://documentation.centreon.com/docs/centreon-engine/en/"
-             "latest/\n"
-          << "  Sources                     "
-             "https://github.com/centreon/centreon-engine";
-#endif
+      if (old_logs)
+        engine_logger(logging::log_info_message, logging::basic)
+            << "Usage: " << argv[0] << " [options] <main_config_file>\n"
+            << "\n"
+            << "Basics:\n"
+            << "  -h, --help                  Print help.\n"
+            << "  -V, --license, --version    Print software version and "
+               "license.\n"
+            << "\n"
+            << "Configuration:\n"
+            << "  -v, --verify-config         Verify all configuration data.\n"
+            << "  -s, --test-scheduling       Shows projected/recommended "
+               "check\n"
+            << "                              scheduling and other diagnostic "
+               "info\n"
+            << "                              based on the current "
+               "configuration\n"
+            << "                              files.\n"
+            << "  -x, --dont-verify-paths     Don't check for circular object "
+               "paths -\n"
+            << "                              USE WITH CAUTION !\n"
+            << "  -D, --diagnose              Generate a diagnostic file.\n"
+            << "\n"
+            << "Online:\n"
+            << "  Website                     https://www.centreon.com\n"
+            << "  Reference documentation     "
+               "https://documentation.centreon.com/docs/centreon-engine/en/"
+               "latest/\n"
+            << "  Sources                     "
+               "https://github.com/centreon/centreon-engine";
+
+      if (new_logs)
+        std::cout
+            << "Usage: " << argv[0] << " [options] <main_config_file>\n"
+            << "\n"
+            << "Basics:\n"
+            << "  -h, --help                  Print help.\n"
+            << "  -V, --license, --version    Print software version and "
+               "license.\n"
+            << "\n"
+            << "Configuration:\n"
+            << "  -v, --verify-config         Verify all configuration data.\n"
+            << "  -s, --test-scheduling       Shows projected/recommended "
+               "check\n"
+            << "                              scheduling and other diagnostic "
+               "info\n"
+            << "                              based on the current "
+               "configuration\n"
+            << "                              files.\n"
+            << "  -x, --dont-verify-paths     Don't check for circular object "
+               "paths -\n"
+            << "                              USE WITH CAUTION !\n"
+            << "  -D, --diagnose              Generate a diagnostic file.\n"
+            << "\n"
+            << "Online:\n"
+            << "  Website                     https://www.centreon.com\n"
+            << "  Reference documentation     "
+               "https://documentation.centreon.com/docs/centreon-engine/en/"
+               "latest/\n"
+            << "  Sources                     "
+               "https://github.com/centreon/centreon-engine";
+
       retval = (display_help ? EXIT_SUCCESS : EXIT_FAILURE);
     }
     // We're just verifying the configuration.
@@ -311,61 +310,62 @@ int main(int argc, char* argv[]) {
 
         configuration::applier::state::instance().apply(config);
 
-#ifdef OLD_LOGS
-        engine_logger(logging::log_info_message, logging::basic)
-            << "\n"
-            << "Checked " << commands::command::commands.size()
-            << " commands.\n"
-            << "Checked " << commands::connector::connectors.size()
-            << " connectors.\n"
-            << "Checked " << contact::contacts.size() << " contacts.\n"
-            << "Checked " << hostdependency::hostdependencies.size()
-            << " host dependencies.\n"
-            << "Checked " << hostescalation::hostescalations.size()
-            << " host escalations.\n"
-            << "Checked " << hostgroup::hostgroups.size() << " host groups.\n"
-            << "Checked " << host::hosts.size() << " hosts.\n"
-            << "Checked " << servicedependency::servicedependencies.size()
-            << " service dependencies.\n"
-            << "Checked " << serviceescalation::serviceescalations.size()
-            << " service escalations.\n"
-            << "Checked " << servicegroup::servicegroups.size()
-            << " service groups.\n"
-            << "Checked " << service::services.size() << " services.\n"
-            << "Checked " << timeperiod::timeperiods.size()
-            << " time periods.\n"
-            << "\n"
-            << "Total Warnings: " << config_warnings << "\n"
-            << "Total Errors:   " << config_errors;
-#endif
+        if (old_logs)
+          engine_logger(logging::log_info_message, logging::basic)
+              << "\n"
+              << "Checked " << commands::command::commands.size()
+              << " commands.\n"
+              << "Checked " << commands::connector::connectors.size()
+              << " connectors.\n"
+              << "Checked " << contact::contacts.size() << " contacts.\n"
+              << "Checked " << hostdependency::hostdependencies.size()
+              << " host dependencies.\n"
+              << "Checked " << hostescalation::hostescalations.size()
+              << " host escalations.\n"
+              << "Checked " << hostgroup::hostgroups.size() << " host groups.\n"
+              << "Checked " << host::hosts.size() << " hosts.\n"
+              << "Checked " << servicedependency::servicedependencies.size()
+              << " service dependencies.\n"
+              << "Checked " << serviceescalation::serviceescalations.size()
+              << " service escalations.\n"
+              << "Checked " << servicegroup::servicegroups.size()
+              << " service groups.\n"
+              << "Checked " << service::services.size() << " services.\n"
+              << "Checked " << timeperiod::timeperiods.size()
+              << " time periods.\n"
+              << "\n"
+              << "Total Warnings: " << config_warnings << "\n"
+              << "Total Errors:   " << config_errors;
 
-#ifdef NEW_LOGS
-        std::cout << "\n"
-                  << "Checked " << commands::command::commands.size()
-                  << " commands.\n"
-                  << "Checked " << commands::connector::connectors.size()
-                  << " connectors.\n"
-                  << "Checked " << contact::contacts.size() << " contacts.\n"
-                  << "Checked " << hostdependency::hostdependencies.size()
-                  << " host dependencies.\n"
-                  << "Checked " << hostescalation::hostescalations.size()
-                  << " host escalations.\n"
-                  << "Checked " << hostgroup::hostgroups.size()
-                  << " host groups.\n"
-                  << "Checked " << host::hosts.size() << " hosts.\n"
-                  << "Checked " << servicedependency::servicedependencies.size()
-                  << " service dependencies.\n"
-                  << "Checked " << serviceescalation::serviceescalations.size()
-                  << " service escalations.\n"
-                  << "Checked " << servicegroup::servicegroups.size()
-                  << " service groups.\n"
-                  << "Checked " << service::services.size() << " services.\n"
-                  << "Checked " << timeperiod::timeperiods.size()
-                  << " time periods.\n"
-                  << "\n"
-                  << "Total Warnings: " << config_warnings << "\n"
-                  << "Total Errors:   " << config_errors;
-#endif
+        if (new_logs)
+          std::cout << "\n"
+                    << "Checked " << commands::command::commands.size()
+                    << " commands.\n"
+                    << "Checked " << commands::connector::connectors.size()
+                    << " connectors.\n"
+                    << "Checked " << contact::contacts.size() << " contacts.\n"
+                    << "Checked " << hostdependency::hostdependencies.size()
+                    << " host dependencies.\n"
+                    << "Checked " << hostescalation::hostescalations.size()
+                    << " host escalations.\n"
+                    << "Checked " << hostgroup::hostgroups.size()
+                    << " host groups.\n"
+                    << "Checked " << host::hosts.size() << " hosts.\n"
+                    << "Checked "
+                    << servicedependency::servicedependencies.size()
+                    << " service dependencies.\n"
+                    << "Checked "
+                    << serviceescalation::serviceescalations.size()
+                    << " service escalations.\n"
+                    << "Checked " << servicegroup::servicegroups.size()
+                    << " service groups.\n"
+                    << "Checked " << service::services.size() << " services.\n"
+                    << "Checked " << timeperiod::timeperiods.size()
+                    << " time periods.\n"
+                    << "\n"
+                    << "Total Warnings: " << config_warnings << "\n"
+                    << "Total Errors:   " << config_errors;
+
         retval = (config_errors ? EXIT_FAILURE : EXIT_SUCCESS);
       } catch (std::exception const& e) {
         log_v2::config()->error("Error while processing a config file: {}",

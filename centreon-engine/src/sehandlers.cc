@@ -174,7 +174,7 @@ int run_global_service_event_handler(nagios_macros* mac,
          "command line: "
       << processed_command;
 
-  if (config->log_event_handlers() == true) {
+  if (config->log_event_handlers()) {
     std::ostringstream oss;
     oss << "GLOBAL SERVICE EVENT HANDLER: " << svc->get_hostname() << ';'
         << svc->get_description()
