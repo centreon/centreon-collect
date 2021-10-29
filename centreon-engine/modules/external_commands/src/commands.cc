@@ -37,8 +37,8 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/modules/external_commands/internal.hh"
 #include "com/centreon/engine/modules/external_commands/processing.hh"
 #include "com/centreon/engine/modules/external_commands/utils.hh"
@@ -58,12 +58,11 @@ using namespace com::centreon::engine::logging;
 /* checks for the existence of the external command file and processes all
  * commands found in it */
 int check_for_external_commands() {
-#ifdef OLD_LOGS
-  engine_logger(dbg_functions, basic) << "check_for_external_commands()";
-#endif
-#ifdef NEW_LOGS
-  log_v2::functions()->trace("check_for_external_commands()");
-#endif
+  if (old_logs)
+    engine_logger(dbg_functions, basic) << "check_for_external_commands()";
+
+  if (new_logs)
+    log_v2::functions()->trace("check_for_external_commands()");
 
   /* bail out if we shouldn't be checking for external commands */
   if (!config->check_external_commands())
@@ -125,13 +124,12 @@ int check_for_external_commands() {
  *  @return OK on success.
  */
 int process_external_commands_from_file(char const* file, int delete_file) {
-#ifdef OLD_LOGS
-  engine_logger(dbg_functions, basic)
-      << "process_external_commands_from_file()";
-#endif
-#ifdef NEW_LOGS
-  log_v2::functions()->trace("process_external_commands_from_file()");
-#endif
+  if (old_logs)
+    engine_logger(dbg_functions, basic)
+        << "process_external_commands_from_file()";
+
+  if (new_logs)
+    log_v2::functions()->trace("process_external_commands_from_file()");
 
   if (!file)
     return ERROR;
