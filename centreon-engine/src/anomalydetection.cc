@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2021 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -27,6 +27,7 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
@@ -480,10 +481,17 @@ int anomalydetection::run_async_check(int check_options,
                                       bool reschedule_check,
                                       bool* time_is_valid,
                                       time_t* preferred_time) noexcept {
-  engine_logger(dbg_functions, basic)
-      << "anomalydetection::run_async_check, check_options=" << check_options
-      << ", latency=" << latency << ", scheduled_check=" << scheduled_check
-      << ", reschedule_check=" << reschedule_check;
+  if (old_logs)
+    engine_logger(dbg_functions, basic)
+        << "anomalydetection::run_async_check, check_options=" << check_options
+        << ", latency=" << latency << ", scheduled_check=" << scheduled_check
+        << ", reschedule_check=" << reschedule_check;
+
+  if (new_logs)
+    log_v2::functions()->trace(
+        "anomalydetection::run_async_check, check_options={}, latency={}, "
+        "scheduled_check={}, reschedule_check={}",
+        check_options, latency, scheduled_check, reschedule_check);
 
   engine_logger(dbg_checks, basic)
       << "** Running async check of anomalydetection '" << get_description()
@@ -514,10 +522,17 @@ int anomalydetection::run_async_check(int check_options,
   }
   // Anomalydetection check was override by NEB module.
   else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    engine_logger(dbg_functions, basic)
-        << "Some broker module overrode check of anomalydetection '"
-        << get_description() << "' on host '" << get_hostname()
-        << "' so we'll bail out";
+    if (old_logs)
+      engine_logger(dbg_functions, basic)
+          << "Some broker module overrode check of anomalydetection '"
+          << get_description() << "' on host '" << get_hostname()
+          << "' so we'll bail out";
+
+    if (new_logs)
+      log_v2::functions()->trace(
+          "Some broker module overrode check of anomalydetection '{}' on host "
+          "'{}' so we'll bail out",
+          get_description(), get_hostname());
     return OK;
   }
 
