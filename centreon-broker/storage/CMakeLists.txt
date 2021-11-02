@@ -73,7 +73,6 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/metric_mapping.hh"
   "${INC_DIR}/parser.hh"
   "${INC_DIR}/perfdata.hh"
-  "${INC_DIR}/rebuild2.hh"
   "${INC_DIR}/rebuild.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/remove_graph.hh"

@@ -73,7 +73,6 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/factory.hh"
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
-  "${PROJECT_SOURCE_DIR}/storage/inc/com/centreon/broker/storage/rebuild2.hh"
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
 add_dependencies("${RRD}" "${STORAGE}")
