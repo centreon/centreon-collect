@@ -155,17 +155,35 @@ TEST_F(BrokerRpc, GetFailoverStats) {
 */
 TEST_F(BrokerRpc, GetMuxerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
-  MuxerStats *_stats = stats::center::instance().register_muxer();
+  MuxerStats *_stats;
+  std::vector<std::string> vectests = {
+    "queue_file_enabled: true, queue_file: qufl_, unacknowledged_events: unaev_\n",
+    "queue_file_enabled: true, queue_file: _qufl, unacknowledged_events: _unaev\n",
+    "queue_file_enabled: false, queue_file: _qufl_, unacknowledged_events: _unaev_\n"
+  };
 
+  _stats = stats::center::instance().register_muxer();
   stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, true);
-  stats::center::instance().update(_stats->mutable_queue_file(), std::string("qufl"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("unaev"));
+  stats::center::instance().update(_stats->mutable_queue_file(), std::string("qufl_"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("unaev_"));
 
-  std::list<std::string> output = execute("GetMuxerStats 0");
+  _stats = stats::center::instance().register_muxer();
+  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, true);
+  stats::center::instance().update(_stats->mutable_queue_file(), std::string("_qufl"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("_unaev"));
 
-  std::cout << "[[" << output.size() << "]]" << std::endl;
-  for (auto &s : output)
-    std::cout << "{{" << s << "}}" << std::endl;
+  _stats = stats::center::instance().register_muxer();
+  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, false);
+  stats::center::instance().update(_stats->mutable_queue_file(), std::string("_qufl_"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("_unaev_"));
+
+  std::list<std::string> output = execute("GetMuxerStats 3");
+
+  std::vector<std::string> results(output.size());
+  std::copy(output.begin(), output.end(), results.begin());
+
+  ASSERT_EQ(output.size(), 3);
+  ASSERT_EQ(results, vectests);
 
   brpc.shutdown();
 }
