@@ -46,7 +46,7 @@ class metric_mapping : public io::data {
   ~metric_mapping();
   metric_mapping& operator=(metric_mapping const& s);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::storage,
+    return io::events::data_type<io::storage,
                                  storage::de_metric_mapping>::value;
   }
 

@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/rrd/output.hh"
+#include "com/centreon/broker/rrd/internal.hh"
 
 #include <fmt/format.h>
 #include <cassert>
@@ -31,7 +32,6 @@
 #include "com/centreon/broker/storage/events.hh"
 #include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/storage/perfdata.hh"
-#include "com/centreon/broker/storage/rebuild2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
@@ -279,9 +279,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.push_back(d);
       }
       break;
-    case storage::rebuild2::static_type(): {
-      std::shared_ptr<storage::rebuild2> e{
-          std::static_pointer_cast<storage::rebuild2>(d)};
+    case storage::pb_rebuild::static_type(): {
+      std::shared_ptr<storage::pb_rebuild> e{
+          std::static_pointer_cast<storage::pb_rebuild>(d)};
       std::string path;
       std::list<std::string> lst;
       if (e->obj.has_index_id()) {
@@ -324,7 +324,8 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         if (!e->obj.data().empty())
           start_time = e->obj.data()[0].ctime() - 1;
         // Generate path.
-        path = fmt::format("{}{}.rrd", _metrics_path, e->obj.metric().metric_id());
+        path =
+            fmt::format("{}{}.rrd", _metrics_path, e->obj.metric().metric_id());
         std::string v;
         switch (e->obj.metric().value_type()) {
           case storage::perfdata::gauge:

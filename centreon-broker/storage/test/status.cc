@@ -119,8 +119,7 @@ TEST(StorageStatus, DefaultCtor) {
   // Build object.
   storage::status s;
 
-  auto val(
-      io::events::data_type<io::events::storage, storage::de_status>::value);
+  auto val(io::events::data_type<io::storage, storage::de_status>::value);
 
   // Check properties values.
   ASSERT_FALSE(s.ctime != 0);

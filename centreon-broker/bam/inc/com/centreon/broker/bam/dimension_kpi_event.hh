@@ -63,8 +63,7 @@ class dimension_kpi_event : public io::data {
   dimension_kpi_event& operator=(dimension_kpi_event const&) = delete;
   bool operator==(dimension_kpi_event const& other) const;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam,
-                                 bam::de_dimension_kpi_event>::value;
+    return io::events::data_type<io::bam, bam::de_dimension_kpi_event>::value;
   }
 
   static mapping::entry const entries[];

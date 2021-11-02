@@ -55,8 +55,7 @@ class dimension_timeperiod : public io::data {
   dimension_timeperiod& operator=(const dimension_timeperiod&) = delete;
   bool operator==(const dimension_timeperiod&) const = delete;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam,
-                                 bam::de_dimension_timeperiod>::value;
+    return io::events::data_type<io::bam, bam::de_dimension_timeperiod>::value;
   }
 
   static mapping::entry const entries[];

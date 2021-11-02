@@ -1,5 +1,5 @@
 /*
-** Copyright 2013-2017 Centreon
+** Copyright 2013-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include <unordered_map>
 
 #include "com/centreon/broker/io/event_info.hh"
+#include "protobuf/events.hh"
 
 CCB_BEGIN()
 
@@ -34,26 +35,7 @@ namespace io {
  */
 class events {
  public:
-  typedef std::unordered_map<uint32_t, event_info> events_container;
-  struct category_info {
-    std::string name;
-    events_container events;
-  };
-  typedef std::unordered_map<uint16_t, category_info> categories_container;
-  // Reserved categories, for reference.
-  // Their values are very important to maintain the bbdo protocol retro
-  // compatible.
-  enum data_category {
-    neb = 1,
-    bbdo = 2,
-    storage = 3,
-    dumper = 5,
-    bam = 6,
-    extcmd = 7,
-    generator = 8,
-    protobuf = 9,
-    internal = 65535
-  };
+  using events_container = std::unordered_map<uint32_t, event_info>;
   // Internal events used by the core.
   enum internal_event_category { de_raw = 1, de_instance_broadcast, de_buffer };
   // Extcmd events used by the core.
@@ -73,33 +55,18 @@ class events {
   static void unload();
 
   // Category.
-  uint16_t register_category(std::string const& name, uint16_t hint);
+  // uint16_t register_category(std::string const& name, uint16_t hint);
   void unregister_category(uint16_t category_id);
 
   // Events.
-  uint32_t register_event(uint16_t category_id,
-                          uint16_t event_id,
+  uint32_t register_event(uint32_t type_id,
                           std::string const& name = std::string(),
                           event_info::event_operations const* ops = nullptr,
                           mapping::entry const* entries = nullptr,
                           std::string const& table_v2 = std::string());
   void unregister_event(uint32_t type_id);
 
-  // ID manipulations.
-  static uint16_t category_of_type(uint32_t type) noexcept {
-    return static_cast<uint16_t>(type >> 16);
-  }
-  static uint16_t element_of_type(uint32_t type) noexcept {
-    return static_cast<uint16_t>(type);
-  }
-  static uint32_t make_type(uint16_t category_id,
-                            uint16_t element_id) noexcept {
-    return (static_cast<uint32_t>(category_id) << 16) | element_id;
-  }
-
   // Event browsing.
-  categories_container::const_iterator begin() const;
-  categories_container::const_iterator end() const;
   events_container get_events_by_category_name(std::string const& name) const;
   event_info const* get_event_info(uint32_t type);
   events_container get_matching_events(std::string const& name) const;
@@ -110,7 +77,7 @@ class events {
   ~events();
   events& operator=(events const& other);
 
-  categories_container _elements;
+  events_container _elements;
 };
 }  // namespace io
 

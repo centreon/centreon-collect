@@ -42,7 +42,7 @@ class host_parent : public io::data {
   ~host_parent();
   host_parent& operator=(host_parent const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_host_parent>::value;
+    return io::events::data_type<io::neb, neb::de_host_parent>::value;
   }
 
   bool enabled;

@@ -49,6 +49,26 @@ set(USER_BROKER centreon-broker)
 set(USER_ENGINE centreon-engine)
 ##################################
 
+include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
+
+option(WITH_TESTING "Build unit tests." OFF)
+if (WITH_TESTING)
+  find_package(GTest REQUIRED)
+endif ()
+
+set(protobuf_MODULE_COMPATIBLE True)
+
+find_package(nlohmann_json REQUIRED)
+find_package(gRPC REQUIRED)
+
+include_directories(${protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR})
+
+link_directories(${protobuf_LIB_DIRS})
+
+set(PROTOBUF_PREFIX "${protobuf_LIB_DIRS}/..")
+
+add_subdirectory(protobuf)
 add_subdirectory(centreon-broker)
 add_subdirectory(centreon-clib)
 add_subdirectory(centreon-engine)

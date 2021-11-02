@@ -46,8 +46,7 @@ class index_mapping : public io::data {
   ~index_mapping() = default;
   index_mapping& operator=(index_mapping const& other) = delete;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::storage,
-                                 storage::de_index_mapping>::value;
+    return io::events::data_type<io::storage, storage::de_index_mapping>::value;
   }
 
   uint64_t index_id;

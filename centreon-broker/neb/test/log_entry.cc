@@ -85,7 +85,7 @@ TEST_F(LogEntry, DefaultCtor) {
   // Object.
   neb::log_entry le;
 
-  auto val(io::events::data_type<io::events::neb, neb::de_log_entry>::value);
+  auto val(io::events::data_type<io::neb, neb::de_log_entry>::value);
   // Check.
   ASSERT_FALSE(le.source_id != 0);
   ASSERT_FALSE(le.destination_id != 0);

@@ -27,6 +27,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "protobuf/events.hh"
 
 CCB_BEGIN()
 
@@ -57,8 +58,7 @@ class version_response : public io::data {
    *  @return The event type.
    */
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bbdo,
-                                 bbdo::de_version_response>::value;
+    return io::events::data_type<io::bbdo, bbdo::de_version_response>::value;
   }
 
   static mapping::entry const entries[];

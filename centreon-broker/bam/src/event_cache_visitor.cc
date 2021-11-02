@@ -72,11 +72,10 @@ int event_cache_visitor::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
 
-  if (d->type() ==
-      io::events::data_type<io::events::bam, bam::de_ba_event>::value)
+  if (d->type() == io::events::data_type<io::bam, bam::de_ba_event>::value)
     _ba_events.push_back(d);
   else if (d->type() ==
-           io::events::data_type<io::events::bam, bam::de_kpi_event>::value)
+           io::events::data_type<io::bam, bam::de_kpi_event>::value)
     _kpi_events.push_back(d);
   else
     _others.push_back(d);

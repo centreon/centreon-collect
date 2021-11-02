@@ -51,8 +51,7 @@ TEST(StorageMetric, DefaultCtor) {
   // Build object.
   storage::metric m;
 
-  auto val(
-      io::events::data_type<io::events::storage, storage::de_metric>::value);
+  auto val(io::events::data_type<io::storage, storage::de_metric>::value);
 
   // Check properties values.
   ASSERT_FALSE(m.ctime != 0);

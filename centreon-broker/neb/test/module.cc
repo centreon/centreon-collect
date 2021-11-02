@@ -85,7 +85,7 @@ TEST_F(Module, DefaultCtor) {
   // Object.
   neb::module mod;
 
-  auto val(io::events::data_type<io::events::neb, neb::de_module>::value);
+  auto val(io::events::data_type<io::neb, neb::de_module>::value);
   // Check.
   ASSERT_FALSE(mod.source_id != 0);
   ASSERT_FALSE(mod.destination_id != 0);

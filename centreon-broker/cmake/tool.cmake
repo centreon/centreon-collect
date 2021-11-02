@@ -26,3 +26,12 @@ function(add_broker_module name activate)
     set(TESTS_LIBRARIES ${TESTS_LIBRARIES} PARENT_SCOPE)
   endif (WITH_MODULE_${name})
 endfunction(add_broker_module name activate)
+
+function(get_protobuf_files name)
+  set(proto_${name}
+      "${CMAKE_SOURCE_DIR}/protobuf/${name}.pb.cc"
+      "${CMAKE_SOURCE_DIR}/protobuf/${name}.pb.h"
+      PARENT_SCOPE)
+  set_source_files_properties("${CMAKE_SOURCE_DIR}/protobuf/${name}.pb.cc" PROPERTIES GENERATED TRUE)
+  set_source_files_properties("${CMAKE_SOURCE_DIR}/protobuf/${name}.pb.h" PROPERTIES GENERATED TRUE)
+endfunction()

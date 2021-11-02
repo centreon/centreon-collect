@@ -45,7 +45,7 @@ class module : public io::data {
   ~module();
   module& operator=(module const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_module>::value;
+    return io::events::data_type<io::neb, neb::de_module>::value;
   }
 
   std::string args;

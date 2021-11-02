@@ -47,8 +47,7 @@ class service_group_member : public group_member {
   virtual ~service_group_member();
   service_group_member& operator=(service_group_member const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_service_group_member>::value;
+    return io::events::data_type<io::neb, neb::de_service_group_member>::value;
   }
 
   uint32_t service_id;

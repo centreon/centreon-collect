@@ -536,11 +536,11 @@ void conflict_manager::_callback() {
             events.pop_front();
             std::shared_ptr<io::data>& d = std::get<0>(tpl);
             uint32_t type{d->type()};
-            uint16_t cat{io::events::category_of_type(type)};
-            uint16_t elem{io::events::element_of_type(type)};
-            if (std::get<1>(tpl) == sql && cat == io::events::neb)
+            uint16_t cat{category_of_type(type)};
+            uint16_t elem{element_of_type(type)};
+            if (std::get<1>(tpl) == sql && cat == io::neb)
               (this->*(_neb_processing_table[elem]))(tpl);
-            else if (std::get<1>(tpl) == storage && cat == io::events::neb &&
+            else if (std::get<1>(tpl) == storage && cat == io::neb &&
                      type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
             else {

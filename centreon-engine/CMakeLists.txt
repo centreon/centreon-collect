@@ -51,10 +51,8 @@ include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
 set(protobuf_MODULE_COMPATIBLE True)
 find_package(Protobuf REQUIRED)
-find_package(gRPC REQUIRED)
 find_package(c-ares REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 

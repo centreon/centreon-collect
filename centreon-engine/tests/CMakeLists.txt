@@ -19,10 +19,7 @@
 ##
 
 # Enable unit tests or not .
-option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
-
-  find_package(GTest REQUIRED)
   include_directories(${GTest_INCLUDE_DIRS})
   link_directories(${GTest_LIB_DIRS})
 

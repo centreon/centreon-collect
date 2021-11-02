@@ -182,11 +182,11 @@ int stream::write(std::shared_ptr<io::data> const& data) {
 
   // Process metric events.
   if (data->type() ==
-      io::events::data_type<io::events::storage, storage::de_metric>::value) {
+      io::events::data_type<io::storage, storage::de_metric>::value) {
     if (_process_metric(*std::static_pointer_cast<storage::metric const>(data)))
       ++_actual_query;
-  } else if (data->type() == io::events::data_type<io::events::storage,
-                                                   storage::de_status>::value) {
+  } else if (data->type() ==
+             io::events::data_type<io::storage, storage::de_status>::value) {
     if (_process_status(*std::static_pointer_cast<storage::status const>(data)))
       ++_actual_query;
   }

@@ -46,7 +46,7 @@ class rebuild : public io::data {
   rebuild& operator=(rebuild const&) = delete;
   bool operator==(rebuild const& other) const;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam, bam::de_rebuild>::value;
+    return io::events::data_type<io::bam, bam::de_rebuild>::value;
   }
 
   std::string bas_to_rebuild;
