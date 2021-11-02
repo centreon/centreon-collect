@@ -29,7 +29,6 @@
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/acceptor.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
-#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
 CCB_BEGIN()
@@ -40,7 +39,6 @@ class properties;
 }
 namespace stats {
 class builder;
-class center;
 }
 
 namespace processing {
@@ -102,7 +100,7 @@ class failover : public endpoint {
   volatile bool _initialized;
   time_t _next_timeout;
   volatile time_t _retry_interval;
-  std::shared_ptr<multiplexing::muxer> _mux;
+  std::shared_ptr<multiplexing::muxer> _muxer;
   volatile bool _update;
 
   // Status.

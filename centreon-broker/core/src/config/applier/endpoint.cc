@@ -161,7 +161,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v2::core()->debug("creating endpoint {}", ep.name);
-      // Create subscriber and endpoint.
+      // Create muxer and endpoint.
       std::shared_ptr<multiplexing::muxer> s(_create_muxer(ep));
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e(_create_endpoint(ep, is_acceptor));
@@ -322,20 +322,19 @@ void endpoint::unload() {
 
 /**
  *  Create a muxer for a chain of failovers / endpoints. This method
- *  will create the subscriber of the chain and set appropriate filters.
+ *  will create the muxer of the chain and set appropriate filters.
  *
  *  @param[in] cfg  Configuration of the root endpoint.
  *
- *  @return The subscriber of the chain.
+ *  @return The muxer of the chain.
  */
 multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
   // Build filtering elements.
   std::unordered_set<uint32_t> read_elements(_filters(cfg.read_filters));
   std::unordered_set<uint32_t> write_elements(_filters(cfg.write_filters));
 
-  // Create subscriber.
-  std::unique_ptr<multiplexing::muxer> s(
-      new multiplexing::muxer(cfg.name, true));
+  // Create muxer.
+  std::unique_ptr<multiplexing::muxer> s(new multiplexing::muxer(cfg.name, true));
   s->set_read_filters(read_elements);
   s->set_write_filters(write_elements);
   return s.release();
@@ -345,7 +344,7 @@ multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
  *  Create and register an endpoint according to configuration.
  *
  *  @param[in]  cfg      Endpoint configuration.
- *  @param[in]  sbscrbr  Subscriber.
+ *  @param[in]  mux      Muxer.
  *  @param[in]  endp     Endpoint.
  *  @param[in]  l        List of endpoints.
  */

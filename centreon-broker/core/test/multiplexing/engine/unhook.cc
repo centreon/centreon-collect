@@ -53,7 +53,7 @@ TEST_F(Unhook, EngineWorks) {
   bool error(true);
 
   try {
-    // Subscriber.
+    // Muxer.
     std::unordered_set<uint32_t> filters;
     filters.insert(io::raw::static_type());
     multiplexing::muxer mux("core_multiplexing_engine_unhook", "");
@@ -64,7 +64,7 @@ TEST_F(Unhook, EngineWorks) {
     hooker h;
     h.hook(true);
 
-    // Should read no events from subscriber.
+    // Should read no events from muxer.
     {
       std::shared_ptr<io::data> data;
       mux.read(data, 0);
@@ -105,7 +105,7 @@ TEST_F(Unhook, EngineWorks) {
           std::static_pointer_cast<io::data>(data));
     }
 
-    // Check subscriber content.
+    // Check muxer content.
     {
       std::array<std::string, 4> messages{HOOKMSG1, MSG1, HOOKMSG2, MSG2};
       for (auto& m : messages) {
