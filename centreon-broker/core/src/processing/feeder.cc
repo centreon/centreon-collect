@@ -151,7 +151,8 @@ void feeder::_callback() noexcept {
         try {
           misc::read_lock lock(_client_m);
           timed_out_stream = !_client->read(d, 0);
-        } catch (exceptions::shutdown const& e) {
+        }
+        catch (exceptions::shutdown const& e) {
           stream_can_read = false;
         }
         if (d) {
@@ -172,9 +173,10 @@ void feeder::_callback() noexcept {
       if (muxer_can_read)
         try {
           timed_out_muxer = !_muxer.read(d, 0);
-        } catch (exceptions::shutdown const& e) {
-          muxer_can_read = false;
         }
+      catch (exceptions::shutdown const& e) {
+        muxer_can_read = false;
+      }
       if (d) {
         log_v2::processing()->trace(
             "feeder '{}': sending 1 event from muxer to client", _name);
@@ -195,14 +197,17 @@ void feeder::_callback() noexcept {
         ::usleep(100000);
       }
     }
-  } catch (exceptions::shutdown const& e) {
+  }
+  catch (exceptions::shutdown const& e) {
     // Normal termination.
     (void)e;
     log_v2::core()->info("feeder '{}' shut down", get_name());
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     set_last_error(e.what());
     log_v2::core()->error("feeder '{}' error:{} ", _name, e.what());
-  } catch (...) {
+  }
+  catch (...) {
     log_v2::core()->error(
         "feeder: unknown error occured while processing client '{}'", _name);
   }
@@ -220,7 +225,8 @@ void feeder::_callback() noexcept {
    * peer. */
   try {
     _client->stop();
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     log_v2::core()->error("Failed to send stop event to client: {}", e.what());
   }
 

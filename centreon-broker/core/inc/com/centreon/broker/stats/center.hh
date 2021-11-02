@@ -75,21 +75,21 @@ class center {
   // ModuleStats* register_modules(void);
   SqlConnectionStats* register_mysql_connection();
   ConflictManagerStats* register_conflict_manager();
-  //FailoverStats *register_failover(void);
-  MuxerStats *register_muxer(void);
+  // FailoverStats *register_failover(void);
+  MuxerStats* register_muxer(void);
 
   bool unregister_mysql_connection(SqlConnectionStats* connection);
-  //bool unregister_failover(FailoverStats *);
-  bool unregister_muxer(MuxerStats *);
+  // bool unregister_failover(FailoverStats *);
+  bool unregister_muxer(MuxerStats*);
 
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);
-  void get_muxer_stats(uint32_t, MuxerStats *);
+  void get_muxer_stats(uint32_t, MuxerStats*);
 
   // bool unregister_endpoint(const std::string& name);
   // bool unregister_feeder(EndpointStats* ep_stats, const std::string& name);
   // bool unregister_mysql_manager(void);
-  
+
   int get_json_stats_file_creation(void);
   void get_stats(const StatsQuery* request, BrokerStats* response);
   void get_sql_connection_size(GenericSize* response);
@@ -103,7 +103,10 @@ class center {
    */
   template <typename T>
   void update(T* ptr, T value) {
-    _strand.post([ptr, value = std::move(value)] { *ptr = value; });
+    _strand.post([
+      ptr,
+      value = std::move(value)
+    ] { *ptr = value; });
   }
 
   /**

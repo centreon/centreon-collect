@@ -133,7 +133,8 @@ grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
   try {
     if (!stats::get_endpoint_stats(value))
       return grpc::Status(grpc::UNAVAILABLE, grpc::string("endpoint locked"));
-  } catch (...) {
+  }
+  catch (...) {
     return grpc::Status(grpc::ABORTED, grpc::string("endpoint throw error"));
   }
 
@@ -190,37 +191,34 @@ grpc::Status broker_impl::GetGenericStats(
 }
 
 grpc::Status broker_impl::GetSqlConnectionStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const GenericInt* request, 
-                                      SqlConnectionStats* response) {
+                                                __attribute__((unused)),
+                                                const GenericInt* request,
+                                                SqlConnectionStats* response) {
   uint32_t index = request->value();
   stats::center::instance().get_sql_connection_stats(index, response);
   return grpc::Status::OK;
 }
 
-
-grpc::Status broker_impl::GetConflictManagerStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const ::google::protobuf::Empty* request
-                                      __attribute__((unused)),
-                                      ConflictManagerStats* response) {
+grpc::Status broker_impl::GetConflictManagerStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    ConflictManagerStats* response) {
   stats::center::instance().get_conflict_manager_stats(response);
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlConnectionSize(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const ::google::protobuf::Empty* request
-                                      __attribute__((unused)),
-                                      GenericSize* response) {
+grpc::Status broker_impl::GetSqlConnectionSize(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    GenericSize* response) {
   stats::center::instance().get_sql_connection_size(response);
   return grpc::Status::OK;
 }
 
 grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const GenericInt* request,
-                                      MuxerStats* response) {
+                                        __attribute__((unused)),
+                                        const GenericInt* request,
+                                        MuxerStats* response) {
   uint32_t index = request->value();
   stats::center::instance().get_muxer_stats(index, response);
   return grpc::Status::OK;

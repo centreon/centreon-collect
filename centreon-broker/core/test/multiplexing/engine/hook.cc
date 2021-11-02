@@ -132,9 +132,11 @@ TEST_F(Hook, EngineWorks) {
 
     // Success.
     error = false;
-  } catch (std::exception const& e) {
+  }
+  catch (std::exception const& e) {
     std::cerr << e.what() << "\n";
-  } catch (...) {
+  }
+  catch (...) {
     std::cerr << "unknown exception\n";
   }
 

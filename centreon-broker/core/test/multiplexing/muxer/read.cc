@@ -31,7 +31,8 @@ class MultiplexingMuxerRead : public ::testing::Test {
     try {
       config::applier::init(0, "test_broker");
       stats::center::load();
-    } catch (std::exception const& e) {
+    }
+    catch (std::exception const& e) {
       (void)e;
     }
   }
@@ -67,7 +68,8 @@ class MultiplexingMuxerRead : public ::testing::Test {
       ASSERT_FALSE(!d);
       ASSERT_EQ(d->type(), io::raw::static_type());
       int reread;
-      memcpy(&reread, std::static_pointer_cast<io::raw>(d)->data(),
+      memcpy(&reread,
+             std::static_pointer_cast<io::raw>(d)->data(),
              sizeof(reread));
       ASSERT_EQ(reread, i);
     }

@@ -53,14 +53,14 @@ class muxer : public io::stream {
 
  private:
   std::condition_variable _cv;
-  std::list<std::shared_ptr<io::data>> _events;
+  std::list<std::shared_ptr<io::data> > _events;
   uint32_t _events_size;
   static uint32_t _event_queue_max_size;
   std::unique_ptr<persistent_file> _file;
   mutable std::mutex _mutex;
   std::string _name;
   bool _persistent;
-  std::list<std::shared_ptr<io::data>>::iterator _pos;
+  std::list<std::shared_ptr<io::data> >::iterator _pos;
   filters _read_filters;
   filters _write_filters;
   std::string _read_filters_str;
@@ -72,7 +72,7 @@ class muxer : public io::stream {
   void _push_to_queue(std::shared_ptr<io::data> const& event);
   std::string _queue_file() const;
 
-  MuxerStats *_stats;
+  MuxerStats* _stats;
   std::chrono::time_point<std::chrono::system_clock> _clk;
 
  public:

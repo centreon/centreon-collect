@@ -71,11 +71,13 @@ TEST_F(BrokerRpc, GetVersion) {
   auto output = execute("GetVersion");
 #if CENTREON_BROKER_PATCH == 0
   ASSERT_EQ(output.size(), 2u);
-  ASSERT_EQ(output.front(), fmt::format("GetVersion: major: {}\n", version::major));
+  ASSERT_EQ(output.front(),
+            fmt::format("GetVersion: major: {}\n", version::major));
   ASSERT_EQ(output.back(), fmt::format("minor: {}\n", version::minor));
 #else
   ASSERT_EQ(output.size(), 3u);
-  ASSERT_EQ(output.front(), fmt::format("GetVersion: major: {}\n", version::major));
+  ASSERT_EQ(output.front(),
+            fmt::format("GetVersion: major: {}\n", version::major));
   ASSERT_EQ(output.back(), fmt::format("patch: {}\n", version::patch));
 #endif
   brpc.shutdown();
@@ -87,16 +89,20 @@ TEST_F(BrokerRpc, GetSqlConnectionStatsValue) {
   std::vector<std::string> vectests = {"3\n", "10\n", "0\n", "15\n"};
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 3);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks, _stats, 3);
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 10);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks, _stats, 10);
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 0);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks, _stats, 0);
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 15);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks, _stats, 15);
 
   auto output = execute("GetSqlConnectionStatsValue 4");
 
@@ -112,10 +118,12 @@ TEST_F(BrokerRpc, GetSqlConnectionSize) {
   SqlConnectionStats* _stats;
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 3);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks, _stats, 3);
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 5);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks, _stats, 5);
 
   auto output = execute("GetSqlConnectionSize");
   ASSERT_EQ(output.front(), "connection array size: 2\n");
@@ -123,15 +131,15 @@ TEST_F(BrokerRpc, GetSqlConnectionSize) {
   brpc.shutdown();
 }
 
-
 TEST_F(BrokerRpc, GetConflictManagerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   ConflictManagerStats* _stats;
 
   _stats = stats::center::instance().register_conflict_manager();
-  stats::center::instance().update(&ConflictManagerStats::set_events_handled, _stats, 3);
-  stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-                                         _stats, 30u);
+  stats::center::instance().update(
+      &ConflictManagerStats::set_events_handled, _stats, 3);
+  stats::center::instance().update(
+      &ConflictManagerStats::set_loop_timeout, _stats, 30u);
 
   auto output = execute("GetConflictManagerStats");
 
@@ -144,9 +152,12 @@ TEST_F(BrokerRpc, GetFailoverStats) {
   FailoverStats *_stats = stats::center::instance().register_failover();
   auto mux = _stats->mutable_mux();
 
-  stats::center::instance().update(&FailoverStats_MuxerStats::set_queue_file_enabled, mux, true);
-  stats::center::instance().update(mux->mutable_queue_file(), std::string("qufl"));
-  stats::center::instance().update(mux->mutable_unacknowledged_events(), std::string("unaev"));
+  stats::center::instance().update(&FailoverStats_MuxerStats::set_queue_file_enabled,
+mux, true);
+  stats::center::instance().update(mux->mutable_queue_file(),
+std::string("qufl"));
+  stats::center::instance().update(mux->mutable_unacknowledged_events(),
+std::string("unaev"));
 
   auto output = execute("GetFailoverStats");
 
@@ -155,27 +166,38 @@ TEST_F(BrokerRpc, GetFailoverStats) {
 */
 TEST_F(BrokerRpc, GetMuxerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
-  MuxerStats *_stats;
+  MuxerStats* _stats;
   std::vector<std::string> vectests = {
-    "queue_file_enabled: true, queue_file: qufl_, unacknowledged_events: unaev_\n",
-    "queue_file_enabled: true, queue_file: _qufl, unacknowledged_events: _unaev\n",
-    "queue_file_enabled: false, queue_file: _qufl_, unacknowledged_events: _unaev_\n"
-  };
+      "queue_file_enabled: true, queue_file: qufl_, unacknowledged_events: "
+      "unaev_\n",
+      "queue_file_enabled: true, queue_file: _qufl, unacknowledged_events: "
+      "_unaev\n",
+      "queue_file_enabled: false, queue_file: _qufl_, unacknowledged_events: "
+      "_unaev_\n"};
 
   _stats = stats::center::instance().register_muxer();
-  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, true);
-  stats::center::instance().update(_stats->mutable_queue_file(), std::string("qufl_"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("unaev_"));
+  stats::center::instance().update(
+      &MuxerStats::set_queue_file_enabled, _stats, true);
+  stats::center::instance().update(_stats->mutable_queue_file(),
+                                   std::string("qufl_"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(),
+                                   std::string("unaev_"));
 
   _stats = stats::center::instance().register_muxer();
-  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, true);
-  stats::center::instance().update(_stats->mutable_queue_file(), std::string("_qufl"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("_unaev"));
+  stats::center::instance().update(
+      &MuxerStats::set_queue_file_enabled, _stats, true);
+  stats::center::instance().update(_stats->mutable_queue_file(),
+                                   std::string("_qufl"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(),
+                                   std::string("_unaev"));
 
   _stats = stats::center::instance().register_muxer();
-  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats, false);
-  stats::center::instance().update(_stats->mutable_queue_file(), std::string("_qufl_"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(), std::string("_unaev_"));
+  stats::center::instance().update(
+      &MuxerStats::set_queue_file_enabled, _stats, false);
+  stats::center::instance().update(_stats->mutable_queue_file(),
+                                   std::string("_qufl_"));
+  stats::center::instance().update(_stats->mutable_unacknowledged_events(),
+                                   std::string("_unaev_"));
 
   std::list<std::string> output = execute("GetMuxerStats 3");
 

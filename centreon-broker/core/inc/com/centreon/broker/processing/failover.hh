@@ -55,7 +55,11 @@ class failover : public endpoint {
   std::atomic_bool _should_exit;
 
   std::thread _thread;
-  enum _running_state { not_started, running, stopped };
+  enum _running_state {
+    not_started,
+    running,
+    stopped
+  };
   _running_state _state;
   mutable std::mutex _state_m;
   std::condition_variable _state_cv;

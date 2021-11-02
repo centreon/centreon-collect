@@ -94,9 +94,7 @@ class name_match_failover {
 /**
  *  Destructor.
  */
-endpoint::~endpoint() {
-  _discard();
-}
+endpoint::~endpoint() { _discard(); }
 
 /**
  *  Apply the endpoint configuration.
@@ -158,7 +156,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
     assert(!_discarding);
     // Check that output is not a failover.
     if (ep.name.empty() ||
-        std::find_if(endp_to_create.begin(), endp_to_create.end(),
+        std::find_if(endp_to_create.begin(),
+                     endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v2::core()->debug("creating endpoint {}", ep.name);
       // Create muxer and endpoint.
@@ -196,7 +195,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       log_v2::config()->debug(
           "endpoint applier: endpoint thread {} of '{}' is registered and "
           "ready to run",
-          static_cast<void*>(endp.get()), ep.name);
+          static_cast<void*>(endp.get()),
+          ep.name);
       endp.release()->start();
     }
   }
@@ -232,7 +232,8 @@ void endpoint::_discard() {
   // Stop multiplexing.
   try {
     multiplexing::engine::instance().stop();
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     log_v2::config()->warn("multiplexing engine stop interrupted: {}",
                            e.what());
   }
@@ -260,27 +261,21 @@ void endpoint::_discard() {
  *
  *  @return Iterator to the first endpoint.
  */
-endpoint::iterator endpoint::endpoints_begin() {
-  return _endpoints.begin();
-}
+endpoint::iterator endpoint::endpoints_begin() { return _endpoints.begin(); }
 
 /**
  *  Get last iterator of endpoints.
  *
  *  @return Last iterator of endpoints.
  */
-endpoint::iterator endpoint::endpoints_end() {
-  return _endpoints.end();
-}
+endpoint::iterator endpoint::endpoints_end() { return _endpoints.end(); }
 
 /**
  *  Get endpoints mutex.
  *
  *  @return Endpoints mutex.
  */
-std::timed_mutex& endpoint::endpoints_mutex() {
-  return _endpointsm;
-}
+std::timed_mutex& endpoint::endpoints_mutex() { return _endpointsm; }
 
 /**
  *  Get the class instance.
@@ -307,9 +302,7 @@ void endpoint::load() {
  *
  * @return a boolean.
  */
-bool endpoint::loaded() {
-  return gl_loaded;
-}
+bool endpoint::loaded() { return gl_loaded; }
 
 /**
  *  Unload singleton.
@@ -334,7 +327,8 @@ multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
   std::unordered_set<uint32_t> write_elements(_filters(cfg.write_filters));
 
   // Create muxer.
-  std::unique_ptr<multiplexing::muxer> s(new multiplexing::muxer(cfg.name, true));
+  std::unique_ptr<multiplexing::muxer> s(
+      new multiplexing::muxer(cfg.name, true));
   s->set_read_filters(read_elements);
   s->set_write_filters(write_elements);
   return s.release();
@@ -366,36 +360,41 @@ processing::failover* endpoint::_create_failover(
     if (it == l.end())
       throw msg_fmt(
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
-          front_failover, cfg.name);
+          front_failover,
+          cfg.name);
     bool is_acceptor;
     std::shared_ptr<io::endpoint> e(_create_endpoint(*it, is_acceptor));
     if (is_acceptor)
       throw msg_fmt(
           "endpoint applier: cannot allow acceptor '{}' "
           "as failover for endpoint '{}'",
-          front_failover, cfg.name);
-    failovr = std::shared_ptr<processing::failover>(
-        _create_failover(*it, mux, e, l));
+          front_failover,
+          cfg.name);
+    failovr =
+        std::shared_ptr<processing::failover>(_create_failover(*it, mux, e, l));
 
     // Add secondary failovers
     for (std::list<std::string>::const_iterator
              failover_it(++cfg.failovers.begin()),
          failover_end(cfg.failovers.end());
-         failover_it != failover_end; ++failover_it) {
+         failover_it != failover_end;
+         ++failover_it) {
       auto it =
           std::find_if(l.begin(), l.end(), failover_match_name(*failover_it));
       if (it == l.end())
         throw msg_fmt(
             "endpoint applier: could not find "
             "secondary failover '{}' for endpoint '{}'",
-            *failover_it, cfg.name);
+            *failover_it,
+            cfg.name);
       bool is_acceptor{false};
       std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
       if (is_acceptor) {
         log_v2::config()->error(
             "endpoint applier: secondary failover '{}' is an acceptor and "
             "cannot therefore be instantiated for endpoint '{}'",
-            *failover_it, cfg.name);
+            *failover_it,
+            cfg.name);
       }
       failovr->add_secondary_endpoint(endp);
     }
@@ -426,7 +425,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
   for (std::map<std::string, io::protocols::protocol>::const_iterator
            it(io::protocols::instance().begin()),
        end(io::protocols::instance().end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
       std::shared_ptr<persistent_cache> cache;
@@ -498,7 +498,8 @@ void endpoint::_diff_endpoints(
     // Find a root entry.
     auto list_it = new_ep.begin();
     while (list_it != new_ep.end() && !list_it->name.empty() &&
-           std::find_if(new_ep.begin(), new_ep.end(),
+           std::find_if(new_ep.begin(),
+                        new_ep.end(),
                         name_match_failover(list_it->name)) != new_ep.end())
       ++list_it;
     if (list_it == new_ep.end())
@@ -514,13 +515,14 @@ void endpoint::_diff_endpoints(
       // Find failovers.
       if (!entry.failovers.empty())
         for (auto& failover : entry.failovers) {
-          list_it = std::find_if(new_ep.begin(), new_ep.end(),
-                                 failover_match_name(failover));
+          list_it = std::find_if(
+              new_ep.begin(), new_ep.end(), failover_match_name(failover));
           if (list_it == new_ep.end())
             throw msg_fmt(
                 "endpoint applier: could not find failover '{}'"
                 "' for endpoint '{}'",
-                failover, entry.name);
+                failover,
+                entry.name);
           entries.push_back(*list_it);
           new_ep.erase(list_it);
         }
@@ -548,12 +550,14 @@ std::unordered_set<uint32_t> endpoint::_filters(
   std::unordered_set<uint32_t> elements;
   for (std::set<std::string>::const_iterator it(str_filters.begin()),
        end(str_filters.end());
-       it != end; ++it) {
+       it != end;
+       ++it) {
     io::events::events_container const& tmp_elements(
         io::events::instance().get_matching_events(*it));
     for (io::events::events_container::const_iterator it(tmp_elements.begin()),
          end(tmp_elements.end());
-         it != end; ++it) {
+         it != end;
+         ++it) {
       log_v2::config()->info("endpoint applier: new filtering element: {}",
                              it->first);
       elements.insert(it->first);

@@ -53,9 +53,10 @@ void center::unload() {
 
 center::center() : _strand(pool::instance().io_context()) {
   *_stats.mutable_version() = version::string;
-  *_stats.mutable_asio_version() =
-      fmt::format("{}.{}.{}", ASIO_VERSION / 100000, ASIO_VERSION / 100 % 1000,
-                  ASIO_VERSION % 100);
+  *_stats.mutable_asio_version() = fmt::format("{}.{}.{}",
+                                               ASIO_VERSION / 100000,
+                                               ASIO_VERSION / 100 % 1000,
+                                               ASIO_VERSION % 100);
   _stats.set_pid(getpid());
 
   /* Bringing modules statistics */
@@ -64,7 +65,8 @@ center::center() : _strand(pool::instance().io_context()) {
         config::applier::state::instance().get_modules());
     for (config::applier::modules::iterator it = mod_applier.begin(),
                                             end = mod_applier.end();
-         it != end; ++it) {
+         it != end;
+         ++it) {
       auto m = _stats.add_modules();
       *m->mutable_name() = it->first;
       *m->mutable_size() =
@@ -85,9 +87,7 @@ center::~center() {
    * a last action and wait it is over. */
   std::promise<bool> p;
   std::future<bool> f{p.get_future()};
-  _strand.post([&p] {
-      p.set_value(true);
-      });
+  _strand.post([&p] { p.set_value(true); });
   f.get();
   pool::instance().stop_stats();
 }
@@ -126,10 +126,10 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
   _strand.post([this, &p, connection] {
-    for (auto
-             it = _stats.mutable_connections()->begin(),
-             end = _stats.mutable_connections()->end();
-             it != end; ++it) {
+    for (auto it = _stats.mutable_connections()->begin(),
+              end = _stats.mutable_connections()->end();
+         it != end;
+         ++it) {
       if (&(*it) == connection) {
         _stats.mutable_connections()->erase(it);
         break;
@@ -154,24 +154,24 @@ bool center::unregister_failover(FailoverStats *fs) {
 }
 */
 
-MuxerStats *center::register_muxer(void) {
-  std::promise<MuxerStats *> p;
-  std::future<MuxerStats *> retval = p.get_future();
-  _strand.post([this, &p]{
+MuxerStats* center::register_muxer(void) {
+  std::promise<MuxerStats*> p;
+  std::future<MuxerStats*> retval = p.get_future();
+  _strand.post([this, &p] {
     auto ms = _stats.add_muxers();
     p.set_value(ms);
   });
   return retval.get();
 }
 
-bool center::unregister_muxer(MuxerStats *ms) {
+bool center::unregister_muxer(MuxerStats* ms) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
   _strand.post([this, &p, ms] {
-    for (auto
-             it = _stats.mutable_muxers()->begin(),
-             end = _stats.mutable_muxers()->end();
-             it != end; ++it) {
+    for (auto it = _stats.mutable_muxers()->begin(),
+              end = _stats.mutable_muxers()->end();
+         it != end;
+         ++it) {
       if (&(*it) == ms) {
         _stats.mutable_muxers()->erase(it);
         break;
@@ -295,7 +295,7 @@ bool center::unregister_muxer(MuxerStats *ms) {
  *
  * @return A pointer to the conflict_manager statistics.
  */
- ConflictManagerStats* center::register_conflict_manager() {
+ConflictManagerStats* center::register_conflict_manager() {
   std::promise<ConflictManagerStats*> p;
   std::future<ConflictManagerStats*> retval = p.get_future();
   _strand.post([this, &p] {
@@ -331,17 +331,20 @@ bool center::unregister_muxer(MuxerStats *ms) {
 std::string center::to_string() {
   std::promise<std::string> p;
   std::future<std::string> retval = p.get_future();
-  _strand.post(
-      [&s = this->_stats, &p, &tmpnow = this->_json_stats_file_creation] {
-        const JsonPrintOptions options;
-        std::string retval;
-        std::time_t now;
-        time(&now);
-        tmpnow = (int)now;
-        s.set_now(now);
-        MessageToJsonString(s, &retval, options);
-        p.set_value(std::move(retval));
-      });
+  _strand.post([
+    &s = this->_stats,
+    &p,
+    &tmpnow = this->_json_stats_file_creation
+  ] {
+      const JsonPrintOptions options;
+      std::string retval;
+      std::time_t now;
+      time(&now);
+      tmpnow = (int)now;
+      s.set_now(now);
+      MessageToJsonString(s, &retval, options);
+      p.set_value(std::move(retval));
+    });
 
   return retval.get();
 }
@@ -364,25 +367,32 @@ std::string center::to_string() {
 //  done.get();
 //}
 
-void center::get_sql_connection_stats(uint32_t index, SqlConnectionStats* response) {
+void center::get_sql_connection_stats(uint32_t index,
+                                      SqlConnectionStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, &index, response] {
+  _strand.post([
+    &s = this->_stats,
+    &p,
+    &index,
+    response
+  ] {
       uint32_t i = 0;
-      for (auto it = s.connections().begin(), 
-        end = s.connections().end();
-        it != end; ++it, ++i) {
-            if (index == i) {
-              *response = (*it);  
-            }
+      for (auto it = s.connections().begin(), end = s.connections().end();
+           it != end;
+           ++it, ++i) {
+        if (index == i) {
+          *response = (*it);
+        }
       }
 
       if (i > index) {
-        log_v2::sql()->info("mysql_connection: index out of range in get sql "
-                            "connection stats");
+        log_v2::sql()->info(
+            "mysql_connection: index out of range in get sql "
+            "connection stats");
       }
       p.set_value(true);
-  });
+    });
 
   // We wait for the response.
   done.get();
@@ -391,10 +401,14 @@ void center::get_sql_connection_stats(uint32_t index, SqlConnectionStats* respon
 void center::get_sql_connection_size(GenericSize* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
+  _strand.post([
+    &s = this->_stats,
+    &p,
+    response
+  ] {
       response->set_size(s.connections().size());
       p.set_value(true);
-  });
+    });
 
   // We wait for the response.
   done.get();
@@ -403,10 +417,14 @@ void center::get_sql_connection_size(GenericSize* response) {
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
+  _strand.post([
+    &s = this->_stats,
+    &p,
+    response
+  ] {
       *response = s.conflict_manager();
       p.set_value(true);
-  });
+    });
 
   // We wait for the response.
   done.get();
@@ -416,24 +434,28 @@ int center::get_json_stats_file_creation(void) {
   return _json_stats_file_creation;
 }
 
-void center::get_muxer_stats(uint32_t index, MuxerStats *response) {
+void center::get_muxer_stats(uint32_t index, MuxerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, &index, response] {
+  _strand.post([
+    &s = this->_stats,
+    &p,
+    &index,
+    response
+  ] {
       uint32_t i = 0;
-      for (auto it = s.muxers().begin(),
-        end = s.muxers().end();
-        it != end; ++it, ++i) {
-            if (index == i) {
-              *response = (*it);
-            }
+      for (auto it = s.muxers().begin(), end = s.muxers().end(); it != end;
+           ++it, ++i) {
+        if (index == i) {
+          *response = (*it);
+        }
       }
 
       if (i > index) {
         log_v2::sql()->info("muxers: index out of range in get muxers stats");
       }
       p.set_value(true);
-  });
+    });
 
   // We wait for the response.
   done.get();

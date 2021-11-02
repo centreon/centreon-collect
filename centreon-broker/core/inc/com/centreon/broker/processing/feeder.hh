@@ -46,7 +46,11 @@ namespace processing {
  *  Take events from a source and send them to a destination.
  */
 class feeder : public stat_visitable {
-  enum state { stopped, running, finished };
+  enum state {
+    stopped,
+    running,
+    finished
+  };
   // Condition variable used when waiting for the thread to finish
   std::unique_ptr<std::thread> _thread;
   state _state;

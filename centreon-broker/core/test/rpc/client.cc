@@ -80,7 +80,7 @@ class BrokerRPCClient {
     return true;
   }
 
-  bool GetMuxerStats(MuxerStats *response, uint32_t val) {
+  bool GetMuxerStats(MuxerStats* response, uint32_t val) {
     GenericInt i;
     i.set_value(val);
     grpc::ClientContext context;
@@ -102,51 +102,37 @@ int main(int argc, char** argv) {
     std::cout << "ERROR: this client must be called with a command..."
               << std::endl;
     exit(1);
-  }
-
-  else if (strcmp(argv[1], "GetVersion") == 0) {
+  } else if (strcmp(argv[1], "GetVersion") == 0) {
     Version version;
     status = client.GetVersion(&version) ? 0 : 1;
     std::cout << "GetVersion: " << version.DebugString();
-  }
-
-  else if (strcmp(argv[1], "GetSqlConnectionStatsValue") == 0) {
+  } else if (strcmp(argv[1], "GetSqlConnectionStatsValue") == 0) {
     uint32_t sz = atoi(argv[2]);
     SqlConnectionStats response;
     for (uint32_t i = 0; i < sz; ++i) {
       status = client.GetSqlConnectionStats(&response, i) ? 0 : 1;
       std::cout << response.waiting_tasks() << std::endl;
     }
-  }
-
-  else if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
+  } else if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
     GenericSize response;
     status = client.GetSqlConnectionSize(&response) ? 0 : 1;
-    std::cout << "connection array size: "
-              << response.size()
-              << std::endl;
-  }
-  
-  else if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
+    std::cout << "connection array size: " << response.size() << std::endl;
+  } else if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
     ConflictManagerStats response;
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
-    std::cout << "events_handled: "
-              << response.events_handled()
-              << std::endl;
-  }
-
-  else if (strcmp(argv[1], "GetMuxerStats") == 0) {
+    std::cout << "events_handled: " << response.events_handled() << std::endl;
+  } else if (strcmp(argv[1], "GetMuxerStats") == 0) {
     uint32_t sz = atoi(argv[2]);
     MuxerStats response;
     for (uint32_t i = 0; i < sz; ++i) {
       status = client.GetMuxerStats(&response, i) ? 0 : 1;
-      std::cout << "queue_file_enabled: " << std::boolalpha << response.queue_file_enabled()
-        << ", queue_file: " << response.queue_file()
-        << ", unacknowledged_events: " << response.unacknowledged_events() << std::endl;
+      std::cout << "queue_file_enabled: " << std::boolalpha
+                << response.queue_file_enabled()
+                << ", queue_file: " << response.queue_file()
+                << ", unacknowledged_events: "
+                << response.unacknowledged_events() << std::endl;
     }
-  }
-
-  else
+  } else
     std::cout << "warning : not implemented" << std::endl;
 
   exit(status);

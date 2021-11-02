@@ -35,14 +35,14 @@ class broker_impl final : public Broker::Service {
                                GenericString* response) override;
 
   grpc::Status GetSqlConnectionStats(grpc::ServerContext* context,
-                           const GenericInt* request,
-                           SqlConnectionStats* response) override;
+                                     const GenericInt* request,
+                                     SqlConnectionStats* response) override;
   grpc::Status GetConflictManagerStats(grpc::ServerContext* context,
-                           const ::google::protobuf::Empty* request,
-                           ConflictManagerStats* response) override;
+                                       const ::google::protobuf::Empty* request,
+                                       ConflictManagerStats* response) override;
   grpc::Status GetSqlConnectionSize(grpc::ServerContext* context,
-                           const ::google::protobuf::Empty* request,
-                           GenericSize* response) override;
+                                    const ::google::protobuf::Empty* request,
+                                    GenericSize* response) override;
   grpc::Status GetNumModules(grpc::ServerContext* context,
                              const ::google::protobuf::Empty* /*request*/,
                              GenericSize* response) override;
@@ -60,11 +60,13 @@ class broker_impl final : public Broker::Service {
                                 GenericString* response) override;
 
   grpc::Status GetMuxerStats(grpc::ServerContext*,
-                                const GenericInt*,
-                                MuxerStats*) override;
+                             const GenericInt*,
+                             MuxerStats*) override;
 
  public:
-  void set_broker_name(std::string const& s) { _broker_name = s; };
+  void set_broker_name(std::string const& s) {
+    _broker_name = s;
+  };
 };
 CCB_END()
 
