@@ -43,10 +43,7 @@ add_subdirectory(ssh)
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Testing.
-option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
-  find_package(GTest REQUIRED)
-
   set_source_files_properties(${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc PROPERTIES GENERATED TRUE)
   include_directories(${GTest_INCLUDE_DIRS})
   include_directories(/usr/lib64/perl5/CORE)

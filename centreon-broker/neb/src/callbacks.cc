@@ -1980,8 +1980,7 @@ int neb::callback_service_status(int callback_type, void* data) {
 
   try {
     // In/Out variables.
-    std::shared_ptr<neb::service_status> service_status(
-        new neb::service_status);
+    auto service_status = std::make_shared<neb::service_status>();
 
     // Fill output var.
     engine::service const* s{static_cast<engine::service*>(

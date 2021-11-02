@@ -30,9 +30,7 @@ include_directories(
 )
 
 
-set(protobuf_MODULE_COMPATIBLE True)
 find_package(Protobuf REQUIRED)
-find_package(gRPC REQUIRED)
 
 include_directories(${gRPC_INCLUDE_DIRS})
 include_directories(${absl_INCLUDE_DIRS})

@@ -49,7 +49,7 @@ char const* bam_module("bam");
 
 template <typename T>
 void register_bam_event(io::events& e, bam::data_element de, const char* name) {
-  e.register_event(io::events::bam, de, name, &T::operations, T::entries);
+  e.register_event(make_type(io::bam, de), name, &T::operations, T::entries);
 }
 
 extern "C" {
@@ -77,7 +77,7 @@ void broker_module_deinit() {
     // Deregister storage layer.
     io::protocols::instance().unreg(bam_module);
     // Deregister bam events.
-    io::events::instance().unregister_category(io::events::bam);
+    io::events::instance().unregister_category(io::bam);
   }
 }
 
@@ -100,18 +100,6 @@ void broker_module_init(void const* arg) {
                                   1, 7);
 
     io::events& e(io::events::instance());
-
-    // Register category.
-    int bam_category(e.register_category("bam", io::events::bam));
-    if (bam_category != io::events::bam) {
-      e.unregister_category(bam_category);
-      --instances;
-      throw msg_fmt(
-          "bam: category {}"
-          " is already registered whereas it should be "
-          "reserved for the bam module",
-          io::events::bam);
-    }
 
     // Register bam events.
     {

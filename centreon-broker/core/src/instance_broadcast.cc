@@ -65,7 +65,7 @@ instance_broadcast& instance_broadcast::operator=(
  */
 void instance_broadcast::load() {
   io::events& e(io::events::instance());
-  e.register_event(io::events::internal, io::events::de_instance_broadcast,
+  e.register_event(make_type(io::internal, io::events::de_instance_broadcast),
                    "instance_broadcast", &instance_broadcast::operations,
                    instance_broadcast::entries);
 }

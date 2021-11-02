@@ -29,9 +29,9 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
+#include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/storage/rebuild.hh"
-#include "com/centreon/broker/storage/rebuild2.hh"
 #include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -274,7 +274,7 @@ void rebuilder::_rebuild_metric(mysql& ms,
       metric_id, metric_name, metric_type, interval);
 
 #ifdef USE_PROTOBUF
-  auto r = std::make_shared<storage::rebuild2>();
+  auto r = std::make_shared<storage::pb_rebuild>();
   r->obj.mutable_metric()->set_metric_id(metric_id);
   r->obj.mutable_metric()->set_value_type(metric_type);
 #else
@@ -328,8 +328,8 @@ void rebuilder::_rebuild_metric(mysql& ms,
             "storage(rebuilder): Sending metric with host_id {}, service_id "
             "{}, metric_name {}, ctime {}, interval {}, is_for_rebuild {}, "
             "metric_id {}, rrd_len {}, value {}, value_type{}",
-            host_id, service_id, metric_name, p->ctime(), interval,
-            true, metric_id, length, p->value(), metric_type);
+            host_id, service_id, metric_name, p->ctime(), interval, true,
+            metric_id, length, p->value(), metric_type);
 #endif
       }
 #ifdef USE_PROTOBUF
@@ -370,7 +370,7 @@ void rebuilder::_rebuild_status(mysql& ms,
                       index_id, interval);
 
 #ifdef USE_PROTOBUF
-  auto r = std::make_shared<storage::rebuild2>();
+  auto r = std::make_shared<storage::pb_rebuild>();
   r->obj.set_index_id(index_id);
   r->obj.set_interval(interval);
   r->obj.set_length(length);

@@ -61,8 +61,7 @@ class status : public io::data {
   ~status();
   status& operator=(status const& s);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::storage,
-                                 storage::de_status>::value;
+    return io::events::data_type<io::storage, storage::de_status>::value;
   }
 };
 }  // namespace storage

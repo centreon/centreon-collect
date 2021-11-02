@@ -44,8 +44,7 @@ class ba_duration_event : public io::data {
   ba_duration_event& operator=(ba_duration_event const& other);
   bool operator==(ba_duration_event const& other) const;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam,
-                                 bam::de_ba_duration_event>::value;
+    return io::events::data_type<io::bam, bam::de_ba_duration_event>::value;
   }
 
   uint32_t ba_id;

@@ -45,8 +45,7 @@ class service_status : public host_service_status {
   virtual ~service_status();
   service_status& operator=(service_status const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_service_status>::value;
+    return io::events::data_type<io::neb, neb::de_service_status>::value;
   }
 
   std::string host_name;

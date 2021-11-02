@@ -43,8 +43,7 @@ class host_dependency : public dependency {
   ~host_dependency();
   host_dependency& operator=(host_dependency const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_host_dependency>::value;
+    return io::events::data_type<io::neb, neb::de_host_dependency>::value;
   }
 
   static mapping::entry const entries[];

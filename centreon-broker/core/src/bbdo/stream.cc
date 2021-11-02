@@ -879,7 +879,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   bool timed_out(!_read_any(d, deadline));
   uint32_t event_id(!d ? 0 : d->type());
-  while (!timed_out && ((event_id >> 16) == io::events::bbdo)) {
+  while (!timed_out && ((event_id >> 16) == io::bbdo)) {
     // Version response.
     if ((event_id & 0xffff) == 1) {
       std::shared_ptr<version_response> version(

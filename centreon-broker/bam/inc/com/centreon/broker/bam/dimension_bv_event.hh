@@ -46,8 +46,7 @@ class dimension_bv_event : public io::data {
   dimension_bv_event& operator=(dimension_bv_event const& other);
   bool operator==(dimension_bv_event const& other) const;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam,
-                                 bam::de_dimension_bv_event>::value;
+    return io::events::data_type<io::bam, bam::de_dimension_bv_event>::value;
   }
 
   uint32_t bv_id;

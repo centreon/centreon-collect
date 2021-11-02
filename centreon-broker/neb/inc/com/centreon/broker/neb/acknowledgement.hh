@@ -53,8 +53,7 @@ class acknowledgement : public io::data {
    *  @return  The event type.
    */
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_acknowledgement>::value;
+    return io::events::data_type<io::neb, neb::de_acknowledgement>::value;
   }
 
   short acknowledgement_type;

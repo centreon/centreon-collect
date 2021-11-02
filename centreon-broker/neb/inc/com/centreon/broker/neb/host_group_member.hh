@@ -46,8 +46,7 @@ class host_group_member : public group_member {
   virtual ~host_group_member();
   host_group_member& operator=(host_group_member const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_host_group_member>::value;
+    return io::events::data_type<io::neb, neb::de_host_group_member>::value;
   }
 
   static mapping::entry const entries[];

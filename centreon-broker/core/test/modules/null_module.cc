@@ -23,7 +23,6 @@ extern "C" {
  *  Module deinitialization routine.
  */
 void broker_module_deinit() {
-  return;
 }
 
 /**
@@ -33,6 +32,5 @@ void broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
-  return;
 }
 }

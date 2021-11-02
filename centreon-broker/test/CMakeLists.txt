@@ -1,5 +1,5 @@
 ##
-## Copyright 2016-2017 Centreon
+## Copyright 2016-2021 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 ## For more information : contact@centreon.com
 ##
 
-find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 link_directories(${GTest_LIB_DIRS})
 

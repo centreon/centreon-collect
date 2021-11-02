@@ -63,51 +63,23 @@ void events::unload() {
 }
 
 /**
- *  Register a category.
+ * @brief Unregister a category.
  *
- *  @param[in] name  Categoy name.
- *  @param[in] hint  Whished category ID.
- *
- *  @return Assigned category ID. This could be different than hint.
+ * @param category_id Category ID.
  */
-unsigned short events::register_category(const std::string& name,
-                                         unsigned short hint) {
-  if (!hint)
-    ++hint;
-  while (_elements.find(hint) != _elements.end()) {
-    if (!++hint)
-      ++hint;
+void events::unregister_category(uint16_t category_id) {
+  for (auto it = _elements.begin(), end = _elements.end(); it != end; ) {
+    if (category_of_type(it->first) == category_id)
+      it = _elements.erase(it);
+    else
+      ++it;
   }
-  _elements[hint].name = name;
-  return hint;
 }
 
-/**
- *  Unregister a category.
- *
- *  @param[in] category_id  Category ID.
- */
-void events::unregister_category(unsigned short category_id) {
-  categories_container::iterator it(_elements.find(category_id));
-  if (it != _elements.end())
-    _elements.erase(it);
-}
-
-/**
- *  Register an event.
- *
- *  @param[in] category_id  Category ID. Category must have been
- *                          registered through register_category().
- *  @param[in] event_id     Event ID whithin the category.
- *  @param[in] info         Information about the event.
- *
- *  @return Event type ID.
- */
 /**
  * @brief Register an event.
  *
- * @param category_id Category ID. Category must have been registered through
- * register_category().
+ * @param category_id Category ID.
  * @param event_id Event ID within the category.
  * @param name Name of the event.
  * @param ops event operations
@@ -117,20 +89,13 @@ void events::unregister_category(unsigned short category_id) {
  *
  * @return The type of this new event.
  */
-uint32_t events::register_event(unsigned short category_id,
-                                unsigned short event_id,
+uint32_t events::register_event(uint32_t type_id,
                                 const std::string& name,
                                 event_info::event_operations const* ops,
                                 mapping::entry const* entries,
                                 const std::string& table_v2) {
-  categories_container::iterator it(_elements.find(category_id));
-  if (it == _elements.end())
-    throw msg_fmt(
-        "core: could not register event '{}': category {} was not registered",
-        name, category_id);
-  int type(make_type(category_id, event_id));
-  it->second.events.emplace(type, event_info(name, ops, entries, table_v2));
-  return type;
+  _elements.emplace(type_id, event_info(name, ops, entries, table_v2));
+  return type_id;
 }
 
 /**
@@ -139,31 +104,9 @@ uint32_t events::register_event(unsigned short category_id,
  *  @param[in] type_id  Type ID.
  */
 void events::unregister_event(uint32_t type_id) {
-  unsigned short category_id(category_of_type(type_id));
-  categories_container::iterator itc(_elements.find(category_id));
-  if (itc != _elements.end()) {
-    events_container::iterator ite(itc->second.events.find(type_id));
-    if (ite != itc->second.events.end())
-      itc->second.events.erase(ite);
-  }
-}
-
-/**
- *  Get first iterator.
- *
- *  @return First iterator.
- */
-events::categories_container::const_iterator events::begin() const {
-  return _elements.begin();
-}
-
-/**
- *  Get last iterator.
- *
- *  @return Last iterator.
- */
-events::categories_container::const_iterator events::end() const {
-  return _elements.end();
+  auto it = _elements.find(type_id);
+  if (it != _elements.end())
+    _elements.erase(it);
 }
 
 /**
@@ -176,25 +119,16 @@ events::categories_container::const_iterator events::end() const {
 events::events_container events::get_events_by_category_name(
     const std::string& name) const {
   // Special category matching all registered events.
-  if (name == "all") {
-    events::events_container all;
-    for (categories_container::const_iterator it1(_elements.begin()),
-         end1(_elements.end());
-         it1 != end1; ++it1)
-      for (events_container::const_iterator it2(it1->second.events.begin()),
-           end2(it1->second.events.end());
-           it2 != end2; ++it2)
-        all.insert(*it2);
-    return all;
-  }
-  // Category name.
+  if (name == "all")
+    return _elements;
   else {
-    for (categories_container::const_iterator it(_elements.begin()),
-         end(_elements.end());
-         it != end; ++it) {
-      if (it->second.name == name)
-        return it->second.events;
+    std::unordered_map<uint32_t, event_info> retval;
+    uint16_t cat = category_id(name.c_str());
+    for (auto it = _elements.begin(), end = _elements.end(); it != end; ++it) {
+      if (category_of_type(it->first) == cat)
+        retval.insert({it->first, it->second});
     }
+    return retval;
   }
   throw msg_fmt("core: cannot find event category '{}'", name);
 }
@@ -206,15 +140,10 @@ events::events_container events::get_events_by_category_name(
  *
  *  @return Event information structure if found, NULL otherwise.
  */
-event_info const* events::get_event_info(uint32_t type) {
-  std::unordered_map<unsigned short, category_info>::const_iterator itc(
-      _elements.find(category_of_type(type)));
-  if (itc != _elements.end()) {
-    std::unordered_map<uint32_t, event_info>::const_iterator ite(
-        itc->second.events.find(type));
-    if (ite != itc->second.events.end())
-      return &ite->second;
-  }
+const event_info* events::get_event_info(uint32_t type) {
+  auto it = _elements.find(type);
+  if (it != _elements.end())
+    return &it->second;
   return nullptr;
 }
 
@@ -258,29 +187,18 @@ events::events_container events::get_matching_events(
  *  Default constructor.
  */
 events::events() {
-  // Register internal category.
-  register_category("internal", io::events::internal);
-
   // Register instance_broadcast
-  register_event(io::events::internal, io::events::de_instance_broadcast,
+  register_event(make_type(io::internal, io::events::de_instance_broadcast),
                  "instance_broadcast", &instance_broadcast::operations,
                  instance_broadcast::entries);
 
-  // Register PROTOBUF events
-  int cat = register_category("protobuf", io::events::protobuf);
-  assert(cat == io::events::protobuf);
-
-  // Register BBDO
-  cat = register_category("bbdo", io::events::bbdo);
-  assert(cat == io::events::bbdo);
-
   // Register BBDO events.
-  register_event(io::events::bbdo, bbdo::de_version_response,
+  register_event(make_type(io::bbdo, bbdo::de_version_response),
                  "version_response", &bbdo::version_response::operations,
                  bbdo::version_response::entries);
-  register_event(io::events::bbdo, bbdo::de_ack, "ack", &bbdo::ack::operations,
-                 bbdo::ack::entries);
-  register_event(io::events::bbdo, bbdo::de_stop, "stop",
+  register_event(make_type(io::bbdo, bbdo::de_ack), "ack",
+                 &bbdo::ack::operations, bbdo::ack::entries);
+  register_event(make_type(io::bbdo, bbdo::de_stop), "stop",
                  &bbdo::stop::operations, bbdo::stop::entries);
 
   // Register BBDO protocol.
@@ -294,10 +212,4 @@ events::events() {
 events::~events() {
   // Unregister BBDO protocol.
   io::protocols::instance().unreg("BBDO");
-
-  // Unregister category.
-  unregister_category(io::events::bbdo);
-
-  // Unregister internal category.
-  unregister_category(io::events::internal);
 }

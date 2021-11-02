@@ -1,5 +1,5 @@
 /*
-** Copyright 2013 Centreon
+** Copyright 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,19 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_STORAGE_INTERNAL_HH
-#define CCB_STORAGE_INTERNAL_HH
+#ifndef CCB_RRD_INTERNAL_HH
+#define CCB_RRD_INTERNAL_HH
 
 #include "com/centreon/broker/io/protobuf.hh"
 #include "protobuf/events.hh"
 #include "protobuf/rebuild.pb.h"
-
 CCB_BEGIN()
 
-namespace storage {
+  namespace storage {
 using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
-}
+  }
 
 CCB_END()
 
-#endif  // !CCB_STORAGE_INTERNAL_HH
+#endif /* !CCB_RRD_INTERNAL_HH */

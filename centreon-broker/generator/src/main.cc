@@ -48,7 +48,7 @@ void broker_module_deinit() {
     // Deregister storage layer.
     io::protocols::instance().unreg(generator_module);
     // Deregister generator events.
-    io::events::instance().unregister_category(io::events::generator);
+    io::events::instance().unregister_category(io::generator);
   }
 }
 
@@ -72,20 +72,8 @@ void broker_module_init(void const* arg) {
 
     io::events& e(io::events::instance());
 
-    // Register category.
-    int category(e.register_category("generator", io::events::generator));
-    if (category != io::events::generator) {
-      e.unregister_category(category);
-      --instances;
-      throw msg_fmt(
-          "generator: category {}"
-          " is already registered whereas it should be "
-          "reserved for the generator module",
-          io::events::generator);
-    }
-
     // Register bam events.
-    e.register_event(io::events::generator, generator::de_dummy,
+    e.register_event(io::generator, generator::de_dummy,
                      io::event_info("dummy", &generator::dummy::operations,
                                     generator::dummy::entries));
   }

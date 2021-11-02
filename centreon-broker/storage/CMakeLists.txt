@@ -22,6 +22,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/storage/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/storage/test")
 include_directories("${INC_DIR}" "${SRC_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
+include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
 # conflict_manager library.
@@ -40,13 +41,7 @@ set(CONFLICTMGR "conflictmgr" PARENT_SCOPE)
 set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 
-add_custom_command(
-    DEPENDS ${SRC_DIR}/rebuild.proto
-    COMMENT "Generating interface files of the proto file rebuild"
-    OUTPUT ${SRC_DIR}/rebuild.pb.cc ${SRC_DIR}/rebuild.pb.h
-    COMMAND ${PROTOBUF_PREFIX}/bin/protoc
-    ARGS --cpp_out="${SRC_DIR}" --proto_path=${SRC_DIR} ${SRC_DIR}/rebuild.proto
-)
+get_protobuf_files(rebuild)
 
 # Storage module.
 set(STORAGE "20-storage")
@@ -61,13 +56,12 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/metric_mapping.cc"
   "${SRC_DIR}/parser.cc"
   "${SRC_DIR}/perfdata.cc"
-  "${SRC_DIR}/rebuild2.cc"
-  "${SRC_DIR}/rebuild.pb.cc"
   "${SRC_DIR}/rebuild.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/remove_graph.cc"
   "${SRC_DIR}/status.cc"
   "${SRC_DIR}/stream.cc"
+  ${proto_rebuild}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
@@ -80,7 +74,6 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/parser.hh"
   "${INC_DIR}/perfdata.hh"
   "${INC_DIR}/rebuild2.hh"
-  "${SRC_DIR}/rebuild.pb.h"
   "${INC_DIR}/rebuild.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/remove_graph.hh"
@@ -91,6 +84,7 @@ set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
 target_link_libraries(${STORAGE} conflictmgr)
+add_dependencies(${STORAGE} centreon_proto)
 
 # Testing.
 if (WITH_TESTING)

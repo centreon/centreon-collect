@@ -43,7 +43,7 @@ class ba_event : public io::data {
   ba_event& operator=(ba_event const& other);
   bool operator==(ba_event const& other) const;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam, bam::de_ba_event>::value;
+    return io::events::data_type<io::bam, bam::de_ba_event>::value;
   }
   uint32_t ba_id;
   double first_level;

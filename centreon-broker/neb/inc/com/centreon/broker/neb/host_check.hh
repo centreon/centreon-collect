@@ -43,7 +43,7 @@ class host_check : public check {
   virtual ~host_check();
   host_check& operator=(host_check const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_host_check>::value;
+    return io::events::data_type<io::neb, neb::de_host_check>::value;
   }
 
   static mapping::entry const entries[];

@@ -46,8 +46,7 @@ class inherited_downtime : public io::data {
   ~inherited_downtime();
   inherited_downtime& operator=(inherited_downtime const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam,
-                                 bam::de_inherited_downtime>::value;
+    return io::events::data_type<io::bam, bam::de_inherited_downtime>::value;
   }
 
   static mapping::entry const entries[];

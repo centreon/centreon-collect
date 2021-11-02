@@ -90,7 +90,7 @@ TEST_F(CVarStatusTest, DefaultConstructor) {
   ASSERT_EQ(cvar_status.update_time, 0u);
   ASSERT_EQ(cvar_status.value, "");
 
-  ASSERT_TRUE(cvar_status.type() ==
-              (io::events::data_type<io::events::neb,
-                                     neb::de_custom_variable_status>::value));
+  ASSERT_TRUE(
+      cvar_status.type() ==
+      (io::events::data_type<io::neb, neb::de_custom_variable_status>::value));
 }

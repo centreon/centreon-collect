@@ -51,7 +51,7 @@ class kpi_event : public io::data {
   kpi_event& operator=(const kpi_event& other);
   bool operator==(const kpi_event& other) const;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam, bam::de_kpi_event>::value;
+    return io::events::data_type<io::bam, bam::de_kpi_event>::value;
   }
 
   timestamp end_time;

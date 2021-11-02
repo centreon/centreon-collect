@@ -51,7 +51,7 @@ class dimension_truncate_table_signal : public io::data {
   bool operator==(const dimension_truncate_table_signal&) const = delete;
   constexpr static uint32_t static_type() {
     return io::events::data_type<
-        io::events::bam, bam::de_dimension_truncate_table_signal>::value;
+        io::bam, bam::de_dimension_truncate_table_signal>::value;
   }
 
   static mapping::entry const entries[];

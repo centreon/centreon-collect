@@ -47,8 +47,7 @@ class rebuild : public io::data {
   ~rebuild() noexcept = default;
   rebuild& operator=(const rebuild& right) = delete;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::storage,
-                                 storage::de_rebuild>::value;
+    return io::events::data_type<io::storage, storage::de_rebuild>::value;
   }
 
   static mapping::entry const entries[];

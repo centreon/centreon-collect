@@ -39,28 +39,15 @@ using namespace com::centreon::broker::bbdo;
 void bbdo::load() {
   // Register BBDO category.
   io::events& e(io::events::instance());
-  int bbdo_category(e.register_category("bbdo", io::events::bbdo));
-  if (bbdo_category != io::events::bbdo) {
-    e.unregister_category(bbdo_category);
-    log_v2::bbdo()->error(
-        "BBDO: category {} is already registered whereas it should be reserved "
-        "for the BBDO core",
-        io::events::bbdo);
-    throw msg_fmt(
-        "BBDO: category {} "
-        " is already registered whereas it should be "
-        "reserved for the BBDO core",
-        io::events::bbdo);
-  }
 
   // Register BBDO events.
-  e.register_event(io::events::bbdo, bbdo::de_version_response,
+  e.register_event(make_type(io::bbdo, bbdo::de_version_response),
                    "version_response", &version_response::operations,
                    version_response::entries);
-  e.register_event(io::events::bbdo, bbdo::de_ack, "ack", &ack::operations,
+  e.register_event(make_type(io::bbdo, bbdo::de_ack), "ack", &ack::operations,
                    ack::entries);
-  e.register_event(io::events::bbdo, bbdo::de_stop, "stop", &stop::operations,
-                   stop::entries);
+  e.register_event(make_type(io::bbdo, bbdo::de_stop), "stop",
+                   &stop::operations, stop::entries);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
@@ -76,6 +63,6 @@ void bbdo::unload() {
   // Unregister protocol.
   io::protocols::instance().unreg("BBDO");
 
-  // Unregister category.
-  io::events::instance().unregister_category(io::events::bbdo);
+  // Unregister category
+  io::events::instance().unregister_category(io::bbdo);
 }

@@ -47,8 +47,7 @@ class remove_graph : public io::data {
   remove_graph(remove_graph const&) = delete;
   remove_graph& operator=(remove_graph const&) = delete;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::storage,
-                                 storage::de_remove_graph>::value;
+    return io::events::data_type<io::storage, storage::de_remove_graph>::value;
   }
 
   static mapping::entry const entries[];

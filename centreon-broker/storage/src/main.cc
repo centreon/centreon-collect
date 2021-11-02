@@ -25,11 +25,11 @@
 #include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/storage/metric_mapping.hh"
 #include "com/centreon/broker/storage/rebuild.hh"
-#include "com/centreon/broker/storage/rebuild2.hh"
 #include "com/centreon/broker/storage/remove_graph.hh"
 #include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "protobuf/events.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -61,7 +61,7 @@ void broker_module_deinit() {
   if (!--instances) {
     // Deregister storage layer.
     // Remove events.
-    io::events::instance().unregister_category(io::events::storage);
+    io::events::instance().unregister_category(io::storage);
     io::protocols::instance().unreg("storage");
   }
 }
@@ -82,41 +82,29 @@ void broker_module_init(void const* arg) {
 
     io::events& e(io::events::instance());
 
-    // Register category.
-    int storage_category(e.register_category("storage", io::events::storage));
-    if (storage_category != io::events::storage) {
-      e.unregister_category(storage_category);
-      --instances;
-      throw msg_fmt(
-          "storage: category {}"
-          " is already registered whereas it should be "
-          "reserved for the storage module",
-          io::events::storage);
-    }
-
     // Register events.
     {
-      e.register_event(io::events::storage, storage::de_metric, "metric",
+      e.register_event(make_type(io::storage, storage::de_metric), "metric",
                        &storage::metric::operations, storage::metric::entries,
                        "rt_metrics");
-      e.register_event(io::events::storage, storage::de_rebuild, "rebuild",
+      e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
                        &storage::rebuild::operations,
                        storage::rebuild::entries);
-      e.register_event(io::events::storage, storage::de_remove_graph,
+      e.register_event(make_type(io::storage, storage::de_remove_graph),
                        "remove_graph", &storage::remove_graph::operations,
                        storage::remove_graph::entries);
-      e.register_event(io::events::storage, storage::de_status, "status",
+      e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-      e.register_event(io::events::storage, storage::de_index_mapping,
+      e.register_event(make_type(io::storage, storage::de_index_mapping),
                        "index_mapping", &storage::index_mapping::operations,
                        storage::index_mapping::entries);
-      e.register_event(io::events::storage, storage::de_metric_mapping,
+      e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
-      log_v2::bbdo()->info("registering protobuf rebuild2 as {:x}:{:x}",
-          io::events::protobuf, storage::de_rebuild2);
-      e.register_event(io::events::protobuf, storage::de_rebuild2, "rebuild2",
-          &storage::rebuild2::operations);
+      log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
+                           io::storage, storage::de_pb_rebuild);
+      e.register_event(storage_pb_rebuild, "pb_rebuild",
+                       &storage::pb_rebuild::operations);
     }
 
     // Register storage layer.

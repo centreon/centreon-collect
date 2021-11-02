@@ -43,7 +43,7 @@ class ba_status : public io::data {
   ~ba_status();
   ba_status& operator=(ba_status const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam, bam::de_ba_status>::value;
+    return io::events::data_type<io::bam, bam::de_ba_status>::value;
   }
 
   uint32_t ba_id;

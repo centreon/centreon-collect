@@ -22,7 +22,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/rrd/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/rrd/test")
 include_directories("${INC_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
-include_directories("${PROJECT_SOURCE_DIR}/storage/src")
+include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 
 # Find librrd.
@@ -50,6 +50,8 @@ else ()
   set(LIBRRD_LDFLAGS "${LIBRRD_LDFLAGS}" PARENT_SCOPE)
 endif ()
 
+get_protobuf_files(rebuild)
+
 # RRD module.
 set(RRD "70-rrd")
 set(RRD "${RRD}" PARENT_SCOPE)
@@ -61,8 +63,7 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
-  "${PROJECT_SOURCE_DIR}/storage/src/rebuild.pb.cc"
-  "${PROJECT_SOURCE_DIR}/storage/src/rebuild.pb.h"
+  ${proto_rebuild}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"
@@ -72,8 +73,10 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/factory.hh"
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
+  "${PROJECT_SOURCE_DIR}/storage/inc/com/centreon/broker/storage/rebuild2.hh"
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
+add_dependencies("${RRD}" "${STORAGE}")
 
 # Compile with librrd flags.
 if (LIBRRD_CFLAGS)

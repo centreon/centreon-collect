@@ -35,7 +35,7 @@
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
-#include "com/centreon/broker/storage/rebuild2.hh"
+#include "com/centreon/broker/storage/internal.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
@@ -100,7 +100,8 @@ TEST_F(StorageRebuild2Test, WriteReadRebuild2) {
   config::applier::modules modules;
   modules.load_file("./storage/20-storage.so");
 
-  std::shared_ptr<storage::rebuild2> r(std::make_shared<storage::rebuild2>());
+  std::shared_ptr<storage::pb_rebuild> r(
+      std::make_shared<storage::pb_rebuild>());
   r->obj.mutable_metric()->set_metric_id(1234);
   r->obj.mutable_metric()->set_value_type(0);
   for (int i = 0; i < 20; i++) {
@@ -132,8 +133,8 @@ TEST_F(StorageRebuild2Test, WriteReadRebuild2) {
 
   std::shared_ptr<io::data> e;
   stm.read(e, time(nullptr) + 1000);
-  std::shared_ptr<storage::rebuild2> new_r =
-      std::static_pointer_cast<storage::rebuild2>(e);
+  std::shared_ptr<storage::pb_rebuild> new_r =
+      std::static_pointer_cast<storage::pb_rebuild>(e);
   ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
 }
 
@@ -144,7 +145,8 @@ TEST_F(StorageRebuild2Test, LongWriteReadRebuild2) {
   config::applier::modules modules;
   modules.load_file("./storage/20-storage.so");
 
-  std::shared_ptr<storage::rebuild2> r(std::make_shared<storage::rebuild2>());
+  std::shared_ptr<storage::pb_rebuild> r(
+      std::make_shared<storage::pb_rebuild>());
   r->obj.mutable_metric()->set_metric_id(1234);
   r->obj.mutable_metric()->set_value_type(0);
   for (int i = 0; i < 20000; i++) {
@@ -176,7 +178,7 @@ TEST_F(StorageRebuild2Test, LongWriteReadRebuild2) {
 
   std::shared_ptr<io::data> e;
   stm.read(e, time(nullptr) + 1000);
-  std::shared_ptr<storage::rebuild2> new_r =
-      std::static_pointer_cast<storage::rebuild2>(e);
+  std::shared_ptr<storage::pb_rebuild> new_r =
+      std::static_pointer_cast<storage::pb_rebuild>(e);
   ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
 }

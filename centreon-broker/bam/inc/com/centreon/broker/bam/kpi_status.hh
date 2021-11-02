@@ -43,7 +43,7 @@ class kpi_status : public io::data {
   kpi_status(const kpi_status&) = delete;
   kpi_status& operator=(const kpi_status&) = delete;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bam, bam::de_kpi_status>::value;
+    return io::events::data_type<io::bam, bam::de_kpi_status>::value;
   }
 
   uint32_t kpi_id;
