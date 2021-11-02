@@ -29,7 +29,6 @@
 #include <unordered_set>
 
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
 
 CCB_BEGIN()
 
@@ -38,7 +37,7 @@ namespace io {
 class endpoint;
 }
 namespace multiplexing {
-class subscriber;
+class muxer;
 }
 namespace processing {
 class failover;
