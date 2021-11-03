@@ -74,7 +74,7 @@ muxer::muxer(std::string const& name, bool persistent)
 
   // Load queue file back in memory.
   try {
-    _file.reset(new persistent_file(_queue_file()));
+    _file.reset(new persistent_file(_queue_file()));  // enabled -> true
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
@@ -93,6 +93,8 @@ muxer::muxer(std::string const& name, bool persistent)
     (void)e;
   }
   _pos = _events.begin();
+
+  this->updateStats();
 
   // Log messages.
   log_v2::perfdata()->info(
@@ -155,6 +157,7 @@ void muxer::ack_events(int count) {
       _push_to_queue(e);
     }
   }
+  this->updateStats();
 }
 
 /**
@@ -163,6 +166,7 @@ void muxer::ack_events(int count) {
  * @return The number of acknowledged events.
  */
 int32_t muxer::stop() {
+  this->updateStats();
   log_v2::core()->info("Stopping muxer {}: number of events in the queue: {}",
                        _name,
                        _events_size);
@@ -205,11 +209,12 @@ void muxer::publish(std::shared_ptr<io::data> const event) {
     if (_events_size >= event_queue_max_size()) {
       // Try to create file if is necessary.
       if (!_file)
-        _file.reset(new persistent_file(_queue_file()));
+        _file.reset(new persistent_file(_queue_file()));  // enabled -> true
       _file->write(event);
     } else
       _push_to_queue(event);
   }
+  this->updateStats();
 }
 
 /**
@@ -249,6 +254,8 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     ++_pos;
     lock.unlock();
   }
+
+  this->updateStats();
 
   return !timed_out;
 }
@@ -329,6 +336,7 @@ void muxer::nack_events() {
       _name);
   std::lock_guard<std::mutex> lock(_mutex);
   _pos = _events.begin();
+  this->updateStats();
 }
 
 /**
@@ -355,16 +363,7 @@ void muxer::statistics(nlohmann::json& tree) {
     ++unacknowledged;
   tree["unacknowledged_events"] = unacknowledged;
 
-  // Check when last write happened
-  // Write data to stats
-  auto now(std::chrono::system_clock::now());
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
-          .count() > 1000) {
-    _clk = now;
-    _stats->set_queue_file_enabled(queue_file_enabled);
-    _stats->set_queue_file(_queue_file());
-    _stats->set_unacknowledged_events(std::to_string(unacknowledged));
-  }
+  this->updateStats();
 }
 
 /**
@@ -438,6 +437,7 @@ void muxer::_clean() {
   }
   _events.clear();
   _events_size = 0;
+  this->updateStats();
 }
 
 /**
@@ -461,6 +461,7 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
       _file.reset();
     }
   }
+  this->updateStats();
 }
 
 /**
@@ -484,6 +485,8 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
     _pos = --_events.end();
     _cv.notify_one();
   }
+
+  this->updateStats();
 }
 
 /**
@@ -502,4 +505,6 @@ void muxer::remove_queue_files() {
   /* Here _file is already destroyed */
   persistent_file file(_queue_file());
   file.remove_all_files();
+
+  this->updateStats();
 }
