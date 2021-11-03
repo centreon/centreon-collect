@@ -168,15 +168,11 @@ bool center::unregister_muxer(MuxerStats* ms) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
   _strand.post([this, &p, ms] {
-    for (auto it = _stats.mutable_muxers()->begin(),
-              end = _stats.mutable_muxers()->end();
-         it != end;
-         ++it) {
-      if (&(*it) == ms) {
-        _stats.mutable_muxers()->erase(it);
-        break;
-      }
-    }
+    auto it = std::find_if(_stats.mutable_muxers()->begin(),
+                           _stats.mutable_muxers()->end(),
+                           [&ms](auto& mx) { return &mx == ms; });
+    if (it != _stats.mutable_muxers()->end())
+      _stats.mutable_muxers()->erase(it);
     p.set_value(true);
   });
   return retval.get();
