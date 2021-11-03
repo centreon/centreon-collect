@@ -57,6 +57,8 @@ class muxer : public io::stream {
   uint32_t _events_size;
   static uint32_t _event_queue_max_size;
   std::unique_ptr<persistent_file> _file;
+  bool _queue_file_enabled;
+  std::string _queue_file_name;
   mutable std::mutex _mutex;
   std::string _name;
   bool _persistent;
@@ -70,15 +72,14 @@ class muxer : public io::stream {
   void _get_event_from_file(std::shared_ptr<io::data>& event);
   std::string _memory_file() const;
   void _push_to_queue(std::shared_ptr<io::data> const& event);
-  std::string _queue_file() const;
 
   void updateStats(void) noexcept {
     auto now(std::chrono::system_clock::now());
     if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
             .count() > 1000) {
       _clk = now;
-      _stats->set_queue_file_enabled(_file.get());
-      _stats->set_queue_file(_queue_file());
+      _stats->set_queue_file_enabled(_queue_file_enabled);
+      _stats->set_queue_file(_queue_file_name);
       _stats->set_unacknowledged_events(std::to_string(_events_size));
     }
     return;

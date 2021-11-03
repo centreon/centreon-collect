@@ -47,6 +47,7 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 muxer::muxer(std::string const& name, bool persistent)
     : io::stream("muxer"),
       _events_size(0),
+      _queue_file_enabled(false),
       _name(name),
       _persistent(persistent),
       _stats{stats::center::instance().register_muxer()},
@@ -74,7 +75,9 @@ muxer::muxer(std::string const& name, bool persistent)
 
   // Load queue file back in memory.
   try {
-    _file.reset(new persistent_file(_queue_file()));  // enabled -> true
+    _file.reset(new persistent_file(queue_file(_name)));
+    _queue_file_enabled = true;
+    _queue_file_name = this->queue_file(_name);
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
@@ -166,10 +169,10 @@ void muxer::ack_events(int count) {
  * @return The number of acknowledged events.
  */
 int32_t muxer::stop() {
-  this->updateStats();
   log_v2::core()->info("Stopping muxer {}: number of events in the queue: {}",
                        _name,
                        _events_size);
+  this->updateStats();
   return 0;
 }
 
@@ -208,8 +211,11 @@ void muxer::publish(std::shared_ptr<io::data> const event) {
     // Check if the event queue limit is reach.
     if (_events_size >= event_queue_max_size()) {
       // Try to create file if is necessary.
-      if (!_file)
-        _file.reset(new persistent_file(_queue_file()));  // enabled -> true
+      if (!_file) {
+        _file.reset(new persistent_file(queue_file(_name)));
+        _queue_file_enabled = true;
+        _queue_file_name = this->queue_file(_name);
+      }
       _file->write(event);
     } else
       _push_to_queue(event);
@@ -417,6 +423,8 @@ std::string muxer::queue_file(std::string const& name) {
 void muxer::_clean() {
   std::lock_guard<std::mutex> lock(_mutex);
   _file.reset();
+  _queue_file_enabled = false;
+  _queue_file_name.clear();
   if (_persistent && !_events.empty()) {
     try {
       log_v2::core()->trace(
@@ -450,6 +458,8 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
   event.reset();
   // If file exist, try to get the last event.
   if (_file) {
+    _queue_file_enabled = true;
+    _queue_file_name = this->queue_file(_name);
     try {
       do {
         _file->read(event);
@@ -459,6 +469,8 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
       // The file end was reach.
       (void)e;
       _file.reset();
+      _queue_file_enabled = false;
+      _queue_file_name.clear();
     }
   }
   this->updateStats();
@@ -490,20 +502,14 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
 }
 
 /**
- *  Get queue file path.
- *
- *  @return Path to the queue file.
- */
-std::string muxer::_queue_file() const { return queue_file(_name); }
-
-/**
  *  Remove all the queue files attached to this muxer.
  */
 void muxer::remove_queue_files() {
-  log_v2::perfdata()->info("multiplexing: '{}' removed", _queue_file());
+  log_v2::perfdata()->info("multiplexing: '{}' removed",
+                           this->queue_file(_name));
 
   /* Here _file is already destroyed */
-  persistent_file file(_queue_file());
+  persistent_file file(this->queue_file(_name));
   file.remove_all_files();
 
   this->updateStats();
