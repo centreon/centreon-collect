@@ -3,7 +3,7 @@ set -e
 
 . ./common.sh
 
-cmakelists=$PROJECT/CMakeLists.txt
+cmakelists=CMakeLists.txt
 
 major=`grep 'set(COLLECT_MAJOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
 minor=`grep 'set(COLLECT_MINOR' "$cmakelists" | cut -d ' ' -f 2 | cut -d ')' -f 1`
