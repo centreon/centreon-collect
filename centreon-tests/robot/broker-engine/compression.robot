@@ -1,4 +1,8 @@
 *** Settings ***
+Resource	../ressources/ressources.robot
+# Test Setup	Stop All Broker
+Suite Teardown    Terminate All Processes    kill=True
+
 Documentation	Centreon Broker and Engine communication with or without compression
 Library	Process
 Library	OperatingSystem

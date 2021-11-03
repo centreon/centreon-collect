@@ -1,4 +1,8 @@
 *** Settings ***
+Resource	../ressources/ressources.robot
+# Test Setup	Stop All Broker
+Suite Teardown    Terminate All Processes    kill=True
+
 Documentation	Centreon Broker Mariadb access
 Library	Process
 Library	OperatingSystem
@@ -54,7 +58,7 @@ BDB3: Access denied when database name does not exist for sql output
 	 Start Broker
 	 ${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	 ${content}=	Create List	global error: mysql_connection: error while starting connection
-	 ${result}=	Find In Log with timeout	${log}	${start}	${content}	20
+	 ${result}=	Find In Log with timeout	${log}	${start}	${content}	30
 	 Should Be True	${result}
 	 Stop Broker
 	END
@@ -87,7 +91,7 @@ BDB5: cbd does not crash if the storage db_host is wrong
 	 Start Broker
 	 ${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	 ${content}=	Create List	Unable to connect to the database
-	 ${result}=	Find In Log with timeout	${log}	${start}	${content}	20
+	 ${result}=	Find In Log with timeout	${log}	${start}	${content}	30
 	 Should Be True	${result}
 	 Stop Broker
 	END

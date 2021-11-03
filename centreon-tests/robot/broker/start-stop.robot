@@ -1,4 +1,8 @@
 *** Settings ***
+Resource	../ressources/ressources.robot
+# Test Setup	Stop All Broker
+Suite Teardown    Terminate All Processes    kill=True
+
 Documentation	Centreon Broker only start/stop tests
 Library	Process
 Library	OperatingSystem
@@ -54,7 +58,7 @@ Start Stop Instance
 	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json
 	Sleep	${interval}
 	${result}=	Terminate Process
-	Should Be Equal As Integers	${result.rc}	0
+	Should Be True	${result.rc} == -15 or ${result.rc} == 0
 
 Remove Logs
 	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log ${BROKER_LOG}${/}central-module-master.log

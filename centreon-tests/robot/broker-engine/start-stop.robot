@@ -1,4 +1,8 @@
 *** Settings ***
+Resource	../ressources/ressources.robot
+# Test Setup	Stop All Broker
+Suite Teardown    Terminate All Processes    kill=True
+
 Documentation	Centreon Broker and Engine start/stop tests
 Library	Process
 Library	OperatingSystem
