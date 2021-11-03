@@ -36,6 +36,7 @@ class connector : public io::endpoint {
   database_config _dbcfg;
   uint32_t _interval_length;
   uint32_t _loop_timeout;
+  uint32_t _instance_timeout;
   uint32_t _rebuild_check_interval;
   uint32_t _rrd_len;
   bool _store_in_data_bin;
@@ -50,6 +51,7 @@ class connector : public io::endpoint {
                   uint32_t rrd_len,
                   uint32_t interval_length,
                   uint32_t loop_timeout,
+                  uint32_t instance_timeout,
                   uint32_t rebuild_check_interval,
                   bool store_in_data_bin = true);
   std::unique_ptr<io::stream> open() override;

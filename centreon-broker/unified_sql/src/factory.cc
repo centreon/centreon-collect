@@ -155,10 +155,25 @@ io::endpoint* factory::new_endpoint(
       store_in_data_bin = config::parser::parse_boolean(it->second);
   }
 
+  // Loop timeout
+  // By default, 30 seconds
+  int32_t loop_timeout = cfg.read_timeout;
+  if (loop_timeout < 0)
+    loop_timeout = 30;
+
+  // Instance timeout
+  // By default, 5 minutes.
+  uint32_t instance_timeout = 5 * 60;
+  {
+    auto it = cfg.params.find("instance_timeout");
+    if (it != cfg.params.end())
+      instance_timeout = std::stoul(it->second);
+  }
+
   // Connector.
-  std::unique_ptr<unified_sql::connector> c(new unified_sql::connector);
-  c->connect_to(dbcfg, rrd_length, interval_length, rebuild_check_interval,
-                store_in_data_bin);
+  auto c = std::make_unique<unified_sql::connector>();
+  c->connect_to(dbcfg, rrd_length, interval_length, loop_timeout,
+                instance_timeout, rebuild_check_interval, store_in_data_bin);
   is_acceptor = false;
   return c.release();
 }

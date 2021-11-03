@@ -48,12 +48,14 @@ void connector::connect_to(const database_config& dbcfg,
                            uint32_t rrd_len,
                            uint32_t interval_length,
                            uint32_t loop_timeout,
+                           uint32_t instance_timeout,
                            uint32_t rebuild_check_interval,
                            bool store_in_data_bin) {
   _dbcfg = dbcfg;
   _rrd_len = rrd_len;
   _interval_length = interval_length;
   _loop_timeout = loop_timeout;
+  _instance_timeout = instance_timeout;
   _rebuild_check_interval = rebuild_check_interval;
   _store_in_data_bin = store_in_data_bin;
 }
@@ -68,3 +70,9 @@ std::unique_ptr<io::stream> connector::open() {
                                   _loop_timeout, _instance_timeout,
                                   _rebuild_check_interval, _store_in_data_bin);
 }
+
+int32_t stream::write(const std::shared_ptr<io::data>& d) {}
+
+bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {}
+
+int32_t stream::stop() {}
