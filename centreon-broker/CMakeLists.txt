@@ -77,32 +77,12 @@ add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
 
 set_source_files_properties(${INC_DIR}/database/table_max_size.hh PROPERTIES GENERATED TRUE)
 
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(asio REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(c-ares REQUIRED)
-find_package(ZLIB REQUIRED)
 find_package(mariadb-connector-c REQUIRED)
 
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
-include_directories(${nlohmann_json_INCLUDE_DIRS})
-include_directories(${fmt_INCLUDE_DIRS})
-include_directories(${spdlog_INCLUDE_DIRS})
-include_directories(${asio_INCLUDE_DIRS})
-include_directories(${absl_INCLUDE_DIRS})
-include_directories(${gRPC_INCLUDE_DIRS})
-include_directories(${ZLIB_INCLUDE_DIRS})
 include_directories(${mariadb-connector-c_INCLUDE_DIRS})
 
-link_directories(${nlohmann_json_LIB_DIRS})
-link_directories(${fmt_LIB_DIRS})
-link_directories(${spdlog_LIB_DIRS})
-link_directories(${gRPC_LIB_DIRS})
-link_directories(${c-ares_LIB_DIRS})
-link_directories(${OpenSSL_LIB_DIRS})
-link_directories(${ZLIB_LIB_DIRS})
 link_directories(${mariadb-connector-c_LIB_DIRS})
 
 message(STATUS "${PROTOBUF_PREFIX}/bin/protoc")
@@ -136,15 +116,12 @@ target_link_libraries(berpc ${protobuf_LIBS})
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
-set(CENTREON_BROKER_MAJOR 21)
-set(CENTREON_BROKER_MINOR 10)
-set(CENTREON_BROKER_PATCH 0)
 if (CENTREON_BROKER_PRERELEASE)
-  set(CENTREON_BROKER_VERSION "${CENTREON_BROKER_MAJOR}.${CENTREON_BROKER_MINOR}.${CENTREON_BROKER_PATCH}-${CENTREON_BROKER_PRERELEASE}")
+  set(CENTREON_BROKER_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_BROKER_PRERELEASE}")
 else ()
-  set(CENTREON_BROKER_VERSION "${CENTREON_BROKER_MAJOR}.${CENTREON_BROKER_MINOR}.${CENTREON_BROKER_PATCH}")
+  set(CENTREON_BROKER_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 endif ()
-add_definitions(-DCENTREON_BROKER_VERSION=\"${CENTREON_BROKER_VERSION}\" -DCENTREON_BROKER_PATCH=${CENTREON_BROKER_PATCH})
+add_definitions(-DCENTREON_BROKER_VERSION=\"${CENTREON_BROKER_VERSION}\" -DCENTREON_BROKER_PATCH=${COLLECT_PATCH})
 configure_file(
   ${INC_DIR}/version.hh.in
   ${INC_DIR}/version.hh

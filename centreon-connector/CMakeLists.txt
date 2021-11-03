@@ -4,10 +4,7 @@ project(connectors CXX)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-set(CONNECTOR_MAJOR 21)
-set(CONNECTOR_MINOR 10)
-set(CONNECTOR_PATCH 0)
-set(CONNECTOR_VERSION "${CONNECTOR_MAJOR}.${CONNECTOR_MINOR}.${CONNECTOR_PATCH}")
+set(CONNECTOR_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
 
 include(${PROJECT_SOURCE_DIR}/cmake/Findclib.cmake)
@@ -15,13 +12,6 @@ include(${PROJECT_SOURCE_DIR}/cmake/FindSSH.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-
-add_definitions(${spdlog_DEFINITIONS})
-
-include_directories(${fmt_INCLUDE_DIRS})
-include_directories(${spdlog_INCLUDE_DIRS})
 
 # Generate code to dynamically load modules.
 

@@ -49,35 +49,13 @@ include_directories("${INC_DIR}/compatibility")
 
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
-set(protobuf_MODULE_COMPATIBLE True)
-find_package(Protobuf REQUIRED)
-find_package(c-ares REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-
-include_directories(${gRPC_INCLUDE_DIRS})
-include_directories(${absl_INCLUDE_DIRS})
-include_directories(${protobuf_INCLUDE_DIRS})
-include_directories(${nlohmann_json_INCLUDE_DIRS})
-include_directories(${fmt_INCLUDE_DIRS})
-
-link_directories(${protobuf_LIB_DIRS})
-link_directories(${gRPC_LIB_DIRS})
-link_directories(${OpenSSL_LIB_DIRS})
-link_directories(${c-ares_LIB_DIRS})
-link_directories(${ZLIB_LIB_DIRS})
-link_directories(${nlohmann_json_LIB_DIRS})
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 # Version.
-set(CENTREON_ENGINE_MAJOR 21)
-set(CENTREON_ENGINE_MINOR 10)
-set(CENTREON_ENGINE_PATCH 0)
 if (CENTREON_ENGINE_PRERELEASE)
-  set(CENTREON_ENGINE_VERSION "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}-${CENTREON_ENGINE_PRERELEASE}")
+  set(CENTREON_ENGINE_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_ENGINE_PRERELEASE}")
 else ()
-  set(CENTREON_ENGINE_VERSION "${CENTREON_ENGINE_MAJOR}.${CENTREON_ENGINE_MINOR}.${CENTREON_ENGINE_PATCH}")
+  set(CENTREON_ENGINE_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 endif()
 message(STATUS "Generating version header (${CENTREON_ENGINE_VERSION}).")
 configure_file("${INC_DIR}/com/centreon/engine/version.hh.in"

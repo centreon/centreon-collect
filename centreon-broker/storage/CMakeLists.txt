@@ -79,11 +79,11 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/status.hh"
   "${INC_DIR}/stream.hh"
 )
+add_dependencies("${STORAGE}" ${proto_rebuild})
 set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
 target_link_libraries(${STORAGE} conflictmgr)
-add_dependencies(${STORAGE} centreon_proto)
 
 # Testing.
 if (WITH_TESTING)

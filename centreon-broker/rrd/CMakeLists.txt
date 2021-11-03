@@ -74,8 +74,8 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
+add_dependencies("${RRD}" ${proto_rebuild})
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
-add_dependencies("${RRD}" "${STORAGE}")
 
 # Compile with librrd flags.
 if (LIBRRD_CFLAGS)
