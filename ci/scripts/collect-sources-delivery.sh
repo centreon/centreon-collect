@@ -3,6 +3,7 @@ set -e
 
 . ./common.sh
 
+
 echo -n "#####The Delivered project is centreon-collect#####"
 echo -n "#####GET centreon-collect VERSION#####"
 
@@ -15,7 +16,9 @@ patch=`grep 'set(COLLECT_PATCH' CMakeLists.txt | cut -d ' ' -f 2 | cut -d ')' -f
 export VERSION="$major.$minor.$patch"
 export MAJOR="$major.$minor"
 
+
 echo -n "#####GET centreon-collect RELEASE#####"
+
 COMMIT=`git log -1 HEAD --pretty=format:%h`
 now=`date +%s`
 if [ "$BUILD" '=' 'RELEASE' ] ; then
@@ -26,6 +29,7 @@ fi
 
 echo -n "#####GET centreon-collect COMMITER#####"
 COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
+
 
 echo -n "#####ARCHIVING centreon-collect#####"
 tar czf "centreon-collect-$VERSION.tar.gz" *    
