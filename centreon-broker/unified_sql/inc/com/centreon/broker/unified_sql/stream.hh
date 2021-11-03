@@ -259,17 +259,6 @@ class stream : public io::stream {
   database::mysql_stmt _index_data_query;
   database::mysql_stmt _metrics_insert;
 
-  stream(database_config const& dbcfg,
-         uint32_t rrd_len,
-         uint32_t interval_length,
-         uint32_t loop_timeout,
-         uint32_t instance_timeout,
-         uint32_t rebuild_check_interval,
-         bool store_in_data_bin);
-  stream() = delete;
-  stream& operator=(const stream&) = delete;
-  stream(const stream&) = delete;
-  ~stream();
   bool _should_exit() const;
   void _callback();
 
@@ -348,6 +337,17 @@ class stream : public io::stream {
   void __exit();
 
  public:
+  stream(database_config const& dbcfg,
+         uint32_t rrd_len,
+         uint32_t interval_length,
+         uint32_t loop_timeout,
+         uint32_t instance_timeout,
+         uint32_t rebuild_check_interval,
+         bool store_in_data_bin);
+  stream() = delete;
+  stream& operator=(const stream&) = delete;
+  stream(const stream&) = delete;
+  ~stream();
   static bool init_sql(database_config const& dbcfg,
                        uint32_t loop_timeout,
                        uint32_t instance_timeout);
@@ -364,6 +364,9 @@ class stream : public io::stream {
                                 uint32_t metric_id,
                                 std::string const& metric_name,
                                 short metric_type);
+  int32_t write(const std::shared_ptr<io::data>& d) override;
+  bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
+  int32_t stop() override;
 };
 }  // namespace unified_sql
 CCB_END()
