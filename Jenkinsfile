@@ -4,7 +4,6 @@
 ** Variables.
 */
 
-properties([buildDiscarder(logRotator(numToKeepStr: '10'))])
 env.REF_BRANCH = 'master'
 env.PROJECT='centreon-collect'
 def serie = '21.10'
@@ -36,10 +35,7 @@ stage('Deliver sources') {
     dir('centreon-collect-centos7') {
       checkout scm
       loadCommonScripts()
-      sh 'ci/scripts/collect-sources-delivery.sh centreon-broker'
-      sh 'ci/scripts/collect-sources-delivery.sh centreon-clib'
-      sh 'ci/scripts/collect-sources-delivery.sh centreon-engine'
-      sh 'ci/scripts/collect-sources-delivery.sh centreon-connector'
+      sh 'ci/scripts/collect-sources-delivery.sh 
       source = readProperties file: 'source.properties'
       env.VERSION = "${source.VERSION}"
       env.RELEASE = "${source.RELEASE}"
