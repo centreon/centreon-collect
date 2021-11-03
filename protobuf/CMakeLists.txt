@@ -16,7 +16,6 @@
 ## For more information : contact@centreon.com
 ##
 
-
 macro(get_protobuf_files name)
     set(proto_file "${name}.proto")
     set(full_proto_file "${CMAKE_SOURCE_DIR}/protobuf/${name}.proto")

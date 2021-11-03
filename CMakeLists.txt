@@ -30,6 +30,8 @@ endif ()
 set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
+set(BUILD_ARGS "-w" "dupbuild=warn")
+
 # set -latomic if OS is Raspbian.
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
   set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")

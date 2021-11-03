@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2013 Centreon
+## Copyright 2021 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -17,36 +17,20 @@
 ##
 
 # Global options.
-set(INC_DIR "${PROJECT_SOURCE_DIR}/storage/inc")
-set(SRC_DIR "${PROJECT_SOURCE_DIR}/storage/src")
-set(TEST_DIR "${PROJECT_SOURCE_DIR}/storage/test")
+set(INC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/inc")
+set(SRC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/src")
+set(TEST_DIR "${PROJECT_SOURCE_DIR}/unified_sql/test")
 include_directories("${INC_DIR}" "${SRC_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
-set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
-
-# conflict_manager library.
-add_library("conflictmgr_ng" STATIC
-  # Sources.
-  "${SRC_DIR}/conflict_manager.cc"
-  "${SRC_DIR}/conflict_manager_sql.cc"
-  "${SRC_DIR}/conflict_manager_storage.cc"
-  "${SRC_DIR}/stored_timestamp.cc"
-
-  # Headers.
-  "${INC_DIR}/conflict_manager.hh"
-  "${INC_DIR}/stored_timestamp.hh"
-)
-set(CONFLICTMGR_NG "conflictmgr_ng" PARENT_SCOPE)
-set_target_properties(conflictmgr_ng PROPERTIES
-    COMPILE_FLAGS "-fPIC")
+set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 get_protobuf_files(rebuild)
 
 # Storage module.
-set(STORAGE "20-storage")
-set(STORAGE "${STORAGE}" PARENT_SCOPE)
-add_library("${STORAGE}" SHARED
+set(UNIFIED_SQL "20-unified_sql")
+set(UNIFIED_SQL "${UNIFIED_SQL}" PARENT_SCOPE)
+add_library("${UNIFIED_SQL}" SHARED
   # Sources.
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
@@ -60,7 +44,10 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/remove_graph.cc"
   "${SRC_DIR}/status.cc"
+  "${SRC_DIR}/stored_timestamp.cc"
   "${SRC_DIR}/stream.cc"
+  "${SRC_DIR}/stream_sql.cc"
+  "${SRC_DIR}/stream_storage.cc"
   ${proto_rebuild}
   # Headers.
   "${INC_DIR}/connector.hh"
@@ -77,19 +64,20 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/remove_graph.hh"
   "${INC_DIR}/status.hh"
+  "${INC_DIR}/stored_timestamp.hh"
   "${INC_DIR}/stream.hh"
 )
-add_dependencies("${STORAGE}" ${proto_rebuild})
-set_target_properties("${STORAGE}" PROPERTIES
+add_dependencies("${UNIFIED_SQL}" ${proto_rebuild})
+set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-target_link_libraries(${STORAGE} conflictmgr_ng)
+target_link_libraries(${UNIFIED_SQL})
 
 # Testing.
 if (WITH_TESTING)
-  if (WITH_SQL_TESTS)
-    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
-  endif (WITH_SQL_TESTS)
+#  if (WITH_SQL_TESTS)
+#    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
+#  endif (WITH_SQL_TESTS)
 
   # Testing.
   set(
@@ -108,12 +96,12 @@ if (WITH_TESTING)
   set(
     TESTS_LIBRARIES
     ${TESTS_LIBRARIES}
-    ${STORAGE}
+    ${UNIFIED_SQL}
     PARENT_SCOPE
   )
 endif()
 
 # Install rule.
-install(TARGETS "${STORAGE}"
+install(TARGETS "${UNIFIED_SQL}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"
 )
