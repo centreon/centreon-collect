@@ -4,7 +4,6 @@
 ** Variables.
 */
 
-properties([buildDiscarder(logRotator(numToKeepStr: '10'))])
 env.REF_BRANCH = 'master'
 env.PROJECT='centreon-collect'
 def serie = '21.10'
