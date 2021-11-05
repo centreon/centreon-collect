@@ -26,7 +26,7 @@ include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
 # conflict_manager library.
-add_library("conflictmgr_ng" STATIC
+add_library("conflictmgr" STATIC
   # Sources.
   "${SRC_DIR}/conflict_manager.cc"
   "${SRC_DIR}/conflict_manager_sql.cc"
@@ -37,8 +37,8 @@ add_library("conflictmgr_ng" STATIC
   "${INC_DIR}/conflict_manager.hh"
   "${INC_DIR}/stored_timestamp.hh"
 )
-set(CONFLICTMGR_NG "conflictmgr_ng" PARENT_SCOPE)
-set_target_properties(conflictmgr_ng PROPERTIES
+set(CONFLICTMGR "conflictmgr" PARENT_SCOPE)
+set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 
 get_protobuf_files(rebuild)
@@ -83,7 +83,7 @@ add_dependencies("${STORAGE}" ${proto_rebuild})
 set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-target_link_libraries(${STORAGE} conflictmgr_ng)
+target_link_libraries(${STORAGE} conflictmgr)
 
 # Testing.
 if (WITH_TESTING)
