@@ -1517,8 +1517,7 @@ int neb::callback_process(int callback_type, void* data) {
       log_v2::neb()->debug("callbacks: registering callbacks");
       for (uint32_t i(0); i < sizeof(gl_callbacks) / sizeof(*gl_callbacks); ++i)
         gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-            gl_callbacks[i].macro, gl_mod_handle,
-                              gl_callbacks[i].callback));
+            gl_callbacks[i].macro, gl_mod_handle, gl_callbacks[i].callback));
 
       // Register Engine-specific callbacks.
       if (gl_mod_flags & NEBMODULE_ENGINE) {
@@ -1527,7 +1526,7 @@ int neb::callback_process(int callback_type, void* data) {
              ++i)
           gl_registered_callbacks.emplace_back(std::make_unique<callback>(
               gl_engine_callbacks[i].macro, gl_mod_handle,
-                                gl_engine_callbacks[i].callback));
+              gl_engine_callbacks[i].callback));
       }
 
       // Parse configuration file.
