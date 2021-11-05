@@ -35,8 +35,8 @@ namespace io {
  *  module data that wish to be transmitted by the multiplexing
  *  engine.
  */
-template<typename T, uint32_t Typ>
-class protobuf: public data {
+template <typename T, uint32_t Typ>
+class protobuf : public data {
  public:
   T obj;
 
@@ -50,21 +50,17 @@ class protobuf: public data {
    *
    *  @return  The event type.
    */
-  constexpr static uint32_t static_type() {
-    return Typ;
-  }
-static io::data* new_proto() {
-  return new protobuf<T, Typ>();
-}
+  constexpr static uint32_t static_type() { return Typ; }
+  static io::data* new_proto() { return new protobuf<T, Typ>(); }
 
-static std::string serialize(const io::data& e) {
-  std::string retval;
-  auto r = static_cast<const protobuf<T, Typ>*>(&e);
-  if (!r->obj.SerializeToString(&retval))
-    throw com::centreon::exceptions::msg_fmt(
-        "Unable to serialize {:x} protobuf object", Typ);
-  return retval;
-}
+  static std::string serialize(const io::data& e) {
+    std::string retval;
+    auto r = static_cast<const protobuf<T, Typ>*>(&e);
+    if (!r->obj.SerializeToString(&retval))
+      throw com::centreon::exceptions::msg_fmt(
+          "Unable to serialize {:x} protobuf object", Typ);
+    return retval;
+  }
 
   static io::data* unserialize(const char* buffer, size_t size) {
     std::unique_ptr<protobuf<T, Typ>> retval =
@@ -78,7 +74,7 @@ static std::string serialize(const io::data& e) {
   const static io::event_info::event_operations operations;
 };
 
-template<typename T, uint32_t Typ>
+template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
     &new_proto, &serialize, &unserialize};
 }  // namespace io

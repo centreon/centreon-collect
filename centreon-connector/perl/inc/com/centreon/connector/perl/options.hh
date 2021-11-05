@@ -31,8 +31,8 @@ CCCP_BEGIN()
  *  Parse and expose command line arguments.
  */
 class options : public com::centreon::misc::get_options {
-
   void _init();
+
  public:
   options();
   ~options() noexcept override;
