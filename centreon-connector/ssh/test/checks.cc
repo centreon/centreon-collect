@@ -66,7 +66,7 @@ TEST(SSHChecks, CommandId) {
   // Checks.
   r.set_command_id(71184);
   for (unsigned int i = 0; i < 100; ++i)
-    ASSERT_EQ(r.get_command_id(), 71184);
+    ASSERT_EQ(r.get_command_id(), 71184ull);
   r.set_command_id(15);
   ASSERT_EQ(r.get_command_id(), 15);
   r.set_command_id(741258963148368872ull);
