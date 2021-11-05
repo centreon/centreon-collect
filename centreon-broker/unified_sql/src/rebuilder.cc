@@ -50,7 +50,8 @@ using namespace com::centreon::broker::unified_sql;
  *  @param[in] rrd_length              Length of RRD files.
  *  @param[in] interval_length         Length in seconds of a time unit.
  */
-rebuilder::rebuilder(database_config const& db_cfg,
+rebuilder::rebuilder(const database_config& db_cfg,
+                     stream* parent,
                      uint32_t rebuild_check_interval,
                      uint32_t rrd_length,
                      uint32_t interval_length)
@@ -59,7 +60,8 @@ rebuilder::rebuilder(database_config const& db_cfg,
       _db_cfg(db_cfg),
       _interval_length(interval_length),
       _rebuild_check_interval(rebuild_check_interval),
-      _rrd_len(rrd_length) {
+      _rrd_len(rrd_length),
+      _parent(parent) {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
   _timer.expires_after(std::chrono::seconds(1));
@@ -173,9 +175,9 @@ void rebuilder::_run(asio::error_code ec) {
             _rebuild_metric(ms, info.metric_id, host_id, service_id,
                             info.metric_name, info.metric_type, check_interval,
                             rrd_len);
-            // We need to update the conflict_manager for metrics that could
+            // We need to update the stream for metrics that could
             // change of type.
-            conflict_manager::instance().update_metric_info_cache(
+            _parent->update_metric_info_cache(
                 index_id, info.metric_id, info.metric_name, info.metric_type);
             metrics_to_rebuild.pop_front();
           }

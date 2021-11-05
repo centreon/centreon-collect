@@ -71,8 +71,14 @@ std::unique_ptr<io::stream> connector::open() {
                                   _rebuild_check_interval, _store_in_data_bin);
 }
 
-int32_t stream::write(const std::shared_ptr<io::data>& d) {}
+int32_t stream::write(const std::shared_ptr<io::data>& d) {
+  return 0;
+}
 
-bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {}
+bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
+  return true;
+}
 
-int32_t stream::stop() {}
+int32_t stream::stop() {
+  return 0;
+}
