@@ -17,8 +17,9 @@
  *
  */
 
-#include "com/centreon/connector/perl/embedded_perl.hh"
+/* Be careful! gtest.h must be included before embedded_perl.hh */
 #include <gtest/gtest.h>
+#include "com/centreon/connector/perl/embedded_perl.hh"
 
 #include "com/centreon/io/file_stream.hh"
 
