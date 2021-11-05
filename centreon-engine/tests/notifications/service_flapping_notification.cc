@@ -288,7 +288,8 @@ TEST_F(ServiceFlappingNotification, CheckFlapping) {
   }
 
   testing::internal::CaptureStdout();
-  // This loop is to store many CRITICAL or OK in the state history to start the flapping.
+  // This loop is to store many CRITICAL or OK in the state history to start the
+  // flapping.
   for (int i = 1; i < 8; i++) {
     now += 300;
     std::cout << "NOW = " << now << std::endl;
@@ -307,7 +308,8 @@ TEST_F(ServiceFlappingNotification, CheckFlapping) {
     checks::checker::instance().reap();
   }
 
-  // This loop is to store many CRITICAL in the state history to stop the flapping.
+  // This loop is to store many CRITICAL in the state history to stop the
+  // flapping.
   for (int i = 1; i < 18; i++) {
     std::cout << "Step " << i << ":";
     now += 300;
@@ -380,7 +382,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   }
 
   testing::internal::CaptureStdout();
-  // This loop is to store many CRITICAL or OK in the state history to start the flapping.
+  // This loop is to store many CRITICAL or OK in the state history to start the
+  // flapping.
   for (int i = 1; i < 8; i++) {
     now += 300;
     std::cout << "NOW = " << now << std::endl;
@@ -399,7 +402,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
     checks::checker::instance().reap();
   }
 
-  // This loop is to store many CRITICAL in the state history to stop the flapping.
+  // This loop is to store many CRITICAL in the state history to stop the
+  // flapping.
   for (int i = 1; i < 18; i++) {
     std::cout << "Step " << i << ":";
     now += 300;
@@ -466,7 +470,8 @@ TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
     checks::checker::instance().reap();
   }
 
-  // This loop is to store many CRITICAL or OK in the state history to start the flapping.
+  // This loop is to store many CRITICAL or OK in the state history to start the
+  // flapping.
   for (int i = 1; i < 8; i++) {
     now += 300;
     std::cout << "NOW = " << now << std::endl;
@@ -484,8 +489,9 @@ TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
     process_external_command(cmd.c_str());
     checks::checker::instance().reap();
   }
-  
-  // This loop is to store many CRITICAL in the state history to stop the flapping.
+
+  // This loop is to store many CRITICAL in the state history to stop the
+  // flapping.
   for (int i = 1; i < 18; i++) {
     std::cout << "Step " << i << ":";
     now += 300;

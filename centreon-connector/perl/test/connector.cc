@@ -26,7 +26,8 @@
 #include "com/centreon/process.hh"
 
 using namespace com::centreon;
-static std::string perl_connector = BUILD_PATH "/centreon-connector/perl/centreon_connector_perl";
+static std::string perl_connector =
+    BUILD_PATH "/centreon-connector/perl/centreon_connector_perl";
 
 static constexpr const char cmd1[] =
     "2\x00"
@@ -69,11 +70,12 @@ static constexpr const char scripts[] =
   " \0"                   \
   " \0\0\0\0"
 
-#define TimeoutKillCMD \
-  "2\0"                \
-  "4242\0"             \
-  "3\0"                \
-  "123456789\0" BUILD_PATH "/../centreon-connector/perl/test/timeout_kill.pl\0\0\0\0"
+#define TimeoutKillCMD     \
+  "2\0"                    \
+  "4242\0"                 \
+  "3\0"                    \
+  "123456789\0" BUILD_PATH \
+  "/../centreon-connector/perl/test/timeout_kill.pl\0\0\0\0"
 #define TimeoutKillRESULT \
   "3\0"                   \
   "4242\0"                \
@@ -82,11 +84,12 @@ static constexpr const char scripts[] =
   " \0"                   \
   " \0\0\0\0"
 
-#define TimeoutTermCMD \
-  "2\0"                \
-  "4242\0"             \
-  "3\0"                \
-  "123456789\0" BUILD_PATH "/../centreon-connector/perl/test/timeout_term.pl\0\0\0\0"
+#define TimeoutTermCMD     \
+  "2\0"                    \
+  "4242\0"                 \
+  "3\0"                    \
+  "123456789\0" BUILD_PATH \
+  "/../centreon-connector/perl/test/timeout_term.pl\0\0\0\0"
 
 class TestConnector : public testing::Test {
  public:
@@ -132,8 +135,8 @@ class TestConnector : public testing::Test {
   }
 
   static void _write_file(char const* filename,
-                   char const* content,
-                   unsigned int size = 0) {
+                          char const* content,
+                          unsigned int size = 0) {
     // Check size.
     if (!size)
       size = strlen(content);
@@ -209,7 +212,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
 TEST_F(TestConnector, ExecuteMultipleScripts) {
   // Write Perl scripts.
   std::string script_paths[10];
-  for (auto & script_path : script_paths) {
+  for (auto& script_path : script_paths) {
     script_path = io::file_stream::temp_path();
     _write_file(script_path.c_str(), scripts, sizeof(scripts) - 1);
   }
@@ -238,7 +241,7 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
   int retval{wait_for_termination()};
 
   // Remove temporary files.
-  for (auto & script_path : script_paths)
+  for (auto& script_path : script_paths)
     remove(script_path.c_str());
 
   unsigned int nb_right_output(0);
@@ -322,11 +325,10 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
   std::ifstream file("/tmp/log_file");
   ASSERT_TRUE(file.is_open());
   std::string line((std::istreambuf_iterator<char>(file)),
-                  std::istreambuf_iterator<char>());
+                   std::istreambuf_iterator<char>());
   ASSERT_NE(
-      line.find(
-          "[info] Centreon Perl Connector " CENTREON_CONNECTOR_VERSION
-          " starting"),
+      line.find("[info] Centreon Perl Connector " CENTREON_CONNECTOR_VERSION
+                " starting"),
       std::string::npos);
   file.close();
 }
@@ -342,10 +344,9 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
       "exit 0;\n");
 
   // Process.
-  p.exec(
-      perl_connector +
-      " --code 'package Centreon::Test; our $company=\"Centreon\"; our "
-      "$attribute=\"wonderful\";'");
+  p.exec(perl_connector +
+         " --code 'package Centreon::Test; our $company=\"Centreon\"; our "
+         "$attribute=\"wonderful\";'");
 
   // Write command.
   std::ostringstream oss;

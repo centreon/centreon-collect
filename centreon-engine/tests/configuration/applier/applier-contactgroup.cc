@@ -41,9 +41,7 @@ class ApplierContactgroup : public ::testing::Test {
     init_config_state();
   }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given a contactgroup applier
@@ -197,15 +195,18 @@ TEST_F(ApplierContactgroup, ContactRemove) {
   configuration::contact ctct2("test2");
   aply.add_object(ctct2);
 
-
   grp.parse("members", "test, test2");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
   aply_grp.resolve_object(grp);
-  ASSERT_EQ(engine::contactgroup::contactgroups["test_group"]->get_members().size(), 2u);
+  ASSERT_EQ(
+      engine::contactgroup::contactgroups["test_group"]->get_members().size(),
+      2u);
 
   aply.remove_object(ctct2);
-  ASSERT_EQ(engine::contactgroup::contactgroups["test_group"]->get_members().size(), 1u);
+  ASSERT_EQ(
+      engine::contactgroup::contactgroups["test_group"]->get_members().size(),
+      1u);
   grp.parse("members", "test");
   aply_grp.modify_object(grp);
 }

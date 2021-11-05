@@ -32,13 +32,9 @@ using namespace com::centreon::engine;
 
 class ApplierServiceEscalation : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 TEST_F(ApplierServiceEscalation, AddEscalation) {
@@ -104,7 +100,7 @@ TEST_F(ApplierServiceEscalation, RemoveEscalation) {
   ASSERT_EQ(service::services.size(), 1u);
 
   configuration::applier::serviceescalation se_apply;
-  configuration::serviceescalation se1,se2;
+  configuration::serviceescalation se1, se2;
   ASSERT_TRUE(se1.parse("host_name", "test_host"));
   ASSERT_TRUE(se1.parse("service_description", "test_svc"));
   ASSERT_TRUE(se1.parse("first_notification", "4"));

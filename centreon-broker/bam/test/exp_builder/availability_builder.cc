@@ -42,7 +42,7 @@ TEST(BamAvailabilityBuilder, Simple) {
   ASSERT_EQ(builder.get_available(), 3300);
 }
 
-//TEST(BamAvailabilityBuilder, SummerTime) {
+// TEST(BamAvailabilityBuilder, SummerTime) {
 //  /* sun. 27 mars 2021 15:59:18 CEST */
 //  time_t end_time = 1616939958u;
 //  /* sun. 28 mars 2021 14:59:18 CEST */
@@ -59,6 +59,6 @@ TEST(BamAvailabilityBuilder, Simple) {
 //
 //  builder.add_event(0, start_time, end_time, false, period);
 //
-//  /* The availability here is the duration from start_time to end_time: 3300 */
-//  ASSERT_EQ(builder.get_available(), 3600);
+//  /* The availability here is the duration from start_time to end_time: 3300
+//  */ ASSERT_EQ(builder.get_available(), 3600);
 //}

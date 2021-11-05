@@ -248,7 +248,8 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
                                    CHECK_OPTION_NONE, 0, true, 0);
   }
 
-  // This loop is to store many UP or DOWN in the state history to start flapping.
+  // This loop is to store many UP or DOWN in the state history to start
+  // flapping.
   testing::internal::CaptureStdout();
   for (int i = 1; i < 12; i++) {
     std::cout << "Step " << i << ":";
@@ -312,7 +313,8 @@ TEST_F(HostFlappingNotification, CheckFlappingWithHostParentDown) {
                                     CHECK_OPTION_NONE, 0, true, 0);
   }
 
-  // This loop is to store many UP or DOWN in the state history to start flapping.
+  // This loop is to store many UP or DOWN in the state history to start
+  // flapping.
   testing::internal::CaptureStdout();
   for (int i = 1; i < 12; i++) {
     std::cout << "Step " << i << ":";

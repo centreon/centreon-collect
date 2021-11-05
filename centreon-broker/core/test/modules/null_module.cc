@@ -22,8 +22,7 @@ extern "C" {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
-}
+void broker_module_deinit() {}
 
 /**
  *  Module initialization routine.

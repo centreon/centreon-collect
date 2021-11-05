@@ -43,9 +43,7 @@ class ApplierServicegroup : public ::testing::Test {
     init_config_state();
   }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given a servicegroup applier
@@ -289,14 +287,14 @@ TEST_F(ApplierServicegroup, RemoveServiceFromGroup) {
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
 
-
   grp.parse("members", "test_host,test,test_host,test2");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
   aply_grp.resolve_object(grp);
   ASSERT_TRUE(grp.members().size() == 2);
 
-  engine::servicegroup *sg{engine::servicegroup::servicegroups["test_group"].get()};
+  engine::servicegroup* sg{
+      engine::servicegroup::servicegroups["test_group"].get()};
   ASSERT_EQ(sg->members.size(), 2u);
   aply_svc.remove_object(svc);
   ASSERT_EQ(sg->members.size(), 1u);

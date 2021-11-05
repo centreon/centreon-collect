@@ -30,13 +30,9 @@ extern configuration::state* config;
 
 class ConfigContact : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // When I create a configuration::contact with an empty name

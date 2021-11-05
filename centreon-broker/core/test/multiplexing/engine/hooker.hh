@@ -44,7 +44,8 @@ class hooker : public multiplexing::hooker {
   ~hooker();
   hooker(const hooker&) = delete;
   hooker& operator=(const hooker&) = delete;
-  bool read(std::shared_ptr<io::data>& d, time_t deadline = (time_t)-1) override;
+  bool read(std::shared_ptr<io::data>& d,
+            time_t deadline = (time_t)-1) override;
   void starting() override;
   void stopping() override;
   int32_t write(std::shared_ptr<io::data> const& d) override;

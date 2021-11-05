@@ -110,17 +110,13 @@ int main(int argc, char** argv) {
   if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
     GenericSize response;
     status = client.GetSqlConnectionSize(&response) ? 0 : 1;
-    std::cout << "connection array size: "
-              << response.size()
-              << std::endl;
+    std::cout << "connection array size: " << response.size() << std::endl;
   }
-  
+
   if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
     ConflictManagerStats response;
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
-    std::cout << "events_handled: "
-              << response.events_handled()
-              << std::endl;
+    std::cout << "events_handled: " << response.events_handled() << std::endl;
   }
 
   exit(status);
