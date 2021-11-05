@@ -81,7 +81,7 @@ class center {
   // bool unregister_endpoint(const std::string& name);
   // bool unregister_feeder(EndpointStats* ep_stats, const std::string& name);
   // bool unregister_mysql_manager(void);
-  
+
   int get_json_stats_file_creation(void);
   void get_stats(const StatsQuery* request, BrokerStats* response);
   void get_sql_connection_size(GenericSize* response);

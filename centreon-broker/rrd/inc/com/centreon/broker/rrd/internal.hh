@@ -24,9 +24,9 @@
 #include "protobuf/rebuild.pb.h"
 CCB_BEGIN()
 
-  namespace storage {
+namespace storage {
 using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
-  }
+}
 
 CCB_END()
 

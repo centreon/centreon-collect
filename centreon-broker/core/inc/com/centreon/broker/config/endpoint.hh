@@ -20,9 +20,9 @@
 #define CCB_CONFIG_ENDPOINT_HH
 
 #include <ctime>
-#include <nlohmann/json.hpp>
 #include <list>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <set>
 #include <string>
 

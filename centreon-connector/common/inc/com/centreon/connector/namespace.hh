@@ -23,16 +23,16 @@
 #undef CCC_BEGIN
 #endif  // CCC_BEGIN
 #define CCC_BEGIN()    \
-  namespace com {       \
-  namespace centreon {  \
-  namespace connector { \
+  namespace com {      \
+  namespace centreon { \
+  namespace connector {
 
 #ifdef CCC_END
 #undef CCC_END
 #endif  // CCC_END
 #define CCC_END() \
-  }                \
-  }                \
+  }               \
+  }               \
   }
 
 #endif  // !CCC_NAMESPACE_HH
