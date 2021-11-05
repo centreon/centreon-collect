@@ -24,6 +24,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/unified_sql/index_mapping.hh"
 #include "com/centreon/broker/unified_sql/perfdata.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -82,15 +83,21 @@ stream::stream(const database_config& dbcfg,
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _mysql{dbcfg},
       _instance_timeout{instance_timeout},
-      _rebuilder{
-          dbcfg, rebuild_check_interval, rrd_len ? rrd_len ? rrd_len : 15552000,
-          interval_length },
-          _store_in_db{store_in_data_bin}, _rrd_len{rrd_len},
-          _interval_length{interval_length}, _max_perfdata_queries{0},
-          _max_metrics_queries{0}, _max_cv_queries{0}, _max_log_queries{0},
-          _stats{stats::center::instance().register_stream()},
-          _events_handled{0}, _speed{}, _stats_count_pos{0}, _ref_count{0},
-          _oldest_timestamp{std::numeric_limits<time_t>::max()} {
+      _rebuilder{dbcfg, this, rebuild_check_interval,
+                 rrd_len ? rrd_len : 15552000, interval_length},
+      _store_in_db{store_in_data_bin},
+      _rrd_len{rrd_len},
+      _interval_length{interval_length},
+      _max_perfdata_queries{0},
+      _max_metrics_queries{0},
+      _max_cv_queries{0},
+      _max_log_queries{0},
+      //_stats{stats::center::instance().register_stream()},
+      _events_handled{0},
+      _speed{},
+      _stats_count_pos{0},
+      _ref_count{0},
+      _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
                                    _stats, _loop_timeout);

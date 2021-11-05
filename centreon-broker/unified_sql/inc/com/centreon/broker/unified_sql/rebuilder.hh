@@ -45,6 +45,8 @@ namespace unified_sql {
  *  Each execution of the timer is done using the thread pool accessible from
  *  the pool object. No new thread is created.
  */
+class stream;
+
 class rebuilder {
   asio::steady_timer _timer;
   std::atomic_bool _should_exit;
@@ -53,6 +55,7 @@ class rebuilder {
   uint32_t _interval_length;
   uint32_t _rebuild_check_interval;
   uint32_t _rrd_len;
+  stream* _parent;
 
   // Local types.
   struct index_info {
@@ -87,9 +90,10 @@ class rebuilder {
 
  public:
   rebuilder(database_config const& db_cfg,
+            stream* parent,
+            uint32_t interval_length = 60,
             uint32_t rebuild_check_interval = 600,
-            uint32_t rrd_length = 15552000,
-            uint32_t interval_length = 60);
+            uint32_t rrd_length = 15552000);
   ~rebuilder();
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;

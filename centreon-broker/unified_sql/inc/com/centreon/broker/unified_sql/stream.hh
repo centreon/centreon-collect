@@ -24,9 +24,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
-#include <thread>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
