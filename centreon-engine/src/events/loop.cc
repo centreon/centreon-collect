@@ -399,8 +399,8 @@ void loop::_dispatching() {
       }
 
       auto t1 = std::chrono::system_clock::now();
-      auto delay = std::chrono::nanoseconds(static_cast<uint64_t>(
-                         1000000000 * config->sleep_time()));
+      auto delay = std::chrono::nanoseconds(
+          static_cast<uint64_t>(1000000000 * config->sleep_time()));
       command_manager::instance().execute();
 
       // Set time to sleep so we don't hog the CPU...

@@ -3111,8 +3111,7 @@ void service::handle_flap_detection_disabled() {
     /* log a notice - this one is parsed by the history CGI */
     logger(log_info_message, basic)
         << "SERVICE FLAPPING ALERT: " << get_hostname() << ";"
-        << get_description()
-        << ";DISABLED; Flap detection has been disabled";
+        << get_description() << ";DISABLED; Flap detection has been disabled";
 
     /* send data to event broker */
     broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,

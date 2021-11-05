@@ -1,12 +1,12 @@
 #include "com/centreon/engine/engine_impl.hh"
 
+#include <fmt/format.h>
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <algorithm>
 #include <functional>
 #include <future>
-#include <fmt/format.h>
 
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
@@ -160,47 +160,48 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
                                   __attribute__((unused)),
                                   EngineHost* response) {
   std::string err;
-  auto fn =
-      std::packaged_task<int(void)>([&err, request, host = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::host> selectedhost;
-        /* checking identifier hostname (by name or by id) */
-        switch (request->identifier_case()) {
-          case HostIdentifier::kName: {
-            /* get the host */
-            auto ithostname = host::hosts.find(request->name());
-            if (ithostname != host::hosts.end())
-              selectedhost = ithostname->second;
-            else {
-              err = fmt::format("could not find host '{}'", request->name());
-              return 1;
-            }
-          } break;
-          case HostIdentifier::kId: {
-            /* get the host */
-            auto ithostid = host::hosts_by_id.find(request->id());
-            if (ithostid != host::hosts_by_id.end())
-              selectedhost = ithostid->second;
-            else {
-              err = fmt::format("could not find host {}", request->id());
-              return 1;
-            }
-          } break;
-          default: {
-            err = fmt::format("could not find identifier, you should inform a host");
-            return 1;
-            break;
-          }
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           host = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> selectedhost;
+    /* checking identifier hostname (by name or by id) */
+    switch (request->identifier_case()) {
+      case HostIdentifier::kName: {
+        /* get the host */
+        auto ithostname = host::hosts.find(request->name());
+        if (ithostname != host::hosts.end())
+          selectedhost = ithostname->second;
+        else {
+          err = fmt::format("could not find host '{}'", request->name());
+          return 1;
         }
+      } break;
+      case HostIdentifier::kId: {
+        /* get the host */
+        auto ithostid = host::hosts_by_id.find(request->id());
+        if (ithostid != host::hosts_by_id.end())
+          selectedhost = ithostid->second;
+        else {
+          err = fmt::format("could not find host {}", request->id());
+          return 1;
+        }
+      } break;
+      default: {
+        err =
+            fmt::format("could not find identifier, you should inform a host");
+        return 1;
+        break;
+      }
+    }
 
-        host->set_name(selectedhost->get_name());
-        host->set_alias(selectedhost->get_alias());
-        host->set_address(selectedhost->get_address());
-        host->set_check_period(selectedhost->get_check_period());
-        host->set_current_state(
-            static_cast<EngineHost::State>(selectedhost->get_current_state()));
-        host->set_id(selectedhost->get_host_id());
-        return 0;
-      });
+    host->set_name(selectedhost->get_name());
+    host->set_alias(selectedhost->get_alias());
+    host->set_address(selectedhost->get_address());
+    host->set_check_period(selectedhost->get_check_period());
+    host->set_current_state(
+        static_cast<EngineHost::State>(selectedhost->get_current_state()));
+    host->set_id(selectedhost->get_host_id());
+    return 0;
+  });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
@@ -208,8 +209,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context
   if (res == 0)
     return grpc::Status::OK;
   else
-    return grpc::Status(grpc::INVALID_ARGUMENT,
-                        err);
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
 }
 
 /**
@@ -226,8 +226,8 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
                                      const ContactIdentifier* request,
                                      EngineContact* response) {
   std::string err;
-  auto fn =
-      std::packaged_task<int(void)>([&err, request, contact = response]() -> int32_t {
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, contact = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::contact> selectedcontact;
         /* get the contact by his name */
         auto itcontactname = contact::contacts.find(request->name());
@@ -248,8 +248,7 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
   if (result.get() == 0)
     return grpc::Status::OK;
   else
-    return grpc::Status(grpc::INVALID_ARGUMENT,
-                        err);
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
 }
 
 /**
@@ -267,8 +266,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
                                      const ServiceIdentifier* request,
                                      EngineService* response) {
   std::string err;
-  auto fn =
-      std::packaged_task<int(void)>([&err, request, service = response]() -> int32_t {
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, service = response]() -> int32_t {
         std::shared_ptr<com::centreon::engine::service> selectedservice;
 
         /* checking identifier sesrname (by names or by ids) */
@@ -281,7 +280,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
             if (itservicenames != service::services.end())
               selectedservice = itservicenames->second;
             else {
-              err = fmt::format("could not find service ('{}', '{}')", names.host_name(), names.service_name());
+              err = fmt::format("could not find service ('{}', '{}')",
+                                names.host_name(), names.service_name());
               return 1;
             }
           } break;
@@ -293,7 +293,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
             if (itserviceids != service::services_by_id.end())
               selectedservice = itserviceids->second;
             else {
-              err = fmt::format("could not find service ({}, {})", ids.host_id(), ids.service_id());
+              err = fmt::format("could not find service ({}, {})",
+                                ids.host_id(), ids.service_id());
               return 1;
             }
           } break;
@@ -528,7 +529,7 @@ grpc::Status engine_impl::GetHostDependenciesCount(
 grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
                                          __attribute__((unused)),
                                          const EngineComment* request,
-                                         CommandSuccess* response 
+                                         CommandSuccess* response
                                          __attribute__((unused))) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
@@ -555,7 +556,7 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -590,7 +591,8 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr) {
-      err = fmt::format("could not find service ('{}', '{}')", request->host_name(), request->svc_desc());
+      err = fmt::format("could not find service ('{}', '{}')",
+                        request->host_name(), request->svc_desc());
       return 1;
     }
     auto it2 = host::hosts.find(request->host_name());
@@ -606,8 +608,9 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
         temp_service->get_service_id(), request->entry_time(), request->user(),
         request->comment_data(), request->persistent(), comment::external,
         false, (time_t)0);
-    if (!cmt)  {
-      err = fmt::format("could not insert comment '{}'", request->comment_data());
+    if (!cmt) {
+      err =
+          fmt::format("could not insert comment '{}'", request->comment_data());
       return 1;
     }
     comment::comments.insert({cmt->get_comment_id(), cmt});
@@ -619,7 +622,7 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -643,8 +646,7 @@ grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                         "comment_id must not be set to 0");
 
-  auto fn = std::packaged_task<int32_t(void)>([&err, &comment_id]()
-    -> int32_t {
+  auto fn = std::packaged_task<int32_t(void)>([&err, &comment_id]() -> int32_t {
     if (comment::delete_comment(comment_id))
       return 0;
     else {
@@ -658,7 +660,7 @@ grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -676,7 +678,6 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
                                                 const HostIdentifier* request,
                                                 CommandSuccess* response
                                                 __attribute__((unused))) {
-
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
@@ -717,7 +718,7 @@ grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -749,7 +750,8 @@ grpc::Status engine_impl::DeleteAllServiceComments(
         if (it != service::services.end())
           temp_service = it->second;
         if (temp_service == nullptr) {
-          err = fmt::format("could not find service '{}', '{}'", names.host_name(), names.service_name());
+          err = fmt::format("could not find service '{}', '{}'",
+                            names.host_name(), names.service_name());
           return 1;
         }
       } break;
@@ -760,8 +762,9 @@ grpc::Status engine_impl::DeleteAllServiceComments(
             service::services_by_id.find({ids.host_id(), ids.service_id()});
         if (it != service::services_by_id.end())
           temp_service = it->second;
-        if (temp_service == nullptr) { 
-          err = fmt::format("could not find service {}, {}", ids.host_id(), ids.service_id());
+        if (temp_service == nullptr) {
+          err = fmt::format("could not find service {}, {}", ids.host_id(),
+                            ids.service_id());
           return 1;
         }
       } break;
@@ -780,7 +783,7 @@ grpc::Status engine_impl::DeleteAllServiceComments(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -844,7 +847,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -876,7 +879,8 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
         if (it != service::services.end())
           temp_service = it->second;
         if (temp_service == nullptr) {
-          err = fmt::format("could not find service ('{}', '{}')", names.host_name(), names.service_name());
+          err = fmt::format("could not find service ('{}', '{}')",
+                            names.host_name(), names.service_name());
           return 1;
         }
       } break;
@@ -888,7 +892,8 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
         if (it != service::services_by_id.end())
           temp_service = it->second;
         if (temp_service == nullptr) {
-          err = fmt::format("could not find service ({}, {})", ids.host_id(), ids.service_id());
+          err = fmt::format("could not find service ({}, {})", ids.host_id(),
+                            ids.service_id());
           return 1;
         }
       } break;
@@ -913,7 +918,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -976,7 +981,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -992,12 +997,14 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr) {
-      err = fmt::format("could not find service '{}', '{}'", request->host_name(), request->service_desc());
+      err = fmt::format("could not find service '{}', '{}'",
+                        request->host_name(), request->service_desc());
       return 1;
     }
     /* cannot acknowledge a non-existent problem */
     if (temp_service->get_current_state() == service::state_ok) {
-      err = fmt::format("state of service '{}', '{}' is up", request->host_name(), request->service_desc());
+      err = fmt::format("state of service '{}', '{}' is up",
+                        request->host_name(), request->service_desc());
       return 1;
     }
     /* set the acknowledgement flag */
@@ -1040,7 +1047,7 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -1096,10 +1103,10 @@ grpc::Status engine_impl::ScheduleHostDowntime(
         request->comment_data().c_str(), request->start(), request->end(),
         request->fixed(), request->triggered_by(), duration, &downtime_id);
     if (res == ERROR) {
-      err = fmt::format("could not schedule downtime of host '{}'", request->host_name());
+      err = fmt::format("could not schedule downtime of host '{}'",
+                        request->host_name());
       return 1;
-    }
-    else {
+    } else {
       return 0;
     }
   });
@@ -1109,7 +1116,7 @@ grpc::Status engine_impl::ScheduleHostDowntime(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else { 
+  else {
     response->set_value(1);
     return grpc::Status::OK;
   }
@@ -1155,7 +1162,8 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr) {
-      err = fmt::format("could not find service '{}', '{}'", request->host_name(), request->service_desc());
+      err = fmt::format("could not find service '{}', '{}'",
+                        request->host_name(), request->service_desc());
       return 1;
     }
     if (request->fixed())
@@ -1170,8 +1178,9 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
         request->author().c_str(), request->comment_data().c_str(),
         request->start(), request->end(), request->fixed(),
         request->triggered_by(), duration, &downtime_id);
-    if (res == ERROR) { 
-      err = fmt::format("could not schedule downtime of service '{}', '{}'", request->host_name(), request->service_desc());
+    if (res == ERROR) {
+      err = fmt::format("could not schedule downtime of service '{}', '{}'",
+                        request->host_name(), request->service_desc());
       return 1;
     } else
       return 0;
@@ -1182,7 +1191,7 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else  {
+  else {
     response->set_value(1);
     return grpc::Status::OK;
   }
@@ -1299,7 +1308,8 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
     hostgroup_map::const_iterator it(
         hostgroup::hostgroups.find(request->host_group_name()));
     if (it == hostgroup::hostgroups.end() || !it->second) {
-      err = fmt::format("could not find host group name '{}'", request->host_group_name());
+      err = fmt::format("could not find host group name '{}'",
+                        request->host_group_name());
       return 1;
     }
     hg = it->second.get();
@@ -1326,7 +1336,7 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else { 
+  else {
     response->set_value(1);
     return grpc::Status::OK;
   }
@@ -1371,7 +1381,8 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
     hostgroup_map::const_iterator it(
         hostgroup::hostgroups.find(request->host_group_name()));
     if (it == hostgroup::hostgroups.end() || !it->second) {
-      err = fmt::format("could not find host group name '{}'", request->host_group_name());
+      err = fmt::format("could not find host group name '{}'",
+                        request->host_group_name());
       return 1;
     }
     hg = it->second.get();
@@ -1454,7 +1465,8 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
     /* verify that the servicegroup is valid */
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
-      err = fmt::format("could not find servicegroupname '{}'", request->service_group_name());
+      err = fmt::format("could not find servicegroupname '{}'",
+                        request->service_group_name());
       return 1;
     }
     if (request->fixed())
@@ -1488,7 +1500,7 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else { 
+  else {
     response->set_value(1);
     return grpc::Status::OK;
   }
@@ -1531,7 +1543,8 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
     /* verify that the servicegroup is valid */
     sg_it = servicegroup::servicegroups.find(request->service_group_name());
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
-      err = fmt::format("could not find servicegroupname '{}'", request->service_group_name());
+      err = fmt::format("could not find servicegroupname '{}'",
+                        request->service_group_name());
       return 1;
     }
     if (request->fixed())
@@ -1725,22 +1738,23 @@ grpc::Status engine_impl::DeleteDowntime(grpc::ServerContext* context
                                          __attribute__((unused))) {
   uint32_t downtime_id = request->value();
   std::string err;
-  auto fn = std::packaged_task<int32_t(void)>([&err, &downtime_id]() -> int32_t {
-    /* deletes scheduled  downtime */
-    if (downtime_manager::instance().unschedule_downtime(downtime_id) == ERROR) {
-      err = fmt::format("could not delete downtime {}", downtime_id);
-      return 1;
-    }
-    else
-      return 0;
-  });
+  auto fn =
+      std::packaged_task<int32_t(void)>([&err, &downtime_id]() -> int32_t {
+        /* deletes scheduled  downtime */
+        if (downtime_manager::instance().unschedule_downtime(downtime_id) ==
+            ERROR) {
+          err = fmt::format("could not delete downtime {}", downtime_id);
+          return 1;
+        } else
+          return 0;
+      });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
-    
+
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -1807,7 +1821,7 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -1880,7 +1894,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -1925,7 +1939,8 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
             .delete_downtime_by_hostname_service_description_start_time_comment(
                 host_name, service_desc, start_time, comment_data);
     if (deleted == 0) {
-      err = fmt::format("could not delete downtime with hostname '{}'", request->host_name());
+      err = fmt::format("could not delete downtime with hostname '{}'",
+                        request->host_name());
       return 1;
     }
     return 0;
@@ -1936,7 +1951,7 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -1971,7 +1986,8 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
 
     auto it = hostgroup::hostgroups.find(host_group_name);
     if (it == hostgroup::hostgroups.end() || !it->second) {
-      err = fmt::format("could not find host group name '{}'", request->host_group_name());
+      err = fmt::format("could not find host group name '{}'",
+                        request->host_group_name());
       return 1;
     }
     if (!(request->host_name().empty()))
@@ -1999,7 +2015,8 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
     }
 
     if (deleted == 0) {
-      err = fmt::format("could not delete downtime with host group name '{}'", request->host_group_name());
+      err = fmt::format("could not delete downtime with host group name '{}'",
+                        request->host_group_name());
       return 1;
     }
     return 0;
@@ -2010,7 +2027,7 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2050,7 +2067,8 @@ grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
             .delete_downtime_by_hostname_service_description_start_time_comment(
                 "", "", {true, start_time}, comment_data);
     if (0 == deleted) {
-      err = fmt::format("could not delete comment with comment_data '{}'", comment_data);
+      err = fmt::format("could not delete comment with comment_data '{}'",
+                        comment_data);
       return 1;
     }
     return 0;
@@ -2060,7 +2078,7 @@ grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2107,7 +2125,7 @@ grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2161,7 +2179,7 @@ grpc::Status engine_impl::ScheduleHostServiceCheck(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2196,7 +2214,8 @@ grpc::Status engine_impl::ScheduleServiceCheck(
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr) {
-      err = fmt::format("could not find service '{}', '{}'", request->host_name(), request->service_desc());
+      err = fmt::format("could not find service '{}', '{}'",
+                        request->host_name(), request->service_desc());
       return 1;
     }
     if (!request->force())
@@ -2212,7 +2231,7 @@ grpc::Status engine_impl::ScheduleServiceCheck(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2258,7 +2277,7 @@ grpc::Status engine_impl::SignalProcess(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2315,7 +2334,7 @@ grpc::Status engine_impl::DelayHostNotification(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2345,7 +2364,8 @@ grpc::Status engine_impl::DelayServiceNotification(
         if (it != service::services.end())
           temp_service = it->second;
         if (temp_service == nullptr) {
-          err = fmt::format("could not find service ('{}', '{}')", names.host_name(), names.service_name());
+          err = fmt::format("could not find service ('{}', '{}')",
+                            names.host_name(), names.service_name());
           return 1;
         }
       } break;
@@ -2356,7 +2376,8 @@ grpc::Status engine_impl::DelayServiceNotification(
         if (it != service::services_by_id.end())
           temp_service = it->second;
         if (temp_service == nullptr) {
-          err = fmt::format("could not find service ({}, {})", ids.host_id(), ids.service_id());
+          err = fmt::format("could not find service ({}, {})", ids.host_id(),
+                            ids.service_id());
           return 1;
         }
       } break;
@@ -2376,7 +2397,7 @@ grpc::Status engine_impl::DelayServiceNotification(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2470,7 +2491,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2488,7 +2509,8 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
     if (it != service::services.end())
       temp_service = it->second;
     if (temp_service == nullptr) {
-      err = fmt::format("could not find service '{}', '{}'", request->host_name(), request->service_desc());
+      err = fmt::format("could not find service '{}', '{}'",
+                        request->host_name(), request->service_desc());
       return 1;
     }
     if (ChangeObjectInt::Mode_Name(request->mode()) ==
@@ -2565,7 +2587,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2621,7 +2643,7 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     response->set_value(result.get());
 
   return grpc::Status::OK;
@@ -2665,15 +2687,18 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
       if (found != timeperiod::timeperiods.end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
-        err = fmt::format("could not find timeperiod with value '{}'", request->charval());
+        err = fmt::format("could not find timeperiod with value '{}'",
+                          request->charval());
         return 1;
       }
     }
     /* make sure the command exists */
     else {
       cmd_found = commands::command::commands.find(request->charval());
-      if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-        err = fmt::format("no command found with value '{}'", request->charval());
+      if (cmd_found == commands::command::commands.end() ||
+          !cmd_found->second) {
+        err =
+            fmt::format("no command found with value '{}'", request->charval());
         return 1;
       }
     }
@@ -2743,7 +2768,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2773,7 +2798,8 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       if (it != service::services.end())
         temp_service = it->second;
       if (temp_service == nullptr) {
-        err = fmt::format("could not find service ('{}', '{}')", request->host_name(), request->service_desc());
+        err = fmt::format("could not find service ('{}', '{}')",
+                          request->host_name(), request->service_desc());
         return 1;
       }
     }
@@ -2786,7 +2812,8 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       if (found != timeperiod::timeperiods.end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
-        err = fmt::format("could not find timeperiod with value '{}'", request->charval());
+        err = fmt::format("could not find timeperiod with value '{}'",
+                          request->charval());
         return 1;
       }
     }
@@ -2795,7 +2822,8 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       cmd_found = commands::command::commands.find(request->charval());
       if (cmd_found == commands::command::commands.end() ||
           !cmd_found->second) {
-        err = fmt::format("no command found with value '{}'", request->charval());
+        err =
+            fmt::format("no command found with value '{}'", request->charval());
         return 1;
       }
     }
@@ -2866,7 +2894,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2897,7 +2925,8 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
     if (found != timeperiod::timeperiods.end())
       temp_timeperiod = found->second.get();
     if (temp_timeperiod == nullptr) {
-      err = fmt::format("could not find timeperiod with value '{}'", request->charval());
+      err = fmt::format("could not find timeperiod with value '{}'",
+                        request->charval());
       return 1;
     }
     if (ChangeContactObjectChar::Mode_Name(request->mode()) ==
@@ -2940,7 +2969,7 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -2982,7 +3011,7 @@ grpc::Status engine_impl::ChangeHostObjectCustomVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -3008,7 +3037,8 @@ grpc::Status engine_impl::ChangeServiceObjectCustomVar(
     if (it_s != service::services.end())
       temp_service = it_s->second.get();
     if (temp_service == nullptr) {
-      err = fmt::format("could not find service ('{}', '{}')", request->host_name(), request->service_desc());
+      err = fmt::format("could not find service ('{}', '{}')",
+                        request->host_name(), request->service_desc());
       return 1;
     }
     map_customvar::iterator it(temp_service->custom_variables.find(varname));
@@ -3027,7 +3057,7 @@ grpc::Status engine_impl::ChangeServiceObjectCustomVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 
@@ -3067,7 +3097,7 @@ grpc::Status engine_impl::ChangeContactObjectCustomVar(
 
   if (result.get())
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err);
-  else 
+  else
     return grpc::Status::OK;
 }
 

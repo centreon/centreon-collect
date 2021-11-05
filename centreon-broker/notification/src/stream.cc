@@ -450,8 +450,7 @@ void stream::_process_host_status_event(neb::host_status const& event) {
     std::unique_ptr<QWriteLocker> lock(_state.write_lock());
     node::ptr n = _state.get_node_by_id(id);
     if (!n)
-      throw msg_fmt("notification: got an unknown host: {}",
-                    id.get_host_id());
+      throw msg_fmt("notification: got an unknown host: {}", id.get_host_id());
 
     // Save the old state and copy the current state.
     old_hard_state = n->get_hard_state();

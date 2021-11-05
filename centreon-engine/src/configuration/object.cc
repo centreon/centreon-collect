@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/object.hh"
+#include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/configuration/contact.hh"
@@ -27,7 +28,6 @@
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/configuration/hostgroup.hh"
-#include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
@@ -249,13 +249,22 @@ object::object_type object::type() const noexcept {
  *  @return The object type name.
  */
 std::string const& object::type_name() const noexcept {
-  static std::string const tab[] = {
-      "command",         "connector",         "contact",
-      "contactgroup",    "host",              "hostdependency",
-      "hostescalation",  "hostextinfo",       "hostgroup",
-      "service",         "servicedependency", "serviceescalation",
-      "serviceextinfo",  "servicegroup",      "timeperiod",
-      "anomalydetection"};
+  static std::string const tab[] = {"command",
+                                    "connector",
+                                    "contact",
+                                    "contactgroup",
+                                    "host",
+                                    "hostdependency",
+                                    "hostescalation",
+                                    "hostextinfo",
+                                    "hostgroup",
+                                    "service",
+                                    "servicedependency",
+                                    "serviceescalation",
+                                    "serviceextinfo",
+                                    "servicegroup",
+                                    "timeperiod",
+                                    "anomalydetection"};
   return tab[_type];
 }
 

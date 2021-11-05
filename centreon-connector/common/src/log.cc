@@ -32,8 +32,7 @@ log::log() {
   _core_log->flush_on(spdlog::level::trace);
 }
 
-log::~log() {
-}
+log::~log() {}
 
 com::centreon::connector::log& log::instance() {
   static log instance;

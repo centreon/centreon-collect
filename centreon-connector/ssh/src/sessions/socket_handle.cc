@@ -16,12 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/connector/ssh/sessions/socket_handle.hh"
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstring>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include "com/centreon/connector/ssh/sessions/socket_handle.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
@@ -43,7 +43,9 @@ socket_handle::socket_handle(native_handle handl) : _handl(handl) {}
 /**
  *  Destructor.
  */
-socket_handle::~socket_handle() noexcept { this->close(); }
+socket_handle::~socket_handle() noexcept {
+  this->close();
+}
 
 /**
  *  Close socket descriptor.

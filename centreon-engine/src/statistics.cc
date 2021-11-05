@@ -17,8 +17,8 @@
  *
  */
 
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statistics.hh"
+#include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine;
 
@@ -41,7 +41,7 @@ statistics& statistics::instance() {
  * @brief Returns the centengine pid.
  *
  * @return A pid_t
-  */
+ */
 pid_t statistics::get_pid() const noexcept {
   return getpid();
 }
@@ -54,8 +54,8 @@ pid_t statistics::get_pid() const noexcept {
  *
  * @return A boolean telling if the struct has been filled.
  */
-bool statistics::get_external_command_buffer_stats(buffer_stats& retval) const
-    noexcept {
+bool statistics::get_external_command_buffer_stats(
+    buffer_stats& retval) const noexcept {
   if (config->check_external_commands()) {
     pthread_mutex_lock(&external_command_buffer.buffer_lock);
     retval.used = external_command_buffer.items;

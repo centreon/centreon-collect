@@ -90,13 +90,12 @@ comment::comment(comment::type comment_type,
 bool comment::delete_comment(uint64_t comment_id) {
   comment_map::iterator found = comment::comments.find(comment_id);
 
-  //check that comment exist
+  // check that comment exist
   if (found != comment::comments.end() && found->second) {
     broker_comment_data(
         NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
         found->second->get_comment_type(), found->second->get_entry_type(),
-        found->second->get_host_id(),
-        found->second->get_service_id(),
+        found->second->get_host_id(), found->second->get_service_id(),
         found->second->get_entry_time(), found->second->get_author().c_str(),
         found->second->get_comment_data().c_str(),
         found->second->get_persistent(), found->second->get_source(),
@@ -104,8 +103,9 @@ bool comment::delete_comment(uint64_t comment_id) {
         comment_id, nullptr);
     comment::comments.erase(comment_id);
     return true;
-  } 
-  else  { return false; }
+  } else {
+    return false;
+  }
 }
 
 void comment::delete_host_comments(uint64_t host_id) {
@@ -116,9 +116,8 @@ void comment::delete_host_comments(uint64_t host_id) {
         it->second->get_host_id() == host_id) {
       broker_comment_data(
           NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-          it->second->get_comment_type(), it->second->get_entry_type(),
-          host_id, 0, it->second->get_entry_time(),
-          it->second->get_author().c_str(),
+          it->second->get_comment_type(), it->second->get_entry_type(), host_id,
+          0, it->second->get_entry_time(), it->second->get_author().c_str(),
           it->second->get_comment_data().c_str(), it->second->get_persistent(),
           it->second->get_source(), it->second->get_expires(),
           it->second->get_expire_time(), it->first, nullptr);
@@ -137,9 +136,9 @@ void comment::delete_service_comments(uint64_t host_id, uint64_t service_id) {
         it->second->get_service_id() == service_id) {
       broker_comment_data(
           NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-          it->second->get_comment_type(), it->second->get_entry_type(),
-          host_id, service_id,
-          it->second->get_entry_time(), it->second->get_author().c_str(),
+          it->second->get_comment_type(), it->second->get_entry_type(), host_id,
+          service_id, it->second->get_entry_time(),
+          it->second->get_author().c_str(),
           it->second->get_comment_data().c_str(), it->second->get_persistent(),
           it->second->get_source(), it->second->get_expires(),
           it->second->get_expire_time(), it->first, nullptr);
@@ -162,8 +161,8 @@ void comment::delete_host_acknowledgement_comments(engine::host* hst) {
       broker_comment_data(
           NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
           it->second->get_comment_type(), it->second->get_entry_type(),
-          it->second->get_host_id(), 0,
-          it->second->get_entry_time(), it->second->get_author().c_str(),
+          it->second->get_host_id(), 0, it->second->get_entry_time(),
+          it->second->get_author().c_str(),
           it->second->get_comment_data().c_str(), it->second->get_persistent(),
           it->second->get_source(), it->second->get_expires(),
           it->second->get_expire_time(), it->first, nullptr);
@@ -188,8 +187,7 @@ void comment::delete_service_acknowledgement_comments(::service* svc) {
       broker_comment_data(
           NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
           it->second->get_comment_type(), it->second->get_entry_type(),
-          it->second->get_host_id(),
-          it->second->get_service_id(),
+          it->second->get_host_id(), it->second->get_service_id(),
           it->second->get_entry_time(), it->second->get_author().c_str(),
           it->second->get_comment_data().c_str(), it->second->get_persistent(),
           it->second->get_source(), it->second->get_expires(),
@@ -272,10 +270,9 @@ bool comment::operator==(comment const& obj) throw() {
       _comment_id == obj.get_comment_id() && _source == obj.get_source() &&
       _persistent == obj.get_persistent() &&
       _entry_time == obj.get_entry_time() && _expires == obj.get_expires() &&
-      _expire_time == obj.get_expire_time() &&
-      _host_id == obj.get_host_id() &&
-      _service_id == obj.get_service_id() &&
-      _author == obj.get_author() && _comment_data == obj.get_comment_data());
+      _expire_time == obj.get_expire_time() && _host_id == obj.get_host_id() &&
+      _service_id == obj.get_service_id() && _author == obj.get_author() &&
+      _comment_data == obj.get_comment_data());
 }
 
 /**

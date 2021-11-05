@@ -82,7 +82,6 @@ std::list<fmt::string_view> string::split_sv(std::string const& str, char sep) {
   return retval;
 }
 
-
 std::string string::base64_encode(const std::string& str) {
   static const std::string b =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -68,7 +68,7 @@ void events::unload() {
  * @param category_id Category ID.
  */
 void events::unregister_category(uint16_t category_id) {
-  for (auto it = _elements.begin(), end = _elements.end(); it != end; ) {
+  for (auto it = _elements.begin(), end = _elements.end(); it != end;) {
     if (category_of_type(it->first) == category_id)
       it = _elements.erase(it);
     else

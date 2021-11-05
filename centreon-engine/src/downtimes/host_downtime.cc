@@ -58,10 +58,11 @@ host_downtime::~host_downtime() {
   comment::delete_comment(_get_comment_id());
   /* send data to event broker */
   broker_downtime_data(NEBTYPE_DOWNTIME_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                       downtime::host_downtime, _hostname.c_str(), nullptr, _entry_time,
-                       _author.c_str(), _comment.c_str(), get_start_time(),
-                       get_end_time(), is_fixed(), get_triggered_by(),
-                       get_duration(), get_downtime_id(), nullptr);
+                       downtime::host_downtime, _hostname.c_str(), nullptr,
+                       _entry_time, _author.c_str(), _comment.c_str(),
+                       get_start_time(), get_end_time(), is_fixed(),
+                       get_triggered_by(), get_duration(), get_downtime_id(),
+                       nullptr);
 }
 
 /* adds a host downtime entry to the list in memory */
@@ -266,8 +267,8 @@ int host_downtime::subscribe() {
   if (get_triggered_by() == 0) {
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
     timed_event* evt =
-        new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(), false, 0,
-                        NULL, false, (void*)new_downtime_id, NULL, 0);
+        new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(),
+                        false, 0, NULL, false, (void*)new_downtime_id, NULL, 0);
     events::loop::instance().schedule(evt, true);
   }
 
@@ -317,16 +318,9 @@ int host_downtime::handle() {
           temp = get_end_time() + 1;
         /*** Sometimes, get_end_time() == longlong::max(), if we add 1 to it,
          * it becomes < 0 ***/
-        timed_event* evt = new timed_event(
-          timed_event::EVENT_EXPIRE_DOWNTIME,
-          temp,
-          false,
-          0,
-          NULL,
-          false,
-          NULL,
-          NULL,
-          0);
+        timed_event* evt =
+            new timed_event(timed_event::EVENT_EXPIRE_DOWNTIME, temp, false, 0,
+                            NULL, false, NULL, NULL, 0);
         events::loop::instance().schedule(evt, true);
         return OK;
       }
@@ -443,7 +437,8 @@ int host_downtime::handle() {
     if (!is_fixed())
       event_time = (time_t)((uint64_t)time(NULL) + get_duration());
     else {
-      /* Sometimes, get_end_time() == longlong::max(), if we add 1 to it, it becomes < 0 */
+      /* Sometimes, get_end_time() == longlong::max(), if we add 1 to it, it
+       * becomes < 0 */
       if (get_end_time() == INT64_MAX)
         event_time = get_end_time();
       else
@@ -452,8 +447,8 @@ int host_downtime::handle() {
 
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
     timed_event* evt =
-        new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, event_time, false, 0, NULL,
-                        false, (void*)new_downtime_id, NULL, 0);
+        new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, event_time,
+                        false, 0, NULL, false, (void*)new_downtime_id, NULL, 0);
     events::loop::instance().schedule(evt, true);
 
     /* handle (start) downtime that is triggered by this one */
@@ -474,8 +469,8 @@ void host_downtime::schedule() {
 
   /* send data to event broker */
   broker_downtime_data(NEBTYPE_DOWNTIME_LOAD, NEBFLAG_NONE, NEBATTR_NONE,
-                       downtime::host_downtime, _hostname.c_str(), nullptr, _entry_time,
-                       _author.c_str(), _comment.c_str(), _start_time,
-                       _end_time, _fixed, _triggered_by, _duration,
+                       downtime::host_downtime, _hostname.c_str(), nullptr,
+                       _entry_time, _author.c_str(), _comment.c_str(),
+                       _start_time, _end_time, _fixed, _triggered_by, _duration,
                        _downtime_id, nullptr);
 }

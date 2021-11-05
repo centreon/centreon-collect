@@ -617,8 +617,8 @@ void mysql_connection::_run() {
         /* We are waiting for some activity, nothing to do for now it is time
          * to make some ping */
         while (!_tasks_condition.wait_for(
-              lock, std::chrono::seconds(30),
-              [this] { return _finish_asked || !_tasks_list.empty(); })) {
+            lock, std::chrono::seconds(30),
+            [this] { return _finish_asked || !_tasks_list.empty(); })) {
           lock.unlock();
           log_v2::sql()->trace("SQL: performing mysql_ping.");
           if (mysql_ping(_conn)) {
@@ -628,7 +628,6 @@ void mysql_connection::_run() {
             log_v2::sql()->trace("SQL: connection always alive");
           lock.lock();
         }
-
 
         if (_tasks_list.empty()) {
           _state = finished;

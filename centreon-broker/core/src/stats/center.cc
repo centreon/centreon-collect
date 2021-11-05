@@ -23,9 +23,9 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
@@ -83,9 +83,7 @@ center::~center() {
    * a last action and wait it is over. */
   std::promise<bool> p;
   std::future<bool> f{p.get_future()};
-  _strand.post([&p] {
-      p.set_value(true);
-      });
+  _strand.post([&p] { p.set_value(true); });
   f.get();
   pool::instance().stop_stats();
 }
@@ -124,10 +122,9 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
   _strand.post([this, &p, connection] {
-    for (auto
-             it = _stats.mutable_connections()->begin(),
-             end = _stats.mutable_connections()->end();
-             it != end; ++it) {
+    for (auto it = _stats.mutable_connections()->begin(),
+              end = _stats.mutable_connections()->end();
+         it != end; ++it) {
       if (&(*it) == connection) {
         _stats.mutable_connections()->erase(it);
         break;
@@ -136,7 +133,6 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   });
   return retval.get();
 }
-
 
 /**
  * @brief When a feeder needs to write statistics, it primarily has to
@@ -251,7 +247,7 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
  *
  * @return A pointer to the conflict_manager statistics.
  */
- ConflictManagerStats* center::register_conflict_manager() {
+ConflictManagerStats* center::register_conflict_manager() {
   std::promise<ConflictManagerStats*> p;
   std::future<ConflictManagerStats*> retval = p.get_future();
   _strand.post([this, &p] {
@@ -320,24 +316,25 @@ std::string center::to_string() {
 //  done.get();
 //}
 
-void center::get_sql_connection_stats(uint32_t index, SqlConnectionStats* response) {
+void center::get_sql_connection_stats(uint32_t index,
+                                      SqlConnectionStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, &index, response] {
-      uint32_t i = 0;
-      for (auto it = s.connections().begin(), 
-        end = s.connections().end();
-        it != end; ++it, ++i) {
-            if (index == i) {
-              *response = (*it);  
-            }
+    uint32_t i = 0;
+    for (auto it = s.connections().begin(), end = s.connections().end();
+         it != end; ++it, ++i) {
+      if (index == i) {
+        *response = (*it);
       }
+    }
 
-      if (i > index) {
-        log_v2::sql()->info("mysql_connection: index out of range in get sql "
-                            "connection stats");
-      }
-      p.set_value(true);
+    if (i > index) {
+      log_v2::sql()->info(
+          "mysql_connection: index out of range in get sql "
+          "connection stats");
+    }
+    p.set_value(true);
   });
 
   // We wait for the response.
@@ -348,8 +345,8 @@ void center::get_sql_connection_size(GenericSize* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, response] {
-      response->set_size(s.connections().size());
-      p.set_value(true);
+    response->set_size(s.connections().size());
+    p.set_value(true);
   });
 
   // We wait for the response.
@@ -360,8 +357,8 @@ void center::get_conflict_manager_stats(ConflictManagerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, response] {
-      *response = s.conflict_manager();
-      p.set_value(true);
+    *response = s.conflict_manager();
+    p.set_value(true);
   });
 
   // We wait for the response.
