@@ -64,8 +64,8 @@ downtime::downtime(downtime::type type,
       _start_flex_downtime{0},
       _incremented_pending_downtime{false} {
   /* don't add triggered downtimes that don't have a valid parent */
-  if (triggered_by > 0 &&
-      !downtime_manager::instance().find_downtime(downtime::any_downtime, triggered_by))
+  if (triggered_by > 0 && !downtime_manager::instance().find_downtime(
+                              downtime::any_downtime, triggered_by))
     throw engine_error()
         << "can not add triggered host downtime without a valid parent";
 
@@ -80,7 +80,8 @@ downtime::~downtime() {}
 /* handles scheduled downtime (id passed from timed event queue) */
 int handle_scheduled_downtime_by_id(uint64_t downtime_id) {
   std::shared_ptr<downtime> temp_downtime{
-      downtime_manager::instance().find_downtime(downtime::any_downtime, downtime_id)};
+      downtime_manager::instance().find_downtime(downtime::any_downtime,
+                                                 downtime_id)};
   /* find the downtime entry */
   if (!temp_downtime)
     return ERROR;

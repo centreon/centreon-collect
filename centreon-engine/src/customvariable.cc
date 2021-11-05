@@ -37,9 +37,7 @@ customvariable::customvariable(std::string const& value, bool is_sent)
  * @param other Another customvariable
  */
 customvariable::customvariable(customvariable const& other)
-    : _value{other._value},
-      _is_sent{other._is_sent},
-      _modified{false} {}
+    : _value{other._value}, _is_sent{other._is_sent}, _modified{false} {}
 
 /**
  *  Affectation operator of customvariable

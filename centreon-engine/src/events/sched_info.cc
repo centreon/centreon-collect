@@ -30,7 +30,6 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-
 /**
  *  Displays service check scheduling information.
  */

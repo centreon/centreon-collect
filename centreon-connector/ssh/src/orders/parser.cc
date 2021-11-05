@@ -42,7 +42,7 @@ parser::parser() : _listnr(nullptr) {}
  *
  *  @param[in] h Handle.
  */
-void parser::error([[maybe_unused]]handle& h) {
+void parser::error([[maybe_unused]] handle& h) {
   if (_listnr)
     _listnr->on_error(0, "error on handle");
 }
@@ -97,7 +97,7 @@ void parser::read(handle& h) {
     _buffer.append(buffer, rb);
 
     // Find a command boundary.
-    char boundary[4] { 0, 0, 0, 0 };
+    char boundary[4]{0, 0, 0, 0};
     size_t bound(_buffer.find(boundary, 0, sizeof(boundary)));
 
     // Parse command.
@@ -132,7 +132,7 @@ void parser::read(handle& h) {
  *
  *  @return Always true.
  */
-bool parser::want_read([[maybe_unused]]handle& h) {
+bool parser::want_read([[maybe_unused]] handle& h) {
   (void)h;
   return true;
 }
@@ -142,7 +142,7 @@ bool parser::want_read([[maybe_unused]]handle& h) {
  *
  *  @return Always false (class just parse).
  */
-bool parser::want_write([[maybe_unused]]handle& h) {
+bool parser::want_write([[maybe_unused]] handle& h) {
   (void)h;
   return false;
 }
@@ -228,8 +228,8 @@ void parser::_parse(std::string const& cmd) {
           ts_timeout = timestamp::now() + opt.get_timeout();
         else if (opt.get_timeout() > static_cast<unsigned int>(timeout))
           throw basic_error()
-                << "invalid execution request "
-                   "received: timeout > to monitoring engine timeout";
+              << "invalid execution request "
+                 "received: timeout > to monitoring engine timeout";
       } catch (std::exception const& e) {
         if (_listnr)
           _listnr->on_error(cmd_id, e.what());

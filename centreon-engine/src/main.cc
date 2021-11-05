@@ -40,6 +40,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/diagnostic.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
@@ -56,7 +57,6 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
-#include "com/centreon/engine/enginerpc.hh"
 
 using namespace com::centreon::engine;
 
