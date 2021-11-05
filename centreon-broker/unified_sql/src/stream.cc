@@ -34,10 +34,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
-stream::instance_state stream::_state{stream::not_started};
-std::mutex stream::_init_m;
-std::condition_variable stream::_init_cv;
-
 void (stream::*const stream::_neb_processing_table[])(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>&) = {
     nullptr,
@@ -77,6 +73,7 @@ stream::stream(const database_config& dbcfg,
                uint32_t rebuild_check_interval,
                bool store_in_data_bin)
     : io::stream("unified_sql"),
+      _state{not_started},
       _exit{false},
       _broken{false},
       _loop_timeout{loop_timeout},
@@ -92,7 +89,7 @@ stream::stream(const database_config& dbcfg,
       _max_metrics_queries{0},
       _max_cv_queries{0},
       _max_log_queries{0},
-      //_stats{stats::center::instance().register_stream()},
+      _stats{stats::center::instance().register_conflict_manager()},
       _events_handled{0},
       _speed{},
       _stats_count_pos{0},
@@ -104,6 +101,7 @@ stream::stream(const database_config& dbcfg,
   stats::center::instance().update(
       &ConflictManagerStats::set_max_pending_events, _stats,
       _max_pending_queries);
+  init_sql();
 }
 
 stream::~stream() {
@@ -134,22 +132,21 @@ bool stream::init_unified_sql(bool store_in_db,
 
   for (count = 0; count < 10; count++) {
     /* Let's wait for 10s for the stream to be initialized */
-    if (_init_cv.wait_for(lk, std::chrono::seconds(1), [&] {
-          return _singleton != nullptr || _state == finished;
-        })) {
+    if (_init_cv.wait_for(lk, std::chrono::seconds(1),
+                          [&] { return _state == finished; })) {
       if (_state == finished)
         return false;
-      std::lock_guard<std::mutex> lk(_singleton->_loop_m);
-      _singleton->_store_in_db = store_in_db;
-      _singleton->_rrd_len = rrd_len;
-      _singleton->_interval_length = interval_length;
-      _singleton->_max_perfdata_queries = queries_per_transaction;
-      _singleton->_max_metrics_queries = queries_per_transaction;
-      _singleton->_max_cv_queries = queries_per_transaction;
-      _singleton->_max_log_queries = queries_per_transaction;
-      _singleton->_ref_count++;
-      _singleton->_thread = std::thread(&stream::_callback, _singleton);
-      pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
+      std::lock_guard<std::mutex> lk(_loop_m);
+      _store_in_db = store_in_db;
+      _rrd_len = rrd_len;
+      _interval_length = interval_length;
+      _max_perfdata_queries = queries_per_transaction;
+      _max_metrics_queries = queries_per_transaction;
+      _max_cv_queries = queries_per_transaction;
+      _max_log_queries = queries_per_transaction;
+      _ref_count++;
+      _thread = std::thread(&stream::_callback, this);
+      pthread_setname_np(_thread.native_handle(), "conflict_mngr");
       return true;
     }
     log_v2::sql()->info(
@@ -178,22 +175,14 @@ bool stream::init_unified_sql(bool store_in_db,
  *
  * @return A boolean true if the function went good, false otherwise.
  */
-bool stream::init_sql(database_config const& dbcfg,
-                      uint32_t loop_timeout,
-                      uint32_t instance_timeout) {
+void stream::init_sql() {
   log_v2::sql()->debug("unified sql: sql stream initialization");
   std::lock_guard<std::mutex> lk(_init_m);
-  _singleton = new stream(dbcfg, loop_timeout, instance_timeout);
-  if (!_singleton) {
-    _state = finished;
-    return false;
-  }
 
   _state = running;
-  _singleton->_action.resize(_singleton->_mysql.connections_count());
+  _action.resize(_mysql.connections_count());
   _init_cv.notify_all();
-  _singleton->_ref_count++;
-  return true;
+  _ref_count++;
 }
 
 void stream::_load_deleted_instances() {
@@ -785,31 +774,33 @@ nlohmann::json stream::get_statistics() {
 /**
  * @brief Delete the stream singleton.
  */
-int32_t stream::unload(stream_type type) {
-  if (!_singleton) {
-    log_v2::sql()->info("unified sql: already unloaded.");
-    return 0;
-  } else {
-    uint32_t count = --_singleton->_ref_count;
-    int retval;
-    if (count == 0) {
-      __exit();
-      retval = _fifo.get_acks(type);
-      {
-        std::lock_guard<std::mutex> lck(_init_m);
-        _state = finished;
-        delete _singleton;
-        _singleton = nullptr;
-      }
-      log_v2::sql()->info("unified sql: no more user of the conflict manager.");
-    } else {
-      log_v2::sql()->info(
-          "unified sql: still {} stream{} using the conflict manager.", count,
-          count > 1 ? "s" : "");
-      retval = _fifo.get_acks(type);
-      log_v2::sql()->info(
-          "unified sql: still {} events handled but not acknowledged.", retval);
-    }
-    return retval;
-  }
-}
+// int32_t stream::unload(stream_type type) {
+//  if (!_singleton) {
+//    log_v2::sql()->info("unified sql: already unloaded.");
+//    return 0;
+//  } else {
+//    uint32_t count = --_singleton->_ref_count;
+//    int retval;
+//    if (count == 0) {
+//      __exit();
+//      retval = _fifo.get_acks(type);
+//      {
+//        std::lock_guard<std::mutex> lck(_init_m);
+//        _state = finished;
+//        delete _singleton;
+//        _singleton = nullptr;
+//      }
+//      log_v2::sql()->info("unified sql: no more user of the conflict
+//      manager.");
+//    } else {
+//      log_v2::sql()->info(
+//          "unified sql: still {} stream{} using the conflict manager.", count,
+//          count > 1 ? "s" : "");
+//      retval = _fifo.get_acks(type);
+//      log_v2::sql()->info(
+//          "unified sql: still {} events handled but not acknowledged.",
+//          retval);
+//    }
+//    return retval;
+//  }
+//}

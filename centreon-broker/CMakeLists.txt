@@ -391,7 +391,6 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/mapping/entry.cc
   ${SRC_DIR}/misc/diagnostic.cc
   ${SRC_DIR}/misc/filesystem.cc
-  ${SRC_DIR}/misc/global_lock.cc
   ${SRC_DIR}/misc/misc.cc
   ${SRC_DIR}/misc/processing_speed_computer.cc
   ${SRC_DIR}/misc/string.cc
@@ -476,7 +475,6 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/mapping/source.hh
   ${INC_DIR}/misc/diagnostic.hh
   ${INC_DIR}/misc/filesystem.hh
-  ${INC_DIR}/misc/global_lock.hh
   ${INC_DIR}/misc/misc.hh
   ${INC_DIR}/misc/pair.hh
   ${INC_DIR}/misc/processing_speed_computer.hh

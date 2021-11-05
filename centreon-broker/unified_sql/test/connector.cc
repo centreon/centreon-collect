@@ -49,7 +49,7 @@ TEST(UnifiedSqlFactory, Factory) {
       factory.new_endpoint(cfg, is_acceptor, cache));
 
   unified_sql::connector con;
-  con.connect_to(dbcfg, 42, 60, 300, true);
+  con.connect_to(dbcfg, 42, 60, 300, 80, 250, true);
 
   ASSERT_TRUE(factory.has_endpoint(cfg, nullptr));
   ASSERT_EQ(cfg.read_timeout, -1);
@@ -83,7 +83,7 @@ TEST(UnifiedSqlFactory, FactoryWithFullConf) {
       factory.new_endpoint(cfg, is_acceptor, cache));
 
   unified_sql::connector con;
-  con.connect_to(dbcfg, 42, 43, 44, false);
+  con.connect_to(dbcfg, 42, 43, 44, 45, 46, false);
 
   ASSERT_TRUE(factory.has_endpoint(cfg, nullptr));
   ASSERT_EQ(cfg.read_timeout, -1);
