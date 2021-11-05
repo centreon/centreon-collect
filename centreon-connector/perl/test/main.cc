@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  *
  */
-#include <gtest/gtest.h>
 #include <EXTERN.h>
+#include <gtest/gtest.h>
 #include <perl.h>
 
 #include "com/centreon/connector/perl/embedded_perl.hh"
@@ -33,7 +33,7 @@ using namespace com::centreon::connector::perl;
  *
  *  @return 0 on success, any other value on failure.
  */
-int main(int argc, char* argv[], char **env) {
+int main(int argc, char* argv[], char** env) {
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
   PERL_SYS_INIT3(&argc, &argv, &env);

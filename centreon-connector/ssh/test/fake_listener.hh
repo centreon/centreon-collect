@@ -33,13 +33,7 @@ using namespace com::centreon;
  */
 class fake_listener : public com::centreon::connector::ssh::orders::listener {
  public:
-  enum e_callback {
-    cb_eof,
-    cb_error,
-    cb_execute,
-    cb_quit,
-    cb_version
-  };
+  enum e_callback { cb_eof, cb_error, cb_execute, cb_quit, cb_version };
   struct callback_info {
     e_callback callback;
     uint64_t cmd_id;

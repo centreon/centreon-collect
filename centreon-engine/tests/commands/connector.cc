@@ -44,7 +44,7 @@ class my_listener : public commands::command_listener {
   }
 
   void clear() {
-    _res.command_id = 0;
+    _res.command_id = 0u;
     _res.output = "";
   }
 
@@ -98,7 +98,7 @@ TEST_F(Connector, RunWithTimeout) {
   result res;
   cmd_connector.run("commande --timeout=on", macros, 1, res);
 
-  ASSERT_TRUE(res.command_id != 0);
+  ASSERT_TRUE(res.command_id != 0u);
 }
 
 TEST_F(Connector, RunConnectorAsync) {
@@ -116,7 +116,7 @@ TEST_F(Connector, RunConnectorAsync) {
     ++timeout;
   }
   result res{lstnr->get_result()};
-  ASSERT_NE(res.command_id, 0);
+  ASSERT_NE(res.command_id, 0u);
   ASSERT_EQ(res.output, "commande");
 }
 
@@ -157,7 +157,7 @@ TEST_F(Connector, RunConnectorSetCommandLine) {
     ++timeout;
   }
   result res{lstnr.get_result()};
-  ASSERT_NE(res.command_id, 0);
+  ASSERT_NE(res.command_id, 0u);
   ASSERT_EQ(res.output, "commande1");
 
   lstnr.clear();
@@ -172,6 +172,6 @@ TEST_F(Connector, RunConnectorSetCommandLine) {
     ++timeout;
   }
   res = lstnr.get_result();
-  ASSERT_NE(res.command_id, 0);
+  ASSERT_NE(res.command_id, 0u);
   ASSERT_EQ(res.output, "commande2");
 }

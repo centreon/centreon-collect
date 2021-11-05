@@ -219,7 +219,6 @@ static void call_command_manager(std::unique_ptr<std::thread>& th,
   th.reset(new std::thread(fn));
 }
 
-
 TEST_F(EngineRpc, StartStop) {
   enginerpc erpc("0.0.0.0", 40001);
   ASSERT_NO_THROW(erpc.shutdown());
@@ -366,8 +365,7 @@ TEST_F(EngineRpc, GetWrongService) {
                                        "Host name: ",
                                        "Serv desc: ",
                                        "Service state: 0",
-                                       "Service period: "
-                                       };
+                                       "Service period: "};
 
   _svc->set_current_state(engine::service::state_critical);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
@@ -420,8 +418,8 @@ TEST_F(EngineRpc, GetWrongContact) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
-  std::vector<std::string> vectests = {"GetContact rpc engine failed", "GetContact", "", "",
-                                       ""};
+  std::vector<std::string> vectests = {"GetContact rpc engine failed",
+                                       "GetContact", "", "", ""};
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
@@ -439,7 +437,6 @@ TEST_F(EngineRpc, GetWrongContact) {
   ASSERT_EQ(vectests, result_names);
   erpc.shutdown();
 }
-
 
 TEST_F(EngineRpc, GetHostsCount) {
   enginerpc erpc("0.0.0.0", 40001);
@@ -1010,7 +1007,7 @@ TEST_F(EngineRpc, ScheduleWrongHostDowntime) {
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  // we fake a wrong test with an 
+  // we fake a wrong test with an
   auto output = execute(oss.str());
   ASSERT_EQ("ScheduleHostDowntime 0", output.back());
   {
@@ -1023,7 +1020,6 @@ TEST_F(EngineRpc, ScheduleWrongHostDowntime) {
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
   erpc.shutdown();
 }
-
 
 TEST_F(EngineRpc, ScheduleServiceDowntime) {
   enginerpc erpc("0.0.0.0", 40001);
@@ -1102,8 +1098,6 @@ TEST_F(EngineRpc, ScheduleWrongServiceDowntime) {
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
   erpc.shutdown();
 }
-
-
 
 TEST_F(EngineRpc, ScheduleHostServicesDowntime) {
   enginerpc erpc("0.0.0.0", 40001);
@@ -1741,7 +1735,6 @@ TEST_F(EngineRpc, ChangeContactObjectCustomVar) {
 
   erpc.shutdown();
 }
-
 
 TEST_F(EngineRpc, ProcessServiceCheckResult) {
   enginerpc erpc("0.0.0.0", 40001);

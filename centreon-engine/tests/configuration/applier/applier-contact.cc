@@ -44,9 +44,7 @@ class ApplierContact : public ::testing::Test {
     init_config_state();
   }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 
   configuration::contact valid_contact_config() const {
     // Add command.

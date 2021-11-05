@@ -29,7 +29,6 @@ using namespace com::centreon::engine;
 
 class GetNextValidTimeNormalWeekdayTest : public ::testing::Test {
  public:
-
   void default_data_set() {
     _creator.new_timeperiod();
     // tuesday 10:30-11:45,18:30-23:30

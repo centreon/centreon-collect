@@ -194,5 +194,4 @@ TEST(SSHChecks, TimeoutCtor) {
   checks::check c1;
   checks::timeout t2(&c1);
   ASSERT_EQ(t2.get_check(), &c1);
-
 }

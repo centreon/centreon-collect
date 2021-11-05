@@ -39,13 +39,9 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierService : public TestEngine {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given service configuration with an host not defined
