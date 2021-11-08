@@ -21,6 +21,7 @@
 #include <cstring>
 
 #include "com/centreon/broker/database/mysql_result.hh"
+#include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -74,6 +75,7 @@ stream::stream(const database_config& dbcfg,
                bool store_in_data_bin)
     : io::stream("unified_sql"),
       _state{not_started},
+      _pending_events{0},
       _exit{false},
       _broken{false},
       _loop_timeout{loop_timeout},
@@ -804,3 +806,30 @@ nlohmann::json stream::get_statistics() {
 //    return retval;
 //  }
 //}
+
+int32_t stream::write(const std::shared_ptr<io::data>& data) {
+  ++_pending_events;
+  assert(data);
+  int32_t ack = send_event(static_cast<stream_type>(0), data);
+  _pending_events -= ack;
+  return ack;
+}
+
+/**
+ * @brief Read from the database.
+ *
+ * @param d cleared.
+ * @param deadline timeout.
+ *
+ * @return This method throws shutdown exception.
+ */
+bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
+  (void)deadline;
+  d.reset();
+  throw broker::exceptions::shutdown("cannot read from a unified sql stream");
+  return true;
+}
+
+int32_t stream::stop() {
+  return 0;
+}

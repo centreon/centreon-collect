@@ -23,12 +23,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Default constructor.
  */
@@ -69,16 +63,4 @@ std::unique_ptr<io::stream> connector::open() {
   return std::make_unique<stream>(_dbcfg, _rrd_len, _interval_length,
                                   _loop_timeout, _instance_timeout,
                                   _rebuild_check_interval, _store_in_data_bin);
-}
-
-int32_t stream::write(const std::shared_ptr<io::data>& d) {
-  return 0;
-}
-
-bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
-  return true;
-}
-
-int32_t stream::stop() {
-  return 0;
 }
