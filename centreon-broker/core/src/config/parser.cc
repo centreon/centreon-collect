@@ -389,6 +389,8 @@ void parser::_parse_endpoint(json const& elem,
         module = "70-rrd.so";
       else if (e.type == "sql")
         module = "80-sql.so";
+      else if (e.type == "unified_sql")
+        module = "20-unified_sql.so";
       else if (e.type == "storage")
         module = "20-storage.so";
       else if (e.type == "bam")

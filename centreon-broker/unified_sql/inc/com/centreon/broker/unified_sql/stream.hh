@@ -154,6 +154,7 @@ class stream : public io::stream {
   std::condition_variable _init_cv;
 
   misc::mfifo<std::shared_ptr<io::data>, 2> _fifo;
+  int32_t _pending_events;
 
   /* Current actions by connection */
   std::vector<uint32_t> _action;
