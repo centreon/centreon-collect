@@ -25,5 +25,4 @@ message Service {
   CheckType check_type = 9;
   int32 current_check_attempt = 10;
 
-
 }

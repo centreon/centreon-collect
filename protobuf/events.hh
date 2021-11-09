@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_PROTOBUF_EVENTS_HH
-#define CC_PROTOBUF_EVENTS_HH
+#ifndef CC_BROKER_EVENTS_HH
+#define CC_BROKER_EVENTS_HH
 
 #include <cstring>
 
@@ -103,4 +103,4 @@ constexpr uint32_t storage_pb_rebuild =
 }  // namespace centreon
 }  // namespace com
 
-#endif /* !CC_PROTOBUF_EVENTS_HH */
+#endif /* !CC_BROKER_EVENTS_HH */
