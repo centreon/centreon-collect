@@ -10,7 +10,7 @@ stage('Dependencies containers creation') {
         dir ('ci/docker') {
           sh 'docker build --no-cache . -f Dockerfile.collect-centos7-dependencies -t registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
           sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:21.10'
-          sh 'docker tag registry.centreon.com/centreon-collect-centos7-dependencies:21.10 registry.centreon.com/centreon-collect-centos7-dependencies:22.04
+          sh 'docker tag registry.centreon.com/centreon-collect-centos7-dependencies:21.10 registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
           sh 'docker push registry.centreon.com/centreon-collect-centos7-dependencies:22.04'
         }
       }
