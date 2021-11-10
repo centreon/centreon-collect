@@ -152,6 +152,15 @@ bool center::unregister_failover(FailoverStats *fs) {
 }
 */
 
+/**
+ * @brief If the muxer needs to write statistics, it primarily has to
+ * call this function to be registered in the statistic center and to get
+ * a pointer for its statistics. It is prohibited to directly write into this
+ * pointer. We must use the center member functions for this purpose.
+ *
+ * @return A pointer to the muxer statistics.
+ */
+
 MuxerStats* center::register_muxer(void) {
   std::promise<MuxerStats*> p;
   std::future<MuxerStats*> retval = p.get_future();
