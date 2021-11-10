@@ -1,4 +1,5 @@
 import random
+from robot.api import logger
 import shutil
 from os import makedirs
 import sys
@@ -16,6 +17,7 @@ class EngineInstance:
         self.last_service_id = 0
         self.hosts = []
         self.last_host_id = 0
+        self.last_host_group_id = 0
         self.commands_count = 50
         self.instances = count
         self.build_configs(50, 20)
@@ -163,6 +165,20 @@ class EngineInstance:
 """.format(ENGINE_HOME, cmd)
         return retval
 
+    def create_host_group(self, mbs):
+        self.last_host_group_id += 1
+        hid = self.last_host_group_id
+
+        retval = """define hostgroup {{
+    hostgroup_id                    {0}
+    hostgroup_name                  hostgroup_{0}
+    alias                           hostgroup_{0}
+    members                         {1}
+}}
+""".format(hid, ",".join(mbs))
+        logger.console(retval)
+        return retval
+        
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
           shutil.rmtree(CONF_DIR)
@@ -268,3 +284,14 @@ def engine_config_set_value(idx: int, key: str, value: str):
   f = open(filename, "w")
   f.writelines(lines)
   f.close()
+
+def add_host_group(index: int, members: list):
+    mbs = []
+    for m in members: 
+        if m in engine.hosts:
+            mbs.append(m)        
+
+    f = open("/etc/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
+    logger.console(mbs)
+    f.write(engine.create_host_group(mbs))
+    f.close()

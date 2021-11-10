@@ -1,6 +1,8 @@
 import time
 from robot.api import logger
 import json
+import glob
+import os.path
 
 TIMEOUT = 30
 
@@ -24,7 +26,7 @@ config = {
             "loggers": {{
                 "core": "info",
                 "config": "error",
-                "sql": "debug",
+                "sql": "error",
                 "processing": "error",
                 "perfdata": "error",
                 "bbdo": "error",
@@ -401,3 +403,8 @@ def check_broker_stats_size(name, key):
       return retval
     time.sleep(5)
   return retval
+
+def get_metric_to_delete():
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/*.rrd")]
+    metric =files[0].split(".")
+    return metric[0]

@@ -98,6 +98,19 @@ def start_mysql():
 def stop_mysql():
   getoutput("systemctl stop mysql")
 
+def kill_broker():
+  getoutput("kill -15 $(ps aux | grep '/usr/sbin/cbd' | awk '{print $2}')")
+  getoutput("kill -15 $(ps aux | grep '/usr/sbin/cbwd' | awk '{print $2}')")
+
+def kill_engine():
+  getoutput("kill -15 $(ps aux | grep '/usr/sbin/centengine' | awk '{print $2}')")
+
+def sighup_broker():
+  getoutput("kill -1 $(ps aux | grep '/usr/sbin/cbd' | awk '{print $2}')")
+
+def sighup_engine():
+  getoutput("kill -1 $(ps aux | grep '/usr/sbin/centengine' | awk '{print $2}')")
+
 #now = "2021-10-22 16:36:59.519"
 #print(find_in_log("/var/log/centreon-broker/central-broker-master.log", now, ["extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration'", "we have extensions 'COMPRESSION' and peer has ''"]))
 #logger.console(check_connection(5669, 16088, 16219))
