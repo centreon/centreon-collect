@@ -508,6 +508,7 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
     auto now(std::chrono::system_clock::now());
     if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
             .count() > 1000) {
+      std::unique_lock<std::mutex> lock(_mutex);
       _clk = now;
       _stats->set_queue_file_enabled(_queue_file_enabled);
       _stats->set_queue_file(_queue_file_name);
