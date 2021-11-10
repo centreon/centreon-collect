@@ -458,7 +458,6 @@ void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
   event.reset();
   // If file exist, try to get the last event.
   if (_file) {
-    _queue_file_enabled = true;
     _queue_file_name = this->queue_file(_name);
     try {
       do {
