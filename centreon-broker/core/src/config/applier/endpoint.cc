@@ -328,7 +328,7 @@ multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
 
   // Create muxer.
   std::unique_ptr<multiplexing::muxer> s(
-      new multiplexing::muxer(cfg.name, true));
+      std::make_unique<multiplexing::muxer>(cfg.name, true));
   s->set_read_filters(read_elements);
   s->set_write_filters(write_elements);
   return s.release();
@@ -402,7 +402,7 @@ processing::failover* endpoint::_create_failover(
 
   // Return failover thread.
   std::unique_ptr<processing::failover> fo(
-      new processing::failover(endp, mux, cfg.name));
+      std::make_unique<processing::failover>(endp, mux, cfg.name));
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);
