@@ -80,11 +80,11 @@ class center {
 
   bool unregister_mysql_connection(SqlConnectionStats* connection);
   // bool unregister_failover(FailoverStats *);
-  bool unregister_muxer(MuxerStats*);
+  bool unregister_muxer(MuxerStats* ms);
 
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);
-  void get_muxer_stats(uint32_t, MuxerStats*);
+  void get_muxer_stats(uint32_t index, MuxerStats *response);
 
   // bool unregister_endpoint(const std::string& name);
   // bool unregister_feeder(EndpointStats* ep_stats, const std::string& name);
