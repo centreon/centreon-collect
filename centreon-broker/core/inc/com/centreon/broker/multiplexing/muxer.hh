@@ -81,7 +81,6 @@ class muxer : public io::stream {
       _stats->set_queue_file(_queue_file_name);
       _stats->set_unacknowledged_events(std::to_string(_events_size));
     }
-    return;
   }
 
   MuxerStats* _stats;
