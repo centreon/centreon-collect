@@ -72,16 +72,7 @@ class muxer : public io::stream {
   std::string _memory_file() const;
   void _push_to_queue(std::shared_ptr<io::data> const& event);
 
-  void updateStats(void) noexcept {
-    auto now(std::chrono::system_clock::now());
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
-            .count() > 1000) {
-      _clk = now;
-      _stats->set_queue_file_enabled(_queue_file_enabled);
-      _stats->set_queue_file(_queue_file_name);
-      _stats->set_unacknowledged_events(std::to_string(_events_size));
-    }
-  }
+  void updateStats(void) noexcept;
 
   MuxerStats* _stats;
   std::chrono::time_point<std::chrono::system_clock> _clk;
