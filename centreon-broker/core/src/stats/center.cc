@@ -27,8 +27,6 @@
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/broker/log_v2.hh"
 
-#include <iterator>
-
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
 using namespace google::protobuf::util;
