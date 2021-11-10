@@ -223,3 +223,7 @@ grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
   stats::center::instance().get_muxer_stats(index, response);
   return grpc::Status::OK;
 }
+
+void broker_impl::set_broker_name(std::string const& s) {
+  _broker_name = s;
+};

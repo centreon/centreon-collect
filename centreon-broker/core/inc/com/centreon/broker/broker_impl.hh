@@ -64,9 +64,7 @@ class broker_impl final : public Broker::Service {
                              MuxerStats*) override;
 
  public:
-  void set_broker_name(std::string const& s) {
-    _broker_name = s;
-  };
+  void set_broker_name(std::string const& s);
 };
 CCB_END()
 
