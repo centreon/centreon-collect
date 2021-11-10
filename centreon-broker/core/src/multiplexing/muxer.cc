@@ -97,7 +97,7 @@ muxer::muxer(std::string const& name, bool persistent)
   }
   _pos = _events.begin();
 
-  this->updateStats();
+  updateStats();
 
   // Log messages.
   log_v2::perfdata()->info(
@@ -160,7 +160,7 @@ void muxer::ack_events(int count) {
       _push_to_queue(e);
     }
   }
-  this->updateStats();
+  updateStats();
 }
 
 /**
@@ -172,7 +172,7 @@ int32_t muxer::stop() {
   log_v2::core()->info("Stopping muxer {}: number of events in the queue: {}",
                        _name,
                        _events_size);
-  this->updateStats();
+  updateStats();
   return 0;
 }
 
@@ -342,7 +342,7 @@ void muxer::nack_events() {
       _name);
   std::lock_guard<std::mutex> lock(_mutex);
   _pos = _events.begin();
-  this->updateStats();
+  updateStats();
 }
 
 /**
@@ -369,7 +369,7 @@ void muxer::statistics(nlohmann::json& tree) {
     ++unacknowledged;
   tree["unacknowledged_events"] = unacknowledged;
 
-  this->updateStats();
+  updateStats();
 }
 
 /**
