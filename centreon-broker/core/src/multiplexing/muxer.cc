@@ -350,7 +350,7 @@ void muxer::nack_events() {
  *
  *  @param[out] buffer Output buffer.
  */
-void muxer::statistics(nlohmann::json& tree) {
+void muxer::statistics(nlohmann::json& tree) const {
   // Lock object.
   std::lock_guard<std::mutex> lock(_mutex);
 
@@ -369,7 +369,7 @@ void muxer::statistics(nlohmann::json& tree) {
     ++unacknowledged;
   tree["unacknowledged_events"] = unacknowledged;
 
-  updateStats();
+  //updateStats();
 }
 
 /**
@@ -525,6 +525,4 @@ void muxer::remove_queue_files() {
   /* Here _file is already destroyed */
   persistent_file file(this->queue_file(_name));
   file.remove_all_files();
-
-  this->updateStats();
 }
