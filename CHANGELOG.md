@@ -6,4 +6,8 @@
 
 *storage*
 
-Waiting longer for conflict managet to be connected
+Waiting longer for conflict manager to be connected
+
+*tls*
+
+Printing encrypted write log on trace level only
