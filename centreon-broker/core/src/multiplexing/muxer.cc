@@ -77,7 +77,7 @@ muxer::muxer(std::string const& name, bool persistent)
   try {
     _file.reset(new persistent_file(queue_file(_name)));
     _queue_file_enabled = true;
-    _queue_file_name = this->queue_file(_name);
+    _queue_file_name = queue_file(_name);
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
