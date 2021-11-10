@@ -369,7 +369,7 @@ void muxer::statistics(nlohmann::json& tree) const {
     ++unacknowledged;
   tree["unacknowledged_events"] = unacknowledged;
 
-  //updateStats();
+  // updateStats();
 }
 
 /**
@@ -504,17 +504,17 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
  * Fill statistics if it happened more than 1 second ago
  */
 
-  void muxer::updateStats(void) noexcept {
-    auto now(std::chrono::system_clock::now());
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
-            .count() > 1000) {
-      std::unique_lock<std::mutex> lock(_mutex);
-      _clk = now;
-      _stats->set_queue_file_enabled(_queue_file_enabled);
-      _stats->set_queue_file(_queue_file_name);
-      _stats->set_unacknowledged_events(std::to_string(_events_size));
-    }
+void muxer::updateStats(void) noexcept {
+  auto now(std::chrono::system_clock::now());
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
+          .count() > 1000) {
+    std::unique_lock<std::mutex> lock(_mutex);
+    _clk = now;
+    _stats->set_queue_file_enabled(_queue_file_enabled);
+    _stats->set_queue_file(_queue_file_name);
+    _stats->set_unacknowledged_events(std::to_string(_events_size));
   }
+}
 
 /**
  *  Remove all the queue files attached to this muxer.
