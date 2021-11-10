@@ -104,7 +104,7 @@ muxer::muxer(std::string const& name, bool persistent)
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name,
       _events_size,
-      _file ? "enable" : "disable");
+      _queue_file_enabled ? "enable" : "disable");
 
   engine::instance().subscribe(this);
 }
