@@ -177,7 +177,7 @@ bool center::unregister_muxer(MuxerStats* ms) {
   _strand.post([this, &p, ms] {
     auto it = std::find_if(_stats.mutable_muxers()->begin(),
                            _stats.mutable_muxers()->end(),
-                           [&ms](auto& mx) { return &mx == ms; });
+                           [ms](auto& mx) { return &mx == ms; });
     if (it != _stats.mutable_muxers()->end())
       _stats.mutable_muxers()->erase(it);
     p.set_value(true);
