@@ -26,7 +26,6 @@
 #include <queue>
 #include <string>
 #include <unordered_set>
-#include <iterator>
 #include <chrono>
 
 #include "com/centreon/broker/namespace.hh"
