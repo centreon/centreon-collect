@@ -34,6 +34,7 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -757,6 +758,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   // Handle protocol version.
+  std::tuple<uint16_t, uint16_t, uint16_t> bbdo_version{config::applier::state::instance().bbdo_version()};
   std::shared_ptr<version_response> v(
       std::static_pointer_cast<version_response>(d));
   if (v->bbdo_major != BBDO_VERSION_MAJOR) {

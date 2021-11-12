@@ -44,7 +44,7 @@ static state* gl_state = nullptr;
 /**
  *  Default constructor.
  */
-state::state() : _poller_id(0), _rpc_port(0) {}
+state::state() : _poller_id(0), _rpc_port(0), _bbdo_version{2u, 0u, 0u} {}
 
 /**
  *  Apply a configuration state.
@@ -52,7 +52,7 @@ state::state() : _poller_id(0), _rpc_port(0) {}
  *  @param[in] s       State to apply.
  *  @param[in] run_mux Set to true if multiplexing must be run.
  */
-void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
+void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   // Sanity checks.
   static char const* const allowed_chars(
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_.");
@@ -96,6 +96,7 @@ void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
   _poller_id = s.poller_id();
   _poller_name = s.poller_name();
   _rpc_port = s.rpc_port();
+  _bbdo_version = s.bbdo_version();
 
   // Thread pool size.
   _pool_size = s.pool_size();
@@ -151,6 +152,15 @@ void state::apply(com::centreon::broker::config::state const& s, bool run_mux) {
  */
 const std::string& state::cache_dir() const noexcept {
   return _cache_dir;
+}
+
+/**
+ * @brief Get the configured BBDO version
+ *
+ * @return The bbdo version.
+ */
+std::tuple<uint16_t, uint16_t, uint16_t> state::bbdo_version() const noexcept {
+  return _bbdo_version;
 }
 
 /**
