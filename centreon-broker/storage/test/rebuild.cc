@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/storage/rebuild.hh"
+#include "bbdo/storage/rebuild.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/storage/internal.hh"

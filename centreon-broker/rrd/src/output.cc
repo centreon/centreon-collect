@@ -24,14 +24,15 @@
 #include <cstdlib>
 #include <iomanip>
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
-#include "com/centreon/broker/storage/events.hh"
-#include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
@@ -204,25 +205,25 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           }
           std::string v;
           switch (e->value_type) {
-            case storage::perfdata::gauge:
+            case storage::metric::gauge:
               v = fmt::format("{:f}", e->value);
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type GAUGE with {}", e->metric_id,
                   v);
               break;
-            case storage::perfdata::counter:
+            case storage::metric::counter:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type COUNTER with {}", e->metric_id,
                   v);
               break;
-            case storage::perfdata::derive:
+            case storage::metric::derive:
               v = fmt::format("{}", static_cast<int64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type DERIVE with {}", e->metric_id,
                   v);
               break;
-            case storage::perfdata::absolute:
+            case storage::metric::absolute:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type ABSOLUTE with {}",
@@ -328,17 +329,17 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             fmt::format("{}{}.rrd", _metrics_path, e->obj.metric().metric_id());
         std::string v;
         switch (e->obj.metric().value_type()) {
-          case storage::perfdata::gauge:
+          case storage::metric::gauge:
             for (auto& p : e->obj.data())
               lst.emplace_back(fmt::format("{}:{:f}", p.ctime(), p.value()));
             break;
-          case storage::perfdata::counter:
-          case storage::perfdata::absolute:
+          case storage::metric::counter:
+          case storage::metric::absolute:
             for (auto& p : e->obj.data())
               lst.emplace_back(fmt::format("{}:{}", p.ctime(),
                                            static_cast<uint64_t>(p.value())));
             break;
-          case storage::perfdata::derive:
+          case storage::metric::derive:
             for (auto& p : e->obj.data())
               lst.emplace_back(fmt::format("{}:{}", p.ctime(),
                                            static_cast<int64_t>(p.value())));

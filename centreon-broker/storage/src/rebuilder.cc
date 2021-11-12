@@ -25,14 +25,14 @@
 #include <cstring>
 #include <ctime>
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
-#include "com/centreon/broker/storage/rebuild.hh"
-#include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 #define USE_PROTOBUF

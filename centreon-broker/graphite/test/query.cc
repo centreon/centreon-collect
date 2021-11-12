@@ -27,7 +27,8 @@ using namespace com::centreon::broker;
 TEST(graphiteQuery, ComplexMetric) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
   graphite::macro_cache cache(pcache);
-  storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
+  storage::metric m{1u,   1u,  "host1", 2000llu, 60,
+                    true, 40u, 42,      42.0,    storage::metric::automatic};
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
   std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};

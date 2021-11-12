@@ -24,10 +24,10 @@
 #include <string>
 #include <vector>
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "protobuf/events.hh"
 
 CCB_BEGIN()
 

@@ -24,6 +24,7 @@
 #include <list>
 #include <memory>
 
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -36,7 +37,6 @@
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/storage/factory.hh"
-#include "com/centreon/broker/storage/status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;

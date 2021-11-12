@@ -25,6 +25,7 @@
 #include <memory>
 
 #include "../../core/test/test_server.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
@@ -33,7 +34,6 @@
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/storage/rebuild.hh"
+#include "bbdo/storage/rebuild.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;

@@ -18,9 +18,15 @@
 
 #include <rrd.h>
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
+#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/factory.hh"
+#include "com/centreon/broker/rrd/internal.hh"
 
 using namespace com::centreon::broker;
 
@@ -39,7 +45,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "20-storage.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
   return retval;
 }
 
@@ -71,6 +77,37 @@ void broker_module_init(void const* arg) {
     char const* rrdversion(rrd_strversion());
     log_v2::rrd()->info("RRD: using rrdtool {}",
                         (rrdversion ? rrdversion : "(unknown)"));
+
+    io::events& e(io::events::instance());
+
+    // Register events.
+    {
+      e.register_event(make_type(io::storage, storage::de_metric), "metric",
+                       &storage::metric::operations, storage::metric::entries,
+                       "rt_metrics");
+      e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
+                       &storage::rebuild::operations,
+                       storage::rebuild::entries);
+      e.register_event(make_type(io::storage, storage::de_remove_graph),
+                       "remove_graph", &storage::remove_graph::operations,
+                       storage::remove_graph::entries);
+      e.register_event(make_type(io::storage, storage::de_status), "status",
+                       &storage::status::operations, storage::status::entries);
+      //      e.register_event(make_type(io::storage,
+      //      storage::de_index_mapping),
+      //                       "index_mapping",
+      //                       &storage::index_mapping::operations,
+      //                       storage::index_mapping::entries);
+      //      e.register_event(make_type(io::storage,
+      //      storage::de_metric_mapping),
+      //                       "metric_mapping",
+      //                       &storage::metric_mapping::operations,
+      //                       storage::metric_mapping::entries);
+      log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
+                           io::storage, storage::de_pb_rebuild);
+      e.register_event(storage_pb_rebuild, "pb_rebuild",
+                       &storage::pb_rebuild::operations);
+    }
 
     // Register RRD layer.
     io::protocols::instance().reg("RRD", std::make_shared<rrd::factory>(), 1,

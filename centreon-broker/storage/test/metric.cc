@@ -17,12 +17,11 @@
  *
  */
 
-#include "com/centreon/broker/storage/metric.hh"
+#include "bbdo/storage/metric.hh"
 #include <gtest/gtest.h>
 #include <cmath>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker;
 
@@ -31,7 +30,8 @@ using namespace com::centreon::broker;
  */
 TEST(StorageMetric, SpecificConstructor) {
   // First object.
-  storage::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0, 1);
+  storage::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0,
+                     storage::metric::counter);
 
   // Check objects properties values.
   ASSERT_FALSE(m1.ctime != 123456789);
@@ -61,6 +61,6 @@ TEST(StorageMetric, DefaultCtor) {
   ASSERT_FALSE(!m.name.empty());
   ASSERT_FALSE(m.rrd_len != 0);
   ASSERT_FALSE(!std::isnan(m.value));
-  ASSERT_FALSE(m.value_type != storage::perfdata::gauge);
+  ASSERT_FALSE(m.value_type != storage::metric::gauge);
   ASSERT_FALSE(m.type() != val);
 }

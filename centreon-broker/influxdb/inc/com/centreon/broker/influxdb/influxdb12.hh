@@ -22,12 +22,12 @@
 #include <asio.hpp>
 #include <memory>
 #include <string>
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/storage/metric.hh"
 
 #if ASIO_VERSION < 101200
 namespace asio {

@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include <sstream>
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -25,7 +26,6 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace asio;

@@ -26,7 +26,6 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 CCB_BEGIN()
@@ -40,6 +39,8 @@ namespace storage {
  */
 class metric : public io::data {
  public:
+  enum data_type { gauge = 0, counter, derive, absolute, automatic };
+
   metric();
   metric(uint32_t host_id,
          uint32_t service_id,
@@ -50,7 +51,7 @@ class metric : public io::data {
          uint32_t metric_id,
          int32_t rrd_len,
          double value,
-         short value_type);
+         data_type value_type);
   metric(metric const& m) = delete;
   ~metric() = default;
   metric& operator=(metric const& m) = delete;

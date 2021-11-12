@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/storage/remove_graph.hh"
+#include "bbdo/storage/remove_graph.hh"
 #include <gtest/gtest.h>
 #include <com/centreon/broker/io/events.hh>
 #include <com/centreon/broker/storage/internal.hh>
