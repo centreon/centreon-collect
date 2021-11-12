@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -29,7 +30,6 @@
 #include "com/centreon/broker/unified_sql/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "protobuf/events.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

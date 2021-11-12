@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/influxdb/stream.hh"
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/influxdb/influxdb12.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -24,7 +25,6 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;

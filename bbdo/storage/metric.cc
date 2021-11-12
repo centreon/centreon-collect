@@ -16,15 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/storage/metric.hh"
+#include "bbdo/storage/metric.hh"
 
 #include <cassert>
 #include <cmath>
 
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
@@ -40,7 +38,7 @@ metric::metric()
       metric_id(0),
       rrd_len(0),
       value(NAN),
-      value_type(perfdata::gauge),
+      value_type(metric::gauge),
       host_id(0),
       service_id(0) {}
 
@@ -53,7 +51,7 @@ metric::metric(uint32_t host_id,
                uint32_t metric_id,
                int32_t rrd_len,
                double value,
-               short value_type)
+               metric::data_type value_type)
     : io::data(metric::static_type()),
       ctime{ctime},
       interval{interval},

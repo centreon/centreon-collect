@@ -27,10 +27,10 @@
 #include <cstdio>
 #include <cstring>
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;

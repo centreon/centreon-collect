@@ -25,19 +25,12 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/storage/exceptions/perfdata.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker::storage;
-
-/**************************************
- *                                     *
- *            Local Objects            *
- *                                     *
- **************************************/
 
 /**
  *  Extract a real value from a perfdata string.
@@ -196,16 +189,16 @@ void parser::parse_perfdata(uint32_t host_id,
       --end;
       if (strncmp(s, "a[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::absolute);
+        p.value_type(metric::absolute);
       } else if (strncmp(s, "c[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::counter);
+        p.value_type(metric::counter);
       } else if (strncmp(s, "d[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::derive);
+        p.value_type(metric::derive);
       } else if (strncmp(s, "g[", 2) == 0) {
         s += 2;
-        p.value_type(perfdata::gauge);
+        p.value_type(metric::gauge);
       }
     }
 

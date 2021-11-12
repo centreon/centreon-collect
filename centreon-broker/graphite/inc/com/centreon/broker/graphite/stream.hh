@@ -26,13 +26,13 @@
 #include <memory>
 #include <mutex>
 #include <utility>
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/graphite/macro_cache.hh"
 #include "com/centreon/broker/graphite/query.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/hooker.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/storage/metric.hh"
-#include "com/centreon/broker/storage/status.hh"
 
 #if ASIO_VERSION < 101200
 namespace asio {

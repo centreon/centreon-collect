@@ -23,6 +23,9 @@
 #include <list>
 #include <sstream>
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -30,12 +33,9 @@
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/broker/storage/exceptions/perfdata.hh"
 #include "com/centreon/broker/storage/index_mapping.hh"
-#include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/storage/metric_mapping.hh"
 #include "com/centreon/broker/storage/parser.hh"
 #include "com/centreon/broker/storage/perfdata.hh"
-#include "com/centreon/broker/storage/remove_graph.hh"
-#include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -288,7 +288,7 @@ void conflict_manager::_storage_process_service_status(
             _metrics_insert.bind_value_as_f32(10, pd.max());
             _metrics_insert.bind_value_as_f32(11, pd.value());
 
-            uint32_t type = pd.value_type();
+            int16_t type = pd.value_type();
             char t[2];
             t[0] = '0' + type;
             t[1] = 0;
@@ -347,8 +347,7 @@ void conflict_manager::_storage_process_service_status(
             else
               need_metric_mapping = false;
 
-            pd.value_type(
-                static_cast<perfdata::data_type>(it_index_cache->second.type));
+            pd.value_type(it_index_cache->second.type);
 
             log_v2::perfdata()->debug(
                 "conflict_manager: metric {} concerning index {}, perfdata "
@@ -411,7 +410,8 @@ void conflict_manager::_storage_process_service_status(
                 std::make_shared<storage::metric>(
                     ss.host_id, ss.service_id, pd.name(), ss.last_check,
                     static_cast<uint32_t>(ss.check_interval * _interval_length),
-                    false, metric_id, rrd_len, pd.value(), pd.value_type())};
+                    false, metric_id, rrd_len, pd.value(),
+                    static_cast<storage::metric::data_type>(pd.value_type()))};
             log_v2::perfdata()->debug(
                 "conflict_manager: generating perfdata event for metric {} "
                 "(name '{}', ctime {}, value {}, rrd_len {}, data_type {})",

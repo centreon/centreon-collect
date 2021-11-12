@@ -35,7 +35,6 @@ namespace storage {
  */
 class perfdata {
  public:
-  enum data_type { gauge = 0, counter, derive, absolute, automatic };
   static const std::array<std::string, 5> data_type_name;
 
   perfdata();
@@ -62,8 +61,8 @@ class perfdata {
   void unit(std::string&& u);
   double value() const noexcept;
   void value(double v) noexcept;
-  data_type value_type() const noexcept;
-  void value_type(data_type t) noexcept;
+  int16_t value_type() const noexcept;
+  void value_type(int16_t t) noexcept;
   double warning() const noexcept;
   void warning(double w) noexcept;
   double warning_low() const noexcept;
@@ -80,7 +79,7 @@ class perfdata {
   std::string _name;
   std::string _unit;
   double _value;
-  data_type _value_type;
+  int16_t _value_type;
   double _warning;
   double _warning_low;
   bool _warning_mode;
@@ -92,8 +91,8 @@ class perfdata {
  *  @return Metric value.
  */
 // Inlined after profiling for performance.
-inline double perfdata::value() const throw() {
-  return (_value);
+inline double perfdata::value() const noexcept {
+  return _value;
 }
 }  // namespace storage
 

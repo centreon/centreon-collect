@@ -23,6 +23,7 @@
 #include <fstream>
 #include <limits>
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/bam/ba_status.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
@@ -41,7 +42,6 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

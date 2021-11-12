@@ -16,20 +16,20 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/events.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/storage/factory.hh"
 #include "com/centreon/broker/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/storage/metric_mapping.hh"
-#include "com/centreon/broker/storage/rebuild.hh"
-#include "com/centreon/broker/storage/remove_graph.hh"
-#include "com/centreon/broker/storage/status.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "protobuf/events.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

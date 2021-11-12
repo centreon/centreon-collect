@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013, 2021 Centreon
+** Copyright 2012-2013 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,38 +16,37 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_STORAGE_REBUILD_HH
-#define CCB_STORAGE_REBUILD_HH
+#ifndef CCB_STORAGE_REMOVE_GRAPH_HH
+#define CCB_STORAGE_REMOVE_GRAPH_HH
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/storage/internal.hh"
 
 CCB_BEGIN()
 
 namespace storage {
 /**
- *  @class rebuild rebuild.hh "com/centreon/broker/storage/rebuild.hh"
- *  @brief Rebuild event.
+ *  @class remove_graph remove_graph.hh
+ * "com/centreon/broker/storage/remove_graph.hh"
+ *  @brief Remove a RRD graph.
  *
- *  This event is generated when some graph need to be rebuild.
+ *  Remove a RRD graph.
  */
-class rebuild : public io::data {
+class remove_graph : public io::data {
  public:
-  bool end;
   uint64_t id;
   bool is_index;
 
-  rebuild();
-  rebuild(bool ending, uint64_t id, bool is_index);
-  rebuild(const rebuild&) = delete;
-  ~rebuild() noexcept = default;
-  rebuild& operator=(const rebuild& right) = delete;
+  remove_graph();
+  remove_graph(uint64_t index_id, bool is_index);
+  ~remove_graph() noexcept = default;
+  remove_graph(remove_graph const&) = delete;
+  remove_graph& operator=(remove_graph const&) = delete;
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::storage, storage::de_rebuild>::value;
+    return io::events::data_type<io::storage, storage::de_remove_graph>::value;
   }
 
   static mapping::entry const entries[];
@@ -57,4 +56,4 @@ class rebuild : public io::data {
 
 CCB_END()
 
-#endif  // !CCB_STORAGE_REBUILD_HH
+#endif  // !CCB_STORAGE_REMOVE_GRAPH_HH

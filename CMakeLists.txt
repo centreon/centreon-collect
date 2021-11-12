@@ -93,7 +93,7 @@ link_directories(${ZLIB_LIB_DIRS})
 
 set(PROTOBUF_PREFIX "${protobuf_LIB_DIRS}/..")
 
-add_subdirectory(protobuf)
+add_subdirectory(bbdo)
 add_subdirectory(centreon-broker)
 add_subdirectory(centreon-clib)
 add_subdirectory(centreon-engine)

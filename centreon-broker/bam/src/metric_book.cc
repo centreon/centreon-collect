@@ -18,8 +18,8 @@
 
 #include "com/centreon/broker/bam/metric_book.hh"
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/bam/metric_listener.hh"
-#include "com/centreon/broker/storage/metric.hh"
 
 using namespace com::centreon::broker::bam;
 

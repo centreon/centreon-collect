@@ -21,8 +21,8 @@
 
 #include <unordered_map>
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/io/event_info.hh"
-#include "protobuf/events.hh"
 
 CCB_BEGIN()
 

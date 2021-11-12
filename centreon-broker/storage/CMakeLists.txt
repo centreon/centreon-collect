@@ -42,6 +42,7 @@ set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 
 get_protobuf_files(rebuild)
+get_bbdo_files(storage)
 
 # Storage module.
 set(STORAGE "20-storage")
@@ -52,15 +53,12 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/index_mapping.cc"
   "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/metric.cc"
   "${SRC_DIR}/metric_mapping.cc"
   "${SRC_DIR}/parser.cc"
   "${SRC_DIR}/perfdata.cc"
-  "${SRC_DIR}/rebuild.cc"
   "${SRC_DIR}/rebuilder.cc"
-  "${SRC_DIR}/remove_graph.cc"
-  "${SRC_DIR}/status.cc"
   "${SRC_DIR}/stream.cc"
+  ${bbdo_storage}
   ${proto_rebuild}
   # Headers.
   "${INC_DIR}/connector.hh"
@@ -69,14 +67,10 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/index_mapping.hh"
   "${INC_DIR}/internal.hh"
-  "${INC_DIR}/metric.hh"
   "${INC_DIR}/metric_mapping.hh"
   "${INC_DIR}/parser.hh"
   "${INC_DIR}/perfdata.hh"
-  "${INC_DIR}/rebuild.hh"
   "${INC_DIR}/rebuilder.hh"
-  "${INC_DIR}/remove_graph.hh"
-  "${INC_DIR}/status.hh"
   "${INC_DIR}/stream.hh"
 )
 add_dependencies("${STORAGE}" ${proto_rebuild})

@@ -16,16 +16,10 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/storage/status.hh"
+#include "bbdo/storage/status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Default constructor.

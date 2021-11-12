@@ -35,7 +35,7 @@ perfdata::perfdata()
       _max(NAN),
       _min(NAN),
       _value(NAN),
-      _value_type(gauge),
+      _value_type(0),  // gauge
       _warning(NAN),
       _warning_low(NAN),
       _warning_mode(false) {}
@@ -245,7 +245,7 @@ void perfdata::value(double v) noexcept {
  *
  *  @return Type of the value.
  */
-perfdata::data_type perfdata::value_type() const noexcept {
+int16_t perfdata::value_type() const noexcept {
   return _value_type;
 }
 
@@ -254,7 +254,7 @@ perfdata::data_type perfdata::value_type() const noexcept {
  *
  *  @param[in] t New type.
  */
-void perfdata::value_type(perfdata::data_type t) noexcept {
+void perfdata::value_type(int16_t t) noexcept {
   _value_type = t;
 }
 

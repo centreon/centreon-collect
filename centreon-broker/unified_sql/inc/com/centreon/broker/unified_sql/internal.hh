@@ -19,9 +19,9 @@
 #ifndef CCB_UNIFIED_SQL_INTERNAL_HH
 #define CCB_UNIFIED_SQL_INTERNAL_HH
 
+#include "bbdo/events.hh"
+#include "bbdo/rebuild.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "protobuf/events.hh"
-#include "protobuf/rebuild.pb.h"
 
 CCB_BEGIN()
 

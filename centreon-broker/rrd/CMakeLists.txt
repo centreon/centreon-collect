@@ -21,7 +21,6 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/rrd/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/rrd/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/rrd/test")
 include_directories("${INC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 
@@ -51,6 +50,7 @@ else ()
 endif ()
 
 get_protobuf_files(rebuild)
+get_bbdo_files(storage)
 
 # RRD module.
 set(RRD "70-rrd")
@@ -64,6 +64,7 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
   ${proto_rebuild}
+  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"

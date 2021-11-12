@@ -128,7 +128,7 @@ class conflict_manager {
   struct metric_info {
     bool locked;
     uint32_t metric_id;
-    uint32_t type;
+    int16_t type;
     double value;
     std::string unit_name;
     double warn;
