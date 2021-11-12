@@ -47,7 +47,8 @@ class version_response : public io::data {
   std::string extensions;
 
   version_response();
-  version_response(std::string extensions);
+  version_response(const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version,
+                   std::string extensions);
   version_response(const version_response&) = delete;
   ~version_response() noexcept = default;
   version_response& operator=(const version_response&) = delete;

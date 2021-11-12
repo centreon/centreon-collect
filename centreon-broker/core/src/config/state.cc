@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/bbdo/internal.hh"
 
 using namespace com::centreon::broker::config;
 
@@ -27,6 +28,7 @@ using namespace com::centreon::broker::config;
 state::state()
     : _broker_id{0},
       _rpc_port{0},
+      _bbdo_version{BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH},
       _command_protocol{"json"},
       _event_queue_max_size{10000},
       _poller_id{0},
@@ -156,7 +158,8 @@ void state::bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v) {
  *
  *  @return bbdo version as a tuple of uint16.
  */
-const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version() const noexcept {
+const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version()
+    const noexcept {
   return _bbdo_version;
 }
 
