@@ -43,6 +43,7 @@ class state {
   int _broker_id;
   uint16_t _rpc_port;
   std::string _broker_name;
+  std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
   std::string _cache_directory;
   std::string _command_file;
   std::string _command_protocol;
@@ -77,6 +78,8 @@ class state {
   uint16_t rpc_port(void) const noexcept;
   void broker_name(std::string const& name);
   const std::string& broker_name() const noexcept;
+  void bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v);
+  const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version() const noexcept;
   void cache_directory(std::string const& dir);
   std::string const& cache_directory() const noexcept;
   void command_file(std::string const& file);

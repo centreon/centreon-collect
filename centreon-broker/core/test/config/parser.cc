@@ -564,6 +564,7 @@ TEST(parser, unifiedSql) {
       "        \"broker_id\": 1,\n"
       "        \"broker_name\": \"central-broker-master\",\n"
       "        \"poller_id\": 1,\n"
+      "        \"bbdo_version\": \"3.1.2\",\n"
       "        \"poller_name\": \"Central\",\n"
       "        \"module_directory\": "
       "\"/usr/share/centreon/lib/centreon-broker\",\n"
@@ -702,8 +703,10 @@ TEST(parser, unifiedSql) {
 
   // Parse.
   config::parser p;
-  ASSERT_NO_THROW(p.parse(config_file));
-
+  auto retval = p.parse(config_file);
+  ASSERT_EQ(std::get<0>(retval.bbdo_version()), 3u);
+  ASSERT_EQ(std::get<1>(retval.bbdo_version()), 1u);
+  ASSERT_EQ(std::get<2>(retval.bbdo_version()), 2u);
   // Remove temporary file.
   ::remove(config_file.c_str());
 }

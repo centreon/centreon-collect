@@ -325,7 +325,7 @@ void conflict_manager::_storage_process_service_status(
 
               std::lock_guard<std::mutex> lock(_metric_cache_m);
               _metric_cache[{index_id, pd.name()}] = info;
-            } catch (std::exception const& e) {
+            } catch (const std::exception& e) {
               log_v2::perfdata()->error(
                   "conflict_manager: failed to create metric {} with type {}, "
                   "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "

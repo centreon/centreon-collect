@@ -143,6 +143,24 @@ std::string const& state::broker_name() const noexcept {
 }
 
 /**
+ *  Set the BBDO version.
+ *
+ *  @param[in] v  bbdo version given as a tuple of uint16.
+ */
+void state::bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v) {
+  _bbdo_version = std::move(v);
+}
+
+/**
+ *  Get BBDO version.
+ *
+ *  @return bbdo version as a tuple of uint16.
+ */
+const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version() const noexcept {
+  return _bbdo_version;
+}
+
+/**
  *  Set the cache directory.
  *
  *  @param[in] dir  Cache directory.
