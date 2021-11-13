@@ -29,12 +29,12 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/unified_sql/exceptions/perfdata.hh"
 #include "com/centreon/broker/unified_sql/index_mapping.hh"
-#include "com/centreon/broker/unified_sql/metric.hh"
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/unified_sql/metric_mapping.hh"
 #include "com/centreon/broker/unified_sql/parser.hh"
 #include "com/centreon/broker/unified_sql/perfdata.hh"
-#include "com/centreon/broker/unified_sql/remove_graph.hh"
-#include "com/centreon/broker/unified_sql/status.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -239,8 +239,8 @@ void stream::_unified_sql_process_service_status(
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
-    std::shared_ptr<unified_sql::status> status(
-        std::make_shared<unified_sql::status>(
+    auto status(
+        std::make_shared<storage::status>(
             ss.last_check, index_id,
             static_cast<uint32_t>(ss.check_interval * _interval_length), false,
             rrd_len, ss.last_hard_state));
@@ -410,11 +410,12 @@ void stream::_unified_sql_process_service_status(
 
           // Send perfdata event to processing.
           if (!index_locked) {
-            std::shared_ptr<unified_sql::metric> perf{
-                std::make_shared<unified_sql::metric>(
+            auto perf{
+                std::make_shared<storage::metric>(
                     ss.host_id, ss.service_id, pd.name(), ss.last_check,
                     static_cast<uint32_t>(ss.check_interval * _interval_length),
-                    false, metric_id, rrd_len, pd.value(), pd.value_type())};
+                    false, metric_id, rrd_len, pd.value(),
+                    static_cast<storage::metric::data_type>(pd.value_type()))};
             log_v2::perfdata()->debug(
                 "unified sql: generating perfdata event for metric {} "
                 "(name '{}', ctime {}, value {}, rrd_len {}, data_type {})",
@@ -587,8 +588,8 @@ void stream::_check_deleted_index() {
       _add_action(conn, actions::metrics);
 
       // Remove associated graph.
-      std::shared_ptr<unified_sql::remove_graph> rg{
-          std::make_shared<unified_sql::remove_graph>(i, false)};
+      std::shared_ptr<storage::remove_graph> rg{
+          std::make_shared<storage::remove_graph>(i, false)};
       multiplexing::publisher().write(rg);
 
       _metrics.erase(i);
@@ -603,8 +604,8 @@ void stream::_check_deleted_index() {
       _add_action(conn, actions::index_data);
 
       // Remove associated graph.
-      std::shared_ptr<unified_sql::remove_graph> rg{
-          std::make_shared<unified_sql::remove_graph>(i, true)};
+      std::shared_ptr<storage::remove_graph> rg{
+          std::make_shared<storage::remove_graph>(i, true)};
       multiplexing::publisher().write(rg);
       deleted_index++;
     }

@@ -16,18 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/storage/metric_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 
 #include <cmath>
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Default constructor.

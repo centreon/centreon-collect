@@ -25,9 +25,9 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/storage/factory.hh"
-#include "com/centreon/broker/storage/index_mapping.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

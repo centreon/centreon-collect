@@ -16,6 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
+//#include "bbdo/events.hh"
+//#include "bbdo/storage/metric.hh"
+//#include "bbdo/storage/rebuild.hh"
+//#include "bbdo/storage/remove_graph.hh"
+//#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/influxdb/factory.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -40,7 +45,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "20-storage.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
   return retval;
 }
 
@@ -69,10 +74,26 @@ void broker_module_init(void const* arg) {
     log_v2::influxdb()->info("influxdb: module for Centreon Broker {}",
                              CENTREON_BROKER_VERSION);
 
+    io::events& e(io::events::instance());
+
+    // Register events.
+    {
+      e.register_event(make_type(io::storage, storage::de_metric), "metric",
+                       &storage::metric::operations, storage::metric::entries,
+                       "rt_metrics");
+      e.register_event(make_type(io::storage, storage::de_status), "status",
+                       &storage::status::operations, storage::status::entries);
+      e.register_event(make_type(io::storage, storage::de_index_mapping),
+                       "index_mapping", &storage::index_mapping::operations,
+                       storage::index_mapping::entries);
+      e.register_event(make_type(io::storage, storage::de_metric_mapping),
+                       "metric_mapping", &storage::metric_mapping::operations,
+                       storage::metric_mapping::entries);
+    }
+
     // Register storage layer.
     io::protocols::instance().reg("influxdb",
                                   std::make_shared<influxdb::factory>(), 1, 7);
   }
-  return;
 }
 }

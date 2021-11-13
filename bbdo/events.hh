@@ -19,6 +19,7 @@
 #ifndef CC_BROKER_EVENTS_HH
 #define CC_BROKER_EVENTS_HH
 
+#include <cstdint>
 #include <cstring>
 
 namespace com {

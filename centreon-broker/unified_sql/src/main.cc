@@ -23,11 +23,11 @@
 #include "com/centreon/broker/unified_sql/factory.hh"
 #include "com/centreon/broker/unified_sql/index_mapping.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/broker/unified_sql/metric.hh"
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/unified_sql/metric_mapping.hh"
-#include "com/centreon/broker/unified_sql/rebuild.hh"
-#include "com/centreon/broker/unified_sql/remove_graph.hh"
-#include "com/centreon/broker/unified_sql/status.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -85,17 +85,17 @@ void broker_module_init(void const* arg) {
     // Register events.
     {
       e.register_event(make_type(io::storage, storage::de_metric), "metric",
-                       &unified_sql::metric::operations,
-                       unified_sql::metric::entries, "rt_metrics");
+                       &storage::metric::operations,
+                       storage::metric::entries, "rt_metrics");
       e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
-                       &unified_sql::rebuild::operations,
-                       unified_sql::rebuild::entries);
+                       &storage::rebuild::operations,
+                       storage::rebuild::entries);
       e.register_event(make_type(io::storage, storage::de_remove_graph),
-                       "remove_graph", &unified_sql::remove_graph::operations,
-                       unified_sql::remove_graph::entries);
+                       "remove_graph", &storage::remove_graph::operations,
+                       storage::remove_graph::entries);
       e.register_event(make_type(io::storage, storage::de_status), "status",
-                       &unified_sql::status::operations,
-                       unified_sql::status::entries);
+                       &storage::status::operations,
+                       storage::status::entries);
       e.register_event(make_type(io::storage, storage::de_index_mapping),
                        "index_mapping", &unified_sql::index_mapping::operations,
                        unified_sql::index_mapping::entries);

@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/unified_sql/rebuild.hh"
+#include "bbdo/storage/rebuild.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
@@ -29,7 +29,7 @@ using namespace com::centreon::broker;
  */
 TEST(UnifiedSqlRebuild, DefaultCtor) {
   // Build object.
-  unified_sql::rebuild r;
+  storage::rebuild r;
 
   // Check properties values.
   ASSERT_FALSE(!r.end);
@@ -41,7 +41,7 @@ TEST(UnifiedSqlRebuild, DefaultCtor) {
  *  Check that the remove_graph object properly return is type
  */
 TEST(UnifiedSqlRebuild, ReturnType) {
-  unified_sql::rebuild r;
+  storage::rebuild r;
   auto val = io::events::data_type<io::storage, storage::de_rebuild>::value;
 
   ASSERT_TRUE(r.static_type() == val);

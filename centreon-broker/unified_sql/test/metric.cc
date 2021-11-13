@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/unified_sql/metric.hh"
+#include "bbdo/storage/metric.hh"
 #include <gtest/gtest.h>
 #include <cmath>
 #include "com/centreon/broker/io/events.hh"
@@ -31,7 +31,7 @@ using namespace com::centreon::broker;
  */
 TEST(UnifiedSqlMetric, SpecificConstructor) {
   // First object.
-  unified_sql::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0, 1);
+  storage::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0, storage::metric::counter);
 
   // Check objects properties values.
   ASSERT_FALSE(m1.ctime != 123456789);
@@ -49,7 +49,7 @@ TEST(UnifiedSqlMetric, SpecificConstructor) {
  */
 TEST(UnifiedSqlMetric, DefaultCtor) {
   // Build object.
-  unified_sql::metric m;
+  storage::metric m;
 
   auto val(io::events::data_type<io::storage, storage::de_metric>::value);
 

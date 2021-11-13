@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/storage/index_mapping.hh"
+#include "bbdo/storage/index_mapping.hh"
 
 #include <cmath>
 

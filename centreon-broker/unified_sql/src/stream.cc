@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <thread>
 
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"

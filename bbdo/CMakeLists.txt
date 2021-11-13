@@ -33,9 +33,23 @@ macro(get_protobuf_files name)
       "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endmacro()
 
+macro(get_protobuf_accessor name)
+    set(proto_file "${name}.proto")
+    set(full_proto_file "${CMAKE_SOURCE_DIR}/bbdo/${name}.proto")
+    add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}_accessor.hh"
+        DEPENDS ${full_proto_file}
+        COMMENT "Generating accessor to protobuf message ${proto_file}"
+        COMMAND python3
+        ARGS ${full_proto_file}
+        VERBATIM
+        )
+endmacro()
+
 macro(get_bbdo_files category)
   if (${category} STREQUAL "storage")
     set(bbdo_${category}
+      "${CMAKE_SOURCE_DIR}/bbdo/storage/index_mapping.cc"
+      "${CMAKE_SOURCE_DIR}/bbdo/storage/metric_mapping.cc"
       "${CMAKE_SOURCE_DIR}/bbdo/storage/metric.cc"
       "${CMAKE_SOURCE_DIR}/bbdo/storage/rebuild.cc"
       "${CMAKE_SOURCE_DIR}/bbdo/storage/remove_graph.cc"

@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/unified_sql/status.hh"
+#include "bbdo/storage/status.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
@@ -29,7 +29,7 @@ using namespace com::centreon::broker;
  */
 TEST(UnifiedSqlStatus, Assign) {
   // First object.
-  unified_sql::status s1;
+  storage::status s1;
   s1.ctime = 123456789;
   s1.index_id = 6774;
   s1.interval = 42;
@@ -38,7 +38,7 @@ TEST(UnifiedSqlStatus, Assign) {
   s1.state = 3;
 
   // Second object.
-  unified_sql::status s2;
+  storage::status s2;
   s2.ctime = 654123;
   s2.index_id = 33;
   s2.interval = 78;
@@ -77,7 +77,7 @@ TEST(UnifiedSqlStatus, Assign) {
  */
 TEST(UnifiedSqlStatus, CopyCtor) {
   // First object.
-  unified_sql::status s1;
+  storage::status s1;
   s1.ctime = 123456789;
   s1.index_id = 42;
   s1.interval = 24;
@@ -86,7 +86,7 @@ TEST(UnifiedSqlStatus, CopyCtor) {
   s1.state = 1;
 
   // Second object.
-  unified_sql::status s2(s1);
+  storage::status s2(s1);
 
   // Change first object.
   s1.ctime = 741258;
@@ -117,7 +117,7 @@ TEST(UnifiedSqlStatus, CopyCtor) {
  */
 TEST(UnifiedSqlStatus, DefaultCtor) {
   // Build object.
-  unified_sql::status s;
+  storage::status s;
 
   auto val(io::events::data_type<io::storage, storage::de_status>::value);
 
