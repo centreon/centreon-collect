@@ -37,8 +37,8 @@
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/persistent_cache.hh"
-#include "com/centreon/broker/storage/index_mapping.hh"
-#include "com/centreon/broker/storage/metric_mapping.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 
 CCB_BEGIN()
 

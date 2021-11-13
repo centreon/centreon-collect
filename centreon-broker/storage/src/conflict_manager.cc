@@ -24,7 +24,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/storage/index_mapping.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/perfdata.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

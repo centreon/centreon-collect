@@ -36,7 +36,7 @@
 #include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/broker/storage/exceptions/perfdata.hh"
-#include "com/centreon/broker/storage/index_mapping.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/storage/parser.hh"
 #include "com/centreon/broker/storage/perfdata.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

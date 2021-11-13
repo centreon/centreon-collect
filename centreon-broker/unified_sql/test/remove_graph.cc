@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/unified_sql/remove_graph.hh"
+#include "bbdo/storage/remove_graph.hh"
 #include <gtest/gtest.h>
 #include <com/centreon/broker/io/events.hh>
 #include <com/centreon/broker/unified_sql/internal.hh>
@@ -29,7 +29,7 @@ using namespace com::centreon::broker;
  */
 TEST(UnifiedSqlRemoveGraph, Constructor) {
   // Base object.
-  unified_sql::remove_graph r1(42, false);
+  storage::remove_graph r1(42, false);
   ASSERT_TRUE(r1.id == 42);
   ASSERT_FALSE(r1.is_index);
 }
@@ -38,7 +38,7 @@ TEST(UnifiedSqlRemoveGraph, Constructor) {
  *  Check that the remove_graph object properly return is type
  */
 TEST(UnifiedSqlRemoveGraph, ReturnType) {
-  unified_sql::remove_graph r;
+  storage::remove_graph r;
   auto val =
       io::events::data_type<io::storage, storage::de_remove_graph>::value;
 

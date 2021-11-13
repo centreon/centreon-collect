@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2013 Centreon
+## Copyright 2011-2013, 2020-2021 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -51,9 +51,7 @@ add_library("${STORAGE}" SHARED
   # Sources.
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
-  "${SRC_DIR}/index_mapping.cc"
   "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/metric_mapping.cc"
   "${SRC_DIR}/parser.cc"
   "${SRC_DIR}/perfdata.cc"
   "${SRC_DIR}/rebuilder.cc"
@@ -65,9 +63,7 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/events.hh"
   "${INC_DIR}/exceptions/perfdata.hh"
   "${INC_DIR}/factory.hh"
-  "${INC_DIR}/index_mapping.hh"
   "${INC_DIR}/internal.hh"
-  "${INC_DIR}/metric_mapping.hh"
   "${INC_DIR}/parser.hh"
   "${INC_DIR}/perfdata.hh"
   "${INC_DIR}/rebuilder.hh"

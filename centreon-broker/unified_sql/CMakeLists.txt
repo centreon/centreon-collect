@@ -26,6 +26,7 @@ include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 get_protobuf_files(rebuild)
+get_bbdo_files(storage)
 
 # Storage module.
 set(UNIFIED_SQL "20-unified_sql")
@@ -36,19 +37,16 @@ add_library("${UNIFIED_SQL}" SHARED
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/index_mapping.cc"
   "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/metric.cc"
   "${SRC_DIR}/metric_mapping.cc"
   "${SRC_DIR}/parser.cc"
   "${SRC_DIR}/perfdata.cc"
-  "${SRC_DIR}/rebuild.cc"
   "${SRC_DIR}/rebuilder.cc"
-  "${SRC_DIR}/remove_graph.cc"
-  "${SRC_DIR}/status.cc"
   "${SRC_DIR}/stored_timestamp.cc"
   "${SRC_DIR}/stream.cc"
   "${SRC_DIR}/stream_sql.cc"
   "${SRC_DIR}/stream_storage.cc"
   ${proto_rebuild}
+  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
@@ -56,14 +54,10 @@ add_library("${UNIFIED_SQL}" SHARED
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/index_mapping.hh"
   "${INC_DIR}/internal.hh"
-  "${INC_DIR}/metric.hh"
   "${INC_DIR}/metric_mapping.hh"
   "${INC_DIR}/parser.hh"
   "${INC_DIR}/perfdata.hh"
-  "${INC_DIR}/rebuild.hh"
   "${INC_DIR}/rebuilder.hh"
-  "${INC_DIR}/remove_graph.hh"
-  "${INC_DIR}/status.hh"
   "${INC_DIR}/stored_timestamp.hh"
   "${INC_DIR}/stream.hh"
 )

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2021 Centreon
+** Copyright 2015 - 2020 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_UNIFIED_SQL_STATUS_HH
-#define CCB_UNIFIED_SQL_STATUS_HH
+#ifndef CCB_STORAGE_INDEX_MAPPING_HH
+#define CCB_STORAGE_INDEX_MAPPING_HH
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
@@ -25,47 +25,38 @@
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
-#include "com/centreon/broker/unified_sql/internal.hh"
 
 CCB_BEGIN()
 
-namespace unified_sql {
+namespace storage {
 /**
- *  @class status status.hh "com/centreon/broker/unified_sql/status.hh"
- *  @brief Status data used to generate status graphs.
+ *  @class index_mapping index_mapping.hh
+ * "com/centreon/broker/storage/index_mapping.hh"
+ *  @brief Information about an index stored in the database.
  *
- *  Status data event, mainly used to generate status graphs.
+ *  Used to provide more informations about the mapping of the index
+ *  to its service/host.
  */
-class status : public io::data {
-  void _internal_copy(status const& s);
-
+class index_mapping : public io::data {
  public:
-  timestamp ctime;
+  index_mapping();
+  index_mapping(uint64_t index_id, uint32_t host_id, uint32_t service_id);
+  index_mapping(index_mapping const& other) = delete;
+  ~index_mapping() = default;
+  index_mapping& operator=(index_mapping const& other) = delete;
+  constexpr static uint32_t static_type() {
+    return io::events::data_type<io::storage, storage::de_index_mapping>::value;
+  }
+
   uint64_t index_id;
-  uint32_t interval;
-  bool is_for_rebuild;
-  timestamp rrd_len;
-  short state;
+  uint32_t host_id;
+  uint32_t service_id;
 
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
-
-  status();
-  status(timestamp const& ctime,
-         uint64_t index_id,
-         uint32_t interval,
-         bool is_for_rebuild,
-         timestamp const& rrd_len,
-         int16_t state);
-  status(status const& s);
-  ~status();
-  status& operator=(status const& s);
-  constexpr static uint32_t static_type() {
-    return io::events::data_type<io::storage, storage::de_status>::value;
-  }
 };
-}  // namespace unified_sql
+}  // namespace storage
 
 CCB_END()
 
-#endif  // !CCB_UNIFIED_SQL_STATUS_HH
+#endif  // !CCB_STORAGE_INDEX_MAPPING_HH

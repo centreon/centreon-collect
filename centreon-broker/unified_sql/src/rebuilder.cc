@@ -29,9 +29,9 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/broker/unified_sql/metric.hh"
-#include "com/centreon/broker/unified_sql/rebuild.hh"
-#include "com/centreon/broker/unified_sql/status.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

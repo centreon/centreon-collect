@@ -25,26 +25,33 @@ obj_u = obj.upper()
 obj_c = obj.capitalize()
 
 accessors = []
-in_block = False
+block_level = 0
 decl = re.compile('\s*([a-zA-Z0-9]+)\s+([a-z_0-9]+)\s*=\s*[0-9]+;')
+enum = re.compile('\s*enum\s+([a-zA-Z]+)\s+{')
+enums = []
 with open("{}.proto".format(obj), encoding='utf-8') as fp:
-  line = fp.readline()
-  while line:
-    if not in_block:
-      if line == "message {} {{\n".format(obj_c):
-        print("Message!!\n")
-        in_block = True
-    else:
-      if line == "}":
-        in_block = False
-      else:
-        m = decl.match(line)
-        if m:
-          if m.group(1) in [ 'bool', 'int32', 'int64', 'uint32', 'uint64', 'string' ]:
-            d = """    {{"{0}", [obj = this->_obj] {{ return misc::variant(obj->{0}()); }}}}""".format(m.group(2))
-            accessors.append(d)
     line = fp.readline()
-  fp.close()
+    while line:
+        if block_level == 0:
+            if line == "message {} {{\n".format(obj_c):
+                block_level += 1
+        else:
+            if line == "}":
+                block_level -= 1
+            else:
+                if block_level == 1:
+                    m = decl.match(line)
+                    if m:
+                        if m.group(1) in ['bool', 'int32', 'int64', 'uint32', 'uint64', 'string'] or m.group(1) in enums:
+                            d = """    {{"{0}", [obj = this->_obj] {{ return misc::variant(obj->{0}()); }}}}""".format(
+                                m.group(2))
+                            accessors.append(d)
+                    else:
+                        m = enum.match(line)
+                        if m:
+                            enums.append(m.group(1))
+        line = fp.readline()
+    fp.close()
 
 acc = ",\n".join(accessors)
 content = """#ifndef CC_BROKER_{0}_ACCESSOR_HH
@@ -66,6 +73,14 @@ class {2}_accessor {{
 
  public:
   {2}_accessor({1}* obj) : _obj{{obj}} {{}}
+  misc::variant get(const std::string& key) {{
+    auto it = _get.find(key);
+    if (it != _get.end())
+      return it->second();
+    else
+      throw exceptions::msg_fmt(
+        "Service protobuf object does not contain '{{}}' element", key);
+  }}
 }};
 
 }}  // namespace broker
@@ -75,4 +90,4 @@ class {2}_accessor {{
 #endif /* !CC_BROKER_{0}_ACCESSOR_HH */
 """.format(obj_u, obj_c, obj, acc)
 
-print(content)
+print(content, file=open("{}_accessor.hh".format(obj), "w"))

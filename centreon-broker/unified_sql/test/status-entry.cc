@@ -36,7 +36,7 @@
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
-#include "com/centreon/broker/unified_sql/status.hh"
+#include "bbdo/storage/status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
@@ -100,14 +100,14 @@ TEST_F(UnifiedSqlEntryTest, WriteStatus) {
 
   // Register event status.
   e.register_event(make_type(io::storage, storage::de_status), "status",
-                   &unified_sql::status::operations,
-                   unified_sql::status::entries);
+                   &storage::status::operations,
+                   storage::status::entries);
 
   // Register unified_sql layer.
   io::protocols::instance().reg("unified_sql",
                                 std::make_shared<unified_sql::factory>(), 1, 7);
 
-  std::shared_ptr<unified_sql::status> st{std::make_shared<unified_sql::status>(
+  std::shared_ptr<storage::status> st{std::make_shared<storage::status>(
       12345, 123456789123456789, 34567, false, 789789, 2)};
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
@@ -120,8 +120,8 @@ TEST_F(UnifiedSqlEntryTest, WriteStatus) {
 
   std::shared_ptr<io::data> ev;
   stm.read(ev, time(nullptr) + 1000);
-  std::shared_ptr<unified_sql::status> new_st =
-      std::static_pointer_cast<unified_sql::status>(ev);
+  std::shared_ptr<storage::status> new_st =
+      std::static_pointer_cast<storage::status>(ev);
   ASSERT_EQ(st->ctime, new_st->ctime);
   ASSERT_EQ(st->index_id, new_st->index_id);
   ASSERT_EQ(st->state, new_st->state);
