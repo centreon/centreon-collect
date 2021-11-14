@@ -93,3 +93,4 @@ output.xml
 log.html
 report.html
 bbdo/*_accessor.hh
+ci/repo/*
