@@ -202,25 +202,13 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   stats::center::instance().update(_stats->mutable_unacknowledged_events(),
                                    std::string("_unaev_"));
 
-  std::list<std::string> output1 = execute("GetMuxerStats mx1");
-  std::list<std::string> output2 = execute("GetMuxerStats mx2");
-  std::list<std::string> output3 = execute("GetMuxerStats mx3");
+  std::list<std::string> output = execute("GetMuxerStats mx1 mx2 mx3");
 
-  std::vector<std::string> results1(output1.size());
-  std::vector<std::string> results2(output2.size());
-  std::vector<std::string> results3(output3.size());
+  std::vector<std::string> results(output.size());
+  std::copy(output.begin(), output.end(), results.begin());
 
-  std::copy(output1.begin(), output1.end(), results1.begin());
-  std::copy(output2.begin(), output2.end(), results2.begin());
-  std::copy(output3.begin(), output3.end(), results3.begin());
-
-  ASSERT_EQ(output1.size(), 1);
-  ASSERT_EQ(output2.size(), 1);
-  ASSERT_EQ(output3.size(), 1);
-
-  ASSERT_EQ(results1.at(0), vectests.at(0));
-  ASSERT_EQ(results2.at(0), vectests.at(1));
-  ASSERT_EQ(results3.at(0), vectests.at(2));
+  ASSERT_EQ(output.size(), 3);
+  ASSERT_EQ(results, vectests);
 
   brpc.shutdown();
 }

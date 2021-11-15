@@ -122,14 +122,17 @@ int main(int argc, char** argv) {
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
     std::cout << "events_handled: " << response.events_handled() << std::endl;
   } else if (strcmp(argv[1], "GetMuxerStats") == 0) {
-    std::string name = argv[2];
-    MuxerStats response;
-    status = client.GetMuxerStats(&response, name) ? 0 : 1;
-    std::cout << "name: " << name << ", queue_file_enabled: " << std::boolalpha
-              << response.queue_file_enabled()
-              << ", queue_file: " << response.queue_file()
-              << ", unacknowledged_events: " << response.unacknowledged_events()
-              << std::endl;
+    status = 0;
+    for (int16_t cpt = 2; cpt < argc; cpt++) {
+      MuxerStats response;
+      status += client.GetMuxerStats(&response, argv[cpt]) ? 0 : 1;
+      std::cout << "name: " << argv[cpt]
+                << ", queue_file_enabled: " << std::boolalpha
+                << response.queue_file_enabled()
+                << ", queue_file: " << response.queue_file()
+                << ", unacknowledged_events: "
+                << response.unacknowledged_events() << std::endl;
+    }
   } else
     std::cout << "warning : not implemented" << std::endl;
 
