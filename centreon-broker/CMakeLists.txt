@@ -99,6 +99,7 @@ include_directories(${protobuf_INCLUDE_DIRS})
 include_directories(${absl_INCLUDE_DIRS})
 include_directories(${gRPC_INCLUDE_DIRS})
 include_directories(${ZLIB_INCLUDE_DIRS})
+include_directories(${OpenSSL_INCLUDE_DIRS})
 include_directories(${mariadb-connector-c_INCLUDE_DIRS})
 
 link_directories(${nlohmann_json_LIB_DIRS})
@@ -592,6 +593,7 @@ add_broker_module(GRAPHITE ON)
 add_broker_module(BAM ON)
 add_broker_module(TCP ON)
 add_broker_module(TLS ON)
+add_broker_module(TLS2 ON)
 add_broker_module(DUMP OFF)
 
 # Lua module.

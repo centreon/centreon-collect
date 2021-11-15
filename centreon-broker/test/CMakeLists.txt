@@ -38,6 +38,8 @@ include_directories(${PROJECT_SOURCE_DIR}/rrd/inc)
 include_directories(${PROJECT_SOURCE_DIR}/simu/inc)
 include_directories(${PROJECT_SOURCE_DIR}/stats/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
+include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
+include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 
 # needed by module.cc
 add_definitions(-DCENTREON_BROKER_TEST_MODULE_PATH="${CMAKE_BINARY_DIR}/test/")
@@ -75,6 +77,7 @@ add_executable(ut
   ${TESTS_DIR}/file/splitter/permission_denied.cc
   ${TESTS_DIR}/file/splitter/resume.cc
   ${TESTS_DIR}/file/splitter/split.cc
+  ${TESTS_DIR}/misc/buffer.cc
   ${TESTS_DIR}/misc/exec.cc
   ${TESTS_DIR}/misc/filesystem.cc
   ${TESTS_DIR}/misc/math.cc
@@ -111,7 +114,12 @@ target_link_libraries(ut rokerbase roker ${TESTS_LIBRARIES} conflictmgr
 add_test(NAME tests COMMAND ut)
 
 if (WITH_COVERAGE)
-  set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*' '${CMAKE_BINARY_DIR}/*')
+  set(COVERAGE_EXCLUDES 
+      '*/main.cc'
+      '*/test/*'
+      '/usr/include/*'
+      '${CMAKE_BINARY_DIR}/*'
+      '*/.conan/*')
   SETUP_TARGET_FOR_COVERAGE(
     NAME test-coverage
     EXECUTABLE ut
