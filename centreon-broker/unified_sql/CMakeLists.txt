@@ -46,7 +46,6 @@ add_library("${UNIFIED_SQL}" SHARED
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
-  "${INC_DIR}/exceptions/perfdata.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/internal.hh"
   "${INC_DIR}/rebuilder.hh"
@@ -71,7 +70,6 @@ if (WITH_TESTING)
     ${TESTS_SOURCES}
     ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
-    ${TEST_DIR}/perfdata.cc
     ${TEST_DIR}/rebuild.cc
     ${TEST_DIR}/rebuild2.cc
     ${TEST_DIR}/remove_graph.cc

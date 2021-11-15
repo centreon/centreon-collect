@@ -25,14 +25,13 @@
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 
 using namespace com::centreon::broker;
 
 /**
  *  Check that the perfdata assignment operator works properly.
  */
-TEST(UnifiedSqlPerfdata, Assign) {
+TEST(MiscPerfdata, Assign) {
   // First object.
   misc::perfdata p1;
   p1.critical(42.0);
@@ -110,7 +109,7 @@ TEST(UnifiedSqlPerfdata, Assign) {
 /**
  *  Check that the perfdata copy constructor works properly.
  */
-TEST(UnifiedSqlPerfdata, CopyCtor) {
+TEST(MiscPerfdata, CopyCtor) {
   // First object.
   misc::perfdata p1;
   p1.critical(42.0);
@@ -175,7 +174,7 @@ TEST(UnifiedSqlPerfdata, CopyCtor) {
  *
  *  @return 0 on success.
  */
-TEST(UnifiedSqlPerfdata, DefaultCtor) {
+TEST(MiscPerfdata, DefaultCtor) {
   // Build object.
   misc::perfdata p;
 
@@ -194,7 +193,7 @@ TEST(UnifiedSqlPerfdata, DefaultCtor) {
   ASSERT_FALSE(p.warning_mode());
 }
 
-class UnifiedSqlParserParsePerfdata : public testing::Test {
+class MiscParserParsePerfdata : public testing::Test {
  public:
   void SetUp() override { config::applier::init(0, "test_broker"); }
   void TearDown() override { config::applier::deinit(); };
@@ -203,8 +202,10 @@ class UnifiedSqlParserParsePerfdata : public testing::Test {
 // Given a misc::parser object
 // When parse_perfdata() is called with a valid perfdata string
 // Then perfdata are returned in a list
-TEST_F(UnifiedSqlParserParsePerfdata, Simple1) {
-  auto lst{misc::parse_perfdata(0, 0, "time=2.45698s;2.000000;5.000000;0.000000;10.000000")};
+TEST_F(MiscParserParsePerfdata, Simple1) {
+  // Parse perfdata.
+  std::list<misc::perfdata> lst{misc::parse_perfdata(
+      0, 0, "time=2.45698s;2.000000;5.000000;0.000000;10.000000")};
 
   // Assertions.
   ASSERT_EQ(lst.size(), 1u);
@@ -223,8 +224,10 @@ TEST_F(UnifiedSqlParserParsePerfdata, Simple1) {
   ASSERT_TRUE(expected == *it);
 }
 
-TEST_F(UnifiedSqlParserParsePerfdata, Simple2) {
-  auto list{misc::parse_perfdata(0, 0, "'ABCD12E'=18.00%;15:;10:;0;100")};
+TEST_F(MiscParserParsePerfdata, Simple2) {
+  // Parse perfdata.
+  std::list<misc::perfdata> list{
+    misc::parse_perfdata(0, 0, "'ABCD12E'=18.00%;15:;10:;0;100")};
 
   // Assertions.
   ASSERT_EQ(list.size(), 1u);
@@ -243,8 +246,10 @@ TEST_F(UnifiedSqlParserParsePerfdata, Simple2) {
   ASSERT_TRUE(expected == *it);
 }
 
-TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
-  auto list{misc::parse_perfdata(
+TEST_F(MiscParserParsePerfdata, Complex1) {
+  // Parse perfdata.
+  std::list<misc::perfdata> list{
+    misc::parse_perfdata(
       0, 0,
       "time=2.45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "infotraffic=18x;;;; a[foo]=1234;10;11: c[bar]=1234;~:10;20:30 "
@@ -340,7 +345,8 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex1) {
 // Given a misc::parser object
 // When parse_perfdata() is called multiple time with valid strings
 // Then the corresponding perfdata list is returned
-TEST_F(UnifiedSqlParserParsePerfdata, Loop) {
+TEST_F(MiscParserParsePerfdata, Loop) {
+  // Objects.
   std::list<misc::perfdata> list;
 
   // Loop.
@@ -370,8 +376,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Loop) {
 
 // Given a misc::parser object
 // When parse_perfdata() is called with an invalid string
-// Then it throws a unified_sql::exceptions::perfdata
-TEST_F(UnifiedSqlParserParsePerfdata, Incorrect1) {
+TEST_F(MiscParserParsePerfdata, Incorrect1) {
   // Attempt to parse perfdata.
   auto list{misc::parse_perfdata(0, 0, "metric1= 10 metric2=42")};
   ASSERT_EQ(list.size(), 1u);
@@ -381,13 +386,14 @@ TEST_F(UnifiedSqlParserParsePerfdata, Incorrect1) {
 
 // Given a misc::parser object
 // When parse_perfdata() is called with a metric without value but with unit
-// Then it throws a unified_sql::exceptions::perfdata
-TEST_F(UnifiedSqlParserParsePerfdata, Incorrect2) {
+TEST_F(MiscParserParsePerfdata, Incorrect2) {
+  // Then
   auto list{misc::parse_perfdata(0, 0, "metric=kb/s")};
   ASSERT_TRUE(list.empty());
 }
 
-TEST_F(UnifiedSqlParserParsePerfdata, LabelWithSpaces) {
+TEST_F(MiscParserParsePerfdata, LabelWithSpaces) {
+  // Parse perfdata.
   auto lst{misc::parse_perfdata(0, 0, "  'foo  bar   '=2s;2;5;;")};
 
   // Assertions.
@@ -405,7 +411,8 @@ TEST_F(UnifiedSqlParserParsePerfdata, LabelWithSpaces) {
   ASSERT_TRUE(expected == *it);
 }
 
-TEST_F(UnifiedSqlParserParsePerfdata, LabelWithSpacesMultiline) {
+TEST_F(MiscParserParsePerfdata, LabelWithSpacesMultiline) {
+  // Parse perfdata.
   auto lst{misc::parse_perfdata(0, 0, "  'foo  bar   '=2s;2;5;;")};
 
   // Assertions.
@@ -423,7 +430,8 @@ TEST_F(UnifiedSqlParserParsePerfdata, LabelWithSpacesMultiline) {
   ASSERT_TRUE(expected == *it);
 }
 
-TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
+TEST_F(MiscParserParsePerfdata, Complex2) {
+  // Parse perfdata.
   auto list{misc::parse_perfdata(
       0, 0,
       "'  \n time'=2,45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
@@ -508,7 +516,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, Complex2) {
 // Given a misc::parser object
 // When parse_perfdata() is called with a valid perfdata string
 // Then perfdata are returned in a list
-TEST_F(UnifiedSqlParserParsePerfdata, SimpleWithR) {
+TEST_F(MiscParserParsePerfdata, SimpleWithR) {
   auto lst{misc::parse_perfdata(0, 0, "'total'=5;;;0;\r")};
 
   // Assertions.
@@ -531,7 +539,7 @@ TEST_F(UnifiedSqlParserParsePerfdata, SimpleWithR) {
 // Given a misc::parser object
 // When parse_perfdata() is called with a valid perfdata string
 // Then perfdata are returned in a list
-TEST_F(UnifiedSqlParserParsePerfdata, BadMetric) {
+TEST_F(MiscParserParsePerfdata, BadMetric) {
   auto lst{misc::parse_perfdata(0, 0, "user1=1 user2=2 =1 user3=3")};
 
   // Assertions.
@@ -544,8 +552,8 @@ TEST_F(UnifiedSqlParserParsePerfdata, BadMetric) {
   }
 }
 
-TEST_F(UnifiedSqlParserParsePerfdata, BadMetric1) {
-      auto lst{misc::parse_perfdata(0, 0, "user1=1 user2=2 user4= user3=3")};
+TEST_F(MiscParserParsePerfdata, BadMetric1) {
+  auto lst{misc::parse_perfdata(0, 0, "user1=1 user2=2 user4= user3=3")};
 
   // Assertions.
   ASSERT_EQ(lst.size(), 3u);

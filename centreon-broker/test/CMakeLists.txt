@@ -80,6 +80,7 @@ add_executable(ut
   ${TESTS_DIR}/misc/filesystem.cc
   ${TESTS_DIR}/misc/math.cc
   ${TESTS_DIR}/misc/misc.cc
+  ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/misc/stringifier.cc
   ${TESTS_DIR}/modules/module.cc
@@ -104,9 +105,7 @@ add_executable(ut
   ${TESTS_SOURCES}
   )
 
-#set_target_properties("ut" PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS}")
-
-target_link_libraries(ut rokerbase roker ${TESTS_LIBRARIES} conflictmgr
+target_link_libraries(ut roker rokerbase ${TESTS_LIBRARIES} conflictmgr
 	${nlohmann_json_LIBS} ${asio_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${GTest_LIBS} ${mariadb-connector-c_LIBS} ${OpenSSL_LIBS} ${gRPC_LIBS} ${absl_LIBS} )
 
 add_test(NAME tests COMMAND ut)

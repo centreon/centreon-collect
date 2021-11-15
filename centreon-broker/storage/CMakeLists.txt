@@ -82,7 +82,6 @@ if (WITH_TESTING)
     ${TESTS_SOURCES}
     ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
-    ${TEST_DIR}/perfdata.cc
     ${TEST_DIR}/rebuild.cc
     ${TEST_DIR}/rebuild2.cc
     ${TEST_DIR}/remove_graph.cc
