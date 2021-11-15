@@ -501,12 +501,13 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
 void muxer::updateStats(void) noexcept {
   auto now(std::time(nullptr));
   if ((now - _clk) > 1000) {
-    std::unique_lock<std::mutex> lock(_mutex);
     _clk = now;
-    _stats->set_queue_file_enabled(_queue_file_enabled);
-    _stats->set_queue_file(_queue_file_name);
-    _stats->set_unacknowledged_events(
-        std::to_string(std::distance(_events.begin(), _pos)));
+    stats::center::instance().execute([this]() {
+      _stats->set_queue_file_enabled(_queue_file_enabled);
+      _stats->set_queue_file(_queue_file_name);
+      _stats->set_unacknowledged_events(
+          std::to_string(std::distance(_events.begin(), _pos)));
+    });
   }
 }
 
