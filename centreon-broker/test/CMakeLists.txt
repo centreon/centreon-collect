@@ -89,7 +89,6 @@ add_executable(ut
   ${TESTS_DIR}/multiplexing/muxer/read.cc
   ${TESTS_DIR}/multiplexing/publisher/read.cc
   ${TESTS_DIR}/multiplexing/publisher/write.cc
-  ${TESTS_DIR}/multiplexing/subscriber/ctor_default.cc
   ${TESTS_DIR}/processing/acceptor.cc
   ${TESTS_DIR}/processing/feeder.cc
   ${TESTS_DIR}/time/timerange.cc
