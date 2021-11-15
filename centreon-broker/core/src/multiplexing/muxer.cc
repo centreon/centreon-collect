@@ -51,7 +51,7 @@ muxer::muxer(std::string const& name, bool persistent)
       _name(name),
       _persistent(persistent),
       _stats{stats::center::instance().register_muxer(name)},
-      _clk{std::chrono::system_clock::now()} {
+      _clk{std::time(nullptr)} {
   // Load head queue file back in memory.
   if (_persistent) {
     try {
@@ -505,9 +505,8 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
  */
 
 void muxer::updateStats(void) noexcept {
-  auto now(std::chrono::system_clock::now());
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _clk)
-          .count() > 1000) {
+  auto now(std::time(nullptr));
+  if ((now - _clk) > 1000) {
     std::unique_lock<std::mutex> lock(_mutex);
     _clk = now;
     _stats->set_queue_file_enabled(_queue_file_enabled);

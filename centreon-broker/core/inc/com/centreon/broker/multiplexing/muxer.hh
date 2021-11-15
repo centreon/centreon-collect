@@ -75,7 +75,7 @@ class muxer : public io::stream {
   void updateStats(void) noexcept;
 
   MuxerStats* _stats;
-  std::chrono::time_point<std::chrono::system_clock> _clk;
+  std::time_t _clk;
 
  public:
   muxer(std::string const& name, bool persistent = false);
