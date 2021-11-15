@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/misc/parser.hh"
-
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
@@ -28,8 +26,10 @@
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 
+using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 
 /**
@@ -118,15 +118,18 @@ static inline void extract_range(double* low,
 }
 
 /**
- *  Parse perfdata string as given by plugin.
+ * @brief Parse perfdata string as given by plugin.
  *
- *  @param[in]  str Raw perfdata string.
- *  @param[out] pd  List of parsed metrics.
+ * @param host_id The host id of the service with this perfdata
+ * @param service_id The service id of the service with this perfdata
+ * @param str The perfdata string to parse
+ *
+ * @return A list of perfdata
  */
-void parser::parse_perfdata(uint32_t host_id,
-                            uint32_t service_id,
-                            const char* str,
-                            std::list<perfdata>& pd) {
+std::list<perfdata> parse_perfdata(uint32_t host_id,
+                                   uint32_t service_id,
+                                   const char* str) {
+  std::list<perfdata> retval;
   auto id = [host_id, service_id] {
     if (host_id || service_id)
       return fmt::format("({}:{})", host_id, service_id);
@@ -298,10 +301,11 @@ void parser::parse_perfdata(uint32_t host_id,
         p.max());
 
     // Append to list.
-    pd.emplace_back(std::move(p));
+    retval.emplace_back(std::move(p));
 
     // Skip whitespaces.
     while (isspace(*tmp))
       ++tmp;
   }
+  return retval;
 }

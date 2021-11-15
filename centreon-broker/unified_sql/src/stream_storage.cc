@@ -1,5 +1,5 @@
 /*
-** Copyright 2019 Centreon
+** Copyright 2019-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/parser.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -255,10 +255,9 @@ void stream::_unified_sql_process_service_status(
       }
 
       /* Parse perfdata. */
-      std::list<misc::perfdata> pds;
-      misc::parser p;
       _finish_action(-1, actions::metrics);
-      p.parse_perfdata(ss.host_id, ss.service_id, ss.perf_data.c_str(), pds);
+      std::list<misc::perfdata> pds{misc::parse_perfdata(
+          ss.host_id, ss.service_id, ss.perf_data.c_str())};
 
       std::list<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
