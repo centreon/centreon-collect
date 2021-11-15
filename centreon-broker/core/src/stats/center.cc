@@ -386,21 +386,15 @@ void center::get_sql_connection_stats(uint32_t index,
     &index,
     response
   ] {
-      uint32_t i = 0;
-      for (auto it = s.connections().begin(), end = s.connections().end();
-           it != end;
-           ++it, ++i) {
-        if (index == i) {
-          *response = (*it);
-        }
-      }
-
-      if (i > index) {
+      if (index > static_cast<uint32_t>(s.connections().size() - 1)) {
+        p.set_value(false);
         log_v2::sql()->info(
             "mysql_connection: index out of range in get sql "
             "connection stats");
+      } else {
+        *response = s.connections().at(index);
+        p.set_value(true);
       }
-      p.set_value(true);
     });
 
   // We wait for the response.
