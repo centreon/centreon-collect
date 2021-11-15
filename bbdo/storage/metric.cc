@@ -38,7 +38,7 @@ metric::metric()
       metric_id(0),
       rrd_len(0),
       value(NAN),
-      value_type(metric::gauge),
+      value_type{0},  // gauge
       host_id(0),
       service_id(0) {}
 
@@ -51,7 +51,7 @@ metric::metric(uint32_t host_id,
                uint32_t metric_id,
                int32_t rrd_len,
                double value,
-               metric::data_type value_type)
+               int16_t value_type)
     : io::data(metric::static_type()),
       ctime{ctime},
       interval{interval},

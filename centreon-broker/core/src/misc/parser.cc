@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/storage/parser.hh"
+#include "com/centreon/broker/misc/parser.hh"
 
 #include <algorithm>
 #include <cctype>
@@ -30,7 +30,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 
-using namespace com::centreon::broker::storage;
+using namespace com::centreon::broker::misc;
 
 /**
  *  Extract a real value from a perfdata string.
@@ -189,16 +189,16 @@ void parser::parse_perfdata(uint32_t host_id,
       --end;
       if (strncmp(s, "a[", 2) == 0) {
         s += 2;
-        p.value_type(metric::absolute);
+        p.value_type(perfdata::absolute);
       } else if (strncmp(s, "c[", 2) == 0) {
         s += 2;
-        p.value_type(metric::counter);
+        p.value_type(perfdata::counter);
       } else if (strncmp(s, "d[", 2) == 0) {
         s += 2;
-        p.value_type(metric::derive);
+        p.value_type(perfdata::derive);
       } else if (strncmp(s, "g[", 2) == 0) {
         s += 2;
-        p.value_type(metric::gauge);
+        p.value_type(perfdata::gauge);
       }
     }
 

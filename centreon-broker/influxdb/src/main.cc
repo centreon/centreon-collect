@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,11 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-//#include "bbdo/events.hh"
-//#include "bbdo/storage/metric.hh"
-//#include "bbdo/storage/rebuild.hh"
-//#include "bbdo/storage/remove_graph.hh"
-//#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/influxdb/factory.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "com/centreon/broker/io/events.hh"

@@ -23,6 +23,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -35,6 +36,10 @@ std::string exec(std::string const& cmd);
 int32_t exec_process(char const** argv, bool wait_for_completion);
 std::vector<char> from_hex(std::string const& str);
 std::string dump_filters(std::unordered_set<uint32_t> const& filters);
+void parse_perfdata(uint32_t host_id,
+                    uint32_t service_id,
+                    const char* str,
+                    std::list<perfdata>& pd);
 }  // namespace misc
 
 CCB_END()

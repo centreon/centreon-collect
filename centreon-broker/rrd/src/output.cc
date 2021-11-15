@@ -31,6 +31,7 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 
@@ -205,25 +206,25 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           }
           std::string v;
           switch (e->value_type) {
-            case storage::metric::gauge:
+            case misc::perfdata::gauge:
               v = fmt::format("{:f}", e->value);
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type GAUGE with {}", e->metric_id,
                   v);
               break;
-            case storage::metric::counter:
+            case misc::perfdata::counter:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type COUNTER with {}", e->metric_id,
                   v);
               break;
-            case storage::metric::derive:
+            case misc::perfdata::derive:
               v = fmt::format("{}", static_cast<int64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type DERIVE with {}", e->metric_id,
                   v);
               break;
-            case storage::metric::absolute:
+            case misc::perfdata::absolute:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
               log_v2::rrd()->trace(
                   "RRD: update metric {} of type ABSOLUTE with {}",
@@ -329,17 +330,17 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             fmt::format("{}{}.rrd", _metrics_path, e->obj.metric().metric_id());
         std::string v;
         switch (e->obj.metric().value_type()) {
-          case storage::metric::gauge:
+          case misc::perfdata::gauge:
             for (auto& p : e->obj.data())
               lst.emplace_back(fmt::format("{}:{:f}", p.ctime(), p.value()));
             break;
-          case storage::metric::counter:
-          case storage::metric::absolute:
+          case misc::perfdata::counter:
+          case misc::perfdata::absolute:
             for (auto& p : e->obj.data())
               lst.emplace_back(fmt::format("{}:{}", p.ctime(),
                                            static_cast<uint64_t>(p.value())));
             break;
-          case storage::metric::derive:
+          case misc::perfdata::derive:
             for (auto& p : e->obj.data())
               lst.emplace_back(fmt::format("{}:{}", p.ctime(),
                                            static_cast<int64_t>(p.value())));

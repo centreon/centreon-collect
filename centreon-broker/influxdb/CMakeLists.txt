@@ -25,6 +25,8 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/influxdb")
 
+get_bbdo_files(storage)
+
 # INFLUXDB module.
 set(INFLUXDB "70-influxdb")
 set(INFLUXDB "${INFLUXDB}" PARENT_SCOPE)
@@ -38,6 +40,7 @@ add_library("${INFLUXDB}" SHARED
   "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
+  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/column.hh"
   "${INC_DIR}/connector.hh"

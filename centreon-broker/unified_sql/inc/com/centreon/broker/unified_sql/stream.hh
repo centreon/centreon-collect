@@ -30,8 +30,8 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/mfifo.hh"
 #include "com/centreon/broker/misc/pair.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/mysql.hh"
-#include "com/centreon/broker/unified_sql/perfdata.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 

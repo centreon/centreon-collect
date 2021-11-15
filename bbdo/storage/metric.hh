@@ -39,7 +39,7 @@ namespace storage {
  */
 class metric : public io::data {
  public:
-  enum data_type { gauge = 0, counter, derive, absolute, automatic };
+  // enum data_type { gauge = 0, counter, derive, absolute, automatic };
 
   metric();
   metric(uint32_t host_id,
@@ -51,7 +51,7 @@ class metric : public io::data {
          uint32_t metric_id,
          int32_t rrd_len,
          double value,
-         data_type value_type);
+         int16_t value_type);
   metric(metric const& m) = delete;
   ~metric() = default;
   metric& operator=(metric const& m) = delete;
@@ -72,7 +72,7 @@ class metric : public io::data {
   std::string name;
   int rrd_len;
   double value;
-  short value_type;
+  int16_t value_type;
   uint32_t host_id;
   uint32_t service_id;
 

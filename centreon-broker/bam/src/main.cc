@@ -15,6 +15,10 @@
 **
 ** For more information : contact@centreon.com
 */
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/ba_duration_event.hh"
 #include "com/centreon/broker/bam/ba_event.hh"
 #include "com/centreon/broker/bam/ba_status.hh"
@@ -64,7 +68,7 @@ const char* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "20-storage.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
   return retval;
 }
 
@@ -74,7 +78,6 @@ const char* const* broker_module_parents() {
 void broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
-    // Deregister storage layer.
     io::protocols::instance().unreg(bam_module);
     // Deregister bam events.
     io::events::instance().unregister_category(io::bam);
@@ -95,14 +98,25 @@ void broker_module_init(void const* arg) {
     log_v2::bam()->info("BAM: module for Centreon Broker {} ",
                         CENTREON_BROKER_VERSION);
 
-    // Register storage layer.
     io::protocols::instance().reg(bam_module, std::make_shared<bam::factory>(),
                                   1, 7);
 
     io::events& e(io::events::instance());
 
-    // Register bam events.
+    // Register events.
     {
+      e.register_event(make_type(io::storage, storage::de_metric), "metric",
+                       &storage::metric::operations, storage::metric::entries,
+                       "rt_metrics");
+      e.register_event(make_type(io::storage, storage::de_status), "status",
+                       &storage::status::operations, storage::status::entries);
+      e.register_event(make_type(io::storage, storage::de_index_mapping),
+                       "index_mapping", &storage::index_mapping::operations,
+                       storage::index_mapping::entries);
+      e.register_event(make_type(io::storage, storage::de_metric_mapping),
+                       "metric_mapping", &storage::metric_mapping::operations,
+                       storage::metric_mapping::entries);
+
       register_bam_event<bam::ba_status>(e, bam::de_ba_status, "ba_status");
       register_bam_event<bam::kpi_status>(e, bam::de_kpi_status, "kpi_status");
       register_bam_event<bam::ba_event>(e, bam::de_ba_event, "ba_event");

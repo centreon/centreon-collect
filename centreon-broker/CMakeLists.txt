@@ -392,6 +392,8 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/misc/diagnostic.cc
   ${SRC_DIR}/misc/filesystem.cc
   ${SRC_DIR}/misc/misc.cc
+  ${SRC_DIR}/misc/parser.cc
+  ${SRC_DIR}/misc/perfdata.cc
   ${SRC_DIR}/misc/processing_speed_computer.cc
   ${SRC_DIR}/misc/string.cc
   ${SRC_DIR}/misc/stringifier.cc
@@ -477,6 +479,8 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/misc/filesystem.hh
   ${INC_DIR}/misc/misc.hh
   ${INC_DIR}/misc/pair.hh
+  ${INC_DIR}/misc/parser.hh
+  ${INC_DIR}/misc/perfdata.hh
   ${INC_DIR}/misc/processing_speed_computer.hh
   ${INC_DIR}/misc/shared_mutex.hh
   ${INC_DIR}/misc/string.hh
