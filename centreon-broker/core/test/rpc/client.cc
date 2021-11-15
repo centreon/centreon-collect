@@ -80,11 +80,11 @@ class BrokerRPCClient {
     return true;
   }
 
-  bool GetMuxerStats(MuxerStats* response, uint32_t val) {
-    GenericInt i;
-    i.set_value(val);
+  bool GetMuxerStats(MuxerStats* response, const std::string& name) {
+    GenericString s;
+    s.set_str_arg(name);
     grpc::ClientContext context;
-    grpc::Status status = _stub->GetMuxerStats(&context, i, response);
+    grpc::Status status = _stub->GetMuxerStats(&context, s, response);
     if (!status.ok()) {
       std::cout << "GetMuxerStats rpc failed." << std::endl;
       return false;
@@ -122,16 +122,14 @@ int main(int argc, char** argv) {
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
     std::cout << "events_handled: " << response.events_handled() << std::endl;
   } else if (strcmp(argv[1], "GetMuxerStats") == 0) {
-    uint32_t sz = atoi(argv[2]);
+    std::string name = argv[2];
     MuxerStats response;
-    for (uint32_t i = 0; i < sz; ++i) {
-      status = client.GetMuxerStats(&response, i) ? 0 : 1;
-      std::cout << "queue_file_enabled: " << std::boolalpha
-                << response.queue_file_enabled()
-                << ", queue_file: " << response.queue_file()
-                << ", unacknowledged_events: "
-                << response.unacknowledged_events() << std::endl;
-    }
+    status = client.GetMuxerStats(&response, name) ? 0 : 1;
+    std::cout << "name: " << name << ", queue_file_enabled: " << std::boolalpha
+              << response.queue_file_enabled()
+              << ", queue_file: " << response.queue_file()
+              << ", unacknowledged_events: " << response.unacknowledged_events()
+              << std::endl;
   } else
     std::cout << "warning : not implemented" << std::endl;
 

@@ -168,14 +168,17 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   MuxerStats* _stats;
   std::vector<std::string> vectests = {
-      "queue_file_enabled: true, queue_file: qufl_, unacknowledged_events: "
+      "name: mx1, queue_file_enabled: true, queue_file: qufl_, "
+      "unacknowledged_events: "
       "unaev_\n",
-      "queue_file_enabled: true, queue_file: _qufl, unacknowledged_events: "
+      "name: mx2, queue_file_enabled: true, queue_file: _qufl, "
+      "unacknowledged_events: "
       "_unaev\n",
-      "queue_file_enabled: false, queue_file: _qufl_, unacknowledged_events: "
+      "name: mx3, queue_file_enabled: false, queue_file: _qufl_, "
+      "unacknowledged_events: "
       "_unaev_\n"};
 
-  _stats = stats::center::instance().register_muxer();
+  _stats = stats::center::instance().register_muxer("mx1");
   stats::center::instance().update(
       &MuxerStats::set_queue_file_enabled, _stats, true);
   stats::center::instance().update(_stats->mutable_queue_file(),
@@ -183,7 +186,7 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   stats::center::instance().update(_stats->mutable_unacknowledged_events(),
                                    std::string("unaev_"));
 
-  _stats = stats::center::instance().register_muxer();
+  _stats = stats::center::instance().register_muxer("mx2");
   stats::center::instance().update(
       &MuxerStats::set_queue_file_enabled, _stats, true);
   stats::center::instance().update(_stats->mutable_queue_file(),
@@ -191,7 +194,7 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   stats::center::instance().update(_stats->mutable_unacknowledged_events(),
                                    std::string("_unaev"));
 
-  _stats = stats::center::instance().register_muxer();
+  _stats = stats::center::instance().register_muxer("mx3");
   stats::center::instance().update(
       &MuxerStats::set_queue_file_enabled, _stats, false);
   stats::center::instance().update(_stats->mutable_queue_file(),
@@ -199,13 +202,25 @@ TEST_F(BrokerRpc, GetMuxerStats) {
   stats::center::instance().update(_stats->mutable_unacknowledged_events(),
                                    std::string("_unaev_"));
 
-  std::list<std::string> output = execute("GetMuxerStats 3");
+  std::list<std::string> output1 = execute("GetMuxerStats mx1");
+  std::list<std::string> output2 = execute("GetMuxerStats mx2");
+  std::list<std::string> output3 = execute("GetMuxerStats mx3");
 
-  std::vector<std::string> results(output.size());
-  std::copy(output.begin(), output.end(), results.begin());
+  std::vector<std::string> results1(output1.size());
+  std::vector<std::string> results2(output2.size());
+  std::vector<std::string> results3(output3.size());
 
-  ASSERT_EQ(output.size(), 3);
-  ASSERT_EQ(results, vectests);
+  std::copy(output1.begin(), output1.end(), results1.begin());
+  std::copy(output2.begin(), output2.end(), results2.begin());
+  std::copy(output3.begin(), output3.end(), results3.begin());
+
+  ASSERT_EQ(output1.size(), 1);
+  ASSERT_EQ(output2.size(), 1);
+  ASSERT_EQ(output3.size(), 1);
+
+  ASSERT_EQ(results1.at(0), vectests.at(0));
+  ASSERT_EQ(results2.at(0), vectests.at(1));
+  ASSERT_EQ(results3.at(0), vectests.at(2));
 
   brpc.shutdown();
 }

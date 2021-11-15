@@ -158,28 +158,34 @@ bool center::unregister_failover(FailoverStats *fs) {
  * a pointer for its statistics. It is prohibited to directly write into this
  * pointer. We must use the center member functions for this purpose.
  *
+ * @param name
+ *
  * @return A pointer to the muxer statistics.
  */
 
-MuxerStats* center::register_muxer(void) {
+MuxerStats* center::register_muxer(const std::string& name) {
   std::promise<MuxerStats*> p;
   std::future<MuxerStats*> retval = p.get_future();
-  _strand.post([this, &p] {
-    auto ms = _stats.add_muxers();
+  _strand.post([this, &p, name] {
+    auto ms = &(*_stats.mutable_muxers())[name];
     p.set_value(ms);
   });
   return retval.get();
 }
 
-bool center::unregister_muxer(MuxerStats* ms) {
+/**
+  * @brief
+  *
+  * @param name
+  *
+  * @return
+  */
+
+bool center::unregister_muxer(const std::string& name) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
-  _strand.post([this, &p, ms] {
-    auto it = std::find_if(_stats.mutable_muxers()->begin(),
-                           _stats.mutable_muxers()->end(),
-                           [ms](auto& mx) { return &mx == ms; });
-    if (it != _stats.mutable_muxers()->end())
-      _stats.mutable_muxers()->erase(it);
+  _strand.post([this, &p, name] {
+    _stats.mutable_muxers()->erase(name);
     p.set_value(true);
   });
   return retval.get();
@@ -437,29 +443,21 @@ int center::get_json_stats_file_creation(void) {
   return _json_stats_file_creation;
 }
 
-void center::get_muxer_stats(uint32_t index, MuxerStats* response) {
+bool center::get_muxer_stats(const std::string& name, MuxerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([
     &s = this->_stats,
     &p,
-    &index,
+    name,
     response
   ] {
-      uint32_t i = 0;
-      for (auto it = s.muxers().begin(), end = s.muxers().end(); it != end;
-           ++it, ++i) {
-        if (index == i) {
-          *response = (*it);
-        }
+      if (!s.muxers().contains(name))
+        p.set_value(false);
+      else {
+        *response = s.muxers().at(name);
+        p.set_value(true);
       }
-
-      if (i > index) {
-        log_v2::sql()->info("muxers: index out of range in get muxers stats");
-      }
-      p.set_value(true);
     });
-
-  // We wait for the response.
-  done.get();
+  return done.get();
 }

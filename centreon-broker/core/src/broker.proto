@@ -13,7 +13,7 @@ service Broker {
   rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetConflictManagerStats(google.protobuf.Empty) returns (ConflictManagerStats) {}
   //rpc GetFailoverStats(google.protobuf.Empty) returns (FailoverStats) {}
-  rpc GetMuxerStats(GenericInt) returns (MuxerStats) {}
+  rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
 
   rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetModulesStats(GenericNameOrIndex) returns (GenericString) {}
@@ -121,5 +121,5 @@ message BrokerStats {
   repeated SqlConnectionStats connections = 8;
   ConflictManagerStats conflict_manager = 9;
   //repeated FailoverStats failovers = 10;
-  repeated MuxerStats muxers = 10;
+  map<string, MuxerStats> muxers = 10;
 }

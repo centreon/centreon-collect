@@ -217,11 +217,14 @@ grpc::Status broker_impl::GetSqlConnectionSize(
 
 grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
                                         __attribute__((unused)),
-                                        const GenericInt* request,
+                                        const GenericString* request,
                                         MuxerStats* response) {
-  uint32_t index = request->value();
-  stats::center::instance().get_muxer_stats(index, response);
-  return grpc::Status::OK;
+  const std::string name = request->str_arg();
+  auto status = stats::center::instance().get_muxer_stats(name, response);
+  return status ? grpc::Status::OK
+                : grpc::Status(
+                      grpc::StatusCode::NOT_FOUND,
+                      std::string("no muxer stats found for name: " + name));
 }
 
 void broker_impl::set_broker_name(std::string const& s) {

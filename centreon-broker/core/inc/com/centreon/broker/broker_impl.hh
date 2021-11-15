@@ -60,7 +60,7 @@ class broker_impl final : public Broker::Service {
                                 GenericString* response) override;
 
   grpc::Status GetMuxerStats(grpc::ServerContext*,
-                             const GenericInt*,
+                             const GenericString*,
                              MuxerStats*) override;
 
  public:

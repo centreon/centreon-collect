@@ -50,7 +50,7 @@ muxer::muxer(std::string const& name, bool persistent)
       _queue_file_enabled(false),
       _name(name),
       _persistent(persistent),
-      _stats{stats::center::instance().register_muxer()},
+      _stats{stats::center::instance().register_muxer(name)},
       _clk{std::chrono::system_clock::now()} {
   // Load head queue file back in memory.
   if (_persistent) {
@@ -113,7 +113,7 @@ muxer::muxer(std::string const& name, bool persistent)
  *  Destructor.
  */
 muxer::~muxer() noexcept {
-  stats::center::instance().unregister_muxer(_stats);
+  stats::center::instance().unregister_muxer(_name);
   engine::instance().unsubscribe(this);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name,
