@@ -505,7 +505,8 @@ void muxer::updateStats(void) noexcept {
     _clk = now;
     _stats->set_queue_file_enabled(_queue_file_enabled);
     _stats->set_queue_file(_queue_file_name);
-    _stats->set_unacknowledged_events(std::to_string(_events.size()));
+    _stats->set_unacknowledged_events(
+        std::to_string(std::distance(_events.begin(), _pos)));
   }
 }
 
