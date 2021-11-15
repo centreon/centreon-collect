@@ -59,7 +59,6 @@ add_library("${STORAGE}" SHARED
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
-  "${INC_DIR}/exceptions/perfdata.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/internal.hh"
   "${INC_DIR}/rebuilder.hh"

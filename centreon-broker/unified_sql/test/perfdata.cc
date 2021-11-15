@@ -17,8 +17,6 @@
  *
  */
 
-#include "com/centreon/broker/unified_sql/exceptions/perfdata.hh"
-
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
