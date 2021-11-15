@@ -53,7 +53,6 @@ class muxer : public io::stream {
  private:
   std::condition_variable _cv;
   std::list<std::shared_ptr<io::data> > _events;
-  uint32_t _events_size;
   static uint32_t _event_queue_max_size;
   std::unique_ptr<persistent_file> _file;
   bool _queue_file_enabled;

@@ -46,7 +46,6 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
  */
 muxer::muxer(std::string const& name, bool persistent)
     : io::stream("muxer"),
-      _events_size(0),
       _queue_file_enabled(false),
       _name(name),
       _persistent(persistent),
@@ -63,7 +62,6 @@ muxer::muxer(std::string const& name, bool persistent)
         mf->read(e, 0);
         if (e) {
           _events.push_back(e);
-          ++_events_size;
         }
       }
     }
@@ -88,8 +86,7 @@ muxer::muxer(std::string const& name, bool persistent)
       if (!e)
         break;
       _events.push_back(e);
-      ++_events_size;
-    } while (_events_size < event_queue_max_size());
+    } while (_events.size() < event_queue_max_size());
   }
   catch (exceptions::shutdown const& e) {
     // Queue file was entirely read back.
@@ -103,7 +100,7 @@ muxer::muxer(std::string const& name, bool persistent)
   log_v2::perfdata()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name,
-      _events_size,
+      _events.size(),
       _queue_file_enabled ? "enable" : "disable");
 
   engine::instance().subscribe(this);
@@ -117,7 +114,7 @@ muxer::~muxer() noexcept {
   engine::instance().unsubscribe(this);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name,
-                       _events_size);
+                       _events.size());
   _clean();
 }
 
@@ -146,14 +143,14 @@ void muxer::ack_events(int count) {
         break;
       }
       _events.pop_front();
-      --_events_size;
     }
-    log_v2::perfdata()->trace(
-        "multiplexing: still {} events in {} event queue", _events_size, _name);
+    log_v2::perfdata()->trace("multiplexing: still {} events in {} event queue",
+                              _events.size(),
+                              _name);
 
     // Fill memory from file.
     std::shared_ptr<io::data> e;
-    while (_events_size < event_queue_max_size()) {
+    while (_events.size() < event_queue_max_size()) {
       _get_event_from_file(e);
       if (!e)
         break;
@@ -171,7 +168,7 @@ void muxer::ack_events(int count) {
 int32_t muxer::stop() {
   log_v2::core()->info("Stopping muxer {}: number of events in the queue: {}",
                        _name,
-                       _events_size);
+                       _events.size());
   updateStats();
   return 0;
 }
@@ -209,7 +206,7 @@ void muxer::publish(std::shared_ptr<io::data> const event) {
     if (_write_filters.find(event->type()) == _write_filters.end())
       return;
     // Check if the event queue limit is reach.
-    if (_events_size >= event_queue_max_size()) {
+    if (_events.size() >= event_queue_max_size()) {
       // Try to create file if is necessary.
       if (!_file) {
         _file.reset(new persistent_file(queue_file(_name)));
@@ -428,12 +425,11 @@ void muxer::_clean() {
   if (_persistent && !_events.empty()) {
     try {
       log_v2::core()->trace(
-          "muxer: sending {} events to {}", _events_size, _memory_file());
+          "muxer: sending {} events to {}", _events.size(), _memory_file());
       std::unique_ptr<io::stream> mf(new persistent_file(_memory_file()));
       while (!_events.empty()) {
         mf->write(_events.front());
         _events.pop_front();
-        --_events_size;
       }
     }
     catch (std::exception const& e) {
@@ -444,7 +440,6 @@ void muxer::_clean() {
     }
   }
   _events.clear();
-  _events_size = 0;
   this->updateStats();
 }
 
@@ -490,7 +485,6 @@ std::string muxer::_memory_file() const { return memory_file(_name); }
 void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
   bool pos_has_no_more_to_read(_pos == _events.end());
   _events.push_back(event);
-  ++_events_size;
 
   if (pos_has_no_more_to_read) {
     _pos = --_events.end();
@@ -511,7 +505,7 @@ void muxer::updateStats(void) noexcept {
     _clk = now;
     _stats->set_queue_file_enabled(_queue_file_enabled);
     _stats->set_queue_file(_queue_file_name);
-    _stats->set_unacknowledged_events(std::to_string(_events_size));
+    _stats->set_unacknowledged_events(std::to_string(_events.size()));
   }
 }
 
