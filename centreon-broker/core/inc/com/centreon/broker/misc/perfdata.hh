@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_UNIFIED_SQL_PERFDATA_HH
-#define CCB_UNIFIED_SQL_PERFDATA_HH
+#ifndef CCB_MISC_PERFDATA_HH
+#define CCB_MISC_PERFDATA_HH
 
 #include <array>
 #include <string>
@@ -26,9 +26,9 @@
 
 CCB_BEGIN()
 
-namespace unified_sql {
+namespace misc {
 /**
- *  @class perfdata perfdata.hh "com/centreon/broker/unified_sql/perfdata.hh"
+ *  @class perfdata perfdata.hh "com/centreon/broker/misc/perfdata.hh"
  *  @brief Store perfdata values.
  *
  *  Store perfdata values.
@@ -36,6 +36,22 @@ namespace unified_sql {
 class perfdata {
  public:
   enum data_type { gauge = 0, counter, derive, absolute, automatic };
+
+ private:
+  double _critical;
+  double _critical_low;
+  bool _critical_mode;
+  double _max;
+  double _min;
+  std::string _name;
+  std::string _unit;
+  double _value;
+  int16_t _value_type;
+  double _warning;
+  double _warning_low;
+  bool _warning_mode;
+
+ public:
   static const std::array<std::string, 5> data_type_name;
 
   perfdata();
@@ -62,28 +78,14 @@ class perfdata {
   void unit(std::string&& u);
   double value() const noexcept;
   void value(double v) noexcept;
-  data_type value_type() const noexcept;
-  void value_type(data_type t) noexcept;
+  int16_t value_type() const noexcept;
+  void value_type(int16_t t) noexcept;
   double warning() const noexcept;
   void warning(double w) noexcept;
   double warning_low() const noexcept;
   void warning_low(double w) noexcept;
   bool warning_mode() const noexcept;
   void warning_mode(bool m) noexcept;
-
- private:
-  double _critical;
-  double _critical_low;
-  bool _critical_mode;
-  double _max;
-  double _min;
-  std::string _name;
-  std::string _unit;
-  double _value;
-  data_type _value_type;
-  double _warning;
-  double _warning_low;
-  bool _warning_mode;
 };
 
 /**
@@ -92,16 +94,16 @@ class perfdata {
  *  @return Metric value.
  */
 // Inlined after profiling for performance.
-inline double perfdata::value() const throw() {
-  return (_value);
+inline double perfdata::value() const noexcept {
+  return _value;
 }
-}  // namespace unified_sql
+}  // namespace misc
 
 CCB_END()
 
-bool operator==(com::centreon::broker::unified_sql::perfdata const& left,
-                com::centreon::broker::unified_sql::perfdata const& right);
-bool operator!=(com::centreon::broker::unified_sql::perfdata const& left,
-                com::centreon::broker::unified_sql::perfdata const& right);
+bool operator==(com::centreon::broker::misc::perfdata const& left,
+                com::centreon::broker::misc::perfdata const& right);
+bool operator!=(com::centreon::broker::misc::perfdata const& left,
+                com::centreon::broker::misc::perfdata const& right);
 
-#endif  // !CCB_UNIFIED_SQL_PERFDATA_HH
+#endif  // !CCB_MISC_PERFDATA_HH

@@ -20,13 +20,12 @@
 #include <cassert>
 #include <cstring>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -391,7 +390,7 @@ void conflict_manager::update_metric_info_cache(uint64_t index_id,
         "conflict_manager: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
         metric_name, metric_id, index_id,
-        perfdata::data_type_name[metric_type]);
+        misc::perfdata::data_type_name[metric_type]);
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     it->second.type = metric_type;
     if (it->second.metric_id != metric_id) {

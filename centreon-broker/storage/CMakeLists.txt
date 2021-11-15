@@ -52,8 +52,6 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/parser.cc"
-  "${SRC_DIR}/perfdata.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/stream.cc"
   ${bbdo_storage}
@@ -64,8 +62,6 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/exceptions/perfdata.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/internal.hh"
-  "${INC_DIR}/parser.hh"
-  "${INC_DIR}/perfdata.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh"
 )

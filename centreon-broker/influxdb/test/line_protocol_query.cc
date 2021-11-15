@@ -65,12 +65,9 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::metric m1{1u,   1u,  "host1", 2000llu, 60,
-                     true, 42u, 42,      42.0,    storage::metric::automatic};
-  storage::metric m2{1u,    1u, "host2", 4000llu, 120,
-                     false, 43, 42,      42.0,    storage::metric::automatic};
-  storage::metric m3{2u,   3u,  "hotst3", 2000llu, 60,
-                     true, 42u, 43,       43.0,    storage::metric::gauge};
+  storage::metric m1{1u, 1u, "host1", 2000llu, 60, true, 42u, 42, 42.0, 4};
+  storage::metric m2{1u, 1u, "host2", 4000llu, 120, false, 43, 42, 42.0, 4};
+  storage::metric m3{2u, 3u, "hotst3", 2000llu, 60, true, 42u, 43, 43.0, 0};
 
   columns.push_back(
       influxdb::column{"host1", "42.0", true, influxdb::column::number});
@@ -96,8 +93,7 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::metric m{1u,   1u,  "host1", 2000llu, 60,
-                    true, 40u, 42,      42.0,    storage::metric::automatic};
+  storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
   std::shared_ptr<neb::instance> instance{std::make_shared<neb::instance>()};

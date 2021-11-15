@@ -23,19 +23,19 @@
 #include <list>
 #include <sstream>
 
+#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/parser.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/broker/storage/exceptions/perfdata.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/storage/parser.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -256,8 +256,8 @@ void conflict_manager::_storage_process_service_status(
       }
 
       /* Parse perfdata. */
-      std::list<storage::perfdata> pds;
-      storage::parser p;
+      std::list<misc::perfdata> pds;
+      misc::parser p;
       try {
         _finish_action(-1, actions::metrics);
         p.parse_perfdata(ss.host_id, ss.service_id, ss.perf_data.c_str(), pds);
@@ -411,7 +411,7 @@ void conflict_manager::_storage_process_service_status(
                     ss.host_id, ss.service_id, pd.name(), ss.last_check,
                     static_cast<uint32_t>(ss.check_interval * _interval_length),
                     false, metric_id, rrd_len, pd.value(),
-                    static_cast<storage::metric::data_type>(pd.value_type()))};
+                    static_cast<misc::perfdata::data_type>(pd.value_type()))};
             log_v2::perfdata()->debug(
                 "conflict_manager: generating perfdata event for metric {} "
                 "(name '{}', ctime {}, value {}, rrd_len {}, data_type {})",

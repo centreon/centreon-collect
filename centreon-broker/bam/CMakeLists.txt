@@ -22,14 +22,16 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/bam/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/bam/test")
 include_directories("${INC_DIR}" ${PROJECT_SOURCE_DIR}/core/inc)
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/bam")
+
+get_bbdo_files(storage)
 
 # BAM module.
 set(BAM "20-bam")
 set(BAM "${BAM}" PARENT_SCOPE)
 add_library("${BAM}" SHARED
   # Sources.
+  ${bbdo_storage}
   "${SRC_DIR}/availability_builder.cc"
   "${SRC_DIR}/availability_thread.cc"
   "${SRC_DIR}/ba.cc"

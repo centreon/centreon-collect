@@ -24,9 +24,10 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
 include_directories("${INC_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/bam/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
 include_directories(${OpenSSL_INCLUDE_DIRS})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
+
+get_bbdo_files(storage)
 
 # Storage module.
 set(LUA "70-lua")
@@ -44,6 +45,7 @@ add_library("${LUA}" SHARED
   "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
+  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/broker_cache.hh"
   "${INC_DIR}/broker_event.hh"

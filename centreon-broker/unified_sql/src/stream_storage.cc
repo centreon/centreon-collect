@@ -23,18 +23,18 @@
 #include <list>
 #include <sstream>
 
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/parser.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/unified_sql/exceptions/perfdata.hh"
-#include "com/centreon/broker/unified_sql/index_mapping.hh"
-#include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/unified_sql/metric_mapping.hh"
-#include "com/centreon/broker/unified_sql/parser.hh"
-#include "com/centreon/broker/unified_sql/perfdata.hh"
-#include "bbdo/storage/remove_graph.hh"
-#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -119,8 +119,7 @@ void stream::_unified_sql_process_service_status(
         ss.host_name, ss.service_description, index_id, rrd_len);
 
     /* Create the metric mapping. */
-    std::shared_ptr<unified_sql::index_mapping> im{
-        std::make_shared<unified_sql::index_mapping>(index_id, host_id,
+    auto im{std::make_shared<storage::index_mapping>(index_id, host_id,
                                                      service_id)};
     multiplexing::publisher pblshr;
     pblshr.write(im);
@@ -239,11 +238,10 @@ void stream::_unified_sql_process_service_status(
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
-    auto status(
-        std::make_shared<storage::status>(
-            ss.last_check, index_id,
-            static_cast<uint32_t>(ss.check_interval * _interval_length), false,
-            rrd_len, ss.last_hard_state));
+    auto status(std::make_shared<storage::status>(
+        ss.last_check, index_id,
+        static_cast<uint32_t>(ss.check_interval * _interval_length), false,
+        rrd_len, ss.last_hard_state));
     multiplexing::publisher().write(status);
 
     if (!ss.perf_data.empty()) {
@@ -258,8 +256,8 @@ void stream::_unified_sql_process_service_status(
       }
 
       /* Parse perfdata. */
-      std::list<unified_sql::perfdata> pds;
-      unified_sql::parser p;
+      std::list<misc::perfdata> pds;
+      misc::parser p;
       try {
         _finish_action(-1, actions::metrics);
         p.parse_perfdata(ss.host_id, ss.service_id, ss.perf_data.c_str(), pds);
@@ -349,8 +347,8 @@ void stream::_unified_sql_process_service_status(
             else
               need_metric_mapping = false;
 
-            pd.value_type(
-                static_cast<perfdata::data_type>(it_index_cache->second.type));
+            pd.value_type(static_cast<misc::perfdata::data_type>(
+                it_index_cache->second.type));
 
             log_v2::perfdata()->debug(
                 "unified sql: metric {} concerning index {}, perfdata "
@@ -395,8 +393,7 @@ void stream::_unified_sql_process_service_status(
           }
           if (need_metric_mapping)
             to_publish.emplace_back(
-                std::make_shared<unified_sql::metric_mapping>(index_id,
-                                                              metric_id));
+                std::make_shared<storage::metric_mapping>(index_id, metric_id));
 
           if (_store_in_db) {
             // Append perfdata to queue.
@@ -410,12 +407,11 @@ void stream::_unified_sql_process_service_status(
 
           // Send perfdata event to processing.
           if (!index_locked) {
-            auto perf{
-                std::make_shared<storage::metric>(
-                    ss.host_id, ss.service_id, pd.name(), ss.last_check,
-                    static_cast<uint32_t>(ss.check_interval * _interval_length),
-                    false, metric_id, rrd_len, pd.value(),
-                    static_cast<storage::metric::data_type>(pd.value_type()))};
+            auto perf{std::make_shared<storage::metric>(
+                ss.host_id, ss.service_id, pd.name(), ss.last_check,
+                static_cast<uint32_t>(ss.check_interval * _interval_length),
+                false, metric_id, rrd_len, pd.value(),
+                static_cast<misc::perfdata::data_type>(pd.value_type()))};
             log_v2::perfdata()->debug(
                 "unified sql: generating perfdata event for metric {} "
                 "(name '{}', ctime {}, value {}, rrd_len {}, data_type {})",

@@ -16,20 +16,20 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_UNIFIED_SQL_PARSER_HH
-#define CCB_UNIFIED_SQL_PARSER_HH
+#ifndef CCB_STORAGE_PARSER_HH
+#define CCB_STORAGE_PARSER_HH
 
 #include <list>
 #include <string>
 
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/unified_sql/perfdata.hh"
 
 CCB_BEGIN()
 
-namespace unified_sql {
+namespace misc {
 /**
- *  @class parser parser.hh "com/centreon/broker/unified_sql/parser.hh"
+ *  @class parser parser.hh "com/centreon/broker/storage/parser.hh"
  *  @brief Parse raw perfdatas.
  *
  *  Parse perfdata as given by plugins output and convert them to a
@@ -46,8 +46,8 @@ class parser {
                       const char* str,
                       std::list<perfdata>& pd);
 };
-}  // namespace unified_sql
+}  // namespace misc
 
 CCB_END()
 
-#endif  // !CCB_UNIFIED_SQL_PARSER_HH
+#endif  // !CCB_STORAGE_PARSER_HH

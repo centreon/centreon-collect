@@ -17,17 +17,17 @@
 */
 
 #include "bbdo/events.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
-#include "com/centreon/broker/unified_sql/index_mapping.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/unified_sql/metric_mapping.hh"
-#include "bbdo/storage/rebuild.hh"
-#include "bbdo/storage/remove_graph.hh"
-#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -85,8 +85,8 @@ void broker_module_init(void const* arg) {
     // Register events.
     {
       e.register_event(make_type(io::storage, storage::de_metric), "metric",
-                       &storage::metric::operations,
-                       storage::metric::entries, "rt_metrics");
+                       &storage::metric::operations, storage::metric::entries,
+                       "rt_metrics");
       e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
                        &storage::rebuild::operations,
                        storage::rebuild::entries);
@@ -94,15 +94,13 @@ void broker_module_init(void const* arg) {
                        "remove_graph", &storage::remove_graph::operations,
                        storage::remove_graph::entries);
       e.register_event(make_type(io::storage, storage::de_status), "status",
-                       &storage::status::operations,
-                       storage::status::entries);
+                       &storage::status::operations, storage::status::entries);
       e.register_event(make_type(io::storage, storage::de_index_mapping),
-                       "index_mapping", &unified_sql::index_mapping::operations,
-                       unified_sql::index_mapping::entries);
+                       "index_mapping", &storage::index_mapping::operations,
+                       storage::index_mapping::entries);
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
-                       "metric_mapping",
-                       &unified_sql::metric_mapping::operations,
-                       unified_sql::metric_mapping::entries);
+                       "metric_mapping", &storage::metric_mapping::operations,
+                       storage::metric_mapping::entries);
       log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
                            io::storage, storage::de_pb_rebuild);
       e.register_event(storage_pb_rebuild, "pb_rebuild",

@@ -21,8 +21,8 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/broker/unified_sql/perfdata.hh"
 
 using namespace com::centreon::broker;
 
@@ -31,7 +31,7 @@ using namespace com::centreon::broker;
  */
 TEST(UnifiedSqlMetric, SpecificConstructor) {
   // First object.
-  storage::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0, storage::metric::counter);
+  storage::metric m1(1, 14, "foo", 123456789, 42, true, 24, 180, 4242.0, 1);
 
   // Check objects properties values.
   ASSERT_FALSE(m1.ctime != 123456789);
@@ -61,6 +61,6 @@ TEST(UnifiedSqlMetric, DefaultCtor) {
   ASSERT_FALSE(!m.name.empty());
   ASSERT_FALSE(m.rrd_len != 0);
   ASSERT_FALSE(!std::isnan(m.value));
-  ASSERT_FALSE(m.value_type != unified_sql::perfdata::gauge);
+  ASSERT_FALSE(m.value_type != misc::perfdata::gauge);
   ASSERT_FALSE(m.type() != val);
 }

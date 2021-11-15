@@ -1,5 +1,5 @@
 /*
-** Copyright 2017-2018 Centreon
+** Copyright 2017-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/factory.hh"
@@ -24,7 +26,7 @@
 using namespace com::centreon::broker;
 
 // Load count.
-static uint32_t instances(0);
+static uint32_t instances{0u};
 
 extern "C" {
 /**
@@ -38,8 +40,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "20-bam.so",
-                                        "20-storage.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", "20-bam.so", nullptr};
   return retval;
 }
 
@@ -67,6 +68,23 @@ void broker_module_init(void const* arg) {
     // generic lua module.
     log_v2::lua()->info("lua: module for Centreon Broker {}",
                         CENTREON_BROKER_VERSION);
+
+    io::events& e(io::events::instance());
+
+    // Register events.
+    {
+      e.register_event(make_type(io::storage, storage::de_metric), "metric",
+                       &storage::metric::operations, storage::metric::entries,
+                       "rt_metrics");
+      e.register_event(make_type(io::storage, storage::de_status), "status",
+                       &storage::status::operations, storage::status::entries);
+      e.register_event(make_type(io::storage, storage::de_index_mapping),
+                       "index_mapping", &storage::index_mapping::operations,
+                       storage::index_mapping::entries);
+      e.register_event(make_type(io::storage, storage::de_metric_mapping),
+                       "metric_mapping", &storage::metric_mapping::operations,
+                       storage::metric_mapping::entries);
+    }
 
     // Register lua layer.
     io::protocols::instance().reg("lua", std::make_shared<lua::factory>(), 1,
