@@ -94,7 +94,9 @@ uint32_t events::register_event(uint32_t type_id,
                                 event_info::event_operations const* ops,
                                 mapping::entry const* entries,
                                 const std::string& table_v2) {
-  _elements.emplace(type_id, event_info(name, ops, entries, table_v2));
+  _elements.emplace(std::piecewise_construct,
+            std::forward_as_tuple(type_id),
+            std::forward_as_tuple(name, ops, entries, table_v2));
   return type_id;
 }
 
@@ -126,7 +128,7 @@ events::events_container events::get_events_by_category_name(
     uint16_t cat = category_id(name.c_str());
     for (auto it = _elements.begin(), end = _elements.end(); it != end; ++it) {
       if (category_of_type(it->first) == cat)
-        retval.insert({it->first, it->second});
+        retval.emplace(it->first, it->second);
     }
     return retval;
   }
