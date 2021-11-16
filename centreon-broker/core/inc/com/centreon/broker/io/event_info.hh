@@ -76,7 +76,7 @@ class event_info {
    *
    *  @param[in] other  Object to copy.
    */
-  event_info(event_info const& other)
+  event_info(const event_info& other)
       : _mapping(other._mapping),
         _name(other._name),
         _ops(other._ops),
