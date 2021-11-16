@@ -157,8 +157,10 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
         printf("=> %s\n", rr->data());
         i++;
       }
+      else
+        std::cout << "Timeout during read." << std::endl;
       std::this_thread::yield();
-    } while (i < 500);
+    } while (i < 50);
 
     cbd_finished = true;
   });
@@ -185,6 +187,7 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
     /* This is not representative of a real stream. Here we have to call write
      * several times, so that the SSL library makes its work in the back */
     do {
+      if (i < 50) {
       sprintf(str, "Hello cbd %d", i);
       i++;
       std::vector<char> v(str, str + strlen(str) + 1);
@@ -192,6 +195,11 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
       auto packet = std::make_shared<io::raw>(std::move(v));
       tls_centengine->write(packet);
       std::this_thread::yield();
+      }
+      else {
+        std::cout << "Waiting for cbd to be finished" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
     } while (!cbd_finished);
   });
 
@@ -536,9 +544,15 @@ TEST_F(Tls2Test, TlsStreamBigData) {
     std::vector<char> v(length, c);
     size_t limit = 1;
     std::vector<char> my_vector;
+    bool no_timeout;
     do {
       std::shared_ptr<io::data> d;
-      bool no_timeout = tls_cbd->read(d, 0);
+      try {
+      no_timeout = tls_cbd->read(d, 0);
+      } catch (const std::exception& e) {
+        std::cout <<"Error in unit tests: " << e.what() << std::endl;
+        no_timeout = false;
+      }
       if (no_timeout) {
         io::raw* rr = static_cast<io::raw*>(d.get());
         my_vector.insert(my_vector.end(), rr->get_buffer().begin(), rr->get_buffer().end());
@@ -640,9 +654,15 @@ TEST_F(Tls2Test, TlsStreamLongData) {
     std::vector<char> v(length, c);
     size_t limit = 1;
     std::vector<char> my_vector;
+    bool no_timeout;
     do {
       std::shared_ptr<io::data> d;
-      bool no_timeout = tls_cbd->read(d, 0);
+      try {
+      no_timeout = tls_cbd->read(d, 0);
+      } catch (const std::exception& e) {
+        std::cout <<"Error in unit tests: " << e.what() << std::endl;
+        no_timeout = false;
+      }
       if (no_timeout) {
         io::raw* rr = static_cast<io::raw*>(d.get());
         my_vector.insert(my_vector.end(), rr->get_buffer().begin(), rr->get_buffer().end());

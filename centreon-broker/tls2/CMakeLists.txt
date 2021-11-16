@@ -47,28 +47,29 @@ target_link_libraries("${TLS2}" ${OpenSSL_LIBS})
 set_target_properties("${TLS2}" PROPERTIES PREFIX "")
 
 # Testing.
-if (WITH_TESTING)
-  set(
-    TESTS_SOURCES
-    ${TESTS_SOURCES}
-    "${TEST_DIR}/acceptor.cc"
-    PARENT_SCOPE
-  )
-  set(
-    TESTS_LIBRARIES
-    ${TESTS_LIBRARIES}
-    "${TLS2}"
-    PARENT_SCOPE
-  )
-
-  add_executable(anon-test
-      "${TEST_DIR}/anon-test.cc")
-  target_link_libraries(anon-test ${OpenSSL_LIBS} -pthread -ldl)
-  add_executable(crypt-test
-      "${TEST_DIR}/crypt-test.cc")
-  target_link_libraries(crypt-test ${OpenSSL_LIBS} -pthread -ldl ${fmt_LIBS})
-endif()
-# Install rule.
-install(TARGETS "${TLS2}"
-  LIBRARY DESTINATION "${PREFIX_MODULES}"
-)
+# FIXME DBO: tls2 is not functional for now.
+#if (WITH_TESTING)
+#  set(
+#    TESTS_SOURCES
+#    ${TESTS_SOURCES}
+#    "${TEST_DIR}/acceptor.cc"
+#    PARENT_SCOPE
+#  )
+#  set(
+#    TESTS_LIBRARIES
+#    ${TESTS_LIBRARIES}
+#    "${TLS2}"
+#    PARENT_SCOPE
+#  )
+#
+#  add_executable(anon-test
+#      "${TEST_DIR}/anon-test.cc")
+#  target_link_libraries(anon-test ${OpenSSL_LIBS} -pthread -ldl)
+#  add_executable(crypt-test
+#      "${TEST_DIR}/crypt-test.cc")
+#  target_link_libraries(crypt-test ${OpenSSL_LIBS} -pthread -ldl ${fmt_LIBS})
+#endif()
+## Install rule.
+#install(TARGETS "${TLS2}"
+#  LIBRARY DESTINATION "${PREFIX_MODULES}"
+#)

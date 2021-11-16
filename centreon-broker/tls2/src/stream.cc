@@ -206,7 +206,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       assert(d || !retval);
     }
   } catch (const std::exception& e) {
-    log_v2::tls()->error("TLS session is terminated");
+    log_v2::tls()->error("TLS session is terminated: {}", e.what());
     throw msg_fmt("TLS session is terminated");
   }
 
