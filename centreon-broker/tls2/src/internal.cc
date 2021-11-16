@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#include <openssl/x509v3.h>
 #include "com/centreon/broker/tls2/internal.hh"
+#include <openssl/x509v3.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;

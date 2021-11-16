@@ -21,15 +21,17 @@
  * Create server/client self-signed certificate/key (self signed, DONT ADD
    PASSWORD)
 
- openssl req -x509 -newkey rsa:2048 -days 3650 -nodes -keyout client-key.pem -out client-cert.pem
+ openssl req -x509 -newkey rsa:2048 -days 3650 -nodes -keyout client-key.pem
+ -out client-cert.pem
 
- openssl req -x509 -newkey rsa:2048 -days 3650 -nodes -keyout server-key.pem -out server-cert.pem
+ openssl req -x509 -newkey rsa:2048 -days 3650 -nodes -keyout server-key.pem
+ -out server-cert.pem
 
 */
 #include <assert.h>
+#include <fmt/format.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
-#include <fmt/format.h>
 #include <string.h>
 #include <string>
 
@@ -44,7 +46,8 @@ int main() {
     std::string keyfile{fmt::format("./{}-key.pem", name)};
 
     /* certificate file; contains also the public key */
-    int r = SSL_CTX_use_certificate_file(ctx, certfile.c_str(), SSL_FILETYPE_PEM);
+    int r =
+        SSL_CTX_use_certificate_file(ctx, certfile.c_str(), SSL_FILETYPE_PEM);
     if (r <= 0) {
       printf("Error: cannot load certificate file.\n");
       ERR_print_errors_fp(stderr);

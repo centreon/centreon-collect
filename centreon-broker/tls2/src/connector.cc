@@ -71,8 +71,9 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX* ctx) {
    * Retrieve the pointer to the SSL of the connection currently treated
    * and the application specific data stored into the SSL object.
    */
-  //ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-  //mydata = SSL_get_ex_data(ssl, mydata_index);
+  // ssl = X509_STORE_CTX_get_ex_data(ctx,
+  // SSL_get_ex_data_X509_STORE_CTX_idx());
+  // mydata = SSL_get_ex_data(ssl, mydata_index);
 
   X509_NAME_oneline(X509_get_subject_name(err_cert), buf, 256);
 
@@ -86,14 +87,14 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX* ctx) {
    * additional certificates would be logged.
    */
   log_v2::tls()->info("depth = {}", depth);
-//  if (depth > mydata->verify_depth) {
-//    preverify_ok = 0;
-//    err = X509_V_ERR_CERT_CHAIN_TOO_LONG;
-//    X509_STORE_CTX_set_error(ctx, err);
-//  }
+  //  if (depth > mydata->verify_depth) {
+  //    preverify_ok = 0;
+  //    err = X509_V_ERR_CERT_CHAIN_TOO_LONG;
+  //    X509_STORE_CTX_set_error(ctx, err);
+  //  }
   if (!preverify_ok) {
     log_v2::tls()->error("verify error:num={}:{}:depth={}:{}", err,
-           X509_verify_cert_error_string(err), depth, buf);
+                         X509_verify_cert_error_string(err), depth, buf);
   }
 
   /*
@@ -105,10 +106,10 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX* ctx) {
     printf("issuer= %s\n", buf);
   }
 
-//  if (mydata->always_continue)
-//    return 1;
-//  else
-    return preverify_ok;
+  //  if (mydata->always_continue)
+  //    return 1;
+  //  else
+  return preverify_ok;
 }
 
 static void info_callback(const SSL* s, int where, int ret) {
@@ -132,9 +133,11 @@ static void info_callback(const SSL* s, int where, int ret) {
                         SSL_alert_desc_string_long(ret));
   } else if (where & SSL_CB_EXIT) {
     if (ret == 0)
-      log_v2::tls()->info("INFO: {}: failed in {}", str1, SSL_state_string_long(s));
+      log_v2::tls()->info("INFO: {}: failed in {}", str1,
+                          SSL_state_string_long(s));
     else if (ret < 0) {
-      log_v2::tls()->info("INFO: {}:error in {}", str1, SSL_state_string_long(s));
+      log_v2::tls()->info("INFO: {}:error in {}", str1,
+                          SSL_state_string_long(s));
     }
   }
 }
@@ -156,7 +159,7 @@ std::unique_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
       if (c_ssl == nullptr)
         throw msg_fmt("Unable to allocate connector ssl object");
 
-      //SSL_set_info_callback(c_ssl, info_callback);
+      // SSL_set_info_callback(c_ssl, info_callback);
 
       if (!_cert.empty() && !_key.empty()) {
         log_v2::tls()->info("TLS: using certificates as credentials");
@@ -165,19 +168,23 @@ std::unique_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
         X509_VERIFY_PARAM_set_hostflags(ssl_params,
                                         X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
 
-        SSL_set_mode(c_ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER | SSL_MODE_AUTO_RETRY);
+        SSL_set_mode(c_ssl,
+                     SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER | SSL_MODE_AUTO_RETRY);
 
         /* Force TLS hostname */
         int mode;
         if (!_tls_hostname.empty()) {
           if (!SSL_set_tlsext_host_name(c_ssl, _tls_hostname.c_str()))
-            throw msg_fmt("Error: cannot set tls2 hostname '{}'", _tls_hostname);
+            throw msg_fmt("Error: cannot set tls2 hostname '{}'",
+                          _tls_hostname);
 
-          if (!X509_VERIFY_PARAM_set1_host(ssl_params, _tls_hostname.c_str(), _tls_hostname.size()))
-            throw msg_fmt("Error: cannot set tls2 host name '{}' to X509 parameters", _tls_hostname);
+          if (!X509_VERIFY_PARAM_set1_host(ssl_params, _tls_hostname.c_str(),
+                                           _tls_hostname.size()))
+            throw msg_fmt(
+                "Error: cannot set tls2 host name '{}' to X509 parameters",
+                _tls_hostname);
           mode = SSL_VERIFY_PEER;
-        }
-        else
+        } else
           mode = SSL_VERIFY_NONE;
         SSL_set_verify(c_ssl, mode, verify_callback);
 
@@ -190,14 +197,17 @@ std::unique_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
 
         /* Load CA certificate */
         if (!_ca.empty()) {
-          if (SSL_CTX_load_verify_locations(tls2::ctx, _ca.c_str(), nullptr) != 1)
+          if (SSL_CTX_load_verify_locations(tls2::ctx, _ca.c_str(), nullptr) !=
+              1)
             throw msg_fmt(
-                "Error: cannot load trusted certificate authority's file '{}': {}",
+                "Error: cannot load trusted certificate authority's file '{}': "
+                "{}",
                 _ca, ERR_reason_error_string(ERR_get_error()));
         }
 
         /* Load certificate */
-        if (SSL_use_certificate_file(c_ssl, _cert.c_str(), SSL_FILETYPE_PEM) != 1)
+        if (SSL_use_certificate_file(c_ssl, _cert.c_str(), SSL_FILETYPE_PEM) !=
+            1)
           throw msg_fmt("Error: cannot load certificate file '{}'", _cert);
 
         /* Load private key */

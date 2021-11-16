@@ -27,9 +27,7 @@ using namespace com::centreon::broker;
 class StreamMemoryStream : public com::centreon::broker::io::stream {
  public:
   StreamMemoryStream()
-      : io::stream("stream_memory"),
-        _shutdown(false),
-        _timeout(false) {}
+      : io::stream("stream_memory"), _shutdown(false), _timeout(false) {}
 
   std::shared_ptr<com::centreon::broker::io::raw>& get_buffer() {
     return _buffer;

@@ -28,6 +28,8 @@
 
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/buffer.hh"
+#include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
@@ -35,8 +37,6 @@
 #include "com/centreon/broker/tls2/connector.hh"
 #include "com/centreon/broker/tls2/internal.hh"
 #include "com/centreon/broker/tls2/stream.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -76,7 +76,7 @@ TEST_F(Tls2Test, AnonTlsStream) {
     std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
 
-    //tls_cbd->handshake();
+    // tls_cbd->handshake();
 
     do {
       std::shared_ptr<io::data> d;
@@ -105,11 +105,12 @@ TEST_F(Tls2Test, AnonTlsStream) {
     } while (!u_centengine);
 
     std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
-    tls2::stream* tls_centengine = static_cast<tls2::stream*>(io_tls_centengine.get());
+    tls2::stream* tls_centengine =
+        static_cast<tls2::stream*>(io_tls_centengine.get());
 
-    //tls_centengine->handshake();
+    // tls_centengine->handshake();
 
-    std::vector<char> v{ 'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd' };
+    std::vector<char> v{'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd'};
     auto packet = std::make_shared<io::raw>(std::move(v));
 
     /* This is not representative of a real stream. Here we have to call write
@@ -142,7 +143,7 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
     std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
 
-    //tls_cbd->handshake();
+    // tls_cbd->handshake();
 
     int i = 0;
     char str[256];
@@ -156,8 +157,7 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
         ASSERT_EQ(strncmp(rr->data(), str, 16), 0);
         printf("=> %s\n", rr->data());
         i++;
-      }
-      else
+      } else
         std::cout << "Timeout during read." << std::endl;
       std::this_thread::yield();
     } while (i < 50);
@@ -177,9 +177,10 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
     } while (!u_centengine);
 
     std::unique_ptr<io::stream> io_tls_centengine = tls_c->open(u_centengine);
-    tls2::stream* tls_centengine = static_cast<tls2::stream*>(io_tls_centengine.get());
+    tls2::stream* tls_centengine =
+        static_cast<tls2::stream*>(io_tls_centengine.get());
 
-    //tls_centengine->handshake();
+    // tls_centengine->handshake();
 
     char str[20];
     int i = 0;
@@ -188,15 +189,14 @@ TEST_F(Tls2Test, AnonTlsStreamContinuous) {
      * several times, so that the SSL library makes its work in the back */
     do {
       if (i < 50) {
-      sprintf(str, "Hello cbd %d", i);
-      i++;
-      std::vector<char> v(str, str + strlen(str) + 1);
-      puts(str);
-      auto packet = std::make_shared<io::raw>(std::move(v));
-      tls_centengine->write(packet);
-      std::this_thread::yield();
-      }
-      else {
+        sprintf(str, "Hello cbd %d", i);
+        i++;
+        std::vector<char> v(str, str + strlen(str) + 1);
+        puts(str);
+        auto packet = std::make_shared<io::raw>(std::move(v));
+        tls_centengine->write(packet);
+        std::this_thread::yield();
+      } else {
         std::cout << "Waiting for cbd to be finished" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -211,11 +211,17 @@ TEST_F(Tls2Test, TlsStream) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
   hostname = misc::string::trim(hostname);
-  std::string server_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'", hostname));
+  std::string server_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+      hostname));
   std::cout << server_cmd << std::endl;
   system(server_cmd.c_str());
 
-  std::string client_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'", hostname));
+  std::string client_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+      hostname));
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
@@ -224,8 +230,8 @@ TEST_F(Tls2Test, TlsStream) {
   std::thread cbd([&cbd_finished] {
     auto a{std::make_unique<tcp::acceptor>(4141, -1)};
 
-    auto tls_a{std::make_unique<tls2::acceptor>(
-        "/tmp/server.crt", "/tmp/server.key", "", "")};
+    auto tls_a{std::make_unique<tls2::acceptor>("/tmp/server.crt",
+                                                "/tmp/server.key", "", "")};
 
     /* Nominal case, cbd is acceptor and read on the socket */
     std::shared_ptr<io::stream> u_cbd;
@@ -236,7 +242,7 @@ TEST_F(Tls2Test, TlsStream) {
     std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
 
-    //tls_cbd->handshake();
+    // tls_cbd->handshake();
 
     do {
       std::shared_ptr<io::data> d;
@@ -256,7 +262,8 @@ TEST_F(Tls2Test, TlsStream) {
   std::thread centengine([&cbd_finished] {
     auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
 
-    auto tls_c{std::make_unique<tls2::connector>("/tmp/client.crt", "/tmp/client.key", "", "")};
+    auto tls_c{std::make_unique<tls2::connector>("/tmp/client.crt",
+                                                 "/tmp/client.key", "", "")};
 
     /* Nominal case, centengine is connector and write on the socket */
     std::shared_ptr<io::stream> u_centengine;
@@ -265,11 +272,12 @@ TEST_F(Tls2Test, TlsStream) {
     } while (!u_centengine);
 
     std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
-    tls2::stream* tls_centengine = static_cast<tls2::stream*>(io_tls_centengine.get());
+    tls2::stream* tls_centengine =
+        static_cast<tls2::stream*>(io_tls_centengine.get());
 
-    //tls_centengine->handshake();
+    // tls_centengine->handshake();
 
-    std::vector<char> v{ 'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd' };
+    std::vector<char> v{'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd'};
     auto packet = std::make_shared<io::raw>(std::move(v));
 
     /* This is not representative of a real stream. Here we have to call write
@@ -289,11 +297,17 @@ TEST_F(Tls2Test, TlsStreamCa) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
   hostname = misc::string::trim(hostname);
-  std::string server_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'", hostname));
+  std::string server_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+      hostname));
   std::cout << server_cmd << std::endl;
   system(server_cmd.c_str());
 
-  std::string client_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'", hostname));
+  std::string client_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+      hostname));
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
@@ -314,7 +328,7 @@ TEST_F(Tls2Test, TlsStreamCa) {
     std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
 
-    //tls_cbd->handshake();
+    // tls_cbd->handshake();
 
     do {
       std::shared_ptr<io::data> d;
@@ -334,7 +348,8 @@ TEST_F(Tls2Test, TlsStreamCa) {
   std::thread centengine([&cbd_finished] {
     auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
 
-    auto tls_c{std::make_unique<tls2::connector>("/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", "")};
+    auto tls_c{std::make_unique<tls2::connector>(
+        "/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", "")};
 
     /* Nominal case, centengine is connector and write on the socket */
     std::shared_ptr<io::stream> u_centengine;
@@ -343,11 +358,12 @@ TEST_F(Tls2Test, TlsStreamCa) {
     } while (!u_centengine);
 
     std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
-    tls2::stream* tls_centengine = static_cast<tls2::stream*>(io_tls_centengine.get());
+    tls2::stream* tls_centengine =
+        static_cast<tls2::stream*>(io_tls_centengine.get());
 
-    //tls_centengine->handshake();
+    // tls_centengine->handshake();
 
-    std::vector<char> v{ 'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd' };
+    std::vector<char> v{'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd'};
     auto packet = std::make_shared<io::raw>(std::move(v));
 
     /* This is not representative of a real stream. Here we have to call write
@@ -367,11 +383,17 @@ TEST_F(Tls2Test, TlsStreamCaError) {
   /* Let's prepare certificates */
   std::string hostname = misc::exec("hostname --fqdn");
   hostname = misc::string::trim(hostname);
-  std::string server_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'", hostname));
+  std::string server_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+      hostname));
   std::cout << server_cmd << std::endl;
   system(server_cmd.c_str());
 
-  std::string client_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'", hostname));
+  std::string client_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+      hostname));
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
@@ -391,29 +413,31 @@ TEST_F(Tls2Test, TlsStreamCaError) {
 
     std::unique_ptr<io::stream> io_tls_cbd;
     ASSERT_THROW(io_tls_cbd = tls_a->open(u_cbd), std::exception);
-/*    tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
+    /*    tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
 
-    do {
-      std::shared_ptr<io::data> d;
-      puts("cbd read");
-      try {
-        tls_cbd->read(d, 0);
-      } catch (const std::exception& e) {
-        std::cout << "### " << e.what() << " ###" << std::endl;
-        ASSERT_EQ(strcmp(e.what(), "TLS session is terminated"), 0);
-        cbd_finished = true;
-        break;
-      }
-      std::this_thread::yield();
-    } while (true);
-*/
+        do {
+          std::shared_ptr<io::data> d;
+          puts("cbd read");
+          try {
+            tls_cbd->read(d, 0);
+          } catch (const std::exception& e) {
+            std::cout << "### " << e.what() << " ###" << std::endl;
+            ASSERT_EQ(strcmp(e.what(), "TLS session is terminated"), 0);
+            cbd_finished = true;
+            break;
+          }
+          std::this_thread::yield();
+        } while (true);
+    */
     cbd_finished = true;
   });
 
   std::thread centengine([&cbd_finished] {
     auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
 
-    auto tls_c{std::make_unique<tls2::connector>("/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", "badhostname")};
+    auto tls_c{
+        std::make_unique<tls2::connector>("/tmp/client.crt", "/tmp/client.key",
+                                          "/tmp/server.crt", "badhostname")};
 
     /* Nominal case, centengine is connector and write on the socket */
     std::shared_ptr<io::stream> u_centengine;
@@ -433,11 +457,17 @@ TEST_F(Tls2Test, TlsStreamCaHostname) {
   /* Let's prepare certificates */
   const static std::string s_hostname{"saperlifragilistic"};
   const static std::string c_hostname{"foobar"};
-  std::string server_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'", s_hostname));
+  std::string server_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+      s_hostname));
   std::cout << server_cmd << std::endl;
   system(server_cmd.c_str());
 
-  std::string client_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'", c_hostname));
+  std::string client_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+      c_hostname));
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
@@ -458,7 +488,7 @@ TEST_F(Tls2Test, TlsStreamCaHostname) {
     std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls2::stream* tls_cbd = static_cast<tls2::stream*>(io_tls_cbd.get());
 
-    //tls_cbd->handshake();
+    // tls_cbd->handshake();
 
     do {
       std::shared_ptr<io::data> d;
@@ -478,7 +508,8 @@ TEST_F(Tls2Test, TlsStreamCaHostname) {
   std::thread centengine([&cbd_finished] {
     auto c{std::make_unique<tcp::connector>("localhost", 4141, -1)};
 
-    auto tls_c{std::make_unique<tls2::connector>("/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", s_hostname)};
+    auto tls_c{std::make_unique<tls2::connector>(
+        "/tmp/client.crt", "/tmp/client.key", "/tmp/server.crt", s_hostname)};
 
     /* Nominal case, centengine is connector and write on the socket */
     std::shared_ptr<io::stream> u_centengine;
@@ -487,11 +518,12 @@ TEST_F(Tls2Test, TlsStreamCaHostname) {
     } while (!u_centengine);
 
     std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
-    tls2::stream* tls_centengine = static_cast<tls2::stream*>(io_tls_centengine.get());
+    tls2::stream* tls_centengine =
+        static_cast<tls2::stream*>(io_tls_centengine.get());
 
-    //tls_centengine->handshake();
+    // tls_centengine->handshake();
 
-    std::vector<char> v{ 'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd' };
+    std::vector<char> v{'H', 'e', 'l', 'l', 'o', ' ', 'c', 'b', 'd'};
     auto packet = std::make_shared<io::raw>(std::move(v));
 
     /* This is not representative of a real stream. Here we have to call write
@@ -514,11 +546,17 @@ TEST_F(Tls2Test, TlsStreamBigData) {
   const static std::string s_hostname{"saperlifragilistic"};
   const static std::string c_hostname{"foobar"};
   const static int max_limit = 20;
-  std::string server_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'", s_hostname));
+  std::string server_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+      s_hostname));
   std::cout << server_cmd << std::endl;
   system(server_cmd.c_str());
 
-  std::string client_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'", c_hostname));
+  std::string client_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+      c_hostname));
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
@@ -548,16 +586,18 @@ TEST_F(Tls2Test, TlsStreamBigData) {
     do {
       std::shared_ptr<io::data> d;
       try {
-      no_timeout = tls_cbd->read(d, 0);
+        no_timeout = tls_cbd->read(d, 0);
       } catch (const std::exception& e) {
-        std::cout <<"Error in unit tests: " << e.what() << std::endl;
+        std::cout << "Error in unit tests: " << e.what() << std::endl;
         no_timeout = false;
       }
       if (no_timeout) {
         io::raw* rr = static_cast<io::raw*>(d.get());
-        my_vector.insert(my_vector.end(), rr->get_buffer().begin(), rr->get_buffer().end());
+        my_vector.insert(my_vector.end(), rr->get_buffer().begin(),
+                         rr->get_buffer().end());
       }
-      if (!my_vector.empty() && memcmp(my_vector.data(), v.data(), v.size()) == 0) {
+      if (!my_vector.empty() &&
+          memcmp(my_vector.data(), v.data(), v.size()) == 0) {
         my_vector.erase(my_vector.begin(), my_vector.begin() + v.size());
         limit++;
         ASSERT_TRUE(true);
@@ -566,8 +606,7 @@ TEST_F(Tls2Test, TlsStreamBigData) {
         c++;
         length *= 2u;
         v = std::vector<char>(length, c);
-      }
-      else if (my_vector.size() >= v.size()) {
+      } else if (my_vector.size() >= v.size()) {
         ASSERT_TRUE(false);
         break;
       }
@@ -604,7 +643,7 @@ TEST_F(Tls2Test, TlsStreamBigData) {
       tls_centengine->write(packet);
       ch++;
       limit++;
-      //std::this_thread::sleep_for(1ms);
+      // std::this_thread::sleep_for(1ms);
       length *= 2;
       v = std::vector<char>(length, ch);
     }
@@ -624,11 +663,17 @@ TEST_F(Tls2Test, TlsStreamLongData) {
   const static std::string s_hostname{"saperlifragilistic"};
   const static std::string c_hostname{"foobar"};
   const static int max_limit = 20000;
-  std::string server_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/server.key -out /tmp/server.crt -subj '/CN={}'", s_hostname));
+  std::string server_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/server.key -out /tmp/server.crt -subj '/CN={}'",
+      s_hostname));
   std::cout << server_cmd << std::endl;
   system(server_cmd.c_str());
 
-  std::string client_cmd(fmt::format("openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/client.key -out /tmp/client.crt -subj '/CN={}'", c_hostname));
+  std::string client_cmd(fmt::format(
+      "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
+      "/tmp/client.key -out /tmp/client.crt -subj '/CN={}'",
+      c_hostname));
   std::cout << client_cmd << std::endl;
   system(client_cmd.c_str());
 
@@ -658,16 +703,18 @@ TEST_F(Tls2Test, TlsStreamLongData) {
     do {
       std::shared_ptr<io::data> d;
       try {
-      no_timeout = tls_cbd->read(d, 0);
+        no_timeout = tls_cbd->read(d, 0);
       } catch (const std::exception& e) {
-        std::cout <<"Error in unit tests: " << e.what() << std::endl;
+        std::cout << "Error in unit tests: " << e.what() << std::endl;
         no_timeout = false;
       }
       if (no_timeout) {
         io::raw* rr = static_cast<io::raw*>(d.get());
-        my_vector.insert(my_vector.end(), rr->get_buffer().begin(), rr->get_buffer().end());
+        my_vector.insert(my_vector.end(), rr->get_buffer().begin(),
+                         rr->get_buffer().end());
       }
-      if (!my_vector.empty() && memcmp(my_vector.data(), v.data(), v.size()) == 0) {
+      if (!my_vector.empty() &&
+          memcmp(my_vector.data(), v.data(), v.size()) == 0) {
         my_vector.erase(my_vector.begin(), my_vector.begin() + v.size());
         limit++;
         ASSERT_TRUE(true);
@@ -677,8 +724,7 @@ TEST_F(Tls2Test, TlsStreamLongData) {
         if (c > 'z')
           c = 'A';
         v = std::vector<char>(length, c);
-      }
-      else if (my_vector.size() >= v.size()) {
+      } else if (my_vector.size() >= v.size()) {
         ASSERT_TRUE(false);
         break;
       }
@@ -717,7 +763,7 @@ TEST_F(Tls2Test, TlsStreamLongData) {
       if (ch > 'z')
         ch = 'A';
       limit++;
-      //std::this_thread::sleep_for(1ms);
+      // std::this_thread::sleep_for(1ms);
       v = std::vector<char>(length, ch);
     }
     do {

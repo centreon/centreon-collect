@@ -59,7 +59,6 @@ class TlsStreamRead : public ::testing::Test {
     _connector = std::make_unique<tls2::connector>("", "", "", "");
     _substream_con = std::make_shared<StreamMemoryStream>();
     _stream_con = _connector->open(_substream_con);
-
   }
 
   void TearDown() override { config::applier::deinit(); }

@@ -69,8 +69,7 @@ void stream::handshake() {
   int r;
   while ((r = SSL_do_handshake(_ssl)) != 1)
     _manage_stream_error(r, ssl_handshake);
-  log_v2::tls()->warn("{} Handshake done",
-                         _server ? "SERVER" : "CLIENT");
+  log_v2::tls()->warn("{} Handshake done", _server ? "SERVER" : "CLIENT");
   _handshake_done = true;
 }
 
@@ -238,13 +237,11 @@ int stream::write(const std::shared_ptr<io::data>& d) {
           _wbuf.pop();
           _do_stream();
           break;
-        }
-        else {
+        } else {
           _wbuf.pop(r);
           _do_stream();
         }
-      }
-      else {
+      } else {
         _manage_stream_error(r, ssl_write);
         break;
       }
