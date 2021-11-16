@@ -19,10 +19,6 @@
 # Global options.
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Clib" C CXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
-#set(CMAKE_CXX_COMPILER "clang++")
-add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
@@ -33,7 +29,6 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 # Version.
 set(CLIB_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
-
 
 # Include module to check existing libraries.
 include(CheckLibraryExists)

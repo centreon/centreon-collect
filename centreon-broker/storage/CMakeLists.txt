@@ -64,11 +64,10 @@ add_library("${STORAGE}" SHARED
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh"
 )
-add_dependencies("${STORAGE}" ${proto_rebuild})
 set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-target_link_libraries(${STORAGE} conflictmgr)
+target_link_libraries(${STORAGE} conflictmgr rokerbase)
 
 # Testing.
 if (WITH_TESTING)
@@ -80,13 +79,13 @@ if (WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
-#    ${TEST_DIR}/connector.cc
+    ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
     ${TEST_DIR}/rebuild.cc
     ${TEST_DIR}/rebuild2.cc
     ${TEST_DIR}/remove_graph.cc
     ${TEST_DIR}/status.cc
-#    ${TEST_DIR}/status-entry.cc
+    ${TEST_DIR}/status-entry.cc
     PARENT_SCOPE
   )
   set(
