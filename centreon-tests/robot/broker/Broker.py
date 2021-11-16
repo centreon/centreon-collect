@@ -1,4 +1,8 @@
 import time
+import socket, sys, time
+from datetime import datetime
+from subprocess import getoutput
+import subprocess as subp
 from robot.api import logger
 import json
 import glob
@@ -7,7 +11,7 @@ import os.path
 TIMEOUT = 30
 
 config = {
-    "central": """{{
+"central": """{{
     "centreonBroker": {{
         "broker_id": {0},
         "broker_name": "{1}",
@@ -238,11 +242,133 @@ config = {
             "port": 51002
         }}
     }}
-}}"""
+}}""",
+
+"central_map": """{{
+    "centreonBroker": {{
+        "broker_id": {0},
+        "broker_name": "{1}",
+        "poller_id": 1,
+        "poller_name": "Central",
+        "module_directory": "/usr/share/centreon/lib/centreon-broker",
+        "log_timestamp": true,
+        "log_thread_id": false,
+        "event_queue_max_size": 10,
+        "command_file": "/var/lib/centreon-broker/command.sock",
+        "cache_directory": "/var/lib/centreon-broker",
+        "log": {{
+            "directory": "/var/log/centreon-broker/",
+            "filename": "",
+            "max_size": 0,
+            "loggers": {{
+                "core": "info",
+                "config": "error",
+                "sql": "error",
+                "processing": "error",
+                "perfdata": "error",
+                "bbdo": "error",
+                "tcp": "error",
+                "tls": "error",
+                "lua": "error",
+                "bam": "error"
+            }}
+        }},
+        "input": [
+            {{
+                "name": "central-broker-master-input",
+                "port": "5669",
+                "buffering_timeout": "0",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }}
+        ],
+        "output": [
+            {{
+                "name": "central-broker-master-sql",
+                "db_type": "mysql",
+                "retry_interval": "5",
+                "buffering_timeout": "0",
+                "db_host": "localhost",
+                "db_port": "3306",
+                "db_user": "centreon",
+                "db_password": "centreon",
+                "db_name": "centreon_storage",
+                "queries_per_transaction": "1000",
+                "connections_count": "3",
+                "read_timeout": "1",
+                "type": "sql"
+            }},
+            {{
+                "name": "centreon-broker-master-rrd",
+                "port": "5670",
+                "buffering_timeout": "0",
+                "host": "localhost",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }},
+            {{
+                "name": "centreon-broker-master-map",
+                "port": "5671",
+                "buffering_timeout": "0",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }},
+            {{
+                "name": "central-broker-master-perfdata",
+                "interval": "60",
+                "retry_interval": "5",
+                "buffering_timeout": "0",
+                "length": "15552000",
+                "db_type": "mysql",
+                "db_host": "localhost",
+                "db_port": "3306",
+                "db_user": "centreon",
+                "db_password": "centreon",
+                "db_name": "centreon_storage",
+                "queries_per_transaction": "1000",
+                "read_timeout": "1",
+                "check_replication": "no",
+                "store_in_data_bin": "yes",
+                "connections_count": "3",
+                "insert_in_index_data": "1",
+                "type": "storage"
+            }}
+        ],
+        "stats": [
+            {{
+                "type": "stats",
+                "name": "central-broker-master-stats",
+                "json_fifo": "/var/lib/centreon-broker/central-broker-master-stats.json"
+            }}
+        ],
+        "grpc": {{
+            "port": 51001
+        }}
+    }}
+}}""",
 }
 
 def config_broker(name):
     if name == 'central':
+        broker_id = 1
+        broker_name = "central-broker-master"
+        filename = "central-broker.json"
+    elif name == 'central_map':
         broker_id = 1
         broker_name = "central-broker-master"
         filename = "central-broker.json"
@@ -408,3 +534,8 @@ def get_metric_to_delete():
     files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/*.rrd")]
     metric =files[0].split(".")
     return metric[0]
+
+def run_reverse_bam(duration, interval):
+    subp.Popen("broker/bam_client.py {:f}".format(interval), shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
+    time.sleep(duration)
+    getoutput("kill -9 $(ps aux | grep bam_client.py | awk '{print $2}')")

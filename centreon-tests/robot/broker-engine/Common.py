@@ -110,11 +110,3 @@ def sighup_broker():
 
 def sighup_engine():
   getoutput("kill -1 $(ps aux | grep '/usr/sbin/centengine' | awk '{print $2}')")
-
-#now = "2021-10-22 16:36:59.519"
-#print(find_in_log("/var/log/centreon-broker/central-broker-master.log", now, ["extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration'", "we have extensions 'COMPRESSION' and peer has ''"]))
-#logger.console(check_connection(5669, 16088, 16219))
-#print(find_in_log("/var/log/centreon-broker/central-broker-master.log", 18, ["mysql_connection", "sql stream instanciation"]))
-#print(find_in_log("/var/log/centreon-engine/config0/centengine.log", 1634888409, ["initialized successfully", "No output returned from host check"]))
-#print(find_in_log("/var/log/centreon-engine/config0/centengine.log", 1634888409, ["initialized successfully", "externalcmd.so"]))
-#print(find_in_log("/var/log/centreon-broker/central-broker-master.log", 18, ["mysql_connection", "sql stream instanciation"]))

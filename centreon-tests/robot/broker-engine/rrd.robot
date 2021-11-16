@@ -20,7 +20,6 @@ BRRDDM1: RRD metric deletion
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
-	# Broker Config Log	central	perfdata	debug
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
 
@@ -47,6 +46,7 @@ BRRDDM1: RRD metric deletion
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
 	${result}=	Find In Log	${log}	${start}	${content1}
 	Should Be True	${result}
+	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
 
 
 *** Keywords ***
@@ -65,8 +65,6 @@ Check Connections
 	[Return]	${retval}
 
 *** Variables ***
-&{ext}	yes=COMPRESSION	no=	auto=COMPRESSION
-@{choices}	yes	no	auto
 ${DBName}	centreon_storage
 ${DBHost}	localhost
 ${DBUser}	centreon

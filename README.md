@@ -1,24 +1,27 @@
-# Centreon Engine
+# Centreon Collect
 
-Centreon Engine is a fast and powerful open-source monitoring scheduler.
-It is a low-level component of the
+Centreon Collect is an extensible open-source monitoring event
+transmitter (Collect). It is a low-level component of the
 [Centreon software suite](https://www.centreon.com).
 
-Centreon Engine is released under the General Public License version 2
+Centreon Collect is released under the Apache License, Version 2.0
 and is endorsed by the [Centreon company](https://www.centreon.com).
 
-This project was started as a fork of Nagios, the well known open-source
-monitoring application. While keeping its configuration file format and
-its stability we improved it in several ways:
+Centreon Collect is the communication backbone of the Centreon software
+suite so most events are processed by one or more of its module.
+Centreon Collect has multiple modules that perform specific tasks. The
+list below describes the most common of them.
 
-- Reduced startup time
-- Faster standard check execution engine
-- New light check execution system (connectors)
-- On-the-fly configuration reload
-- Less obscure configuration options
-- Frequent bugfix releases
+- SQL: store real-time monitoring events in a SQL database
+- storage: parse and store performance data in a SQL database
+- RRD: write RRD graph files from monitoring performance data
+- BAM: compute Business Activity status and availability
+- Graphite: write monitoring performance data to Graphite
+- InfluxDB: write monitoring performance data to InfluxDB
 
-Just give it a try!
+Centreon Collect is extremely fast and is a credible alternative to the
+old NDOutils. It is also extremly modular and can fit most network
+security requirements. Just give it a try!
 
 ## Documentation
 
@@ -26,7 +29,7 @@ Just give it a try!
 
 ## Installing from binaries
 
-> Centreon Engine is a low-level component of the Centreon
+> Centreon Collect is a low-level component of the Centreon
 > software suite. If this is your first installation you would probably
 > want to [install it entirely](https://docs.centreon.com/current/en/installation/installation-of-a-central-server/using-sources.html).
 
@@ -36,28 +39,24 @@ as part of the [Centreon Platform](https://www.centreon.com/en/platform/)
 or as individual packages on [our RPM repository](https://docs.centreon.com/current/en/installation/installation-of-a-poller/using-packages.html).
 
 Once the repository installed a simple command will be needed to install
-Centreon Engine.
+Centreon Collect.
 
 ```shell
-yum install centreon-engine
+yum install centreon-broker centreon-clib centreon-connector centreon-engine
 ```
 
 ## Fetching sources
 
-Beware that the repository hosts in-developement sources and that it
+Beware that the repository hosts in-development sources and that it
 might not work at all.
 
 Stable releases are available as gziped tarballs on [Centreon's
 download site](https://download.centreon.com).
 
-## Compilation (quickstart)
+## Compilation
 
 This paragraph is only a quickstart guide for the compilation of
-Centreon Engine.
-
-Centreon Clib should be installed before installing Centreon Engine.
-If you do not have Centreon Clib please refer to the
-[centreon-clib](https://github.com/centreon/centreon-clib) project.
+Centreon Collect.
 
 ### CentOS / Debian / Raspbian
 
@@ -67,8 +66,8 @@ You'll need to download the project and launch the *cmake.sh* script
 to prepare the compilation environment:
 
 ```shell
-git clone https://github.com/centreon/centreon-engine
-cd centreon-engine
+git clone https://github.com/centreon/centreon-Collect
+cd centreon-Collect
 ./cmake.sh
 ```
 
@@ -88,14 +87,14 @@ If you are on another distribution, then follow the steps below.
 Check if you have these packages installed (Note that packages names
 come from CentOS distributions, so if some packages names don't match
 on your distribution try to find their equivalent names): git, make,
-cmake, gcc-c++, python3.
+cmake, gcc-c++, python3, libgnutls-devel, liblua-devel, librrd-devel.
 
 For the projet compilation you need to have conan installed. Try to use
 the package manager given by your OS to install conan. ('apt' for
 Debian, 'rpm' for Red Hat, 'pacman' for Arch Linux, ...). It is prefered
 to install gcc before conan.
 
-Example:
+Example :
 
 ```shell
 apt install conan
@@ -114,11 +113,12 @@ pip3 install conan
 You can now prepare the compilation environment:
 
 ```shell
-git clone https://github.com/centreon/centreon-engine
-mkdir -p centreon-engine/build
-cd centreon-engine/build
-conan install --build missing ..
-cmake -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_USER=centreon-engine -DWITH_GROUP=centreon-engine -DCMAKE_BUILD_TYPE=Release -DWITH_RW_DIR=/var/lib/centreon-engine/rw -DWITH_PREFIX_CONF=/etc/centreon-engine -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_PREFIX_LIB=/usr/lib64/centreon-engine ..
+git clone https://github.com/centreon/centreon-Collect
+mkdir -p centreon-Collect/build
+cd centreon-Collect/build
+conan install .. --build=missing
+cmake -DWITH_CENTREON_CLIB_INCLUDE_DIR=../centreon-clib/inc/ -DWITH_CENTREON_CLIB_LIBRARIES=centreon-clib/libcentreon_clib.so -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker -DWITH_PREFIX_CONF_BROKER=/etc/centreon-broker -DWITH_PREFIX_LIB_BROKER=/usr/lib64/nagios -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine -DWITH_PREFIX_LIB_CLIB=/usr/lib/ -DWITH_RW_DIR=/var/lib/centreon-engine/rw -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_MODULE_SIMU=On ..
+
 ```
 
 This will look for required dependencies and print a summary of the
@@ -132,15 +132,12 @@ make
 make install
 ```
 
-Verify the `/etc/centreon-engine` directory.
-
-Usually, its content is filled by the Centreon web interface, owned by the
-apache user.
-
-A command like the following may be necessary:
+Normally if all compiles, you have finished installing Collect. But if
+you want, you can also check it. Always from the *build* directory you
+can execute this command:
 
 ```shell
-chown -R apache:apache /etc/centreon-engine/*
+test/ut
 ```
 
 You're done!
@@ -148,9 +145,9 @@ You're done!
 ## Bug reports / Feature requests
 
 The best way to report a bug or to request a feature is to open an issue
-in GitHub's [issue tracker](https://github.com/centreon/centreon-engine/issues/).
+in GitHub's [issue tracker](https://github.com/centreon/centreon-Collect/issues/).
 
-Please note that Centreon Engine follows the
+Please note that Centreon Collect follows the
 [same workflow as Centreon](https://github.com/centreon/centreon/issues/new/choose)
 to process issues.
 
