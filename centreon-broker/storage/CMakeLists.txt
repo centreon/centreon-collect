@@ -80,13 +80,13 @@ if (WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
-    ${TEST_DIR}/connector.cc
+#    ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
     ${TEST_DIR}/rebuild.cc
     ${TEST_DIR}/rebuild2.cc
     ${TEST_DIR}/remove_graph.cc
     ${TEST_DIR}/status.cc
-    ${TEST_DIR}/status-entry.cc
+#    ${TEST_DIR}/status-entry.cc
     PARENT_SCOPE
   )
   set(
