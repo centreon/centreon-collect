@@ -126,7 +126,7 @@ static inline void extract_range(double* low,
  *
  * @return A list of perfdata
  */
-std::list<perfdata> parse_perfdata(uint32_t host_id,
+std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
                                    uint32_t service_id,
                                    const char* str) {
   std::list<perfdata> retval;
