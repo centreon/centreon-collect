@@ -1,0 +1,3 @@
+debian/extra/centreon-broker/cbd.service    lib/systemd/system
+debian/tmp-centreon-collect/usr/sbin/cbd    usr/sbin
+debian/tmp-centreon-collect/usr/sbin/cbwd   usr/sbin

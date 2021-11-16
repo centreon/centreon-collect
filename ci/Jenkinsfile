@@ -14,13 +14,24 @@ stage('Dependencies containers creation') {
       }
     }
   },
-  'debian dependencies': {
+  'debian 10 dependencies': {
     node {
-      dir('centreon-collect-debian') {
+      dir('centreon-collect-debian10') {
         checkout scm
         dir ('ci/docker') {
-          sh 'docker build --no-cache . -f Dockerfile.collect-debian-dependencies -t registry.centreon.com/centreon-collect-debian-dependencies:22.04'
-          sh 'docker push registry.centreon.com/centreon-collect-debian-dependencies:22.04'
+          sh 'docker build --no-cache . -f Dockerfile.collect-debian10-dependencies -t registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
+          sh 'docker push registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
+        }
+      }
+    }
+  },
+  'debian 11 ependencies': {
+    node {
+      dir('centreon-collect-debian11') {
+        checkout scm
+        dir ('ci/docker') {
+          sh 'docker build --no-cache . -f Dockerfile.collect-debian11-dependencies -t registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
+          sh 'docker push registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
         }
       }
     }
