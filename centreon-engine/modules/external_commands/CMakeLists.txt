@@ -46,11 +46,7 @@ add_library(
 )
 # Prettier name.
 set_property(TARGET "externalcmd" PROPERTY PREFIX "")
-# Location.
-get_property(
-  EXTERNALCMD_MODULE
-  TARGET "externalcmd"
-  PROPERTY LOCATION)
+
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 add_dependencies(externalcmd centreon_clib_shared)
 target_link_libraries(externalcmd centreon_clib)

@@ -22,9 +22,7 @@
 #
 
 # Set necessary settings.
-cmake_minimum_required(VERSION 2.8)
 project("Centreon Engine" C CXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # set -latomic if OS is Raspbian.
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
@@ -40,7 +38,6 @@ if (WITH_ASAN)
        "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif ()
 
-add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/scripts")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
@@ -618,7 +615,6 @@ target_link_libraries(cce_core ${nlohmann_json_LIBS}
 add_executable("centengine" "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib_shared)
-get_property(CENTENGINE_BINARY TARGET "centengine" PROPERTY LOCATION)
 
 # Link centengine with required libraries.
 target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
@@ -627,7 +623,6 @@ target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cc
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
 add_dependencies("centenginestats" centreon_clib_shared)
 target_link_libraries("centenginestats" centreon_clib)
-get_property(CENTENGINESTATS_BINARY TARGET "centenginestats" PROPERTY LOCATION)
 
 # Unit tests.
 add_subdirectory(tests)

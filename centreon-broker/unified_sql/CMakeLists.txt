@@ -52,37 +52,36 @@ add_library("${UNIFIED_SQL}" SHARED
   "${INC_DIR}/stored_timestamp.hh"
   "${INC_DIR}/stream.hh"
 )
-add_dependencies("${UNIFIED_SQL}" ${proto_rebuild})
 set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
 
 # Testing.
-#if (WITH_TESTING)
-#  if (WITH_SQL_TESTS)
-#    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
-#  endif (WITH_SQL_TESTS)
-#
-#  # Testing.
-#  set(
-#    TESTS_SOURCES
-#    ${TESTS_SOURCES}
-#    ${TEST_DIR}/connector.cc
-#    ${TEST_DIR}/metric.cc
-#    ${TEST_DIR}/rebuild.cc
-#    ${TEST_DIR}/rebuild2.cc
-#    ${TEST_DIR}/remove_graph.cc
-#    ${TEST_DIR}/status.cc
-##    ${TEST_DIR}/status-entry.cc
-#    PARENT_SCOPE
-#  )
-#  set(
-#    TESTS_LIBRARIES
-#    ${TESTS_LIBRARIES}
-#    ${UNIFIED_SQL}
-#    PARENT_SCOPE
-#  )
-#endif()
+if (WITH_TESTING)
+  if (WITH_SQL_TESTS)
+    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
+  endif (WITH_SQL_TESTS)
+
+  # Testing.
+  set(
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    ${TEST_DIR}/connector.cc
+    ${TEST_DIR}/metric.cc
+    ${TEST_DIR}/rebuild.cc
+    ${TEST_DIR}/rebuild2.cc
+    ${TEST_DIR}/remove_graph.cc
+    ${TEST_DIR}/status.cc
+    ${TEST_DIR}/status-entry.cc
+    PARENT_SCOPE
+  )
+  set(
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    ${UNIFIED_SQL}
+    PARENT_SCOPE
+  )
+endif()
 
 # Install rule.
 install(TARGETS "${UNIFIED_SQL}"
