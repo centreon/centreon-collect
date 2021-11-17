@@ -21,7 +21,7 @@
 #include <fmt/format.h>
 #include <cassert>
 
-#include "com/centreon/broker/bam/ba_status.hh"
+#include "bbdo/bam/ba_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/log_v2.hh"

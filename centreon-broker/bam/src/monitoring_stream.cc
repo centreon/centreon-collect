@@ -23,14 +23,14 @@
 #include <fstream>
 #include <limits>
 
+#include "bbdo/bam/ba_status.hh"
+#include "bbdo/bam/kpi_status.hh"
+#include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/bam/ba_status.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
-#include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"

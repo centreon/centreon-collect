@@ -21,8 +21,8 @@
 #include <cassert>
 #include <cstring>
 
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"

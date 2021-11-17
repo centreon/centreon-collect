@@ -16,8 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/kpi_event.hh"
+#include "bbdo/bam/kpi_event.hh"
 
+#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 
 using namespace com::centreon::broker;
@@ -32,7 +33,7 @@ kpi_event::kpi_event(uint32_t kpi_id, uint32_t ba_id, time_t start_time)
       impact_level(0),
       in_downtime(false),
       start_time(start_time),
-      status(kpi_event::state::state_unknown),
+      status(impact_values::state_unknown),
       ba_id(ba_id) {}
 
 /**

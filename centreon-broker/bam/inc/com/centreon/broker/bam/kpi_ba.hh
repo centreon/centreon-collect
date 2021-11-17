@@ -21,8 +21,9 @@
 
 #include <memory>
 
+#include "bbdo/bam/kpi_event.hh"
+#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
-#include "com/centreon/broker/bam/kpi_event.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -51,12 +52,12 @@ class kpi_ba : public kpi {
   double _impact_unknown;
 
   void _fill_impact(impact_values& impact,
-                    kpi_ba::state state,
+                    state state,
                     double acknowledgement,
                     double downtime);
   void _open_new_event(io::stream* visitor,
                        int impact,
-                       kpi_ba::state ba_state,
+                       state ba_state,
                        timestamp event_start_time);
 
  public:

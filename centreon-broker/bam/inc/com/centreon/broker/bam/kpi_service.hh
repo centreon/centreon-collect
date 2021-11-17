@@ -20,8 +20,9 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <array>
+#include "bbdo/bam/kpi_event.hh"
+#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
-#include "com/centreon/broker/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -44,7 +45,7 @@ class kpi_service : public service_listener, public kpi {
   typedef impact_values::state state;
 
  private:
-  void _fill_impact(impact_values& impact, kpi_service::state state);
+  void _fill_impact(impact_values& impact, state state);
   void _internal_copy(kpi_service const& right);
   void _open_new_event(io::stream* visitor, impact_values const& impacts);
 
@@ -54,8 +55,8 @@ class kpi_service : public service_listener, public kpi {
   timestamp _last_check;
   std::string _output;
   std::string _perfdata;
-  kpi_service::state _state_hard;
-  kpi_service::state _state_soft;
+  state _state_hard;
+  state _state_soft;
   short _state_type;
 
  public:

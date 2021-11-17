@@ -19,7 +19,7 @@
 #ifndef CCB_BAM_CONFIGURATION_KPI_HH
 #define CCB_BAM_CONFIGURATION_KPI_HH
 
-#include "com/centreon/broker/bam/kpi_event.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -36,7 +36,7 @@ namespace configuration {
  */
 class kpi {
  public:
-  typedef impact_values::state state;
+  // typedef impact_values::state state;
   kpi(uint32_t id = 0,
       short state_type = 0,
       uint32_t host_id = 0,

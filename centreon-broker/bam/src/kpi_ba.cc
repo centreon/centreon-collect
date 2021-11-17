@@ -18,8 +18,8 @@
 
 #include "com/centreon/broker/bam/kpi_ba.hh"
 
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;

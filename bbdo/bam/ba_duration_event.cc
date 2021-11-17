@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/ba_duration_event.hh"
+#include "bbdo/bam/ba_duration_event.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

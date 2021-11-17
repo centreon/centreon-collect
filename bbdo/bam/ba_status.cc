@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/ba_status.hh"
+#include "bbdo/bam/ba_status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

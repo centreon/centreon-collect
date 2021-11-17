@@ -24,12 +24,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "com/centreon/broker/bam/ba_duration_event.hh"
-#include "com/centreon/broker/bam/ba_event.hh"
+#include "bbdo/bam/ba_duration_event.hh"
+#include "bbdo/bam/ba_event.hh"
+#include "bbdo/bam/inherited_downtime.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/inherited_downtime.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
