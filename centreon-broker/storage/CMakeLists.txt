@@ -42,7 +42,6 @@ set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 
 get_protobuf_files(rebuild)
-get_bbdo_files(storage)
 
 # Storage module.
 set(STORAGE "20-storage")
@@ -54,7 +53,6 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/stream.cc"
-  ${bbdo_storage}
   ${proto_rebuild}
   # Headers.
   "${INC_DIR}/connector.hh"
@@ -67,7 +65,7 @@ add_library("${STORAGE}" SHARED
 set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-target_link_libraries(${STORAGE} conflictmgr rokerbase)
+target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 
 # Testing.
 if (WITH_TESTING)

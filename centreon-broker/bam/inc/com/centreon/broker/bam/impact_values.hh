@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_IMPACT_VALUES_HH
 #define CCB_BAM_IMPACT_VALUES_HH
 
+#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -33,14 +34,6 @@ namespace bam {
  *  downtime impact, acknowledgement impact.
  */
 class impact_values {
- public:
-  typedef enum {
-    state_ok,
-    state_warning,
-    state_critical,
-    state_unknown,
-  } state;
-
  private:
   double _acknowledgement;
   double _downtime;

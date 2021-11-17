@@ -73,11 +73,11 @@ ba::ba(uint32_t id,
       _service_id(service_id),
       _generate_virtual_status(generate_virtual_status),
       _computed_soft_state(source == configuration::ba::state_source_best
-                               ? ba::state::state_critical
-                               : ba::state::state_ok),
+                               ? state_critical
+                               : state_ok),
       _computed_hard_state(source == configuration::ba::state_source_best
-                               ? ba::state::state_critical
-                               : ba::state::state_ok),
+                               ? state_critical
+                               : state_ok),
       _num_soft_critical_childs{0.f},
       _num_hard_critical_childs{0.f},
       _acknowledgement_hard(0.0),
@@ -299,34 +299,34 @@ std::string ba::get_perfdata() const {
  *
  *  @return BA hard state.
  */
-ba::state ba::get_state_hard() {
-  ba::state state;
+state ba::get_state_hard() {
+  bam::state state;
 
   auto update_state = [&](float num_critical, float level_crit,
-                          float level_warning) -> ba::state {
+                          float level_warning) -> bam::state {
     if (num_critical >= level_crit)
-      return ba::state::state_critical;
+      return state_critical;
     else if (num_critical >= level_warning)
-      return ba::state::state_warning;
-    return ba::state::state_ok;
+      return state_warning;
+    return state_ok;
   };
 
   switch (_state_source) {
     case configuration::ba::state_source_impact:
       if (!_valid)
-        state = ba::state::state_unknown;
+        state = state_unknown;
       else if (_level_hard <= _level_critical)
-        state = ba::state::state_critical;
+        state = state_critical;
       else if (_level_hard <= _level_warning)
-        state = ba::state::state_warning;
+        state = state_warning;
       else
-        state = ba::state::state_ok;
+        state = state_ok;
       break;
     case configuration::ba::state_source_best:
     case configuration::ba::state_source_worst:
       if (_dt_behaviour == configuration::ba::dt_ignore_kpi &&
           _every_kpi_in_dt(_impacts))
-        state = impact_values::state_ok;
+        state = state_ok;
       else
         state = _computed_hard_state;
       break;
@@ -339,8 +339,8 @@ ba::state ba::get_state_hard() {
                            _level_critical, _level_warning);
       break;
     default:
-      state = ba::state::state_unknown;  // unknown _state_source so unknown
-                                         // state...
+      state = state_unknown;  // unknown _state_source so unknown
+                              // state...
   }
   return state;
 }
@@ -350,27 +350,27 @@ ba::state ba::get_state_hard() {
  *
  *  @return BA soft state.
  */
-ba::state ba::get_state_soft() {
-  ba::state state;
+state ba::get_state_soft() {
+  bam::state state;
 
   auto update_state = [&](float num_critical, float level_crit,
-                          float level_warning) -> ba::state {
+                          float level_warning) -> bam::state {
     if (num_critical >= level_crit)
-      return ba::state::state_critical;
+      return state_critical;
     else if (num_critical >= level_warning)
-      return ba::state::state_warning;
-    return ba::state::state_ok;
+      return state_warning;
+    return state_ok;
   };
 
   if (_state_source == configuration::ba::state_source_impact)
     if (!_valid)
-      state = ba::state::state_unknown;
+      state = state_unknown;
     else if (_level_soft <= _level_critical)
-      state = ba::state::state_critical;
+      state = state_critical;
     else if (_level_soft <= _level_warning)
-      state = ba::state::state_warning;
+      state = state_warning;
     else
-      state = ba::state::state_ok;
+      state = state_ok;
   else if (_state_source == configuration::ba::state_source_best ||
            _state_source == configuration::ba::state_source_worst)
     state = _computed_soft_state;
@@ -381,8 +381,8 @@ ba::state ba::get_state_soft() {
     state = update_state((_num_soft_critical_childs / _impacts.size()) * 100,
                          _level_critical, _level_warning);
   else
-    state = ba::state::state_unknown;  // unknown _state_source so unknown
-                                       // state...*/
+    state = state_unknown;  // unknown _state_source so unknown
+                            // state...*/
   return state;
 }
 
@@ -680,24 +680,20 @@ void ba::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
 
   if (_state_source == configuration::ba::state_source_best) {
     if (is_state_better(_computed_soft_state, impact.soft_impact.get_state()))
-      _computed_soft_state =
-          static_cast<ba::state>(impact.soft_impact.get_state());
+      _computed_soft_state = impact.soft_impact.get_state();
     if (is_state_better(_computed_hard_state, impact.hard_impact.get_state()))
-      _computed_hard_state =
-          static_cast<ba::state>(impact.hard_impact.get_state());
+      _computed_hard_state = impact.hard_impact.get_state();
 
   } else if (_state_source == configuration::ba::state_source_worst) {
     if (is_state_worse(_computed_soft_state, impact.soft_impact.get_state()))
-      _computed_soft_state =
-          static_cast<ba::state>(impact.soft_impact.get_state());
+      _computed_soft_state = impact.soft_impact.get_state();
     if (is_state_worse(_computed_hard_state, impact.hard_impact.get_state()))
-      _computed_hard_state =
-          static_cast<ba::state>(impact.hard_impact.get_state());
+      _computed_hard_state = impact.hard_impact.get_state();
   } else if (_state_source == configuration::ba::state_source_ratio_number ||
              _state_source == configuration::ba::state_source_ratio_percent) {
-    if (impact.soft_impact.get_state() == ba::state::state_critical)
+    if (impact.soft_impact.get_state() == state_critical)
       _num_soft_critical_childs++;
-    if (impact.hard_impact.get_state() == ba::state::state_critical)
+    if (impact.hard_impact.get_state() == state_critical)
       _num_hard_critical_childs++;
   }
 }
@@ -770,10 +766,10 @@ void ba::_unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) {
       return;
       break;
     case configuration::ba::state_source_best:
-      _computed_soft_state = _computed_hard_state = ba::state::state_critical;
+      _computed_soft_state = _computed_hard_state = state_critical;
       break;
     case configuration::ba::state_source_worst:
-      _computed_soft_state = _computed_hard_state = ba::state::state_ok;
+      _computed_soft_state = _computed_hard_state = state_ok;
       break;
     case configuration::ba::state_source_ratio_number:
     case configuration::ba::state_source_ratio_percent:
@@ -831,7 +827,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
 
   // Case 1: state not ok, every child in downtime, no actual downtime.
   //         Put the BA in downtime.
-  bool state_ok{get_state_hard() == ba::state::state_ok};
+  bool state_ok{get_state_hard() == state_ok};
   if (!state_ok && every_kpi_in_downtime && !_inherited_downtime) {
     _inherited_downtime.reset(new inherited_downtime);
     _inherited_downtime->ba_id = _id;

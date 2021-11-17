@@ -50,7 +50,6 @@ else ()
 endif ()
 
 get_protobuf_files(rebuild)
-get_bbdo_files(storage)
 
 # RRD module.
 set(RRD "70-rrd")
@@ -64,7 +63,6 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
   ${proto_rebuild}
-  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"
@@ -75,6 +73,7 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
+target_link_libraries("${RRD}" bbdo_storage)
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
 
 # Compile with librrd flags.

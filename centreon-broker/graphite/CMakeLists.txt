@@ -25,8 +25,6 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/graphite")
 
-get_bbdo_files(storage)
-
 # GRAPHITE module.
 set(GRAPHITE "70-graphite")
 set(GRAPHITE "${GRAPHITE}" PARENT_SCOPE)
@@ -38,7 +36,6 @@ add_library("${GRAPHITE}" SHARED
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/query.cc"
   "${SRC_DIR}/macro_cache.cc"
-  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/stream.hh"
@@ -46,6 +43,7 @@ add_library("${GRAPHITE}" SHARED
   "${INC_DIR}/query.hh"
   "${INC_DIR}/macro_cache.hh"
 )
+target_link_libraries("${GRAPHITE}" bbdo_storage)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX "")
 
 # Testing.

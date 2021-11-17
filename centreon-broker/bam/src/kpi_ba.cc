@@ -157,8 +157,8 @@ void kpi_ba::visit(io::stream* visitor) {
     {
       // BA event state.
       ba_event* bae(_ba->get_ba_event());
-      kpi_ba::state ba_state(bae ? static_cast<kpi_ba::state>(bae->status)
-                                 : kpi_ba::state::state_ok);
+      bam::state ba_state =
+          bae ? static_cast<bam::state>(bae->status) : state_ok;
       timestamp last_ba_update(bae ? bae->start_time
                                    : timestamp(time(nullptr)));
 
@@ -208,19 +208,19 @@ void kpi_ba::visit(io::stream* visitor) {
  *  @param[in]  downtime        Downtime impact of the BA.
  */
 void kpi_ba::_fill_impact(impact_values& impact,
-                          kpi_ba::state state,
+                          state state,
                           double acknowledgement,
                           double downtime) {
   // Get nominal impact from state.
   double nominal;
   switch (state) {
-    case 0:
+    case state_ok:
       nominal = 0.0;
       break;
-    case 1:
+    case state_warning:
       nominal = _impact_warning;
       break;
-    case 2:
+    case state_critical:
       nominal = _impact_critical;
       break;
     default:
@@ -256,7 +256,7 @@ void kpi_ba::_fill_impact(impact_values& impact,
  */
 void kpi_ba::_open_new_event(io::stream* visitor,
                              int impact,
-                             kpi_ba::state ba_state,
+                             state ba_state,
                              timestamp event_start_time) {
   _event = std::make_shared<kpi_event>(_id, _ba_id, event_start_time);
   _event->impact_level = impact;

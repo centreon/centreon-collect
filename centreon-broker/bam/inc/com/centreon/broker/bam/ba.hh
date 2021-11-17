@@ -27,6 +27,7 @@
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
+#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
@@ -56,8 +57,6 @@ class ba : public computable, public service_listener {
   const bool _generate_virtual_status;
 
  public:
-  typedef impact_values::state state;
-
   struct impact_info {
     std::shared_ptr<kpi> kpi_ptr;
     impact_values hard_impact;
@@ -74,8 +73,8 @@ class ba : public computable, public service_listener {
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact);
   void _compute_inherited_downtime(io::stream* visitor);
 
-  ba::state _computed_soft_state;
-  ba::state _computed_hard_state;
+  state _computed_soft_state;
+  state _computed_hard_state;
   float _num_soft_critical_childs;
   float _num_hard_critical_childs;
   double _acknowledgement_hard;
@@ -125,8 +124,8 @@ class ba : public computable, public service_listener {
   std::string const& get_name() const;
   std::string get_output() const;
   std::string get_perfdata() const;
-  ba::state get_state_hard();
-  ba::state get_state_soft();
+  state get_state_hard();
+  state get_state_soft();
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_level_critical(double level);
