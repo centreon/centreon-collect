@@ -564,13 +564,10 @@ void conflict_manager::_callback() {
             /* Get some stats each second */
             if (timeout >= duration) {
               do {
-                {
-                  std::lock_guard<std::mutex> lk(_stat_m);
-                  _updateStats(events.size(), _max_perfdata_queries,
-                               _fifo.get_events().size(),
-                               _fifo.get_timeline(sql).size(),
-                               _fifo.get_timeline(storage).size());
-                }
+                _update_stats(events.size(), _max_perfdata_queries,
+                              _fifo.get_events().size(),
+                              _fifo.get_timeline(sql).size(),
+                              _fifo.get_timeline(storage).size());
                 duration += 1000;
                 pos++;
                 if (pos >= _stats_count.size())
@@ -587,7 +584,7 @@ void conflict_manager::_callback() {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
                 stats::center::instance().execute(
-                    [ this, spd = _speed ] { _stats->set_speed(spd); });
+                    [ s = this->_stats, spd = _speed ] { s->set_speed(spd); });
               }
             }
           }
@@ -607,13 +604,9 @@ void conflict_manager::_callback() {
         _update_hosts_and_services_of_unresponsive_instances();
 
         /* Get some stats */
-        {
-          std::lock_guard<std::mutex> lk(_stat_m);
-          _updateStats(events.size(), _max_perfdata_queries,
-                       _fifo.get_events().size(),
-                       _fifo.get_timeline(sql).size(),
-                       _fifo.get_timeline(storage).size());
-        }
+        _update_stats(events.size(), _max_perfdata_queries,
+                      _fifo.get_events().size(), _fifo.get_timeline(sql).size(),
+                      _fifo.get_timeline(storage).size());
       }
     } catch (std::exception const& e) {
       log_v2::sql()->error("conflict_manager: error in the main loop: {}",
@@ -757,18 +750,28 @@ void conflict_manager::__exit() {
     _thread.join();
 }
 
-void conflict_manager::_updateStats(const unsigned size,
-                                    const std::size_t mpdq,
-                                    const std::size_t evSize,
-                                    const std::size_t sqlSize,
-                                    const std::size_t storSize) noexcept {
+/**
+ * @brief Updates conflict manager protobuf statistics
+ *
+ * @param size
+ * @param mpdq
+ * @param ev_size
+ * @param sql_size
+ * @param stor_size
+ *
+ */
+void conflict_manager::_update_stats(const std::uint32_t size,
+                                     const std::size_t mpdq,
+                                     const std::size_t ev_size,
+                                     const std::size_t sql_size,
+                                     const std::size_t stor_size) noexcept {
   stats::center::instance().execute(
-      [this, size, mpdq, evSize, sqlSize, storSize] {
-        _stats->set_events_handled(size);
-        _stats->set_max_perfdata_events(mpdq);
-        _stats->set_waiting_events(static_cast<int32_t>(evSize));
-        _stats->set_sql(static_cast<int32_t>(sqlSize));
-        _stats->set_storage(static_cast<int32_t>(storSize));
+      [ s = this->_stats, size, mpdq, ev_size, sql_size, stor_size ] {
+        s->set_events_handled(size);
+        s->set_max_perfdata_events(mpdq);
+        s->set_waiting_events(static_cast<int32_t>(ev_size));
+        s->set_sql(static_cast<int32_t>(sql_size));
+        s->set_storage(static_cast<int32_t>(stor_size));
       });
 }
 
