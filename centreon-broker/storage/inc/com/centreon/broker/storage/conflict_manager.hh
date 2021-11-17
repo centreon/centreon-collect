@@ -342,7 +342,11 @@ class conflict_manager {
   void _insert_logs();
   void __exit();
 
-  void _updateStats(const unsigned size) noexcept;
+  void _updateStats(const unsigned size,
+                    const std::size_t mpdq,
+                    const std::size_t evSize,
+                    const std::size_t sqlSize,
+                    const std::size_t storSize) noexcept;
 
  public:
   static bool init_sql(database_config const& dbcfg,
