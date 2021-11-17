@@ -41,8 +41,8 @@ New host group
 	Stop Engine
 
 	${content1}=	Create List	enabling membership of host 3 to host group 1 on instance 1
-    ${content2}=    Create List	enabling membership of host 2 to host group 1 on instance 1
-    ${content3}=    Create List	enabling membership of host 1 to host group 1 on instance 1
+	${content2}=	Create List	enabling membership of host 2 to host group 1 on instance 1
+	${content3}=	Create List	enabling membership of host 1 to host group 1 on instance 1
 
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log	${log}	${start}	${content1}
