@@ -28,6 +28,7 @@ include_directories(${OpenSSL_INCLUDE_DIRS})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
 get_bbdo_files(storage)
+get_bbdo_files(bam)
 
 # Storage module.
 set(LUA "70-lua")
@@ -45,6 +46,7 @@ add_library("${LUA}" SHARED
   "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
+  ${bbdo_bam}
   ${bbdo_storage}
   # Headers.
   "${INC_DIR}/broker_cache.hh"

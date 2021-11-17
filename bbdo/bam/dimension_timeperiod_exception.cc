@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/dimension_timeperiod_exception.hh"
+#include "bbdo/bam/dimension_timeperiod_exception.hh"
 
 #include "com/centreon/broker/database/table_max_size.hh"
 

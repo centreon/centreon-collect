@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
 
 #include "com/centreon/broker/database/table_max_size.hh"
 

@@ -17,9 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;

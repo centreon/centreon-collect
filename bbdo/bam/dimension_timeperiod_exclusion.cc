@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/dimension_timeperiod_exclusion.hh"
+#include "bbdo/bam/dimension_timeperiod_exclusion.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

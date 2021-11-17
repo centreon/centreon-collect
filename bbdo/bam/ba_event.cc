@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015 Centreon
+** Copyright 2014-2015, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/ba_event.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
@@ -24,26 +24,21 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-dimension_ba_bv_relation_event::dimension_ba_bv_relation_event()
-    : io::data(dimension_ba_bv_relation_event::static_type()),
+ba_event::ba_event()
+    : io::data(ba_event::static_type()),
       ba_id(0),
-      bv_id(0) {}
+      first_level(0),
+      in_downtime(false),
+      status(3) {}
 
 /**
  *  Copy constructor.
  *
  *  @param[in] other  Object to copy.
  */
-dimension_ba_bv_relation_event::dimension_ba_bv_relation_event(
-    dimension_ba_bv_relation_event const& other)
-    : io::data(other) {
+ba_event::ba_event(ba_event const& other) : io::data(other) {
   _internal_copy(other);
 }
-
-/**
- *  Destructor.
- */
-dimension_ba_bv_relation_event::~dimension_ba_bv_relation_event() {}
 
 /**
  *  Assignment operator.
@@ -52,8 +47,7 @@ dimension_ba_bv_relation_event::~dimension_ba_bv_relation_event() {}
  *
  *  @return This object.
  */
-dimension_ba_bv_relation_event& dimension_ba_bv_relation_event::operator=(
-    dimension_ba_bv_relation_event const& other) {
+ba_event& ba_event::operator=(ba_event const& other) {
   if (this != &other) {
     io::data::operator=(other);
     _internal_copy(other);
@@ -68,9 +62,10 @@ dimension_ba_bv_relation_event& dimension_ba_bv_relation_event::operator=(
  *
  *  @return  True if the two objects are equal.
  */
-bool dimension_ba_bv_relation_event::operator==(
-    dimension_ba_bv_relation_event const& other) const {
-  return ba_id == other.ba_id && bv_id == other.bv_id;
+bool ba_event::operator==(ba_event const& other) const {
+  return ba_id == other.ba_id && first_level == other.first_level &&
+         end_time == other.end_time && in_downtime == other.in_downtime &&
+         start_time == other.start_time && status == other.status;
 }
 
 /**
@@ -78,26 +73,30 @@ bool dimension_ba_bv_relation_event::operator==(
  *
  *  @param[in] other Object to copy.
  */
-void dimension_ba_bv_relation_event::_internal_copy(
-    dimension_ba_bv_relation_event const& other) {
+void ba_event::_internal_copy(ba_event const& other) {
   ba_id = other.ba_id;
-  bv_id = other.bv_id;
+  first_level = other.first_level;
+  end_time = other.end_time;
+  in_downtime = other.in_downtime;
+  start_time = other.start_time;
+  status = other.status;
 }
 
 // Mapping.
-mapping::entry const dimension_ba_bv_relation_event::entries[] = {
-    mapping::entry(&bam::dimension_ba_bv_relation_event::ba_id,
+mapping::entry const ba_event::entries[] = {
+    mapping::entry(&bam::ba_event::ba_id,
                    "ba_id",
                    mapping::entry::invalid_on_zero),
-    mapping::entry(&bam::dimension_ba_bv_relation_event::bv_id,
-                   "bv_id",
-                   mapping::entry::invalid_on_zero),
+    mapping::entry(&bam::ba_event::first_level, "first_level"),
+    mapping::entry(&bam::ba_event::end_time, "end_time"),
+    mapping::entry(&bam::ba_event::in_downtime, "in_downtime"),
+    mapping::entry(&bam::ba_event::start_time, "start_time"),
+    mapping::entry(&bam::ba_event::status, "status"),
     mapping::entry()};
 
 // Operations.
-static io::data* new_dimension_ba_bv_relation_event() {
-  return new dimension_ba_bv_relation_event;
+static io::data* new_ba_event() {
+  return new ba_event;
 }
-io::event_info::event_operations const
-    dimension_ba_bv_relation_event::operations = {
-        &new_dimension_ba_bv_relation_event, nullptr, nullptr};
+io::event_info::event_operations const ba_event::operations = {
+    &new_ba_event, nullptr, nullptr};

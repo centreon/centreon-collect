@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/inherited_downtime.hh"
+#include "bbdo/bam/inherited_downtime.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

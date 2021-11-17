@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bam/kpi_status.hh"
+#include "bbdo/bam/kpi_status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;

@@ -17,13 +17,13 @@
 */
 
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
 #include "com/centreon/broker/bam/kpi_ba.hh"
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
 #include "com/centreon/broker/bam/kpi_service.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/service_book.hh"
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/log_v2.hh"

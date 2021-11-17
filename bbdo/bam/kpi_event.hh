@@ -28,7 +28,7 @@
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
-#include "impact_values.hh"
+//#include "com/centreon/broker/bam/impact_values.hh"
 
 CCB_BEGIN()
 
@@ -44,7 +44,7 @@ class kpi_event : public io::data {
   void _internal_copy(kpi_event const& other);
 
  public:
-  typedef impact_values::state state;
+  // typedef impact_values::state state;
   kpi_event(uint32_t kpi_id, uint32_t ba_id, time_t start_time);
   kpi_event(const kpi_event& other);
   ~kpi_event() noexcept = default;
