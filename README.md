@@ -1,31 +1,81 @@
-# Centreon Collect
-
-Centreon Collect is an extensible open-source monitoring event
-transmitter (Collect). It is a low-level component of the
-[Centreon software suite](https://www.centreon.com).
-
-Centreon Collect is released under the Apache License, Version 2.0
-and is endorsed by the [Centreon company](https://www.centreon.com).
-
-Centreon Collect is the communication backbone of the Centreon software
-suite so most events are processed by one or more of its module.
-Centreon Collect has multiple modules that perform specific tasks. The
-list below describes the most common of them.
-
-- SQL: store real-time monitoring events in a SQL database
-- storage: parse and store performance data in a SQL database
-- RRD: write RRD graph files from monitoring performance data
-- BAM: compute Business Activity status and availability
-- Graphite: write monitoring performance data to Graphite
-- InfluxDB: write monitoring performance data to InfluxDB
-
-Centreon Collect is extremely fast and is a credible alternative to the
-old NDOutils. It is also extremly modular and can fit most network
-security requirements. Just give it a try!
+# Centreon Collect                                                                 
+                                                                                   
+Centreon Collect is collection of softwares. Bla bla bla.                          
+                                                                                   
+It is composed of:                                                                 
+* Centreon Engine                                                                  
+* Centreon Broker                                                                  
+* Centreon Connectors                                                              
+                                                                                   
+### Centreon Engine                                                                  
+                                                                                   
+Centreon Engine is a fast and powerful open-source monitoring scheduler.           
+It is a low-level component of the                                                 
+[Centreon software suite](https://www.centreon.com).                               
+                                                                                   
+Centreon Engine is released under the General Public License version 2             
+and is endorsed by the [Centreon company](https://www.centreon.com).               
+                                                                                   
+This project was started as a fork of Nagios, the well known open-source           
+monitoring application. While keeping its configuration file format and            
+its stability we improved it in several ways:                                      
+                                                                                   
+- Reduced startup time                                                             
+- Faster standard check execution engine                                           
+- New light check execution system (connectors)                                    
+- On-the-fly configuration reload                                                  
+- Less obscure configuration options                                               
+- Frequent bugfix releases                                                         
+                                                                                   
+Just give it a try!                                                                
+                                                                                   
+### Centreon Broker                                                                  
+                                                                                   
+Centreon Broker is an extensible open-source monitoring event                      
+transmitter (broker). It is a low-level component of the                           
+[Centreon software suite](https://www.centreon.com).                               
+                                                                                   
+Centreon Broker is released under the Apache License, Version 2.0                  
+and is endorsed by the [Centreon company](https://www.centreon.com).               
+                                                                                   
+Centreon Broker is the communication backbone of the Centreon software             
+suite so most events are processed by one or more of its module.                   
+Centreon Broker has multiple modules that perform specific tasks. The              
+list below describes the most common of them.                                      
+                                                                                   
+- SQL: store real-time monitoring events in a SQL database                         
+- storage: parse and store performance data in a SQL database                      
+- RRD: write RRD graph files from monitoring performance data                      
+- BAM: compute Business Activity status and availability                           
+- Graphite: write monitoring performance data to Graphite                          
+- InfluxDB: write monitoring performance data to InfluxDB                          
+                                                                                   
+Centreon Broker is extremely fast and is a credible alternative to the             
+old NDOutils. It is also extremly modular and can fit most network                 
+security requirements. Just give it a try!                                         
+                                                                                   
+### Centreon Connectors                                                              
+                                                                                   
+Centreon Connectors are extremely fast open-source monitoring check                
+execution daemons designed to work with                                            
+[Centreon Engine](https://github.com/centreon/centreon-engine).                    
+                                                                                   
+It is a low-level component of the                                                 
+[Centreon software suite](https://www.centreon.com).                               
+                                                                                   
+Centreon Connectors are released under the Apache Software License version 2       
+and is endorsed by the [Centreon company](https://www.centreon.com).               
+                                                                                   
+There are currently two open-source connectors :                                   
+                                                                                   
+- **Centreon Connector Perl** : persistent Perl interpreter that                   
+  executes Perl plugins very fast                                                  
+- **Centreon Connector SSH** : maintain SSH connexions opened to reduce            
+  overhead of plugin execution over SSH     
 
 ## Documentation
 
-*Coming soon on https://docs.centreon.com*
+*https://docs.centreon.com*
 
 ## Installing from binaries
 
