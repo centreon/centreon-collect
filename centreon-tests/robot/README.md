@@ -1,6 +1,6 @@
 # centreon-tests
 
-This folder contain tests for centreon broker and engine
+This folder contains tests for centreon broker and engine
 
 
 ## Getting Started
