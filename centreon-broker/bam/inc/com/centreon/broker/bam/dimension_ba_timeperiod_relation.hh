@@ -22,7 +22,7 @@
 #include <memory>
 #include <vector>
 
-#include "com/centreon/broker/bam/internal.hh"
+#include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"

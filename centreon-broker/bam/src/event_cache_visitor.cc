@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
 
-#include "com/centreon/broker/bam/internal.hh"
+#include "bbdo/events.hh"
 #include "com/centreon/broker/io/events.hh"
 
 using namespace com::centreon::broker;

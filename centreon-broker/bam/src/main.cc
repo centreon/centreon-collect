@@ -15,6 +15,7 @@
 **
 ** For more information : contact@centreon.com
 */
+#include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
@@ -33,7 +34,6 @@
 #include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/factory.hh"
 #include "com/centreon/broker/bam/inherited_downtime.hh"
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/rebuild.hh"

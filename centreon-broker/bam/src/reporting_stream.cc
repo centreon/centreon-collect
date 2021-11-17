@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/bam/ba_duration_event.hh"
 #include "com/centreon/broker/bam/ba_event.hh"
 #include "com/centreon/broker/bam/dimension_ba_bv_relation_event.hh"
@@ -31,7 +32,6 @@
 #include "com/centreon/broker/bam/dimension_timeperiod_exception.hh"
 #include "com/centreon/broker/bam/dimension_timeperiod_exclusion.hh"
 #include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
