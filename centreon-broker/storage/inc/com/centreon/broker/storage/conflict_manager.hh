@@ -80,15 +80,8 @@ namespace storage {
 class conflict_manager {
   /* Forward declarations */
  public:
-  enum instance_state {
-    not_started,
-    running,
-    finished
-  };
-  enum stream_type {
-    sql,
-    storage
-  };
+  enum instance_state { not_started, running, finished };
+  enum stream_type { sql, storage };
 
  private:
   enum special_conn {
