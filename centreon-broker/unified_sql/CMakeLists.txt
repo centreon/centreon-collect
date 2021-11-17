@@ -26,7 +26,6 @@ include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 get_protobuf_files(rebuild)
-get_bbdo_files(storage)
 
 # Storage module.
 set(UNIFIED_SQL "20-unified_sql")
@@ -42,7 +41,6 @@ add_library("${UNIFIED_SQL}" SHARED
   "${SRC_DIR}/stream_sql.cc"
   "${SRC_DIR}/stream_storage.cc"
   ${proto_rebuild}
-  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
@@ -55,6 +53,7 @@ add_library("${UNIFIED_SQL}" SHARED
 set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
+target_link_libraries(${UNIFIED_SQL} bbdo_storage)
 
 # Testing.
 if (WITH_TESTING)

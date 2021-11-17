@@ -27,9 +27,6 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories(${OpenSSL_INCLUDE_DIRS})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
-get_bbdo_files(storage)
-get_bbdo_files(bam)
-
 # Storage module.
 set(LUA "70-lua")
 set(LUA "${LUA}" PARENT_SCOPE)
@@ -46,8 +43,6 @@ add_library("${LUA}" SHARED
   "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
-  ${bbdo_bam}
-  ${bbdo_storage}
   # Headers.
   "${INC_DIR}/broker_cache.hh"
   "${INC_DIR}/broker_event.hh"
@@ -60,7 +55,7 @@ add_library("${LUA}" SHARED
   "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${LUA}" ${LUA_LIBRARIES} ${OpenSSL_LIBS})
+target_link_libraries("${LUA}" ${LUA_LIBRARIES} ${OpenSSL_LIBS} bbdo_storage bbdo_bam)
 set_target_properties("${LUA}" PROPERTIES PREFIX "")
 
 # Testing.

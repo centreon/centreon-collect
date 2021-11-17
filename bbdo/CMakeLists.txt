@@ -45,54 +45,55 @@ macro(get_protobuf_accessor name)
         )
 endmacro()
 
-macro(get_bbdo_files category)
-  if (${category} STREQUAL "storage")
-    set(bbdo_${category}
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/index_mapping.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/metric_mapping.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/metric.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/rebuild.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/remove_graph.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/status.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/metric.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/rebuild.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/remove_graph.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/storage/status.hh"
+include_directories("${CMAKE_SOURCE_DIR}/centreon-broker/core/inc")
+
+add_library(
+    bbdo_storage STATIC
+      "storage/index_mapping.cc"
+      "storage/metric_mapping.cc"
+      "storage/metric.cc"
+      "storage/rebuild.cc"
+      "storage/remove_graph.cc"
+      "storage/status.cc"
+      "storage/metric.hh"
+      "storage/rebuild.hh"
+      "storage/remove_graph.hh"
+      "storage/status.hh"
     )
-  elseif (${category} STREQUAL "bam")
-    set(bbdo_${category}
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/ba_duration_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_ba_bv_relation_event.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_kpi_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_timeperiod.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/kpi_status.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/ba_duration_event.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_ba_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_kpi_event.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_truncate_table_signal.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/kpi_status.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/ba_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_ba_event.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_timeperiod.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_truncate_table_signal.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/rebuild.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/ba_event.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_ba_timeperiod_relation.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_timeperiod_exception.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/inherited_downtime.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/rebuild.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/ba_status.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_ba_timeperiod_relation.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_timeperiod_exception.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/inherited_downtime.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/ba_status.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_bv_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_timeperiod_exclusion.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/kpi_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_ba_bv_relation_event.cc"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_bv_event.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/dimension_timeperiod_exclusion.hh"
-      "${CMAKE_SOURCE_DIR}/bbdo/bam/kpi_event.hh"
-  )
-  endif ()
-endmacro()
+set_target_properties(bbdo_storage PROPERTIES COMPILE_FLAGS "-fPIC")
+add_library(
+    bbdo_bam STATIC
+      "bam/ba_duration_event.cc"
+      "bam/dimension_ba_bv_relation_event.hh"
+      "bam/dimension_kpi_event.cc"
+      "bam/dimension_timeperiod.hh"
+      "bam/kpi_status.cc"
+      "bam/ba_duration_event.hh"
+      "bam/dimension_ba_event.cc"
+      "bam/dimension_kpi_event.hh"
+      "bam/dimension_truncate_table_signal.cc"
+      "bam/kpi_status.hh"
+      "bam/ba_event.cc"
+      "bam/dimension_ba_event.hh"
+      "bam/dimension_timeperiod.cc"
+      "bam/dimension_truncate_table_signal.hh"
+      "bam/rebuild.cc"
+      "bam/ba_event.hh"
+      "bam/dimension_ba_timeperiod_relation.cc"
+      "bam/dimension_timeperiod_exception.cc"
+      "bam/inherited_downtime.cc"
+      "bam/rebuild.hh"
+      "bam/ba_status.cc"
+      "bam/dimension_ba_timeperiod_relation.hh"
+      "bam/dimension_timeperiod_exception.hh"
+      "bam/inherited_downtime.hh"
+      "bam/ba_status.hh"
+      "bam/dimension_bv_event.cc"
+      "bam/dimension_timeperiod_exclusion.cc"
+      "bam/kpi_event.cc"
+      "bam/dimension_ba_bv_relation_event.cc"
+      "bam/dimension_bv_event.hh"
+      "bam/dimension_timeperiod_exclusion.hh"
+      "bam/kpi_event.hh"
+    )
+set_target_properties(bbdo_bam PROPERTIES COMPILE_FLAGS "-fPIC")

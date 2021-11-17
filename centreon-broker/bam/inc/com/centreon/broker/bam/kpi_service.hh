@@ -21,6 +21,7 @@
 
 #include <array>
 #include "bbdo/bam/kpi_event.hh"
+#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
@@ -40,9 +41,6 @@ namespace bam {
 class kpi_service : public service_listener, public kpi {
   const uint32_t _host_id;
   const uint32_t _service_id;
-
- public:
-  typedef impact_values::state state;
 
  private:
   void _fill_impact(impact_values& impact, state state);
@@ -73,8 +71,8 @@ class kpi_service : public service_listener, public kpi {
   double get_impact_unknown() const;
   double get_impact_warning() const;
   uint32_t get_service_id() const;
-  kpi_service::state get_state_hard() const;
-  kpi_service::state get_state_soft() const;
+  state get_state_hard() const;
+  state get_state_soft() const;
   short get_state_type() const;
   void impact_hard(impact_values& impact);
   void impact_soft(impact_values& impact);
@@ -91,8 +89,8 @@ class kpi_service : public service_listener, public kpi {
   void set_impact_critical(double impact);
   void set_impact_unknown(double impact);
   void set_impact_warning(double impact);
-  void set_state_hard(kpi_service::state state);
-  void set_state_soft(kpi_service::state state);
+  void set_state_hard(state state);
+  void set_state_soft(state state);
   void set_state_type(short type);
   void visit(io::stream* visitor);
   virtual void set_initial_event(kpi_event const& e);

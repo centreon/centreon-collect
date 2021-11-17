@@ -24,16 +24,11 @@ include_directories("${INC_DIR}" ${PROJECT_SOURCE_DIR}/core/inc)
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/bam")
 
-get_bbdo_files(bam)
-get_bbdo_files(storage)
-
 # BAM module.
 set(BAM "20-bam")
 set(BAM "${BAM}" PARENT_SCOPE)
 add_library("${BAM}" SHARED
   # Sources.
-  ${bbdo_bam}
-  ${bbdo_storage}
   "${SRC_DIR}/availability_builder.cc"
   "${SRC_DIR}/availability_thread.cc"
   "${SRC_DIR}/ba.cc"
@@ -139,6 +134,7 @@ add_library("${BAM}" SHARED
   "${INC_DIR}/service_listener.hh"
   "${INC_DIR}/timeperiod_map.hh"
 )
+target_link_libraries("${BAM}" bbdo_storage bbdo_bam)
 set_target_properties("${BAM}" PROPERTIES
     PREFIX "")
 
