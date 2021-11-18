@@ -569,8 +569,7 @@ void conflict_manager::_check_deleted_index() {
         _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
       }
       _mysql.run_query_and_get_result(
-          "SELECT m.metric_id, m.metric_name FROM metrics m WHERE "
-          "m.to_delete=1",
+          "SELECT metric_id, metric_name FROM metrics WHERE to_delete=1",
           &promise, conn);
       res = promise.get_future().get();
 
