@@ -1,11 +1,9 @@
 # Centreon Collect                                                                 
                                                                                    
-Centreon Collect is collection of softwares. Bla bla bla.                          
-                                                                                   
-It is composed of:                                                                 
-* Centreon Engine                                                                  
-* Centreon Broker                                                                  
-* Centreon Connectors                                                              
+Centreon Collect is collection of softwares:                                                                                     
+  * Centreon Engine                                                                  
+  * Centreon Broker                                                                  
+  * Centreon Connectors                                                              
                                                                                    
 ### Centreon Engine                                                                  
                                                                                    
