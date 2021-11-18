@@ -536,11 +536,12 @@ void stream::_callback() {
             uint32_t type{d->type()};
             uint16_t cat{category_of_type(type)};
             uint16_t elem{element_of_type(type)};
-            if (std::get<1>(tpl) == sql && cat == io::neb)
+            if (/*std::get<1>(tpl) == sql &&*/ cat == io::neb) {
               (this->*(_neb_processing_table[elem]))(tpl);
-            else if (std::get<1>(tpl) == unified_sql && cat == io::neb &&
-                     type == neb::service_status::static_type())
-              _unified_sql_process_service_status(tpl);
+              if (/*std::get<1>(tpl) == unified_sql &&*/
+                  type == neb::service_status::static_type())
+                _unified_sql_process_service_status(tpl);
+            }
             else {
               log_v2::sql()->trace(
                   "unified sql: event of type {} thrown away ; no need to "
