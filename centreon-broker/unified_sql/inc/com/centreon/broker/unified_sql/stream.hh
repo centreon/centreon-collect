@@ -150,8 +150,6 @@ class stream : public io::stream {
   static void (stream::*const _neb_processing_table[])(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>&);
   instance_state _state;
-  std::mutex _init_m;
-  std::condition_variable _init_cv;
 
   misc::mfifo<std::shared_ptr<io::data>, 2> _fifo;
   int32_t _pending_events;
@@ -347,11 +345,11 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream();
-  void init_sql();
-  bool init_unified_sql(bool store_in_db,
-                        uint32_t rrd_len,
-                        uint32_t interval_length,
-                        uint32_t max_pending_queries);
+  bool init_sql();
+  // bool init_unified_sql(bool store_in_db,
+  //                      uint32_t rrd_len,
+  //                      uint32_t interval_length,
+  //                      uint32_t max_pending_queries);
   // int32_t unload(stream_type type);
   nlohmann::json get_statistics();
 
