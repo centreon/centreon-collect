@@ -568,6 +568,16 @@ void conflict_manager::_check_deleted_index() {
         _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
         _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
       }
+      _mysql.run_query_and_get_result(
+          "SELECT m.metric_id, m.metric_name FROM metrics m WHERE "
+          "m.to_delete=1",
+          &promise, conn);
+      res = promise.get_future().get();
+
+      while (_mysql.fetch_row(res)) {
+        metrics_to_delete.push_back(res.value_as_u64(0));
+        _metric_cache.erase({res.value_as_u64(0), res.value_as_str(1)});
+      }
     } catch (const std::exception& e) {
       throw msg_fmt("could not query index table to get index to delete: {} ",
                     e.what());
