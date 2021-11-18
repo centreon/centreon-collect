@@ -96,7 +96,6 @@ stream::stream(const database_config& dbcfg,
       _events_handled{0},
       _speed{},
       _stats_count_pos{0},
-      _ref_count{0},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
@@ -124,44 +123,44 @@ stream::~stream() {
  *
  * @return true if all went OK.
  */
-bool stream::init_unified_sql(bool store_in_db,
-                              uint32_t rrd_len,
-                              uint32_t interval_length,
-                              uint32_t queries_per_transaction) {
-  log_v2::sql()->debug("unified sql: unified_sql stream initialization");
-  int count;
-
-  std::unique_lock<std::mutex> lk(_init_m);
-
-  for (count = 0; count < 10; count++) {
-    /* Let's wait for 10s for the stream to be initialized */
-    if (_init_cv.wait_for(lk, std::chrono::seconds(1),
-                          [&] { return _state == finished; })) {
-      if (_state == finished)
-        return false;
-      std::lock_guard<std::mutex> lk(_loop_m);
-      _store_in_db = store_in_db;
-      _rrd_len = rrd_len;
-      _interval_length = interval_length;
-      _max_perfdata_queries = queries_per_transaction;
-      _max_metrics_queries = queries_per_transaction;
-      _max_cv_queries = queries_per_transaction;
-      _max_log_queries = queries_per_transaction;
-      _ref_count++;
-      _thread = std::thread(&stream::_callback, this);
-      pthread_setname_np(_thread.native_handle(), "conflict_mngr");
-      return true;
-    }
-    log_v2::sql()->info(
-        "unified sql: Waiting for the sql stream initialization for {} "
-        "seconds",
-        count);
-  }
-  log_v2::sql()->error(
-      "unified sql: not initialized after 10s. Probably "
-      "an issue in the sql output configuration.");
-  return false;
-}
+// bool stream::init_unified_sql(bool store_in_db,
+//                              uint32_t rrd_len,
+//                              uint32_t interval_length,
+//                              uint32_t queries_per_transaction) {
+//  log_v2::sql()->debug("unified sql: unified_sql stream initialization");
+//  int count;
+//
+//  std::unique_lock<std::mutex> lk(_init_m);
+//
+//  for (count = 0; count < 10; count++) {
+//    /* Let's wait for 10s for the stream to be initialized */
+//    if (_init_cv.wait_for(lk, std::chrono::seconds(1),
+//                          [&] { return _state == finished; })) {
+//      if (_state == finished)
+//        return false;
+//      std::lock_guard<std::mutex> lk(_loop_m);
+//      _store_in_db = store_in_db;
+//      _rrd_len = rrd_len;
+//      _interval_length = interval_length;
+//      _max_perfdata_queries = queries_per_transaction;
+//      _max_metrics_queries = queries_per_transaction;
+//      _max_cv_queries = queries_per_transaction;
+//      _max_log_queries = queries_per_transaction;
+//      _ref_count++;
+//      _thread = std::thread(&stream::_callback, this);
+//      pthread_setname_np(_thread.native_handle(), "conflict_mngr");
+//      return true;
+//    }
+//    log_v2::sql()->info(
+//        "unified sql: Waiting for the sql stream initialization for {} "
+//        "seconds",
+//        count);
+//  }
+//  log_v2::sql()->error(
+//      "unified sql: not initialized after 10s. Probably "
+//      "an issue in the sql output configuration.");
+//  return false;
+//}
 
 /**
  * @brief This fonction is the one that initializes the stream.
@@ -178,14 +177,24 @@ bool stream::init_unified_sql(bool store_in_db,
  *
  * @return A boolean true if the function went good, false otherwise.
  */
-void stream::init_sql() {
+bool stream::init_sql() {
   log_v2::sql()->debug("unified sql: sql stream initialization");
-  std::lock_guard<std::mutex> lk(_init_m);
 
   _state = running;
   _action.resize(_mysql.connections_count());
-  _init_cv.notify_all();
-  _ref_count++;
+
+  log_v2::sql()->debug("unified sql: unified_sql stream initialization");
+
+  if (_state == finished)
+    return false;
+  std::lock_guard<std::mutex> lk(_loop_m);
+  _max_perfdata_queries = _max_pending_queries;
+  _max_metrics_queries = _max_pending_queries;
+  _max_cv_queries = _max_pending_queries;
+  _max_log_queries = _max_pending_queries;
+  _thread = std::thread(&stream::_callback, this);
+  pthread_setname_np(_thread.native_handle(), "conflict_mngr");
+  return true;
 }
 
 void stream::_load_deleted_instances() {
@@ -830,6 +839,23 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   return true;
 }
 
+/**
+ * @brief The stop() internal function that stops the stream thread and
+ * returns last events to ack.
+ *
+ * @return the number of events to ack.
+ */
 int32_t stream::stop() {
-  return 0;
+  /* Let's stop the thread */
+  {
+    std::lock_guard<std::mutex> lck(_loop_m);
+    _exit = true;
+    _loop_cv.notify_all();
+  }
+  if (_thread.joinable())
+    _thread.join();
+
+  /* Let's return how many events to ack */
+  int32_t retval = _fifo.get_acks(0);
+  return retval;
 }
