@@ -1,4 +1,8 @@
 *** Settings ***
+Resource	../ressources/ressources.robot
+Suite Setup	Clean Before Test
+Suite Teardown    Clean After Test
+
 Documentation	Centreon Broker and Engine start/stop tests
 Library	Process
 Library	OperatingSystem
@@ -9,7 +13,6 @@ Library	Common.py
 *** Test cases ***
 BESS1: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 	[Tags]	Broker	Engine	start-stop
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
@@ -23,7 +26,6 @@ BESS1: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 
 BESS2: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 	[Tags]	Broker	Engine	start-stop
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
@@ -37,7 +39,6 @@ BESS2: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 
 BESS3: Start-Stop Broker/Engine - Engine started first - Engine stopped first
 	[Tags]	Broker	Engine	start-stop
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
@@ -51,7 +52,6 @@ BESS3: Start-Stop Broker/Engine - Engine started first - Engine stopped first
 
 BESS4: Start-Stop Broker/Engine - Engine started first - Broker stopped first
 	[Tags]	Broker	Engine	start-stop
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
@@ -65,7 +65,6 @@ BESS4: Start-Stop Broker/Engine - Engine started first - Broker stopped first
 
 BESS5: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
 	[Tags]	Broker	Engine	start-stop
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
@@ -80,36 +79,6 @@ BESS5: Start-Stop Broker/engine - Engine debug level is set to all, it should no
 
 
 *** Keywords ***
-Remove Logs
-	Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
-	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log
-
-Start Broker
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
-
-Stop Broker
-	${result}=	Terminate Process	b1
-	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Terminate Process	b2
-	Should Be Equal As Integers	${result.rc}	0
-
-Start Engine
-	${count}=	Get Engines Count
-	FOR	${idx}	IN RANGE	0	${count}
-		${alias}=	Catenate	SEPARATOR=	e	${idx}
-		${conf}=	Catenate	SEPARATOR=	/etc/centreon-engine/config	${idx}	/centengine.cfg
-		Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
-	END
-
-Stop Engine
-	${count}=	Get Engines Count
-	FOR	${idx}	IN RANGE	0	${count}
-		${alias}=	Catenate	SEPARATOR=	e	${idx}
-		${result}=	Terminate Process	${alias}
-		Log To Console	value of result=${result.rc}
-		Should Be Equal As Integers	${result.rc}	0
-	END
 
 Check Connections
 	${count}=	Get Engines Count
@@ -124,6 +93,3 @@ Check Connections
 	${retval}=	Check Connection	5670	${pid1}	${pid2}
 	[Return]	${retval}
 
-*** Variables ***
-${BROKER_LOG}	/var/log/centreon-broker
-${ENGINE_LOG}	/var/log/centreon-engine
