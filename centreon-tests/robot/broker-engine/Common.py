@@ -98,10 +98,15 @@ def start_mysql():
 def stop_mysql():
   getoutput("systemctl stop mysql")
 
-#now = "2021-10-22 16:36:59.519"
-#print(find_in_log("/var/log/centreon-broker/central-broker-master.log", now, ["extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration'", "we have extensions 'COMPRESSION' and peer has ''"]))
-#logger.console(check_connection(5669, 16088, 16219))
-#print(find_in_log("/var/log/centreon-broker/central-broker-master.log", 18, ["mysql_connection", "sql stream instanciation"]))
-#print(find_in_log("/var/log/centreon-engine/config0/centengine.log", 1634888409, ["initialized successfully", "No output returned from host check"]))
-#print(find_in_log("/var/log/centreon-engine/config0/centengine.log", 1634888409, ["initialized successfully", "externalcmd.so"]))
-#print(find_in_log("/var/log/centreon-broker/central-broker-master.log", 18, ["mysql_connection", "sql stream instanciation"]))
+def kill_broker():
+  getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $2}')")
+  getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
+
+def kill_engine():
+  getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
+
+def sighup_broker():
+  getoutput("kill -SIGHUP $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
+
+def sighup_engine():
+  getoutput("kill -SIGHUP $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")

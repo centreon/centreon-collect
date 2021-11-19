@@ -1,4 +1,8 @@
 *** Settings ***
+Resource	../ressources/ressources.robot
+Suite Setup	Clean Before Test
+Suite Teardown    Clean After Test
+
 Documentation	Centreon Broker and Engine communication with or without TLS
 Library	Process
 Library	OperatingSystem
@@ -11,7 +15,6 @@ Library	Common.py
 *** Test cases ***
 BECT1: Broker/Engine communication with anonymous TLS between central and poller
 	[Tags]	Broker	Engine	TLS	tcp
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	rrd
 	FOR	${comp1}	IN	@{choices}
@@ -48,7 +51,6 @@ BECT1: Broker/Engine communication with anonymous TLS between central and poller
 
 BECT2: Broker/Engine communication with TLS between central and poller with key/cert
 	[Tags]	Broker	Engine	TLS	tcp
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
@@ -90,7 +92,6 @@ BECT2: Broker/Engine communication with TLS between central and poller with key/
 
 BECT3: Broker/Engine communication with anonymous TLS and ca certificate
 	[Tags]	Broker	Engine	TLS	tcp
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
@@ -129,7 +130,6 @@ BECT3: Broker/Engine communication with anonymous TLS and ca certificate
 
 BECT4: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
 	[Tags]	Broker	Engine	TLS	tcp
-	Remove Logs
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
@@ -174,35 +174,6 @@ BECT4: Broker/Engine communication with TLS between central and poller with key/
 	Should Be True	${result}
 
 *** Keywords ***
-Remove Logs
-	Remove Files	${ENGINE_LOG}${/}centengine.log ${ENGINE_LOG}${/}centengine.debug
-	Remove Files	${BROKER_LOG}${/}central-broker-master.log	${BROKER_LOG}${/}central-rrd-master.log	${BROKER_LOG}${/}central-module-master.log
-
-Start Broker
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
-
-Stop Broker
-	${result}=	Terminate Process	b1
-	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Terminate Process	b2
-	Should Be Equal As Integers	${result.rc}	0
-
-Start Engine
-	${count}=	Get Engines Count
-	FOR	${idx}	IN RANGE	0	${count}
-		${alias}=	Catenate	SEPARATOR=	e	${idx}
-		${conf}=	Catenate	SEPARATOR=	/etc/centreon-engine/config	${idx}	/centengine.cfg
-		Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
-	END
-
-Stop Engine
-	${count}=	Get Engines Count
-	FOR	${idx}	IN RANGE	0	${count}
-		${alias}=	Catenate	SEPARATOR=	e	${idx}
-		${result}=	Terminate Process	${alias}
-		Should Be Equal As Integers	${result.rc}	0
-	END
 
 Check Connections
 	${count}=	Get Engines Count
@@ -218,8 +189,6 @@ Check Connections
 	[Return]	${retval}
 
 *** Variables ***
-${BROKER_LOG}	/var/log/centreon-broker
-${ENGINE_LOG}	/var/log/centreon-engine
 &{ext}	yes=TLS	no=	auto=TLS
 @{choices}	yes	no	auto
 @{LIST_HANDSHAKE}	performing handshake	successful handshake
