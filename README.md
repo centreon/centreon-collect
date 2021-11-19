@@ -1,12 +1,11 @@
 # Centreon Collect                                                                 
                                                                                    
-Centreon Collect is collection of softwares:                                                                                     
+Centreon Collect is a collection of softwares:                                                                                     
   * [Centreon Engine](#centreon-engine)                                                         
   * [Centreon Broker](#centreon-broker)                                                            
   * [Centreon Connector](#centreon-connector)       
                                                    
-Centreon Collect brings also "functional tests" on these softwares.
-"functional tests" should point to the section [Centreon tests](centreon-tests/README.md).
+Centreon Collect brings also [Centreon tests](centreon-tests/README.md) to test these softwares.
 
 ## Centreon Engine                                                                 
                                                                                    
@@ -223,4 +222,4 @@ maintainers:
 
 <a href="https://github.com/bouda1"><img src="https://avatars1.githubusercontent.com/u/6324413?s=400&v=4" title="David Boucher" width="80" height="80"></a> &nbsp;
 <a href="https://github.com/rem31"><img src="https://avatars.githubusercontent.com/u/73845199?s=460&v=4" title="Rémi Gres" width="80" height="80"></a> &nbsp;
-<a href="https://github.com/centreonpm"><img src="https://avatars.githubusercontent.com/u/73105891?s=460&v=4" title="Pierre Margale" width="80" height="80"></a> &nbsp;
+<a href="https://github.com/Maaown"><img src="https://avatars.githubusercontent.com/u/39004150?v=4" title="Leonard Viktor Pooch" width="80" height="80"></a> &nbsp;
