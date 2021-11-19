@@ -1,11 +1,14 @@
 # Centreon Collect                                                                 
                                                                                    
 Centreon Collect is collection of softwares:                                                                                     
-  * Centreon Engine                                                                  
-  * Centreon Broker                                                                  
-  * Centreon Connectors                                                              
-                                                                                   
-### Centreon Engine                                                                  
+  * [Centreon Engine](#centreon-engine)                                                         
+  * [Centreon Broker](#centreon-broker)                                                            
+  * [Centreon Connector](#centreon-connector)       
+                                                   
+Centreon Collect brings also "functional tests" on these softwares.
+"functional tests" should point to the section ["Centreon tests"](centreon-tests/README.md).
+
+## Centreon Engine                                                                 
                                                                                    
 Centreon Engine is a fast and powerful open-source monitoring scheduler.           
 It is a low-level component of the                                                 
@@ -27,7 +30,7 @@ its stability we improved it in several ways:
                                                                                    
 Just give it a try!                                                                
                                                                                    
-### Centreon Broker                                                                  
+## Centreon Broker                                                                  
                                                                                    
 Centreon Broker is an extensible open-source monitoring event                      
 transmitter (broker). It is a low-level component of the                           
@@ -52,16 +55,16 @@ Centreon Broker is extremely fast and is a credible alternative to the
 old NDOutils. It is also extremly modular and can fit most network                 
 security requirements. Just give it a try!                                         
                                                                                    
-### Centreon Connectors                                                              
+## Centreon Connector                                                             
                                                                                    
-Centreon Connectors are extremely fast open-source monitoring check                
+Centreon Connector is extremely fast open-source monitoring check                
 execution daemons designed to work with                                            
-[Centreon Engine](https://github.com/centreon/centreon-engine).                    
+[Centreon Engine](https://github.com/centreon/centreon-collect).                    
                                                                                    
 It is a low-level component of the                                                 
 [Centreon software suite](https://www.centreon.com).                               
                                                                                    
-Centreon Connectors are released under the Apache Software License version 2       
+Centreon Connector is released under the Apache Software License version 2       
 and is endorsed by the [Centreon company](https://www.centreon.com).               
                                                                                    
 There are currently two open-source connectors :                                   
