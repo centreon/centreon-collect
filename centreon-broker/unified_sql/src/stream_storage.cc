@@ -70,9 +70,7 @@ static inline bool check_equality(double a, double b) {
  *
  * @return the number of events sent to the database.
  */
-void stream::_unified_sql_process_service_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_unified_sql_process_service_status(std::shared_ptr<io::data>& d) {
   neb::service_status const& ss{*static_cast<neb::service_status*>(d.get())};
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
   log_v2::perfdata()->debug(
@@ -421,7 +419,6 @@ void stream::_unified_sql_process_service_status(
       pblshr.write(to_publish);
     }
   }
-  *std::get<2>(t) = true;
 }
 
 void stream::_update_metrics() {

@@ -346,9 +346,7 @@ void stream::_prepare_sg_insupdate_statement() {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_acknowledgement(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_acknowledgement(std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::acknowledgement const& ack =
       *static_cast<neb::acknowledgement const*>(d.get());
@@ -379,7 +377,6 @@ void stream::_process_acknowledgement(
                          database::mysql_error::store_acknowledgement, true,
                          conn);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -389,9 +386,7 @@ void stream::_process_acknowledgement(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_comment(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_comment(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts | actions::instances |
                          actions::host_parents | actions::host_dependencies |
                          actions::service_dependencies | actions::comments);
@@ -422,7 +417,6 @@ void stream::_process_comment(
   _mysql.run_statement(_comment_insupdate, database::mysql_error::store_comment,
                        true, conn);
   _add_action(conn, actions::comments);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -432,9 +426,7 @@ void stream::_process_comment(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_custom_variable(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_custom_variable(std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::custom_variable const& cv{
       *static_cast<neb::custom_variable const*>(d.get())};
@@ -451,19 +443,17 @@ void stream::_process_custom_variable(
 
   // Processing.
   if (cv.enabled) {
-    _cv_queue.emplace_back(
-        std::get<2>(t),
-        fmt::format(
-            "('{}',{},{},'{}',{},{},{},'{}')",
-            misc::string::escape(
-                cv.name, get_customvariables_col_size(customvariables_name)),
-            cv.host_id, cv.service_id,
-            misc::string::escape(
-                cv.default_value,
-                get_customvariables_col_size(customvariables_default_value)),
-            cv.modified ? 1 : 0, cv.var_type, cv.update_time,
-            misc::string::escape(cv.value, get_customvariables_col_size(
-                                               customvariables_value))));
+    _cv_queue.emplace_back(fmt::format(
+        "('{}',{},{},'{}',{},{},{},'{}')",
+        misc::string::escape(
+            cv.name, get_customvariables_col_size(customvariables_name)),
+        cv.host_id, cv.service_id,
+        misc::string::escape(
+            cv.default_value,
+            get_customvariables_col_size(customvariables_default_value)),
+        cv.modified ? 1 : 0, cv.var_type, cv.update_time,
+        misc::string::escape(
+            cv.value, get_customvariables_col_size(customvariables_value))));
     /* Here, we do not update the custom variable boolean ack flag, because
      * it will be updated later when the bulk query will be done:
      * stream::_update_customvariables() */
@@ -481,7 +471,6 @@ void stream::_process_custom_variable(
                          database::mysql_error::remove_customvariable, true,
                          conn);
     _add_action(conn, actions::custom_variables);
-    *std::get<2>(t) = true;
   }
 }
 
@@ -492,23 +481,18 @@ void stream::_process_custom_variable(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_custom_variable_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
-
+void stream::_process_custom_variable_status(std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::custom_variable_status const& cv{
       *static_cast<neb::custom_variable_status const*>(d.get())};
 
-  _cvs_queue.emplace_back(
-      std::get<2>(t),
-      fmt::format(
-          "('{}',{},{},{},{},'{}')",
-          misc::string::escape(
-              cv.name, get_customvariables_col_size(customvariables_name)),
-          cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
-          misc::string::escape(
-              cv.value, get_customvariables_col_size(customvariables_value))));
+  _cvs_queue.emplace_back(fmt::format(
+      "('{}',{},{},{},{},'{}')",
+      misc::string::escape(cv.name,
+                           get_customvariables_col_size(customvariables_name)),
+      cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
+      misc::string::escape(
+          cv.value, get_customvariables_col_size(customvariables_value))));
 
   log_v2::sql()->info("SQL: updating custom variable '{}' of ({}, {})", cv.name,
                       cv.host_id, cv.service_id);
@@ -521,9 +505,7 @@ void stream::_process_custom_variable_status(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_downtime(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_downtime(std::shared_ptr<io::data>& d) {
   int conn = special_conn::downtime % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
                          actions::host_parents | actions::host_dependencies |
@@ -575,7 +557,6 @@ void stream::_process_downtime(
                          database::mysql_error::store_downtime, true, conn);
     _add_action(conn, actions::downtimes);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -585,9 +566,7 @@ void stream::_process_downtime(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_event_handler(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_event_handler(std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::event_handler const& eh =
       *static_cast<neb::event_handler const*>(d.get());
@@ -613,7 +592,6 @@ void stream::_process_event_handler(
   _mysql.run_statement(
       _event_handler_insupdate, database::mysql_error::store_eventhandler, true,
       _mysql.choose_connection_by_instance(_cache_host_instance[eh.host_id]));
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -623,9 +601,7 @@ void stream::_process_event_handler(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_flapping_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_flapping_status(std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::flapping_status const& fs(
       *static_cast<neb::flapping_status const*>(d.get()));
@@ -653,7 +629,6 @@ void stream::_process_flapping_status(
   _mysql.run_statement(_flapping_status_insupdate,
                        database::mysql_error::store_flapping, true, conn);
   _add_action(conn, actions::hosts);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -663,9 +638,7 @@ void stream::_process_flapping_status(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_check(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host_check(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::host_dependencies |
                          actions::host_parents | actions::service_dependencies);
@@ -718,7 +691,6 @@ void stream::_process_host_check(
         "SQL: not processing host check event (host: {}, command: {}, check "
         "type: {}, next check: {}, now: {})",
         hc.host_id, hc.command_line, hc.check_type, hc.next_check, now);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -728,9 +700,7 @@ void stream::_process_host_check(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_dependency(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host_dependency(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_dependency % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::host_parents |
                          actions::comments | actions::downtimes |
@@ -773,7 +743,6 @@ void stream::_process_host_dependency(
     _mysql.run_query(query, database::mysql_error::empty, true, conn);
     _add_action(conn, actions::host_dependencies);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -783,9 +752,7 @@ void stream::_process_host_dependency(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_group(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host_group(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
   _finish_action(-1, actions::hosts);
 
@@ -819,7 +786,6 @@ void stream::_process_host_group(
       _hostgroup_cache.erase(hg.id);
     }
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -829,9 +795,7 @@ void stream::_process_host_group(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_group_member(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host_group_member(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
   _finish_action(-1, actions::hostgroups | actions::hosts);
 
@@ -908,7 +872,6 @@ void stream::_process_host_group_member(
                          conn);
     _add_action(conn, actions::hostgroups);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -918,9 +881,7 @@ void stream::_process_host_group_member(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::hostgroups |
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
@@ -965,7 +926,6 @@ void stream::_process_host(
           "fake host",
           h.host_name, h.poller_id);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -975,9 +935,7 @@ void stream::_process_host(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_parent(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host_parent(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_parent % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::host_dependencies |
                          actions::comments | actions::downtimes);
@@ -1023,7 +981,6 @@ void stream::_process_host_parent(
                          false, conn);
     _add_action(conn, actions::host_parents);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1033,9 +990,7 @@ void stream::_process_host_parent(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_host_status(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::custom_variables |
                          actions::hostgroups | actions::host_dependencies |
@@ -1078,7 +1033,6 @@ void stream::_process_host_status(
         "check: {}, next check: {}, now: {}, state: ({}, {}))",
         hs.host_id, hs.check_type, hs.last_check, hs.next_check, now,
         hs.current_state, hs.state_type);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1089,9 +1043,7 @@ void stream::_process_host_status(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_instance(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_instance(std::shared_ptr<io::data>& d) {
   neb::instance& i(*static_cast<neb::instance*>(d.get()));
   int32_t conn = _mysql.choose_connection_by_instance(i.poller_id);
   _finish_action(-1, actions::hosts | actions::acknowledgements |
@@ -1124,7 +1076,6 @@ void stream::_process_instance(
                          database::mysql_error::store_poller, true, conn);
     _add_action(conn, actions::instances);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1136,9 +1087,7 @@ void stream::_process_instance(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_instance_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_instance_status(std::shared_ptr<io::data>& d) {
   neb::instance_status& is = *static_cast<neb::instance_status*>(d.get());
   int32_t conn = _mysql.choose_connection_by_instance(is.poller_id);
 
@@ -1167,7 +1116,6 @@ void stream::_process_instance_status(
                          database::mysql_error::update_poller, true, conn);
     _add_action(conn, actions::instances);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1177,10 +1125,7 @@ void stream::_process_instance_status(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_log(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
-
+void stream::_process_log(std::shared_ptr<io::data>& d) {
   // Fetch proper structure.
   neb::log_entry const& le(*static_cast<neb::log_entry const*>(d.get()));
 
@@ -1190,24 +1135,22 @@ void stream::_process_log(
       le.poller_name, le.c_time, le.msg_type);
 
   // Run query.
-  _log_queue.emplace_back(std::make_pair(
-      std::get<2>(t),
-      fmt::format(
-          "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
-          le.host_id, le.service_id,
-          misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
-          misc::string::escape(le.poller_name,
-                               get_logs_col_size(logs_instance_name)),
-          le.log_type, le.msg_type,
-          misc::string::escape(le.notification_cmd,
-                               get_logs_col_size(logs_notification_cmd)),
-          misc::string::escape(le.notification_contact,
-                               get_logs_col_size(logs_notification_contact)),
-          le.retry,
-          misc::string::escape(le.service_description,
-                               get_logs_col_size(logs_service_description)),
-          le.status,
-          misc::string::escape(le.output, get_logs_col_size(logs_output)))));
+  _log_queue.emplace_back(fmt::format(
+      "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
+      le.host_id, le.service_id,
+      misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
+      misc::string::escape(le.poller_name,
+                           get_logs_col_size(logs_instance_name)),
+      le.log_type, le.msg_type,
+      misc::string::escape(le.notification_cmd,
+                           get_logs_col_size(logs_notification_cmd)),
+      misc::string::escape(le.notification_contact,
+                           get_logs_col_size(logs_notification_contact)),
+      le.retry,
+      misc::string::escape(le.service_description,
+                           get_logs_col_size(logs_service_description)),
+      le.status,
+      misc::string::escape(le.output, get_logs_col_size(logs_output))));
 }
 
 /**
@@ -1218,9 +1161,7 @@ void stream::_process_log(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_module(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_module(std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::module const& m = *static_cast<neb::module const*>(d.get());
   int32_t conn = _mysql.choose_connection_by_instance(m.poller_id);
@@ -1261,7 +1202,6 @@ void stream::_process_module(
       _add_action(conn, actions::modules);
     }
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1271,9 +1211,7 @@ void stream::_process_module(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_check(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_service_check(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::downtimes | actions::comments |
                          actions::host_dependencies | actions::host_parents |
                          actions::service_dependencies);
@@ -1335,7 +1273,6 @@ void stream::_process_service_check(
         "command: {}, check_type: {}, next_check: {}, now: {})",
         sc.host_id, sc.service_id, sc.command_line, sc.check_type,
         sc.next_check, now);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1345,9 +1282,7 @@ void stream::_process_service_check(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_dependency(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_service_dependency(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_dependency % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::host_parents |
                          actions::downtimes | actions::comments |
@@ -1397,7 +1332,6 @@ void stream::_process_service_dependency(
     _mysql.run_query(query, database::mysql_error::empty, false, conn);
     _add_action(conn, actions::service_dependencies);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1407,9 +1341,7 @@ void stream::_process_service_dependency(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_group(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_service_group(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_group % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::services);
 
@@ -1448,7 +1380,6 @@ void stream::_process_service_group(
       _servicegroup_cache.erase(sg.id);
     }
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1458,9 +1389,7 @@ void stream::_process_service_group(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_group_member(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_service_group_member(std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_group % _mysql.connections_count();
   _finish_action(-1,
                  actions::hosts | actions::servicegroups | actions::services);
@@ -1536,7 +1465,6 @@ void stream::_process_service_group_member(
                          false, conn);
     _add_action(conn, actions::servicegroups);
   }
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1546,9 +1474,7 @@ void stream::_process_service_group_member(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_service(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1589,7 +1515,6 @@ void stream::_process_service(
         "SQL: host with host_id = {} does not exist - unable to store service "
         "of that host. You should restart centengine",
         s.host_id);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1599,9 +1524,7 @@ void stream::_process_service(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_status(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
+void stream::_process_service_status(std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1651,7 +1574,6 @@ void stream::_process_service_status(
         "{}))",
         ss.host_id, ss.service_id, ss.check_type, ss.last_check, ss.next_check,
         now, ss.current_state, ss.state_type);
-  *std::get<2>(t) = true;
 }
 
 /**
@@ -1661,20 +1583,16 @@ void stream::_process_service_status(
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_instance_configuration(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  *std::get<2>(t) = true;
-}
+void stream::_process_instance_configuration(std::shared_ptr<io::data>& d
+                                             __attribute__((unused))) {}
 
 /**
  *  Process a responsive instance event.
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_responsive_instance(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  *std::get<2>(t) = true;
-}
+void stream::_process_responsive_instance(std::shared_ptr<io::data>& d
+                                          __attribute__((unused))) {}
 
 /**
  * @brief Send a big query to update/insert a bulk of custom variables. When
@@ -1687,62 +1605,42 @@ void stream::_update_customvariables() {
   int32_t conn = special_conn::custom_variable % _mysql.connections_count();
   _finish_action(conn, actions::custom_variables);
   if (!_cv_queue.empty()) {
-    auto it = _cv_queue.begin();
-    std::ostringstream oss;
-    oss << "INSERT INTO customvariables "
-           "(name,host_id,service_id,default_value,modified,type,update_time,"
-           "value) VALUES "
-        << std::get<1>(*it);
-    *std::get<0>(*it) = true;
-    for (++it; it != _cv_queue.end(); ++it)
-      oss << "," << std::get<1>(*it);
-
     /* Building of the query */
-    oss << " ON DUPLICATE KEY UPDATE "
-           "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
-           "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)";
-    std::string query(oss.str());
+    std::string query{fmt::format(
+        "INSERT INTO customvariables "
+        "(name,host_id,service_id,default_value,modified,type,update_time,"
+        "value) VALUES {} "
+        " ON DUPLICATE KEY UPDATE "
+        "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
+        "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)",
+        fmt::join(_cv_queue, ","))};
     _mysql.run_query(query, database::mysql_error::update_customvariables, true,
                      conn);
+    _add_action(conn, actions::custom_variables);
     log_v2::sql()->debug("{} new custom variables inserted", _cv_queue.size());
     log_v2::sql()->trace("sending query << {} >>", query);
-    _add_action(conn, actions::custom_variables);
 
-    /* Acknowledgement and cleanup */
-    while (!_cv_queue.empty()) {
-      auto it = _cv_queue.begin();
-      *std::get<0>(*it) = true;
-      _cv_queue.pop_front();
-    }
+    /* Cleanup */
+    _cv_queue.clear();
   }
   if (!_cvs_queue.empty()) {
-    auto it = _cvs_queue.begin();
-    std::ostringstream oss;
-    oss << "INSERT INTO customvariables "
-           "(name,host_id,service_id,modified,update_time,value) VALUES "
-        << std::get<1>(*it);
-    *std::get<0>(*it) = true;
-    for (++it; it != _cvs_queue.end(); ++it)
-      oss << "," << std::get<1>(*it);
-
     /* Building of the query */
-    oss << " ON DUPLICATE KEY UPDATE "
-           "modified=VALUES(modified),update_time=VALUES(update_time),value="
-           "VALUES(value)";
-    std::string query(oss.str());
+    std::string query{fmt::format(
+        "INSERT INTO customvariables "
+        "(name,host_id,service_id,modified,update_time,value) VALUES {} "
+        " ON DUPLICATE KEY UPDATE "
+        "modified=VALUES(modified),update_time=VALUES(update_time),value="
+        "VALUES(value)",
+        fmt::join(_cvs_queue, ","))};
     _mysql.run_query(query, database::mysql_error::update_customvariables, true,
                      conn);
+    _add_action(conn, actions::custom_variables);
     log_v2::sql()->debug("{} new custom variable status inserted",
                          _cvs_queue.size());
     log_v2::sql()->trace("sending query << {} >>", query);
-    _add_action(conn, actions::custom_variables);
 
-    /* Acknowledgement and cleanup */
-    while (!_cvs_queue.empty()) {
-      auto it = _cvs_queue.begin();
-      *std::get<0>(*it) = true;
-      _cvs_queue.pop_front();
-    }
+    /* Cleanup */
+    _cvs_queue.clear();
   }
 }
 
@@ -1756,28 +1654,18 @@ void stream::_insert_logs() {
   if (_log_queue.empty())
     return;
   int32_t conn = special_conn::log % _mysql.connections_count();
-  auto it = _log_queue.begin();
-  std::ostringstream oss;
-
   /* Building of the query */
-  oss << "INSERT INTO logs "
-         "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
-         "notification_cmd,notification_contact,retry,service_description,"
-         "status,output) VALUES "
-      << std::get<1>(*it);
-  *std::get<0>(*it) = true;
-  for (++it; it != _log_queue.end(); ++it)
-    oss << "," << std::get<1>(*it);
+  std::string query{fmt::format(
+      "INSERT INTO logs "
+      "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
+      "notification_cmd,notification_contact,retry,service_description,"
+      "status,output) VALUES {}",
+      fmt::join(_log_queue, ","))};
 
-  std::string query(oss.str());
   _mysql.run_query(query, database::mysql_error::update_logs, true, conn);
   log_v2::sql()->debug("{} new logs inserted", _log_queue.size());
   log_v2::sql()->trace("sending query << {} >>", query);
 
-  /* Acknowledgement and cleanup */
-  while (!_log_queue.empty()) {
-    auto it = _log_queue.begin();
-    *std::get<0>(*it) = true;
-    _log_queue.pop_front();
-  }
+  /* Cleanup */
+  _log_queue.clear();
 }

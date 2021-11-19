@@ -37,7 +37,7 @@ using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
 void (stream::*const stream::_neb_processing_table[])(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>&) = {
+    std::shared_ptr<io::data>&) = {
     nullptr,
     &stream::_process_acknowledgement,
     &stream::_process_comment,
@@ -76,6 +76,8 @@ stream::stream(const database_config& dbcfg,
                bool store_in_data_bin)
     : io::stream("unified_sql"),
       _state{not_started},
+      _processed{0},
+      _ack{0},
       _pending_events{0},
       _exit{false},
       _broken{false},
@@ -416,7 +418,7 @@ void stream::_callback() {
         std::chrono::system_clock::now();
 
     size_t pos = 0;
-    std::deque<std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>> events;
+    std::deque<std::shared_ptr<io::data>> events;
     try {
       while (!_should_exit()) {
         /* Time to send perfdatas to rrd ; no lock needed, it is this thread
@@ -514,8 +516,10 @@ void stream::_callback() {
          * it it is necessary for cleanup operations.
          */
         while (count < _max_pending_queries && timeout < timeout_limit) {
-          if (events.empty())
-            events = _fifo.first_events();
+          if (events.empty()) {
+            std::lock_guard<std::mutex> lck(_fifo_m);
+            std::swap(_fifo, events);
+          }
           if (events.empty()) {
             // Let's wait for 500ms.
             if (_should_exit())
@@ -530,25 +534,22 @@ void stream::_callback() {
             continue;
           }
           while (!events.empty()) {
-            auto tpl = events.front();
-            events.pop_front();
-            std::shared_ptr<io::data>& d = std::get<0>(tpl);
-            uint32_t type{d->type()};
-            uint16_t cat{category_of_type(type)};
-            uint16_t elem{element_of_type(type)};
-            if (/*std::get<1>(tpl) == sql &&*/ cat == io::neb) {
-              (this->*(_neb_processing_table[elem]))(tpl);
-              if (/*std::get<1>(tpl) == unified_sql &&*/
-                  type == neb::service_status::static_type())
-                _unified_sql_process_service_status(tpl);
-            }
-            else {
+            auto d = events.front();
+            uint32_t type = d->type();
+            uint16_t cat = category_of_type(type);
+            uint16_t elem = element_of_type(type);
+            if (cat == io::neb) {
+              (this->*(_neb_processing_table[elem]))(d);
+              if (type == neb::service_status::static_type())
+                _unified_sql_process_service_status(d);
+            } else {
               log_v2::sql()->trace(
                   "unified sql: event of type {} thrown away ; no need to "
                   "store it in the database.",
                   type);
-              *std::get<2>(tpl) = true;
             }
+            events.pop_front();
+            _processed++;
 
             ++count;
             _stats_count[pos]++;
@@ -588,18 +589,25 @@ void stream::_callback() {
         log_v2::sql()->debug("{} new events to treat", count);
         /* Here, just before looping, we commit. */
         _finish_actions();
-        if (_fifo.get_pending_elements() == 0)
+        if (_fifo.empty())
           log_v2::sql()->debug(
               "unified sql: acknowledgement - no pending events");
-        else
+        else {
+          std::lock_guard<std::mutex> lck(_fifo_m);
           log_v2::sql()->debug(
               "unified sql: acknowledgement - still {} not acknowledged",
-              _fifo.get_pending_elements());
+              _fifo.size());
+        }
 
         /* Are there unresonsive instances? */
         _update_hosts_and_services_of_unresponsive_instances();
 
         /* Get some stats */
+        int32_t fifo_size;
+        {
+          std::lock_guard<std::mutex> lk(_fifo_m);
+          fifo_size = _fifo.size();
+        }
         {
           std::lock_guard<std::mutex> lk(_stat_m);
           _events_handled = events.size();
@@ -610,14 +618,7 @@ void stream::_callback() {
               &ConflictManagerStats::set_max_perfdata_events, _stats,
               _max_perfdata_queries);
           stats::center::instance().update(
-              &ConflictManagerStats::set_waiting_events, _stats,
-              static_cast<int32_t>(_fifo.get_events().size()));
-          stats::center::instance().update(
-              &ConflictManagerStats::set_sql, _stats,
-              static_cast<int32_t>(_fifo.get_timeline(sql).size()));
-          stats::center::instance().update(
-              &ConflictManagerStats::set_storage, _stats,
-              static_cast<int32_t>(_fifo.get_timeline(unified_sql).size()));
+              &ConflictManagerStats::set_waiting_events, _stats, fifo_size);
         }
       }
     } catch (std::exception const& e) {
@@ -651,7 +652,12 @@ void stream::_callback() {
  */
 bool stream::_should_exit() const {
   std::lock_guard<std::mutex> lock(_loop_m);
-  return _broken || (_exit && _fifo.get_events().empty());
+  bool fifo_empty;
+  {
+    std::lock_guard<std::mutex> lck(_fifo_m);
+    fifo_empty = _fifo.empty();
+  }
+  return _broken || (_exit && fifo_empty);
 }
 
 /**
@@ -672,24 +678,10 @@ int32_t stream::send_event(stream::stream_type c,
       "unified sql: send_event category:{}, element:{} from {}",
       e->type() >> 16, e->type() & 0xffff, c == 0 ? "sql" : "unified_sql");
 
-  return _fifo.push(c, e);
-}
-
-/**
- *  This method is called from the stream and returns how many events should
- *  be released. By the way, it removes those objects from the queue.
- *
- * @param c a stream_type (we have two kinds of data arriving in the
- * stream, those from the sql connector and those from the unified_sql
- * connector, so this stream_type is an enum containing those types).
- *
- * @return the number of events to ack.
- */
-int32_t stream::get_acks(stream_type c) {
-  if (_broken)
-    throw msg_fmt("unified sql: events loop interrupted");
-
-  return _fifo.get_acks(c);
+  _fifo.push_back(e);
+  int32_t retval = _ack;
+  _ack = 0;
+  return retval;
 }
 
 /**
@@ -727,12 +719,11 @@ void stream::_finish_actions() {
   _mysql.commit();
   for (uint32_t& v : _action)
     v = actions::none;
+  _ack += _processed;
+  _processed = 0;
 
-  _fifo.clean(sql);
-  _fifo.clean(unified_sql);
-
-  log_v2::sql()->debug("unified sql: still {} not acknowledged",
-                       _fifo.get_pending_elements());
+  std::lock_guard<std::mutex> lck(_fifo_m);
+  log_v2::sql()->debug("unified sql: still {} not acknowledged", _fifo.size());
 }
 
 /**
@@ -769,15 +760,17 @@ void stream::__exit() {
  */
 nlohmann::json stream::get_statistics() {
   nlohmann::json retval;
+  int32_t fifo_size;
+  {
+    std::lock_guard<std::mutex> lck(_fifo_m);
+    fifo_size = _fifo.size();
+  }
   retval["max pending events"] = static_cast<int32_t>(_max_pending_queries);
   retval["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
   retval["loop timeout"] = static_cast<int32_t>(_loop_timeout);
   if (auto lock = std::unique_lock<std::mutex>(_stat_m, std::try_to_lock)) {
-    retval["waiting_events"] = static_cast<int32_t>(_fifo.get_events().size());
+    retval["waiting_events"] = fifo_size;
     retval["events_handled"] = _events_handled;
-    retval["sql"] = static_cast<int32_t>(_fifo.get_timeline(sql).size());
-    retval["unified_sql"] =
-        static_cast<int32_t>(_fifo.get_timeline(unified_sql).size());
     retval["speed"] = fmt::format("{} events/s", _speed);
   }
   return retval;
@@ -857,6 +850,7 @@ int32_t stream::stop() {
     _thread.join();
 
   /* Let's return how many events to ack */
-  int32_t retval = _fifo.get_acks(0);
+  int32_t retval = _ack;
+  _ack = 0;
   return retval;
 }
