@@ -6,7 +6,7 @@ Centreon Collect is collection of softwares:
   * [Centreon Connector](#centreon-connector)       
                                                    
 Centreon Collect brings also "functional tests" on these softwares.
-"functional tests" should point to the section ["Centreon tests"](centreon-tests/README.md).
+"functional tests" should point to the section [Centreon tests](centreon-tests/README.md).
 
 ## Centreon Engine                                                                 
                                                                                    
