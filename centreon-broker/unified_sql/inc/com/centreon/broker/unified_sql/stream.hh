@@ -68,7 +68,6 @@ namespace unified_sql {
  * The conflict manager works with two streams: sql and unified_sql.
  *
  * To initialize it, two functions are used:
- * * init_sql(): initialization of the sql part.
  * * init_unified_sql(): initialization of the unified_sql part. This one needs
  * the sql part to be initialized before. If it is not already initialized, this
  *   function waits for it (with a timeout).
@@ -154,7 +153,7 @@ class stream : public io::stream {
   mutable std::mutex _fifo_m;
   std::deque<std::shared_ptr<io::data>> _fifo;
   int32_t _processed;
-  int32_t _ack;
+  std::atomic_int _ack;
 
   // misc::mfifo<std::shared_ptr<io::data>, 2> _fifo;
   int32_t _pending_events;
@@ -167,7 +166,7 @@ class stream : public io::stream {
   bool _exit;
   std::atomic_bool _broken;
   uint32_t _loop_timeout;
-  int32_t _max_pending_queries;
+  uint32_t _max_pending_queries;
   mysql _mysql;
   uint32_t _instance_timeout;
   rebuilder _rebuilder;
@@ -183,7 +182,7 @@ class stream : public io::stream {
 
   /* Stats */
   ConflictManagerStats* _stats;
-  std::mutex _stat_m;
+  mutable std::mutex _stat_m;
   int32_t _events_handled;
   float _speed;
   std::array<float, 20> _stats_count;
@@ -325,23 +324,17 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream();
-  bool init_sql();
-  // bool init_unified_sql(bool store_in_db,
-  //                      uint32_t rrd_len,
-  //                      uint32_t interval_length,
-  //                      uint32_t max_pending_queries);
-  // int32_t unload(stream_type type);
-  nlohmann::json get_statistics();
 
-  int32_t send_event(stream_type c, std::shared_ptr<io::data> const& e);
   int32_t get_acks(stream_type c);
   void update_metric_info_cache(uint64_t index_id,
                                 uint32_t metric_id,
                                 std::string const& metric_name,
                                 short metric_type);
   int32_t write(const std::shared_ptr<io::data>& d) override;
+  int32_t flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
   int32_t stop() override;
+  void statistics(nlohmann::json& tree) const;
 };
 }  // namespace unified_sql
 CCB_END()

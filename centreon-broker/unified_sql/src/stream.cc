@@ -90,113 +90,37 @@ stream::stream(const database_config& dbcfg,
       _store_in_db{store_in_data_bin},
       _rrd_len{rrd_len},
       _interval_length{interval_length},
-      _max_perfdata_queries{0},
-      _max_metrics_queries{0},
-      _max_cv_queries{0},
-      _max_log_queries{0},
+      _max_perfdata_queries{_max_pending_queries},
+      _max_metrics_queries{_max_pending_queries},
+      _max_cv_queries{_max_pending_queries},
+      _max_log_queries{_max_pending_queries},
       _stats{stats::center::instance().register_conflict_manager()},
       _events_handled{0},
       _speed{},
       _stats_count_pos{0},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
-  stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-                                   _stats, _loop_timeout);
-  stats::center::instance().update(
-      &ConflictManagerStats::set_max_pending_events, _stats,
-      _max_pending_queries);
-  init_sql();
+  stats::center::instance().execute([stats = _stats,
+                                     loop_timeout = _loop_timeout,
+                                     max_queries = _max_pending_queries] {
+    stats->set_loop_timeout(loop_timeout);
+    stats->set_max_pending_events(max_queries);
+  });
+  //  stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
+  //                                   _stats, _loop_timeout);
+  //  stats::center::instance().update(
+  //      &ConflictManagerStats::set_max_pending_events, _stats,
+  //      _max_pending_queries);
+  _state = running;
+  _action.resize(_mysql.connections_count());
+
+  std::lock_guard<std::mutex> lk(_loop_m);
+  _thread = std::thread(&stream::_callback, this);
+  pthread_setname_np(_thread.native_handle(), "conflict_mngr");
 }
 
 stream::~stream() {
   log_v2::sql()->debug("unified sql: stream destruction");
-}
-
-/**
- * For the connector that does not initialize the stream, this
- * function is useful to wait.
- *
- * @param store_in_db A boolean to specify if perfdata should be stored in
- * database.
- * @param rrd_len The rrd length in seconds
- * @param interval_length The length of an elementary time interval.
- * @param queries_per_transaction The number of perfdata to store before sending
- * them to database.
- *
- * @return true if all went OK.
- */
-// bool stream::init_unified_sql(bool store_in_db,
-//                              uint32_t rrd_len,
-//                              uint32_t interval_length,
-//                              uint32_t queries_per_transaction) {
-//  log_v2::sql()->debug("unified sql: unified_sql stream initialization");
-//  int count;
-//
-//  std::unique_lock<std::mutex> lk(_init_m);
-//
-//  for (count = 0; count < 10; count++) {
-//    /* Let's wait for 10s for the stream to be initialized */
-//    if (_init_cv.wait_for(lk, std::chrono::seconds(1),
-//                          [&] { return _state == finished; })) {
-//      if (_state == finished)
-//        return false;
-//      std::lock_guard<std::mutex> lk(_loop_m);
-//      _store_in_db = store_in_db;
-//      _rrd_len = rrd_len;
-//      _interval_length = interval_length;
-//      _max_perfdata_queries = queries_per_transaction;
-//      _max_metrics_queries = queries_per_transaction;
-//      _max_cv_queries = queries_per_transaction;
-//      _max_log_queries = queries_per_transaction;
-//      _ref_count++;
-//      _thread = std::thread(&stream::_callback, this);
-//      pthread_setname_np(_thread.native_handle(), "conflict_mngr");
-//      return true;
-//    }
-//    log_v2::sql()->info(
-//        "unified sql: Waiting for the sql stream initialization for {} "
-//        "seconds",
-//        count);
-//  }
-//  log_v2::sql()->error(
-//      "unified sql: not initialized after 10s. Probably "
-//      "an issue in the sql output configuration.");
-//  return false;
-//}
-
-/**
- * @brief This fonction is the one that initializes the stream.
- *
- * @param dbcfg The database configuration
- * @param loop_timeout A duration in seconds. During this interval received
- *        events are handled. If there are no more events to handle, new
- *        available ones are taken from the fifo. If none, the loop waits during
- *        500ms. After this loop others things are done, cleanups, etc. And then
- *        the loop is started again.
- * @param instance_timeout A duration in seconds. This interval is used for
- *        sending data in bulk. We wait for this interval at least between two
- *        bulks.
- *
- * @return A boolean true if the function went good, false otherwise.
- */
-bool stream::init_sql() {
-  log_v2::sql()->debug("unified sql: sql stream initialization");
-
-  _state = running;
-  _action.resize(_mysql.connections_count());
-
-  log_v2::sql()->debug("unified sql: unified_sql stream initialization");
-
-  if (_state == finished)
-    return false;
-  std::lock_guard<std::mutex> lk(_loop_m);
-  _max_perfdata_queries = _max_pending_queries;
-  _max_metrics_queries = _max_pending_queries;
-  _max_cv_queries = _max_pending_queries;
-  _max_log_queries = _max_pending_queries;
-  _thread = std::thread(&stream::_callback, this);
-  pthread_setname_np(_thread.native_handle(), "conflict_mngr");
-  return true;
 }
 
 void stream::_load_deleted_instances() {
@@ -455,7 +379,7 @@ void stream::_callback() {
             break;
           }
         }
-        int32_t count = 0;
+        uint32_t count = 0;
         int32_t timeout = 0;
         int32_t timeout_limit = _loop_timeout * 1000;
 
@@ -549,6 +473,7 @@ void stream::_callback() {
                   type);
             }
             events.pop_front();
+            log_v2::sql()->trace("processed = {}", _processed);
             _processed++;
 
             ++count;
@@ -589,25 +514,24 @@ void stream::_callback() {
         log_v2::sql()->debug("{} new events to treat", count);
         /* Here, just before looping, we commit. */
         _finish_actions();
-        if (_fifo.empty())
+        int32_t fifo_size;
+        {
+          std::lock_guard<std::mutex> lk(_fifo_m);
+          fifo_size = _fifo.size();
+        }
+        if (fifo_size == 0)
           log_v2::sql()->debug(
               "unified sql: acknowledgement - no pending events");
         else {
-          std::lock_guard<std::mutex> lck(_fifo_m);
           log_v2::sql()->debug(
               "unified sql: acknowledgement - still {} not acknowledged",
-              _fifo.size());
+              fifo_size);
         }
 
         /* Are there unresonsive instances? */
         _update_hosts_and_services_of_unresponsive_instances();
 
         /* Get some stats */
-        int32_t fifo_size;
-        {
-          std::lock_guard<std::mutex> lk(_fifo_m);
-          fifo_size = _fifo.size();
-        }
         {
           std::lock_guard<std::mutex> lk(_stat_m);
           _events_handled = events.size();
@@ -661,30 +585,6 @@ bool stream::_should_exit() const {
 }
 
 /**
- *  Method to send event to the conflict manager.
- *
- * @param c The connector responsible of the event (sql or unified_sql)
- * @param e The event
- *
- * @return The number of events to ack.
- */
-int32_t stream::send_event(stream::stream_type c,
-                           std::shared_ptr<io::data> const& e) {
-  assert(e);
-  if (_broken)
-    throw msg_fmt("unified sql: events loop interrupted");
-
-  log_v2::sql()->trace(
-      "unified sql: send_event category:{}, element:{} from {}",
-      e->type() >> 16, e->type() & 0xffff, c == 0 ? "sql" : "unified_sql");
-
-  _fifo.push_back(e);
-  int32_t retval = _ack;
-  _ack = 0;
-  return retval;
-}
-
-/**
  *  Take a look if a given action is done on a mysql connection. If it is
  *  done, the method waits for tasks on this connection to be finished and
  *  clear the flag.
@@ -721,6 +621,7 @@ void stream::_finish_actions() {
     v = actions::none;
   _ack += _processed;
   _processed = 0;
+  log_v2::sql()->trace("finish actions processed = {}", _processed);
 
   std::lock_guard<std::mutex> lck(_fifo_m);
   log_v2::sql()->debug("unified sql: still {} not acknowledged", _fifo.size());
@@ -758,22 +659,27 @@ void stream::__exit() {
  *
  * @return A nlohmann::json with the statistics.
  */
-nlohmann::json stream::get_statistics() {
-  nlohmann::json retval;
+void stream::statistics(nlohmann::json& tree) const {
   int32_t fifo_size;
+  int32_t processed;
+  int32_t pending;
   {
     std::lock_guard<std::mutex> lck(_fifo_m);
     fifo_size = _fifo.size();
+    processed = _processed;
+    pending = _pending_events;
   }
-  retval["max pending events"] = static_cast<int32_t>(_max_pending_queries);
-  retval["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
-  retval["loop timeout"] = static_cast<int32_t>(_loop_timeout);
+  tree["max pending events"] = static_cast<int32_t>(_max_pending_queries);
+  tree["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
+  tree["loop timeout"] = static_cast<int32_t>(_loop_timeout);
   if (auto lock = std::unique_lock<std::mutex>(_stat_m, std::try_to_lock)) {
-    retval["waiting_events"] = fifo_size;
-    retval["events_handled"] = _events_handled;
-    retval["speed"] = fmt::format("{} events/s", _speed);
+    tree["waiting_events"] = fifo_size;
+    tree["processed_events"] = processed;
+    tree["acked_events"] = static_cast<int32_t>(_ack);
+    tree["events_handled"] = _events_handled;
+    tree["pending_events"] = pending;
+    tree["speed"] = fmt::format("{:.2} events/s", _speed);
   }
-  return retval;
 }
 
 /**
@@ -813,9 +719,34 @@ nlohmann::json stream::get_statistics() {
 int32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
-  int32_t ack = send_event(static_cast<stream_type>(0), data);
-  _pending_events -= ack;
-  return ack;
+  if (_broken)
+    throw msg_fmt("unified sql: events loop interrupted");
+
+  log_v2::sql()->trace("unified sql: write event category:{}, element:{}",
+                       category_of_type(data->type()),
+                       element_of_type(data->type()));
+  int32_t retval;
+  {
+    std::lock_guard<std::mutex> lck(_fifo_m);
+    _fifo.push_back(data);
+    retval = _ack;
+    _ack -= retval;
+  }
+
+  _pending_events -= retval;
+  return retval;
+}
+
+/**
+ * @brief Flush the stream.
+ *
+ * @return Number of acknowledged events.
+ */
+int32_t stream::flush() {
+  int32_t retval = _ack;
+  _ack -= retval;
+  _pending_events -= retval;
+  return retval;
 }
 
 /**
@@ -851,6 +782,6 @@ int32_t stream::stop() {
 
   /* Let's return how many events to ack */
   int32_t retval = _ack;
-  _ack = 0;
+  _ack -= retval;
   return retval;
 }
