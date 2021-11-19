@@ -28,7 +28,7 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/mfifo.hh"
+//#include "com/centreon/broker/misc/mfifo.hh"
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/mysql.hh"
@@ -148,10 +148,15 @@ class stream : public io::stream {
   };
 
   static void (stream::*const _neb_processing_table[])(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>&);
+      std::shared_ptr<io::data>&);
   instance_state _state;
 
-  misc::mfifo<std::shared_ptr<io::data>, 2> _fifo;
+  mutable std::mutex _fifo_m;
+  std::deque<std::shared_ptr<io::data>> _fifo;
+  int32_t _processed;
+  int32_t _ack;
+
+  // misc::mfifo<std::shared_ptr<io::data>, 2> _fifo;
   int32_t _pending_events;
 
   /* Current actions by connection */
@@ -217,9 +222,9 @@ class stream : public io::stream {
    * 'customvariables'/'logs'. The queue elements are pairs of a string used
    * for the query and a pointer to a boolean so that we can acknowledge the
    * BBDO event when written. */
-  std::deque<std::pair<bool*, std::string>> _cv_queue;
-  std::deque<std::pair<bool*, std::string>> _cvs_queue;
-  std::deque<std::pair<bool*, std::string>> _log_queue;
+  std::deque<std::string> _cv_queue;
+  std::deque<std::string> _cvs_queue;
+  std::deque<std::string> _log_queue;
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
@@ -265,59 +270,34 @@ class stream : public io::stream {
   bool _is_valid_poller(uint32_t instance_id);
   void _check_deleted_index();
 
-  void _process_acknowledgement(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_comment(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_custom_variable(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_custom_variable_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_downtime(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_event_handler(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_flapping_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_check(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_dependency(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_group(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_group_member(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host(std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_parent(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_instance(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_instance_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_log(std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_module(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_check(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_dependency(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_group(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_group_member(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_instance_configuration(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_responsive_instance(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
+  void _process_acknowledgement(std::shared_ptr<io::data>& d);
+  void _process_comment(std::shared_ptr<io::data>& d);
+  void _process_custom_variable(std::shared_ptr<io::data>& d);
+  void _process_custom_variable_status(std::shared_ptr<io::data>& d);
+  void _process_downtime(std::shared_ptr<io::data>& d);
+  void _process_event_handler(std::shared_ptr<io::data>& d);
+  void _process_flapping_status(std::shared_ptr<io::data>& d);
+  void _process_host_check(std::shared_ptr<io::data>& d);
+  void _process_host_dependency(std::shared_ptr<io::data>& d);
+  void _process_host_group(std::shared_ptr<io::data>& d);
+  void _process_host_group_member(std::shared_ptr<io::data>& d);
+  void _process_host(std::shared_ptr<io::data>& d);
+  void _process_host_parent(std::shared_ptr<io::data>& d);
+  void _process_host_status(std::shared_ptr<io::data>& d);
+  void _process_instance(std::shared_ptr<io::data>& d);
+  void _process_instance_status(std::shared_ptr<io::data>& d);
+  void _process_log(std::shared_ptr<io::data>& d);
+  void _process_module(std::shared_ptr<io::data>& d);
+  void _process_service_check(std::shared_ptr<io::data>& d);
+  void _process_service_dependency(std::shared_ptr<io::data>& d);
+  void _process_service_group(std::shared_ptr<io::data>& d);
+  void _process_service_group_member(std::shared_ptr<io::data>& d);
+  void _process_service(std::shared_ptr<io::data>& d);
+  void _process_service_status(std::shared_ptr<io::data>& d);
+  void _process_instance_configuration(std::shared_ptr<io::data>& d);
+  void _process_responsive_instance(std::shared_ptr<io::data>& d);
 
-  void _unified_sql_process_service_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
+  void _unified_sql_process_service_status(std::shared_ptr<io::data>& d);
 
   void _load_deleted_instances();
   void _load_caches();
