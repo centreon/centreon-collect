@@ -99,14 +99,14 @@ def stop_mysql():
   getoutput("systemctl stop mysql")
 
 def kill_broker():
-  getoutput("kill -15 $(ps aux | grep '/usr/sbin/cbwd' | awk '{print $2}')")
-  getoutput("kill -15 $(ps aux | grep '/usr/sbin/cbd' | awk '{print $2}')")
+  getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $2}')")
+  getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
 
 def kill_engine():
-  getoutput("kill -15 $(ps aux | grep '/usr/sbin/centengine' | awk '{print $2}')")
+  getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
 
 def sighup_broker():
-  getoutput("kill -SIGHUP $(ps aux | grep '/usr/sbin/cbd' | awk '{print $2}')")
+  getoutput("kill -SIGHUP $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
 
 def sighup_engine():
-  getoutput("kill -SIGHUP $(ps aux | grep '/usr/sbin/centengine' | awk '{print $2}')")
+  getoutput("kill -SIGHUP $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
