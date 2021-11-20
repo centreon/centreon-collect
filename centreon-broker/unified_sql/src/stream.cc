@@ -106,11 +106,6 @@ stream::stream(const database_config& dbcfg,
     stats->set_loop_timeout(loop_timeout);
     stats->set_max_pending_events(max_queries);
   });
-  //  stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-  //                                   _stats, _loop_timeout);
-  //  stats::center::instance().update(
-  //      &ConflictManagerStats::set_max_pending_events, _stats,
-  //      _max_pending_queries);
   _state = running;
   _action.resize(_mysql.connections_count());
 
@@ -535,14 +530,19 @@ void stream::_callback() {
         {
           std::lock_guard<std::mutex> lk(_stat_m);
           _events_handled = events.size();
-          stats::center::instance().update(
-              &ConflictManagerStats::set_events_handled, _stats,
-              _events_handled);
-          stats::center::instance().update(
-              &ConflictManagerStats::set_max_perfdata_events, _stats,
-              _max_perfdata_queries);
-          stats::center::instance().update(
-              &ConflictManagerStats::set_waiting_events, _stats, fifo_size);
+          stats::center::instance().execute([stats = _stats, handled = _events_handled, fifo_size]
+              {
+              stats->set_events_handled(handled);
+              stats->set_waiting_events(fifo_size);
+              });
+//          stats::center::instance().update(
+//              &ConflictManagerStats::set_events_handled, _stats,
+//              _events_handled);
+//          stats::center::instance().update(
+//              &ConflictManagerStats::set_max_perfdata_events, _stats,
+//              _max_perfdata_queries);
+//          stats::center::instance().update(
+//              &ConflictManagerStats::set_waiting_events, _stats, fifo_size);
         }
       }
     } catch (std::exception const& e) {
@@ -677,8 +677,7 @@ void stream::statistics(nlohmann::json& tree) const {
     tree["processed_events"] = processed;
     tree["acked_events"] = static_cast<int32_t>(_ack);
     tree["events_handled"] = _events_handled;
-    tree["pending_events"] = pending;
-    tree["speed"] = fmt::format("{:.2} events/s", _speed);
+    tree["speed"] = fmt::format("{:.2f} events/s", _speed);
   }
 }
 
