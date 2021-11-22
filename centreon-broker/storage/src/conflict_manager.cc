@@ -416,7 +416,7 @@ void conflict_manager::_callback() {
         std::chrono::system_clock::now();
 
     size_t pos = 0;
-    std::deque<std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>> events;
+    std::deque<std::tuple<std::shared_ptr<io::data>, uint32_t, bool*> > events;
     try {
       while (!_should_exit()) {
         /* Time to send perfdatas to rrd ; no lock needed, it is this thread
@@ -564,6 +564,10 @@ void conflict_manager::_callback() {
             /* Get some stats each second */
             if (timeout >= duration) {
               do {
+                _update_stats(events.size(), _max_perfdata_queries,
+                              _fifo.get_events().size(),
+                              _fifo.get_timeline(sql).size(),
+                              _fifo.get_timeline(storage).size());
                 duration += 1000;
                 pos++;
                 if (pos >= _stats_count.size())
@@ -576,11 +580,12 @@ void conflict_manager::_callback() {
               for (const auto& c : _stats_count)
                 s += c;
 
-              std::lock_guard<std::mutex> lk(_stat_m);
-              _speed = s / _stats_count.size();
-              stats::center::instance().update(&ConflictManagerStats::set_speed,
-                                               _stats,
-                                               static_cast<double>(_speed));
+              {
+                std::lock_guard<std::mutex> lk(_stat_m);
+                _speed = s / _stats_count.size();
+                stats::center::instance().execute(
+                    [ s = this->_stats, spd = _speed ] { s->set_speed(spd); });
+              }
             }
           }
         }
@@ -599,25 +604,9 @@ void conflict_manager::_callback() {
         _update_hosts_and_services_of_unresponsive_instances();
 
         /* Get some stats */
-        {
-          std::lock_guard<std::mutex> lk(_stat_m);
-          _events_handled = events.size();
-          stats::center::instance().update(
-              &ConflictManagerStats::set_events_handled, _stats,
-              _events_handled);
-          stats::center::instance().update(
-              &ConflictManagerStats::set_max_perfdata_events, _stats,
-              _max_perfdata_queries);
-          stats::center::instance().update(
-              &ConflictManagerStats::set_waiting_events, _stats,
-              static_cast<int32_t>(_fifo.get_events().size()));
-          stats::center::instance().update(
-              &ConflictManagerStats::set_sql, _stats,
-              static_cast<int32_t>(_fifo.get_timeline(sql).size()));
-          stats::center::instance().update(
-              &ConflictManagerStats::set_storage, _stats,
-              static_cast<int32_t>(_fifo.get_timeline(storage).size()));
-        }
+        _update_stats(events.size(), _max_perfdata_queries,
+                      _fifo.get_events().size(), _fifo.get_timeline(sql).size(),
+                      _fifo.get_timeline(storage).size());
       }
     } catch (std::exception const& e) {
       log_v2::sql()->error("conflict_manager: error in the main loop: {}",
@@ -759,6 +748,31 @@ void conflict_manager::__exit() {
   }
   if (_thread.joinable())
     _thread.join();
+}
+
+/**
+ * @brief Updates conflict manager protobuf statistics
+ *
+ * @param size
+ * @param mpdq
+ * @param ev_size
+ * @param sql_size
+ * @param stor_size
+ *
+ */
+void conflict_manager::_update_stats(const std::uint32_t size,
+                                     const std::size_t mpdq,
+                                     const std::size_t ev_size,
+                                     const std::size_t sql_size,
+                                     const std::size_t stor_size) noexcept {
+  stats::center::instance().execute(
+      [ s = this->_stats, size, mpdq, ev_size, sql_size, stor_size ] {
+        s->set_events_handled(size);
+        s->set_max_perfdata_events(mpdq);
+        s->set_waiting_events(static_cast<int32_t>(ev_size));
+        s->set_sql(static_cast<int32_t>(sql_size));
+        s->set_storage(static_cast<int32_t>(stor_size));
+      });
 }
 
 /**

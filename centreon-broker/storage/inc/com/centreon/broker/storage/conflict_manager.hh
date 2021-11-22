@@ -219,9 +219,9 @@ class conflict_manager {
    * 'customvariables'/'logs'. The queue elements are pairs of a string used
    * for the query and a pointer to a boolean so that we can acknowledge the
    * BBDO event when written. */
-  std::deque<std::pair<bool*, std::string>> _cv_queue;
-  std::deque<std::pair<bool*, std::string>> _cvs_queue;
-  std::deque<std::pair<bool*, std::string>> _log_queue;
+  std::deque<std::pair<bool*, std::string> > _cv_queue;
+  std::deque<std::pair<bool*, std::string> > _cvs_queue;
+  std::deque<std::pair<bool*, std::string> > _log_queue;
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
@@ -341,6 +341,12 @@ class conflict_manager {
   void _update_customvariables();
   void _insert_logs();
   void __exit();
+
+  void _update_stats(const std::uint32_t size,
+                     const std::size_t mpdq,
+                     const std::size_t ev_size,
+                     const std::size_t sql_size,
+                     const std::size_t stor_size) noexcept;
 
  public:
   static bool init_sql(database_config const& dbcfg,
