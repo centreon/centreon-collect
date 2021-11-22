@@ -19,12 +19,11 @@
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
 
+#include <deque>
 #include <list>
 #include <memory>
 #include <mutex>
-#include <queue>
 
-#include "com/centreon/broker/multiplexing/hooker.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"
@@ -72,12 +71,7 @@ class engine {
   std::unique_ptr<persistent_cache> _cache_file;
 
   // Data queue.
-  std::queue<std::shared_ptr<io::data>> _kiew;
-
-  // Hooks
-  std::vector<std::pair<hooker*, bool>> _hooks;
-  std::vector<std::pair<hooker*, bool>>::iterator _hooks_begin;
-  std::vector<std::pair<hooker*, bool>>::iterator _hooks_end;
+  std::deque<std::shared_ptr<io::data>> _kiew;
 
   // Mutex to lock _kiew and _hooks
   std::mutex _engine_m;
@@ -115,8 +109,6 @@ class engine {
   void publish(const std::list<std::shared_ptr<io::data>>& to_publish);
   void start();
   void stop();
-  void hook(hooker& h, bool with_data = true);
-  void unhook(hooker& h);
   void subscribe(muxer* subscriber);
   void unsubscribe(muxer* subscriber);
 };

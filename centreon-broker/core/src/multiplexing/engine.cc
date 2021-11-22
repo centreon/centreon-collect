@@ -44,22 +44,7 @@ std::mutex engine::_load_m;
  *  Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
-  while (!_kiew.empty())
-    _kiew.pop();
-}
-
-/**
- *  Set a hook.
- *
- *  @param[in] h          Hook.
- *  @param[in] with_data  Write data to hook.
- */
-void engine::hook(hooker& h, bool with_data) {
-  std::lock_guard<std::mutex> lock(_engine_m);
-
-  _hooks.push_back({&h, with_data});
-  _hooks_begin = _hooks.begin();
-  _hooks_end = _hooks.end();
+  _kiew.clear();
 }
 
 /**
@@ -104,9 +89,9 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
  *
  *  @param[in] e  Event to publish.
  */
-void engine::_publish(std::shared_ptr<io::data> const& e) {
+void engine::_publish(const std::shared_ptr<io::data>& e) {
   // Store object for further processing.
-  _kiew.push(e);
+  _kiew.push_back(e);
   // Processing function.
   (this->*_write_func)(e);
 }
@@ -124,7 +109,7 @@ void engine::start() {
 
     std::lock_guard<std::mutex> lock(_engine_m);
     // Local queue.
-    std::queue<std::shared_ptr<io::data>> kiew;
+    std::deque<std::shared_ptr<io::data>> kiew;
     // Get events from the cache file to the local queue.
     try {
       persistent_cache cache(_cache_file_path());
@@ -133,7 +118,7 @@ void engine::start() {
         cache.get(d);
         if (!d)
           break;
-        kiew.push(d);
+        kiew.push_back(d);
       }
     } catch (const std::exception& e) {
       log_v2::perfdata()->error("multiplexing: couldn't read cache file: {}",
@@ -142,38 +127,13 @@ void engine::start() {
 
     // Copy global event queue to local queue.
     while (!_kiew.empty()) {
-      kiew.push(_kiew.front());
-      _kiew.pop();
+      kiew.push_back(_kiew.front());
+      _kiew.pop_front();
     }
-
-    // Notify hooks of multiplexing loop start.
-    for (std::vector<std::pair<hooker*, bool>>::iterator it(_hooks_begin),
-         end(_hooks_end);
-         it != end; ++it) {
-      it->first->starting();
-
-      // Read events from hook.
-      try {
-        std::shared_ptr<io::data> d;
-        it->first->read(d);
-        while (d) {
-          _kiew.push(d);
-          it->first->read(d, 0);
-        }
-      } catch (const std::exception& e) {
-        log_v2::perfdata()->error("multiplexing: cannot read from hook: {}",
-                                  e.what());
-      }
-    }
-
-    // Process events from hooks.
-    _send_to_subscribers();
 
     // Send events queued while multiplexing was stopped.
-    while (!kiew.empty()) {
-      _publish(kiew.front());
-      kiew.pop();
-    }
+    for (auto& e : kiew)
+      _publish(e);
   }
 }
 
@@ -185,22 +145,6 @@ void engine::stop() {
     // Notify hooks of multiplexing loop end.
     log_v2::core()->debug("multiplexing: stopping");
     std::unique_lock<std::mutex> lock(_engine_m);
-    for (std::vector<std::pair<hooker*, bool>>::iterator it(_hooks_begin),
-         end(_hooks_end);
-         it != end; ++it) {
-      it->first->stopping();
-
-      // Read events from hook.
-      try {
-        std::shared_ptr<io::data> d;
-        it->first->read(d);
-        while (d) {
-          _kiew.push(d);
-          it->first->read(d);
-        }
-      } catch (...) {
-      }
-    }
 
     do {
       // Process events from hooks.
@@ -243,23 +187,6 @@ void engine::subscribe(muxer* subscriber) {
 }
 
 /**
- *  Remove a hook.
- *
- *  @param[in] h  Hook.
- */
-void engine::unhook(hooker& h) {
-  std::lock_guard<std::mutex> lock(_engine_m);
-  for (std::vector<std::pair<hooker*, bool>>::iterator it(_hooks_begin);
-       it != _hooks.end();)
-    if (it->first == &h)
-      it = _hooks.erase(it);
-    else
-      ++it;
-  _hooks_begin = _hooks.begin();
-  _hooks_end = _hooks.end();
-}
-
-/**
  *  Unload class instance.
  */
 void engine::unload() {
@@ -290,12 +217,9 @@ void engine::unsubscribe(muxer* subscriber) {
  *  Default constructor.
  */
 engine::engine()
-    : _hooks{},
-      _hooks_begin{_hooks.begin()},
-      _hooks_end{_hooks.end()},
-      _engine_m{},
+    :
+
       _muxers{},
-      _muxers_m{},
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
       _write_func(&engine::_nop) {
@@ -328,12 +252,20 @@ void engine::_nop(std::shared_ptr<io::data> const& d) {
  */
 void engine::_send_to_subscribers() {
   // Process all queued events.
-  std::lock_guard<std::mutex> lock(_muxers_m);
-  while (!_kiew.empty()) {
+  std::deque<std::shared_ptr<io::data>> kiew;
+  static uint32_t test_dbo = 0;
+  {
+    std::lock_guard<std::mutex> lock(_muxers_m);
+    if (_kiew.size() > test_dbo) {
+      test_dbo = _kiew.size();
+      log_v2::sql()->error("TEST TEST max kiew size = {}", test_dbo);
+    }
+    std::swap(_kiew, kiew);
+  }
+  for (auto& e : kiew) {
     // Send object to every subscriber.
     for (muxer* m : _muxers)
-      m->publish(_kiew.front());
-    _kiew.pop();
+      m->publish(e);
   }
 }
 
@@ -345,20 +277,6 @@ void engine::_send_to_subscribers() {
  *  @param[in] e  Data to publish.
  */
 void engine::_write(std::shared_ptr<io::data> const& e) {
-  // Send object to every hook.
-  for (std::vector<std::pair<hooker*, bool>>::iterator it(_hooks_begin),
-       end(_hooks_end);
-       it != end; ++it)
-    if (it->second) {
-      it->first->write(e);
-      std::shared_ptr<io::data> d;
-      it->first->read(d);
-      while (d) {
-        _kiew.push(d);
-        it->first->read(d);
-      }
-    }
-
   // Send events to subscribers.
   _send_to_subscribers();
 }
