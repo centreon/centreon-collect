@@ -67,32 +67,30 @@ class muxer;
  *  @see muxer
  */
 class engine {
+  static std::mutex _load_m;
   static engine* _instance;
-  std::unique_ptr<persistent_cache> _cache_file;
 
-  // Data queue.
-  std::deque<std::shared_ptr<io::data>> _kiew;
+  enum state { not_started, running, stopped };
+
+  state _state;
+  std::unique_ptr<persistent_cache> _cache_file;
 
   // Mutex to lock _kiew and _hooks
   std::mutex _engine_m;
 
+  // Data queue.
+  std::deque<std::shared_ptr<io::data>> _kiew;
+
   // Subscriber.
   std::vector<muxer*> _muxers;
-  std::mutex _muxers_m;
 
   // Statistics.
   EngineStats* _stats;
   uint32_t _unprocessed_events;
 
-  static std::mutex _load_m;
-
   engine();
   std::string _cache_file_path() const;
-  void _nop(std::shared_ptr<io::data> const& d);
   void _send_to_subscribers();
-  void _write(std::shared_ptr<io::data> const& d);
-  void _write_to_cache_file(std::shared_ptr<io::data> const& d);
-  void _publish(std::shared_ptr<io::data> const& d);
 
   void (engine::*_write_func)(std::shared_ptr<io::data> const&);
 
@@ -104,6 +102,7 @@ class engine {
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;
   ~engine() noexcept = default;
+
   void clear();
   void publish(const std::shared_ptr<io::data>& d);
   void publish(const std::list<std::shared_ptr<io::data>>& to_publish);
