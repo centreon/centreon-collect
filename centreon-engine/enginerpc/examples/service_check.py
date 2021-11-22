@@ -10,7 +10,7 @@ def run():
     with grpc.insecure_channel("127.0.0.1:{}".format(sys.argv[1])) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         k = 0.0
-        for j in range(1000):
+        for j in range(10000):
           print("Step{}".format(j))
           now = time.time()
           seconds = int(now)

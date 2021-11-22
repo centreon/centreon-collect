@@ -31,7 +31,6 @@
 #include "com/centreon/broker/graphite/macro_cache.hh"
 #include "com/centreon/broker/graphite/query.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/multiplexing/hooker.hh"
 #include "com/centreon/broker/namespace.hh"
 
 #if ASIO_VERSION < 101200
