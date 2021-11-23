@@ -23,6 +23,7 @@
 
 #include <asio.hpp>
 #include <fstream>
+#include <thread>
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
