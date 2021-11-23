@@ -28,7 +28,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
-//#include "com/centreon/broker/misc/mfifo.hh"
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/mysql.hh"
@@ -147,16 +146,15 @@ class stream : public io::stream {
   };
 
   static void (stream::*const _neb_processing_table[])(
-      std::shared_ptr<io::data>&);
+      const std::shared_ptr<io::data>&);
   instance_state _state;
 
   mutable std::mutex _fifo_m;
-  std::deque<std::shared_ptr<io::data>> _fifo;
-  int32_t _processed;
+  std::atomic_int _processed;
   std::atomic_int _ack;
 
-  // misc::mfifo<std::shared_ptr<io::data>, 2> _fifo;
-  int32_t _pending_events;
+  std::atomic_int _pending_events;
+  uint32_t _count;
 
   /* Current actions by connection */
   std::vector<uint32_t> _action;
@@ -179,11 +177,15 @@ class stream : public io::stream {
   uint32_t _max_log_queries;
 
   std::thread _thread;
+  std::time_t _next_insert_perfdatas;
+  std::time_t _next_update_metrics;
+  std::time_t _next_update_cv;
+  std::time_t _next_insert_logs;
+  std::time_t _next_loop_timeout;
 
   /* Stats */
   ConflictManagerStats* _stats;
   mutable std::mutex _stat_m;
-  int32_t _events_handled;
   float _speed;
   std::array<float, 20> _stats_count;
   int32_t _stats_count_pos;
@@ -206,6 +208,7 @@ class stream : public io::stream {
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_perfdata_queries. The filled table here is 'data_bin'. */
+  mutable std::mutex _queues_m;
   std::deque<metric_value> _perfdata_queue;
   /* This map is also sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
@@ -260,8 +263,8 @@ class stream : public io::stream {
   database::mysql_stmt _index_data_query;
   database::mysql_stmt _metrics_insert;
 
-  bool _should_exit() const;
-  void _callback();
+  // bool _should_exit() const;
+  // void _callback();
 
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
@@ -269,34 +272,34 @@ class stream : public io::stream {
   bool _is_valid_poller(uint32_t instance_id);
   void _check_deleted_index();
 
-  void _process_acknowledgement(std::shared_ptr<io::data>& d);
-  void _process_comment(std::shared_ptr<io::data>& d);
-  void _process_custom_variable(std::shared_ptr<io::data>& d);
-  void _process_custom_variable_status(std::shared_ptr<io::data>& d);
-  void _process_downtime(std::shared_ptr<io::data>& d);
-  void _process_event_handler(std::shared_ptr<io::data>& d);
-  void _process_flapping_status(std::shared_ptr<io::data>& d);
-  void _process_host_check(std::shared_ptr<io::data>& d);
-  void _process_host_dependency(std::shared_ptr<io::data>& d);
-  void _process_host_group(std::shared_ptr<io::data>& d);
-  void _process_host_group_member(std::shared_ptr<io::data>& d);
-  void _process_host(std::shared_ptr<io::data>& d);
-  void _process_host_parent(std::shared_ptr<io::data>& d);
-  void _process_host_status(std::shared_ptr<io::data>& d);
-  void _process_instance(std::shared_ptr<io::data>& d);
-  void _process_instance_status(std::shared_ptr<io::data>& d);
-  void _process_log(std::shared_ptr<io::data>& d);
-  void _process_module(std::shared_ptr<io::data>& d);
-  void _process_service_check(std::shared_ptr<io::data>& d);
-  void _process_service_dependency(std::shared_ptr<io::data>& d);
-  void _process_service_group(std::shared_ptr<io::data>& d);
-  void _process_service_group_member(std::shared_ptr<io::data>& d);
-  void _process_service(std::shared_ptr<io::data>& d);
-  void _process_service_status(std::shared_ptr<io::data>& d);
-  void _process_instance_configuration(std::shared_ptr<io::data>& d);
-  void _process_responsive_instance(std::shared_ptr<io::data>& d);
+  void _process_acknowledgement(const std::shared_ptr<io::data>& d);
+  void _process_comment(const std::shared_ptr<io::data>& d);
+  void _process_custom_variable(const std::shared_ptr<io::data>& d);
+  void _process_custom_variable_status(const std::shared_ptr<io::data>& d);
+  void _process_downtime(const std::shared_ptr<io::data>& d);
+  void _process_event_handler(const std::shared_ptr<io::data>& d);
+  void _process_flapping_status(const std::shared_ptr<io::data>& d);
+  void _process_host_check(const std::shared_ptr<io::data>& d);
+  void _process_host_dependency(const std::shared_ptr<io::data>& d);
+  void _process_host_group(const std::shared_ptr<io::data>& d);
+  void _process_host_group_member(const std::shared_ptr<io::data>& d);
+  void _process_host(const std::shared_ptr<io::data>& d);
+  void _process_host_parent(const std::shared_ptr<io::data>& d);
+  void _process_host_status(const std::shared_ptr<io::data>& d);
+  void _process_instance(const std::shared_ptr<io::data>& d);
+  void _process_instance_status(const std::shared_ptr<io::data>& d);
+  void _process_log(const std::shared_ptr<io::data>& d);
+  void _process_module(const std::shared_ptr<io::data>& d);
+  void _process_service_check(const std::shared_ptr<io::data>& d);
+  void _process_service_dependency(const std::shared_ptr<io::data>& d);
+  void _process_service_group(const std::shared_ptr<io::data>& d);
+  void _process_service_group_member(const std::shared_ptr<io::data>& d);
+  void _process_service(const std::shared_ptr<io::data>& d);
+  void _process_service_status(const std::shared_ptr<io::data>& d);
+  void _process_instance_configuration(const std::shared_ptr<io::data>& d);
+  void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
-  void _unified_sql_process_service_status(std::shared_ptr<io::data>& d);
+  void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
 
   void _load_deleted_instances();
   void _load_caches();
@@ -310,7 +313,7 @@ class stream : public io::stream {
   void _insert_perfdatas();
   void _update_customvariables();
   void _insert_logs();
-  void __exit();
+  // void __exit();
 
  public:
   stream(database_config const& dbcfg,

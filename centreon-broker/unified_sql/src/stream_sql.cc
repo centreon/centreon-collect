@@ -346,7 +346,7 @@ void stream::_prepare_sg_insupdate_statement() {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_acknowledgement(std::shared_ptr<io::data>& d) {
+void stream::_process_acknowledgement(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::acknowledgement const& ack =
       *static_cast<neb::acknowledgement const*>(d.get());
@@ -386,7 +386,7 @@ void stream::_process_acknowledgement(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_comment(std::shared_ptr<io::data>& d) {
+void stream::_process_comment(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::hosts | actions::instances |
                          actions::host_parents | actions::host_dependencies |
                          actions::service_dependencies | actions::comments);
@@ -426,7 +426,7 @@ void stream::_process_comment(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_custom_variable(std::shared_ptr<io::data>& d) {
+void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::custom_variable const& cv{
       *static_cast<neb::custom_variable const*>(d.get())};
@@ -443,6 +443,7 @@ void stream::_process_custom_variable(std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (cv.enabled) {
+    std::lock_guard<std::mutex> lck(_queues_m);
     _cv_queue.emplace_back(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(
@@ -481,18 +482,22 @@ void stream::_process_custom_variable(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_custom_variable_status(std::shared_ptr<io::data>& d) {
+void stream::_process_custom_variable_status(
+    const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::custom_variable_status const& cv{
       *static_cast<neb::custom_variable_status const*>(d.get())};
 
-  _cvs_queue.emplace_back(fmt::format(
-      "('{}',{},{},{},{},'{}')",
-      misc::string::escape(cv.name,
-                           get_customvariables_col_size(customvariables_name)),
-      cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
-      misc::string::escape(
-          cv.value, get_customvariables_col_size(customvariables_value))));
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    _cvs_queue.emplace_back(fmt::format(
+        "('{}',{},{},{},{},'{}')",
+        misc::string::escape(
+            cv.name, get_customvariables_col_size(customvariables_name)),
+        cv.host_id, cv.service_id, cv.modified ? 1 : 0, cv.update_time,
+        misc::string::escape(
+            cv.value, get_customvariables_col_size(customvariables_value))));
+  }
 
   log_v2::sql()->info("SQL: updating custom variable '{}' of ({}, {})", cv.name,
                       cv.host_id, cv.service_id);
@@ -505,7 +510,7 @@ void stream::_process_custom_variable_status(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_downtime(std::shared_ptr<io::data>& d) {
+void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
   int conn = special_conn::downtime % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
                          actions::host_parents | actions::host_dependencies |
@@ -566,7 +571,7 @@ void stream::_process_downtime(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_event_handler(std::shared_ptr<io::data>& d) {
+void stream::_process_event_handler(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::event_handler const& eh =
       *static_cast<neb::event_handler const*>(d.get());
@@ -601,7 +606,7 @@ void stream::_process_event_handler(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_flapping_status(std::shared_ptr<io::data>& d) {
+void stream::_process_flapping_status(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::flapping_status const& fs(
       *static_cast<neb::flapping_status const*>(d.get()));
@@ -638,7 +643,7 @@ void stream::_process_flapping_status(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_check(std::shared_ptr<io::data>& d) {
+void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::host_dependencies |
                          actions::host_parents | actions::service_dependencies);
@@ -700,7 +705,7 @@ void stream::_process_host_check(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_dependency(std::shared_ptr<io::data>& d) {
+void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_dependency % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::host_parents |
                          actions::comments | actions::downtimes |
@@ -752,7 +757,7 @@ void stream::_process_host_dependency(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_group(std::shared_ptr<io::data>& d) {
+void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
   _finish_action(-1, actions::hosts);
 
@@ -795,7 +800,7 @@ void stream::_process_host_group(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_group_member(std::shared_ptr<io::data>& d) {
+void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_group % _mysql.connections_count();
   _finish_action(-1, actions::hostgroups | actions::hosts);
 
@@ -881,7 +886,7 @@ void stream::_process_host_group_member(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host(std::shared_ptr<io::data>& d) {
+void stream::_process_host(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::hostgroups |
                          actions::host_dependencies | actions::host_parents |
                          actions::custom_variables | actions::downtimes |
@@ -935,7 +940,7 @@ void stream::_process_host(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_parent(std::shared_ptr<io::data>& d) {
+void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::host_parent % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::host_dependencies |
                          actions::comments | actions::downtimes);
@@ -990,7 +995,7 @@ void stream::_process_host_parent(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_host_status(std::shared_ptr<io::data>& d) {
+void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::custom_variables |
                          actions::hostgroups | actions::host_dependencies |
@@ -1043,7 +1048,7 @@ void stream::_process_host_status(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_instance(std::shared_ptr<io::data>& d) {
+void stream::_process_instance(const std::shared_ptr<io::data>& d) {
   neb::instance& i(*static_cast<neb::instance*>(d.get()));
   int32_t conn = _mysql.choose_connection_by_instance(i.poller_id);
   _finish_action(-1, actions::hosts | actions::acknowledgements |
@@ -1087,7 +1092,7 @@ void stream::_process_instance(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_instance_status(std::shared_ptr<io::data>& d) {
+void stream::_process_instance_status(const std::shared_ptr<io::data>& d) {
   neb::instance_status& is = *static_cast<neb::instance_status*>(d.get());
   int32_t conn = _mysql.choose_connection_by_instance(is.poller_id);
 
@@ -1125,7 +1130,7 @@ void stream::_process_instance_status(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_log(std::shared_ptr<io::data>& d) {
+void stream::_process_log(const std::shared_ptr<io::data>& d) {
   // Fetch proper structure.
   neb::log_entry const& le(*static_cast<neb::log_entry const*>(d.get()));
 
@@ -1134,6 +1139,7 @@ void stream::_process_log(std::shared_ptr<io::data>& d) {
       "SQL: processing log of poller '{}' generated at {} (type {})",
       le.poller_name, le.c_time, le.msg_type);
 
+  std::lock_guard<std::mutex> lck(_queues_m);
   // Run query.
   _log_queue.emplace_back(fmt::format(
       "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
@@ -1161,7 +1167,7 @@ void stream::_process_log(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_module(std::shared_ptr<io::data>& d) {
+void stream::_process_module(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::module const& m = *static_cast<neb::module const*>(d.get());
   int32_t conn = _mysql.choose_connection_by_instance(m.poller_id);
@@ -1211,7 +1217,7 @@ void stream::_process_module(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_check(std::shared_ptr<io::data>& d) {
+void stream::_process_service_check(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::downtimes | actions::comments |
                          actions::host_dependencies | actions::host_parents |
                          actions::service_dependencies);
@@ -1282,7 +1288,7 @@ void stream::_process_service_check(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_dependency(std::shared_ptr<io::data>& d) {
+void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_dependency % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::host_parents |
                          actions::downtimes | actions::comments |
@@ -1341,7 +1347,7 @@ void stream::_process_service_dependency(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_group(std::shared_ptr<io::data>& d) {
+void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_group % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::services);
 
@@ -1389,7 +1395,7 @@ void stream::_process_service_group(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_group_member(std::shared_ptr<io::data>& d) {
+void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
   int32_t conn = special_conn::service_group % _mysql.connections_count();
   _finish_action(-1,
                  actions::hosts | actions::servicegroups | actions::services);
@@ -1474,7 +1480,7 @@ void stream::_process_service_group_member(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service(std::shared_ptr<io::data>& d) {
+void stream::_process_service(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1524,7 +1530,7 @@ void stream::_process_service(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_service_status(std::shared_ptr<io::data>& d) {
+void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
   _finish_action(-1, actions::host_parents | actions::comments |
                          actions::downtimes | actions::host_dependencies |
                          actions::service_dependencies);
@@ -1583,7 +1589,7 @@ void stream::_process_service_status(std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_instance_configuration(std::shared_ptr<io::data>& d
+void stream::_process_instance_configuration(const std::shared_ptr<io::data>& d
                                              __attribute__((unused))) {}
 
 /**
@@ -1591,7 +1597,7 @@ void stream::_process_instance_configuration(std::shared_ptr<io::data>& d
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_responsive_instance(std::shared_ptr<io::data>& d
+void stream::_process_responsive_instance(const std::shared_ptr<io::data>& d
                                           __attribute__((unused))) {}
 
 /**
@@ -1602,9 +1608,16 @@ void stream::_process_responsive_instance(std::shared_ptr<io::data>& d
  * When we exit the function, the custom variables queue is empty.
  */
 void stream::_update_customvariables() {
+  std::deque<std::string> cv_queue;
+  std::deque<std::string> cvs_queue;
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    std::swap(cv_queue, _cv_queue);
+    std::swap(cvs_queue, _cvs_queue);
+  }
   int32_t conn = special_conn::custom_variable % _mysql.connections_count();
   _finish_action(conn, actions::custom_variables);
-  if (!_cv_queue.empty()) {
+  if (!cv_queue.empty()) {
     /* Building of the query */
     std::string query{fmt::format(
         "INSERT INTO customvariables "
@@ -1613,17 +1626,14 @@ void stream::_update_customvariables() {
         " ON DUPLICATE KEY UPDATE "
         "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
         "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)",
-        fmt::join(_cv_queue, ","))};
+        fmt::join(cv_queue, ","))};
     _mysql.run_query(query, database::mysql_error::update_customvariables, true,
                      conn);
     _add_action(conn, actions::custom_variables);
-    log_v2::sql()->debug("{} new custom variables inserted", _cv_queue.size());
+    log_v2::sql()->debug("{} new custom variables inserted", cv_queue.size());
     log_v2::sql()->trace("sending query << {} >>", query);
-
-    /* Cleanup */
-    _cv_queue.clear();
   }
-  if (!_cvs_queue.empty()) {
+  if (!cvs_queue.empty()) {
     /* Building of the query */
     std::string query{fmt::format(
         "INSERT INTO customvariables "
@@ -1631,16 +1641,13 @@ void stream::_update_customvariables() {
         " ON DUPLICATE KEY UPDATE "
         "modified=VALUES(modified),update_time=VALUES(update_time),value="
         "VALUES(value)",
-        fmt::join(_cvs_queue, ","))};
+        fmt::join(cvs_queue, ","))};
     _mysql.run_query(query, database::mysql_error::update_customvariables, true,
                      conn);
     _add_action(conn, actions::custom_variables);
     log_v2::sql()->debug("{} new custom variable status inserted",
-                         _cvs_queue.size());
+                         cvs_queue.size());
     log_v2::sql()->trace("sending query << {} >>", query);
-
-    /* Cleanup */
-    _cvs_queue.clear();
   }
 }
 
@@ -1651,8 +1658,13 @@ void stream::_update_customvariables() {
  * When we exit the function, the logs queue is empty.
  */
 void stream::_insert_logs() {
-  if (_log_queue.empty())
-    return;
+  std::deque<std::string> log_queue;
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    if (_log_queue.empty())
+      return;
+    std::swap(_log_queue, log_queue);
+  }
   int32_t conn = special_conn::log % _mysql.connections_count();
   /* Building of the query */
   std::string query{fmt::format(
@@ -1660,12 +1672,9 @@ void stream::_insert_logs() {
       "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
       "notification_cmd,notification_contact,retry,service_description,"
       "status,output) VALUES {}",
-      fmt::join(_log_queue, ","))};
+      fmt::join(log_queue, ","))};
 
   _mysql.run_query(query, database::mysql_error::update_logs, true, conn);
-  log_v2::sql()->debug("{} new logs inserted", _log_queue.size());
+  log_v2::sql()->debug("{} new logs inserted", log_queue.size());
   log_v2::sql()->trace("sending query << {} >>", query);
-
-  /* Cleanup */
-  _log_queue.clear();
 }

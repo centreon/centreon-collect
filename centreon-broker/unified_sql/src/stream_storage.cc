@@ -70,7 +70,8 @@ static inline bool check_equality(double a, double b) {
  *
  * @return the number of events sent to the database.
  */
-void stream::_unified_sql_process_service_status(std::shared_ptr<io::data>& d) {
+void stream::_unified_sql_process_service_status(
+    const std::shared_ptr<io::data>& d) {
   neb::service_status const& ss{*static_cast<neb::service_status*>(d.get())};
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
   log_v2::perfdata()->debug(
@@ -380,8 +381,11 @@ void stream::_unified_sql_process_service_status(std::shared_ptr<io::data>& d) {
             it_index_cache->second.crit_mode = pd.critical_mode();
             it_index_cache->second.min = pd.min();
             it_index_cache->second.max = pd.max();
-            _metrics[it_index_cache->second.metric_id] =
-                &it_index_cache->second;
+            {
+              std::lock_guard<std::mutex> lck(_queues_m);
+              _metrics[it_index_cache->second.metric_id] =
+                  &it_index_cache->second;
+            }
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
           }
@@ -397,7 +401,10 @@ void stream::_unified_sql_process_service_status(std::shared_ptr<io::data>& d) {
           val.metric_id = metric_id;
           val.status = ss.current_state;
           val.value = pd.value();
-          _perfdata_queue.push_back(val);
+          {
+            std::lock_guard<std::mutex> lck(_queues_m);
+            _perfdata_queue.push_back(val);
+          }
         }
 
         // Send perfdata event to processing.
@@ -422,10 +429,14 @@ void stream::_unified_sql_process_service_status(std::shared_ptr<io::data>& d) {
 }
 
 void stream::_update_metrics() {
-  if (_metrics.empty())
-    return;
+  std::unordered_map<int32_t, metric_info*> metrics;
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    std::swap(_metrics, metrics);
+  }
+
   std::deque<std::string> m;
-  for (auto it = _metrics.begin(); it != _metrics.end(); ++it) {
+  for (auto it = metrics.begin(); it != metrics.end(); ++it) {
     metric_info* metric = it->second;
     m.emplace_back(fmt::format(
         "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric->metric_id,
@@ -471,14 +482,20 @@ void stream::_update_metrics() {
   log_v2::sql()->trace("Send query: {}", query);
   _mysql.run_query(query, database::mysql_error::update_metrics, false, conn);
   _add_action(conn, actions::metrics);
-  _metrics.clear();
 }
 
 /**
  *  Insert performance data entries in the data_bin table.
  */
 void stream::_insert_perfdatas() {
-  if (!_perfdata_queue.empty()) {
+  std::deque<metric_value> pd_queue;
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    std::swap(_perfdata_queue, pd_queue);
+  }
+
+  auto it = pd_queue.begin();
+  if (it != pd_queue.end()) {
     // Status.
     //_update_status("status=inserting performance data\n");
 
@@ -487,35 +504,39 @@ void stream::_insert_perfdatas() {
     // Insert first entry.
     std::ostringstream query;
     {
-      metric_value& mv(_perfdata_queue.front());
-      query.precision(10);
-      query << std::scientific
-            << "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES ("
-            << mv.metric_id << "," << mv.c_time << ",'" << mv.status << "',";
+      const metric_value& mv = *it;
       if (std::isinf(mv.value))
-        query << ((mv.value < 0.0) ? -FLT_MAX : FLT_MAX);
+        query << fmt::format(
+            "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES "
+            "({},{},'{}',{})",
+            mv.metric_id, mv.c_time, mv.status,
+            (mv.value < 0.0) ? -FLT_MAX : FLT_MAX);
       else if (std::isnan(mv.value))
-        query << "NULL";
+        query << fmt::format(
+            "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES "
+            "({},{},'{}',NULL)",
+            mv.metric_id, mv.c_time, mv.status);
       else
-        query << mv.value;
-      query << ")";
-      _perfdata_queue.pop_front();
+        query << fmt::format(
+            "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES "
+            "({},{},'{}',{})",
+            mv.metric_id, mv.c_time, mv.status, mv.value);
+      ++it;
       count++;
     }
 
     // Insert perfdata in data_bin.
-    while (!_perfdata_queue.empty()) {
-      metric_value& mv(_perfdata_queue.front());
-      query << ",(" << mv.metric_id << "," << mv.c_time << ",'" << mv.status
-            << "',";
+    for (; it != pd_queue.end(); ++it) {
+      const metric_value& mv = *it;
       if (std::isinf(mv.value))
-        query << ((mv.value < 0.0) ? -FLT_MAX : FLT_MAX);
+        query << fmt::format(",({},{},'{}',{})", mv.metric_id, mv.c_time,
+                             mv.status, (mv.value < 0.0) ? -FLT_MAX : FLT_MAX);
       else if (std::isnan(mv.value))
-        query << "NULL";
+        query << fmt::format(",({},{},'{}',NULL)", mv.metric_id, mv.c_time,
+                             mv.status);
       else
-        query << mv.value;
-      query << ")";
-      _perfdata_queue.pop_front();
+        query << fmt::format(",({},{},'{}',{})", mv.metric_id, mv.c_time,
+                             mv.status, mv.value);
       count++;
     }
 
@@ -577,7 +598,10 @@ void stream::_check_deleted_index() {
           std::make_shared<storage::remove_graph>(i, false)};
       multiplexing::publisher().write(rg);
 
-      _metrics.erase(i);
+      {
+        std::lock_guard<std::mutex> lck(_queues_m);
+        _metrics.erase(i);
+      }
       log_v2::perfdata()->debug("metrics erasing metric_id = {}", i);
       deleted_metrics++;
     }

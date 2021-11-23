@@ -1,5 +1,5 @@
 /*
-** Copyright 2019-2020 Centreon
+** Copyright 2019-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
 void (stream::*const stream::_neb_processing_table[])(
-    std::shared_ptr<io::data>&) = {
+    const std::shared_ptr<io::data>&) = {
     nullptr,
     &stream::_process_acknowledgement,
     &stream::_process_comment,
@@ -79,6 +79,7 @@ stream::stream(const database_config& dbcfg,
       _processed{0},
       _ack{0},
       _pending_events{0},
+      _count{0},
       _exit{false},
       _broken{false},
       _loop_timeout{loop_timeout},
@@ -94,8 +95,10 @@ stream::stream(const database_config& dbcfg,
       _max_metrics_queries{_max_pending_queries},
       _max_cv_queries{_max_pending_queries},
       _max_log_queries{_max_pending_queries},
+      _next_insert_perfdatas{std::time_t(nullptr) + 10},
+      _next_update_metrics{std::time_t(nullptr) + 10},
+      _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
       _stats{stats::center::instance().register_conflict_manager()},
-      _events_handled{0},
       _speed{},
       _stats_count_pos{0},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
@@ -109,9 +112,15 @@ stream::stream(const database_config& dbcfg,
   _state = running;
   _action.resize(_mysql.connections_count());
 
-  std::lock_guard<std::mutex> lk(_loop_m);
-  _thread = std::thread(&stream::_callback, this);
-  pthread_setname_np(_thread.native_handle(), "conflict_mngr");
+  // std::lock_guard<std::mutex> lk(_loop_m);
+  //_thread = std::thread(&stream::_callback, this);
+  // pthread_setname_np(_thread.native_handle(), "conflict_mngr");
+  try {
+    _load_caches();
+  } catch (const std::exception& e) {
+    log_v2::sql()->error("error while loading caches: {}", e.what());
+    throw;
+  }
 }
 
 stream::~stream() {
@@ -134,7 +143,6 @@ void stream::_load_deleted_instances() {
 
 void stream::_load_caches() {
   // Fill index cache.
-  std::lock_guard<std::mutex> lk(_loop_m);
 
   /* get deleted cache of instance ids => _cache_deleted_instance_id */
   _load_deleted_instances();
@@ -263,7 +271,10 @@ void stream::_load_caches() {
   {
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     _metric_cache.clear();
-    _metrics.clear();
+    {
+      std::lock_guard<std::mutex> lck(_queues_m);
+      _metrics.clear();
+    }
 
     std::promise<mysql_result> promise;
     _mysql.run_query_and_get_result(
@@ -324,245 +335,250 @@ void stream::update_metric_info_cache(uint64_t index_id,
 /**
  *  The main loop of the stream
  */
-void stream::_callback() {
-  try {
-    _load_caches();
-  } catch (std::exception const& e) {
-    log_v2::sql()->error("error while loading caches: {}", e.what());
-    _broken = true;
-  }
-
-  do {
-    std::chrono::system_clock::time_point time_to_deleted_index =
-        std::chrono::system_clock::now();
-
-    size_t pos = 0;
-    std::deque<std::shared_ptr<io::data>> events;
-    try {
-      while (!_should_exit()) {
-        /* Time to send perfdatas to rrd ; no lock needed, it is this thread
-         * that fill this queue. */
-        _insert_perfdatas();
-
-        /* Time to send metrics to database */
-        _update_metrics();
-
-        /* Time to send customvariables to database */
-        _update_customvariables();
-
-        /* Time to send logs to database */
-        _insert_logs();
-
-        log_v2::sql()->trace(
-            "unified sql: main loop initialized with a timeout of {} "
-            "seconds.",
-            _loop_timeout);
-
-        std::chrono::system_clock::time_point now0 =
-            std::chrono::system_clock::now();
-
-        /* Are there index_data to remove? */
-        if (now0 >= time_to_deleted_index) {
-          try {
-            _check_deleted_index();
-            time_to_deleted_index += std::chrono::minutes(5);
-          } catch (std::exception const& e) {
-            log_v2::sql()->error(
-                "unified sql: error while checking deleted indexes: {}",
-                e.what());
-            _broken = true;
-            break;
-          }
-        }
-        uint32_t count = 0;
-        int32_t timeout = 0;
-        int32_t timeout_limit = _loop_timeout * 1000;
-
-        /* This variable is incremented 1000 by 1000 and represents
-         * milliseconds. Each time the duration reaches this value, we make
-         * stuffs. We make then a timer cadenced at 1000ms. */
-        int32_t duration = 1000;
-
-        time_t next_insert_perfdatas = time(nullptr);
-        time_t next_update_metrics = next_insert_perfdatas;
-        time_t next_update_cv = next_insert_perfdatas;
-        time_t next_update_log = next_insert_perfdatas;
-
-        auto empty_caches = [this, &next_insert_perfdatas, &next_update_metrics,
-                             &next_update_cv, &next_update_log](
-                                std::chrono::system_clock::time_point now) {
-          /* If there are too many perfdata to send, let's send them... */
-          if (std::chrono::system_clock::to_time_t(now) >=
-                  next_insert_perfdatas ||
-              _perfdata_queue.size() > _max_perfdata_queries) {
-            next_insert_perfdatas =
-                std::chrono::system_clock::to_time_t(now) + 10;
-            _insert_perfdatas();
-          }
-
-          /* If there are too many metrics to send, let's send them... */
-          if (std::chrono::system_clock::to_time_t(now) >=
-                  next_update_metrics ||
-              _metrics.size() > _max_metrics_queries) {
-            next_update_metrics =
-                std::chrono::system_clock::to_time_t(now) + 10;
-            _update_metrics();
-          }
-
-          /* Time to send customvariables to database */
-          if (std::chrono::system_clock::to_time_t(now) >= next_update_cv ||
-              _cv_queue.size() + _cvs_queue.size() > _max_cv_queries) {
-            next_update_cv = std::chrono::system_clock::to_time_t(now) + 10;
-            _update_customvariables();
-          }
-
-          /* Time to send logs to database */
-          if (std::chrono::system_clock::to_time_t(now) >= next_update_log ||
-              _log_queue.size() > _max_log_queries) {
-            next_update_log = std::chrono::system_clock::to_time_t(now) + 10;
-            _insert_logs();
-          }
-        };
-
-        /* During this loop, connectors still fill the queue when they receive
-         * new events.
-         * The loop is hold by three conditions that are:
-         * - events.empty() no more events to treat.
-         * - count < _max_pending_queries: we don't want to commit everytimes,
-         *   so we keep this count to know if we reached the
-         *   _max_pending_queries parameter.
-         * - timeout < timeout_limit: If the loop lives too long, we interrupt
-         * it it is necessary for cleanup operations.
-         */
-        while (count < _max_pending_queries && timeout < timeout_limit) {
-          if (events.empty()) {
-            std::lock_guard<std::mutex> lck(_fifo_m);
-            std::swap(_fifo, events);
-          }
-          if (events.empty()) {
-            // Let's wait for 500ms.
-            if (_should_exit())
-              break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            /* Here, just before looping, we commit. */
-            std::chrono::system_clock::time_point now =
-                std::chrono::system_clock::now();
-
-            empty_caches(now);
-            _finish_actions();
-            continue;
-          }
-          while (!events.empty()) {
-            auto d = events.front();
-            uint32_t type = d->type();
-            uint16_t cat = category_of_type(type);
-            uint16_t elem = element_of_type(type);
-            if (cat == io::neb) {
-              (this->*(_neb_processing_table[elem]))(d);
-              if (type == neb::service_status::static_type())
-                _unified_sql_process_service_status(d);
-            } else {
-              log_v2::sql()->trace(
-                  "unified sql: event of type {} thrown away ; no need to "
-                  "store it in the database.",
-                  type);
-            }
-            events.pop_front();
-            log_v2::sql()->trace("processed = {}", _processed);
-            _processed++;
-
-            ++count;
-            _stats_count[pos]++;
-
-            std::chrono::system_clock::time_point now1 =
-                std::chrono::system_clock::now();
-
-            empty_caches(now1);
-
-            timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          now1 - now0)
-                          .count();
-
-            /* Get some stats each second */
-            if (timeout >= duration) {
-              do {
-                duration += 1000;
-                pos++;
-                if (pos >= _stats_count.size())
-                  pos = 0;
-                _stats_count[pos] = 0;
-              } while (timeout > duration);
-
-              _events_handled = events.size();
-              float s = 0.0f;
-              for (const auto& c : _stats_count)
-                s += c;
-
-              std::lock_guard<std::mutex> lk(_stat_m);
-              _speed = s / _stats_count.size();
-              stats::center::instance().update(&ConflictManagerStats::set_speed,
-                                               _stats,
-                                               static_cast<double>(_speed));
-            }
-          }
-        }
-        log_v2::sql()->debug("{} new events to treat", count);
-        /* Here, just before looping, we commit. */
-        _finish_actions();
-        int32_t fifo_size;
-        {
-          std::lock_guard<std::mutex> lk(_fifo_m);
-          fifo_size = _fifo.size();
-        }
-        if (fifo_size == 0)
-          log_v2::sql()->debug(
-              "unified sql: acknowledgement - no pending events");
-        else {
-          log_v2::sql()->debug(
-              "unified sql: acknowledgement - still {} not acknowledged",
-              fifo_size);
-        }
-
-        /* Are there unresonsive instances? */
-        _update_hosts_and_services_of_unresponsive_instances();
-
-        /* Get some stats */
-        {
-          std::lock_guard<std::mutex> lk(_stat_m);
-          _events_handled = events.size();
-          stats::center::instance().execute([stats = _stats, handled = _events_handled, fifo_size]
-              {
-              stats->set_events_handled(handled);
-              stats->set_waiting_events(fifo_size);
-              });
-//          stats::center::instance().update(
-//              &ConflictManagerStats::set_events_handled, _stats,
-//              _events_handled);
-//          stats::center::instance().update(
-//              &ConflictManagerStats::set_max_perfdata_events, _stats,
-//              _max_perfdata_queries);
-//          stats::center::instance().update(
-//              &ConflictManagerStats::set_waiting_events, _stats, fifo_size);
-        }
-      }
-    } catch (std::exception const& e) {
-      log_v2::sql()->error("unified sql: error in the main loop: {}", e.what());
-      if (strstr(e.what(), "server has gone away")) {
-        // The case where we must restart the connector.
-        _broken = true;
-      }
-    }
-  } while (!_should_exit());
-
-  if (_broken) {
-    std::unique_lock<std::mutex> lk(_loop_m);
-    /* Let's wait for the end */
-    log_v2::sql()->info(
-        "unified sql: waiting for the end of the conflict manager main "
-        "loop.");
-    _loop_cv.wait(lk, [this]() { return !_exit; });
-  }
-}
+// void stream::_callback() {
+//  try {
+//    _load_caches();
+//  } catch (std::exception const& e) {
+//    log_v2::sql()->error("error while loading caches: {}", e.what());
+//    _broken = true;
+//  }
+//
+//  do {
+//    std::chrono::system_clock::time_point time_to_deleted_index =
+//        std::chrono::system_clock::now();
+//
+//    size_t pos = 0;
+//    std::deque<std::shared_ptr<io::data>> events;
+//    try {
+//      while (!_should_exit()) {
+//        /* Time to send perfdatas to rrd ; no lock needed, it is this thread
+//         * that fill this queue. */
+//            // FIXME DBO
+//        //_insert_perfdatas();
+//
+//        /* Time to send metrics to database */
+//        //_update_metrics();
+//
+//        /* Time to send customvariables to database */
+//        //_update_customvariables();
+//
+//        /* Time to send logs to database */
+//        //_insert_logs();
+//
+//        log_v2::sql()->trace(
+//            "unified sql: main loop initialized with a timeout of {} "
+//            "seconds.",
+//            _loop_timeout);
+//
+//        std::chrono::system_clock::time_point now0 =
+//            std::chrono::system_clock::now();
+//
+//        /* Are there index_data to remove? */
+//        if (now0 >= time_to_deleted_index) {
+//          try {
+//            _check_deleted_index();
+//            time_to_deleted_index += std::chrono::minutes(5);
+//          } catch (std::exception const& e) {
+//            log_v2::sql()->error(
+//                "unified sql: error while checking deleted indexes: {}",
+//                e.what());
+//            _broken = true;
+//            break;
+//          }
+//        }
+//        uint32_t count = 0;
+//        int32_t timeout = 0;
+//        int32_t timeout_limit = _loop_timeout * 1000;
+//
+//        /* This variable is incremented 1000 by 1000 and represents
+//         * milliseconds. Each time the duration reaches this value, we make
+//         * stuffs. We make then a timer cadenced at 1000ms. */
+//        int32_t duration = 1000;
+//
+//        time_t next_insert_perfdatas = time(nullptr);
+//        time_t next_update_metrics = next_insert_perfdatas;
+//        time_t next_update_cv = next_insert_perfdatas;
+//        time_t next_update_log = next_insert_perfdatas;
+//
+//        auto empty_caches = [this, &next_insert_perfdatas,
+//        &next_update_metrics,
+//                             &next_update_cv, &next_update_log](
+//                                std::chrono::system_clock::time_point now) {
+//          /* If there are too many perfdata to send, let's send them... */
+//          if (std::chrono::system_clock::to_time_t(now) >=
+//                  next_insert_perfdatas ||
+//              _perfdata_queue.size() > _max_perfdata_queries) {
+//            next_insert_perfdatas =
+//                std::chrono::system_clock::to_time_t(now) + 10;
+//            // FIXME DBO
+//            //_insert_perfdatas();
+//          }
+//
+//          /* If there are too many metrics to send, let's send them... */
+//          if (std::chrono::system_clock::to_time_t(now) >=
+//                  next_update_metrics ||
+//              _metrics.size() > _max_metrics_queries) {
+//            next_update_metrics =
+//                std::chrono::system_clock::to_time_t(now) + 10;
+//            //FIXME DBO
+//            //_update_metrics();
+//          }
+//
+//          /* Time to send customvariables to database */
+//          if (std::chrono::system_clock::to_time_t(now) >= next_update_cv ||
+//              _cv_queue.size() + _cvs_queue.size() > _max_cv_queries) {
+//            next_update_cv = std::chrono::system_clock::to_time_t(now) + 10;
+//            _update_customvariables();
+//          }
+//
+//          /* Time to send logs to database */
+//          if (std::chrono::system_clock::to_time_t(now) >= next_update_log ||
+//              _log_queue.size() > _max_log_queries) {
+//            next_update_log = std::chrono::system_clock::to_time_t(now) + 10;
+//            _insert_logs();
+//          }
+//        };
+//
+//        /* During this loop, connectors still fill the queue when they receive
+//         * new events.
+//         * The loop is hold by three conditions that are:
+//         * - events.empty() no more events to treat.
+//         * - count < _max_pending_queries: we don't want to commit everytimes,
+//         *   so we keep this count to know if we reached the
+//         *   _max_pending_queries parameter.
+//         * - timeout < timeout_limit: If the loop lives too long, we interrupt
+//         * it it is necessary for cleanup operations.
+//         */
+//        while (count < _max_pending_queries && timeout < timeout_limit) {
+//          if (events.empty()) {
+//            std::lock_guard<std::mutex> lck(_fifo_m);
+//            std::swap(_fifo, events);
+//          }
+//          if (events.empty()) {
+//            // Let's wait for 500ms.
+//            if (_should_exit())
+//              break;
+//            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+//            /* Here, just before looping, we commit. */
+//            std::chrono::system_clock::time_point now =
+//                std::chrono::system_clock::now();
+//
+//            empty_caches(now);
+//            _finish_actions();
+//            continue;
+//          }
+//          while (!events.empty()) {
+//            auto d = events.front();
+//            uint32_t type = d->type();
+//            uint16_t cat = category_of_type(type);
+//            uint16_t elem = element_of_type(type);
+//            if (cat == io::neb) {
+//              (this->*(_neb_processing_table[elem]))(d);
+//              if (type == neb::service_status::static_type())
+//                _unified_sql_process_service_status(d);
+//            } else {
+//              log_v2::sql()->trace(
+//                  "unified sql: event of type {} thrown away ; no need to "
+//                  "store it in the database.",
+//                  type);
+//            }
+//            events.pop_front();
+//            log_v2::sql()->trace("processed = {}", _processed);
+//            _processed++;
+//
+//            ++count;
+//            _stats_count[pos]++;
+//
+//            std::chrono::system_clock::time_point now1 =
+//                std::chrono::system_clock::now();
+//
+//            empty_caches(now1);
+//
+//            timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+//                          now1 - now0)
+//                          .count();
+//
+//            /* Get some stats each second */
+//            if (timeout >= duration) {
+//              do {
+//                duration += 1000;
+//                pos++;
+//                if (pos >= _stats_count.size())
+//                  pos = 0;
+//                _stats_count[pos] = 0;
+//              } while (timeout > duration);
+//
+//              _events_handled = events.size();
+//              float s = 0.0f;
+//              for (const auto& c : _stats_count)
+//                s += c;
+//
+//              std::lock_guard<std::mutex> lk(_stat_m);
+//              _speed = s / _stats_count.size();
+//              stats::center::instance().update(&ConflictManagerStats::set_speed,
+//                                               _stats,
+//                                               static_cast<double>(_speed));
+//            }
+//          }
+//        }
+//        log_v2::sql()->debug("{} new events to treat", count);
+//        /* Here, just before looping, we commit. */
+//        _finish_actions();
+//        int32_t fifo_size;
+//        {
+//          std::lock_guard<std::mutex> lk(_fifo_m);
+//          fifo_size = _fifo.size();
+//        }
+//        if (fifo_size == 0)
+//          log_v2::sql()->debug(
+//              "unified sql: acknowledgement - no pending events");
+//        else {
+//          log_v2::sql()->debug(
+//              "unified sql: acknowledgement - still {} not acknowledged",
+//              fifo_size);
+//        }
+//
+//        /* Are there unresonsive instances? */
+//        _update_hosts_and_services_of_unresponsive_instances();
+//
+//        /* Get some stats */
+//        {
+//          std::lock_guard<std::mutex> lk(_stat_m);
+//          _events_handled = events.size();
+//          stats::center::instance().execute([stats = _stats, handled =
+//          _events_handled, fifo_size]
+//              {
+//              stats->set_events_handled(handled);
+//              stats->set_waiting_events(fifo_size);
+//              });
+////          stats::center::instance().update(
+////              &ConflictManagerStats::set_events_handled, _stats,
+////              _events_handled);
+////          stats::center::instance().update(
+////              &ConflictManagerStats::set_max_perfdata_events, _stats,
+////              _max_perfdata_queries);
+////          stats::center::instance().update(
+////              &ConflictManagerStats::set_waiting_events, _stats, fifo_size);
+//        }
+//      }
+//    } catch (std::exception const& e) {
+//      log_v2::sql()->error("unified sql: error in the main loop: {}",
+//      e.what()); if (strstr(e.what(), "server has gone away")) {
+//        // The case where we must restart the connector.
+//        _broken = true;
+//      }
+//    }
+//  } while (!_should_exit());
+//
+//  if (_broken) {
+////    std::unique_lock<std::mutex> lk(_loop_m);
+//    /* Let's wait for the end */
+//    log_v2::sql()->info(
+//        "unified sql: waiting for the end of the conflict manager main "
+//        "loop.");
+//    _loop_cv.wait(lk, [this]() { return !_exit; });
+//  }
+//}
 
 /**
  *  Tell if the main loop can exit. Two conditions are needed:
@@ -574,15 +590,15 @@ void stream::_callback() {
  *
  * @return True if the loop can be interrupted, false otherwise.
  */
-bool stream::_should_exit() const {
-  std::lock_guard<std::mutex> lock(_loop_m);
-  bool fifo_empty;
-  {
-    std::lock_guard<std::mutex> lck(_fifo_m);
-    fifo_empty = _fifo.empty();
-  }
-  return _broken || (_exit && fifo_empty);
-}
+// bool stream::_should_exit() const {
+//  std::lock_guard<std::mutex> lock(_loop_m);
+//  bool fifo_empty;
+//  {
+//    std::lock_guard<std::mutex> lck(_fifo_m);
+//    fifo_empty = _fifo.empty();
+//  }
+//  return _broken || (_exit && fifo_empty);
+//}
 
 /**
  *  Take a look if a given action is done on a mysql connection. If it is
@@ -622,9 +638,6 @@ void stream::_finish_actions() {
   _ack += _processed;
   _processed = 0;
   log_v2::sql()->trace("finish actions processed = {}", _processed);
-
-  std::lock_guard<std::mutex> lck(_fifo_m);
-  log_v2::sql()->debug("unified sql: still {} not acknowledged", _fifo.size());
 }
 
 /**
@@ -643,15 +656,15 @@ void stream::_add_action(int32_t conn, actions action) {
     _action[conn] |= action;
 }
 
-void stream::__exit() {
-  {
-    std::lock_guard<std::mutex> lock(_loop_m);
-    _exit = true;
-    _loop_cv.notify_all();
-  }
-  if (_thread.joinable())
-    _thread.join();
-}
+// void stream::__exit() {
+//  {
+//    std::lock_guard<std::mutex> lock(_loop_m);
+//    _exit = true;
+//    _loop_cv.notify_all();
+//  }
+//  if (_thread.joinable())
+//    _thread.join();
+//}
 
 /**
  * @brief Returns statistics about the stream. Those statistics
@@ -660,24 +673,32 @@ void stream::__exit() {
  * @return A nlohmann::json with the statistics.
  */
 void stream::statistics(nlohmann::json& tree) const {
-  int32_t fifo_size;
-  int32_t processed;
-  int32_t pending;
+  size_t perfdata;
+  size_t sz_metrics;
+  size_t sz_logs;
+  size_t sz_cv;
+  size_t sz_cvs;
   {
-    std::lock_guard<std::mutex> lck(_fifo_m);
-    fifo_size = _fifo.size();
-    processed = _processed;
-    pending = _pending_events;
+    std::lock_guard<std::mutex> lck(_queues_m);
+    perfdata = _perfdata_queue.size();
+    sz_metrics = _metrics.size();
+    sz_logs = _log_queue.size();
+    sz_cv = _cv_queue.size();
+    sz_cvs = _cvs_queue.size();
   }
+
   tree["max pending events"] = static_cast<int32_t>(_max_pending_queries);
   tree["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
+  tree["perfdata events"] = static_cast<int32_t>(perfdata);
+  tree["metrics events"] = static_cast<int32_t>(sz_metrics);
+  tree["logs events"] = static_cast<int32_t>(sz_logs);
+  tree["cv events"] = static_cast<int32_t>(sz_cv);
+  tree["cvs events"] = static_cast<int32_t>(sz_cvs);
   tree["loop timeout"] = static_cast<int32_t>(_loop_timeout);
   if (auto lock = std::unique_lock<std::mutex>(_stat_m, std::try_to_lock)) {
-    tree["waiting_events"] = fifo_size;
-    tree["processed_events"] = processed;
+    tree["processed_events"] = static_cast<int32_t>(_processed);
     tree["acked_events"] = static_cast<int32_t>(_ack);
-    tree["events_handled"] = _events_handled;
-    tree["speed"] = fmt::format("{:.2f} events/s", _speed);
+    tree["pending_events"] = static_cast<int32_t>(_pending_events);
   }
 }
 
@@ -715,6 +736,25 @@ void stream::statistics(nlohmann::json& tree) const {
 //  }
 //}
 
+// void stream::_send_bulk(asio::error_code ec) {
+//  if (ec)
+//    log_v2::sql()->info("unified_sql: the perfdata insertion encountered an
+//    error: {}",
+//                         ec.message());
+//  else {
+//    std::deque<metric_value> perfdata_queue;
+//    {
+//      std::lock_guard<std::mutex> lck(_queues_m);
+//      std::swap(_perfdata_queue, perfdata_queue);
+//    }
+//
+//    _insert_perfdatas(perfdata_queue);
+//    _timer.expires_after(std::chrono::seconds(10));
+//    _timer.async_wait(
+//        std::bind(&stream::_send_bulk, this, std::placeholders::_1));
+//  }
+//}
+
 int32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
@@ -724,13 +764,70 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   log_v2::sql()->trace("unified sql: write event category:{}, element:{}",
                        category_of_type(data->type()),
                        element_of_type(data->type()));
-  int32_t retval;
-  {
-    std::lock_guard<std::mutex> lck(_fifo_m);
-    _fifo.push_back(data);
-    retval = _ack;
-    _ack -= retval;
+
+  uint32_t type = data->type();
+  uint16_t cat = category_of_type(type);
+  uint16_t elem = element_of_type(type);
+  if (cat == io::neb) {
+    (this->*(_neb_processing_table[elem]))(data);
+    if (type == neb::service_status::static_type())
+      _unified_sql_process_service_status(data);
+  } else {
+    log_v2::sql()->trace(
+        "unified sql: event of type {} thrown away ; no need to "
+        "store it in the database.",
+        type);
   }
+  _processed++;
+  _count++;
+
+  time_t now = std::time(nullptr);
+  if (now >= _next_loop_timeout || _count >= _max_pending_queries) {
+    _count = 0;
+    _next_loop_timeout = now + 10;
+    _finish_actions();
+  }
+
+  size_t sz_perfdatas;
+  size_t sz_metrics;
+  size_t sz_cv, sz_cvs;
+  size_t sz_logs;
+  {
+    std::lock_guard<std::mutex> lck(_queues_m);
+    sz_perfdatas = _perfdata_queue.size();
+    sz_metrics = _metrics.size();
+    sz_cv = _cv_queue.size();
+    sz_cvs = _cvs_queue.size();
+    sz_logs = _log_queue.size();
+  }
+
+  if (now >= _next_insert_perfdatas || sz_perfdatas >= _max_perfdata_queries) {
+    _next_insert_perfdatas = now + 10;
+    asio::post(pool::instance().io_context(),
+               std::bind(&stream::_insert_perfdatas, this));
+  }
+
+  if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
+    _next_update_metrics = now + 10;
+    asio::post(pool::instance().io_context(),
+               std::bind(&stream::_update_metrics, this));
+  }
+
+  if (now >= _next_update_cv || sz_cv >= _max_cv_queries ||
+      sz_cvs >= _max_cv_queries) {
+    _next_update_cv = now + 10;
+    asio::post(pool::instance().io_context(),
+               std::bind(&stream::_update_customvariables, this));
+  }
+
+  if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
+    _next_insert_logs = now + 10;
+    asio::post(pool::instance().io_context(),
+               std::bind(&stream::_insert_logs, this));
+  }
+
+  int32_t retval = _ack;
+  _ack -= retval;
 
   _pending_events -= retval;
   return retval;
@@ -742,6 +839,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
  * @return Number of acknowledged events.
  */
 int32_t stream::flush() {
+  if (!_ack)
+    _finish_actions();
   int32_t retval = _ack;
   _ack -= retval;
   _pending_events -= retval;
