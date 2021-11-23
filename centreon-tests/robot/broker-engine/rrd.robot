@@ -14,8 +14,44 @@ Library	../broker/Broker.py
 Library	Common.py
 
 *** Test cases ***
-BRRDDM1: RRD metric deletion
-	[Tags]	Broker	Engine	compression	tcp
+BRRDDM1: RRD metric deletion on table metric
+	[Tags]	RRD metric deletion on table metric
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	rrd	rrd	debug
+	Broker Config Log	rrd	core	error
+
+	Log To Console	start
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	Log To Console	after start
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+	Log To Console	after Check
+	${metric}=	Get Metric To Delete
+	Log To Console	metric to delete ${metric}
+	
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Log To Console	after connection
+	Execute Sql String	UPDATE metrics SET to_delete=1 WHERE metric_id=${metric}
+	
+	Sighup Broker
+	Sleep  6m
+	
+	Stop Broker
+	Stop Engine
+
+	${content1}=	Create List	remove graph request for metric ${metric}
+	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
+	${result}=	Find In Log	${log}	${start}	${content1}
+	Should Be True	${result}
+	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
+
+BRRDDM1: RRD metric deletion on table index_data
+	[Tags]	RRD metric deletion on table index_data
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
@@ -35,6 +71,40 @@ BRRDDM1: RRD metric deletion
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
 	Execute Sql String	UPDATE index_data i LEFT JOIN metrics m ON i.id=m.index_id SET i.to_delete=1 WHERE m.metric_id=${metric}
+	
+	Sighup Broker
+	Sleep  6m
+	
+	Stop Broker
+	Stop Engine
+
+	${content1}=	Create List	remove graph request for metric ${metric}
+	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
+	${result}=	Find In Log	${log}	${start}	${content1}
+	Should Be True	${result}
+	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
+
+BRRDDM1: RRD metric deletion on table metric and index_data
+	[Tags]	RRD metric deletion on table metric and index_data
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+	Broker Config Log	rrd	rrd	debug
+	Broker Config Log	rrd	core	error
+
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	${metric}=	Get Metric To Delete
+	Log To Console	metric to delete ${metric}
+	
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Log To Console	after connection
+	Execute Sql String	UPDATE index_data i LEFT JOIN metrics m ON i.id=m.index_id SET i.to_delete=1, m.to_delete=1 WHERE m.metric_id=${metric}
 	
 	Sighup Broker
 	Sleep  6m
