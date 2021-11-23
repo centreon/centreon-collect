@@ -159,10 +159,7 @@ class stream : public io::stream {
   /* Current actions by connection */
   std::vector<uint32_t> _action;
 
-  mutable std::mutex _loop_m;
-  std::condition_variable _loop_cv;
-  bool _exit;
-  std::atomic_bool _broken;
+  // bool _exit;
   uint32_t _loop_timeout;
   uint32_t _max_pending_queries;
   mysql _mysql;
@@ -176,19 +173,15 @@ class stream : public io::stream {
   uint32_t _max_cv_queries;
   uint32_t _max_log_queries;
 
-  std::thread _thread;
   std::time_t _next_insert_perfdatas;
   std::time_t _next_update_metrics;
   std::time_t _next_update_cv;
   std::time_t _next_insert_logs;
   std::time_t _next_loop_timeout;
 
+  asio::steady_timer _timer;
   /* Stats */
   ConflictManagerStats* _stats;
-  mutable std::mutex _stat_m;
-  float _speed;
-  std::array<float, 20> _stats_count;
-  int32_t _stats_count_pos;
 
   /* How many streams are using this stream? */
   std::atomic<uint32_t> _ref_count;
@@ -270,7 +263,7 @@ class stream : public io::stream {
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
   bool _is_valid_poller(uint32_t instance_id);
-  void _check_deleted_index();
+  void _check_deleted_index(asio::error_code ec);
 
   void _process_acknowledgement(const std::shared_ptr<io::data>& d);
   void _process_comment(const std::shared_ptr<io::data>& d);
@@ -326,7 +319,7 @@ class stream : public io::stream {
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
-  ~stream();
+  ~stream() noexcept;
 
   int32_t get_acks(stream_type c);
   void update_metric_info_cache(uint64_t index_id,

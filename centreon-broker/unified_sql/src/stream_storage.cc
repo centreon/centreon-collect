@@ -551,77 +551,87 @@ void stream::_insert_perfdatas() {
 /**
  *  Check for deleted index.
  */
-void stream::_check_deleted_index() {
-  // Info.
-  log_v2::sql()->info("unified_sql: starting DB cleanup");
-  uint32_t deleted_index(0);
-  uint32_t deleted_metrics(0);
+void stream::_check_deleted_index(asio::error_code ec) {
+  if (ec)
+    log_v2::sql()->info(
+        "unified_sql: the check for deleted indices encountered an error: {}",
+        ec.message());
+  else {
+    // Info.
+    log_v2::sql()->info("unified_sql: starting DB cleanup");
+    uint32_t deleted_index(0);
+    uint32_t deleted_metrics(0);
 
-  // Fetch next index to delete.
-  {
-    std::promise<database::mysql_result> promise;
-    int32_t conn = _mysql.choose_best_connection(-1);
-    std::unordered_set<uint64_t> index_to_delete;
-    std::list<uint64_t> metrics_to_delete;
-    try {
-      _mysql.run_query_and_get_result(
-          "SELECT m.index_id,m.metric_id, m.metric_name, i.host_id, "
-          "i.service_id FROM metrics m LEFT JOIN index_data i ON "
-          "i.id=m.index_id WHERE i.to_delete=1",
-          &promise, conn);
-      database::mysql_result res(promise.get_future().get());
+    // Fetch next index to delete.
+    {
+      std::promise<database::mysql_result> promise;
+      int32_t conn = _mysql.choose_best_connection(-1);
+      std::unordered_set<uint64_t> index_to_delete;
+      std::list<uint64_t> metrics_to_delete;
+      try {
+        _mysql.run_query_and_get_result(
+            "SELECT m.index_id,m.metric_id, m.metric_name, i.host_id, "
+            "i.service_id FROM metrics m LEFT JOIN index_data i ON "
+            "i.id=m.index_id WHERE i.to_delete=1",
+            &promise, conn);
+        database::mysql_result res(promise.get_future().get());
 
-      std::lock_guard<std::mutex> lock(_metric_cache_m);
-      while (_mysql.fetch_row(res)) {
-        index_to_delete.insert(res.value_as_u64(0));
-        metrics_to_delete.push_back(res.value_as_u64(1));
-        _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
-        _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        while (_mysql.fetch_row(res)) {
+          index_to_delete.insert(res.value_as_u64(0));
+          metrics_to_delete.push_back(res.value_as_u64(1));
+          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+          _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+        }
+      } catch (const std::exception& e) {
+        throw msg_fmt("could not query index table to get index to delete: {} ",
+                      e.what());
       }
-    } catch (const std::exception& e) {
-      throw msg_fmt("could not query index table to get index to delete: {} ",
-                    e.what());
-    }
 
-    // Delete metrics.
+      // Delete metrics.
 
-    std::string query;
-    std::string err_msg;
-    for (int64_t i : metrics_to_delete) {
-      query = fmt::format("DELETE FROM metrics WHERE metric_id={}", i);
-      _mysql.run_query(query, database::mysql_error::delete_metric, false,
-                       conn);
-      _add_action(conn, actions::metrics);
+      std::string query;
+      std::string err_msg;
+      for (int64_t i : metrics_to_delete) {
+        query = fmt::format("DELETE FROM metrics WHERE metric_id={}", i);
+        _mysql.run_query(query, database::mysql_error::delete_metric, false,
+                         conn);
+        _add_action(conn, actions::metrics);
 
-      // Remove associated graph.
-      std::shared_ptr<storage::remove_graph> rg{
-          std::make_shared<storage::remove_graph>(i, false)};
-      multiplexing::publisher().write(rg);
+        // Remove associated graph.
+        std::shared_ptr<storage::remove_graph> rg{
+            std::make_shared<storage::remove_graph>(i, false)};
+        multiplexing::publisher().write(rg);
 
-      {
-        std::lock_guard<std::mutex> lck(_queues_m);
-        _metrics.erase(i);
+        {
+          std::lock_guard<std::mutex> lck(_queues_m);
+          _metrics.erase(i);
+        }
+        log_v2::perfdata()->debug("metrics erasing metric_id = {}", i);
+        deleted_metrics++;
       }
-      log_v2::perfdata()->debug("metrics erasing metric_id = {}", i);
-      deleted_metrics++;
+
+      // Delete index from DB.
+      for (int64_t i : index_to_delete) {
+        query = fmt::format("DELETE FROM index_data WHERE id={}", i);
+        _mysql.run_query(query, database::mysql_error::delete_index, false,
+                         conn);
+        _add_action(conn, actions::index_data);
+
+        // Remove associated graph.
+        std::shared_ptr<storage::remove_graph> rg{
+            std::make_shared<storage::remove_graph>(i, true)};
+        multiplexing::publisher().write(rg);
+        deleted_index++;
+      }
     }
 
-    // Delete index from DB.
-    for (int64_t i : index_to_delete) {
-      query = fmt::format("DELETE FROM index_data WHERE id={}", i);
-      _mysql.run_query(query, database::mysql_error::delete_index, false, conn);
-      _add_action(conn, actions::index_data);
-
-      // Remove associated graph.
-      std::shared_ptr<storage::remove_graph> rg{
-          std::make_shared<storage::remove_graph>(i, true)};
-      multiplexing::publisher().write(rg);
-      deleted_index++;
-    }
+    // End.
+    log_v2::perfdata()->info(
+        "unified_sql: end of DB cleanup: {} metrics and {} indices removed",
+        deleted_metrics, deleted_index);
+    _timer.expires_after(std::chrono::minutes(5));
+    _timer.async_wait(
+        std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
   }
-
-  // End.
-  log_v2::perfdata()->info(
-      "unified_sql: end of DB cleanup: {} metrics and {} indices removed",
-      deleted_metrics, deleted_index);
 }

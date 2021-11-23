@@ -80,8 +80,6 @@ stream::stream(const database_config& dbcfg,
       _ack{0},
       _pending_events{0},
       _count{0},
-      _exit{false},
-      _broken{false},
       _loop_timeout{loop_timeout},
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _mysql{dbcfg},
@@ -98,9 +96,8 @@ stream::stream(const database_config& dbcfg,
       _next_insert_perfdatas{std::time_t(nullptr) + 10},
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
+      _timer{pool::io_context()},
       _stats{stats::center::instance().register_conflict_manager()},
-      _speed{},
-      _stats_count_pos{0},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
@@ -112,18 +109,18 @@ stream::stream(const database_config& dbcfg,
   _state = running;
   _action.resize(_mysql.connections_count());
 
-  // std::lock_guard<std::mutex> lk(_loop_m);
-  //_thread = std::thread(&stream::_callback, this);
-  // pthread_setname_np(_thread.native_handle(), "conflict_mngr");
   try {
     _load_caches();
   } catch (const std::exception& e) {
     log_v2::sql()->error("error while loading caches: {}", e.what());
     throw;
   }
+  _timer.expires_after(std::chrono::minutes(5));
+  _timer.async_wait(
+      std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
 }
 
-stream::~stream() {
+stream::~stream() noexcept {
   log_v2::sql()->debug("unified sql: stream destruction");
 }
 
@@ -678,6 +675,7 @@ void stream::statistics(nlohmann::json& tree) const {
   size_t sz_logs;
   size_t sz_cv;
   size_t sz_cvs;
+  size_t count;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
     perfdata = _perfdata_queue.size();
@@ -685,21 +683,20 @@ void stream::statistics(nlohmann::json& tree) const {
     sz_logs = _log_queue.size();
     sz_cv = _cv_queue.size();
     sz_cvs = _cvs_queue.size();
+    count = _count;
   }
 
-  tree["max pending events"] = static_cast<int32_t>(_max_pending_queries);
-  tree["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
-  tree["perfdata events"] = static_cast<int32_t>(perfdata);
-  tree["metrics events"] = static_cast<int32_t>(sz_metrics);
-  tree["logs events"] = static_cast<int32_t>(sz_logs);
   tree["cv events"] = static_cast<int32_t>(sz_cv);
   tree["cvs events"] = static_cast<int32_t>(sz_cvs);
+  tree["logs events"] = static_cast<int32_t>(sz_logs);
   tree["loop timeout"] = static_cast<int32_t>(_loop_timeout);
-  if (auto lock = std::unique_lock<std::mutex>(_stat_m, std::try_to_lock)) {
-    tree["processed_events"] = static_cast<int32_t>(_processed);
-    tree["acked_events"] = static_cast<int32_t>(_ack);
-    tree["pending_events"] = static_cast<int32_t>(_pending_events);
-  }
+  tree["max pending events"] = static_cast<int32_t>(_max_pending_queries);
+  tree["max perfdata events"] = static_cast<int32_t>(_max_perfdata_queries);
+  tree["metrics events"] = static_cast<int32_t>(sz_metrics);
+  tree["pending_events"] = static_cast<int32_t>(_pending_events);
+  tree["count"] = static_cast<int32_t>(count);
+  tree["perfdata events"] = static_cast<int32_t>(perfdata);
+  tree["processed_events"] = static_cast<int32_t>(_processed);
 }
 
 /**
@@ -758,8 +755,6 @@ void stream::statistics(nlohmann::json& tree) const {
 int32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
-  if (_broken)
-    throw msg_fmt("unified sql: events loop interrupted");
 
   log_v2::sql()->trace("unified sql: write event category:{}, element:{}",
                        category_of_type(data->type()),
@@ -870,13 +865,13 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 int32_t stream::stop() {
   /* Let's stop the thread */
-  {
-    std::lock_guard<std::mutex> lck(_loop_m);
-    _exit = true;
-    _loop_cv.notify_all();
-  }
-  if (_thread.joinable())
-    _thread.join();
+  //  {
+  //    std::lock_guard<std::mutex> lck(_loop_m);
+  //    _exit = true;
+  //    _loop_cv.notify_all();
+  //  }
+  //  if (_thread.joinable())
+  //    _thread.join();
 
   /* Let's return how many events to ack */
   int32_t retval = _ack;
