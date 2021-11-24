@@ -20,13 +20,9 @@
 #define CCB_CONFIG_STATE_HH
 
 #include <fmt/format.h>
-#include <list>
-#include <map>
-#include <string>
 #include <unordered_map>
 
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -71,7 +67,7 @@ class state {
   state();
   state(state const& other);
   ~state();
-  state& operator=(state const&);
+  state& operator=(state const& other);
   void broker_id(int id) noexcept;
   int broker_id() const noexcept;
   void rpc_port(uint16_t port) noexcept;

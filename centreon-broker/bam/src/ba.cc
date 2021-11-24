@@ -827,8 +827,8 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
 
   // Case 1: state not ok, every child in downtime, no actual downtime.
   //         Put the BA in downtime.
-  bool state_ok{get_state_hard() == state_ok};
-  if (!state_ok && every_kpi_in_downtime && !_inherited_downtime) {
+  bool s_ok{get_state_hard() == state_ok};
+  if (!s_ok && every_kpi_in_downtime && !_inherited_downtime) {
     _inherited_downtime.reset(new inherited_downtime);
     _inherited_downtime->ba_id = _id;
     _inherited_downtime->in_downtime = true;
@@ -840,7 +840,7 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
   }
   // Case 2: state ok or not every kpi in downtime, actual downtime.
   //         Remove the downtime.
-  else if ((state_ok || !every_kpi_in_downtime) && _inherited_downtime) {
+  else if ((s_ok || !every_kpi_in_downtime) && _inherited_downtime) {
     _inherited_downtime->in_downtime = false;
     _in_downtime = false;
 

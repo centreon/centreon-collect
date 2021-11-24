@@ -22,9 +22,6 @@
 
 using namespace com::centreon::broker::misc;
 
-const std::array<std::string, 5> perfdata::data_type_name{
-    "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
-
 /**
  *  Default constructor.
  */

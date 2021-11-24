@@ -36,6 +36,9 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
+const std::array<std::string, 5> stream::metric_type_name{
+    "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
+
 void (stream::*const stream::_neb_processing_table[])(
     const std::shared_ptr<io::data>&) = {
     nullptr,
@@ -318,7 +321,7 @@ void stream::update_metric_info_cache(uint64_t index_id,
         "unified sql: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
         metric_name, metric_id, index_id,
-        misc::perfdata::data_type_name[metric_type]);
+        metric_type_name[metric_type]);
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     it->second.type = metric_type;
     if (it->second.metric_id != metric_id) {

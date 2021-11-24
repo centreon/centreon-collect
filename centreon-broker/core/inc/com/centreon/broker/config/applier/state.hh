@@ -19,10 +19,8 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
-#include <string>
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 

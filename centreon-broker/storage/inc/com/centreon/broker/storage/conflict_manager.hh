@@ -125,6 +125,8 @@ class conflict_manager {
     bool special;
   };
 
+  static const std::array<std::string, 5> metric_type_name;
+
   struct metric_info {
     bool locked;
     uint32_t metric_id;

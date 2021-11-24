@@ -466,22 +466,24 @@ void stream::_update_metrics() {
             ? "NULL"
             : fmt::format("{}", metric->value)));
   }
-  std::string query(fmt::format(
-      "INSERT INTO metrics (metric_id, unit_name, warn, warn_low, "
-      "warn_threshold_mode, crit, crit_low, crit_threshold_mode, min, max, "
-      "current_value) VALUES {} ON DUPLICATE KEY UPDATE "
-      "unit_name=VALUES(unit_name), warn=VALUES(warn), "
-      "warn_low=VALUES(warn_low), "
-      "warn_threshold_mode=VALUES(warn_threshold_mode), crit=VALUES(crit), "
-      "crit_low=VALUES(crit_low), "
-      "crit_threshold_mode=VALUES(crit_threshold_mode), min=VALUES(min), "
-      "max=VALUES(max), current_value=VALUES(current_value)",
-      fmt::join(m, ",")));
-  int32_t conn = _mysql.choose_best_connection(-1);
-  _finish_action(-1, actions::metrics);
-  log_v2::sql()->trace("Send query: {}", query);
-  _mysql.run_query(query, database::mysql_error::update_metrics, false, conn);
-  _add_action(conn, actions::metrics);
+  if (!m.empty()) {
+    std::string query(fmt::format(
+        "INSERT INTO metrics (metric_id, unit_name, warn, warn_low, "
+        "warn_threshold_mode, crit, crit_low, crit_threshold_mode, min, max, "
+        "current_value) VALUES {} ON DUPLICATE KEY UPDATE "
+        "unit_name=VALUES(unit_name), warn=VALUES(warn), "
+        "warn_low=VALUES(warn_low), "
+        "warn_threshold_mode=VALUES(warn_threshold_mode), crit=VALUES(crit), "
+        "crit_low=VALUES(crit_low), "
+        "crit_threshold_mode=VALUES(crit_threshold_mode), min=VALUES(min), "
+        "max=VALUES(max), current_value=VALUES(current_value)",
+        fmt::join(m, ",")));
+    int32_t conn = _mysql.choose_best_connection(-1);
+    _finish_action(-1, actions::metrics);
+    log_v2::sql()->trace("Send query: {}", query);
+    _mysql.run_query(query, database::mysql_error::update_metrics, false, conn);
+    _add_action(conn, actions::metrics);
+  }
 }
 
 /**

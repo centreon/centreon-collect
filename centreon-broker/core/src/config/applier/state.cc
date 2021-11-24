@@ -18,16 +18,12 @@
 
 #include "com/centreon/broker/config/applier/state.hh"
 
-#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <memory>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
@@ -127,13 +123,13 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   com::centreon::broker::multiplexing::muxer::event_queue_max_size(
       s.event_queue_max_size());
 
-  com::centreon::broker::config::state st = s;
+  com::centreon::broker::config::state st{s};
 
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints());
 
   // Create instance broadcast event.
-  std::shared_ptr<instance_broadcast> ib(new instance_broadcast);
+  auto ib{std::make_shared<instance_broadcast>()};
   ib->broker_id = io::data::broker_id;
   ib->poller_id = _poller_id;
   ib->poller_name = _poller_name;

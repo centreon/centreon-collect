@@ -52,8 +52,6 @@ class perfdata {
   bool _warning_mode;
 
  public:
-  static const std::array<std::string, 5> data_type_name;
-
   perfdata();
   perfdata(const perfdata&) = default;
   perfdata(perfdata&&) = default;

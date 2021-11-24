@@ -49,13 +49,11 @@ class endpoint {
  private:
   const io_type _type;
 
-  void _internal_copy(endpoint const& other);
-
  public:
   endpoint() = delete;
   endpoint(io_type way);
   endpoint(endpoint const& other);
-  ~endpoint() = default;
+  ~endpoint() noexcept;
   endpoint& operator=(endpoint const& other);
   bool operator==(endpoint const& other) const;
   bool operator!=(endpoint const& other) const;

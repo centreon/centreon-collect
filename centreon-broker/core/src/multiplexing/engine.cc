@@ -17,11 +17,9 @@
 */
 
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 #include <unistd.h>
 
-#include <fmt/format.h>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -54,6 +52,7 @@ engine& engine::instance() {
  *  Load engine instance.
  */
 void engine::load() {
+  log_v2::core()->trace("multiplexing: loading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   if (!_instance)
     _instance = new engine;
@@ -63,6 +62,7 @@ void engine::load() {
  *  Unload class instance.
  */
 void engine::unload() {
+  log_v2::core()->trace("multiplexing: unloading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   // Commit the cache file, if needed.
   if (_instance && _instance->_cache_file)
@@ -121,7 +121,7 @@ void engine::start() {
   std::lock_guard<std::mutex> lock(_engine_m);
   if (_state == not_started) {
     // Set writing method.
-    log_v2::perfdata()->debug("multiplexing: starting");
+    log_v2::core()->debug("multiplexing: engine starting");
     _state = running;
     stats::center::instance().update(&EngineStats::set_mode, _stats,
                                      EngineStats::WRITE);
@@ -139,8 +139,8 @@ void engine::start() {
         kiew.push_back(d);
       }
     } catch (const std::exception& e) {
-      log_v2::perfdata()->error("multiplexing: couldn't read cache file: {}",
-                                e.what());
+      log_v2::core()->error("multiplexing: engine couldn't read cache file: {}",
+                            e.what());
     }
 
     // Copy global event queue to local queue.
@@ -153,6 +153,7 @@ void engine::start() {
     _kiew = std::move(kiew);
     _send_to_subscribers();
   }
+  log_v2::core()->info("multiplexing: engine started");
 }
 
 /**
@@ -162,7 +163,7 @@ void engine::stop() {
   std::unique_lock<std::mutex> lock(_engine_m);
   if (_state != stopped) {
     // Notify hooks of multiplexing loop end.
-    log_v2::core()->debug("multiplexing: stopping");
+    log_v2::core()->debug("multiplexing: stopping engine");
 
     do {
       // Process events from hooks.
@@ -192,6 +193,7 @@ void engine::stop() {
     stats::center::instance().update(&EngineStats::set_mode, _stats,
                                      EngineStats::WRITE_TO_CACHE_FILE);
   }
+  log_v2::core()->debug("multiplexing: engine stopped");
 }
 
 /**
@@ -201,6 +203,7 @@ void engine::stop() {
  */
 void engine::subscribe(muxer* subscriber) {
   std::lock_guard<std::mutex> lock(_engine_m);
+  log_v2::core()->trace("muxer {} subscribes to engine", subscriber->name());
   _muxers.push_back(subscriber);
 }
 
@@ -211,9 +214,11 @@ void engine::subscribe(muxer* subscriber) {
  */
 void engine::unsubscribe(muxer* subscriber) {
   std::lock_guard<std::mutex> lock(_engine_m);
-  //std::remove(_muxers.begin(), _muxers.end(), subscriber);
+  // std::remove(_muxers.begin(), _muxers.end(), subscriber);
   for (auto it = _muxers.begin(), end = _muxers.end(); it != end; ++it)
     if (*it == subscriber) {
+      log_v2::core()->trace("muxer {} unsubscribes to engine",
+                            subscriber->name());
       _muxers.erase(it);
       break;
     }
@@ -248,14 +253,7 @@ std::string engine::_cache_file_path() const {
 void engine::_send_to_subscribers() {
   // Process all queued events.
   std::deque<std::shared_ptr<io::data>> kiew;
-  static uint32_t test_dbo = 0;
-  {
-    if (_kiew.size() > test_dbo) {
-      test_dbo = _kiew.size();
-      log_v2::sql()->error("TEST TEST max kiew size = {}", test_dbo);
-    }
-    std::swap(_kiew, kiew);
-  }
+  std::swap(_kiew, kiew);
   for (auto& e : kiew) {
     // Send object to every subscriber.
     for (muxer* m : _muxers)

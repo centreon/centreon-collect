@@ -136,15 +136,18 @@ state parser::parse(std::string const& file) {
                     .get<int>()));
           }
         } else if (it.key() == "bbdo_version" && it.value().is_string()) {
-          std::string version = json_document["centreonBroker"]["bbdo_version"].get<std::string>();
+          std::string version = json_document["centreonBroker"]["bbdo_version"]
+                                    .get<std::string>();
           std::list<fmt::string_view> v = misc::string::split_sv(version, '.');
           if (v.size() != 3)
-            throw msg_fmt(
-                "config parser: cannot parse bbdo_version '{}'", version);
+            throw msg_fmt("config parser: cannot parse bbdo_version '{}'",
+                          version);
 
           auto it = v.begin();
-          uint16_t major = atoi(it->data()); ++it;
-          uint16_t minor = atoi(it->data()); ++it;
+          uint16_t major = atoi(it->data());
+          ++it;
+          uint16_t minor = atoi(it->data());
+          ++it;
           uint16_t patch = atoi(it->data());
           retval.bbdo_version({major, minor, patch});
         } else if (get_conf<state>({it.key(), it.value()}, "broker_name",

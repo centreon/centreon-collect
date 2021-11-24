@@ -53,7 +53,7 @@ add_library("${UNIFIED_SQL}" SHARED
 set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
-target_link_libraries(${UNIFIED_SQL} bbdo_storage)
+target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage)
 
 # Testing.
 if (WITH_TESTING)

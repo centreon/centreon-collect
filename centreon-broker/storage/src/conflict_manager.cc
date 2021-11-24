@@ -21,6 +21,7 @@
 #include <cstring>
 
 #include "bbdo/storage/index_mapping.hh"
+#include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
@@ -32,6 +33,9 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::storage;
+
+const std::array<std::string, 5> conflict_manager::metric_type_name{
+    "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
 
 conflict_manager* conflict_manager::_singleton = nullptr;
 conflict_manager::instance_state conflict_manager::_state{
@@ -137,7 +141,8 @@ bool conflict_manager::init_storage(bool store_in_db,
           return _singleton != nullptr || _state == finished ||
                  config::applier::mode == config::applier::finished;
         })) {
-      if (_state == finished)
+      if (_state == finished ||
+          config::applier::mode == config::applier::finished)
         return false;
       std::lock_guard<std::mutex> lk(_singleton->_loop_m);
       _singleton->_store_in_db = store_in_db;
@@ -382,7 +387,7 @@ void conflict_manager::_load_caches() {
 
 void conflict_manager::update_metric_info_cache(uint64_t index_id,
                                                 uint32_t metric_id,
-                                                std::string const& metric_name,
+                                                const std::string& metric_name,
                                                 short metric_type) {
   auto it = _metric_cache.find({index_id, metric_name});
   if (it != _metric_cache.end()) {
@@ -390,7 +395,7 @@ void conflict_manager::update_metric_info_cache(uint64_t index_id,
         "conflict_manager: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
         metric_name, metric_id, index_id,
-        misc::perfdata::data_type_name[metric_type]);
+        metric_type_name[metric_type]);
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     it->second.type = metric_type;
     if (it->second.metric_id != metric_id) {
@@ -585,7 +590,7 @@ void conflict_manager::_callback() {
                 std::lock_guard<std::mutex> lk(_stat_m);
                 _speed = s / _stats_count.size();
                 stats::center::instance().execute(
-                    [ s = this->_stats, spd = _speed ] { s->set_speed(spd); });
+                    [s = this->_stats, spd = _speed] { s->set_speed(spd); });
               }
             }
           }
@@ -767,7 +772,7 @@ void conflict_manager::_update_stats(const std::uint32_t size,
                                      const std::size_t sql_size,
                                      const std::size_t stor_size) noexcept {
   stats::center::instance().execute(
-      [ s = this->_stats, size, mpdq, ev_size, sql_size, stor_size ] {
+      [s = this->_stats, size, mpdq, ev_size, sql_size, stor_size] {
         s->set_events_handled(size);
         s->set_max_perfdata_events(mpdq);
         s->set_waiting_events(static_cast<int32_t>(ev_size));

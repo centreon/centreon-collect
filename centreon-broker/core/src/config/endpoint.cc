@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2013,2020 Centreon
+** Copyright 2009-2013,2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/config/endpoint.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::config;
 
@@ -38,9 +39,25 @@ endpoint::endpoint(endpoint::io_type way)
  *
  *  @param[in] other  Object to copy.
  */
-endpoint::endpoint(endpoint const& other) : _type(other._type) {
-  _internal_copy(other);
-}
+endpoint::endpoint(endpoint const& other)
+    : _type(other._type),
+      buffering_timeout{other.buffering_timeout},
+      failovers{other.failovers},
+      name{other.name},
+      params{other.params},
+      read_filters{other.read_filters},
+      read_timeout{other.read_timeout},
+      retry_interval{other.retry_interval},
+      type{other.type},
+      write_filters{other.write_filters},
+      cache_enabled{other.cache_enabled},
+      cfg(other.cfg) {}
+
+/**
+ * @brief endpoint destructor.
+ *
+ */
+endpoint::~endpoint() noexcept {}
 
 /**
  *  Assignment operator.
@@ -49,9 +66,20 @@ endpoint::endpoint(endpoint const& other) : _type(other._type) {
  *
  *  @return This object.
  */
-endpoint& endpoint::operator=(endpoint const& other) {
-  if (this != &other)
-    _internal_copy(other);
+endpoint& endpoint::operator=(const endpoint& other) {
+  if (this != &other) {
+    buffering_timeout = other.buffering_timeout;
+    failovers = other.failovers;
+    name = other.name;
+    params = other.params;
+    read_filters = other.read_filters;
+    read_timeout = other.read_timeout;
+    retry_interval = other.retry_interval;
+    type = other.type;
+    write_filters = other.write_filters;
+    cache_enabled = other.cache_enabled;
+    cfg = other.cfg;
+  }
   return *this;
 }
 
@@ -124,27 +152,4 @@ bool endpoint::operator<(endpoint const& other) const {
     ++it2;
   }
   return it1 == end1 && it2 != end2;
-}
-
-/**
- *  @brief Copy data members.
- *
- *  Copy all data members from the given object to the current instance.
- *  This method is used by the copy constructor and the assignment
- *  operator.
- *
- *  @param[in] other  Object to copy.
- */
-void endpoint::_internal_copy(endpoint const& other) {
-  buffering_timeout = other.buffering_timeout;
-  failovers = other.failovers;
-  name = other.name;
-  params = other.params;
-  read_filters = other.read_filters;
-  read_timeout = other.read_timeout;
-  retry_interval = other.retry_interval;
-  type = other.type;
-  write_filters = other.write_filters;
-  cache_enabled = other.cache_enabled;
-  cfg = other.cfg;
 }

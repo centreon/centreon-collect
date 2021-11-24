@@ -99,9 +99,9 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
         if (size <= 0 || size > max_data_size) {
           // Skip corrupted data, one byte at a time.
           log_v2::core()->error(
-              "compression: {:x} got corrupted packet size of {} bytes, not in "
+              "compression: stream got corrupted packet size of {} bytes, not in "
               "the 0-{} range, skipping next byte",
-              static_cast<void*>(this), size, max_data_size);
+              size, max_data_size);
           if (!skipped)
             log_v2::core()->error(
                 "compression: peer {} is sending corrupted data", peer());
@@ -126,15 +126,14 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
         } catch (exceptions::corruption const& e) {
-          log_v2::core()->debug(e.what());
+          log_v2::core()->debug("corrupted data: {}", e.what());
         }
       }
       if (!r->size()) {  // No data or uncompressed size of 0 means corrupted
                          // input.
         log_v2::core()->error(
-            "compression: {:x} got corrupted compressed data, skipping next "
-            "byte",
-            static_cast<void*>(this));
+            "compression: stream got corrupted compressed data, skipping next "
+            "byte");
         if (!skipped)
           log_v2::core()->error(
               "compression: peer {} is sending corrupted data", peer());
@@ -143,8 +142,8 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
         corrupted = true;
       } else {
         log_v2::core()->debug(
-            "compression: {:x} uncompressed {} bytes to {} bytes",
-            static_cast<void*>(this), size + sizeof(int32_t), r->size());
+            "compression: stream uncompressed {} bytes to {} bytes",
+            size + sizeof(int32_t), r->size());
         data = r;
         _rbuffer.pop(size + sizeof(int32_t));
         corrupted = false;
@@ -266,8 +265,8 @@ void stream::_flush() {
     std::vector<char>& data(compressed->get_buffer());
     data = zlib::compress(_wbuffer, _level);
     log_v2::core()->debug(
-        "compression: {:x} compressed {} bytes to {} bytes (level {})",
-        static_cast<void*>(this), _wbuffer.size(), compressed->size(), _level);
+        "compression: stream compressed {} bytes to {} bytes (level {})",
+        _wbuffer.size(), compressed->size(), _level);
     _wbuffer.clear();
 
     // Add compressed data size.
