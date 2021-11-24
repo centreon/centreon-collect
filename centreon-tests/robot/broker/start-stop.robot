@@ -1,7 +1,7 @@
 *** Settings ***
 Resource	../ressources/ressources.robot
 Suite Setup	Clean Before Test
-Suite Teardown    Clean After Test
+Suite Teardown	Clean After Test
 
 Documentation	Centreon Broker only start/stop tests
 Library	Process
@@ -36,6 +36,12 @@ BSS4: Start/Stop 10 times broker with 1sec interval and no coredump
 	[Tags]	Broker	start-stop
 	Config Broker	central
 	Repeat Keyword	10 times	Start Stop Instance	1s
+
+BSS6: Start-Stop two instances of broker and no coredump
+	[Tags]	Broker	start-stop	unified_sql
+	Config Broker	central
+	Broker Config Output Sql	central	unified_sql
+	Repeat Keyword	5 times	Start Stop Service	0
 
 *** Keywords ***
 Start Stop Service

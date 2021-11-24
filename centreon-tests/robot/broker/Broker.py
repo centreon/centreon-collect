@@ -28,7 +28,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "info",
+                "core": "trace",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
@@ -134,7 +134,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "debug",
+                "core": "trace",
                 "config": "debug",
                 "sql": "debug",
                 "processing": "debug",
@@ -261,7 +261,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "info",
+                "core": "trace",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
@@ -383,6 +383,83 @@ def config_broker(name):
 
     f = open("/etc/centreon-broker/{}".format(filename), "w")
     f.write(config[name].format(broker_id, broker_name))
+    f.close()
+
+def broker_config_output_sql(name, output):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'module':
+        filename = "central-module.json"
+    else:
+        filename = "central-rrd.json"
+
+    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
+            output_dict.pop(i)
+    if output == 'unified_sql':
+        output_dict.append({
+          "name" : "central-broker-unified-sql",
+          "db_type" : "mysql",
+          "db_host" : "localhost",
+          "db_port" : "3306",
+          "db_user" : "centreon",
+          "db_password" : "centreon",
+          "db_name" : "centreon_storage",
+          "interval" : "60",
+          "length" : "15552000",
+          "queries_per_transaction" : "20000",
+          "connections_count" : "4",
+          "read_timeout" : "60",
+          "buffering_timeout" : "0",
+          "retry_interval" : "60",
+          "check_replication" : "no",
+          "type" : "unified_sql",
+          "store_in_data_bin" : "yes",
+          "insert_in_index_data" : "1"
+        })
+    elif output == 'sql/perfdata':
+        output_dict.append({
+                "name": "central-broker-master-sql",
+                "db_type": "mysql",
+                "retry_interval": "5",
+                "buffering_timeout": "0",
+                "db_host": "localhost",
+                "db_port": "3306",
+                "db_user": "centreon",
+                "db_password": "centreon",
+                "db_name": "centreon_storage",
+                "queries_per_transaction": "1000",
+                "connections_count": "3",
+                "read_timeout": "1",
+                "type": "sql"
+        })
+        output_dict.append({
+                "name": "central-broker-master-perfdata",
+                "interval": "60",
+                "retry_interval": "5",
+                "buffering_timeout": "0",
+                "length": "15552000",
+                "db_type": "mysql",
+                "db_host": "localhost",
+                "db_port": "3306",
+                "db_user": "centreon",
+                "db_password": "centreon",
+                "db_name": "centreon_storage",
+                "queries_per_transaction": "1000",
+                "read_timeout": "1",
+                "check_replication": "no",
+                "store_in_data_bin": "yes",
+                "connections_count": "3",
+                "insert_in_index_data": "1",
+                "type": "storage"
+        })
+    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
     f.close()
 
 def broker_config_output_set(name, output, key, value):
