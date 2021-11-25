@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+set -x
 . ./common.sh
 
 ##### STARTING #####
@@ -63,8 +63,12 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 echo -n "#####ARCHIVING $PROJECT#####"
 tar czf "$PROJECT-$VERSION.tar.gz" "$PROJECT"    
 
-echo -n "#####DELIVER $PROJECT SOURCES#####"
-put_internal_source "$PROJECT" "$PROJECT-$VERSION-$RELEASE" "$PROJECT-$VERSION.tar.gz"
+echo -n "#####ARCHIVING centreon-collect#####"
+rm -rf centreon-collect-$VERSION-$RELEASE.tar.gz
+tar czf "centreon-collect-$VERSION-$RELEASE.tar.gz" *    
+
+echo -n "#####DELIVER centreon-collect SOURCES#####"
+put_internal_source "centreon-collect" "centreon-collect-$VERSION-$RELEASE" "centreon-collect-$VERSION-$RELEASE.tar.gz"
 
 echo -n "#####EXPORTING $PROJECT GLOBAL VARIABLES#####"
 cat > source.properties << EOF
