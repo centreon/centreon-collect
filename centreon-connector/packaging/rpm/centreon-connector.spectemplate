@@ -78,7 +78,7 @@ else
   conan install . -s compiler.libcxx=libstdc++
 fi
 
-CXXFLAGS="-DNDEBUG -g -O2 -std=c++11 -Wno-long-long" cmake3 -j9 \
+CXXFLAGS="-DNDEBUG -g -O2 -std=c++11 -Wno-long-long" cmake3 \
 	-DWITH_PREFIX=%{_prefix} \
 	-DWITH_PREFIX_BINARY=%{_libdir}/centreon-connector \
 	-DWITH_TESTING=0 .
