@@ -6,8 +6,9 @@
 
 *storage*
 
-Waiting longer for conflict manager to be connected
+Waiting longer for conflict manager to be connected without blocking if cbd
+is stopped.
 
 *tls*
 
-Printing encrypted write log on trace level only
+Printing encrypted write logs on trace level only.
