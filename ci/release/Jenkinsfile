@@ -1,16 +1,20 @@
-properties([
-  parameters([
-    string(name: 'VERSION', defaultValue: '')
-    string(name: 'RELEASE', defaultValue: '')
-  ])
-])
+@Library("centreon-shared-library") _
+
 pipeline {
-  agent { label { 'aws' } }
+  agent { label 'C++' }
     stages {
       stage('Release Collect') {
+        input {
+          message "what verion and release number the release should have ?"
+          parameters {
+            string(name: 'VERSION', defaultValue: '', description: 'Version to be released')
+            string(name: 'RELEASE', defaultValue: '', description: 'Release number')
+          }
+        }
         steps {
           echo 'Releasing Centreon Collect'
-          sh './ci/scripts/release/collect-release.sh'
+          loadCommonScripts()
+          sh './ci/release/collect-release.sh'
         }
       }
     }
