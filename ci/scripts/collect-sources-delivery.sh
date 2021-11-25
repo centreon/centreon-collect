@@ -36,7 +36,7 @@ rm -rf centreon-collect-$VERSION-$RELEASE.tar.gz
 tar czf "centreon-collect-$VERSION-$RELEASE.tar.gz" *    
 
 echo -n "#####DELIVER centreon-collect SOURCES#####"
-put_internal_source "centreon-collect" "centreon-collect-$VERSION-$RELEASE" "centreon-collect-$VERSION.tar.gz"
+put_internal_source "centreon-collect" "centreon-collect-$VERSION-$RELEASE" "centreon-collect-$VERSION-$RELEASE.tar.gz"
 
 echo -n "#####EXPORTING centreon-collect GLOBAL VARIABLES#####"
 cat > source.properties << EOF
