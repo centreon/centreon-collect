@@ -1,3 +1,5 @@
+@Library("centreon-shared-library") _
+
 pipeline {
   agent { label 'C++' }
     stages {
@@ -11,6 +13,7 @@ pipeline {
         }
         steps {
           echo 'Releasing Centreon Collect'
+          loadCommonScripts()
           sh './ci/release/collect-release.sh'
         }
       }
