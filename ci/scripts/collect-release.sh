@@ -13,7 +13,6 @@ fi
 MAJOR=`echo $VERSION | cut -d . -f 1,2`
 
 # Move sources to the stable directory.
-SSH_REPO='ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com'
 $SSH_REPO cp -r "/srv/sources/internal/centreon-collect/centreon-collect-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
 
 # Put sources online.
