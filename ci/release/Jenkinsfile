@@ -5,7 +5,7 @@ pipeline {
         input {
           message "what verion and release number the release should have ?"
           parameters {
-            string(name: 'VERSION', defaultValue: '', description: 'Version to be released'),
+            string(name: 'VERSION', defaultValue: '', description: 'Version to be released')
             string(name: 'RELEASE', defaultValue: '', description: 'Release number')
           }
         }
