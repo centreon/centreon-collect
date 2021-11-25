@@ -1,6 +1,6 @@
 properties([
   parameters([
-    string(name: 'VERSION', defaultValue: '')
+    string(name: 'VERSION', defaultValue: ''),
     string(name: 'RELEASE', defaultValue: '')
   ])
 ])
