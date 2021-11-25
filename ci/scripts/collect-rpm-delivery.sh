@@ -34,10 +34,7 @@ then
   put_rpms "standard" "$MAJOR" "el8" "unstable" "x86_64" "clib" "centreon-clib-$VERSION-$RELEASE" $CLIBEL8RPMS
 elif [ "$BUILD" '=' 'RELEASE' ]
 then
-  # copy_internal_source_to_testing "standard" "engine" "centreon-engine-$VERSION-$RELEASE"
-  # copy_internal_source_to_testing "standard" "broker" "centreon-broker-$VERSION-$RELEASE"
-  # copy_internal_source_to_testing "standard" "clib" "centreon-clib-$VERSION-$RELEASE"
-  # copy_internal_source_to_testing "standard" "connector" "centreon-connector-$VERSION-$RELEASE"
+  copy_internal_source_to_testing "standard" "collect" "centreon-collect-$VERSION-$RELEASE"
   put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "engine" "centreon-engine-$VERSION-$RELEASE" $ENGINEEL7RPMS
   put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "broker" "centreon-broker-$VERSION-$RELEASE" $BROKEREL7RPMS
   put_rpms "standard" "$MAJOR" "el7" "testing" "x86_64" "connector" "centreon-connector-$VERSION-$RELEASE" $CONNECTOREL7RPMS
