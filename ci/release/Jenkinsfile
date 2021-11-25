@@ -1,13 +1,11 @@
-properties([
-  parameters([
-    string(name: 'VERSION', defaultValue: ''),
-    string(name: 'RELEASE', defaultValue: '')
-  ])
-])
 pipeline {
-  agent { label { 'aws' } }
+  agent { label { 'C++' } }
     stages {
       stage('Release Collect') {
+        parameters([
+          string(name: 'VERSION', defaultValue: '', description: 'Version to be released'),
+          string(name: 'RELEASE', defaultValue: '', description: 'Release number')
+        ])
         steps {
           echo 'Releasing Centreon Collect'
           sh './ci/scripts/release/collect-release.sh'
