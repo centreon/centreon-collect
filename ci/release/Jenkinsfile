@@ -11,7 +11,7 @@ pipeline {
         }
         steps {
           echo 'Releasing Centreon Collect'
-          sh './ci/scripts/release/collect-release.sh'
+          sh './ci/release/collect-release.sh'
         }
       }
     }
