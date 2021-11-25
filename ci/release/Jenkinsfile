@@ -2,10 +2,13 @@ pipeline {
   agent { label 'C++' }
     stages {
       stage('Release Collect') {
-        parameters([
-          string(name: 'VERSION', defaultValue: '', description: 'Version to be released'),
-          string(name: 'RELEASE', defaultValue: '', description: 'Release number')
-        ])
+        input {
+          message : what verion and release number the release should have ?
+          parameters {
+            string(name: 'VERSION', defaultValue: '', description: 'Version to be released'),
+            string(name: 'RELEASE', defaultValue: '', description: 'Release number')
+          }
+        }
         steps {
           echo 'Releasing Centreon Collect'
           sh './ci/scripts/release/collect-release.sh'
