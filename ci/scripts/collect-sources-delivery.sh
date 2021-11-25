@@ -32,8 +32,8 @@ COMMITTER=`git show --format='%cN <%cE>' HEAD | head -n 1`
 
 
 echo -n "#####ARCHIVING centreon-collect#####"
-rm -rf centreon-collect-$VERSION.tar.gz
-tar czf "centreon-collect-$VERSION.tar.gz" *    
+rm -rf centreon-collect-$VERSION-$RELEASE.tar.gz
+tar czf "centreon-collect-$VERSION-$RELEASE.tar.gz" *    
 
 echo -n "#####DELIVER centreon-collect SOURCES#####"
 put_internal_source "centreon-collect" "centreon-collect-$VERSION-$RELEASE" "centreon-collect-$VERSION.tar.gz"
