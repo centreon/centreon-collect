@@ -1,5 +1,5 @@
 pipeline {
-  agent { label { 'C++' } }
+  agent { label 'C++' }
     stages {
       stage('Release Collect') {
         parameters([
