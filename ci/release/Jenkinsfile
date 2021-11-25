@@ -1,0 +1,17 @@
+properties([
+  parameters([
+    string(name: 'VERSION', defaultValue: '')
+    string(name: 'RELEASE', defaultValue: '')
+  ])
+])
+pipeline {
+  agent { label { 'aws' } }
+    stages {
+      stage('Release Collect') {
+        steps {
+          echo 'Releasing Centreon Collect'
+          sh './ci/scripts/release/collect-release.sh'
+        }
+      }
+    }
+}
