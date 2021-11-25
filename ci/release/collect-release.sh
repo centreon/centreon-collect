@@ -13,7 +13,7 @@ fi
 MAJOR=`echo $VERSION | cut -d . -f 1,2`
 
 # Move sources to the stable directory.
-$SSH_REPO cp -r "/srv/sources/standard/testing/centreon-collect/centreon-collect-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
+ssh -o StrictHostKeyChecking=no ubuntu@srvi-repo.int.centreon.com cp -r "/srv/sources/standard/testing/centreon-collect/centreon-collect-$VERSION-$RELEASE" "/srv/sources/standard/stable/"
 
 # Put sources online.
 upload_tarball_for_download "$PROJECT" "$VERSION" "/srv/sources/standard/stable/centreon-collect-$VERSION-$RELEASE/$PROJECT-$VERSION.tar.gz" "s3://centreon-download/public/centreon-collect/centreon-collect-$VERSION.tar.gz"
