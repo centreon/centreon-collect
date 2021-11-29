@@ -1,4 +1,5 @@
 from robot.libraries.BuiltIn import BuiltIn
+from Common import find_in_log
 import time
 
 def do_when_catch_in_log(log: str, date, content, func, arg):
@@ -7,6 +8,6 @@ def do_when_catch_in_log(log: str, date, content, func, arg):
         time.sleep(1)
         if time.time() - start >= 5 * 60:
             break
-        if True: #if find_in_log(log, date, content):
+        if find_in_log(log, date, content):
             return BuiltIn().run_keyword(func, arg)
     return False

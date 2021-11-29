@@ -46,14 +46,14 @@ Network Failure
 	Config Engine	${1}
     Config Broker  	central
 	Broker Config Output Set        central     central-broker-master-sql       db_host     127.0.0.1
-    ${start}=		Get Current Date
+    Broker Config Log				central		sql								trace
+	${start}=		Get Current Date
 	Start mysql
     Start Broker
 	Start Engine
 	${log}=			Catenate		SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-	${content}=		Set Variable	"SQL: performing mysql_ping."
+	${content}=		Set Variable	SQL: performing mysql_ping.
 	${result}=		Do When Catch In Log	${log}		${start}	${content}		Disable Sleep Enable	${interval}
-	#${result}=		Do When Catch In Log	""			${start}	""				Disable Sleep Enable	${interval}
     Should Not Be Equal		${result}	False		msg=timeout after 5 minutes (NetworkFailure with sleep = ${interval})
 	Stop Broker
 	Stop Engine
