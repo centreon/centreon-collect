@@ -8,8 +8,6 @@ from datetime import datetime
 
 def compare_md5(file_e: str, file_b: str):
 
-    logger.console("file1 = " + file_e)
-    logger.console("file2 = " + file_b)
     getoutput("awk '{{print $8}}' {0} > {0}.md5".format(file_e))
     getoutput("awk '{{print $8}}' {0} > {0}.md5".format(file_b))
 
@@ -43,5 +41,29 @@ def compare_md5(file_e: str, file_b: str):
     return False
 
 def check_multiplicity(file1: str, file2: str):
-    getoutput("sort {}.md5 | uniq -c > sort-e.md5".format(file1))
-    getoutput("sort {}.md5 | uniq -c > sort-e.md5".format(file2))
+    getoutput("sort {0}.md5 | uniq -c > /tmp/sort-e.md5".format(file1))
+    getoutput("sort {0}.md5 | uniq -c > /tmp/sort-b.md5".format(file2))
+    f1 = open("/tmp/sort-e.md5")
+    content1 = f1.readlines()
+    f2 = open("/tmp/sort-b.md5")
+    content2 = f2.readlines()
+
+    r = re.compile(r"^\s*([0-9]+)\s+.*$")
+    ff1 = []
+    ff2 = []
+    for l in content1:
+        m = r.match(l)
+        if m and m.group(1) != '1':
+            ff1.append(l)
+    for l in content2:
+        m = r.match(l)
+        if m and m.group(1) != '1':
+            ff2.append(l)
+
+    for l in ff1:
+        logger.console(l)
+    logger.console("#####")
+    for l in ff2:
+        logger.console(l)
+
+#check_multiplicity("/home/david/mnt/tmp/lua-engine.log", "/home/david/mnt/tmp/lua.log")

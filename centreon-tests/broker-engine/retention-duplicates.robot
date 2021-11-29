@@ -39,14 +39,15 @@ BERD1
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
-        Sleep	5s
+        Sleep	30s
 	Stop Broker
         Sleep	5s
         Clear Cache
         Start Broker
-        Sleep	25s
+        Sleep	30s
 	Stop Engine
-        Stop Broker
+	Stop Broker
 	${result}=	Compare Md5	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True  ${result}   msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
+	Check Multiplicity  /tmp/lua-engine.log	/tmp/lua.log
 

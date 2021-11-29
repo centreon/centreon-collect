@@ -1126,7 +1126,7 @@ int broker_host_check(int type,
 
   // Free data.
   delete[] command_buf;
-  return (return_code);
+  return return_code;
 }
 
 /**
