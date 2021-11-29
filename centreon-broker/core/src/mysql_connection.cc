@@ -619,6 +619,7 @@ void mysql_connection::_run() {
 
       lock.unlock();
 
+      log_v2::sql()->trace("SQL: performing mysql_ping.");
       if (mysql_ping(_conn)) {
         if (!_try_to_reconnect())
           log_v2::sql()->error("SQL: Reconnection failed.");
