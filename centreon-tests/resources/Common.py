@@ -10,7 +10,7 @@ TIMEOUT = 30
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile("^ESTAB.*127\.0\.0\.1:{}\s".format(port))
+    r = re.compile(r"^ESTAB.*127\.0\.0\.1:{}\s".format(port))
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')
@@ -55,7 +55,7 @@ def find_in_log(log: str, date, content):
     try:
         f = open(log, "r")
         lines = f.readlines()
-        p = re.compile("\[([^\]]*)\]")
+        p = re.compile(r"\[([^\]]*)\]")
 
         # Let's find my_date
         start = 0
