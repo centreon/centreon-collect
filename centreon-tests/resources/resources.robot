@@ -83,6 +83,16 @@ Check Connections
 	${retval}=	Check Connection	5670	${pid1}	${pid2}
 	[Return]	${retval}
 
+Disable Eth Connection On Port
+	[Arguments]		${port}
+	RUN	iptables -A INPUT -p tcp --dport ${port} -j DROP
+	RUN	iptables -A OUTPUT -p tcp --dport ${port} -j DROP
+	RUN	iptables -A FORWARD -p tcp --dport ${port} -j DROP
+
+Reset Eth Connection
+	Run	iptables -F
+	Run	iptables -X
+
 *** Variables ***
 ${BROKER_LOG}	/var/log/centreon-broker
 ${ENGINE_LOG}	/var/log/centreon-engine
