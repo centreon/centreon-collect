@@ -48,33 +48,45 @@ Disable Sleep Enable
 	Enable Eth Connection
 Network Failure
 	[Arguments]		${interval}
-	#Config Engine	${1}
-    #Config Broker  central
+	Config Engine	${1}
+    Config Broker  central
 	#Config Broker	module
 	#Config Broker	rrd
-	#Broker Config Output Set        central     central-broker-master-sql       db_host     127.0.0.1
+	Broker Config Output Set        central     central-broker-master-sql       db_host     127.0.0.1
     ${start}=		Get Current Date
-	#Start mysql
-    #Start Broker
-	#Start Engine
-	#${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-	#${result}=		Find In Log		${log}		${start}	${content}
+	Start mysql
+    Start Broker
+	Start Engine
+	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
+	${content}=		"SQL: performing mysql_ping."
+	#${result}=			Find In Log		${log}		${start}	${content}
 	#Should Be True		${result}
 	#Disable Sleep Enable	interval=${interval}
-	${result}=		Do When Catch In Log	""		${start}	""		Disable Sleep Enable	${interval}
-    Should Not Be Equal		${result}	False
-	#Stop Broker
-	#Stop Engine
-    #Stop Mysql
+	${result}=		Do When Catch In Log	${log}		${start}	${content}		Disable Sleep Enable	${interval}
+	#${result}=		Do When Catch In Log	""		${start}	""		Disable Sleep Enable	${interval}
+    Should Not Be Equal		${result}	False		msg=timeout after 5 minutes (NetworkFailure with ${interval})
+	Stop Broker
+	Stop Engine
+    Stop Mysql
 
 *** Test Cases ***
-Network Failure Test 1/10s
+NetworkDbFail1
+	[Documentation]		network failure test between broker and database (shutting down connection for 100ms)
+	[Tags]	Broker	Database
 	Network Failure	interval=100ms
-Network Failure Test 1s
+NetworkDbFail2
+	[Documentation]		network failure test between broker and database (shutting down connection for 1s)
+	[Tags]	Broker	Database
 	Network Failure	interval=1s
-Network Failure Test 10s
+NetworkDbFail3
+	[Documentation]		network failure test between broker and database (shutting down connection for 10s)
+	[Tags]	Broker	Database
 	Network Failure	interval=10s
-Network Failure Test 30s
+NetworkDbFail4
+	[Documentation]		network failure test between broker and database (shutting down connection for 30s)
+	[Tags]	Broker	Database
 	Network Failure	interval=30s
-Network Failure Test 60s
+NetworkDbFail5
+	[Documentation]		network failure test between broker and database (shutting down connection for 60s)
+	[Tags]	Broker	Database
 	Network Failure	interval=1m
