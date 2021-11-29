@@ -1,4 +1,3 @@
-#"SQL: performing mysql_ping."
 from robot.libraries.BuiltIn import BuiltIn
 import time
 
