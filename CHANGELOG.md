@@ -12,3 +12,7 @@ is stopped.
 *tls*
 
 Printing encrypted write logs on trace level only.
+
+*modules*
+
+Fixing segfault
