@@ -26,8 +26,8 @@ obj_c = obj.capitalize()
 
 accessors = []
 block_level = 0
-decl = re.compile('\s*([a-zA-Z0-9]+)\s+([a-z_0-9]+)\s*=\s*[0-9]+;')
-enum = re.compile('\s*enum\s+([a-zA-Z]+)\s+{')
+decl = re.compile(r'\s*([a-zA-Z0-9]+)\s+([a-z_0-9]+)\s*=\s*[0-9]+;')
+enum = re.compile(r'\s*enum\s+([a-zA-Z]+)\s+{')
 enums = []
 with open("{}.proto".format(obj), encoding='utf-8') as fp:
     line = fp.readline()
@@ -42,7 +42,8 @@ with open("{}.proto".format(obj), encoding='utf-8') as fp:
                 if block_level == 1:
                     m = decl.match(line)
                     if m:
-                        if m.group(1) in ['bool', 'int32', 'int64', 'uint32', 'uint64', 'string'] or m.group(1) in enums:
+                        if m.group(1) in ['bool', 'int32', 'int64', 'uint32', 'uint64', 'string'] or\
+                           m.group(1) in enums:
                             d = """    {{"{0}", [obj = this->_obj] {{ return misc::variant(obj->{0}()); }}}}""".format(
                                 m.group(2))
                             accessors.append(d)
