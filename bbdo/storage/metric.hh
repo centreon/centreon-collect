@@ -39,12 +39,10 @@ namespace storage {
  */
 class metric : public io::data {
  public:
-  // enum data_type { gauge = 0, counter, derive, absolute, automatic };
-
   metric();
   metric(uint32_t host_id,
          uint32_t service_id,
-         std::string const& name,
+         const std::string& name,
          timestamp ctime,
          uint32_t interval,
          bool is_for_rebuild,
@@ -52,9 +50,9 @@ class metric : public io::data {
          int32_t rrd_len,
          double value,
          int16_t value_type);
-  metric(metric const& m) = delete;
-  ~metric() = default;
-  metric& operator=(metric const& m) = delete;
+  metric(const metric&) = delete;
+  ~metric() noexcept = default;
+  metric& operator=(const metric&) = delete;
 
   /**
    *  Get the type of this event.
