@@ -55,7 +55,6 @@ class events {
   static void unload();
 
   // Category.
-  // uint16_t register_category(std::string const& name, uint16_t hint);
   void unregister_category(uint16_t category_id);
 
   // Events.
