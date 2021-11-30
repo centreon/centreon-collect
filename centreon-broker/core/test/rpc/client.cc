@@ -17,6 +17,7 @@
  *
  */
 
+#include <google/protobuf/util/time_util.h>
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -103,24 +104,25 @@ int main(int argc, char** argv) {
     SqlConnectionStats response;
     for (uint32_t i = 0; i < sz; ++i) {
       status = client.GetSqlConnectionStats(&response, i) ? 0 : 1;
-      std::cout << response.waiting_tasks() << std::endl;
+      std::cout << "waiting_tasks: " << response.waiting_tasks()
+                << ", is_connected: " << std::boolalpha
+                << response.is_connected() << ", uptime: "
+                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
+                       response.uptime())
+                << std::endl;
     }
   }
 
   if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
     GenericSize response;
     status = client.GetSqlConnectionSize(&response) ? 0 : 1;
-    std::cout << "connection array size: "
-              << response.size()
-              << std::endl;
+    std::cout << "connection array size: " << response.size() << std::endl;
   }
-  
+
   if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
     ConflictManagerStats response;
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
-    std::cout << "events_handled: "
-              << response.events_handled()
-              << std::endl;
+    std::cout << "events_handled: " << response.events_handled() << std::endl;
   }
 
   exit(status);

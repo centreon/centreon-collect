@@ -18,14 +18,16 @@
  */
 
 #include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/stats/center.hh"
 
 #include <gtest/gtest.h>
 
+#include <google/protobuf/util/time_util.h>
+
+#include <fmt/format.h>
 #include <cstdio>
 #include <fstream>
-#include <fmt/format.h>
 #include <iostream>
 
 #include "com/centreon/broker/log_v2.hh"
@@ -71,11 +73,13 @@ TEST_F(BrokerRpc, GetVersion) {
   auto output = execute("GetVersion");
 #if CENTREON_BROKER_PATCH == 0
   ASSERT_EQ(output.size(), 2u);
-  ASSERT_EQ(output.front(), fmt::format("GetVersion: major: {}\n", version::major));
+  ASSERT_EQ(output.front(),
+            fmt::format("GetVersion: major: {}\n", version::major));
   ASSERT_EQ(output.back(), fmt::format("minor: {}\n", version::minor));
 #else
   ASSERT_EQ(output.size(), 3u);
-  ASSERT_EQ(output.front(), fmt::format("GetVersion: major: {}\n", version::major));
+  ASSERT_EQ(output.front(),
+            fmt::format("GetVersion: major: {}\n", version::major));
   ASSERT_EQ(output.back(), fmt::format("patch: {}\n", version::patch));
 #endif
   brpc.shutdown();
@@ -84,19 +88,47 @@ TEST_F(BrokerRpc, GetVersion) {
 TEST_F(BrokerRpc, GetSqlConnectionStatsValue) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   SqlConnectionStats* _stats;
-  std::vector<std::string> vectests = {"3\n", "10\n", "0\n", "15\n"};
+  std::vector<std::string> vectests = {
+      "waiting_tasks: 3, is_connected: false, uptime: 2567\n",
+      "waiting_tasks: 10, is_connected: true, uptime: 1234\n",
+      "waiting_tasks: 0, is_connected: false, uptime: 115\n",
+      "waiting_tasks: 15, is_connected: true, uptime: 356\n"};
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 3);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 3);
+  stats::center::instance().update(&SqlConnectionStats::set_is_connected,
+                                   _stats, false);
+  stats::center::instance().update(
+      _stats->mutable_uptime(),
+      google::protobuf::util::TimeUtil::MillisecondsToDuration(2567));
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 10);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 10);
+  stats::center::instance().update(&SqlConnectionStats::set_is_connected,
+                                   _stats, true);
+  stats::center::instance().update(
+      _stats->mutable_uptime(),
+      google::protobuf::util::TimeUtil::MillisecondsToDuration(1234));
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 0);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 0);
+  stats::center::instance().update(&SqlConnectionStats::set_is_connected,
+                                   _stats, false);
+  stats::center::instance().update(
+      _stats->mutable_uptime(),
+      google::protobuf::util::TimeUtil::MillisecondsToDuration(115));
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 15);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 15);
+  stats::center::instance().update(&SqlConnectionStats::set_is_connected,
+                                   _stats, true);
+  stats::center::instance().update(
+      _stats->mutable_uptime(),
+      google::protobuf::util::TimeUtil::MillisecondsToDuration(356));
 
   auto output = execute("GetSqlConnectionStatsValue 4");
 
@@ -112,10 +144,12 @@ TEST_F(BrokerRpc, GetSqlConnectionSize) {
   SqlConnectionStats* _stats;
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 3);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 3);
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 5);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 5);
 
   auto output = execute("GetSqlConnectionSize");
   ASSERT_EQ(output.front(), "connection array size: 2\n");
@@ -123,19 +157,18 @@ TEST_F(BrokerRpc, GetSqlConnectionSize) {
   brpc.shutdown();
 }
 
-
 TEST_F(BrokerRpc, GetConflictManagerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   ConflictManagerStats* _stats;
 
   _stats = stats::center::instance().register_conflict_manager();
-  stats::center::instance().update(&ConflictManagerStats::set_events_handled, _stats, 3);
+  stats::center::instance().update(&ConflictManagerStats::set_events_handled,
+                                   _stats, 3);
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
-                                         _stats, 30u);
+                                   _stats, 30u);
 
   auto output = execute("GetConflictManagerStats");
 
   std::cout << output.front();
   brpc.shutdown();
 }
-

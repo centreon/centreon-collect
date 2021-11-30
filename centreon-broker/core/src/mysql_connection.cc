@@ -19,6 +19,8 @@
 
 #include <cstring>
 
+#include <google/protobuf/util/time_util.h>
+
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mysql_manager.hh"
@@ -96,6 +98,27 @@ void mysql_connection::_clear_connection() {
   }
   _stmt.clear();
   mysql_close(_conn);
+}
+
+/**
+ * @brief Fill statistics if it happened more than 1 second ago
+ */
+void mysql_connection::updateStats(void) noexcept {
+  auto now(std::time(nullptr));
+  if ((now - _clk) > 1000) {
+    _clk = now;
+    std::chrono::time_point<std::chrono::steady_clock> nowPoint(
+        std::chrono::steady_clock::now());
+    stats::center::instance().execute([this, nowPoint] {
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          nowPoint - _startPoint)
+                          .count();
+      _stats->set_waiting_tasks(_tasks_count);
+      _stats->set_is_connected(_isConnected);
+      *_stats->mutable_uptime() =
+          google::protobuf::util::TimeUtil::MillisecondsToDuration(duration);
+    });
+  }
 }
 
 /**
@@ -600,15 +623,23 @@ void mysql_connection::_run() {
       std::list<std::unique_ptr<database::mysql_task>> tasks_list;
       if (!_tasks_list.empty()) {
         std::swap(_tasks_list, tasks_list);
+        //
+        updateStats();
+        /*
         stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
                                          _stats,
                                          static_cast<int>(_tasks_count));
+        */
         assert(_tasks_list.empty());
       } else {
         _tasks_count = 0;
+        //
+        updateStats();
+        /*
         stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
                                          _stats,
                                          static_cast<int>(_tasks_count));
+        */
         _tasks_condition.wait(
             lock, [this] { return _finish_asked || !_tasks_list.empty(); });
         if (_tasks_list.empty()) {
@@ -638,9 +669,13 @@ void mysql_connection::_run() {
 
         if (time(nullptr) - start != 0) {
           start = time(nullptr);
+          //
+          updateStats();
+          /*
           stats::center::instance().update(
               &SqlConnectionStats::set_waiting_tasks, _stats,
               static_cast<int>(_tasks_count));
+          */
         }
       }
 
@@ -661,6 +696,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _finish_asked(false),
       _tasks_count(0),
       _need_commit(false),
+      _isConnected(false),
+      _startPoint{std::chrono::steady_clock::now()},
       _host(db_cfg.get_host()),
       _socket(db_cfg.get_socket()),
       _user(db_cfg.get_user()),
@@ -669,6 +706,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _port(db_cfg.get_port()),
       _state(not_started),
       _stats{stats::center::instance().register_mysql_connection()},
+      _clk{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
   std::unique_lock<std::mutex> lck(_start_m);
   log_v2::sql()->info("mysql_connection: starting connection");
@@ -681,8 +719,12 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
   log_v2::sql()->info("mysql_connection: connection started");
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                   _stats, 0);
+
+  updateStats();
+  // stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+  //                                 _stats, 0);
+  // stats::center::instance().update(&SqlConnectionStats::set_uptime, _stats,
+  // 0);
 }
 
 /**

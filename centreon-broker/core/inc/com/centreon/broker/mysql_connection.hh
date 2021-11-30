@@ -19,6 +19,7 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
+#include <chrono>
 #include <condition_variable>
 #include <future>
 #include <list>
@@ -74,6 +75,9 @@ class mysql_connection {
   std::atomic_int _tasks_count;
   bool _need_commit;
 
+  bool _isConnected;
+  std::chrono::time_point<std::chrono::steady_clock> _startPoint;
+
   std::unordered_map<uint32_t, MYSQL_STMT*> _stmt;
   std::unordered_map<uint32_t, std::string> _stmt_query;
 
@@ -92,6 +96,7 @@ class mysql_connection {
   std::atomic<connection_state> _state;
 
   SqlConnectionStats* _stats;
+  std::time_t _clk;
   uint32_t _qps;
 
   /* mutex to protect the string access in _error */
@@ -123,6 +128,8 @@ class mysql_connection {
 
   void _prepare_connection();
   void _clear_connection();
+
+  void updateStats(void) noexcept;
 
  public:
   /**************************************************************************/
