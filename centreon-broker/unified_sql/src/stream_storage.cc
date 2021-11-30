@@ -74,6 +74,7 @@ void stream::_unified_sql_process_service_status(
     const std::shared_ptr<io::data>& d) {
   neb::service_status const& ss{*static_cast<neb::service_status*>(d.get())};
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
+
   log_v2::perfdata()->debug(
       "unified sql::_unified_sql_process_service_status(): host_id:{}, "
       "service_id:{}",
@@ -236,11 +237,13 @@ void stream::_unified_sql_process_service_status(
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
-    auto status(std::make_shared<storage::status>(
-        ss.last_check, index_id,
-        static_cast<uint32_t>(ss.check_interval * _interval_length), false,
-        rrd_len, ss.last_hard_state));
-    multiplexing::publisher().write(status);
+    if (ss.has_been_checked) {
+      auto status(std::make_shared<storage::status>(
+          ss.last_check, index_id,
+          static_cast<uint32_t>(ss.check_interval * _interval_length), false,
+          rrd_len, ss.last_hard_state));
+      multiplexing::publisher().write(status);
+    }
 
     if (!ss.perf_data.empty()) {
       /* Statements preparations */

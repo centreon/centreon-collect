@@ -238,11 +238,13 @@ void conflict_manager::_storage_process_service_status(
         "conflict_manager: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
-    std::shared_ptr<storage::status> status(std::make_shared<storage::status>(
-        ss.last_check, index_id,
-        static_cast<uint32_t>(ss.check_interval * _interval_length), false,
-        rrd_len, ss.last_hard_state));
-    multiplexing::publisher().write(status);
+    if (ss.has_been_checked) {
+      auto status(std::make_shared<storage::status>(
+          ss.last_check, index_id,
+          static_cast<uint32_t>(ss.check_interval * _interval_length), false,
+          rrd_len, ss.last_hard_state));
+      multiplexing::publisher().write(status);
+    }
 
     if (!ss.perf_data.empty()) {
       /* Statements preparations */
