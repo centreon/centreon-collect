@@ -73,7 +73,6 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
-target_link_libraries("${RRD}" bbdo_storage)
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
 
 # Compile with librrd flags.
@@ -87,7 +86,7 @@ if (LIBRRD_CFLAGS)
       COMPILE_FLAGS "${LIBRRD_CFLAGS}")
   endif ()
 endif ()
-target_link_libraries("${RRD}" ${LIBRRD_LDFLAGS})
+target_link_libraries("${RRD}" ${LIBRRD_LDFLAGS} bbdo_storage)
 
 # Testing.
 if (WITH_TESTING)
