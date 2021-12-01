@@ -40,6 +40,9 @@ class protobuf : public data {
  public:
   T obj;
 
+  /**
+   * @brief Default constructor
+   */
   protobuf() : data(Typ) {}
   protobuf(protobuf const&) = delete;
   ~protobuf() noexcept = default;
@@ -51,8 +54,22 @@ class protobuf : public data {
    *  @return  The event type.
    */
   constexpr static uint32_t static_type() { return Typ; }
+
+  /**
+   * @brief A static operator to instantiate an instance of this class.
+   *
+   * @return A new instance of this class.
+   */
   static io::data* new_proto() { return new protobuf<T, Typ>(); }
 
+  /**
+   * @brief Serialization function of this object. Here we encapsulate a
+   * protobuf message, so this method calls the protobuf mechanism.
+   *
+   * @param e The object to serialize.
+   *
+   * @return A string with the serialized object.
+   */
   static std::string serialize(const io::data& e) {
     std::string retval;
     auto r = static_cast<const protobuf<T, Typ>*>(&e);
@@ -62,6 +79,15 @@ class protobuf : public data {
     return retval;
   }
 
+  /**
+   * @brief Unserialization function of this object. Here from a const char*
+   * pointer, we create an instance of this class.
+   *
+   * @param buffer The pointer to the char* array
+   * @param size The size of the array.
+   *
+   * @return a pointer to the new object.
+   */
   static io::data* unserialize(const char* buffer, size_t size) {
     std::unique_ptr<protobuf<T, Typ>> retval =
         std::make_unique<protobuf<T, Typ>>();
@@ -71,6 +97,10 @@ class protobuf : public data {
     return retval.release();
   }
 
+  /**
+   * @brief An internal BBDO object used to access to the constructor,
+   * serialization and unserialization functions.
+   */
   const static io::event_info::event_operations operations;
 };
 
