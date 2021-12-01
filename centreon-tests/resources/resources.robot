@@ -32,9 +32,10 @@ Reload Broker
 	Send Signal To Process	SIGHUP	b2
 
 Stop Broker
-	${result}=	Terminate Process	b1
+	Log to console	Extinction of b1
+	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Terminate Process	b2
+	${result}=	Terminate Process	b2	kill=False
 	Should Be Equal As Integers	${result.rc}	0
 
 Stop Processes
@@ -84,7 +85,7 @@ Check Connections
 	[Return]	${retval}
 
 Disable Eth Connection On Port
-	[Arguments]		${port}
+	[Arguments]	${port}
 	RUN	iptables -A INPUT -p tcp --dport ${port} -j DROP
 	RUN	iptables -A OUTPUT -p tcp --dport ${port} -j DROP
 	RUN	iptables -A FORWARD -p tcp --dport ${port} -j DROP

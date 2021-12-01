@@ -16,6 +16,7 @@ Library	../resources/Common.py
 
 *** Test Cases ***
 BRRDDM1
+	Start Mysql
 	[Documentation]	RRD metric deletion on table metric
 	[Tags]	RRD metric deletion on table metric
 	Config Engine	${1}
