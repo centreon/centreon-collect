@@ -40,7 +40,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "20-bam.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
   return retval;
 }
 
@@ -84,6 +84,10 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
+      e.register_event(make_type(io::bam, bam::de_dimension_ba_bv_relation_event), "dimension_ba_bv_relation_event", &bam::dimension_ba_bv_relation_event::operations, bam::dimension_ba_bv_relation_event::entries);
+      e.register_event(make_type(io::bam, bam::de_dimension_ba_event), "dimension_ba_event", &bam::dimension_ba_event::operations, bam::dimension_ba_event::entries);
+      e.register_event(make_type(io::bam, bam::de_dimension_bv_event), "dimension_bv_event", &bam::dimension_bv_event::operations, bam::dimension_bv_event::entries);
+      e.register_event(make_type(io::bam, bam::de_dimension_truncate_table_signal), "dimension_truncate_table_signal", &bam::dimension_truncate_table_signal::operations, bam::dimension_truncate_table_signal::entries);
     }
 
     // Register lua layer.
