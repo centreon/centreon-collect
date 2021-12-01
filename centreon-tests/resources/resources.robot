@@ -32,7 +32,6 @@ Reload Broker
 	Send Signal To Process	SIGHUP	b2
 
 Stop Broker
-	Log to console	Extinction of b1
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
 	${result}=	Terminate Process	b2	kill=False

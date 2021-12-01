@@ -69,11 +69,12 @@ NetworkDBFail6
 NetworkDBFailU6
 	[Documentation]	network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
         [Tags]	Broker	Database	Network	unified_sql
+	Reset Eth Connection
 	Config Engine	${1}
         Config Broker	central
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Output Set	central	central-broker-unified-sql	db_host	127.0.0.1
-	Broker Config Output set	central	central-broker-master-sql	connections_count	5
+	Broker Config Output set	central	central-broker-unified-sql	connections_count	5
 	Broker Config Log	central	sql	trace
         Config Broker	rrd
         Config Broker	module
@@ -167,6 +168,7 @@ Disable Sleep Enable
 
 Network Failure
 	[Arguments]	${interval}
+	Reset Eth Connection
 	Config Engine	${1}
 	Config Broker	module
 	Config Broker	rrd
