@@ -97,3 +97,4 @@ add_library(
       "bam/kpi_event.hh"
     )
 set_target_properties(bbdo_bam PROPERTIES COMPILE_FLAGS "-fPIC")
+add_dependencies(bbdo_bam table_max_size)
