@@ -18,12 +18,12 @@
 
 #include <rrd.h>
 
+#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -95,16 +95,12 @@ void broker_module_init(void const* arg) {
                        storage::remove_graph::entries);
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-            e.register_event(make_type(io::storage,
-            storage::de_index_mapping),
-                             "index_mapping",
-                             &storage::index_mapping::operations,
-                             storage::index_mapping::entries);
-            e.register_event(make_type(io::storage,
-            storage::de_metric_mapping),
-                             "metric_mapping",
-                             &storage::metric_mapping::operations,
-                             storage::metric_mapping::entries);
+      e.register_event(make_type(io::storage, storage::de_index_mapping),
+                       "index_mapping", &storage::index_mapping::operations,
+                       storage::index_mapping::entries);
+      e.register_event(make_type(io::storage, storage::de_metric_mapping),
+                       "metric_mapping", &storage::metric_mapping::operations,
+                       storage::metric_mapping::entries);
       log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
                            io::storage, storage::de_pb_rebuild);
       e.register_event(storage_pb_rebuild, "pb_rebuild",
