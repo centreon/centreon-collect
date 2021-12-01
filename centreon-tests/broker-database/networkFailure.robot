@@ -52,10 +52,10 @@ Network Failure
     Start Broker
 	Start Engine
 	${log}=			Catenate		SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-	${content}=		Set Variable	SQL: performing mysql_ping.
+	${content}=		Create List	SQL: performing mysql_ping.
 	${result}=		Do When Catch In Log	${log}		${start}	${content}		Disable Sleep Enable	${interval}
     ${end}=			Get Current Date
-	${content}=		Set Variable	mysql_connection: commit
+	${content}=		Create List	mysql_connection: commit
 	Should Not Be Equal		${result}	False		msg=timeout after 5 minutes (network failure duration : ${interval})
 	${result}=				Catch In Log			${log}		${end}		${content}
 	Should Be True			${result}				msg=timeout after 5 minutes (mysql_ping may be hanging)
