@@ -23,10 +23,16 @@
 
 using namespace com::centreon::broker;
 
+/**
+ * @brief Constructor of our gRPC server
+ *
+ * @param address
+ * @param port
+ * @param broker_name
+ */
 brokerrpc::brokerrpc(const std::string& address,
                      uint16_t port,
                      std::string const& broker_name) {
-  // broker_impl* service = new broker_impl;
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
   grpc::ServerBuilder builder;
@@ -35,6 +41,9 @@ brokerrpc::brokerrpc(const std::string& address,
   _server = builder.BuildAndStart();
 }
 
+/**
+ * @brief The shutdown() method, to stop the gRPC server.
+ */
 void brokerrpc::shutdown() {
   _server->Shutdown();
   _server->Wait();
