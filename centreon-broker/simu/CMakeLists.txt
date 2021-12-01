@@ -21,11 +21,9 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/simu/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/simu/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/simu/test")
-include_directories("${INC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/bam/inc"
+include_directories("${INC_DIR}"
   "${PROJECT_SOURCE_DIR}/lua/inc"
-  "${PROJECT_SOURCE_DIR}/neb/inc"
-  "${PROJECT_SOURCE_DIR}/storage/inc")
+  "${PROJECT_SOURCE_DIR}/neb/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/simu")
 
 # Storage module.
@@ -33,16 +31,12 @@ set(SIMU "70-simu")
 set(SIMU "${SIMU}" PARENT_SCOPE)
 add_library("${SIMU}" SHARED
   # Sources.
-#"${SRC_DIR}/broker_log.cc"
-#  "${SRC_DIR}/broker_utils.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/luabinding.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
-#  "${INC_DIR}/broker_log.hh"
-#  "${INC_DIR}/broker_utils.hh"
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/luabinding.hh"
@@ -52,18 +46,18 @@ target_link_libraries("${SIMU}" ${LUA_LIBRARIES})
 set_target_properties("${SIMU}" PROPERTIES PREFIX "")
 
 # Testing.
-#set(
-#  TESTS_SOURCES
-#  ${TESTS_SOURCES}
-#  "${TEST_DIR}/simu.cc"
-#  PARENT_SCOPE
-#)
-#set(
-#  TESTS_LIBRARIES
-#  ${TESTS_LIBRARIES}
-#  "${SIMU}"
-#  PARENT_SCOPE
-#)
+set(
+  TESTS_SOURCES
+  ${TESTS_SOURCES}
+  "${TEST_DIR}/simu.cc"
+  PARENT_SCOPE
+)
+set(
+  TESTS_LIBRARIES
+  ${TESTS_LIBRARIES}
+  "${SIMU}"
+  PARENT_SCOPE
+)
 
 # Install rule.
 install(TARGETS "${SIMU}"

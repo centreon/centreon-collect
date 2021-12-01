@@ -21,10 +21,9 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/lua/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
-include_directories("${INC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/bam/inc")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories(${OpenSSL_INCLUDE_DIRS})
+include_directories("${INC_DIR}"
+  "${PROJECT_SOURCE_DIR}/neb/inc"
+  ${OpenSSL_INCLUDE_DIRS})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
 # Storage module.
@@ -59,20 +58,21 @@ target_link_libraries("${LUA}" ${LUA_LIBRARIES} ${OpenSSL_LIBS} bbdo_storage bbd
 set_target_properties("${LUA}" PROPERTIES PREFIX "")
 
 # Testing.
-#if (WITH_TESTING)
-#  set(
-#    TESTS_SOURCES
-#    ${TESTS_SOURCES}
-#    "${TEST_DIR}/lua.cc"
-#    PARENT_SCOPE
-#  )
-#  set(
-#    TESTS_LIBRARIES
-#    ${TESTS_LIBRARIES}
-#    "${LUA}"
-#    PARENT_SCOPE
-#  )
-#endif()
+if (WITH_TESTING)
+  set(
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    "${TEST_DIR}/lua.cc"
+    PARENT_SCOPE
+  )
+  set(
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    "${LUA}"
+    PARENT_SCOPE
+  )
+endif()
+
 # Install rule.
 install(TARGETS "${LUA}"
   LIBRARY DESTINATION "${PREFIX_MODULES}"
