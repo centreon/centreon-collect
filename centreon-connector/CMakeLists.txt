@@ -24,6 +24,7 @@ endif ()
 
 # We will use pkg-config if available.
 include_directories(${PROJECT_SOURCE_DIR}/common/inc)
+include_directories(${CMAKE_SOURCE_DIR}/centreon-clib/inc)
 
 add_subdirectory(perl)
 add_subdirectory(ssh)

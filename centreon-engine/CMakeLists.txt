@@ -98,7 +98,6 @@ if (WITH_CENTREON_CLIB_INCLUDE_DIR)
   if (NOT CLIB_HEADER_FOUND)
     message(FATAL_ERROR "Could not find Centreon Clib's headers in ${WITH_CENTREON_CLIB_INCLUDE_DIR}.")
   endif ()
-  include_directories("${WITH_CENTREON_CLIB_INCLUDE_DIR}")
   set(CLIB_INCLUDE_DIR "${WITH_CENTREON_CLIB_INCLUDE_DIR}")
 elseif (CLIB_FOUND) # Was Centreon Clib detected with pkg-config ?
   if (CMAKE_CXX_FLAGS)
@@ -111,8 +110,8 @@ else ()
   if (NOT CLIB_INCLUDE_DIR)
     message(FATAL_ERROR "Could not find Centreon Clib's headers (try WITH_CENTREON_CLIB_INCLUDE_DIR).")
   endif ()
-  include_directories("${CLIB_INCLUDE_DIR}")
 endif ()
+include_directories(${CMAKE_SOURCE_DIR}/centreon-clib/inc)
 
 # Find Centreon Clib's library.
 if (WITH_CENTREON_CLIB_LIBRARIES)

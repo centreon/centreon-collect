@@ -17,7 +17,7 @@ else
 fi
 
 #Build
-make -j9 
+make -j9
 make -j9 install
 
 #Test
