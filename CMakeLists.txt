@@ -20,6 +20,7 @@
 # Global settings.
 #
 
+
 # Set necessary settings.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 cmake_minimum_required(VERSION 3.1)
@@ -58,7 +59,9 @@ set(USER_ENGINE centreon-engine)
 ##################################
 
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
+include(GNUInstallDirs)
 
+set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
 if (WITH_TESTING)
   find_package(GTest REQUIRED)

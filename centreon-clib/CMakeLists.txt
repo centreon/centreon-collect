@@ -282,7 +282,7 @@ if (WITH_SHARED_LIB)
   # Install shared library.
   install(
     TARGETS "centreon_clib_shared"
-    DESTINATION "${PREFIX_LIB}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     COMPONENT "runtime"
   )
 endif ()

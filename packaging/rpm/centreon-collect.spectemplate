@@ -95,7 +95,7 @@ cmake3 \
 %{__install} -d $RPM_BUILD_ROOT%{_sysconfdir}/centreon-engine/conf.d
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/doc/centreon-broker
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
-%{__install} -m 644 script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
+%{__install} -m 644 centreon-broker/script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
 %{__make} install DESTDIR="$RPM_BUILD_ROOT"
 
 %clean
@@ -145,7 +145,7 @@ chmod -R g+w /var/log/centreon-broker
 %files -n centreon-clib
 %defattr(-,root,root,-)
 %{_libdir}/libcentreon_clib.so
-%doc LICENSE
+%doc centreon-clib/LICENSE
 
 %files -n centreon-broker-core
 %defattr(-,root,root,-)
