@@ -21,14 +21,17 @@ centreon-engine, centreon-clib and centreon-connectors.
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 
-BuildRequires:  cmake3 >= 3.15
-BuildRequires:  gcc
-BuildRequires:  gcc-c++
-BuildRequires:  lua-devel
-BuildRequires:  libgcrypt-devel
-BuildRequires:  rrdtool-devel
-BuildRequires:  systemd
-BuildRequires:  gnutls-devel >= 3.3.29
+BuildRequires: cmake3 >= 3.15
+BuildRequires: gcc
+BuildRequires: gcc-c++
+BuildRequires: lua-devel
+BuildRequires: libgcrypt-devel
+BuildRequires: rrdtool-devel
+BuildRequires: systemd
+BuildRequires: gnutls-devel >= 3.3.29
+BuildRequires: perl
+BuildRequires: perl-devel
+BuildRequires: perl-ExtUtils-Embed
 Requires: centreon-clib = %{version}-%{release}
 Requires: centreon-broker-core = %{version}-%{release}
 
@@ -100,6 +103,39 @@ Requires: centreon-clib = %{version}-%{release}
 
 %description -n centreon-engine-bench
 Some Centreon Engine benchmarking tools.
+
+
+%package -n centreon-connector
+Summary: Centreon Connector provide some tools for Centreon Engine to monitoring and management system.
+Group: Application/System
+Requires: centreon-connector-perl = %{version}-%{release}
+Requires: centreon-connector-ssh = %{version}-%{release}
+
+%description -n centreon-connector
+Centreon Connector provide a monitoring tools, compatible with
+Centreon-Engine configuration, designed to monitor and manage system.
+
+
+%package -n centreon-connector-perl
+Summary: Centreon Connector Perl provide embedded perl for Centreon-Engine.
+Group: Application/System
+Requires: centreon-clib = %{version}-%{release}
+Requires: perl
+
+%description -n centreon-connector-perl
+Centreon Connector Perl provide embedded perl for Centreon Engine
+a monitoring engine.
+
+
+%package -n centreon-connector-ssh
+Summary: Centreon Connector SSH provide persistante connection between checks.
+Group: Application/System
+Requires: centreon-clib = %{version}-%{release}
+Requires: libssh2 >= 1.4
+Requires: libgcrypt
+
+%description -n centreon-connector-ssh
+Centreon Connector SSH provide persistante connection between checks.
 
 
 %package -n centreon-broker
@@ -332,6 +368,11 @@ fi
 %{_libdir}/centreon-engine/bench_passive_module.so
 %{_sbindir}/centengine_bench_passive
 
+%files -n centreon-connector-perl
+%attr(0775,root,root) %{_libdir}/centreon-connector/centreon_connector_perl
+
+%files -n centreon-connector-ssh
+%attr(0775,root,root) %{_libdir}/centreon-connector/centreon_connector_ssh
 
 %files -n centreon-broker
 %defattr(-,centreon-broker,centreon-broker,-)
