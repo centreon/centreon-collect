@@ -48,9 +48,6 @@ if (WITH_PREFIX)
 endif ()
 
 set(PREFIX_BIN "${PREFIX}/centreon_benchmark_connector")
-if (WITH_PREFIX_BIN)
-  set(bindir "${WITH_PREFIX_BIN}")
-endif ()
 
 # Set options.
 set(UNIT_TEST "No")

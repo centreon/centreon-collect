@@ -173,19 +173,7 @@ if (WITH_PREFIX)
   set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
 endif ()
 
-# Executable directory.
-if (WITH_PREFIX_BIN)
-  set(PREFIX_BIN "${WITH_PREFIX_BIN}")
-else ()
-  set(PREFIX_BIN "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
-
-# Configuration directory.
-if (WITH_PREFIX_CONF_ENGINE)
-  set(PREFIX_CONF "${WITH_PREFIX_CONF_ENGINE}")
-else ()
-  set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
-endif ()
+set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
 
 # Library directory.
 if (WITH_PREFIX_LIB_ENGINE)
@@ -194,56 +182,10 @@ else ()
   set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine")
 endif ()
 
-# Development headers directory.
-if (WITH_PREFIX_INC)
-  set(PREFIX_INC "${WITH_PREFIX_INC}")
-else ()
-  set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include/centreon-engine")
-endif ()
-
-# pkg-config directory.
-option(WITH_PKGCONFIG_SCRIPT "Generate and install pkg-config script." ON)
-if (WITH_PKGCONFIG_SCRIPT)
-  # Generate pkg-config file.
-  message(STATUS "Generating pkg-config file.")
-  configure_file(
-    "${SCRIPT_DIR}/centengine.pc.in"
-    "${SCRIPT_DIR}/centengine.pc"
-    @ONLY)
-
-  # pkg-config file install directory.
-  if (WITH_PKGCONFIG_DIR)
-    set(PKGCONFIG_DIR "${WITH_PKGCONFIG_DIR}")
-  else ()
-    set(PKGCONFIG_DIR "${PREFIX_LIB}/pkgconfig")
-  endif ()
-
-  # Install rule.
-  install(FILES "${SCRIPT_DIR}/centengine.pc"
-    DESTINATION "${PKGCONFIG_DIR}"
-    COMPONENT "runtime")
-endif ()
-
 # var directory.
-if (WITH_VAR_DIR)
-  set(VAR_DIR "${WITH_VAR_DIR}")
-else ()
-  set(VAR_DIR "${CMAKE_INSTALL_PREFIX}/var")
-endif ()
-
-# Log archive dir.
-if (WITH_LOG_ARCHIVE_DIR)
-  set(LOG_ARCHIVE_DIR "${WITH_LOG_ARCHIVE_DIR}")
-else ()
-  set(LOG_ARCHIVE_DIR "${VAR_DIR}/archives")
-endif ()
-
-# RW dir.
-if (WITH_RW_DIR)
-  set(RW_DIR "${WITH_RW_DIR}")
-else ()
-  set(RW_DIR "${VAR_DIR}/rw")
-endif ()
+set(VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
+set(VAR_LOG_ARCHIVE_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
+set(VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
 
 # User used to run Centreon Engine.
 if (WITH_USER_ENGINE)
@@ -390,8 +332,8 @@ else ()
 endif ()
 
 # logrotate directory.
-option(WITH_LOGROTATE_SCRIPT "Generate and install logrotate script." OFF)
-if (WITH_LOGROTATE_SCRIPT)
+option(WITH_ENGINE_LOGROTATE_SCRIPT "Generate and install logrotate script." OFF)
+if (WITH_ENGINE_LOGROTATE_SCRIPT)
   # Generate logrotate file.
   message(STATUS "Generating logrorate file.")
   if (WITH_STARTUP_SCRIPT STREQUAL "upstart")
@@ -412,11 +354,7 @@ if (WITH_LOGROTATE_SCRIPT)
   endif ()
 
   # logrotate file install directory.
-  if (WITH_LOGROTATE_DIR)
-    set(LOGROTATE_DIR "${WITH_LOGROTATE_DIR}")
-  else ()
-    set(LOGROTATE_DIR "/etc/logrotate.d")
-  endif ()
+  set(LOGROTATE_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/logrotate.d")
 
   # Install rule.
   install(
@@ -462,13 +400,13 @@ configure_file("${INC_DIR}/compatibility/common.h.in"
   "${INC_DIR}/compatibility/common.h")
 
 # Locations definitions
-add_definitions(-DDEFAULT_STATUS_FILE="${VAR_DIR}/status.dat")
-add_definitions(-DDEFAULT_LOG_FILE="${VAR_DIR}/centengine.log")
-add_definitions(-DDEFAULT_LOG_ARCHIVE_PATH="${LOG_ARCHIVE_DIR}")
-add_definitions(-DDEFAULT_DEBUG_FILE="${VAR_DIR}/centengine.debug")
-add_definitions(-DDEFAULT_RETENTION_FILE="${VAR_DIR}/retention.dat")
-add_definitions(-DDEFAULT_COMMAND_FILE="${RW_DIR}/centengine.cmd")
-add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_CONF}/centengine.cfg")
+add_definitions(-DDEFAULT_STATUS_FILE="${VAR_LOG_DIR}/status.dat")
+add_definitions(-DDEFAULT_LOG_FILE="${VAR_LOG_DIR}/centengine.log")
+add_definitions(-DDEFAULT_LOG_ARCHIVE_PATH="${VAR_LOG_ARCHIVE_DIR}")
+add_definitions(-DDEFAULT_DEBUG_FILE="${VAR_LOG_DIR}/centengine.debug")
+add_definitions(-DDEFAULT_RETENTION_FILE="${VAR_LOG_DIR}/retention.dat")
+add_definitions(-DDEFAULT_COMMAND_FILE="${VAR_LIB_DIR}/rw/centengine.cmd")
+add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_ENGINE_CONF}/centengine.cfg")
 
 # Add specific linker flags for Mac OS to build correctly shared libraries.
 if (APPLE)
@@ -632,7 +570,7 @@ add_subdirectory(tests)
 
 # Install rules.
 install(TARGETS "centengine" "centenginestats"
-  DESTINATION "${PREFIX_BIN}"
+  DESTINATION "${CMAKE_INSTALL_SBINDIR}"
   COMPONENT "runtime")
 
 ## Create directories.
@@ -661,14 +599,14 @@ if (CREATE_FILES)
   endfunction()
 
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_INC}\")
+  #mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${LOG_ARCHIVE_DIR}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${RW_DIR}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LOG_ARCHIVE_DIR}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LIB_DIR}/rw\")
   if (LOCK_DIR)
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${LOCK_DIR}\")
   endif ()
@@ -676,16 +614,16 @@ if (CREATE_FILES)
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PID_DIR}\")
   endif ()
 
-  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}/status.dat\")
-  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}/centengine.log\")
-  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}/centengine.debug\")
-  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}/retention.dat\")
+  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LOG_DIR}/status.dat\")
+  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LOG_DIR}/centengine.log\")
+  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LOG_DIR}/centengine.debug\")
+  touch_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LOG_DIR}/retention.dat\")
   ")
 endif ()
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/"
-  DESTINATION "${PREFIX_INC}"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine/"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
   PATTERN "${INC_DIR}/compatibility/" EXCLUDE
@@ -734,12 +672,7 @@ if (WITH_TESTING)
 else ()
   message(STATUS "    - Unit tests                  disabled")
 endif ()
-if (WITH_PKGCONFIG_SCRIPT)
-  message(STATUS "    - pkg-config script           enabled")
-else ()
-  message(STATUS "    - pkg-config script           disabled")
-endif ()
-if (WITH_LOGROTATE_SCRIPT)
+if (WITH_ENGINE_LOGROTATE_SCRIPT)
   message(STATUS "    - logrotate script            enabled")
 else ()
   message(STATUS "    - logrotate script            disabled")
@@ -748,20 +681,17 @@ message(STATUS "    - Startup script              ${STARTUP_SCRIPT}")
 message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                      ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "    - Binary prefix               ${PREFIX_BIN}")
-message(STATUS "    - Configuration prefix        ${PREFIX_CONF}")
+message(STATUS "    - Binary prefix               ${CMAKE_INSTALL_SBINDIR}")
+message(STATUS "    - Configuration prefix        ${PREFIX_ENGINE_CONF}")
 message(STATUS "    - Library prefix              ${PREFIX_LIB}")
-message(STATUS "    - Include prefix              ${PREFIX_INC}")
+message(STATUS "    - Include prefix              ${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine")
 message(STATUS "    - var directory               ${VAR_DIR}")
-message(STATUS "    - Log archive directory       ${LOG_ARCHIVE_DIR}")
-message(STATUS "    - RW directory                ${RW_DIR}")
+message(STATUS "    - Log archive directory       ${VAR_LOG_ARCHIVE_DIR}")
+message(STATUS "    - RW directory                ${VAR_LIB_DIR}/rw")
 if (LOCK_FILE)
   message(STATUS "    - Lock prefix                 ${LOCK_FILE}")
 endif ()
-if (WITH_PKGCONFIG_SCRIPT)
-  message(STATUS "    - pkg-config directory        ${PKGCONFIG_DIR}")
-endif ()
-if (WITH_LOGROTATE_SCRIPT)
+if (WITH_ENGINE_LOGROTATE_SCRIPT)
   message(STATUS "    - logrotate directory         ${LOGROTATE_DIR}")
 endif ()
 if (STARTUP_DIR)

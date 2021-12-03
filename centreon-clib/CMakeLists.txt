@@ -99,12 +99,6 @@ endif ()
 
 
 # Set path.
-if (WITH_PREFIX)
-  set(PREFIX "${WITH_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${PREFIX}")
-else ()
-  set(PREFIX "${CMAKE_INSTALL_PREFIX}")
-endif ()
 if (WITH_PREFIX_LIB_CLIB)
   set(PREFIX_LIB "${WITH_PREFIX_LIB_CLIB}")
 else ()
@@ -114,33 +108,6 @@ if (WITH_PREFIX_INC)
   set(PREFIX_INC "${WITH_PREFIX_INC}")
 else ()
   set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include")
-endif ()
-
-
-# Set pkg-config options.
-option(WITH_PKGCONFIG_SCRIPT "Generate and install pkg-config script." ON)
-if (WITH_PKGCONFIG_SCRIPT)
-  # Generate pkg-config file.
-  message(STATUS "Generating pkg-config file.")
-  configure_file(
-    "${SCRIPT_DIR}/centreon-clib.pc.in"
-    "${SCRIPT_DIR}/centreon-clib.pc"
-    @ONLY
-  )
-
-  # pkg-config file install directory.
-  if (WITH_PKGCONFIG_DIR)
-    set(PKGCONFIG_DIR "${WITH_PKGCONFIG_DIR}")
-  else ()
-    set(PKGCONFIG_DIR "${PREFIX_LIB}pkgconfig")
-  endif ()
-
-  # Install rule.
-  install(
-    FILES "${SCRIPT_DIR}/centreon-clib.pc"
-    DESTINATION "${PKGCONFIG_DIR}"
-    COMPONENT "runtime"
-  )
 endif ()
 
 
@@ -322,7 +289,7 @@ endif ()
 # Install header files for devel.
 install(
   DIRECTORY "${INCLUDE_DIR}/"
-  DESTINATION "${PREFIX_INC}"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-clib"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
 )
@@ -354,11 +321,8 @@ message(STATUS "    - Extra compilation flags   ${CMAKE_CXX_FLAGS}")
 message(STATUS "    - Build unit tests          ${UNIT_TEST}")
 message(STATUS "")
 message(STATUS "  Installation")
-message(STATUS "    - Prefix                    ${PREFIX}")
+message(STATUS "    - Prefix                    ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "    - Library directory         ${PREFIX_LIB}")
 message(STATUS "    - Include directory         ${PREFIX_INC}")
 message(STATUS "    - Package                   ${PACKAGE_LIST}")
-if (WITH_PKGCONFIG_SCRIPT)
-  message(STATUS "    - pkg-config directory      ${PKGCONFIG_DIR}")
-endif ()
 message(STATUS "")

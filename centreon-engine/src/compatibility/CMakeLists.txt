@@ -76,7 +76,7 @@ set(
 )
 
 # Install header files for development.
-install(DIRECTORY "${INC_DIR}"
-  DESTINATION "${PREFIX_INC}"
+install(DIRECTORY "${INC_DIR}/"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.h")

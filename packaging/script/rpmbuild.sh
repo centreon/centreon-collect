@@ -37,5 +37,5 @@ tar czf centreon-collect-$VERSION.tar.gz centreon-collect-$VERSION
 mv centreon-collect-$VERSION.tar.gz /root/rpmbuild/SOURCES/
 rm -rf centreon-collect-$VERSION
 
-rpmbuild -ba -vv centreon-collect/packaging/rpm/centreon-collect.spectemplate -D "VERSION $VERSION" -D "RELEASE $RELEASE"
+rpmbuild -ba centreon-collect/packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 

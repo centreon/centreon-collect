@@ -62,14 +62,9 @@ target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${
 if (WITH_PREFIX)
   set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
 endif ()
-if (WITH_PREFIX_BINARY)
-  set(PREFIX_BINARY "${WITH_PREFIX_BINARY}")
-else ()
-  set(PREFIX_BINARY "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
 
 # Install rules.
-install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${PREFIX_BINARY})
+install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/centreon-connector/)
 
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)

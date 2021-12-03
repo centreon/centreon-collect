@@ -1,5 +1,6 @@
 ##
 ## Copyright 2011-2013 Merethis
+## Copyright 2020-2021 Centreon
 ##
 ## This file is part of Centreon Engine.
 ##
@@ -46,7 +47,7 @@ configure_file("${SRC_DIR}/objects/windows.cfg.in"
 option(WITH_SAMPLE_CONFIG "Install sample configuration files." ON)
 if (WITH_SAMPLE_CONFIG)
   install(DIRECTORY "${SRC_DIR}/"
-    DESTINATION "${PREFIX_CONF}"
+    DESTINATION "${PREFIX_ENGINE_CONF}"
     COMPONENT "runtime"
     FILES_MATCHING PATTERN "*.cfg")
 
@@ -57,15 +58,15 @@ if (WITH_SAMPLE_CONFIG)
     endif ()
   endfunction()
 
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/centengine.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/resource.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/commands.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/contacts.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/localhost.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/printer.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/switch.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/templates.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/timeperiods.cfg\")
-  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}/objects/windows.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/centengine.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/resource.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/commands.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/contacts.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/localhost.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/printer.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/switch.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/templates.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/timeperiods.cfg\")
+  my_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects/windows.cfg\")
   ")
 endif ()

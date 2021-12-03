@@ -157,24 +157,7 @@ endif ()
 # Options.
 #
 
-# Main directory.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
-
-# Executable directory.
-if (WITH_PREFIX_BIN)
-  set(PREFIX_BIN "${WITH_PREFIX_BIN}")
-else ()
-  set(PREFIX_BIN "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
-
-# Configuration directory.
-if (WITH_PREFIX_CONF_BROKER)
-  set(PREFIX_CONF "${WITH_PREFIX_CONF_BROKER}")
-else ()
-  set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
-endif ()
+set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
 # Library directory.
 if (WITH_PREFIX_LIB_BROKER)
@@ -195,13 +178,6 @@ if (WITH_PREFIX_VAR)
   set(PREFIX_VAR "${WITH_PREFIX_VAR}")
 else ()
   set(PREFIX_VAR "${CMAKE_INSTALL_PREFIX}/var")
-endif ()
-
-# Development headers directory.
-if (WITH_PREFIX_INC)
-  set(PREFIX_INC "${WITH_PREFIX_INC}")
-else ()
-  set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include/centreon-broker")
 endif ()
 
 # User.
@@ -282,14 +258,14 @@ if (WITH_DAEMONS)
 
   foreach (DAEMON_NAME IN LISTS WITH_DAEMONS)
     set(DAEMONS_CONFIGURATION
-      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
+      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_BROKER_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
   endforeach ()
 
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
     "${PROJECT_SOURCE_DIR}/script/watchdog.json"
     @ONLY)
   install(FILES "${PROJECT_SOURCE_DIR}/script/watchdog.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   if (WITH_STARTUP_SCRIPT STREQUAL "sysv")
     install(PROGRAMS "${PROJECT_SOURCE_DIR}/script/cbd.init"
       DESTINATION "${STARTUP_DIR}"
@@ -309,11 +285,11 @@ if (WITH_CONFIG_FILES)
     @ONLY)
 
   install(FILES "${PROJECT_SOURCE_DIR}/config/poller-module.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-broker.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
 endif ()
 
 # Monitoring engine (for testing).
@@ -619,11 +595,11 @@ install(CODE "
   endfunction()
 
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
+#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_MODULES}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_INC}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BROKER_CONF}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_VAR}\")
   if (WITH_STARTUP_SCRIPT STREQUAL \"sysv\")
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${STARTUP_DIR}\")
@@ -632,13 +608,13 @@ install(CODE "
 
 # Install rule.
 install(TARGETS "${DAEMON}"
-  RUNTIME DESTINATION "${PREFIX_BIN}"
+  RUNTIME DESTINATION "${CMAKE_INSTALL_SBINDIR}"
   )
 
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/../../../"
-  DESTINATION "${PREFIX_INC}/"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh" PATTERN "*.h"
   )
@@ -705,11 +681,11 @@ message(STATUS "    - Module                     ${MODULE_LIST}")
 message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "    - Binary prefix              ${PREFIX_BIN}")
+message(STATUS "    - Binary prefix              ${CMAKE_INSTALL_SBINDIR}")
 message(STATUS "    - Library prefix             ${PREFIX_LIB}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
-message(STATUS "    - Include prefix             ${PREFIX_INC}")
-message(STATUS "    - Configuration prefix       ${PREFIX_CONF}")
+message(STATUS "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker")
+message(STATUS "    - Configuration prefix       ${PREFIX_BROKER_CONF}")
 if (NOT WITH_STARTUP_SCRIPT STREQUAL "no")
   message(STATUS "    - Startup dir                ${STARTUP_DIR}")
 endif ()
