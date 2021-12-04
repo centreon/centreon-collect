@@ -13,7 +13,7 @@ if [ ! -d /root/rpmbuild/SOURCES ] ; then
 fi
 
 mkdir centreon-collect-$VERSION
-rsync -avzh --exclude .git --exclude build centreon-collect/ centreon-collect-$VERSION
+cp -r centreon-collect/* centreon-collect-$VERSION
 tar czf centreon-collect-$VERSION.tar.gz centreon-collect-$VERSION
 mv centreon-collect-$VERSION.tar.gz /root/rpmbuild/SOURCES/
 rm -rf centreon-collect-$VERSION
