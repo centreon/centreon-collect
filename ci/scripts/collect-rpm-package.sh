@@ -17,7 +17,7 @@ tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './.git'  \
       --transform 's,^\.,centreon-collect-$VERSION,' .
 
-rpmbuild -ba centreon-collect/packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
+rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 
 # cleaning and according permissions to slave to delivery rpms
 rm -rf *.rpm
