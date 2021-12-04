@@ -7,17 +7,16 @@ if [ -z "$VERSION" -o -z "$RELEASE" -o -z "$DISTRIB" ] ; then
 fi
 
 echo "################################################## BUILDING COLLECT #################################################"
-echo "From $PWD"
 
 # generate rpm broker
 if [ ! -d /root/rpmbuild/SOURCES ] ; then
     mkdir -p /root/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 fi
 
-tar cvzf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
+tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './build' \
       --exclude './.git'  \
-      --transform 's,^\.,centreon-collect-$VERSION,' .
+      --transform "s,^\.,centreon-collect-$VERSION," .
 
 rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 
