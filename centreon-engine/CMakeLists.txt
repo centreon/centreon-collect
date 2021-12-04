@@ -537,7 +537,7 @@ include_directories(enginerpc)
 # Library engine target.
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
-add_dependencies(cce_core centreon_clib_shared)
+add_dependencies(cce_core centreon_clib)
 
 # Link target with required libraries.
 target_link_libraries(cce_core ${nlohmann_json_LIBS}
@@ -551,14 +551,14 @@ target_link_libraries(cce_core ${nlohmann_json_LIBS}
 # centengine target.
 add_executable("centengine" "${SRC_DIR}/main.cc")
 set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
-add_dependencies(centengine centreon_clib_shared)
+add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
 target_link_libraries(centengine centreon_clib "-Wl,-whole-archive" enginerpc cce_core  "-Wl,-no-whole-archive" ${gRPC_LIBS} ${absl_LIBS} ${OpenSSL_LIBS} ${c-ares_LIBS} ${ZLIB_LIBS} dl)
 
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
-add_dependencies("centenginestats" centreon_clib_shared)
+add_dependencies("centenginestats" centreon_clib)
 target_link_libraries("centenginestats" centreon_clib)
 
 # Unit tests.

@@ -39,7 +39,7 @@ if (WITH_BENCH)
   add_executable("centengine_bench_passive"
     "${SRC_DIR}/passive/engine_cfg.cc"
     "${SRC_DIR}/passive/main.cc")
-  add_dependencies("centengine_bench_passive" centreon_clib_shared)
+  add_dependencies("centengine_bench_passive" centreon_clib)
   target_link_libraries("centengine_bench_passive" centreon_clib)
   install(TARGETS "centengine_bench_passive"
     DESTINATION "${CMAKE_INSTALL_SBINDIR}"

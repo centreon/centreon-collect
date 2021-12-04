@@ -59,7 +59,7 @@ add_executable(centreon_connector_ssh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/session.hh
   ${PROJECT_SOURCE_DIR}/ssh/inc/com/centreon/connector/ssh/sessions/socket_handle.hh
 )
-add_dependencies(centreon_connector_ssh centreon_clib_shared)
+add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
   centreon_clib ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
 

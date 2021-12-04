@@ -246,7 +246,7 @@ cmake3 \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
-%{__make} -j5 %{?_smp_mflags}
+%{__make} %{?_smp_mflags}
 #%{__make} -j9 %{?_smp_mflags} VERBOSE="1"
 
 %install

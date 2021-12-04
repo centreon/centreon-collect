@@ -141,29 +141,6 @@ if (CPACK_BINARY_RPM)
   set(RPM_PACKAGE "Yes")
 endif ()
 
-
-# Set libraries.
-if (NOT WITH_SHARED_LIB AND NOT WITH_STATIC_LIB)
-  set(WITH_SHARED_LIB 1)
-endif ()
-
-set(SHARED_LIB "No")
-if (WITH_SHARED_LIB)
-  set(SHARED_LIB "Yes")
-endif()
-
-set(STATIC_LIB "No")
-if (WITH_STATIC_LIB)
-  set(STATIC_LIB "Yes")
-endif ()
-
-if (WITH_SHARED_LIB)
-  set(DEFAULT_LINK_NAME "centreon_clib_shared")
-else ()
-  set(DEFAULT_LINK_NAME "centreon_clib_static")
-endif ()
-
-
 # Find headers.
 include(CheckIncludeFileCXX)
 check_include_file_cxx("spawn.h" HAVE_SPAWN_H)
@@ -223,68 +200,33 @@ if (WITH_TESTING)
   add_subdirectory(test)
 endif ()
 
-
-if (WITH_SHARED_LIB)
-  # Create shared library.
-  add_library(
-    "centreon_clib_shared"
-    SHARED
-    ${SOURCES}
-    ${HEADERS}
-  )
-  # Link target with required libraries.
-  target_link_libraries(
-    "centreon_clib_shared"
-    ${LIB_THREAD}
-    ${LIB_RT}
-    ${LIB_DL}
-  )
-  # Set output name for the shared library.
-  set_target_properties(
-    "centreon_clib_shared"
-    PROPERTIES
-    OUTPUT_NAME
-    "centreon_clib"
-  )
-  # Install shared library.
-  install(
-    TARGETS "centreon_clib_shared"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    COMPONENT "runtime"
-  )
-endif ()
-
-
-if (WITH_STATIC_LIB)
-  # Create static library.
-  add_library(
-    "centreon_clib_static"
-    STATIC
-    ${SOURCES}
-    ${HEADERS}
-  )
-  # Link target with required libraries.
-  target_link_libraries(
-    "centreon_clib_static"
-    ${LIB_THREAD}
-    ${LIB_RT}
-    ${LIB_DL}
-  )
-  # Set output name for the static library.
-  set_target_properties(
-    "centreon_clib_static"
-    PROPERTIES
-    OUTPUT_NAME
-    "centreon_clib"
-  )
-  # Install static library.
-  install(
-    TARGETS "centreon_clib_static"
-    DESTINATION "${PREFIX_LIB}"
-    COMPONENT "runtime"
-  )
-endif ()
-
+# Create shared library.
+add_library(
+  centreon_clib
+  SHARED
+  ${SOURCES}
+  ${HEADERS}
+)
+# Link target with required libraries.
+target_link_libraries(
+  centreon_clib
+  ${LIB_THREAD}
+  ${LIB_RT}
+  ${LIB_DL}
+)
+# Set output name for the shared library.
+set_target_properties(
+  centreon_clib
+  PROPERTIES
+  OUTPUT_NAME
+  centreon_clib
+)
+# Install shared library.
+install(
+  TARGETS centreon_clib
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  COMPONENT "runtime"
+)
 
 # Install header files for devel.
 install(
@@ -306,8 +248,6 @@ message(STATUS "")
 message(STATUS "  Project")
 message(STATUS "    - Name                      ${PROJECT_NAME}")
 message(STATUS "    - Version                   ${CLIB_VERSION}")
-message(STATUS "    - With shared library       ${SHARED_LIB}")
-message(STATUS "    - With static library       ${STATIC_LIB}")
 message(STATUS "")
 message(STATUS "  System")
 message(STATUS "    - Name                      ${CMAKE_SYSTEM_NAME}")

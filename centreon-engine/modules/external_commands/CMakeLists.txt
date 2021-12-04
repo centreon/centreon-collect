@@ -48,7 +48,7 @@ add_library(
 set_property(TARGET "externalcmd" PROPERTY PREFIX "")
 
 set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-add_dependencies(externalcmd centreon_clib_shared)
+add_dependencies(externalcmd centreon_clib)
 target_link_libraries(externalcmd centreon_clib)
 
 # Install rule.
