@@ -443,7 +443,6 @@ fi
 %{_includedir}/centreon-broker
 
 %files
-%{_sysconfdir}/logrotate.d/cbd
 %{_exec_prefix}/lib/systemd/system/cbd.service
 %{_exec_prefix}/lib/systemd/system/centengine.service
 %{_localstatedir}/log/centreon-engine/centengine.debug
