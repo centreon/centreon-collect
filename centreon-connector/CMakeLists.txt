@@ -4,7 +4,6 @@ project(connectors CXX)
 set(CONNECTOR_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
 
-include(${PROJECT_SOURCE_DIR}/cmake/Findclib.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/FindSSH.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
