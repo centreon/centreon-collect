@@ -10,6 +10,8 @@ echo "################################################## BUILDING COLLECT ######
 # generate rpm broker
 if [ ! -d /root/rpmbuild/SOURCES ] ; then
     mkdir -p /root/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+fi
+
 tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './build' \
       --exclude './.git'  \
