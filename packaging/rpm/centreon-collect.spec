@@ -38,6 +38,8 @@ BuildRequires: rrdtool-devel
 BuildRequires: systemd
 Requires: centreon-clib = %{version}-%{release}
 Requires: centreon-broker-core = %{version}-%{release}
+Requires: centreon-engine = %{version}-%{release}
+Requires: centreon-connector = %{version}-%{release}
 
 %package -n centreon-clib
 Summary: Centreon core library.
