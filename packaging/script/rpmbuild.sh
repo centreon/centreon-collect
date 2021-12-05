@@ -24,16 +24,18 @@ if [ ! -d /root/rpmbuild/SOURCES ] ; then
     mkdir -p /root/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 fi
 
-cd ../../..
+cd ../..
 
-mkdir centreon-collect-$VERSION
-rsync -avzh --exclude .git --exclude build centreon-collect/ centreon-collect-$VERSION
+tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
+      --exclude './build' \
+      --exclude './.git'  \
+      --transform "s,^\.,centreon-collect-$VERSION," .
 
-tar czf centreon-collect-$VERSION.tar.gz centreon-collect-$VERSION
-mv centreon-collect-$VERSION.tar.gz /root/rpmbuild/SOURCES/
-rm -rf centreon-collect-$VERSION
+cp centreon-engine/packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh /root/rpmbuild/SOURCES/
 
 echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j5\n" > $HOME/rpmbuild/.rpmmacros
+
+cd ..
 
 rpmbuild -ba centreon-collect/packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 

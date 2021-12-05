@@ -8,8 +8,11 @@ Version: %{VERSION}
 Release: %{RELEASE}%{?dist}
 License:        ASL 2.0
 Source: %{name}-%{version}.tar.gz
+Source1: centreonengine_integrate_centreon_engine2centreon.sh
+
 %define thismajor 22.04.0
 %define nextmajor 22.05.0
+
 Group: Applications/Communications
 URL: https://github.com/centreon/centreon-collect.git
 Packager: David Boucher <dboucher@centreon.com>
@@ -24,14 +27,15 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: cmake3 >= 3.15
 BuildRequires: gcc
 BuildRequires: gcc-c++
-BuildRequires: lua-devel
+BuildRequires: gnutls-devel >= 3.3.29
 BuildRequires: libgcrypt-devel
+BuildRequires: lua-devel
+BuildRequires: make
+BuildRequires: perl
+BuildRequires: perl-ExtUtils-Embed
+BuildRequires: perl-devel
 BuildRequires: rrdtool-devel
 BuildRequires: systemd
-BuildRequires: gnutls-devel >= 3.3.29
-BuildRequires: perl
-BuildRequires: perl-devel
-BuildRequires: perl-ExtUtils-Embed
 Requires: centreon-clib = %{version}-%{release}
 Requires: centreon-broker-core = %{version}-%{release}
 
@@ -257,6 +261,13 @@ cmake3 \
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/doc/centreon-broker
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-broker/lua
 %{__install} -m 644 centreon-broker/script/centreon-broker.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/cbd
+%{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine
+%{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/archives
+%{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/lib/centreon-engine
+%{__install} -d $RPM_BUILD_ROOT%{_localstatedir}/lib/centreon-engine/rw
+touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
+%{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra
+%{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
 %{__make} install DESTDIR="$RPM_BUILD_ROOT"
 
 %clean
@@ -343,7 +354,7 @@ fi
 %{_unitdir}/centengine.service
 %{_sbindir}/centengine
 %{_sbindir}/centenginestats
-#%attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
+%attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
 %attr(0755,%{user},%{user}) %{_localstatedir}/log/centreon-engine/
 %attr(0755,%{user},%{user}) %dir %{_localstatedir}/lib/centreon-engine/
 %doc centreon-engine/license.txt
