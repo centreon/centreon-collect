@@ -1,2 +1,1 @@
-debian/tmp-centreon-collect/usr/include/centreon-engine/compatibility/*          usr/include/centreon-engine/compatibility
 debian/tmp-centreon-collect/usr/include/centreon-engine/com/centreon/engine/*    usr/include/centreon-engine/com/centreon/engine
