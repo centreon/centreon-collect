@@ -18,6 +18,8 @@ tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './.git'  \
       --transform "s,^\.,centreon-collect-$VERSION," .
 
+echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j9\n" > $HOME/rpmbuild/.rpmmacros
+
 rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 
 # cleaning and according permissions to slave to delivery rpms

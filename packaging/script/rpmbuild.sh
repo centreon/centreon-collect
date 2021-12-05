@@ -28,9 +28,12 @@ cd ../../..
 
 mkdir centreon-collect-$VERSION
 rsync -avzh --exclude .git --exclude build centreon-collect/ centreon-collect-$VERSION
+
 tar czf centreon-collect-$VERSION.tar.gz centreon-collect-$VERSION
 mv centreon-collect-$VERSION.tar.gz /root/rpmbuild/SOURCES/
 rm -rf centreon-collect-$VERSION
+
+echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j5\n" > $HOME/rpmbuild/.rpmmacros
 
 rpmbuild -ba centreon-collect/packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
 

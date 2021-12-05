@@ -167,11 +167,7 @@ else ()
 endif ()
 
 # Modules directory.
-if (WITH_PREFIX_MODULES)
-  set(PREFIX_MODULES "${WITH_PREFIX_MODULES}")
-else ()
-  set(PREFIX_MODULES "${PREFIX_LIB}/centreon-broker")
-endif ()
+set(PREFIX_MODULES "${CMAKE_INSTALL_DATADIR}/centreon/lib/centreon-broker")
 
 # var directory.
 if (WITH_PREFIX_VAR)

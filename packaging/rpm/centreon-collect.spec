@@ -233,9 +233,6 @@ cmake3 \
         -DWITH_BENCH=1 \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-        -DWITH_PREFIX_CONF_BROKER=%{_sysconfdir}/centreon-broker \
-        -DWITH_PREFIX_INC=%{_includedir}/centreon-collect \
-        -DWITH_PREFIX_MODULES=%{_datadir}/centreon/lib/centreon-broker \
         -DWITH_PREFIX_LIB_BROKER=%{_libdir}/nagios/ \
         -DWITH_PREFIX_VAR=%{_localstatedir}/lib/centreon-broker \
         -DWITH_STARTUP_DIR=%{_unitdir} \
@@ -247,7 +244,6 @@ cmake3 \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
 %{__make} %{?_smp_mflags}
-#%{__make} -j9 %{?_smp_mflags} VERBOSE="1"
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -452,5 +448,5 @@ fi
 
 
 %changelog
-* Tue Nov 29 2016 Matthieu Kermagoret <mkermagoret@centreon.com> 3.0.2-3
-- Fix downtime inheritance in BAM module.
+* Fri Dec 3 2021 David Boucher <dboucher@centreon.com> 22.04.0-1
+- First version of this spec file.
