@@ -24,10 +24,10 @@ ReloadPropagatedFrom=centreon.service
 After=cbd.service
 
 [Service]
-ExecStart=@CMAKE_INSTALL_SBINDIR@/centengine @PREFIX_ENGINE_CONF@/centengine.cfg
+ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine @PREFIX_ENGINE_CONF@/centengine.cfg
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
-User=@USER@
+User=centreon-engine
 
 [Install]
 WantedBy=centreon.service

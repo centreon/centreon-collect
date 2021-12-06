@@ -24,7 +24,7 @@ ReloadPropagatedFrom=centreon.service
 After=mariadb.service
 
 [Service]
-ExecStart=@CMAKE_INSTALL_SBINDIR@/cbwd @PREFIX_BROKER_CONF@/watchdog.json
+ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/cbwd @PREFIX_BROKER_CONF@/watchdog.json
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-broker
