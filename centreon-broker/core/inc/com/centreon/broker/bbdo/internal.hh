@@ -31,8 +31,7 @@ constexpr uint32_t BBDO_HEADER_SIZE = 16u;
 CCB_BEGIN()
 
 namespace bbdo {
-// Data elements.
-enum { de_version_response = 1, de_ack, de_stop };
+//using pb_metric_ids = io::protobuf<MetricIds, bbdo_pb_metric_ids>;
 
 // Load/unload of BBDO protocol.
 void load();

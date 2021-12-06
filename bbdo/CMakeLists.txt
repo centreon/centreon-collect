@@ -48,6 +48,17 @@ endmacro()
 include_directories("${CMAKE_SOURCE_DIR}/centreon-broker/core/inc")
 
 add_library(
+    bbdo_bbdo STATIC
+      "bbdo/ack.cc"
+      "bbdo/version_response.cc"
+      "bbdo/stop.cc"
+      "bbdo/ack.hh"
+      "bbdo/version_response.hh"
+      "bbdo/stop.hh"
+    )
+set_target_properties(bbdo_bbdo PROPERTIES COMPILE_FLAGS "-fPIC")
+
+add_library(
     bbdo_storage STATIC
       "storage/index_mapping.cc"
       "storage/metric_mapping.cc"

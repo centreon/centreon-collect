@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bbdo/version_response.hh"
+#include "bbdo/bbdo/version_response.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;

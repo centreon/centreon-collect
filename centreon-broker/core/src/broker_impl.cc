@@ -213,3 +213,10 @@ grpc::Status broker_impl::GetSqlConnectionSize(
   stats::center::instance().get_sql_connection_size(response);
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::RebuildRRD(
+    grpc::ServerContext* context __attribute__((unused)),
+    const MetricIds* request,
+    ::google::protobuf::Empty* response __attribute__((unused))) {
+  return grpc::Status::OK;
+}

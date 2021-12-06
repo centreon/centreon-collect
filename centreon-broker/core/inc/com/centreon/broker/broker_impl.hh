@@ -59,6 +59,11 @@ class broker_impl final : public Broker::Service {
                                 const GenericNameOrIndex* request,
                                 GenericString* response) override;
 
+  grpc::Status RebuildRRD(
+    grpc::ServerContext* context,
+    const MetricIds* request,
+    ::google::protobuf::Empty* response) override;
+
  public:
   void set_broker_name(std::string const& s) { _broker_name = s; };
 };

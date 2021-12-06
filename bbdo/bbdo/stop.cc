@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bbdo/stop.hh"
+#include "bbdo/bbdo/stop.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;

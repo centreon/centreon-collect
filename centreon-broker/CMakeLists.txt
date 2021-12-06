@@ -307,13 +307,10 @@ configure_file(
 set(LIBROKER_SOURCES
   # Sources.
   ${SRC_DIR}/bbdo/acceptor.cc
-  ${SRC_DIR}/bbdo/ack.cc
   ${SRC_DIR}/bbdo/connector.cc
   ${SRC_DIR}/bbdo/factory.cc
   ${SRC_DIR}/bbdo/internal.cc
-  ${SRC_DIR}/bbdo/stop.cc
   ${SRC_DIR}/bbdo/stream.cc
-  ${SRC_DIR}/bbdo/version_response.cc
   ${SRC_DIR}/broker_impl.cc
   ${SRC_DIR}/brokerrpc.cc
   ${SRC_DIR}/compression/factory.cc
@@ -385,13 +382,10 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/time/timezone_manager.cc
   # Headers.
   ${INC_DIR}/bbdo/acceptor.hh
-  ${INC_DIR}/bbdo/ack.hh
   ${INC_DIR}/bbdo/connector.hh
   ${INC_DIR}/bbdo/factory.hh
   ${INC_DIR}/bbdo/internal.hh
-  ${INC_DIR}/bbdo/stop.hh
   ${INC_DIR}/bbdo/stream.hh
-  ${INC_DIR}/bbdo/version_response.hh
   ${INC_DIR}/broker_impl.hh
   ${INC_DIR}/brokerrpc.hh
   ${INC_DIR}/compression/factory.hh
