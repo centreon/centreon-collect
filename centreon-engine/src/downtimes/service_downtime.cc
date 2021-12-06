@@ -18,9 +18,9 @@
  */
 
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include <stdint.h>
+#include <fmt/format.h>
+#include <cstdint>
 #include <map>
-#include <sstream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -244,19 +244,20 @@ int service_downtime::subscribe() {
   int seconds{get_duration() - hours * 3600 - minutes * 60};
 
   char const* type_string{"service"};
-  std::ostringstream oss;
+  std::string msg;
   if (is_fixed())
-    oss << "This " << type_string
-        << " has been scheduled for fixed downtime from " << start_time_string
-        << " to " << end_time_string << " Notifications for the " << type_string
-        << " will not be sent out during that time period.";
+    msg = fmt::format(
+        "This {0} has been scheduled for fixed downtime from {1} to {2}. "
+        "Notifications for the {0} will not be sent out during that time "
+        "period.",
+        type_string, start_time_string, end_time_string);
   else
-    oss << "This " << type_string
-        << " has been scheduled for flexible downtime starting between "
-        << start_time_string << " and " << end_time_string
-        << " and lasting for a period of " << hours << " hours and " << minutes
-        << " minutes. Notifications for the " << type_string
-        << " will not be sent out during that time period.";
+    msg = fmt::format(
+        "This {0} has been scheduled for flexible downtime starting between "
+        "{1} and {2} and lasting for a period of {3} hours and {4} minutes. "
+        "Notifications for the {0} will not be sent out during that time "
+        "period.",
+        type_string, start_time_string, end_time_string, hours, minutes);
 
   logger(dbg_downtime, basic) << "Scheduled Downtime Details:";
   logger(dbg_downtime, basic) << " Type:        Service Downtime\n"
@@ -283,11 +284,11 @@ int service_downtime::subscribe() {
 
   /* add a non-persistent comment to the host or service regarding the scheduled
    * outage */
-  std::shared_ptr<comment> com{
-      new comment(comment::service, comment::downtime,
-                  found->second->get_host_id(), found->second->get_service_id(),
-                  time(nullptr), "(Centreon Engine Process)", oss.str(), false,
-                  comment::internal, false, (time_t)0)};
+  auto com{std::make_shared<comment>(
+      comment::service, comment::downtime, found->second->get_host_id(),
+      found->second->get_service_id(), time(nullptr),
+      "(Centreon Engine Process)", msg, false, comment::internal, false,
+      (time_t)0)};
 
   comment::comments.insert({com->get_comment_id(), com});
   _comment_id = com->get_comment_id();

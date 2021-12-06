@@ -68,7 +68,7 @@ class rebuilder {
   struct metric_info {
     uint32_t metric_id;
     std::string metric_name;
-    short metric_type;
+    int16_t metric_type;
   };
 
   void _next_index_to_rebuild(index_info& info, mysql& ms);
@@ -77,15 +77,15 @@ class rebuilder {
                        uint32_t host_id,
                        uint32_t service_id,
                        std::string const& metric_name,
-                       short metric_type,
+                       int16_t metric_type,
                        uint32_t interval,
-                       unsigned length);
+                       int64_t length);
   void _rebuild_status(mysql& ms,
                        uint64_t index_id,
                        uint32_t interval,
-                       uint32_t length);
+                       int64_t length);
   void _send_rebuild_event(bool end, uint64_t id, bool is_index);
-  void _set_index_rebuild(mysql& db, uint64_t index_id, short state);
+  void _set_index_rebuild(mysql& db, uint64_t index_id, int16_t state);
   void _run(asio::error_code ec);
 
  public:

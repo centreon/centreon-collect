@@ -95,6 +95,7 @@ io::endpoint* factory::new_endpoint(
   try {
     rrd_length = static_cast<uint32_t>(std::stoul(find_param(cfg, "length")));
   } catch (std::exception const& e) {
+    /* This default length represents 180 days. */
     rrd_length = 15552000;
     log_v2::sql()->error(
         "unified_sql: the length field should contain "

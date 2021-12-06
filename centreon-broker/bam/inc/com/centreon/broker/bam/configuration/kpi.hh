@@ -36,7 +36,7 @@ namespace configuration {
  */
 class kpi {
   uint32_t _id;
-  short _state_type;
+  int16_t _state_type;
   uint32_t _host_id;
   uint32_t _service_id;
   uint32_t _ba_id;

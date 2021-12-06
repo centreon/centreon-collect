@@ -25,13 +25,13 @@
 #include <cstring>
 #include <ctime>
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "bbdo/storage/metric.hh"
-#include "bbdo/storage/rebuild.hh"
-#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -267,9 +267,9 @@ void rebuilder::_rebuild_metric(mysql& ms,
                                 uint32_t host_id,
                                 uint32_t service_id,
                                 std::string const& metric_name,
-                                short metric_type,
+                                int16_t metric_type,
                                 uint32_t interval,
-                                uint32_t length) {
+                                int64_t length) {
   // Log.
   log_v2::sql()->info(
       "unified_sql: rebuilder: rebuilding metric {} (name {}, type {}, "
@@ -371,7 +371,7 @@ void rebuilder::_rebuild_metric(mysql& ms,
 void rebuilder::_rebuild_status(mysql& ms,
                                 uint64_t index_id,
                                 uint32_t interval,
-                                uint32_t length) {
+                                int64_t length) {
   // Log.
   log_v2::sql()->info(
       "unified_sql: rebuilder: rebuilding status {} (interval {})", index_id,
@@ -455,7 +455,9 @@ void rebuilder::_send_rebuild_event(bool end, uint64_t id, bool is_index) {
  *  @param[in] index_id  Index to update.
  *  @param[in] state     Rebuild state (0, 1 or 2).
  */
-void rebuilder::_set_index_rebuild(mysql& ms, uint64_t index_id, short state) {
+void rebuilder::_set_index_rebuild(mysql& ms,
+                                   uint64_t index_id,
+                                   int16_t state) {
   std::string query(
       fmt::format("UPDATE index_data SET must_be_rebuild='{}' WHERE id={}",
                   state, index_id));
