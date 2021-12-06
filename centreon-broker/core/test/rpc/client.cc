@@ -59,10 +59,23 @@ class BrokerRPCClient {
     return true;
   }
 
+  bool GetAllSqlConnectionsStats(AllSqlConnectionsStats* response) {
+    const ::google::protobuf::Empty e;
+    grpc::ClientContext context;
+    grpc::Status status = _stub->GetAllSqlConnectionsStats(&context, e, response);
+
+    if (!status.ok()) {
+      std::cout << "GetAllSqlConnectionsStats rpc failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool GetSqlConnectionSize(GenericSize* response) {
     const ::google::protobuf::Empty e;
     grpc::ClientContext context;
     grpc::Status status = _stub->GetSqlConnectionSize(&context, e, response);
+
     if (!status.ok()) {
       std::cout << "GetSqlConnectionStats rpc failed." << std::endl;
       return false;
@@ -93,33 +106,41 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  if (strcmp(argv[1], "GetVersion") == 0) {
+  if (argc == 2 && strcmp(argv[1], "GetVersion") == 0) {
     Version version;
     status = client.GetVersion(&version) ? 0 : 1;
     std::cout << "GetVersion: " << version.DebugString();
   }
 
-  if (strcmp(argv[1], "GetSqlConnectionStatsValue") == 0) {
+  if (argc == 3 && strcmp(argv[1], "GetSqlConnectionStatsValue") == 0) {
     uint32_t sz = atoi(argv[2]);
     SqlConnectionStats response;
     for (uint32_t i = 0; i < sz; ++i) {
-      status = client.GetSqlConnectionStats(&response, i) ? 0 : 1;
-      std::cout << "waiting_tasks: " << response.waiting_tasks()
-                << ", is_connected: " << std::boolalpha
-                << response.is_connected() << ", uptime: "
-                << google::protobuf::util::TimeUtil::DurationToMilliseconds(
-                       response.uptime())
-                << std::endl;
+      status += client.GetSqlConnectionStats(&response, i) ? 0 : 1;
+      std::cout << "waiting_tasks: " << response.waiting_tasks() << ", is_connected: "
+        << std::boolalpha << response.is_connected()
+        << (response.is_connected() ? (", up_since: " + std::to_string(response.up_since())) :
+        (", down_since: " + std::to_string(response.down_since()))) << std::endl;
     }
   }
 
-  if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
+  if (argc == 2 && strcmp(argv[1], "GetAllSqlConnectionsStatsValues") == 0) {
+    AllSqlConnectionsStats response;
+    status = client.GetAllSqlConnectionsStats(&response);
+    for (auto res : response.connections())
+      std::cout << "waiting_tasks: " << res.waiting_tasks() << ", is_connected: "
+        << std::boolalpha << res.is_connected()
+        << (res.is_connected() ? (", up_since: " + std::to_string(res.up_since())) :
+        (", down_since: " + std::to_string(res.down_since()))) << std::endl;
+  }
+
+  if (argc == 2 && strcmp(argv[1], "GetSqlConnectionSize") == 0) {
     GenericSize response;
     status = client.GetSqlConnectionSize(&response) ? 0 : 1;
     std::cout << "connection array size: " << response.size() << std::endl;
   }
 
-  if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
+  if (argc == 2 && strcmp(argv[1], "GetConflictManagerStats") == 0) {
     ConflictManagerStats response;
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
     std::cout << "events_handled: " << response.events_handled() << std::endl;

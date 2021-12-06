@@ -75,9 +75,6 @@ class mysql_connection {
   std::atomic_int _tasks_count;
   bool _need_commit;
 
-  bool _isConnected;
-  std::chrono::time_point<std::chrono::steady_clock> _startPoint;
-
   std::unordered_map<uint32_t, MYSQL_STMT*> _stmt;
   std::unordered_map<uint32_t, std::string> _stmt_query;
 
@@ -94,6 +91,14 @@ class mysql_connection {
   std::string _name;
   int _port;
   std::atomic<connection_state> _state;
+
+  // Intermediate variables used to fill _stats
+  // _isConnected indicate the state of the connection
+  //      => false : not connected
+  //      => true : connected
+  // _switchPoint holds the timestamp of the last time _isConnected switched
+  bool _is_connected;
+  std::time_t _switch_point;
 
   SqlConnectionStats* _stats;
   std::time_t _clk;
@@ -129,7 +134,7 @@ class mysql_connection {
   void _prepare_connection();
   void _clear_connection();
 
-  void updateStats(void) noexcept;
+  void update_stats(void) noexcept;
 
  public:
   /**************************************************************************/
@@ -173,6 +178,9 @@ class mysql_connection {
   bool is_in_error() const;
   void clear_error();
   std::string get_error_message();
+
+  bool is_connected(void) const noexcept;
+  std::time_t get_switch_point(void) const noexcept;
 
   /**
    * @brief Create an error on the connection. All error created as this, is a

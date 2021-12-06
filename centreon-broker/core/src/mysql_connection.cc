@@ -19,8 +19,6 @@
 
 #include <cstring>
 
-#include <google/protobuf/util/time_util.h>
-
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mysql_manager.hh"
@@ -98,25 +96,23 @@ void mysql_connection::_clear_connection() {
   }
   _stmt.clear();
   mysql_close(_conn);
+  _is_connected = false;
+  _switch_point = std::time(nullptr);
+  update_stats();
 }
 
 /**
  * @brief Fill statistics if it happened more than 1 second ago
  */
-void mysql_connection::updateStats(void) noexcept {
+void mysql_connection::update_stats(void) noexcept {
   auto now(std::time(nullptr));
   if ((now - _clk) > 1000) {
     _clk = now;
-    std::chrono::time_point<std::chrono::steady_clock> nowPoint(
-        std::chrono::steady_clock::now());
-    stats::center::instance().execute([this, nowPoint] {
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          nowPoint - _startPoint)
-                          .count();
+    stats::center::instance().execute([this]() {
       _stats->set_waiting_tasks(_tasks_count);
-      _stats->set_is_connected(_isConnected);
-      *_stats->mutable_uptime() =
-          google::protobuf::util::TimeUtil::MillisecondsToDuration(duration);
+      _stats->set_is_connected(_is_connected);
+      _is_connected ? _stats->set_up_since(_switch_point) :
+        _stats->set_down_since(_switch_point);
     });
   }
 }
@@ -135,6 +131,9 @@ bool mysql_connection::_try_to_reconnect() {
   _conn = mysql_init(nullptr);
   if (!_conn) {
     log_v2::sql()->error("mysql_connection: reconnection failed.");
+    _is_connected = false;
+    _switch_point = std::time(nullptr);
+    update_stats();
     return false;
   }
 
@@ -147,6 +146,9 @@ bool mysql_connection::_try_to_reconnect() {
                           CLIENT_FOUND_ROWS)) {
     log_v2::sql()->error(
         "mysql_connection: The mysql/mariadb database seems not started.");
+    _is_connected = false;
+    _switch_point = std::time(nullptr);
+    update_stats();
     return false;
   }
 
@@ -526,6 +528,16 @@ std::string mysql_connection::get_error_message() {
   return _error.get_message();
 }
 
+bool mysql_connection::is_connected(void) const noexcept
+{
+  return _is_connected;
+}
+
+std::time_t mysql_connection::get_switch_point(void) const noexcept
+{
+  return _switch_point;
+}
+
 /**
  * @brief Disable the connection's error. Therefore, the connection is no more
  * in error.
@@ -623,23 +635,11 @@ void mysql_connection::_run() {
       std::list<std::unique_ptr<database::mysql_task>> tasks_list;
       if (!_tasks_list.empty()) {
         std::swap(_tasks_list, tasks_list);
-        //
-        updateStats();
-        /*
-        stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                         _stats,
-                                         static_cast<int>(_tasks_count));
-        */
+        update_stats();
         assert(_tasks_list.empty());
       } else {
         _tasks_count = 0;
-        //
-        updateStats();
-        /*
-        stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                         _stats,
-                                         static_cast<int>(_tasks_count));
-        */
+        update_stats();
         _tasks_condition.wait(
             lock, [this] { return _finish_asked || !_tasks_list.empty(); });
         if (_tasks_list.empty()) {
@@ -652,10 +652,18 @@ void mysql_connection::_run() {
 
       log_v2::sql()->trace("SQL: performing mysql_ping.");
       if (mysql_ping(_conn)) {
-        if (!_try_to_reconnect())
+        if (!_try_to_reconnect()) {
           log_v2::sql()->error("SQL: Reconnection failed.");
-      } else
+          _is_connected = false;
+          _switch_point = std::time(nullptr);
+        }
+      } else {
         log_v2::sql()->trace("SQL: connection always alive");
+        _is_connected = true;
+        _switch_point = std::time(nullptr);
+      }
+
+      update_stats();
 
       time_t start = time(nullptr);
       for (auto& task : tasks_list) {
@@ -669,13 +677,7 @@ void mysql_connection::_run() {
 
         if (time(nullptr) - start != 0) {
           start = time(nullptr);
-          //
-          updateStats();
-          /*
-          stats::center::instance().update(
-              &SqlConnectionStats::set_waiting_tasks, _stats,
-              static_cast<int>(_tasks_count));
-          */
+          update_stats();
         }
       }
 
@@ -696,8 +698,6 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _finish_asked(false),
       _tasks_count(0),
       _need_commit(false),
-      _isConnected(false),
-      _startPoint{std::chrono::steady_clock::now()},
       _host(db_cfg.get_host()),
       _socket(db_cfg.get_socket()),
       _user(db_cfg.get_user()),
@@ -705,6 +705,8 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _name(db_cfg.get_name()),
       _port(db_cfg.get_port()),
       _state(not_started),
+      _is_connected(false),
+      _switch_point{std::time(nullptr)},
       _stats{stats::center::instance().register_mysql_connection()},
       _clk{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
@@ -714,17 +716,17 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
   _start_condition.wait(lck, [this] { return _state != not_started; });
   if (_state == finished) {
     _thread->join();
+    _switch_point = std::time(nullptr);
+    _is_connected = false;
     log_v2::sql()->error("mysql_connection: error while starting connection");
+    update_stats();
     throw msg_fmt("mysql_connection: error while starting connection");
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
+  _switch_point = std::time(nullptr);
+  _is_connected = true;
   log_v2::sql()->info("mysql_connection: connection started");
-
-  updateStats();
-  // stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-  //                                 _stats, 0);
-  // stats::center::instance().update(&SqlConnectionStats::set_uptime, _stats,
-  // 0);
+  update_stats();
 }
 
 /**
@@ -735,6 +737,8 @@ mysql_connection::~mysql_connection() {
   log_v2::sql()->info("mysql_connection: finished");
   finish();
   _thread->join();
+  stats::center::instance().unregister_mysql_connection(_stats);
+  update_stats();
 }
 
 void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {
@@ -745,6 +749,7 @@ void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {
   _tasks_list.push_back(std::move(q));
   ++_tasks_count;
   _tasks_condition.notify_all();
+  update_stats();
 }
 
 /**

@@ -190,29 +190,39 @@ grpc::Status broker_impl::GetGenericStats(
 }
 
 grpc::Status broker_impl::GetSqlConnectionStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const GenericInt* request, 
-                                      SqlConnectionStats* response) {
+                                                __attribute__((unused)),
+                                                const GenericInt* request,
+                                                SqlConnectionStats* response) {
   uint32_t index = request->value();
-  stats::center::instance().get_sql_connection_stats(index, response);
+  auto status =
+      stats::center::instance().get_sql_connection_stats(index, response);
+  return status ? grpc::Status::OK
+                : grpc::Status(
+                      grpc::StatusCode::NOT_FOUND,
+                      std::string("no sql connection stats found for index: " +
+                                  std::to_string(index)));
+}
+
+grpc::Status broker_impl::GetAllSqlConnectionsStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    AllSqlConnectionsStats* response) {
+  stats::center::instance().get_all_sql_connections_stats(response);
   return grpc::Status::OK;
 }
 
-
-grpc::Status broker_impl::GetConflictManagerStats(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const ::google::protobuf::Empty* request
-                                      __attribute__((unused)),
-                                      ConflictManagerStats* response) {
+grpc::Status broker_impl::GetConflictManagerStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    ConflictManagerStats* response) {
   stats::center::instance().get_conflict_manager_stats(response);
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlConnectionSize(grpc::ServerContext* context
-                                      __attribute__((unused)),
-                                      const ::google::protobuf::Empty* request
-                                      __attribute__((unused)),
-                                      GenericSize* response) {
+grpc::Status broker_impl::GetSqlConnectionSize(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    GenericSize* response) {
   stats::center::instance().get_sql_connection_size(response);
   return grpc::Status::OK;
 }

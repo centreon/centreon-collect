@@ -56,6 +56,10 @@ center::center() : _strand(pool::instance().io_context()) {
                   ASIO_VERSION % 100);
   _stats.set_pid(getpid());
 
+  //
+  assert(_stats.connections().size() == 0);
+  //
+
   /* Bringing modules statistics */
   if (config::applier::state::loaded()) {
     config::applier::modules& mod_applier(
@@ -136,7 +140,6 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   });
   return retval.get();
 }
-
 
 /**
  * @brief When a feeder needs to write statistics, it primarily has to
@@ -320,24 +323,30 @@ std::string center::to_string() {
 //  done.get();
 //}
 
-void center::get_sql_connection_stats(uint32_t index, SqlConnectionStats* response) {
+bool center::get_sql_connection_stats(uint32_t index, SqlConnectionStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, &index, response] {
-      uint32_t i = 0;
-      for (auto it = s.connections().begin(), 
-        end = s.connections().end();
-        it != end; ++it, ++i) {
-            if (index == i) {
-              *response = (*it);  
-            }
+    if (index > static_cast<uint32_t>(s.connections().size() - 1)) {
+        log_v2::sql()->info("mysql_connection: index out of range in get sql connection stats");
+        p.set_value(false);
       }
+      else {
+        *response = s.connections().at(index);
+        p.set_value(true);
+      }
+  });
 
-      if (i > index) {
-        log_v2::sql()->info("mysql_connection: index out of range in get sql "
-                            "connection stats");
-      }
-      p.set_value(true);
+  // We wait for the response.
+  return done.get();
+}
+
+void center::get_all_sql_connections_stats(AllSqlConnectionsStats *response) {
+  std::promise<bool> p;
+  std::future<bool> done = p.get_future();
+  _strand.post([&s = this->_stats, &p, response] {
+    response->mutable_connections()->Assign(s.connections().begin(), s.connections().end());
+    p.set_value(true);
   });
 
   // We wait for the response.

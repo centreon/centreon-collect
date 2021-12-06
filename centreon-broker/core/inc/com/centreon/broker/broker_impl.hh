@@ -35,14 +35,18 @@ class broker_impl final : public Broker::Service {
                                GenericString* response) override;
 
   grpc::Status GetSqlConnectionStats(grpc::ServerContext* context,
-                           const GenericInt* request,
-                           SqlConnectionStats* response) override;
+                                     const GenericInt* request,
+                                     SqlConnectionStats* response) override;
+  grpc::Status GetAllSqlConnectionsStats(
+      grpc::ServerContext* context,
+      const ::google::protobuf::Empty* /*request*/,
+      AllSqlConnectionsStats* response) override;
   grpc::Status GetConflictManagerStats(grpc::ServerContext* context,
-                           const ::google::protobuf::Empty* request,
-                           ConflictManagerStats* response) override;
+                                       const ::google::protobuf::Empty* request,
+                                       ConflictManagerStats* response) override;
   grpc::Status GetSqlConnectionSize(grpc::ServerContext* context,
-                           const ::google::protobuf::Empty* request,
-                           GenericSize* response) override;
+                                    const ::google::protobuf::Empty* request,
+                                    GenericSize* response) override;
   grpc::Status GetNumModules(grpc::ServerContext* context,
                              const ::google::protobuf::Empty* /*request*/,
                              GenericSize* response) override;
