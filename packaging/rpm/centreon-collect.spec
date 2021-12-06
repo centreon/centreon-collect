@@ -293,21 +293,21 @@ if id nagios &>/dev/null; then
 fi
 
 %pre -n centreon-engine-daemon
-if ! id %{user} &>/dev/null; then
-    %{_sbindir}/useradd -d %{_localstatedir}/lib/centreon-engine -r %{user} &>/dev/null
+if ! id centreon-engine &>/dev/null; then
+    %{_sbindir}/useradd -d %{_localstatedir}/lib/centreon-engine -r centreon-engine &>/dev/null
 fi
 if id centreon-broker &>/dev/null; then
-    %{_sbindir}/usermod -a -G %{user} centreon-broker
+    %{_sbindir}/usermod -a -G centreon-engine centreon-broker
 fi
 if id centreon-gorgone &>/dev/null; then
-    %{_sbindir}/usermod -a -G centreon-gorgone %{user}
+    %{_sbindir}/usermod -a -G centreon-gorgone centreon-engine
 fi
 %define httpgroup apache
 if id -g %{httpgroup} &>/dev/null; then
-    %{_sbindir}/usermod -a -G %{user} %{httpgroup}
+    %{_sbindir}/usermod -a -G centreon-engine %{httpgroup}
 fi
 if id -g nagios &>/dev/null; then
-    %{_sbindir}/usermod -a -G %{user} nagios
+    %{_sbindir}/usermod -a -G centreon-engine nagios
 fi
 
 %post -n centreon-engine-daemon
@@ -347,9 +347,9 @@ fi
 
 %files -n centreon-engine-daemon
 %defattr(-,centreon-engine,centreon-engine,-)
-%attr(0664,%{user},%{user}) %config(noreplace) %{_sysconfdir}/centreon-engine/centengine.cfg
-%attr(0664,%{user},%{user}) %config(noreplace) %{_sysconfdir}/centreon-engine/resource.cfg
-%attr(0664,%{user},%{user}) %config(noreplace) %{_sysconfdir}/centreon-engine/objects/*.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/centengine.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/resource.cfg
+%attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/objects/*.cfg
 
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine
@@ -357,14 +357,14 @@ fi
 %{_sbindir}/centengine
 %{_sbindir}/centenginestats
 %attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
-%attr(0755,%{user},%{user}) %{_localstatedir}/log/centreon-engine/
-%attr(0755,%{user},%{user}) %dir %{_localstatedir}/lib/centreon-engine/
+%attr(0755,centreon-engine,centreon-engine) %{_localstatedir}/log/centreon-engine/
+%attr(0755,centreon-engine,centreon-engine) %dir %{_localstatedir}/lib/centreon-engine/
 %doc centreon-engine/license.txt
 
 %files -n centreon-engine-extcommands
 %defattr(-,root,root,-)
 %{_libdir}/centreon-engine/externalcmd.so
-%attr(0775,%{user},%{user}) %{_localstatedir}/lib/centreon-engine/rw
+%attr(0775,centreon-engine,centreon-engine) %{_localstatedir}/lib/centreon-engine/rw
 %doc centreon-engine/license.txt
 
 %files -n centreon-engine-devel
