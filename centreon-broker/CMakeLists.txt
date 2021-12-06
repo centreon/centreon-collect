@@ -167,7 +167,7 @@ else ()
 endif ()
 
 # Modules directory.
-set(PREFIX_MODULES "${CMAKE_INSTALL_DATADIR}/centreon/lib/centreon-broker")
+set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
 
 # var directory.
 if (WITH_PREFIX_VAR)
@@ -610,7 +610,7 @@ install(TARGETS "${DAEMON}"
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/../../../"
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker"
+  DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/centreon-broker"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh" PATTERN "*.h"
   )

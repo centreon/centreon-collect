@@ -63,12 +63,6 @@ add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(centreon_connector_ssh ${LIBSSH2_LIBRARIES}
   centreon_clib ${LIBGCRYPT_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
 
-
-# Installation path.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
-
 # Install rules.
 install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/centreon-connector/)
 

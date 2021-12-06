@@ -168,20 +168,15 @@ option(BUILD_OFFLINE "Build offline" OFF)
 option(WITH_CREATE_FILES "Create centreon-engine files." ON)
 set(CREATE_FILES "${WITH_CREATE_FILES}")
 
-# Main directory.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
-
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
 
-# Library directory.
-if (WITH_PREFIX_LIB_ENGINE)
-  set(PREFIX_LIB "${WITH_PREFIX_LIB_ENGINE}")
-else ()
-  set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine")
-endif ()
-
+## Library directory.
+#if (WITH_PREFIX_LIB_ENGINE)
+#  set(PREFIX_LIB "${WITH_PREFIX_LIB_ENGINE}")
+#else ()
+#  set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine")
+#endif ()
+#
 # var directory.
 set(VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
 set(VAR_LOG_ARCHIVE_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
@@ -570,7 +565,7 @@ add_subdirectory(tests)
 
 # Install rules.
 install(TARGETS "centengine" "centenginestats"
-  DESTINATION "${CMAKE_INSTALL_SBINDIR}"
+  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
   COMPONENT "runtime")
 
 ## Create directories.
@@ -598,12 +593,12 @@ if (CREATE_FILES)
     endif ()
   endfunction()
 
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
+#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
   #mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_ENGINE_CONF}/objects\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_FULL_INCLUDEDIR}/centreon-engine\")
+#mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${VAR_DIR}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LOG_ARCHIVE_DIR}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${VAR_LIB_DIR}/rw\")
@@ -623,7 +618,7 @@ endif ()
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/"
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine/"
+  DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/centreon-engine/"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
   PATTERN "${INC_DIR}/compatibility/" EXCLUDE
@@ -680,11 +675,11 @@ endif ()
 message(STATUS "    - Startup script              ${STARTUP_SCRIPT}")
 message(STATUS "")
 message(STATUS "  Install")
-message(STATUS "    - Prefix                      ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "    - Binary prefix               ${CMAKE_INSTALL_SBINDIR}")
+#message(STATUS "    - Prefix                      ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "    - Binary prefix               ${CMAKE_INSTALL_FULL_SBINDIR}")
 message(STATUS "    - Configuration prefix        ${PREFIX_ENGINE_CONF}")
-message(STATUS "    - Library prefix              ${PREFIX_LIB}")
-message(STATUS "    - Include prefix              ${CMAKE_INSTALL_INCLUDEDIR}/centreon-engine")
+#message(STATUS "    - Library prefix              ${PREFIX_LIB}")
+message(STATUS "    - Include prefix              ${CMAKE_INSTALL_FULL_INCLUDEDIR}/centreon-engine")
 message(STATUS "    - var directory               ${VAR_DIR}")
 message(STATUS "    - Log archive directory       ${VAR_LOG_ARCHIVE_DIR}")
 message(STATUS "    - RW directory                ${VAR_LIB_DIR}/rw")

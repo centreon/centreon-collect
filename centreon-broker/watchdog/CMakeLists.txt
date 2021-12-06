@@ -27,6 +27,7 @@ include_directories(${PROJECT_SOURCE_DIR}/watchdog/inc/
 # Watchdog binary.
 set(WATCHDOG "cbwd")
 set(WATCHDOG "${WATCHDOG}" PARENT_SCOPE)
+add_definitions(-DPREFIX_SBIN_CBD="/${CMAKE_INSTALL_SBINDIR}")
 add_executable("${WATCHDOG}"
   # Sources.
   ${SRC_DIR}/main.cc

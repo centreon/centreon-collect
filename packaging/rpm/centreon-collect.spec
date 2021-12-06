@@ -353,7 +353,8 @@ fi
 
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine
-%{_unitdir}/centengine.service
+%attr(755, root, root) %{_unitdir}/centengine.service
+
 %{_sbindir}/centengine
 %{_sbindir}/centenginestats
 %attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
