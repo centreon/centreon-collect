@@ -58,7 +58,7 @@ add_dependencies(centreon_connector_perl centreon_clib)
 target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} ${spdlog_LIBS} ${fmt_LIBS} pthread)
 
 # Install rules.
-install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/centreon-connector/)
+install(TARGETS centreon_connector_perl RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/centreon-connector/)
 
 # Code coverage on unit tests
 option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
