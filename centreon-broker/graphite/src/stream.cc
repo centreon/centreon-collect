@@ -25,7 +25,6 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace asio;

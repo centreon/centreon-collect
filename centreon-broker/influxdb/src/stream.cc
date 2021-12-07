@@ -24,7 +24,6 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/storage/internal.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
