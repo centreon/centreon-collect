@@ -30,10 +30,18 @@
 
 CCE_BEGIN()
 class log_v2 {
-  static std::map<std::string, spdlog::level::level_enum> _levels_map;
   std::string _log_name;
   std::shared_ptr<spdlog::logger> _config_log;
   std::shared_ptr<spdlog::logger> _functions_log;
+  std::shared_ptr<spdlog::logger> _events_log;
+  std::shared_ptr<spdlog::logger> _checks_log;
+  std::shared_ptr<spdlog::logger> _notifications_log;
+  std::shared_ptr<spdlog::logger> _eventbroker_log;
+  std::shared_ptr<spdlog::logger> _external_command_log;
+  std::shared_ptr<spdlog::logger> _commands_log;
+  std::shared_ptr<spdlog::logger> _downtimes_log;
+  std::shared_ptr<spdlog::logger> _comments_log;
+  std::shared_ptr<spdlog::logger> _macros_log;
   std::shared_ptr<spdlog::logger> _process_log;
 
   log_v2();
@@ -41,11 +49,20 @@ class log_v2 {
 
  public:
   void apply(const configuration::state& config);
-  static const std::array<std::string, 2> loggers;
-
+  static const std::array<std::string, 12> loggers;
+  static std::map<std::string, spdlog::level::level_enum> levels_map;
   static log_v2& instance();
-  static spdlog::logger* config();
   static spdlog::logger* functions();
+  static spdlog::logger* config();
+  static spdlog::logger* events();
+  static spdlog::logger* checks();
+  static spdlog::logger* notifications();
+  static spdlog::logger* eventbroker();
+  static spdlog::logger* external_command();
+  static spdlog::logger* commands();
+  static spdlog::logger* downtimes();
+  static spdlog::logger* comments();
+  static spdlog::logger* macros();
   static spdlog::logger* process();
 };
 CCE_END()

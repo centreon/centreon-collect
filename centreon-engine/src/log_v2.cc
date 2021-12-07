@@ -22,162 +22,218 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/broker_sink.hh"
 
 using namespace com::centreon::engine;
 using namespace spdlog;
 
-const std::array<std::string, 2> log_v2::loggers{"config", "process"};
-std::map<std::string, level::level_enum> log_v2::_levels_map {
-  log_v2& log_v2::instance() {
-    static log_v2 instance;
-    return instance;
-  }
+const std::array<std::string, 12> log_v2::loggers{
+    "config",   "process",       "functions",   "events",
+    "checks",   "notifications", "eventbroker", "external_command",
+    "commands", "downtimes",     "comments",    "macros"};
 
-  std::map<std::string, level::level_enum> log_v2::_levels_map{
-      {"trace", level::trace}, {"debug", level::debug},
-      {"info", level::info},   {"warning", level::warn},
-      {"error", level::err},   {"critical", level::critical},
-      {"disabled", level::off}};
+std::map<std::string, level::level_enum> log_v2::levels_map{
+    {"trace", level::trace}, {"debug", level::debug},
+    {"info", level::info},   {"warning", level::warn},
+    {"error", level::err},   {"critical", level::critical},
+    {"none", level::off}};
 
-  log_v2& log_v2::instance() {
-    static log_v2 instance;
-    return instance;
-  }
+log_v2& log_v2::instance() {
+  static log_v2 instance;
+  return instance;
+}
 
-  log_v2::log_v2() {
-    auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-    auto null_sink = std::make_shared<sinks::null_sink_mt>();
+log_v2::log_v2() {
+  auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+  auto null_sink = std::make_shared<sinks::null_sink_mt>();
 
-    _config_log = std::make_shared<logger>("config", stdout_sink);
-    _config_log->set_level(_levels_map["info"]);
-    _config_log->flush_on(_levels_map["info"]);
+  _config_log = std::make_shared<logger>("config", stdout_sink);
+  _config_log->set_level(levels_map["info"]);
+  _config_log->flush_on(levels_map["info"]);
+  _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+}
+
+void log_v2::apply(const configuration::state& config) {
+  if (verify_config || test_scheduling)
+    return;
+
+  std::vector<spdlog::sink_ptr> sinks;
+  if (config.log_v2_enabled()) {
+    if (config.log_v2_logger() == "file") {
+      if (config.log_file() != "")
+        sinks.push_back(
+            std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
+      else
+        sinks.push_back(std::make_shared<sinks::stdout_color_sink_mt>());
+    } else if (config.log_v2_logger() == "syslog")
+      sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
+                                                              0, 0, true));
+  } else
+    sinks.push_back(std::make_shared<sinks::null_sink_mt>());
+
+  sinks.push_back(std::make_shared<logging::broker_sink_mt>());
+  _functions_log =
+      std::make_shared<spdlog::logger>("functions", begin(sinks), end(sinks));
+  _functions_log->set_level(levels_map[config.log_level_functions()]);
+  _functions_log->flush_on(levels_map[config.log_level_functions()]);
+  if (config.log_pid())
+    _functions_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _functions_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _config_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _config_log->set_level(levels_map[config.log_level_config()]);
+  _config_log->flush_on(levels_map[config.log_level_config()]);
+  if (config.log_pid())
+    _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
     _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-  }
 
-  void log_v2::apply(const configuration::state& config) {
-    if (verify_config || test_scheduling)
-      return;
+  _events_log =
+      std::make_shared<spdlog::logger>("events", begin(sinks), end(sinks));
+  _events_log->set_level(levels_map[config.log_level_events()]);
+  _events_log->flush_on(levels_map[config.log_level_events()]);
+  if (config.log_pid())
+    _events_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _events_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    std::vector<spdlog::sink_ptr> sinks;
-    if (config.use_syslog())
-      sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
-                                                              0, 0, true));
+  _checks_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _checks_log->set_level(levels_map[config.log_level_checks()]);
+  _checks_log->flush_on(levels_map[config.log_level_checks()]);
+  if (config.log_pid())
+    _checks_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _checks_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    if (config.log_file() != "")
-      sinks.push_back(
-          std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
-    else
-      sinks.push_back(std::make_shared<sinks::stdout_color_sink_mt>());
+  _notifications_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _notifications_log->set_level(levels_map[config.log_level_notifications()]);
+  _notifications_log->flush_on(levels_map[config.log_level_notifications()]);
+  if (config.log_pid())
+    _notifications_log->set_pattern(
+        "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _notifications_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    int64_t debug_level = config.debug_level() << 32;
-    auto conf_logger = [ pid = config.log_pid(), debug_level, &sinks ](
-        logging::type_value t, const std::string& name) {
-      auto logger =
-          std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
-      if (debug_level & t) {
-        logger->set_level(_levels_map["trace"]);
-        logger->flush_on(_levels_map["trace"]);
-      } else {
-        logger->set_level(_levels_map["info"]);
-        logger->flush_on(_levels_map["info"]);
-      }
-      if (pid)
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-      else
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-      return logger;
-    };
+  _eventbroker_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _eventbroker_log->set_level(levels_map[config.log_level_eventbroker()]);
+  _eventbroker_log->flush_on(levels_map[config.log_level_eventbroker()]);
+  if (config.log_pid())
+    _eventbroker_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _eventbroker_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    _functions_log = conf_logger(engine::logging::dbg_functions, "functions");
-    _config_log =
-        std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-    _config_log->set_level(_levels_map["info"]);
-    _config_log->flush_on(_levels_map["info"]);
-    if (config.log_pid())
-      _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-    else
-      _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-  }
+  _external_command_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _external_command_log->set_level(
+      levels_map[config.log_level_external_command()]);
+  _external_command_log->flush_on(
+      levels_map[config.log_level_external_command()]);
+  if (config.log_pid())
+    _external_command_log->set_pattern(
+        "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _external_command_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-  void log_v2::apply(const configuration::state& config) {
-    if (verify_config || test_scheduling)
-      return;
+  _commands_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _commands_log->set_level(levels_map[config.log_level_commands()]);
+  _commands_log->flush_on(levels_map[config.log_level_commands()]);
+  if (config.log_pid())
+    _commands_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _commands_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    std::vector<spdlog::sink_ptr> sinks;
-    if (config.use_syslog())
-      sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
-                                                              0, 0, true));
+  _downtimes_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _downtimes_log->set_level(levels_map[config.log_level_downtimes()]);
+  _downtimes_log->flush_on(levels_map[config.log_level_downtimes()]);
+  if (config.log_pid())
+    _downtimes_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _downtimes_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    if (config.log_file() != "")
-      sinks.push_back(
-          std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
-    else
-      sinks.push_back(std::make_shared<sinks::stdout_color_sink_mt>());
+  _comments_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _comments_log->set_level(levels_map[config.log_level_comments()]);
+  _comments_log->flush_on(levels_map[config.log_level_comments()]);
+  if (config.log_pid())
+    _comments_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _comments_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    int64_t debug_level = config.debug_level() << 32;
-    auto conf_logger = [ pid = config.log_pid(), debug_level, &sinks ](
-        logging::type_value t, const std::string& name) {
-      auto logger =
-          std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
-      if (debug_level & t) {
-        logger->set_level(_levels_map["trace"]);
-        logger->flush_on(_levels_map["trace"]);
-      } else {
-        logger->set_level(_levels_map["info"]);
-        logger->flush_on(_levels_map["info"]);
-      }
-      if (pid)
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-      else
-        logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-      return logger;
-    };
+  _macros_log =
+      std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
+  _macros_log->set_level(levels_map[config.log_level_macros()]);
+  _macros_log->flush_on(levels_map[config.log_level_macros()]);
+  if (config.log_pid())
+    _macros_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _macros_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
-    _functions_log = conf_logger(engine::logging::dbg_functions, "functions");
-    _config_log =
-        std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-    _config_log->set_level(_levels_map["info"]);
-    _config_log->flush_on(_levels_map["info"]);
-    if (config.log_pid())
-      _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-    else
-      _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-
-    std::vector<spdlog::sink_ptr> sinks;
-    if (config.use_syslog())
-      sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
-                                                              0, 0, true));
-
-    if (config.log_file() != "")
-      sinks.push_back(
-          std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
-    else
-      sinks.push_back(std::make_shared<sinks::stdout_color_sink_mt>());
-
-    _config_log =
-        std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-    _config_log->set_level(_levels_map["info"]);
-    _config_log->flush_on(_levels_map["info"]);
-    if (config.log_pid())
-      _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-    else
-      _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-
-    _process_log =
-        std::make_shared<spdlog::logger>("process", begin(sinks), end(sinks));
-    _process_log->set_level(_levels_map["info"]);
-    _process_log->flush_on(_levels_map["info"]);
+  _process_log =
+      std::make_shared<spdlog::logger>("process", begin(sinks), end(sinks));
+  _process_log->set_level(levels_map[config.log_level_process()]);
+  _process_log->flush_on(levels_map[config.log_level_process()]);
+  _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+  if (config.log_pid())
+    _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
     _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-    if (config.log_pid())
-      _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
-    else
-      _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-  }
+  if (config.log_pid())
+    _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+  else
+    _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+}
 
-  spdlog::logger* log_v2::config() { return instance()._config_log.get(); }
+spdlog::logger* log_v2::functions() {
+  return instance()._functions_log.get();
+}
 
-  spdlog::logger* log_v2::process() { return instance()._process_log.get(); }
+spdlog::logger* log_v2::config() {
+  return instance()._config_log.get();
+}
 
-  spdlog::logger* log_v2::functions() {
-    return instance()._functions_log.get();
-  }
+spdlog::logger* log_v2::events() {
+  return instance()._events_log.get();
+}
+
+spdlog::logger* log_v2::checks() {
+  return instance()._checks_log.get();
+}
+
+spdlog::logger* log_v2::notifications() {
+  return instance()._notifications_log.get();
+}
+
+spdlog::logger* log_v2::eventbroker() {
+  return instance()._eventbroker_log.get();
+}
+
+spdlog::logger* log_v2::external_command() {
+  return instance()._external_command_log.get();
+}
+
+spdlog::logger* log_v2::commands() {
+  return instance()._commands_log.get();
+}
+
+spdlog::logger* log_v2::downtimes() {
+  return instance()._downtimes_log.get();
+}
+
+spdlog::logger* log_v2::comments() {
+  return instance()._comments_log.get();
+}
+
+spdlog::logger* log_v2::macros() {
+  return instance()._macros_log.get();
+}
+
+spdlog::logger* log_v2::process() {
+  return instance()._process_log.get();
+}

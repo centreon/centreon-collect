@@ -33,6 +33,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/logging/engine.hh"
@@ -76,7 +77,7 @@ void loop::run() {
 
   engine_logger(log_info_message, basic)
       << "Configuration loaded, main loop starting.";
-
+  log_v2::process()->info("Configuration loaded, main loop starting.");
   // Initialize some time members.
   time(&_last_time);
   _last_status_update = 0L;
@@ -113,6 +114,7 @@ static void apply_conf(std::atomic<bool>* reloading) {
     configuration::applier::state::instance().apply(config);
     engine_logger(log_info_message, basic)
         << "Configuration reloaded, main loop continuing.";
+    log_v2::process()->info("Configuration reloaded, main loop continuing.");
   } catch (std::exception const& e) {
     engine_logger(log_config_error, most) << "Error: " << e.what();
   }
