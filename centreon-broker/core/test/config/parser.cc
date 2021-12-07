@@ -191,7 +191,7 @@ TEST(parser, global) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": []\n"
       "  }\n"
@@ -231,7 +231,7 @@ TEST(parser, log) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log\": {\n"
       "       \"directory\": \"/tmp\"\n"
       "     }\n"
@@ -260,7 +260,7 @@ TEST(parser, log) {
   ASSERT_EQ(s.module_directory(), "/usr/share/centreon/lib/centreon-broker");
   ASSERT_EQ(s.event_queue_max_size(), 100000);
   ASSERT_EQ(s.command_file(), "/var/lib/centreon-broker/command.sock");
-  ASSERT_EQ(s.cache_directory(), "/var/lib/centreon-broker/");
+  ASSERT_EQ(s.cache_directory(), "/tmp/");
   ASSERT_EQ(s.log_conf().directory, "/tmp");
   ASSERT_EQ(s.log_conf().max_size, 0u);
 }
@@ -287,7 +287,7 @@ TEST(parser, logBadFilename) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
       "       \"filename\": \"toto/titi\"\n"
@@ -332,7 +332,7 @@ TEST(parser, logDefaultDir) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
       "       \"filename\": \"toto\",\n"
@@ -386,7 +386,7 @@ TEST(parser, logBadMaxSize) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
       "       \"filename\": \"toto\"\n"
@@ -432,7 +432,7 @@ TEST(parser, logBadLoggers) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
       "       \"filename\": \"toto\"\n"
@@ -479,7 +479,7 @@ TEST(parser, logBadLogger) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
       "       \"filename\": \"toto\"\n"
@@ -526,7 +526,7 @@ TEST(parser, logWithNullLoggers) {
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "     \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
       "       \"loggers\": null\n"
@@ -572,7 +572,7 @@ TEST(parser, unifiedSql) {
       "        \"log_thread_id\": false,\n"
       "        \"event_queue_max_size\": 100000,\n"
       "        \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "        \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "        \"cache_directory\": \"/tmp\",\n"
       "        \"input\": [\n"
       "            {\n"
       "                \"name\": \"connection-to-local\",\n"
@@ -735,7 +735,7 @@ TEST(parser, unifiedSqlVsStorageSql) {
       "        \"log_thread_id\": false,\n"
       "        \"event_queue_max_size\": 100000,\n"
       "        \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
-      "        \"cache_directory\": \"/var/lib/centreon-broker\",\n"
+      "        \"cache_directory\": \"/tmp\",\n"
       "        \"input\": [\n"
       "            {\n"
       "                \"name\": \"connection-to-local\",\n"
