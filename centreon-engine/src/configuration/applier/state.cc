@@ -435,6 +435,20 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->use_retained_scheduling_info(new_cfg.use_retained_scheduling_info());
   config->use_setpgid(new_cfg.use_setpgid());
   config->use_syslog(new_cfg.use_syslog());
+  config->log_v2_enabled(new_cfg.log_v2_enabled());
+  config->log_legacy_enabled(new_cfg.log_legacy_enabled());
+  config->log_v2_logger(new_cfg.log_v2_logger());
+  config->log_level_functions(new_cfg.log_level_functions());
+  config->log_level_config(new_cfg.log_level_config());
+  config->log_level_events(new_cfg.log_level_events());
+  config->log_level_checks(new_cfg.log_level_checks());
+  config->log_level_notifications(new_cfg.log_level_notifications());
+  config->log_level_eventbroker(new_cfg.log_level_eventbroker());
+  config->log_level_external_command(new_cfg.log_level_external_command());
+  config->log_level_commands(new_cfg.log_level_commands());
+  config->log_level_downtimes(new_cfg.log_level_downtimes());
+  config->log_level_comments(new_cfg.log_level_comments());
+  config->log_level_macros(new_cfg.log_level_macros());
   config->use_true_regexp_matching(new_cfg.use_true_regexp_matching());
   config->user(new_cfg.user());
 
@@ -1172,7 +1186,9 @@ void applier::state::_processing(configuration::state& new_cfg,
     std::lock_guard<std::mutex> locker(_apply_lock);
 
     // Apply logging configurations.
+
     applier::logging::instance().apply(new_cfg);
+
     log_v2::instance().apply(new_cfg);
 
     // Apply globals configurations.

@@ -24,6 +24,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/io/file_entry.hh"
 #include "compatibility/locations.h"
@@ -239,6 +240,24 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
      SETTER(bool, use_retained_scheduling_info)},
     {"use_setpgid", SETTER(bool, use_setpgid)},
     {"use_syslog", SETTER(bool, use_syslog)},
+    {"log_v2_enabled", SETTER(bool, log_v2_enabled)},
+    {"log_legacy_enabled", SETTER(bool, log_legacy_enabled)},
+    {"log_v2_logger", SETTER(std::string const&, log_v2_logger)},
+    {"log_level_functions", SETTER(std::string const&, log_level_functions)},
+    {"log_level_config", SETTER(std::string const&, log_level_config)},
+    {"log_level_events", SETTER(std::string const&, log_level_events)},
+    {"log_level_checks", SETTER(std::string const&, log_level_checks)},
+    {"log_level_notifications",
+     SETTER(std::string const&, log_level_notifications)},
+    {"log_level_eventbroker",
+     SETTER(std::string const&, log_level_eventbroker)},
+    {"log_level_external_command",
+     SETTER(std::string const&, log_level_external_command)},
+    {"log_level_commands", SETTER(std::string const&, log_level_commands)},
+    {"log_level_downtimes", SETTER(std::string const&, log_level_downtimes)},
+    {"log_level_comments", SETTER(std::string const&, log_level_comments)},
+    {"log_level_macros", SETTER(std::string const&, log_level_macros)},
+    {"log_level_process", SETTER(std::string const&, log_level_process)},
     {"use_timezone", SETTER(std::string const&, use_timezone)},
     {"use_true_regexp_matching", SETTER(bool, use_true_regexp_matching)},
     {"xcddefault_comment_file", SETTER(std::string const&, _set_comment_file)},
@@ -360,6 +379,21 @@ static bool const default_use_retained_program_state(true);
 static bool const default_use_retained_scheduling_info(false);
 static bool const default_use_setpgid(true);
 static bool const default_use_syslog(true);
+static bool const default_log_v2_enabled(true);
+static bool const default_log_legacy_enabled(true);
+static std::string const default_log_v2_logger("file");
+static std::string const default_log_level_functions("info");
+static std::string const default_log_level_config("info");
+static std::string const default_log_level_events("info");
+static std::string const default_log_level_checks("info");
+static std::string const default_log_level_notifications("info");
+static std::string const default_log_level_eventbroker("info");
+static std::string const default_log_level_external_command("info");
+static std::string const default_log_level_commands("info");
+static std::string const default_log_level_downtimes("info");
+static std::string const default_log_level_comments("info");
+static std::string const default_log_level_macros("info");
+static std::string const default_log_level_process("info");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 
@@ -484,6 +518,21 @@ state::state()
       _use_retained_scheduling_info(default_use_retained_scheduling_info),
       _use_setpgid(default_use_setpgid),
       _use_syslog(default_use_syslog),
+      _log_v2_enabled(default_log_v2_enabled),
+      _log_legacy_enabled(default_log_legacy_enabled),
+      _log_v2_logger(default_log_v2_logger),
+      _log_level_functions(default_log_level_functions),
+      _log_level_config(default_log_level_config),
+      _log_level_events(default_log_level_events),
+      _log_level_checks(default_log_level_checks),
+      _log_level_notifications(default_log_level_notifications),
+      _log_level_eventbroker(default_log_level_eventbroker),
+      _log_level_external_command(default_log_level_external_command),
+      _log_level_commands(default_log_level_commands),
+      _log_level_downtimes(default_log_level_downtimes),
+      _log_level_comments(default_log_level_comments),
+      _log_level_macros(default_log_level_macros),
+      _log_level_process(default_log_level_process),
       _use_timezone(default_use_timezone),
       _use_true_regexp_matching(default_use_true_regexp_matching) {}
 
@@ -647,6 +696,21 @@ state& state::operator=(state const& right) {
     _use_retained_scheduling_info = right._use_retained_scheduling_info;
     _use_setpgid = right._use_setpgid;
     _use_syslog = right._use_syslog;
+    _log_v2_enabled = right._log_v2_enabled;
+    _log_legacy_enabled = right._log_legacy_enabled;
+    _log_v2_logger = right._log_v2_logger;
+    _log_level_functions = right._log_level_functions;
+    _log_level_config = right._log_level_config;
+    _log_level_events = right._log_level_events;
+    _log_level_checks = right._log_level_checks;
+    _log_level_notifications = right._log_level_notifications;
+    _log_level_eventbroker = right._log_level_eventbroker;
+    _log_level_external_command = right._log_level_external_command;
+    _log_level_commands = right._log_level_commands;
+    _log_level_downtimes = right._log_level_downtimes;
+    _log_level_comments = right._log_level_comments;
+    _log_level_macros = right._log_level_macros;
+    _log_level_process = right._log_level_process;
     _use_timezone = right._use_timezone;
     _use_true_regexp_matching = right._use_true_regexp_matching;
   }
@@ -798,6 +862,21 @@ bool state::operator==(state const& right) const noexcept {
       _use_retained_program_state == right._use_retained_program_state &&
       _use_retained_scheduling_info == right._use_retained_scheduling_info &&
       _use_setpgid == right._use_setpgid && _use_syslog == right._use_syslog &&
+      _log_v2_enabled == right._log_v2_enabled &&
+      _log_legacy_enabled == right._log_legacy_enabled &&
+      _log_v2_logger == right._log_v2_logger &&
+      _log_level_functions == right._log_level_functions &&
+      _log_level_config == right._log_level_config &&
+      _log_level_events == right._log_level_events &&
+      _log_level_checks == right._log_level_checks &&
+      _log_level_notifications == right._log_level_notifications &&
+      _log_level_eventbroker == right._log_level_eventbroker &&
+      _log_level_external_command == right._log_level_external_command &&
+      _log_level_commands == right._log_level_commands &&
+      _log_level_downtimes == right._log_level_downtimes &&
+      _log_level_comments == right._log_level_comments &&
+      _log_level_macros == right._log_level_macros &&
+      _log_level_process == right._log_level_process &&
       _use_timezone == right._use_timezone &&
       _use_true_regexp_matching == right._use_true_regexp_matching);
 }
@@ -2113,8 +2192,8 @@ void state::host_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The host_perfdata_file_processing_command value.
  */
-std::string const& state::host_perfdata_file_processing_command()
-    const noexcept {
+std::string const& state::host_perfdata_file_processing_command() const
+    noexcept {
   return _host_perfdata_file_processing_command;
 }
 
@@ -3143,8 +3222,8 @@ void state::service_freshness_check_interval(unsigned int value) {
  *
  *  @return The service_inter_check_delay_method value.
  */
-state::inter_check_delay state::service_inter_check_delay_method()
-    const noexcept {
+state::inter_check_delay state::service_inter_check_delay_method() const
+    noexcept {
   return _service_inter_check_delay_method;
 }
 
@@ -3162,8 +3241,8 @@ void state::service_inter_check_delay_method(inter_check_delay value) {
  *
  *  @return The service_interleave_factor_method value.
  */
-state::interleave_factor state::service_interleave_factor_method()
-    const noexcept {
+state::interleave_factor state::service_interleave_factor_method() const
+    noexcept {
   return _service_interleave_factor_method;
 }
 
@@ -3235,8 +3314,8 @@ void state::service_perfdata_file_mode(perfdata_file_mode value) {
  *
  *  @return The service_perfdata_file_processing_command value.
  */
-std::string const& state::service_perfdata_file_processing_command()
-    const noexcept {
+std::string const& state::service_perfdata_file_processing_command() const
+    noexcept {
   return _service_perfdata_file_processing_command;
 }
 
@@ -3508,8 +3587,8 @@ void state::translate_passive_host_checks(bool value) {
  *
  *  @return The users resources list.
  */
-std::unordered_map<std::string, std::string> const& state::user()
-    const noexcept {
+std::unordered_map<std::string, std::string> const& state::user() const
+    noexcept {
   return _users;
 }
 
@@ -3685,6 +3764,312 @@ bool state::use_syslog() const noexcept {
  */
 void state::use_syslog(bool value) {
   _use_syslog = value;
+}
+
+/**
+ *  Get log_v2_enabled value.
+ *
+ *  @return The log_v2_enabled value.
+ */
+bool state::log_v2_enabled() const noexcept {
+  return _log_v2_enabled;
+}
+
+/**
+ *  Set log_v2_enabled value.
+ *
+ *  @param[in] value The new log_v2_enabled value.
+ */
+void state::log_v2_enabled(bool value) {
+  _log_v2_enabled = value;
+}
+
+/**
+ *  Get log_legacy_enabled value.
+ *
+ *  @return The log_legacy_enabled value.
+ */
+bool state::log_legacy_enabled() const noexcept {
+  return _log_legacy_enabled;
+}
+
+/**
+ *  Set log_legacy_enabled value.
+ *
+ *  @param[in] value The new log_legacy_enabled value.
+ */
+void state::log_legacy_enabled(bool value) {
+  _log_legacy_enabled = value;
+}
+
+/**
+ *  Get log_v2_logger value.
+ *
+ *  @return The log_v2_logger value.
+ */
+std::string const& state::log_v2_logger() const noexcept {
+  return _log_v2_logger;
+}
+
+/**
+ *  Set log_v2_logger value.
+ *
+ *  @param[in] value The new log_v2_logger value.
+ */
+void state::log_v2_logger(std::string const& value) {
+  _log_v2_logger = value;
+}
+
+/**
+ *  Get log_level_functions value.
+ *
+ *  @return The log_level_functions value.
+ */
+std::string const& state::log_level_functions() const noexcept {
+  return _log_level_functions;
+}
+
+/**
+ *  Set log_level_functions value.
+ *
+ *  @param[in] value The new log_level_functions value.
+ */
+void state::log_level_functions(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_functions = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_config value.
+ *
+ *  @return The log_level_config value.
+ */
+std::string const& state::log_level_config() const noexcept {
+  return _log_level_config;
+}
+
+/**
+ *  Set log_level_config value.
+ *
+ *  @param[in] value The new log_level_config value.
+ */
+void state::log_level_config(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_config = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_events value.
+ *
+ *  @return The log_level_events value.
+ */
+std::string const& state::log_level_events() const noexcept {
+  return _log_level_events;
+}
+
+/**
+ *  Set log_level_events value.
+ *
+ *  @param[in] value The new log_level_events value.
+ */
+void state::log_level_events(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_events = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_checks value.
+ *
+ *  @return The log_level_checks value.
+ */
+std::string const& state::log_level_checks() const noexcept {
+  return _log_level_checks;
+}
+
+/**
+ *  Set log_level_checks value.
+ *
+ *  @param[in] value The new log_level_checks value.
+ */
+void state::log_level_checks(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_checks = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_notifications value.
+ *
+ *  @return The log_level_notifications value.
+ */
+std::string const& state::log_level_notifications() const noexcept {
+  return _log_level_notifications;
+}
+
+/**
+ *  Set log_level_notifications value.
+ *
+ *  @param[in] value The new log_level_notifications value.
+ */
+void state::log_level_notifications(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_notifications = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_eventbroker value.
+ *
+ *  @return The log_level_eventbroker value.
+ */
+std::string const& state::log_level_eventbroker() const noexcept {
+  return _log_level_eventbroker;
+}
+
+/**
+ *  Set log_level_eventbroker value.
+ *
+ *  @param[in] value The new log_level_eventbroker value.
+ */
+void state::log_level_eventbroker(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_eventbroker = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_external_command value.
+ *
+ *  @return The log_level_external_command value.
+ */
+std::string const& state::log_level_external_command() const noexcept {
+  return _log_level_external_command;
+}
+
+/**
+ *  Set log_level_external_command value.
+ *
+ *  @param[in] value The new log_level_external_command value.
+ */
+void state::log_level_external_command(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_external_command = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_commands value.
+ *
+ *  @return The log_level_commands value.
+ */
+std::string const& state::log_level_commands() const noexcept {
+  return _log_level_commands;
+}
+
+/**
+ *  Set log_level_commands value.
+ *
+ *  @param[in] value The new log_level_commands value.
+ */
+void state::log_level_commands(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_commands = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_downtimes value.
+ *
+ *  @return The log_level_downtimes value.
+ */
+std::string const& state::log_level_downtimes() const noexcept {
+  return _log_level_downtimes;
+}
+
+/**
+ *  Set log_level_downtimes value.
+ *
+ *  @param[in] value The new log_level_downtimes value.
+ */
+void state::log_level_downtimes(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_downtimes = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_comments value.
+ *
+ *  @return The log_level_comments value.
+ */
+std::string const& state::log_level_comments() const noexcept {
+  return _log_level_comments;
+}
+
+/**
+ *  Set log_level_comments value.
+ *
+ *  @param[in] value The new log_level_comments value.
+ */
+void state::log_level_comments(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_comments = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_macros value.
+ *
+ *  @return The log_level_macros value.
+ */
+std::string const& state::log_level_macros() const noexcept {
+  return _log_level_macros;
+}
+
+/**
+ *  Set log_level_macros value.
+ *
+ *  @param[in] value The new log_level_macros value.
+ */
+void state::log_level_macros(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_macros = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
+}
+
+/**
+ *  Get log_level_process value.
+ *
+ *  @return The log_level_process value.
+ */
+std::string const& state::log_level_process() const noexcept {
+  return _log_level_process;
+}
+
+/**
+ *  Set log_level_process value.
+ *
+ *  @param[in] value The new log_level_process value.
+ */
+void state::log_level_process(std::string const& value) {
+  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+    _log_level_process = value;
+  else
+    log_v2::config()->error("error wrong level setted ");
 }
 
 /**
