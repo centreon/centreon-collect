@@ -31,7 +31,7 @@ tar czf /root/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './.git'  \
       --transform "s,^\.,centreon-collect-$VERSION," .
 
-cp centreon-engine/packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh /root/rpmbuild/SOURCES/
+cp packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh /root/rpmbuild/SOURCES/
 
 echo -e "%_topdir      %(echo $HOME)/rpmbuild\n%_smp_mflags  -j5\n" > $HOME/rpmbuild/.rpmmacros
 

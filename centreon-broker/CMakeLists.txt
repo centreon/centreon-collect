@@ -159,22 +159,9 @@ endif ()
 
 set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
-# Library directory.
-if (WITH_PREFIX_LIB_BROKER)
-  set(PREFIX_LIB "${WITH_PREFIX_LIB_BROKER}")
-else ()
-  set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib")
-endif ()
-
 # Modules directory.
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
-
-# var directory.
-if (WITH_PREFIX_VAR)
-  set(PREFIX_VAR "${WITH_PREFIX_VAR}")
-else ()
-  set(PREFIX_VAR "${CMAKE_INSTALL_PREFIX}/var")
-endif ()
+set(PREFIX_CBMOD "${CMAKE_INSTALL_FULL_LIBDIR}/nagios")
 
 # User.
 if (WITH_USER_BROKER)
@@ -592,11 +579,11 @@ install(CODE "
 
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
 #  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
+#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_MODULES}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BROKER_CONF}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_VAR}\")
+#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_VAR}\")
   if (WITH_STARTUP_SCRIPT STREQUAL \"sysv\")
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${STARTUP_DIR}\")
   endif ()
@@ -678,7 +665,7 @@ message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "    - Binary prefix              ${CMAKE_INSTALL_SBINDIR}")
-message(STATUS "    - Library prefix             ${PREFIX_LIB}")
+#message(STATUS "    - Library prefix             ${PREFIX_LIB}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
 message(STATUS "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker")
 message(STATUS "    - Configuration prefix       ${PREFIX_BROKER_CONF}")

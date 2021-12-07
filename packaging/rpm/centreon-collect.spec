@@ -239,8 +239,6 @@ cmake3 \
         -DWITH_BENCH=1 \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-        -DWITH_PREFIX_LIB_BROKER=%{_libdir}/nagios/ \
-        -DWITH_PREFIX_VAR=%{_localstatedir}/lib/centreon-broker \
         -DWITH_STARTUP_DIR=%{_unitdir} \
         -DWITH_STARTUP_SCRIPT=systemd \
         -DWITH_USER_BROKER=centreon-broker \
