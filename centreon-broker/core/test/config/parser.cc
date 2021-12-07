@@ -187,7 +187,7 @@ TEST(parser, global) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -227,7 +227,7 @@ TEST(parser, log) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -257,7 +257,7 @@ TEST(parser, log) {
   ASSERT_EQ(s.broker_id(), 1);
   ASSERT_EQ(s.broker_name(), "central-broker-master");
   ASSERT_EQ(s.poller_id(), 1);
-  ASSERT_EQ(s.module_directory(), "/usr/share/centreon/lib/centreon-broker");
+  ASSERT_EQ(s.module_directory(), "/etc");
   ASSERT_EQ(s.event_queue_max_size(), 100000);
   ASSERT_EQ(s.command_file(), "/var/lib/centreon-broker/command.sock");
   ASSERT_EQ(s.cache_directory(), "/tmp/");
@@ -283,7 +283,7 @@ TEST(parser, logBadFilename) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -328,7 +328,7 @@ TEST(parser, logDefaultDir) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -382,7 +382,7 @@ TEST(parser, logBadMaxSize) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -428,7 +428,7 @@ TEST(parser, logBadLoggers) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -475,7 +475,7 @@ TEST(parser, logBadLogger) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -522,7 +522,7 @@ TEST(parser, logWithNullLoggers) {
       "     \"poller_id\": 1,\n"
       "     \"poller_name\": \"Central\",\n"
       "     \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "     \"log_timestamp\": true,\n"
       "     \"event_queue_max_size\": 100000,\n"
       "     \"command_file\": \"/var/lib/centreon-broker/command.sock\",\n"
@@ -567,7 +567,7 @@ TEST(parser, unifiedSql) {
       "        \"bbdo_version\": \"3.1.2\",\n"
       "        \"poller_name\": \"Central\",\n"
       "        \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "        \"log_timestamp\": true,\n"
       "        \"log_thread_id\": false,\n"
       "        \"event_queue_max_size\": 100000,\n"
@@ -730,7 +730,7 @@ TEST(parser, unifiedSqlVsStorageSql) {
       "        \"bbdo_version\": \"3.1.2\",\n"
       "        \"poller_name\": \"Central\",\n"
       "        \"module_directory\": "
-      "\"/usr/share/centreon/lib/centreon-broker\",\n"
+      "\"/etc\",\n"
       "        \"log_timestamp\": true,\n"
       "        \"log_thread_id\": false,\n"
       "        \"event_queue_max_size\": 100000,\n"
