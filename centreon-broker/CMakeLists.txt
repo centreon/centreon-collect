@@ -591,7 +591,7 @@ install(CODE "
 
 # Install rule.
 install(TARGETS "${DAEMON}"
-  RUNTIME DESTINATION "${CMAKE_INSTALL_SBINDIR}"
+  RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
   )
 
 
@@ -664,7 +664,7 @@ message(STATUS "    - Module                     ${MODULE_LIST}")
 message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "    - Binary prefix              ${CMAKE_INSTALL_SBINDIR}")
+#message(STATUS "    - Binary prefix              ${CMAKE_INSTALL_SBINDIR}")
 #message(STATUS "    - Library prefix             ${PREFIX_LIB}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
 message(STATUS "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker")
