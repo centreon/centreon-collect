@@ -335,6 +335,7 @@ TEST(parser, logDefaultDir) {
       "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
+      "       \"directory\": \"/tmp\",\n"
       "       \"filename\": \"toto\",\n"
       "       \"max_size\": \"12345\",\n"
       "       \"loggers\": {\n"
@@ -358,7 +359,7 @@ TEST(parser, logDefaultDir) {
 
   // Remove temporary file.
   ::remove(config_file.c_str());
-  ASSERT_EQ(s.log_conf().directory, "/var/log/centreon-broker");
+  ASSERT_EQ(s.log_conf().directory, "/tmp");
   ASSERT_EQ(s.log_conf().filename, "toto");
   ASSERT_EQ(s.log_conf().max_size, 12345u);
   ASSERT_EQ(s.log_conf().loggers.size(), 2u);
@@ -529,6 +530,7 @@ TEST(parser, logWithNullLoggers) {
       "     \"cache_directory\": \"/tmp\",\n"
       "     \"log_thread_id\": false,\n"
       "     \"log\": {\n"
+      "       \"directory\": \"/tmp\",\n"
       "       \"loggers\": null\n"
       "     }\n"
       "  }\n"
