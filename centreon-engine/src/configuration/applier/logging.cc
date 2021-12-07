@@ -37,33 +37,40 @@ void applier::logging::apply(state& config) {
   if (verify_config || test_scheduling)
     return;
 
-  // Syslog.
-  if (config.use_syslog() && !_syslog)
-    _add_syslog();
-  else if (!config.use_syslog() && _syslog)
-    _del_syslog();
+  if (config.log_legacy_enabled()) {
+    // Syslog.
+    if (config.use_syslog() && !_syslog)
+      _add_syslog();
+    else if (!config.use_syslog() && _syslog)
+      _del_syslog();
 
-  // Standard log file.
-  if (config.log_file() == "")
-    _del_log_file();
-  else if (!_log || config.log_file() != _log->filename()) {
-    _add_log_file(config);
+    // Standard log file.
+
+    if (config.log_file() == "")
+      _del_log_file();
+    else if (!_log || config.log_file() != _log->filename()) {
+      _add_log_file(config);
+      _del_stdout();
+      _del_stderr();
+    }
+
+    // Debug file.
+    if ((config.debug_file() == "") || !config.debug_level() ||
+        !config.debug_verbosity()) {
+      _del_debug();
+      _debug_level = config.debug_level();
+      _debug_verbosity = config.debug_verbosity();
+      _debug_max_size = config.max_debug_file_size();
+    } else if (!_debug || config.debug_file() != _debug->filename() ||
+               config.debug_level() != _debug_level ||
+               config.debug_verbosity() != _debug_verbosity ||
+               config.max_debug_file_size() != _debug_max_size)
+      _add_debug(config);
+  } else {
     _del_stdout();
     _del_stderr();
-  }
-
-  // Debug file.
-  if ((config.debug_file() == "") || !config.debug_level() ||
-      !config.debug_verbosity()) {
     _del_debug();
-    _debug_level = config.debug_level();
-    _debug_verbosity = config.debug_verbosity();
-    _debug_max_size = config.max_debug_file_size();
-  } else if (!_debug || config.debug_file() != _debug->filename() ||
-             config.debug_level() != _debug_level ||
-             config.debug_verbosity() != _debug_verbosity ||
-             config.max_debug_file_size() != _debug_max_size)
-    _add_debug(config);
+  }
 }
 
 /**
