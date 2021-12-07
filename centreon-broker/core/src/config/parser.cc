@@ -27,6 +27,7 @@
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -163,12 +164,16 @@ state parser::parse(std::string const& file) {
           ;
         else if (get_conf<state>({it.key(), it.value()}, "module_directory",
                                  retval, &state::module_directory,
-                                 &json::is_string))
-          ;
+                                 &json::is_string)) {
+          if (!misc::filesystem::readable(retval.module_directory()))
+            throw msg_fmt("The module directory '{}' is not accessible", retval.module_directory());
+        }
         else if (get_conf<state>({it.key(), it.value()}, "cache_directory",
                                  retval, &state::cache_directory,
-                                 &json::is_string))
-          ;
+                                 &json::is_string)) {
+          if (!misc::filesystem::readable(retval.cache_directory()))
+            throw msg_fmt("The cache directory '{}' is not accessible", retval.cache_directory());
+        }
         else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
                                       retval, &state::pool_size,
                                       &json::is_number, &json::get<int>))
@@ -242,6 +247,9 @@ state parser::parse(std::string const& file) {
                 "directory name");
           if (conf.directory.empty())
             conf.directory = "/var/log/centreon-broker";
+
+          if (!misc::filesystem::writable(conf.directory))
+            throw msg_fmt("The log directory '{}' is not writable", conf.directory);
 
           conf.filename = "";
 

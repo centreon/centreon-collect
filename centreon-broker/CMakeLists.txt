@@ -159,9 +159,13 @@ endif ()
 
 set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
-# Modules directory.
+# Modules directories.
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
 set(PREFIX_CBMOD "${CMAKE_INSTALL_FULL_LIBDIR}/nagios")
+
+# var directories.
+set(BROKER_VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
+set(BROKER_VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
 
 # User.
 if (WITH_USER_BROKER)
@@ -577,13 +581,11 @@ install(CODE "
     endif ()
   endfunction()
 
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
-#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
-#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_MODULES}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BROKER_CONF}\")
-#  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_VAR}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_MODULES}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CBMOD}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${BROKER_VAR_LOG_DIR}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${BROKER_VAR_LIB_DIR}\")
   if (WITH_STARTUP_SCRIPT STREQUAL \"sysv\")
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${STARTUP_DIR}\")
   endif ()
