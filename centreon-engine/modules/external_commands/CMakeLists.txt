@@ -53,5 +53,5 @@ target_link_libraries(externalcmd centreon_clib)
 
 # Install rule.
 install(TARGETS "externalcmd"
-  DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/centreon-engine/"
+  DESTINATION "${ENGINE_MODULES_DIR}"
   COMPONENT "runtime")

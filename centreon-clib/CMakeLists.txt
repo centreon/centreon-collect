@@ -218,7 +218,7 @@ set_target_properties(
 # Install shared library.
 install(
   TARGETS centreon_clib
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
   COMPONENT "runtime"
 )
 

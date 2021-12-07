@@ -32,7 +32,7 @@ if (WITH_BENCH)
   set_target_properties("bench_passive_module"
     PROPERTIES PREFIX "")
   install(TARGETS "bench_passive_module"
-    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/centreon-engine/"
+    DESTINATION "${ENGINE_MODULES_DIR}"
     COMPONENT "bench")
 
   # Passive checks benchmarking command line tool.
