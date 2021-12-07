@@ -1,1 +1,1 @@
-debian/tmp-centreon-collect/usr/lib/libcentreon_clib.so           usr/lib
+debian/tmp-centreon-collect/usr/lib64/libcentreon_clib.so           usr/lib64
