@@ -89,8 +89,7 @@ pid_t check::execute(uint64_t cmd_id,
   _err.set_fd(fds[2]);
 
   // Store command ID.
-  log::core()->debug("check {0} has ID {1}", static_cast<void*>(this),
-                        cmd_id);
+  log::core()->debug("check {0} has ID {1}", static_cast<void*>(this), cmd_id);
   _cmd_id = cmd_id;
 
   // Register with multiplexer.
@@ -112,8 +111,8 @@ pid_t check::execute(uint64_t cmd_id,
  *  @param[in] listnr New listener.
  */
 void check::listen(listener* listnr) {
-  log::core()->debug("check {0} is listened by {1}",
-                        static_cast<void*>(this), static_cast<void*>(listnr));
+  log::core()->debug("check {0} is listened by {1}", static_cast<void*>(this),
+                     static_cast<void*>(listnr));
   _listnr = listnr;
 }
 
@@ -212,7 +211,7 @@ void check::terminated(int exit_code) {
  */
 void check::unlisten(listener* listnr) {
   log::core()->debug("listener {0} stops listening check {1}",
-                        static_cast<void*>(_listnr), static_cast<void*>(this));
+                     static_cast<void*>(_listnr), static_cast<void*>(this));
   _listnr = nullptr;
 }
 

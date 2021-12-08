@@ -19,7 +19,7 @@
 #ifndef CCB_BAM_CONFIGURATION_KPI_HH
 #define CCB_BAM_CONFIGURATION_KPI_HH
 
-#include "com/centreon/broker/bam/kpi_event.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -35,8 +35,26 @@ namespace configuration {
  *  impact, which service/BA it targets, ...
  */
 class kpi {
+  uint32_t _id;
+  int16_t _state_type;
+  uint32_t _host_id;
+  uint32_t _service_id;
+  uint32_t _ba_id;
+  uint32_t _indicator_ba_id;
+  uint32_t _meta_id;
+  uint32_t _boolexp_id;
+  short _status;
+  short _last_level;
+  bool _downtimed;
+  bool _acknowledged;
+  bool _ignore_downtime;
+  bool _ignore_acknowledgement;
+  double _impact_warning;
+  double _impact_critical;
+  double _impact_unknown;
+  bam::kpi_event _event;
+
  public:
-  typedef impact_values::state state;
   kpi(uint32_t id = 0,
       short state_type = 0,
       uint32_t host_id = 0,
@@ -101,26 +119,6 @@ class kpi {
   void set_impact_critical(double impact);
   void set_impact_unknown(double impact);
   void set_opened_event(bam::kpi_event const& kpi_event);
-
- private:
-  uint32_t _id;
-  short _state_type;
-  uint32_t _host_id;
-  uint32_t _service_id;
-  uint32_t _ba_id;
-  uint32_t _indicator_ba_id;
-  uint32_t _meta_id;
-  uint32_t _boolexp_id;
-  short _status;
-  short _last_level;
-  bool _downtimed;
-  bool _acknowledged;
-  bool _ignore_downtime;
-  bool _ignore_acknowledgement;
-  double _impact_warning;
-  double _impact_critical;
-  double _impact_unknown;
-  bam::kpi_event _event;
 };
 }  // namespace configuration
 }  // namespace bam

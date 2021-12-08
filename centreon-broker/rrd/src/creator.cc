@@ -30,10 +30,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/creator.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
@@ -227,13 +228,13 @@ void creator::_open(std::string const& filename,
   {
     const char* tt;
     switch (value_type) {
-      case storage::perfdata::absolute:
+      case misc::perfdata::absolute:
         tt = "ABSOLUTE";
         break;
-      case storage::perfdata::counter:
+      case misc::perfdata::counter:
         tt = "COUNTER";
         break;
-      case storage::perfdata::derive:
+      case misc::perfdata::derive:
         tt = "DERIVE";
         break;
       default:

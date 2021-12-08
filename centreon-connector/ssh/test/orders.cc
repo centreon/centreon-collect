@@ -240,9 +240,6 @@ TEST(SSHOrders, ExecuteInvalidTimeout) {
     p.read(bh);
   p.read(bh);
 
-  // Checks.
-  int retval(0);
-
   // Listener must have received errors and eof.
   ASSERT_EQ(listnr.get_callbacks().size(), 2u);
   fake_listener::callback_info info1, info2;

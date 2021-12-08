@@ -25,8 +25,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/bam/availability_thread.hh"
-#include "com/centreon/broker/bam/ba_event.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"

@@ -166,7 +166,7 @@ TEST_F(OutputTest, WriteLongService) {
   ASSERT_EQ(mem1.size(), 70285u);
 
   // The buffer is too big. So it is splitted into several -- here 2 -- buffers.
-  // The are concatenated, keeped into the same block, but a new header is
+  // They are concatenated, keeped into the same block, but a new header is
   // inserted in the "middle" of the buffer: Something like this:
   //     HEADER | BUFFER1 | HEADER | BUFFER2
   ASSERT_EQ(htons(*reinterpret_cast<uint16_t const*>(&mem1[0] + 2)), 0xffffu);

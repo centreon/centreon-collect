@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "com/centreon/broker/bam/ba_event.hh"
+#include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

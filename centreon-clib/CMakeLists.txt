@@ -1,5 +1,5 @@
 ##
-## Copyright 2011-2014,2018-2019 Centreon
+## Copyright 2011-2014,2018-2021 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -19,10 +19,6 @@
 # Global options.
 cmake_minimum_required(VERSION 2.8)
 project("Centreon Clib" C CXX)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
-#set(CMAKE_CXX_COMPILER "clang++")
-add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
@@ -32,11 +28,7 @@ set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/script")
 
 
 # Version.
-set(CLIB_MAJOR 21)
-set(CLIB_MINOR 10)
-set(CLIB_PATCH 0)
-set(CLIB_VERSION "${CLIB_MAJOR}.${CLIB_MINOR}.${CLIB_PATCH}")
-
+set(CLIB_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 
 # Include module to check existing libraries.
 include(CheckLibraryExists)
@@ -107,50 +99,11 @@ endif ()
 
 
 # Set path.
-if (WITH_PREFIX)
-  set(PREFIX "${WITH_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${PREFIX}")
-else ()
-  set(PREFIX "${CMAKE_INSTALL_PREFIX}")
-endif ()
 if (WITH_PREFIX_LIB_CLIB)
   set(PREFIX_LIB "${WITH_PREFIX_LIB_CLIB}")
 else ()
   set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib")
 endif ()
-if (WITH_PREFIX_INC)
-  set(PREFIX_INC "${WITH_PREFIX_INC}")
-else ()
-  set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include")
-endif ()
-
-
-# Set pkg-config options.
-option(WITH_PKGCONFIG_SCRIPT "Generate and install pkg-config script." ON)
-if (WITH_PKGCONFIG_SCRIPT)
-  # Generate pkg-config file.
-  message(STATUS "Generating pkg-config file.")
-  configure_file(
-    "${SCRIPT_DIR}/centreon-clib.pc.in"
-    "${SCRIPT_DIR}/centreon-clib.pc"
-    @ONLY
-  )
-
-  # pkg-config file install directory.
-  if (WITH_PKGCONFIG_DIR)
-    set(PKGCONFIG_DIR "${WITH_PKGCONFIG_DIR}")
-  else ()
-    set(PKGCONFIG_DIR "${PREFIX_LIB}pkgconfig")
-  endif ()
-
-  # Install rule.
-  install(
-    FILES "${SCRIPT_DIR}/centreon-clib.pc"
-    DESTINATION "${PKGCONFIG_DIR}"
-    COMPONENT "runtime"
-  )
-endif ()
-
 
 # Set options.
 option(WITH_ASAN "Add the libasan to check memory leaks and other memory issues." OFF)
@@ -181,29 +134,6 @@ set(RPM_PACKAGE "No")
 if (CPACK_BINARY_RPM)
   set(RPM_PACKAGE "Yes")
 endif ()
-
-
-# Set libraries.
-if (NOT WITH_SHARED_LIB AND NOT WITH_STATIC_LIB)
-  set(WITH_SHARED_LIB 1)
-endif ()
-
-set(SHARED_LIB "No")
-if (WITH_SHARED_LIB)
-  set(SHARED_LIB "Yes")
-endif()
-
-set(STATIC_LIB "No")
-if (WITH_STATIC_LIB)
-  set(STATIC_LIB "Yes")
-endif ()
-
-if (WITH_SHARED_LIB)
-  set(DEFAULT_LINK_NAME "centreon_clib_shared")
-else ()
-  set(DEFAULT_LINK_NAME "centreon_clib_static")
-endif ()
-
 
 # Find headers.
 include(CheckIncludeFileCXX)
@@ -264,73 +194,38 @@ if (WITH_TESTING)
   add_subdirectory(test)
 endif ()
 
-
-if (WITH_SHARED_LIB)
-  # Create shared library.
-  add_library(
-    "centreon_clib_shared"
-    SHARED
-    ${SOURCES}
-    ${HEADERS}
-  )
-  # Link target with required libraries.
-  target_link_libraries(
-    "centreon_clib_shared"
-    ${LIB_THREAD}
-    ${LIB_RT}
-    ${LIB_DL}
-  )
-  # Set output name for the shared library.
-  set_target_properties(
-    "centreon_clib_shared"
-    PROPERTIES
-    OUTPUT_NAME
-    "centreon_clib"
-  )
-  # Install shared library.
-  install(
-    TARGETS "centreon_clib_shared"
-    DESTINATION "${PREFIX_LIB}"
-    COMPONENT "runtime"
-  )
-endif ()
-
-
-if (WITH_STATIC_LIB)
-  # Create static library.
-  add_library(
-    "centreon_clib_static"
-    STATIC
-    ${SOURCES}
-    ${HEADERS}
-  )
-  # Link target with required libraries.
-  target_link_libraries(
-    "centreon_clib_static"
-    ${LIB_THREAD}
-    ${LIB_RT}
-    ${LIB_DL}
-  )
-  # Set output name for the static library.
-  set_target_properties(
-    "centreon_clib_static"
-    PROPERTIES
-    OUTPUT_NAME
-    "centreon_clib"
-  )
-  # Install static library.
-  install(
-    TARGETS "centreon_clib_static"
-    DESTINATION "${PREFIX_LIB}"
-    COMPONENT "runtime"
-  )
-endif ()
-
+# Create shared library.
+add_library(
+  centreon_clib
+  SHARED
+  ${SOURCES}
+  ${HEADERS}
+)
+# Link target with required libraries.
+target_link_libraries(
+  centreon_clib
+  ${LIB_THREAD}
+  ${LIB_RT}
+  ${LIB_DL}
+)
+# Set output name for the shared library.
+set_target_properties(
+  centreon_clib
+  PROPERTIES
+  OUTPUT_NAME
+  centreon_clib
+)
+# Install shared library.
+install(
+  TARGETS centreon_clib
+  DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+  COMPONENT "runtime"
+)
 
 # Install header files for devel.
 install(
   DIRECTORY "${INCLUDE_DIR}/"
-  DESTINATION "${PREFIX_INC}"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/centreon-clib"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh"
 )
@@ -347,8 +242,6 @@ message(STATUS "")
 message(STATUS "  Project")
 message(STATUS "    - Name                      ${PROJECT_NAME}")
 message(STATUS "    - Version                   ${CLIB_VERSION}")
-message(STATUS "    - With shared library       ${SHARED_LIB}")
-message(STATUS "    - With static library       ${STATIC_LIB}")
 message(STATUS "")
 message(STATUS "  System")
 message(STATUS "    - Name                      ${CMAKE_SYSTEM_NAME}")
@@ -362,11 +255,7 @@ message(STATUS "    - Extra compilation flags   ${CMAKE_CXX_FLAGS}")
 message(STATUS "    - Build unit tests          ${UNIT_TEST}")
 message(STATUS "")
 message(STATUS "  Installation")
-message(STATUS "    - Prefix                    ${PREFIX}")
+message(STATUS "    - Prefix                    ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "    - Library directory         ${PREFIX_LIB}")
-message(STATUS "    - Include directory         ${PREFIX_INC}")
 message(STATUS "    - Package                   ${PACKAGE_LIST}")
-if (WITH_PKGCONFIG_SCRIPT)
-  message(STATUS "    - pkg-config directory      ${PKGCONFIG_DIR}")
-endif ()
 message(STATUS "")

@@ -94,7 +94,7 @@ int32_t tcp_connection::flush() {
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {
-      std::string msg{std::move(_current_error.message())};
+      std::string msg{_current_error.message()};
       _current_error.clear();
       throw msg_fmt(msg);
     }
@@ -173,7 +173,7 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {
-      std::string msg{std::move(_current_error.message())};
+      std::string msg{_current_error.message()};
       _current_error.clear();
       throw msg_fmt(msg);
     }
@@ -329,7 +329,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {
-      std::string msg{std::move(_current_error.message())};
+      std::string msg{_current_error.message()};
       _current_error.clear();
       throw msg_fmt(msg);
     }

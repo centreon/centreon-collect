@@ -44,7 +44,7 @@ class comment : public io::data {
   ~comment();
   comment& operator=(comment const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_comment>::value;
+    return io::events::data_type<io::neb, neb::de_comment>::value;
   }
 
   std::string author;

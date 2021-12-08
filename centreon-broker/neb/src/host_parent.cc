@@ -91,4 +91,4 @@ static io::data* new_host_parent() {
   return new host_parent;
 }
 io::event_info::event_operations const host_parent::operations = {
-    &new_host_parent};
+    &new_host_parent, nullptr, nullptr};

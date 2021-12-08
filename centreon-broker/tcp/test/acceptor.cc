@@ -25,9 +25,9 @@
 #include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/connector.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -39,8 +39,10 @@ constexpr static uint16_t test_port(4444);
 
 class TcpAcceptor : public ::testing::Test {
  public:
-  void SetUp() override { pool::load(0);
-    tcp::tcp_async::load(); }
+  void SetUp() override {
+    pool::load(0);
+    tcp::tcp_async::load();
+  }
 
   void TearDown() override {
     log_v2::tcp()->info("TCP TearDown");
@@ -143,7 +145,8 @@ TEST_F(TcpAcceptor, QuestionAnswer) {
   bool cbd_finished = false;
 
   std::thread cbd([&cbd_m, &cbd_cv, &cbd_finished] {
-    std::unique_ptr<io::endpoint> endp(std::make_unique<tcp::acceptor>(4141, -1));
+    std::unique_ptr<io::endpoint> endp(
+        std::make_unique<tcp::acceptor>(4141, -1));
 
     /* Nominal case, cbd is acceptor and read on the socket */
     std::unique_ptr<io::stream> u_cbd;
@@ -389,7 +392,8 @@ TEST_F(TcpAcceptor, NominalReversed) {
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   std::thread cbd([&cbd_m, &cbd_finished, &cbd_cv] {
-    std::unique_ptr<io::endpoint> endp(std::make_unique<tcp::acceptor>(4141, -1));
+    std::unique_ptr<io::endpoint> endp(
+        std::make_unique<tcp::acceptor>(4141, -1));
 
     std::unique_ptr<io::stream> u_cbd;
     do {

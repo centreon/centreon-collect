@@ -1,5 +1,5 @@
 /*
-** Copyright 2014 Centreon
+** Copyright 2014, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,8 +21,10 @@
 
 #include <memory>
 
+#include "bbdo/bam/kpi_event.hh"
+#include "bbdo/bam/state.hh"
+#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
-#include "com/centreon/broker/bam/kpi_event.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -41,9 +43,6 @@ class computable;
  *  BA.
  */
 class kpi_ba : public kpi {
- public:
-  typedef impact_values::state state;
-
  private:
   std::shared_ptr<ba> _ba;
   double _impact_critical;
@@ -51,12 +50,12 @@ class kpi_ba : public kpi {
   double _impact_unknown;
 
   void _fill_impact(impact_values& impact,
-                    kpi_ba::state state,
+                    state state,
                     double acknowledgement,
                     double downtime);
   void _open_new_event(io::stream* visitor,
                        int impact,
-                       kpi_ba::state ba_state,
+                       state ba_state,
                        timestamp event_start_time);
 
  public:

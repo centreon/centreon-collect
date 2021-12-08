@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -57,8 +57,8 @@ void broker_event::create(lua_State* L, std::shared_ptr<io::data> e) {
  */
 void broker_event::create_as_table(lua_State* L, const io::data& d) {
   uint32_t type(d.type());
-  unsigned short cat(io::events::category_of_type(type));
-  unsigned short elem(io::events::element_of_type(type));
+  uint16_t cat(category_of_type(type));
+  uint16_t elem(element_of_type(type));
   lua_newtable(L);
   lua_pushstring(L, "_type");
   lua_pushinteger(L, type);

@@ -91,4 +91,4 @@ static io::data* new_service_group() {
   return new service_group;
 }
 io::event_info::event_operations const service_group::operations = {
-    &new_service_group};
+    &new_service_group, nullptr, nullptr};

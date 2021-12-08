@@ -50,7 +50,8 @@ error::error(char const* file, char const* function, int line) noexcept
  *
  *  @param[in] e Object to copy.
  */
-error::error(error const& e) noexcept : std::exception(e), _current(e._current) {
+error::error(error const& e) noexcept
+    : std::exception(e), _current(e._current) {
   memcpy(_buffer, e._buffer, _current * sizeof(*_buffer));
 }
 

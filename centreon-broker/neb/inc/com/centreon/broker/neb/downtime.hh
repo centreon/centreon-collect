@@ -54,7 +54,7 @@ class downtime : public io::data {
    *  @return  The event type.
    */
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_downtime>::value;
+    return io::events::data_type<io::neb, neb::de_downtime>::value;
   }
 
   timestamp actual_end_time;

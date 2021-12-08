@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -47,7 +48,7 @@ class raw : public data {
   ~raw();
   raw& operator=(raw const& r);
   constexpr static uint32_t static_type() {
-    return events::data_type<events::internal, events::de_raw>::value;
+    return events::data_type<internal, events::de_raw>::value;
   }
   void resize(size_t s);
   char* data();

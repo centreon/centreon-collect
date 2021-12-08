@@ -43,8 +43,7 @@ class service_dependency : public dependency {
   ~service_dependency();
   service_dependency& operator=(service_dependency const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_service_dependency>::value;
+    return io::events::data_type<io::neb, neb::de_service_dependency>::value;
   }
 
   uint32_t dependent_service_id;

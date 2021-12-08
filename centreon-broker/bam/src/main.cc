@@ -15,24 +15,28 @@
 **
 ** For more information : contact@centreon.com
 */
-#include "com/centreon/broker/bam/ba_duration_event.hh"
-#include "com/centreon/broker/bam/ba_event.hh"
-#include "com/centreon/broker/bam/ba_status.hh"
-#include "com/centreon/broker/bam/dimension_ba_bv_relation_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_timeperiod_relation.hh"
-#include "com/centreon/broker/bam/dimension_bv_event.hh"
-#include "com/centreon/broker/bam/dimension_kpi_event.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod_exception.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod_exclusion.hh"
-#include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/bam/ba_duration_event.hh"
+#include "bbdo/bam/ba_event.hh"
+#include "bbdo/bam/ba_status.hh"
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_timeperiod.hh"
+#include "bbdo/bam/dimension_timeperiod_exception.hh"
+#include "bbdo/bam/dimension_timeperiod_exclusion.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/bam/inherited_downtime.hh"
+#include "bbdo/bam/kpi_event.hh"
+#include "bbdo/bam/kpi_status.hh"
+#include "bbdo/bam/rebuild.hh"
+#include "bbdo/events.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/factory.hh"
-#include "com/centreon/broker/bam/inherited_downtime.hh"
-#include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/bam/kpi_event.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
-#include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -49,7 +53,7 @@ char const* bam_module("bam");
 
 template <typename T>
 void register_bam_event(io::events& e, bam::data_element de, const char* name) {
-  e.register_event(io::events::bam, de, name, &T::operations, T::entries);
+  e.register_event(make_type(io::bam, de), name, &T::operations, T::entries);
 }
 
 extern "C" {
@@ -64,7 +68,7 @@ const char* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "20-storage.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
   return retval;
 }
 
@@ -74,10 +78,9 @@ const char* const* broker_module_parents() {
 void broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
-    // Deregister storage layer.
     io::protocols::instance().unreg(bam_module);
     // Deregister bam events.
-    io::events::instance().unregister_category(io::events::bam);
+    io::events::instance().unregister_category(io::bam);
   }
 }
 
@@ -95,26 +98,25 @@ void broker_module_init(void const* arg) {
     log_v2::bam()->info("BAM: module for Centreon Broker {} ",
                         CENTREON_BROKER_VERSION);
 
-    // Register storage layer.
     io::protocols::instance().reg(bam_module, std::make_shared<bam::factory>(),
                                   1, 7);
 
     io::events& e(io::events::instance());
 
-    // Register category.
-    int bam_category(e.register_category("bam", io::events::bam));
-    if (bam_category != io::events::bam) {
-      e.unregister_category(bam_category);
-      --instances;
-      throw msg_fmt(
-          "bam: category {}"
-          " is already registered whereas it should be "
-          "reserved for the bam module",
-          io::events::bam);
-    }
-
-    // Register bam events.
+    // Register events.
     {
+      e.register_event(make_type(io::storage, storage::de_metric), "metric",
+                       &storage::metric::operations, storage::metric::entries,
+                       "rt_metrics");
+      e.register_event(make_type(io::storage, storage::de_status), "status",
+                       &storage::status::operations, storage::status::entries);
+      e.register_event(make_type(io::storage, storage::de_index_mapping),
+                       "index_mapping", &storage::index_mapping::operations,
+                       storage::index_mapping::entries);
+      e.register_event(make_type(io::storage, storage::de_metric_mapping),
+                       "metric_mapping", &storage::metric_mapping::operations,
+                       storage::metric_mapping::entries);
+
       register_bam_event<bam::ba_status>(e, bam::de_ba_status, "ba_status");
       register_bam_event<bam::kpi_status>(e, bam::de_kpi_status, "kpi_status");
       register_bam_event<bam::ba_event>(e, bam::de_ba_event, "ba_event");

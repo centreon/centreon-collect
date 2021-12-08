@@ -51,7 +51,7 @@ class stream : public io::stream {
   struct metric_info {
     bool locked;
     uint32_t metric_id;
-    uint32_t type;
+    uint16_t type;
     double value;
     std::string unit_name;
     double warn;

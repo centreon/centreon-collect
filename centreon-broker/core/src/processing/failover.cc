@@ -81,7 +81,8 @@ void failover::exit() {
       _should_exit = true;
       log_v2::processing()->trace("Waiting for {} to be stopped", _name);
 
-      _state_cv.wait(lck, [this] { return _state == stopped || _state == not_started; });
+      _state_cv.wait(
+          lck, [this] { return _state == stopped || _state == not_started; });
     }
     if (_thread.joinable())
       _thread.join();
@@ -358,7 +359,8 @@ void failover::_run() {
           try {
             ack_events = _stream->stop();
           } catch (const std::exception& e) {
-            log_v2::core()->error("Failed to send stop event to stream: {}", e.what());
+            log_v2::core()->error("Failed to send stop event to stream: {}",
+                                  e.what());
           }
           _subscriber->get_muxer().ack_events(ack_events);
           std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -379,9 +381,10 @@ void failover::_run() {
       {
         int32_t ack_events;
         try {
-        ack_events = _stream->stop();
+          ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          log_v2::core()->error("Failed to send stop event to stream: {}", e.what());
+          log_v2::core()->error("Failed to send stop event to stream: {}",
+                                e.what());
         }
         _subscriber->get_muxer().ack_events(ack_events);
         std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -401,9 +404,10 @@ void failover::_run() {
         // If ack_events is not zero, then we will store data twice
         int32_t ack_events;
         try {
-        ack_events = _stream->stop();
+          ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          log_v2::core()->error("Failed to send stop event to stream: {}", e.what());
+          log_v2::core()->error("Failed to send stop event to stream: {}",
+                                e.what());
         }
         _subscriber->get_muxer().ack_events(ack_events);
         _stream.reset();

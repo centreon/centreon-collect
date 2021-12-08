@@ -100,7 +100,7 @@ int main(int argc, char** argv, char** env) {
         log::instance().set_level(spdlog::level::info);
       }
       log::core()->info("Centreon Perl Connector {} starting",
-                           CENTREON_CONNECTOR_VERSION);
+                        CENTREON_CONNECTOR_VERSION);
 
       // Set termination handler.
       log::core()->debug("installing termination handler");

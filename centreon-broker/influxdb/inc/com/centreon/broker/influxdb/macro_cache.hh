@@ -30,8 +30,8 @@
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
-#include "com/centreon/broker/storage/index_mapping.hh"
-#include "com/centreon/broker/storage/metric_mapping.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 CCB_BEGIN()
 
 namespace influxdb {

@@ -27,6 +27,7 @@
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/bbdo/stop.hh"
 #include "com/centreon/broker/bbdo/version_response.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/raw.hh"
@@ -228,72 +229,93 @@ static uint32_t set_ulong(io::data& t,
 static io::data* unserialize(uint32_t event_type,
                              uint32_t source_id,
                              uint32_t destination_id,
-                             char const* buffer,
+                             const char* buffer,
                              uint32_t size) {
   // Get event info (operations and mapping).
   io::event_info const* info(io::events::instance().get_event_info(event_type));
   if (info) {
     // Create object.
-    std::unique_ptr<io::data> t(info->get_operations().constructor());
-    if (t) {
-      t->source_id = source_id;
-      t->destination_id = destination_id;
-      // Browse all mapping to unserialize the object.
-      for (const mapping::entry* current_entry = info->get_mapping();
-           !current_entry->is_null(); ++current_entry)
-        // Skip entries that should not be serialized.
-        if (current_entry->get_serialize()) {
-          uint32_t rb;
-          switch (current_entry->get_type()) {
-            case mapping::source::BOOL:
-              rb = set_boolean(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::DOUBLE:
-              rb = set_double(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::INT:
-              rb = set_integer(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::SHORT:
-              rb = set_short(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::STRING:
-              rb = set_string(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::TIME:
-              rb = set_timestamp(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::UINT:
-              rb = set_uint(*t, *current_entry, buffer, size);
-              break;
-            case mapping::source::ULONG:
-              rb = set_ulong(*t, *current_entry, buffer, size);
-              break;
+    if (info->get_mapping()) {
+      std::unique_ptr<io::data> t(info->get_operations().constructor());
+      if (t) {
+        t->source_id = source_id;
+        t->destination_id = destination_id;
+        // Browse all mapping to unserialize the object.
+        for (const mapping::entry* current_entry = info->get_mapping();
+             !current_entry->is_null(); ++current_entry)
+          // Skip entries that should not be serialized.
+          if (current_entry->get_serialize()) {
+            uint32_t rb;
+            switch (current_entry->get_type()) {
+              case mapping::source::BOOL:
+                rb = set_boolean(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::DOUBLE:
+                rb = set_double(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::INT:
+                rb = set_integer(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::SHORT:
+                rb = set_short(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::STRING:
+                rb = set_string(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::TIME:
+                rb = set_timestamp(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::UINT:
+                rb = set_uint(*t, *current_entry, buffer, size);
+                break;
+              case mapping::source::ULONG:
+                rb = set_ulong(*t, *current_entry, buffer, size);
+                break;
 
-            default:
-              log_v2::bbdo()->error(
-                  "BBDO: invalid mapping for object of type '{0}': {1} is not "
-                  "a known type ID",
-                  info->get_name(), current_entry->get_type());
-              throw msg_fmt(
-                  "BBDO: invalid mapping for "
-                  "object of type '{}"
-                  "': {}"
-                  " is not a known type ID",
-                  info->get_name(), current_entry->get_type());
+              default:
+                log_v2::bbdo()->error(
+                    "BBDO: invalid mapping for object of type '{0}': {1} is "
+                    "not "
+                    "a known type ID",
+                    info->get_name(), current_entry->get_type());
+                throw msg_fmt(
+                    "BBDO: invalid mapping for "
+                    "object of type '{}"
+                    "': {}"
+                    " is not a known type ID",
+                    info->get_name(), current_entry->get_type());
+            }
+            buffer += rb;
+            size -= rb;
           }
-          buffer += rb;
-          size -= rb;
-        }
-      return t.release();
+        return t.release();
+      } else {
+        log_v2::bbdo()->error(
+            "BBDO: cannot create object of ID {} whereas it has been "
+            "registered",
+            event_type);
+        throw msg_fmt(
+            "BBDO: cannot create object of ID {}"
+            " whereas it has been registered",
+            event_type);
+      }
     } else {
-      log_v2::bbdo()->error(
-          "BBDO: cannot create object of ID {} whereas it has been registered",
-          event_type);
-      throw msg_fmt(
-          "BBDO: cannot create object of ID {}"
-          " whereas it has been registered",
-          event_type);
+      std::unique_ptr<io::data> t(
+          info->get_operations().unserialize(buffer, size));
+      if (t) {
+        t->source_id = source_id;
+        t->destination_id = destination_id;
+      } else {
+        log_v2::bbdo()->error(
+            "BBDO: cannot create object of ID {} whereas it has been "
+            "registered",
+            event_type);
+        throw msg_fmt(
+            "BBDO: cannot create object of ID {} whereas it has been "
+            "registered",
+            event_type);
+      }
+      return t.release();
     }
   } else {
     log_v2::bbdo()->info(
@@ -415,85 +437,128 @@ static io::raw* serialize(const io::data& e) {
   // Get event info (mapping).
   const io::event_info* info = io::events::instance().get_event_info(e.type());
   if (info) {
-    // Serialization buffer.
-    queue.emplace_back(std::vector<char>());
-    auto* header = &queue.back();
-    header->resize(BBDO_HEADER_SIZE);
-    queue.emplace_back(std::vector<char>());
-    auto* content = &queue.back();
-
     // Serialize properties of the object.
-    for (mapping::entry const* current_entry(info->get_mapping());
-         !current_entry->is_null(); ++current_entry) {
-      // Skip entries that should not be serialized.
-      if (current_entry->get_serialize())
-        switch (current_entry->get_type()) {
-          case mapping::source::BOOL:
-            get_boolean(e, *current_entry, *content);
-            break;
-          case mapping::source::DOUBLE:
-            get_double(e, *current_entry, *content);
-            break;
-          case mapping::source::INT:
-            get_integer(e, *current_entry, *content);
-            break;
-          case mapping::source::SHORT:
-            get_short(e, *current_entry, *content);
-            break;
-          case mapping::source::STRING:
-            get_string(e, *current_entry, *content);
-            break;
-          case mapping::source::TIME:
-            get_timestamp(e, *current_entry, *content);
-            break;
-          case mapping::source::UINT:
-            get_uint(e, *current_entry, *content);
-            break;
-          case mapping::source::ULONG:
-            get_ulong(e, *current_entry, *content);
-            break;
-          default:
-            log_v2::bbdo()->error(
-                "BBDO: invalid mapping for object of type '{}': {} is not a "
-                "known type ID",
-                info->get_name(), current_entry->get_type());
-            throw msg_fmt(
-                "BBDO: invalid mapping for object"
-                " of type '{}"
-                "': {}"
-                " is not a known type ID",
-                info->get_name(), current_entry->get_type());
+    const mapping::entry* current_entry = info->get_mapping();
+    if (current_entry) {
+      // Serialization buffer.
+      queue.emplace_back(std::vector<char>());
+      auto* header = &queue.back();
+      header->resize(BBDO_HEADER_SIZE);
+      queue.emplace_back(std::vector<char>());
+      auto* content = &queue.back();
+
+      for (mapping::entry const* current_entry(info->get_mapping());
+           !current_entry->is_null(); ++current_entry) {
+        // Skip entries that should not be serialized.
+        if (current_entry->get_serialize())
+          switch (current_entry->get_type()) {
+            case mapping::source::BOOL:
+              get_boolean(e, *current_entry, *content);
+              break;
+            case mapping::source::DOUBLE:
+              get_double(e, *current_entry, *content);
+              break;
+            case mapping::source::INT:
+              get_integer(e, *current_entry, *content);
+              break;
+            case mapping::source::SHORT:
+              get_short(e, *current_entry, *content);
+              break;
+            case mapping::source::STRING:
+              get_string(e, *current_entry, *content);
+              break;
+            case mapping::source::TIME:
+              get_timestamp(e, *current_entry, *content);
+              break;
+            case mapping::source::UINT:
+              get_uint(e, *current_entry, *content);
+              break;
+            case mapping::source::ULONG:
+              get_ulong(e, *current_entry, *content);
+              break;
+            default:
+              log_v2::bbdo()->error(
+                  "BBDO: invalid mapping for object of type '{}': {} is not a "
+                  "known type ID",
+                  info->get_name(), current_entry->get_type());
+              throw msg_fmt(
+                  "BBDO: invalid mapping for object"
+                  " of type '{}"
+                  "': {}"
+                  " is not a known type ID",
+                  info->get_name(), current_entry->get_type());
+          }
+
+        // Packet splitting.
+        while (content->size() >= 0xffff) {
+          queue.emplace_back(std::vector<char>());
+          auto* new_header = &queue.back();
+          new_header->resize(BBDO_HEADER_SIZE);
+          queue.emplace_back(content->begin() + 0xffff, content->end());
+          content->resize(0xffff);
+          auto* new_content = &queue.back();
+          *(reinterpret_cast<uint16_t*>(header->data() + 2)) = 0xffff;
+          *(reinterpret_cast<uint32_t*>(header->data() + 4)) = htonl(e.type());
+          *(reinterpret_cast<uint32_t*>(header->data() + 8)) =
+              htonl(e.source_id);
+          *(reinterpret_cast<uint32_t*>(header->data() + 12)) =
+              htonl(e.destination_id);
+
+          *(reinterpret_cast<uint16_t*>(header->data())) = htons(
+              misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
+          content = new_content;
+          header = new_header;
         }
+      }
 
-      // Packet splitting.
-      while (content->size() >= 0xffff) {
+      *(reinterpret_cast<uint16_t*>(header->data() + 2)) =
+          htons(content->size());
+      *(reinterpret_cast<uint32_t*>(header->data() + 4)) = htonl(e.type());
+      *(reinterpret_cast<uint32_t*>(header->data() + 8)) = htonl(e.source_id);
+      *(reinterpret_cast<uint32_t*>(header->data() + 12)) =
+          htonl(e.destination_id);
+
+      *(reinterpret_cast<uint16_t*>(header->data())) =
+          htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
+
+    } else {
+      /* Here is the protobuf case: no mapping */
+      std::string r{info->get_operations().serialize(e)};
+      size_t size = r.size();
+      auto it = r.begin();
+      while (size > 0) {
+        // Serialization buffer.
         queue.emplace_back(std::vector<char>());
-        auto* new_header = &queue.back();
-        new_header->resize(BBDO_HEADER_SIZE);
-        queue.emplace_back(content->begin() + 0xffff, content->end());
-        content->resize(0xffff);
-        auto* new_content = &queue.back();
-        *(reinterpret_cast<uint16_t*>(header->data() + 2)) = 0xffff;
-        *(reinterpret_cast<uint32_t*>(header->data() + 4)) = htonl(e.type());
-        *(reinterpret_cast<uint32_t*>(header->data() + 8)) = htonl(e.source_id);
-        *(reinterpret_cast<uint32_t*>(header->data() + 12)) =
-            htonl(e.destination_id);
+        auto* content = &queue.back();
+        content->resize(BBDO_HEADER_SIZE);
+        if (size < 0xffff) {
+          content->insert(content->end(), it, r.end());
+          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = htons(size);
+          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
+          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
+              htonl(e.source_id);
+          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
+              htonl(e.destination_id);
 
-        *(reinterpret_cast<uint16_t*>(header->data())) =
-            htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
-        content = new_content;
-        header = new_header;
+          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
+              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
+          break;
+        } else {
+          content->insert(content->end(), it, it + 0xffff);
+          *(reinterpret_cast<uint16_t*>(content->data() + 2)) = 0xffff;
+          *(reinterpret_cast<uint32_t*>(content->data() + 4)) = htonl(e.type());
+          *(reinterpret_cast<uint32_t*>(content->data() + 8)) =
+              htonl(e.source_id);
+          *(reinterpret_cast<uint32_t*>(content->data() + 12)) =
+              htonl(e.destination_id);
+
+          *(reinterpret_cast<uint16_t*>(content->data())) = htons(
+              misc::crc16_ccitt(content->data() + 2, BBDO_HEADER_SIZE - 2));
+          size -= 0xffff;
+          it += 0xffff;
+        }
       }
     }
-
-    *(reinterpret_cast<uint16_t*>(header->data() + 2)) = htons(content->size());
-    *(reinterpret_cast<uint32_t*>(header->data() + 4)) = htonl(e.type());
-    *(reinterpret_cast<uint32_t*>(header->data() + 8)) = htonl(e.source_id);
-    *(reinterpret_cast<uint32_t*>(header->data() + 12)) =
-        htonl(e.destination_id);
-
-    *(reinterpret_cast<uint16_t*>(header->data())) =
-        htons(misc::crc16_ccitt(header->data() + 2, BBDO_HEADER_SIZE - 2));
 
     // Finalization: concatenation of all the vectors in the queue.
     size_t size = 0;
@@ -501,7 +566,7 @@ static io::raw* serialize(const io::data& e) {
       size += v.size();
 
     // Serialization buffer.
-    std::unique_ptr<io::raw> buffer(new io::raw);
+    std::unique_ptr<io::raw> buffer(std::make_unique<io::raw>());
     std::vector<char>& data(buffer->get_buffer());
     data.reserve(size);
     for (auto& v : queue)
@@ -533,7 +598,8 @@ stream::stream(bool is_input,
       _acknowledged_events{0},
       _ack_limit(1000),
       _events_received_since_last_ack(0),
-      _extensions{extensions} {}
+      _extensions{extensions},
+      _bbdo_version{config::applier::state::instance().bbdo_version()} {}
 
 /**
  * @brief All the mecanism behind this stream is stopped once this method is
@@ -663,7 +729,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
     std::shared_ptr<version_response> welcome_packet(
-        std::make_shared<version_response>(extensions));
+        std::make_shared<version_response>(_bbdo_version, extensions));
     _write(welcome_packet);
   }
 
@@ -692,26 +758,25 @@ void stream::negotiate(stream::negotiation_type neg) {
     throw msg_fmt(msg);
   }
 
-  // Handle protocol version.
   std::shared_ptr<version_response> v(
       std::static_pointer_cast<version_response>(d));
-  if (v->bbdo_major != BBDO_VERSION_MAJOR) {
+  if (v->bbdo_major != std::get<0>(_bbdo_version)) {
     log_v2::bbdo()->error(
         "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
         "protocol version {}.{}.{}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, BBDO_VERSION_MAJOR,
-        BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
+        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
+        std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
     throw msg_fmt(
         "BBDO: peer is using protocol version {}.{}.{}"
         " whereas we're using protocol version {}.{}.{}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, BBDO_VERSION_MAJOR,
-        BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
+        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
+        std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
   }
   log_v2::bbdo()->info(
       "BBDO: peer is using protocol version {}.{}.{}, we're using version "
       "{}.{}.{}",
-      v->bbdo_major, v->bbdo_minor, v->bbdo_patch, BBDO_VERSION_MAJOR,
-      BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
+      v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
+      std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
 
   // Send our own packet if we should be second.
   if (neg == negotiate_second) {
@@ -719,8 +784,8 @@ void stream::negotiate(stream::negotiation_type neg) {
         "BBDO: sending welcome packet (available extensions: {})", extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
-    std::shared_ptr<version_response> welcome_packet(
-        std::make_shared<version_response>(extensions));
+    auto welcome_packet(
+        std::make_shared<version_response>(_bbdo_version, extensions));
     _write(welcome_packet);
     _substream->flush();
   }
@@ -815,30 +880,31 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   bool timed_out(!_read_any(d, deadline));
   uint32_t event_id(!d ? 0 : d->type());
-  while (!timed_out && ((event_id >> 16) == io::events::bbdo)) {
+  while (!timed_out && ((event_id >> 16) == io::bbdo)) {
     // Version response.
     if ((event_id & 0xffff) == 1) {
-      std::shared_ptr<version_response> version(
-          std::static_pointer_cast<version_response>(d));
-      if (version->bbdo_major != BBDO_VERSION_MAJOR) {
+      auto version(std::static_pointer_cast<version_response>(d));
+      if (version->bbdo_major != std::get<0>(_bbdo_version)) {
         log_v2::bbdo()->error(
-            "BBDO: peer is using protocol version {0}.{1}.{2} , whereas we're "
-            "using protocol version "
-            "{3}.{4}.{5}",
+            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+            "using protocol version {}.{}.{}",
             version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
+            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+            std::get<2>(_bbdo_version));
         throw msg_fmt(
             "BBDO: peer is using protocol version {}.{}.{} "
             "whereas we're using protocol version {}.{}.{}",
             version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
+            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+            std::get<2>(_bbdo_version));
       }
       log_v2::bbdo()->info(
           "BBDO: peer is using protocol version {}.{}.{} , we're using "
           "version "
           "{}.{}.{}",
           version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-          BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH);
+          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
+          std::get<2>(_bbdo_version));
     } else if ((event_id & 0xffff) == 2) {
       log_v2::bbdo()->info(
           "BBDO: received acknowledgement for {} events",
@@ -1000,7 +1066,7 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
                                 BBDO_HEADER_SIZE + packet_size, event_id);
         } else {
           log_v2::bbdo()->warn("unknown event type {} event cannot be decoded",
-                                event_id);
+                               event_id);
           log_v2::bbdo()->trace("discarded {} bytes",
                                 BBDO_HEADER_SIZE + packet_size);
         }

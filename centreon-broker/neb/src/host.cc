@@ -303,4 +303,5 @@ mapping::entry const host::entries[] = {
 static io::data* new_host() {
   return new host;
 }
-io::event_info::event_operations const host::operations = {&new_host};
+io::event_info::event_operations const host::operations = {&new_host, nullptr,
+                                                           nullptr};

@@ -93,5 +93,5 @@ TEST_F(HostDependencyTest, DefaultConstructor) {
   ASSERT_TRUE(hdep.notification_failure_options.empty());
   ASSERT_FALSE(
       hdep.type() !=
-      (io::events::data_type<io::events::neb, neb::de_host_dependency>::value));
+      (io::events::data_type<io::neb, neb::de_host_dependency>::value));
 }

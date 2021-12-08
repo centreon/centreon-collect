@@ -33,4 +33,5 @@ mapping::entry const stop::entries[]{mapping::entry()};
 static io::data* new_stop() {
   return new stop;
 }
-io::event_info::event_operations const stop::operations = {&new_stop};
+io::event_info::event_operations const stop::operations = {&new_stop, nullptr,
+                                                           nullptr};

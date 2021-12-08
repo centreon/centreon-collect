@@ -185,4 +185,4 @@ static io::data* new_service_status() {
   return new service_status;
 }
 io::event_info::event_operations const service_status::operations = {
-    &new_service_status};
+    &new_service_status, nullptr, nullptr};

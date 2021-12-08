@@ -318,4 +318,5 @@ mapping::entry const service::entries[] = {
 static io::data* new_service() {
   return new service;
 }
-io::event_info::event_operations const service::operations = {&new_service};
+io::event_info::event_operations const service::operations = {&new_service,
+                                                              nullptr, nullptr};

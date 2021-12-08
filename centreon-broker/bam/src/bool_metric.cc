@@ -18,8 +18,8 @@
 
 #include "com/centreon/broker/bam/bool_metric.hh"
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/storage/metric.hh"
 
 using namespace com::centreon::broker::bam;
 

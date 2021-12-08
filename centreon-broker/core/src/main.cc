@@ -72,7 +72,7 @@ static void hup_handler(int signum) {
     try {
       log_v2::instance().apply(conf);
     } catch (const std::exception& e) {
-      log_v2::core()->error(e.what());
+      log_v2::core()->error("problem while reloading cbd: {}", e.what());
     }
 
     try {
@@ -235,7 +235,7 @@ int main(int argc, char* argv[]) {
         try {
           log_v2::instance().apply(conf);
         } catch (const std::exception& e) {
-          log_v2::core()->error(e.what());
+          log_v2::core()->error("{}", e.what());
         }
 
         if (n_thread > 0 && n_thread < 100)

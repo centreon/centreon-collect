@@ -98,7 +98,6 @@ TEST_F(EventHandlerTest, DefaultConstructor) {
   ASSERT_EQ(evnt_hndlr.state, 0);
   ASSERT_EQ(evnt_hndlr.state_type, 0);
   ASSERT_EQ(evnt_hndlr.timeout, 0);
-  ASSERT_TRUE(
-      evnt_hndlr.type() ==
-      (io::events::data_type<io::events::neb, neb::de_event_handler>::value));
+  ASSERT_TRUE(evnt_hndlr.type() ==
+              (io::events::data_type<io::neb, neb::de_event_handler>::value));
 }

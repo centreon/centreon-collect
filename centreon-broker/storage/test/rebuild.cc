@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/storage/rebuild.hh"
+#include "bbdo/storage/rebuild.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/storage/internal.hh"
@@ -42,8 +42,7 @@ TEST(StorageRebuild, DefaultCtor) {
  */
 TEST(StorageRebuild, ReturnType) {
   storage::rebuild r;
-  auto val =
-      io::events::data_type<io::events::storage, storage::de_rebuild>::value;
+  auto val = io::events::data_type<io::storage, storage::de_rebuild>::value;
 
   ASSERT_TRUE(r.static_type() == val);
   ASSERT_TRUE(r.type() == val);

@@ -16,8 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#include <cstring>
 #include "buffer_handle.hh"
+#include <cstring>
 
 using namespace com::centreon;
 
@@ -33,7 +33,9 @@ void buffer_handle::close() {
  *
  *  @return true if buffer is empty.
  */
-bool buffer_handle::empty() const { return _buffer.empty(); }
+bool buffer_handle::empty() const {
+  return _buffer.empty();
+}
 
 /**
  *  Get the native handle.

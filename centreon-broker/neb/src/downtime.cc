@@ -205,4 +205,5 @@ mapping::entry const downtime::entries[] = {
 static io::data* new_downtime() {
   return new downtime;
 }
-io::event_info::event_operations const downtime::operations = {&new_downtime};
+io::event_info::event_operations const downtime::operations = {
+    &new_downtime, nullptr, nullptr};

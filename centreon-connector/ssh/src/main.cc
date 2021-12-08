@@ -16,11 +16,11 @@
 ** For more information : contact@centreon.com
 */
 
+#include <atomic>
 #include <cerrno>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <atomic>
 #ifdef LIBSSH2_WITH_LIBGCRYPT
 #include <gcrypt.h>
 #endif  // LIBSSH2_WITH_LIBGCRYPT
@@ -126,14 +126,15 @@ int main(int argc, char* argv[]) {
       {
         char const* version(libssh2_version(LIBSSH2_VERSION_NUM));
         if (!version)
-          throw basic_error() << "libssh2 version is too old (>= "
-                              << LIBSSH2_VERSION << " required)";
-        log::core()->info( "libssh2 version {} successfully loaded", version);
+          throw basic_error()
+              << "libssh2 version is too old (>= " << LIBSSH2_VERSION
+              << " required)";
+        log::core()->info("libssh2 version {} successfully loaded", version);
       }
 #endif /* libssh2 version >= 1.2.5 */
 
       // Set termination handler.
-      log::core()->debug( "installing termination handler");
+      log::core()->debug("installing termination handler");
       signal(SIGTERM, term_handler);
 
       // Program policy.
@@ -141,7 +142,7 @@ int main(int argc, char* argv[]) {
       retval = (p.run() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
   } catch (std::exception const& e) {
-    log::core()->error( "installing termination handler");
+    log::core()->error("installing termination handler");
   }
 
 #if LIBSSH2_VERSION_NUM >= 0x010205

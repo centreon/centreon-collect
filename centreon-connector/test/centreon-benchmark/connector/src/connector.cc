@@ -16,18 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/benchmark/connector/connector.hh"
 #include <assert.h>
 #include <errno.h>
-#include <iostream>
-#include <sstream>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <iostream>
+#include <sstream>
 #include "com/centreon/benchmark/connector/basic_exception.hh"
 #include "com/centreon/benchmark/connector/misc.hh"
-#include "com/centreon/benchmark/connector/connector.hh"
 
 using namespace com::centreon::benchmark::connector;
 
@@ -61,7 +61,9 @@ connector::connector(connector const& right) : benchmark() {
 /**
  *  Default destructor.
  */
-connector::~connector() throw() { _cleanup(); }
+connector::~connector() throw() {
+  _cleanup();
+}
 
 /**
  *  Default copy constructor.
@@ -109,7 +111,9 @@ void connector::_check_execution() {
 /**
  *  Send and check quit request.
  */
-void connector::_check_quit() { _send_data(_request_quit()); }
+void connector::_check_quit() {
+  _send_data(_request_quit());
+}
 
 /**
  *  Send and check version request.
@@ -185,9 +189,9 @@ void connector::_recv_data(int timeout) {
     throw(basic_exception(strerror(errno)));
   else if (ret && (_pfd.revents & (POLLNVAL | POLLHUP)) &&
            !(_pfd.revents & (POLLIN | POLLPRI)))
-    throw(basic_exception(
-        "connector communication fd "
-        "terminated prematurely"));
+    throw(
+        basic_exception("connector communication fd "
+                        "terminated prematurely"));
   else if (!ret || !(_pfd.revents & (POLLIN | POLLPRI)))
     return;
   char buffer[4096];

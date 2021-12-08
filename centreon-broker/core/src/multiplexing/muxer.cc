@@ -19,8 +19,6 @@
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
 #include <cassert>
-#include <limits>
-#include <memory>
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
@@ -29,7 +27,6 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/persistent_file.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -479,4 +476,8 @@ void muxer::remove_queue_files() {
   /* Here _file is already destroyed */
   persistent_file file(_queue_file());
   file.remove_all_files();
+}
+
+const std::string& muxer::name() const {
+  return _name;
 }

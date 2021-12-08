@@ -44,7 +44,7 @@ class host_status : public host_service_status {
   virtual ~host_status();
   host_status& operator=(host_status const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_host_status>::value;
+    return io::events::data_type<io::neb, neb::de_host_status>::value;
   }
 
   timestamp last_time_down;

@@ -34,8 +34,10 @@ func findIncludes(file string, treated *[]string, depth int) {
                             "watchdog/inc/",
                             "stats/inc/",
                             "notification/inc/",
+                            "../protobuf/",
                             "dumper/inc/",
                             "storage/inc/",
+                            "unified_sql/inc/",
                             "influxdb/inc/",
                             "sql/inc/" } {
       f, err = os.Open(pref + file1)

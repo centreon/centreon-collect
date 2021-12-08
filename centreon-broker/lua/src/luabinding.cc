@@ -292,8 +292,8 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
 
   // Process event.
   uint32_t type(data->type());
-  unsigned short cat(io::events::category_of_type(type));
-  unsigned short elem(io::events::element_of_type(type));
+  uint16_t cat(category_of_type(type));
+  uint16_t elem(element_of_type(type));
 
   bool execute_write = true;
 

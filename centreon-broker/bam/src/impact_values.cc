@@ -31,11 +31,11 @@ using namespace com::centreon::broker::bam;
 impact_values::impact_values(double nominal,
                              double acknowledgement,
                              double downtime,
-                             impact_values::state state)
+                             state state)
     : _acknowledgement(acknowledgement),
       _downtime(downtime),
       _nominal(nominal),
-      _state(state) {}
+      _state{state} {}
 
 /**
  *  Destructor.
@@ -106,8 +106,8 @@ double impact_values::get_nominal() const {
  *
  *  @return State impact.
  */
-impact_values::state impact_values::get_state() const {
-  return (_state);
+state impact_values::get_state() const {
+  return _state;
 }
 
 /**
@@ -145,7 +145,6 @@ void impact_values::set_nominal(double nominal) {
  *
  *  @param[in] state  State impact.
  */
-void impact_values::set_state(impact_values::state state) {
+void impact_values::set_state(state state) {
   _state = state;
-  return;
 }

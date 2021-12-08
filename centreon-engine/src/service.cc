@@ -3092,8 +3092,10 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   return true;
 }
 
-/* handles the details for a service when flap detection is disabled (globally
- * or per-service) */
+/**
+ * @brief Handles the details for a service when flap detection is disabled
+ * (globally or per-service).
+ */
 void service::handle_flap_detection_disabled() {
   logger(dbg_functions, basic) << "handle_service_flap_detection_disabled()";
 
@@ -3102,15 +3104,14 @@ void service::handle_flap_detection_disabled() {
     set_is_flapping(false);
 
     /* delete the original comment we added earlier */
-    if (this->get_flapping_comment_id() != 0)
-      comment::delete_comment(this->get_flapping_comment_id());
-    this->set_flapping_comment_id(0);
+    if (get_flapping_comment_id() != 0)
+      comment::delete_comment(get_flapping_comment_id());
+    set_flapping_comment_id(0);
 
     /* log a notice - this one is parsed by the history CGI */
     logger(log_info_message, basic)
-        << "SERVICE FLAPPING ALERT: " << this->get_hostname() << ";"
-        << this->get_description()
-        << ";DISABLED; Flap detection has been disabled";
+        << "SERVICE FLAPPING ALERT: " << get_hostname() << ";"
+        << get_description() << ";DISABLED; Flap detection has been disabled";
 
     /* send data to event broker */
     broker_flapping_data(NEBTYPE_FLAPPING_STOP, NEBFLAG_NONE,
@@ -3118,7 +3119,7 @@ void service::handle_flap_detection_disabled() {
                          get_percent_state_change(), 0.0, 0.0, nullptr);
 
     /* send a notification */
-    this->notify(reason_flappingdisabled, "", "", notification_option_none);
+    notify(reason_flappingdisabled, "", "", notification_option_none);
 
     /* should we send a recovery notification? */
     notify(reason_recovery, "", "", notification_option_none);

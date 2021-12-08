@@ -109,7 +109,7 @@ int xsddefault_save_status_data() {
 
   // get number of items in the command buffer
   if (config->check_external_commands()) {
-    //FIXME DBR
+    // FIXME DBR
     pthread_mutex_lock(&external_command_buffer.buffer_lock);
     used_external_command_buffer_slots = external_command_buffer.items;
     high_external_command_buffer_slots = external_command_buffer.high;
@@ -690,8 +690,7 @@ int xsddefault_save_status_data() {
     stream << "\thost_id=" << it->second->get_host_id() << "\n";
     if (it->second->get_comment_type() ==
         com::centreon::engine::comment::service)
-      stream << "\tservice_id="
-             << it->second->get_service_id() << "\n";
+      stream << "\tservice_id=" << it->second->get_service_id() << "\n";
     stream << "\tentry_type=" << it->second->get_entry_type()
            << "\n"
               "\tcomment_id="

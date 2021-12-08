@@ -26,3 +26,4 @@ function(add_broker_module name activate)
     set(TESTS_LIBRARIES ${TESTS_LIBRARIES} PARENT_SCOPE)
   endif (WITH_MODULE_${name})
 endfunction(add_broker_module name activate)
+

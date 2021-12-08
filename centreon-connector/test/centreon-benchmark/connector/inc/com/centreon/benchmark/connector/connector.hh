@@ -19,10 +19,10 @@
 #ifndef CCB_CONNECTOR_CONNECTOR
 #define CCB_CONNECTOR_CONNECTOR
 
-#include <list>
 #include <poll.h>
-#include <string>
 #include <sys/types.h>
+#include <list>
+#include <string>
 #include <vector>
 #include "com/centreon/benchmark/connector/benchmark.hh"
 #include "com/centreon/benchmark/connector/namespace.hh"

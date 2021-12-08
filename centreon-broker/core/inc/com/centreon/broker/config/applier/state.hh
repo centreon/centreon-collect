@@ -19,10 +19,8 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
-#include <string>
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -38,6 +36,7 @@ class state {
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
+  std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
   std::string _poller_name;
   size_t _pool_size;
   modules _modules;
@@ -56,6 +55,7 @@ class state {
   void apply(const config::state& s, bool run_mux = true);
   const std::string& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
+  std::tuple<uint16_t, uint16_t, uint16_t> bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;

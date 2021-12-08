@@ -158,4 +158,5 @@ mapping::entry const instance_status::entries[] = {
 static io::data* new_is() {
   return new instance_status;
 }
-io::event_info::event_operations const instance_status::operations = {&new_is};
+io::event_info::event_operations const instance_status::operations = {
+    &new_is, nullptr, nullptr};

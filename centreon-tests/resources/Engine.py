@@ -116,7 +116,7 @@ class EngineInstance:
         retval = {
             "config": "define host {{\n" "host_name                      host_{0}\n    alias                          "
                       "host_{0}\n    address                        {1}.{2}.{3}.{4}\n    check_command                "
-                      "  check\n    check_period                   24x7\n    register                       1\n    "
+                      "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
                       "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
                       "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
                 hid, a, b, c, d),
@@ -211,6 +211,12 @@ class EngineInstance:
             f = open(config_dir + "/commands.cfg", "w")
             for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
                 f.write(self.create_command(i))
+            for i in range(self.last_host_id):
+                f.write("""define command {{
+    command_name                    checkh{1}
+    command_line                    {0}/check.pl 0 {1}
+}}
+""".format(ENGINE_HOME, i + 1))
             f.write("""define command {{
     command_name                    notif
     command_line                    {0}/notif.pl
@@ -218,10 +224,6 @@ class EngineInstance:
 define command {{
     command_name                    test-notif
     command_line                    {0}/notif.pl
-}}
-define command {{
-    command_name                    check
-    command_line                    {0}/check.pl 0
 }}
 """.format(ENGINE_HOME))
             f.close()

@@ -96,7 +96,6 @@ TEST_F(ServiceDependency, DefaultCtor) {
   ASSERT_FALSE(sdep.inherits_parent != false);
   ASSERT_FALSE(!sdep.notification_failure_options.empty());
   ASSERT_FALSE(sdep.service_id != 0);
-  auto val(io::events::data_type<io::events::neb,
-                                 neb::de_service_dependency>::value);
+  auto val(io::events::data_type<io::neb, neb::de_service_dependency>::value);
   ASSERT_FALSE(sdep.type() != val);
 }

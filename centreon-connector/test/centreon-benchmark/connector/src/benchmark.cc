@@ -16,9 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/benchmark/connector/benchmark.hh"
 #include <string.h>
 #include "com/centreon/benchmark/connector/basic_exception.hh"
-#include "com/centreon/benchmark/connector/benchmark.hh"
 
 using namespace com::centreon::benchmark::connector;
 
@@ -36,7 +36,9 @@ benchmark::benchmark()
  *
  *  @param[in] right  The object to copy.
  */
-benchmark::benchmark(benchmark const& right) { _internal_copy(right); }
+benchmark::benchmark(benchmark const& right) {
+  _internal_copy(right);
+}
 
 /**
  *  Default destructor.

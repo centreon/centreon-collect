@@ -124,4 +124,4 @@ static io::data* new_flapping() {
   return new flapping_status;
 }
 io::event_info::event_operations const flapping_status::operations = {
-    &new_flapping};
+    &new_flapping, nullptr, nullptr};
