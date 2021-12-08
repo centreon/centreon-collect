@@ -206,14 +206,32 @@ uint32_t mysql_result::value_as_u32(int idx) {
 }
 
 /**
+ *  Accessor to a column long int value
+ *
+ * @param idx The index of the column
+ *
+ * @return an int64_t
+ */
+int64_t mysql_result::value_as_i64(int idx) {
+  int64_t retval;
+  if (_bind)
+    retval = _bind->value_as_i64(idx);
+  else if (_row)
+    retval = _row[idx] ? strtoll(_row[idx], nullptr, 10) : 0;
+  else
+    throw msg_fmt("mysql: No row fetched in result");
+  return retval;
+}
+
+/**
  *  Accessor to a column unsigned long int value
  *
  * @param idx The index of the column
  *
- * @return an unsigned long int
+ * @return an uint64_t
  */
-unsigned long long mysql_result::value_as_u64(int idx) {
-  unsigned long long retval;
+uint64_t mysql_result::value_as_u64(int idx) {
+  uint64_t retval;
   if (_bind)
     retval = _bind->value_as_u64(idx);
   else if (_row)

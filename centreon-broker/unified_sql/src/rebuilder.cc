@@ -30,6 +30,7 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/time.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
@@ -462,4 +463,63 @@ void rebuilder::_set_index_rebuild(mysql& ms,
       fmt::format("UPDATE index_data SET must_be_rebuild='{}' WHERE id={}",
                   state, index_id));
   ms.run_query(query, database::mysql_error::update_index_state, false);
+}
+
+/**
+ * @brief process a rebuild metrics message.
+ *
+ * @param d The BBDO message with all the metric ids to rebuild.
+ */
+void rebuilder::rebuild_metrics(const std::shared_ptr<io::data>& d) {
+  asio::post(_timer.get_executor(), [this, data = d] {
+    const bbdo::pb_rebuild_metrics& ids =
+        *static_cast<const bbdo::pb_rebuild_metrics*>(data.get());
+    log_v2::sql()->debug(
+        "unified sql: Rebuild metrics event received. Metrics to rebuild: ({})",
+        fmt::join(ids.obj.metric_id(), ","));
+
+    mysql ms(_db_cfg);
+    int32_t conn = ms.choose_best_connection(-1);
+    /* Lets' get the retention time in DB */
+    std::promise<database::mysql_result> promise;
+    ms.run_query_and_get_result(
+        "SELECT len_storage_mysql, len_storage_rrd FROM config", &promise,
+        conn);
+    int64_t db_retention_time = 0, len_storage_rrd = 0;
+    try {
+      database::mysql_result res{promise.get_future().get()};
+      if (ms.fetch_row(res)) {
+        db_retention_time = res.value_as_i64(0);
+        len_storage_rrd = res.value_as_i64(1) * 60 * 60 * 24;
+      }
+    } catch (const std::exception& e) {
+      log_v2::sql()->error(
+          "Metrics rebuilding: Unable to get lengths of storage rrd and "
+          "storage sql: {}",
+          e.what());
+    }
+    if (db_retention_time && len_storage_rrd) {
+      std::time_t start_of_day = misc::start_of_day(time(nullptr));
+
+      //
+      // my ($day,$month,$year) = (localtime())[3,4,5];
+      // my $current_day = $db_retention_time;
+      // while ($current_day > 0) {
+      //	my $start = mktime(0,0,0, $day-$current_day, $month,
+      //$year,0,0,-1); 	my $end = mktime(0,0,0, $day-$current_day+1, $month,
+      //$year,0,0,-1); 	$current_day--;
+      //
+      //	my ($day_past, $month_past, $year_past) =
+      //(localtime($start))[3,4,5]; 	my ($day_past2, $month_past2,
+      //$year_past2) = (localtime($end))[3,4,5];
+      //
+      //
+      //	$start_checktime = time();
+      //	print "Get Data_bin from $day_past/$month_past/$year_past
+      //($start) - $day_past2/$month_past2/$year_past2: "; 	$sth =
+      //$con_centstorage->prepare("SELECT id_metric, ctime, value FROM data_bin
+      // WHERE ctime >= $start AND ctime < $end ORDER BY ctime ASC");
+      //
+    }
+  });
 }
