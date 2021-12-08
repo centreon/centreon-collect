@@ -23,6 +23,7 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/query_preparator.hh"
+#include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
@@ -1677,4 +1678,17 @@ void stream::_insert_logs() {
   _mysql.run_query(query, database::mysql_error::update_logs, true, conn);
   log_v2::sql()->debug("{} new logs inserted", log_queue.size());
   log_v2::sql()->trace("sending query << {} >>", query);
+}
+
+/**
+ * @brief process a rebuild metrics message.
+ *
+ * @param d The BBDO message with all the metric ids to rebuild.
+ */
+void stream::_process_rebuild_metrics(const std::shared_ptr<io::data>& d) {
+  const bbdo::pb_rebuild_metrics& ids =
+      *static_cast<const bbdo::pb_rebuild_metrics*>(d.get());
+  log_v2::sql()->debug(
+      "unified sql: Rebuild metrics event received. Metrics to rebuild: ({})",
+      fmt::join(ids.obj.metric_id(), ","));
 }

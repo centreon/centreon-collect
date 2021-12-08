@@ -35,7 +35,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 // Load count.
-static uint32_t instances(0);
+static uint32_t instances{0u};
 
 extern "C" {
 /**
@@ -105,6 +105,12 @@ void broker_module_init(void const* arg) {
                            io::storage, storage::de_pb_rebuild);
       e.register_event(storage_pb_rebuild, "pb_rebuild",
                        &unified_sql::pb_rebuild::operations);
+
+      /* Lets' register the rebuild_metrics bbdo event. This is needed to send
+       * the rebuild message. */
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_metrics),
+                       "rebuild_metrics",
+                       &bbdo::pb_rebuild_metrics::operations);
     }
 
     // Register unified_sql layer.

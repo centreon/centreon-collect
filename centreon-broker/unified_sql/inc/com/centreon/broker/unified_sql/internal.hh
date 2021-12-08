@@ -21,13 +21,23 @@
 
 #include "bbdo/events.hh"
 #include "bbdo/rebuild.pb.h"
+#include "centreon-broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
 CCB_BEGIN()
 
+// FIXME DBO: This should be rewritten in a near future.
 namespace unified_sql {
 using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
 }
+
+namespace bbdo {
+/**
+ * Here is a declaration of pb_rebuild_metrics which is a bbdo event we use to
+ * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
+using pb_rebuild_metrics =
+    io::protobuf<MetricIds, make_type(io::bbdo, bbdo::de_rebuild_metrics)>;
+}  // namespace bbdo
 
 CCB_END()
 

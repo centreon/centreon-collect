@@ -320,8 +320,7 @@ void stream::update_metric_info_cache(uint64_t index_id,
     log_v2::perfdata()->info(
         "unified sql: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
-        metric_name, metric_id, index_id,
-        metric_type_name[metric_type]);
+        metric_name, metric_id, index_id, metric_type_name[metric_type]);
     std::lock_guard<std::mutex> lock(_metric_cache_m);
     it->second.type = metric_type;
     if (it->second.metric_id != metric_id) {
@@ -439,6 +438,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     (this->*(_neb_processing_table[elem]))(data);
     if (type == neb::service_status::static_type())
       _unified_sql_process_service_status(data);
+  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_metrics)) {
+    _process_rebuild_metrics(data);
   } else {
     log_v2::sql()->trace(
         "unified sql: event of type {} thrown away ; no need to "
