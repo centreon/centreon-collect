@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@
 #include "com/centreon/broker/brokerrpc.hh"
 #include <fmt/format.h>
 #include <grpcpp/server_builder.h>
+#include "bbdo/events.hh"
+#include "com/centreon/broker/io/events.hh"
 
 using namespace com::centreon::broker;
 
@@ -33,6 +35,13 @@ using namespace com::centreon::broker;
 brokerrpc::brokerrpc(const std::string& address,
                      uint16_t port,
                      std::string const& broker_name) {
+  io::events& e{io::events::instance()};
+
+  /* Lets' register the rebuild_metrics bbdo event. This is needed to send the
+   * rebuild message. */
+  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_metrics),
+                   "rebuild_metrics", &bbdo::pb_rebuild_metrics::operations);
+
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
   grpc::ServerBuilder builder;

@@ -19,10 +19,22 @@
 #ifndef CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_
 #define CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_
 
+#include "bbdo/events.hh"
 #include "broker.grpc.pb.h"
+#include "centreon-broker/core/src/broker.pb.h"
+#include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
+
+/**
+ * Here is a declaration of pb_rebuild_metrics which is a bbdo event we use to
+ * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
+namespace bbdo {
+using pb_rebuild_metrics =
+    io::protobuf<MetricIds, make_type(io::bbdo, bbdo::de_rebuild_metrics)>;
+}
+
 class broker_impl final : public Broker::Service {
   std::string _broker_name;
 
@@ -59,10 +71,9 @@ class broker_impl final : public Broker::Service {
                                 const GenericNameOrIndex* request,
                                 GenericString* response) override;
 
-  grpc::Status RebuildRRD(
-    grpc::ServerContext* context,
-    const MetricIds* request,
-    ::google::protobuf::Empty* response) override;
+  grpc::Status RebuildMetrics(grpc::ServerContext* context,
+                              const MetricIds* request,
+                              ::google::protobuf::Empty* response) override;
 
  public:
   void set_broker_name(std::string const& s) { _broker_name = s; };

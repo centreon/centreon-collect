@@ -22,6 +22,7 @@
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -214,9 +215,23 @@ grpc::Status broker_impl::GetSqlConnectionSize(
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::RebuildRRD(
-    grpc::ServerContext* context __attribute__((unused)),
-    const MetricIds* request,
-    ::google::protobuf::Empty* response __attribute__((unused))) {
+/**
+ * @brief The internal part of the gRPC RebuildMetrics() function.
+ *
+ * @param context (unused)
+ * @param request A pointer to a MetricIds which contains a vector of metric
+ * ids. These ids correspond to the metrics to rebuild.
+ * @param response (unused)
+ *
+ * @return grpc::Status::OK
+ */
+grpc::Status broker_impl::RebuildMetrics(grpc::ServerContext* context
+                                         __attribute__((unused)),
+                                         const MetricIds* request,
+                                         ::google::protobuf::Empty* response
+                                         __attribute__((unused))) {
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<bbdo::pb_rebuild_metrics>(*request)};
+  pblshr.write(e);
   return grpc::Status::OK;
 }

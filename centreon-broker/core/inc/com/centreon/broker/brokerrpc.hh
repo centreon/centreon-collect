@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,11 @@
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
+
+/**
+ * @class brokerrpc brokerrpc.hh "com/centreon/broker/brokerrpc.hh"
+ * @brief This is the entry point to the Broker gRPC server
+ */
 class brokerrpc final {
   broker_impl _service;
   std::unique_ptr<grpc::Server> _server;

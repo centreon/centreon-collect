@@ -21,8 +21,14 @@ service Broker {
 
   rpc GetStats(StatsQuery) returns (BrokerStats) {}
 
-  // Rebuild RRD
-  rpc RebuildRRD(MetricIds) returns (google.protobuf.Empty) {}
+  /**
+   * @brief Rebuild RRD metric RRD files from data in the SQL database.
+   *
+   * @param MetricIds Message containing a vector of metric ids.
+   *
+   * @return An Empty object.
+   */
+  rpc RebuildMetrics(MetricIds) returns (google.protobuf.Empty) {}
 }
 
 message Version {
