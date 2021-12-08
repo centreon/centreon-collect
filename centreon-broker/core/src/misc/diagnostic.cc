@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/misc/diagnostic.hh"
-#include <fmt/format.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -25,7 +24,6 @@
 #include <cstdlib>
 #include <fstream>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -231,6 +229,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     config::parser parsr;
     config::state conf;
     try {
+      log_v2::core()->info("diagnostic: reading configuration file.");
       conf = parsr.parse(*it);
     } catch (std::exception const& e) {
       log_v2::core()->error(

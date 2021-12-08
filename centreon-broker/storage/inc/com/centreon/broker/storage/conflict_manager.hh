@@ -32,8 +32,8 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/mfifo.hh"
 #include "com/centreon/broker/misc/pair.hh"
+#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/mysql.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"
 
 CCB_BEGIN()
@@ -125,10 +125,12 @@ class conflict_manager {
     bool special;
   };
 
+  static const std::array<std::string, 5> metric_type_name;
+
   struct metric_info {
     bool locked;
     uint32_t metric_id;
-    uint32_t type;
+    int16_t type;
     double value;
     std::string unit_name;
     double warn;

@@ -47,7 +47,7 @@ class instance_configuration : public io::data {
   ~instance_configuration();
   instance_configuration& operator=(instance_configuration const& i);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
+    return io::events::data_type<io::neb,
                                  neb::de_instance_configuration>::value;
   }
 

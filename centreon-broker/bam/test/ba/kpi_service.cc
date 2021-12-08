@@ -23,6 +23,7 @@
 #include <memory>
 #include <stack>
 #include <vector>
+#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/bam/kpi_ba.hh"
@@ -69,7 +70,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
       std::make_shared<bam::kpi_service>(1, 1, 1, 1)};
 
   kpi->set_impact_critical(100.0);
-  kpi->set_state_hard(bam::kpi_service::state::state_ok);
+  kpi->set_state_hard(bam::state_ok);
   kpi->set_state_soft(kpi->get_state_hard());
   test_ba->add_impact(kpi);
   kpi->add_parent(test_ba);
@@ -117,7 +118,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
     s->set_impact_warning(10);
     s->set_impact_critical(20);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -216,7 +217,7 @@ TEST_F(BamBA, KpiServiceBestState) {
 
   for (size_t i = 0; i < 3; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -274,7 +275,7 @@ TEST_F(BamBA, KpiServiceWorstState) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
     s->set_impact_warning(10);
     s->set_impact_critical(20);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -376,7 +377,7 @@ TEST_F(BamBA, KpiServiceRatioNum) {
   for (int i = 0; i < 4; i++) {
     std::shared_ptr<bam::kpi_service> s =
         std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -436,7 +437,7 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -482,7 +483,7 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -535,9 +536,9 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
     if (i == 0)
-      s->set_state_hard(bam::kpi_service::state::state_ok);
+      s->set_state_hard(bam::state_ok);
     else
-      s->set_state_hard(bam::kpi_service::state::state_critical);
+      s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -597,7 +598,7 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -649,7 +650,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -702,9 +703,9 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpact) {
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
     if (i == 3)
-      s->set_state_hard(bam::kpi_service::state::state_ok);
+      s->set_state_hard(bam::state_ok);
     else
-      s->set_state_hard(bam::kpi_service::state::state_critical);
+      s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     s->set_impact_critical(25);
     test_ba->add_impact(s);
@@ -761,13 +762,13 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBest) {
     switch (i) {
       case 0:
       case 1:
-        s->set_state_hard(bam::kpi_service::state::state_ok);
+        s->set_state_hard(bam::state_ok);
         break;
       case 2:
-        s->set_state_hard(bam::kpi_service::state::state_warning);
+        s->set_state_hard(bam::state_warning);
         break;
       case 3:
-        s->set_state_hard(bam::kpi_service::state::state_critical);
+        s->set_state_hard(bam::state_critical);
         break;
     }
     s->set_state_soft(s->get_state_hard());
@@ -822,13 +823,13 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorst) {
     switch (i) {
       case 0:
       case 1:
-        s->set_state_hard(bam::kpi_service::state::state_critical);
+        s->set_state_hard(bam::state_critical);
         break;
       case 2:
-        s->set_state_hard(bam::kpi_service::state::state_warning);
+        s->set_state_hard(bam::state_warning);
         break;
       case 3:
-        s->set_state_hard(bam::kpi_service::state::state_ok);
+        s->set_state_hard(bam::state_ok);
         break;
     }
     s->set_state_soft(s->get_state_hard());
@@ -882,7 +883,7 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatio) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -929,7 +930,7 @@ TEST_F(BamBA, KpiServiceDt) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -1089,7 +1090,7 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -1147,7 +1148,7 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -1192,7 +1193,7 @@ TEST_F(BamBA, KpiServiceAcknowledgement) {
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
-    s->set_state_hard(bam::kpi_service::state::state_critical);
+    s->set_state_hard(bam::state_critical);
     s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);

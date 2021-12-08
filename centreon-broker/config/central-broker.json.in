@@ -8,8 +8,8 @@
         "log_timestamp": true,
         "log_thread_id": false,
         "event_queue_max_size": 100000,
-        "command_file": "@PREFIX_VAR@/central-broker.cmd",
-        "cache_directory": "@PREFIX_VAR@",
+        "command_file": "@BROKER_VAR_LIB@/central-broker.cmd",
+        "cache_directory": "@BROKER_VAR_LIB_DIR@",
         "input": [
             {
                 "name": "central-broker-input",
@@ -83,7 +83,7 @@
             {
                 "type": "stats",
                 "name": "central-broker-stats",
-                "json_fifo": "@PREFIX_VAR@/central-broker-stats.json"
+                "json_fifo": "@BROKER_VAR_LIB@/central-broker-stats.json"
             }
         ]
     }

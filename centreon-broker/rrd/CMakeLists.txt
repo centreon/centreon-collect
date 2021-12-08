@@ -21,7 +21,7 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/rrd/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/rrd/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/rrd/test")
 include_directories("${INC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
+include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 
 # Find librrd.
@@ -49,6 +49,8 @@ else ()
   set(LIBRRD_LDFLAGS "${LIBRRD_LDFLAGS}" PARENT_SCOPE)
 endif ()
 
+get_protobuf_files(rebuild)
+
 # RRD module.
 set(RRD "70-rrd")
 set(RRD "${RRD}" PARENT_SCOPE)
@@ -60,6 +62,7 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
+  ${proto_rebuild}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"
@@ -83,7 +86,7 @@ if (LIBRRD_CFLAGS)
       COMPILE_FLAGS "${LIBRRD_CFLAGS}")
   endif ()
 endif ()
-target_link_libraries("${RRD}" ${LIBRRD_LDFLAGS})
+target_link_libraries("${RRD}" ${LIBRRD_LDFLAGS} bbdo_storage)
 
 # Testing.
 if (WITH_TESTING)

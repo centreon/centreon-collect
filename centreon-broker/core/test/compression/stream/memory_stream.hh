@@ -51,7 +51,8 @@ class CompressionStreamMemoryStream : public com::centreon::broker::io::stream {
     return true;
   }
 
-  int write(std::shared_ptr<com::centreon::broker::io::data> const& d) override {
+  int write(
+      std::shared_ptr<com::centreon::broker::io::data> const& d) override {
     using namespace com::centreon::broker;
     if (!d || d->type() != io::raw::static_type())
       throw com::centreon::exceptions::msg_fmt("invalid data sent to {}",

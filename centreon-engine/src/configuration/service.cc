@@ -658,9 +658,9 @@ void service::check_validity() const {
                          << "'service_description')");
   if (_hosts->empty() && _hostgroups->empty())
     throw engine_error()
-          << "Service '" << _service_description
-          << "' is not attached to any host or host group (properties "
-          << "'host_name' or 'hostgroup_name', respectively)";
+        << "Service '" << _service_description
+        << "' is not attached to any host or host group (properties "
+        << "'host_name' or 'hostgroup_name', respectively)";
   if (_check_command.empty())
     throw engine_error() << "Service '" << _service_description
                          << "' has no check command (property 'check_command')";

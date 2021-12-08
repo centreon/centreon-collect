@@ -35,11 +35,13 @@ version_response::version_response()
  *
  * @param extensions A string with extensions asked for.
  */
-version_response::version_response(std::string extensions)
+version_response::version_response(
+    const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version,
+    std::string extensions)
     : io::data(version_response::static_type()),
-      bbdo_major(BBDO_VERSION_MAJOR),
-      bbdo_minor(BBDO_VERSION_MINOR),
-      bbdo_patch(BBDO_VERSION_PATCH),
+      bbdo_major(std::get<0>(bbdo_version)),
+      bbdo_minor(std::get<1>(bbdo_version)),
+      bbdo_patch(std::get<2>(bbdo_version)),
       extensions(std::move(extensions)) {}
 
 // Mapping.
@@ -55,4 +57,4 @@ static auto new_version_response() -> io::data* {
   return new version_response;
 }
 io::event_info::event_operations const version_response::operations = {
-    &new_version_response};
+    &new_version_response, nullptr, nullptr};

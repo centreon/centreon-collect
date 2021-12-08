@@ -17,33 +17,33 @@
  *
  */
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <time.h>
-#include <iostream>
 #include <fstream>
-#include <fmt/format.h>
+#include <iostream>
 #include "com/centreon/engine/globals.hh"
 
+#include <com/centreon/engine/configuration/applier/command.hh>
+#include <com/centreon/engine/configuration/applier/contact.hh>
+#include <com/centreon/engine/configuration/applier/host.hh>
+#include <com/centreon/engine/configuration/applier/hostgroup.hh>
+#include <com/centreon/engine/configuration/applier/service.hh>
+#include <com/centreon/engine/configuration/applier/servicegroup.hh>
+#include <com/centreon/engine/configuration/applier/state.hh>
+#include <com/centreon/engine/configuration/applier/timeperiod.hh>
+#include <com/centreon/engine/configuration/parser.hh>
+#include <com/centreon/engine/hostescalation.hh>
+#include <com/centreon/engine/macros.hh>
+#include <com/centreon/engine/macros/grab_host.hh>
+#include <com/centreon/engine/macros/process.hh>
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include <com/centreon/engine/configuration/applier/command.hh>
-#include <com/centreon/engine/configuration/applier/host.hh>
-#include <com/centreon/engine/configuration/applier/hostgroup.hh>
-#include <com/centreon/engine/configuration/applier/service.hh>
-#include <com/centreon/engine/configuration/applier/contact.hh>
-#include <com/centreon/engine/configuration/applier/state.hh>
-#include <com/centreon/engine/configuration/applier/timeperiod.hh>
-#include <com/centreon/engine/configuration/applier/servicegroup.hh>
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
-#include <com/centreon/engine/configuration/parser.hh>
-#include <com/centreon/engine/hostescalation.hh>
-#include <com/centreon/engine/macros/grab_host.hh>
-#include <com/centreon/engine/macros/process.hh>
-#include <com/centreon/engine/macros.hh>
 #include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon;
@@ -53,7 +53,7 @@ class MacroHostname : public TestEngine {
  public:
   void SetUp() override {
     init_config_state();
-        _tp = _creator.new_timeperiod();
+    _tp = _creator.new_timeperiod();
     for (int i(0); i < 7; ++i)
       _creator.new_timerange(0, 0, 24, 0, i);
     _now = strtotimet("2016-11-24 08:00:00");
@@ -67,9 +67,9 @@ class MacroHostname : public TestEngine {
     _svc.reset();
     deinit_config_state();
   }
-  
-  protected:
-  std::shared_ptr<engine::host> _host, _host2,_host3;
+
+ protected:
+  std::shared_ptr<engine::host> _host, _host2, _host3;
   std::shared_ptr<engine::service> _svc;
   timeperiod_creator _creator;
   time_t _now;
@@ -82,11 +82,11 @@ TEST_F(MacroHostname, HostProblemId) {
   next_problem_id = 1;
 
   set_time(50000);
-  //first host
+  // first host
   ASSERT_TRUE(hst.parse("host_name", "test_host"));
   ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
   ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  //second host 
+  // second host
   ASSERT_TRUE(hst2.parse("host_name", "test_host2"));
   ASSERT_TRUE(hst2.parse("address", "127.0.0.1"));
   ASSERT_TRUE(hst2.parse("_HOST_ID", "13"));
@@ -100,18 +100,17 @@ TEST_F(MacroHostname, HostProblemId) {
   _host->set_last_hard_state(engine::host::state_up);
   _host->set_last_hard_state_change(50000);
   _host->set_state_type(checkable::hard);
-  
+
   _host2 = host::hosts.find("test_host2")->second;
   _host2->set_current_state(engine::host::state_up);
   _host2->set_last_hard_state(engine::host::state_up);
   _host2->set_last_hard_state_change(50000);
   _host2->set_state_type(checkable::hard);
 
-  auto fn = [] (std::shared_ptr<engine::host> hst, 
-                std::string firstcheck, 
-                std::string secondcheck) -> void {
+  auto fn = [](std::shared_ptr<engine::host> hst, std::string firstcheck,
+               std::string secondcheck) -> void {
     std::string out;
-    nagios_macros *mac(get_global_macros());
+    nagios_macros* mac(get_global_macros());
 
     for (int i = 0; i < 3; i++) {
       // When i == 0, the state_down is soft => no notification
@@ -124,13 +123,15 @@ TEST_F(MacroHostname, HostProblemId) {
       hst->process_check_result_3x(engine::host::state_down, "The host is down",
                                    CHECK_OPTION_NONE, 0, true, 0);
     }
-  
-    process_macros_r(mac,fmt::format("$HOSTPROBLEMID:{}$", hst->get_name()), out, 0);
-    ASSERT_EQ(out, firstcheck); 
-    
+
+    process_macros_r(mac, fmt::format("$HOSTPROBLEMID:{}$", hst->get_name()),
+                     out, 0);
+    ASSERT_EQ(out, firstcheck);
+
     for (int i = 0; i < 2; i++) {
-      // When i == 0, the state_up is hard (return to up) => Recovery notification
-      // When i == 1, the state_up is still here (no change) => no notification
+      // When i == 0, the state_up is hard (return to up) => Recovery
+      // notification When i == 1, the state_up is still here (no change) => no
+      // notification
       set_time(52500 + i * 500);
       hst->set_last_state(hst->get_current_state());
       if (notifier::hard == hst->get_state_type())
@@ -138,14 +139,14 @@ TEST_F(MacroHostname, HostProblemId) {
       hst->process_check_result_3x(engine::host::state_up, "The host is up",
                                    CHECK_OPTION_NONE, 0, true, 0);
     }
-  
+
     process_macros_r(mac, "$HOSTPROBLEMID:test_host$", out, 0);
     ASSERT_EQ(out, secondcheck);
   };
-  
-  fn(_host, "1", "0"); 
-  fn(_host2, "2", "0"); 
-  fn(_host, "3", "0"); 
+
+  fn(_host, "1", "0");
+  fn(_host2, "2", "0");
+  fn(_host, "3", "0");
 }
 
 // Given host configuration without host_id
@@ -161,7 +162,7 @@ TEST_F(MacroHostname, TotalHostOk) {
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
 
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   std::string out;
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
@@ -182,7 +183,7 @@ TEST_F(MacroHostname, TotalHostServicesCritical) {
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
 
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   std::string out;
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
@@ -201,8 +202,8 @@ TEST_F(MacroHostname, HostName) {
   ASSERT_EQ(1u, host::hosts.size());
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
-  
+  nagios_macros* mac(get_global_macros());
+
   process_macros_r(mac, "$HOSTNAME:test_host$", out, 0);
   ASSERT_EQ(out, "test_host");
 }
@@ -218,8 +219,8 @@ TEST_F(MacroHostname, HostAlias) {
   ASSERT_EQ(1u, host::hosts.size());
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
-  
+  nagios_macros* mac(get_global_macros());
+
   process_macros_r(mac, "$HOSTALIAS:test_host$", out, 0);
   ASSERT_EQ(out, "test_host");
 }
@@ -235,8 +236,8 @@ TEST_F(MacroHostname, HostAddress) {
   ASSERT_EQ(1u, host::hosts.size());
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
-  
+  nagios_macros* mac(get_global_macros());
+
   process_macros_r(mac, "$HOSTADDRESS:test_host$", out, 0);
   ASSERT_EQ(out, "127.0.0.1");
 }
@@ -255,7 +256,7 @@ TEST_F(MacroHostname, LastHostCheck) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$LASTHOSTCHECK:test_host$", out, 0);
   ASSERT_EQ(out, "0");
 }
@@ -274,7 +275,7 @@ TEST_F(MacroHostname, LastHostStateChange) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$LASTHOSTSTATECHANGE:test_host$", out, 0);
   ASSERT_EQ(out, "0");
 }
@@ -293,7 +294,7 @@ TEST_F(MacroHostname, HostOutput) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_plugin_output("foo bar!");
   process_macros_r(mac, "$HOSTOUTPUT:test_host$", out, 0);
   ASSERT_EQ(out, "foo bar!");
@@ -313,7 +314,7 @@ TEST_F(MacroHostname, HostPerfData) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_perf_data("test");
   process_macros_r(mac, "$HOSTPERFDATA:test_host$", out, 0);
   ASSERT_EQ(out, "test");
@@ -332,7 +333,7 @@ TEST_F(MacroHostname, HostState) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTSTATE:test_host$", out, 1);
@@ -352,7 +353,7 @@ TEST_F(MacroHostname, HostStateID) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_down);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTSTATEID:test_host$", out, 1);
@@ -372,7 +373,7 @@ TEST_F(MacroHostname, HostAttempt) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTATTEMPT:test_host$", out, 1);
@@ -395,7 +396,7 @@ TEST_F(MacroHostname, HostExecutionTime) {
   set_time(now);
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_execution_time(10.0);
   process_macros_r(mac, "$HOSTEXECUTIONTIME:test_host$", out, 1);
   ASSERT_EQ(out, "10.000");
@@ -416,7 +417,7 @@ TEST_F(MacroHostname, HostLatency) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_latency(100);
   process_macros_r(mac, "$HOSTLATENCY:test_host$", out, 1);
   ASSERT_EQ(out, "100.000");
@@ -437,7 +438,7 @@ TEST_F(MacroHostname, HostDuration) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTDURATION:test_host$", out, 1);
   ASSERT_EQ(out, "5787d 0h 53m 20s");
 }
@@ -457,7 +458,7 @@ TEST_F(MacroHostname, HostDurationSec) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTDURATIONSEC:test_host$", out, 1);
   ASSERT_EQ(out, "500000000");
 }
@@ -476,7 +477,7 @@ TEST_F(MacroHostname, HostDownTime) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTDOWNTIME:test_host$", out, 1);
   ASSERT_EQ(out, "0");
 }
@@ -495,7 +496,7 @@ TEST_F(MacroHostname, HostStateType) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTSTATETYPE:test_host$", out, 1);
   ASSERT_EQ(out, "HARD");
 }
@@ -514,7 +515,7 @@ TEST_F(MacroHostname, HostPercentChange) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTPERCENTCHANGE:test_host$", out, 1);
   ASSERT_EQ(out, "0.00");
 }
@@ -554,7 +555,7 @@ TEST_F(MacroHostname, HostGroupName) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPNAME:a$", out, 1);
   ASSERT_EQ(out, "temphg");
 }
@@ -595,7 +596,7 @@ TEST_F(MacroHostname, HostGroupAlias) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPALIAS:temphg$", out, 1);
   ASSERT_EQ(out, "temphgal");
 }
@@ -615,8 +616,8 @@ TEST_F(MacroHostname, LastHostUP) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
-host::hosts["test_host"]->set_last_time_up(30);
+  nagios_macros* mac(get_global_macros());
+  host::hosts["test_host"]->set_last_time_up(30);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LASTHOSTUP:test_host$", out, 1);
   ASSERT_EQ(out, "30");
@@ -639,7 +640,7 @@ TEST_F(MacroHostname, LastHostDown) {
   host::hosts["test_host"]->set_last_time_down(40);
   host::hosts["test_host"]->set_has_been_checked(true);
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$LASTHOSTDOWN:test_host$", out, 1);
   ASSERT_EQ(out, "40");
 }
@@ -659,7 +660,7 @@ TEST_F(MacroHostname, LastHostUnreachable) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_last_time_unreachable(50);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LASTHOSTUNREACHABLE:test_host$", out, 1);
@@ -673,7 +674,7 @@ TEST_F(MacroHostname, HostCheckCommand) {
   ASSERT_TRUE(hst.parse("host_name", "test_host"));
   ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
   ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  
+
   configuration::command cmd("cmd");
   cmd.parse("command_line", "echo 'output| metric=12;50;75'");
   hst.parse("check_command", "cmd");
@@ -687,7 +688,7 @@ TEST_F(MacroHostname, HostCheckCommand) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTCHECKCOMMAND:test_host$", out, 1);
   ASSERT_EQ(out, "cmd");
 }
@@ -699,7 +700,8 @@ TEST_F(MacroHostname, HostPerDataFile) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "host_perfdata_file=/var/log/centreon-engine/host-perfdata.dat" << std::endl;
+  ofs << "host_perfdata_file=/var/log/centreon-engine/host-perfdata.dat"
+      << std::endl;
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
@@ -708,7 +710,7 @@ TEST_F(MacroHostname, HostPerDataFile) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTPERFDATAFILE:test_host$", out, 1);
   ASSERT_EQ(out, "/var/log/centreon-engine/host-perfdata.dat");
 }
@@ -728,7 +730,7 @@ TEST_F(MacroHostname, HostDisplayName) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTDISPLAYNAME:test_host$", out, 1);
   ASSERT_EQ(out, "test_host");
 }
@@ -749,7 +751,7 @@ TEST_F(MacroHostname, HostActionUrl) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTACTIONURL:test_host$", out, 1);
   ASSERT_EQ(out, "test_action_url");
 }
@@ -770,7 +772,7 @@ TEST_F(MacroHostname, HostNotesUrl) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTNOTESURL:test_host$", out, 1);
   ASSERT_EQ(out, "test_notes_url");
 }
@@ -791,7 +793,7 @@ TEST_F(MacroHostname, HostNotes) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTNOTES:test_host$", out, 1);
   ASSERT_EQ(out, "test_notes");
 }
@@ -812,7 +814,7 @@ TEST_F(MacroHostname, TotalHostsDown) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_down);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$TOTALHOSTSDOWN:test_host$", out, 1);
@@ -835,7 +837,7 @@ TEST_F(MacroHostname, TotalHostsUnreachable) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_unreachable);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$TOTALHOSTSUNREACHABLE:test_host$", out, 1);
@@ -858,7 +860,7 @@ TEST_F(MacroHostname, TotalHostsDownUnhandled) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$TOTALHOSTSDOWNUNHANDLED:test_host$", out, 1);
   ASSERT_EQ(out, "0");
 }
@@ -879,7 +881,7 @@ TEST_F(MacroHostname, TotalHostsunreachableunhandled) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$TOTALHOSTSUNREACHABLEUNHANDLED:test_host$", out, 1);
   ASSERT_EQ(out, "0");
 }
@@ -900,7 +902,7 @@ TEST_F(MacroHostname, TotalHostProblems) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$TOTALHOSTPROBLEMS:test_host$", out, 1);
   ASSERT_EQ(out, "0");
 }
@@ -921,7 +923,7 @@ TEST_F(MacroHostname, TotalHostProblemsUnhandled) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$TOTALHOSTPROBLEMSUNHANDLED:test_host$", out, 1);
   ASSERT_EQ(out, "0");
 }
@@ -943,7 +945,7 @@ TEST_F(MacroHostname, HostCheckType) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_unreachable);
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTCHECKTYPE:test_host$", out, 0);
@@ -967,7 +969,7 @@ TEST_F(MacroHostname, LongHostOutput) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LONGHOSTOUTPUT:test_host$", out, 0);
@@ -991,7 +993,7 @@ TEST_F(MacroHostname, HostNotificationNumber) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTNOTIFICATIONNUMBER:test_host$", out, 0);
@@ -1015,7 +1017,7 @@ TEST_F(MacroHostname, HostNotificationID) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTNOTIFICATIONID:test_host$", out, 0);
@@ -1039,7 +1041,7 @@ TEST_F(MacroHostname, HostEventID) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTEVENTID:test_host$", out, 0);
@@ -1063,7 +1065,7 @@ TEST_F(MacroHostname, LastHostEventID) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LASTHOSTEVENTID:test_host$", out, 0);
@@ -1105,7 +1107,7 @@ TEST_F(MacroHostname, HostGroupNames) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPNAMES:a$", out, 0);
   ASSERT_EQ(out, "temphg");
 }
@@ -1127,7 +1129,7 @@ TEST_F(MacroHostname, MaxHostAttempts) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$MAXHOSTATTEMPTS:test_host$", out, 0);
@@ -1151,7 +1153,7 @@ TEST_F(MacroHostname, TotalHostServices) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$TOTALHOSTSERVICES:test_host$", out, 0);
@@ -1175,7 +1177,7 @@ TEST_F(MacroHostname, TotalHostServicesOK) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$TOTALHOSTSERVICESOK:test_host$", out, 0);
@@ -1199,7 +1201,7 @@ TEST_F(MacroHostname, TotalHostServicesWarning) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$TOTALHOSTSERVICESWARNING:test_host$", out, 0);
@@ -1223,7 +1225,7 @@ TEST_F(MacroHostname, TotalHostServicesUnknown) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$TOTALHOSTSERVICESUNKNOWN:test_host$", out, 0);
@@ -1266,7 +1268,7 @@ TEST_F(MacroHostname, HostGroupNotes) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPNOTES:temphg$", out, 0);
   ASSERT_EQ(out, "test_note");
 }
@@ -1307,7 +1309,7 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPNOTESURL:temphg$", out, 0);
   ASSERT_EQ(out, "test_note_url");
 }
@@ -1348,7 +1350,7 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPACTIONURL:temphg$", out, 0);
   ASSERT_EQ(out, "test_action_url");
 }
@@ -1389,7 +1391,7 @@ TEST_F(MacroHostname, HostGroupMembers) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTGROUPMEMBERS:temphg$", out, 0);
   ASSERT_EQ(out, "c,a");
 }
@@ -1411,7 +1413,7 @@ TEST_F(MacroHostname, LastHostProblemId) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LASTHOSTPROBLEMID:test_host$", out, 0);
@@ -1435,7 +1437,7 @@ TEST_F(MacroHostname, LastHostState) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LASTHOSTSTATE:test_host$", out, 0);
@@ -1459,7 +1461,7 @@ TEST_F(MacroHostname, LastHostStateID) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$LASTHOSTSTATEID:test_host$", out, 0);
@@ -1483,7 +1485,7 @@ TEST_F(MacroHostname, HostParents) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTPARENTS:test_host$", out, 0);
@@ -1532,7 +1534,7 @@ TEST_F(MacroHostname, HostChildren) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$HOSTCHILDREN:parent_host$", out, 0);
   ASSERT_EQ(out, "child_host");
 }
@@ -1554,7 +1556,7 @@ TEST_F(MacroHostname, HostID) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTID:test_host$", out, 0);
@@ -1578,7 +1580,7 @@ TEST_F(MacroHostname, HostTimeZone) {
   init_macros();
 
   std::string out;
-  nagios_macros *mac(get_global_macros());
+  nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_long_plugin_output("test_long_output");
   host::hosts["test_host"]->set_has_been_checked(true);
   process_macros_r(mac, "$HOSTTIMEZONE:test_host$", out, 0);

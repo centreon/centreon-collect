@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package com.centreon.broker;
+
+message Service {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+
+  enum AckType {
+    ACKNOWLEDGEMENT_NONE = 0;
+    ACKNOWLEDGEMENT_NORMAL = 1;
+    ACKNOWLEDGEMENT_STICKY = 2;
+  }
+  bool acknowledged = 3;
+  AckType acknowledgement_type = 4;
+  bool active_checks_enabled = 5;
+  string check_command = 6;
+  int32 check_interval = 7;
+  string check_period = 8;
+
+  enum CheckType {
+    CHECK_ACTIVE = 0;
+    CHECK_PASSIVE = 1;
+  }
+  CheckType check_type = 9;
+  int32 current_check_attempt = 10;
+
+}

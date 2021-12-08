@@ -43,4 +43,5 @@ mapping::entry const ack::entries[]{
 static io::data* new_ack() {
   return new ack;
 }
-io::event_info::event_operations const ack::operations = {&new_ack};
+io::event_info::event_operations const ack::operations = {&new_ack, nullptr,
+                                                          nullptr};

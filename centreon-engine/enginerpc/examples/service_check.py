@@ -10,13 +10,13 @@ def run():
     with grpc.insecure_channel("127.0.0.1:{}".format(sys.argv[1])) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         k = 0.0
-        for j in range(100000):
+        for j in range(10000):
+          print("Step{}".format(j))
           now = time.time()
           seconds = int(now)
           nanos = int((now - seconds) * 10**9)
           timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)
           for i in range(1, 200):
-              print("Step{}".format(i))
               check = stub.ProcessServiceCheckResult(engine_pb2.Check(
                     check_time=timestamp,
                     host_name = 'ceïntràl',

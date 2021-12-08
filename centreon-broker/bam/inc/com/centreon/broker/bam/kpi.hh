@@ -22,8 +22,8 @@
 #include <memory>
 #include <vector>
 
+#include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/computable.hh"
-#include "com/centreon/broker/bam/kpi_event.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 

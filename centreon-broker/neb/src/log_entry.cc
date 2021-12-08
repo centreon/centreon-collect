@@ -155,4 +155,5 @@ mapping::entry const log_entry::entries[] = {
 static io::data* new_log_entry() {
   return new log_entry;
 }
-io::event_info::event_operations const log_entry::operations = {&new_log_entry};
+io::event_info::event_operations const log_entry::operations = {
+    &new_log_entry, nullptr, nullptr};

@@ -42,7 +42,7 @@ def get_date(d: str):
 
 
 def find_in_log_with_timeout(log: str, date, content, timeout: int):
-    limit = time.time() + TIMEOUT
+    limit = time.time() + timeout
     while time.time() < limit:
         if find_in_log(log, date, content):
             return True
@@ -118,12 +118,12 @@ def stop_mysql():
 
 
 def kill_broker():
-    getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $2}')")
-    getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
+    getoutput("kill -SIGKILL $(ps aux | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $2}')")
+    getoutput("kill -SIGKILL $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
 
 
 def kill_engine():
-    getoutput("kill -SIGTERM $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
+    getoutput("kill -SIGKILL $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
 
 
 def clear_retention():

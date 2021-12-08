@@ -73,7 +73,8 @@ policy::~policy() throw() {
   for (auto it = _checks.begin(), end = _checks.end(); it != end; ++it) {
     try {
       it->second->unlisten(this);
-    } catch (...) { }
+    } catch (...) {
+    }
     delete it->second;
   }
   _checks.clear();
@@ -148,7 +149,8 @@ void policy::on_result(checks::result const& r) {
  */
 void policy::on_version() {
   // Report version 1.0.
-  log::core()->info("monitoring engine requested protocol version, sending 1.0");
+  log::core()->info(
+      "monitoring engine requested protocol version, sending 1.0");
   _reporter.send_version(1, 0);
 }
 
@@ -177,7 +179,8 @@ bool policy::run() {
         std::unique_ptr<checks::check> chk(it->second);
         _checks.erase(it);
         if (WIFSIGNALED(status)) {
-          log::core()->error("process {0} exited because of a signal {1}", child, WTERMSIG(status));
+          log::core()->error("process {0} exited because of a signal {1}",
+                             child, WTERMSIG(status));
         }
 
         chk->terminated(WIFEXITED(status) ? WEXITSTATUS(status) : -1);

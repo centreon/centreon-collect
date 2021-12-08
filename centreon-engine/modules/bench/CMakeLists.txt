@@ -32,16 +32,16 @@ if (WITH_BENCH)
   set_target_properties("bench_passive_module"
     PROPERTIES PREFIX "")
   install(TARGETS "bench_passive_module"
-    DESTINATION "${PREFIX_LIB}"
+    DESTINATION "${ENGINE_MODULES_DIR}"
     COMPONENT "bench")
 
   # Passive checks benchmarking command line tool.
   add_executable("centengine_bench_passive"
     "${SRC_DIR}/passive/engine_cfg.cc"
     "${SRC_DIR}/passive/main.cc")
-  add_dependencies("centengine_bench_passive" centreon_clib_shared)
+  add_dependencies("centengine_bench_passive" centreon_clib)
   target_link_libraries("centengine_bench_passive" centreon_clib)
   install(TARGETS "centengine_bench_passive"
-    DESTINATION "${PREFIX_BIN}"
+    DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
     COMPONENT "bench")
 endif ()

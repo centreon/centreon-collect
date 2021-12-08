@@ -227,7 +227,6 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
 }
 
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
-
   init_macros();
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};

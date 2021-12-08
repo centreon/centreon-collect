@@ -82,4 +82,4 @@ static io::data* new_host_check() {
   return new host_check;
 }
 io::event_info::event_operations const host_check::operations = {
-    &new_host_check};
+    &new_host_check, nullptr, nullptr};

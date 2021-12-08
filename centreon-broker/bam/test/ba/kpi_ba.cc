@@ -90,7 +90,7 @@ TEST_F(KpiBA, KpiBa) {
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
     s->set_impact_warning(75);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_type(1);
 
     // test_ba_child->add_impact(s);
@@ -197,7 +197,7 @@ TEST_F(KpiBA, KpiBaDt) {
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
     s->set_impact_warning(75);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_type(1);
 
     // test_ba_child->add_impact(s);
@@ -312,7 +312,7 @@ TEST_F(KpiBA, KpiBaDtOff) {
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
     s->set_impact_warning(75);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_type(1);
 
     // test_ba_child->add_impact(s);
@@ -437,7 +437,7 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
     s->set_impact_warning(75);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_type(1);
 
     // test_ba_child->add_impact(s);
@@ -546,7 +546,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
     s->set_impact_warning(75);
-    s->set_state_hard(bam::kpi_service::state::state_ok);
+    s->set_state_hard(bam::state_ok);
     s->set_state_type(1);
 
     kpis.push_back(s);
@@ -602,7 +602,7 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
   _visitor->print_events();
 
   std::cout << "ba state: " << test_ba->get_state_hard() << std::endl;
-  std::cout << "ba hard impact: " << test_ba->get_downtime_impact_hard() << std::endl;
+  std::cout << "ba hard impact: " << test_ba->get_downtime_impact_hard()
+            << std::endl;
   std::cout << "ba perfdata: " << test_ba->get_perfdata() << std::endl;
-
 }

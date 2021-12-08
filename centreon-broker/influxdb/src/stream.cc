@@ -17,15 +17,13 @@
 */
 
 #include "com/centreon/broker/influxdb/stream.hh"
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/influxdb/influxdb12.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/global_lock.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
@@ -136,11 +134,11 @@ int stream::write(std::shared_ptr<io::data> const& data) {
 
   // Process metric events.
   if (data->type() ==
-      io::events::data_type<io::events::storage, storage::de_metric>::value) {
+      io::events::data_type<io::storage, storage::de_metric>::value) {
     _influx_db->write(*std::static_pointer_cast<storage::metric const>(data));
     ++_actual_query;
-  } else if (data->type() == io::events::data_type<io::events::storage,
-                                                   storage::de_status>::value) {
+  } else if (data->type() ==
+             io::events::data_type<io::storage, storage::de_status>::value) {
     _influx_db->write(*std::static_pointer_cast<storage::status const>(data));
     ++_actual_query;
   }

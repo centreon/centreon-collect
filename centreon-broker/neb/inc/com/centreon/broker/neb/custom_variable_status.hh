@@ -46,7 +46,7 @@ class custom_variable_status : public io::data {
   virtual ~custom_variable_status();
   custom_variable_status& operator=(custom_variable_status const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
+    return io::events::data_type<io::neb,
                                  neb::de_custom_variable_status>::value;
   }
 

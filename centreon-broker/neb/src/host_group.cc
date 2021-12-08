@@ -89,4 +89,4 @@ static io::data* new_host_group() {
   return new host_group;
 }
 io::event_info::event_operations const host_group::operations = {
-    &new_host_group};
+    &new_host_group, nullptr, nullptr};

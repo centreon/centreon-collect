@@ -21,7 +21,7 @@
 
 #include <list>
 #include <string>
-#include "com/centreon/broker/bam/kpi_event.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()

@@ -18,8 +18,12 @@
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/bbdo/internal.hh"
+#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker::config;
+using namespace com::centreon::exceptions;
 
 /**
  *  Default constructor.
@@ -27,6 +31,7 @@ using namespace com::centreon::broker::config;
 state::state()
     : _broker_id{0},
       _rpc_port{0},
+      _bbdo_version{BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH},
       _command_protocol{"json"},
       _event_queue_max_size{10000},
       _poller_id{0},
@@ -140,6 +145,25 @@ void state::broker_name(std::string const& name) {
  */
 std::string const& state::broker_name() const noexcept {
   return _broker_name;
+}
+
+/**
+ *  Set the BBDO version.
+ *
+ *  @param[in] v  bbdo version given as a tuple of uint16.
+ */
+void state::bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v) {
+  _bbdo_version = std::move(v);
+}
+
+/**
+ *  Get BBDO version.
+ *
+ *  @return bbdo version as a tuple of uint16.
+ */
+const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version()
+    const noexcept {
+  return _bbdo_version;
 }
 
 /**
@@ -268,6 +292,16 @@ std::list<std::string>& state::module_list() noexcept {
  * @param module the module name to add.
  */
 void state::add_module(std::string module) {
+  bool conflict{false};
+  if (module == "20-unified_sql.so")
+    conflict = std::find(_module_list.begin(), _module_list.end(), "20-storage.so") != _module_list.end() || std::find(_module_list.begin(), _module_list.end(), "80-sql.so") != _module_list.end();
+  else if (module == "80-sql.so" || module == "20-storage.so")
+    conflict = std::find(_module_list.begin(), _module_list.end(), "20-unified_sql.so") != _module_list.end();
+  if (conflict)
+    throw msg_fmt(
+        "config parser: unified_sql output is incompatible with storage/sql "
+        "outputs");
+
   auto found = std::find(_module_list.begin(), _module_list.end(), module);
   if (found == _module_list.end())
     _module_list.emplace_back(std::move(module));

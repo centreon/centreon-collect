@@ -17,9 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
+#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -131,7 +131,7 @@ void kpi_boolexp::visit(io::stream* visitor) {
     // Get information (HARD and SOFT values are the same).
     impact_values values;
     impact_hard(values);
-    kpi_boolexp::state state(_get_state());
+    state state = _get_state();
 
     // Generate BI events.
     {
@@ -173,9 +173,9 @@ void kpi_boolexp::visit(io::stream* visitor) {
  */
 void kpi_boolexp::_fill_impact(impact_values& impact) {
   // Get nominal impact from state.
-  kpi_boolexp::state state(_get_state());
+  bam::state state = _get_state();
   double nominal;
-  if (0 == state)
+  if (state_ok == state)
     nominal = 0.0;
   else
     nominal = _impact;
@@ -194,7 +194,7 @@ void kpi_boolexp::_fill_impact(impact_values& impact) {
  */
 void kpi_boolexp::_open_new_event(io::stream* visitor,
                                   int impact,
-                                  kpi_boolexp::state state) {
+                                  state state) {
   _event = std::make_shared<kpi_event>(_id, _ba_id, ::time(nullptr));
   _event->impact_level = impact;
   _event->in_downtime = false;
@@ -215,12 +215,12 @@ void kpi_boolexp::_open_new_event(io::stream* visitor,
  *
  *  @return  The current state of the boolexp.
  */
-kpi_boolexp::state kpi_boolexp::_get_state() const {
+state kpi_boolexp::_get_state() const {
   if (_boolexp->state_known())
     return _boolexp->get_state();
   else {
     if (_event)
-      return static_cast<kpi_boolexp::state>(_event->status);
+      return static_cast<state>(_event->status);
     else
       return _boolexp->get_state();
   }

@@ -33,13 +33,9 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHostGroup : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given host configuration without host_id
@@ -163,12 +159,11 @@ TEST_F(ApplierHostGroup, HostRemoved) {
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
   ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
-  engine::hostgroup *hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
+  engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
   ASSERT_EQ(hg_obj->members.size(), 2u);
   ASSERT_NO_THROW(hst_aply.remove_object(hst_a));
   ASSERT_EQ(hg_obj->members.size(), 1u);
 
   ASSERT_TRUE(hg.parse("members", "c"));
   ASSERT_NO_THROW(hg_aply.modify_object(hg));
-
 }

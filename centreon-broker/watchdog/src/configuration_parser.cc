@@ -166,7 +166,7 @@ void configuration_parser::_parse_centreon_broker_element(const json& element) {
     throw msg_fmt("missing instance name");
 
   if (executable.empty())
-    executable = std::string(PREFIX_BIN "/cbd");
+    executable = std::string(PREFIX_SBIN_CBD "/cbd");
 
   if (!_instances_configuration
            .insert({instance_name.get<std::string>(),

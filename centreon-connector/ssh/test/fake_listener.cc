@@ -22,12 +22,6 @@
 
 using namespace com::centreon::connector::ssh::orders;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Get the callbacks information.
  *

@@ -29,7 +29,6 @@ using namespace com::centreon::engine;
 
 class GetNextValidTimeOffsetWeekdayOfGenericMonthTest : public ::testing::Test {
  public:
-
   void default_data_set() {
     _creator.new_timeperiod();
     daterange* dr(NULL);

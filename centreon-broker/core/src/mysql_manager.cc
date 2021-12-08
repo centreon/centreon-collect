@@ -122,7 +122,7 @@ void mysql_manager::clear() {
         conn->finish();
       } catch (const std::exception& e) {
         log_v2::sql()->info("mysql_manager: Unable to stop a connection: {}",
-            e.what());
+                            e.what());
       }
   }
   log_v2::sql()->debug("mysql_manager: clear finished");

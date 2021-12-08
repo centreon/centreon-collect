@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -31,8 +31,7 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/storage/exceptions/perfdata.hh"
-#include "com/centreon/broker/storage/parser.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -453,15 +452,7 @@ static void l_stacktrace(lua_State* L) {
 static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
-  storage::parser p;
-  std::list<storage::perfdata> pds;
-  try {
-    p.parse_perfdata(0, 0, perf_data, pds);
-  } catch (storage::exceptions::perfdata const& e) {
-    lua_pushnil(L);
-    lua_pushstring(L, e.what());
-    return 2;
-  }
+  std::list<misc::perfdata> pds{misc::parse_perfdata(0, 0, perf_data)};
   lua_createtable(L, 0, pds.size());
   for (auto const& pd : pds) {
     lua_pushstring(L, pd.name().c_str());

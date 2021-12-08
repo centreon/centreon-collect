@@ -42,8 +42,7 @@ class responsive_instance : public io::data {
   ~responsive_instance();
   responsive_instance& operator=(responsive_instance const& i);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_responsive_instance>::value;
+    return io::events::data_type<io::neb, neb::de_responsive_instance>::value;
   }
 
   uint32_t poller_id;

@@ -44,8 +44,7 @@ class flapping_status : public io::data {
   ~flapping_status();
   flapping_status& operator=(flapping_status const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_flapping_status>::value;
+    return io::events::data_type<io::neb, neb::de_flapping_status>::value;
   }
 
   timestamp event_time;

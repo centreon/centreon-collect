@@ -42,15 +42,8 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 # Set path.
 set(PREFIX "${CMAKE_INSTALL_PREFIX}/centreon-benchmark")
-if (WITH_PREFIX)
-  set(PREFIX "${WITH_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${PREFIX}")
-endif ()
 
 set(PREFIX_BIN "${PREFIX}/centreon_benchmark_connector")
-if (WITH_PREFIX_BIN)
-  set(bindir "${WITH_PREFIX_BIN}")
-endif ()
 
 # Set options.
 set(UNIT_TEST "No")

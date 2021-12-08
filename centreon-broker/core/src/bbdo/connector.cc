@@ -56,7 +56,7 @@ connector::connector(bool negotiate,
       // FIXME DBR: why this trick?
       _timeout(timeout == -1 || timeout == 0 ? 3 : timeout),
       _ack_limit{ack_limit},
-      _extensions{extensions} {}
+      _extensions{std::move(extensions)} {}
 
 /**
  *  Open the connector.

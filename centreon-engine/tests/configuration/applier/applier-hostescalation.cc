@@ -17,12 +17,12 @@
  *
  */
 
+#include <gtest/gtest.h>
 #include <com/centreon/engine/configuration/applier/host.hh>
 #include <com/centreon/engine/configuration/applier/hostescalation.hh>
 #include <com/centreon/engine/configuration/state.hh>
 #include <com/centreon/engine/host.hh>
 #include <com/centreon/engine/hostescalation.hh>
-#include <gtest/gtest.h>
 #include <helper.hh>
 
 using namespace com::centreon;
@@ -30,13 +30,9 @@ using namespace com::centreon::engine;
 
 class ApplierHostEscalation : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 TEST_F(ApplierHostEscalation, AddEscalation) {
@@ -58,7 +54,6 @@ TEST_F(ApplierHostEscalation, AddEscalation) {
   he_apply.add_object(he);
   ASSERT_EQ(hostescalation::hostescalations.size(), 2u);
 }
-
 
 TEST_F(ApplierHostEscalation, RemoveEscalation) {
   configuration::applier::host hst_aply;

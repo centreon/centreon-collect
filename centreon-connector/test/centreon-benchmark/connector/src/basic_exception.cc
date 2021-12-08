@@ -55,7 +55,9 @@ basic_exception& basic_exception::operator=(basic_exception const& right) {
  *
  *  @return The message.
  */
-char const* basic_exception::what() const throw() { return (_message); }
+char const* basic_exception::what() const throw() {
+  return (_message);
+}
 
 /**
  *  Internal copy.

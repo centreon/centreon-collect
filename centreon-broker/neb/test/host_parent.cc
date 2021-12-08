@@ -87,7 +87,6 @@ TEST_F(HostParentTest, DefaultConstructor) {
   ASSERT_TRUE(hprnt.enabled);
   ASSERT_EQ(hprnt.host_id, 0u);
   ASSERT_EQ(hprnt.parent_id, 0u);
-  ASSERT_FALSE(
-      hprnt.type() !=
-      (io::events::data_type<io::events::neb, neb::de_host_parent>::value));
+  ASSERT_FALSE(hprnt.type() !=
+               (io::events::data_type<io::neb, neb::de_host_parent>::value));
 }

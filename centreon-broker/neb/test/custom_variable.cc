@@ -94,7 +94,6 @@ TEST_F(CVarTest, DefaultConstructor) {
   ASSERT_EQ(cvar.value, "");
   ASSERT_EQ(cvar.var_type, 0);
 
-  ASSERT_TRUE(
-      cvar.type() ==
-      (io::events::data_type<io::events::neb, neb::de_custom_variable>::value));
+  ASSERT_TRUE(cvar.type() ==
+              (io::events::data_type<io::neb, neb::de_custom_variable>::value));
 }

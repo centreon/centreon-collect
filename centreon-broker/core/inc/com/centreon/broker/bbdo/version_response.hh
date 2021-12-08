@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
@@ -46,7 +47,8 @@ class version_response : public io::data {
   std::string extensions;
 
   version_response();
-  version_response(std::string extensions);
+  version_response(const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version,
+                   std::string extensions);
   version_response(const version_response&) = delete;
   ~version_response() noexcept = default;
   version_response& operator=(const version_response&) = delete;
@@ -57,8 +59,7 @@ class version_response : public io::data {
    *  @return The event type.
    */
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bbdo,
-                                 bbdo::de_version_response>::value;
+    return io::events::data_type<io::bbdo, bbdo::de_version_response>::value;
   }
 
   static mapping::entry const entries[];

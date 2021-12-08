@@ -35,7 +35,7 @@ static char const* whitespaces(" \t\r\n");
  *
  *  @return The trimming stream.
  */
-std::string& string::trim(std::string& str) throw() {
+std::string& string::trim(std::string& str) noexcept {
   size_t pos(str.find_last_not_of(whitespaces));
   if (pos == std::string::npos)
     str.clear();
@@ -81,7 +81,6 @@ std::list<fmt::string_view> string::split_sv(std::string const& str, char sep) {
 
   return retval;
 }
-
 
 std::string string::base64_encode(const std::string& str) {
   static const std::string b =

@@ -36,13 +36,9 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHost : public ::testing::Test {
  public:
-  void SetUp() override {
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
-  void TearDown() override {
-    deinit_config_state();
-  }
+  void TearDown() override { deinit_config_state(); }
 };
 
 // Given host configuration without host_id

@@ -93,7 +93,6 @@ TEST_F(ServiceCheck, DefaultCtor) {
   ASSERT_FALSE(schk.host_id != 0);
   ASSERT_FALSE(schk.next_check != 0);
   ASSERT_FALSE(schk.service_id != 0);
-  auto val(
-      io::events::data_type<io::events::neb, neb::de_service_check>::value);
+  auto val(io::events::data_type<io::neb, neb::de_service_check>::value);
   ASSERT_FALSE(schk.type() != val);
 }

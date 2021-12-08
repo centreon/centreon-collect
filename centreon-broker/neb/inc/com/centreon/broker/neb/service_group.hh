@@ -43,7 +43,7 @@ class service_group : public group {
   ~service_group();
   service_group& operator=(service_group const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_service_group>::value;
+    return io::events::data_type<io::neb, neb::de_service_group>::value;
   }
 
   static mapping::entry const entries[];

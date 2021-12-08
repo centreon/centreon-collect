@@ -19,6 +19,7 @@
 #ifndef CCB_BBDO_ACK_HH
 #define CCB_BBDO_ACK_HH
 
+#include "bbdo/events.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
@@ -49,7 +50,7 @@ class ack : public io::data {
    *  @return The event type.
    */
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::bbdo, bbdo::de_ack>::value;
+    return io::events::data_type<io::bbdo, bbdo::de_ack>::value;
   }
 
   uint32_t acknowledged_events;

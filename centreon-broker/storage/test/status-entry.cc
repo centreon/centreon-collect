@@ -24,6 +24,7 @@
 #include <list>
 #include <memory>
 
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -36,7 +37,6 @@
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/storage/factory.hh"
-#include "com/centreon/broker/storage/status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
@@ -98,12 +98,8 @@ class StatusEntryTest : public ::testing::Test {
 TEST_F(StatusEntryTest, WriteStatus) {
   io::events& e(io::events::instance());
 
-  // Register category.
-  int storage_category(e.register_category("storage", io::events::storage));
-  ASSERT_TRUE(storage_category == io::events::storage);
-
   // Register event status.
-  e.register_event(io::events::storage, storage::de_status, "status",
+  e.register_event(make_type(io::storage, storage::de_status), "status",
                    &storage::status::operations, storage::status::entries);
 
   // Register storage layer.
@@ -129,6 +125,6 @@ TEST_F(StatusEntryTest, WriteStatus) {
   ASSERT_EQ(st->index_id, new_st->index_id);
   ASSERT_EQ(st->state, new_st->state);
 
-  io::events::instance().unregister_category(io::events::storage);
+  io::events::instance().unregister_category(io::storage);
   io::protocols::instance().unreg("storage");
 }

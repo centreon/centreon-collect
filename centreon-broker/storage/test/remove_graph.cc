@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/storage/remove_graph.hh"
+#include "bbdo/storage/remove_graph.hh"
 #include <gtest/gtest.h>
 #include <com/centreon/broker/io/events.hh>
 #include <com/centreon/broker/storage/internal.hh>
@@ -39,8 +39,8 @@ TEST(StorageRemoveGraph, Constructor) {
  */
 TEST(StorageRemoveGraph, ReturnType) {
   storage::remove_graph r;
-  auto val = io::events::data_type<io::events::storage,
-                                   storage::de_remove_graph>::value;
+  auto val =
+      io::events::data_type<io::storage, storage::de_remove_graph>::value;
 
   ASSERT_TRUE(r.static_type() == val);
   ASSERT_TRUE(r.type() == val);

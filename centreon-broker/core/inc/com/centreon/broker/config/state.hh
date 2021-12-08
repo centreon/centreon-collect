@@ -20,13 +20,9 @@
 #define CCB_CONFIG_STATE_HH
 
 #include <fmt/format.h>
-#include <list>
-#include <map>
-#include <string>
 #include <unordered_map>
 
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -43,6 +39,7 @@ class state {
   int _broker_id;
   uint16_t _rpc_port;
   std::string _broker_name;
+  std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
   std::string _cache_directory;
   std::string _command_file;
   std::string _command_protocol;
@@ -70,13 +67,15 @@ class state {
   state();
   state(state const& other);
   ~state();
-  state& operator=(state const&);
+  state& operator=(state const& other);
   void broker_id(int id) noexcept;
   int broker_id() const noexcept;
   void rpc_port(uint16_t port) noexcept;
   uint16_t rpc_port(void) const noexcept;
   void broker_name(std::string const& name);
   const std::string& broker_name() const noexcept;
+  void bbdo_version(std::tuple<uint16_t, uint16_t, uint16_t>&& v);
+  const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version() const noexcept;
   void cache_directory(std::string const& dir);
   std::string const& cache_directory() const noexcept;
   void command_file(std::string const& file);

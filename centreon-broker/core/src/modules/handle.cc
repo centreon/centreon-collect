@@ -43,7 +43,7 @@ handle::~handle() noexcept {
   try {
     _close();
   } catch (std::exception const& e) {
-    log_v2::core()->error(e.what());
+    log_v2::core()->error("{}", e.what());
   } catch (...) {
     log_v2::core()->error("modules: unknown error while unloading '{}'",
                           _filename);

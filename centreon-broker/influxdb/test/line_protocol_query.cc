@@ -67,7 +67,7 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
   influxdb::macro_cache cache(pcache);
   storage::metric m1{1u, 1u, "host1", 2000llu, 60, true, 42u, 42, 42.0, 4};
   storage::metric m2{1u, 1u, "host2", 4000llu, 120, false, 43, 42, 42.0, 4};
-  storage::metric m3{2u, 3u, "hotst3", 2000llu, 60, true, 42u, 43, 43.0, 5};
+  storage::metric m3{2u, 3u, "hotst3", 2000llu, 60, true, 42u, 43, 43.0, 0};
 
   columns.push_back(
       influxdb::column{"host1", "42.0", true, influxdb::column::number});

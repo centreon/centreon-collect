@@ -20,19 +20,19 @@
 #include <cstring>
 #include <memory>
 
+#include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
-#include <com/centreon/engine/configuration/applier/timeperiod.hh>
-#include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/modules/external_commands/commands.hh"
+#include "com/centreon/engine/timeperiod.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -185,7 +185,8 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
   std::cout << "NOW = " << now << std::endl;
   set_time(now);
   std::ostringstream oss;
-  oss << '[' << now << ']' << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
+  oss << '[' << now << ']'
+      << " PROCESS_HOST_CHECK_RESULT;test_host;1;Down host";
   std::string cmd{oss.str()};
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
@@ -216,9 +217,8 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
   std::cout << out << std::endl;
   size_t step1{out.find("NOW = 50300")};
   ASSERT_NE(step1, std::string::npos);
-  size_t step2{
-      out.find("HOST NOTIFICATION: admin;test_host;DOWN;cmd;Down host",
-               step1 + 1)};
+  size_t step2{out.find("HOST NOTIFICATION: admin;test_host;DOWN;cmd;Down host",
+                        step1 + 1)};
   ASSERT_NE(step2, std::string::npos);
   size_t step3{out.find("NOW = 50600", step2 + 1)};
   ASSERT_NE(step3, std::string::npos);

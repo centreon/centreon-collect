@@ -19,8 +19,8 @@
 
 #include <exception>
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/events/defines.hh"
+#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "test/unittest.hh"

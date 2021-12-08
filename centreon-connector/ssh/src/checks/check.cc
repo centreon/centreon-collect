@@ -157,13 +157,11 @@ void check::on_available(sessions::session& sess) {
           on_available(sess);
         }
         break;
-      case chan_close: {
-        unsigned long long cmd_id(_cmd_id);
+      case chan_close:
         log::core()->info("attempting to close check {} channel", _cmd_id);
-        if (!_close()) {
+        if (!_close())
           log::core()->info("channel of check {} successfully closed", _cmd_id);
-        }
-      } break;
+        break;
       default:
         throw basic_error() << "channel requested to run at invalid step";
     }

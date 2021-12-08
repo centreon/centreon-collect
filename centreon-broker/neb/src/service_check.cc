@@ -88,4 +88,4 @@ static io::data* new_service_check() {
   return new service_check;
 }
 io::event_info::event_operations const service_check::operations = {
-    &new_service_check};
+    &new_service_check, nullptr, nullptr};

@@ -127,4 +127,4 @@ static io::data* new_service_dependency() {
   return new service_dependency;
 }
 io::event_info::event_operations const service_dependency::operations = {
-    &new_service_dependency};
+    &new_service_dependency, nullptr, nullptr};

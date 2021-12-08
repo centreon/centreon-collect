@@ -31,12 +31,12 @@ using namespace com::centreon::broker;
  * @param BbdoCategory
  */
 TEST(CategoryTest, BbdoCategory) {
-  ASSERT_EQ(io::events::neb, 1);
-  ASSERT_EQ(io::events::bbdo, 2);
-  ASSERT_EQ(io::events::storage, 3);
-  ASSERT_EQ(io::events::dumper, 5);
-  ASSERT_EQ(io::events::bam, 6);
-  ASSERT_EQ(io::events::extcmd, 7);
-  ASSERT_EQ(io::events::generator, 8);
-  ASSERT_EQ(io::events::internal, 65535);
+  ASSERT_EQ(io::neb, 1);
+  ASSERT_EQ(io::bbdo, 2);
+  ASSERT_EQ(io::storage, 3);
+  ASSERT_EQ(io::dumper, 5);
+  ASSERT_EQ(io::bam, 6);
+  ASSERT_EQ(io::extcmd, 7);
+  ASSERT_EQ(io::generator, 8);
+  ASSERT_EQ(io::internal, 65535);
 }
