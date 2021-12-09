@@ -481,21 +481,23 @@ int anomalydetection::run_async_check(int check_options,
                                       bool reschedule_check,
                                       bool* time_is_valid,
                                       time_t* preferred_time) noexcept {
-  if (old_logs)
-    engine_logger(dbg_functions, basic)
-        << "anomalydetection::run_async_check, check_options=" << check_options
-        << ", latency=" << latency << ", scheduled_check=" << scheduled_check
-        << ", reschedule_check=" << reschedule_check;
+  engine_logger(dbg_functions, basic)
+      << "anomalydetection::run_async_check, check_options=" << check_options
+      << ", latency=" << latency << ", scheduled_check=" << scheduled_check
+      << ", reschedule_check=" << reschedule_check;
 
-  if (new_logs)
-    log_v2::functions()->trace(
-        "anomalydetection::run_async_check, check_options={}, latency={}, "
-        "scheduled_check={}, reschedule_check={}",
-        check_options, latency, scheduled_check, reschedule_check);
+  log_v2::functions()->trace(
+      "anomalydetection::run_async_check, check_options={}, latency={}, "
+      "scheduled_check={}, reschedule_check={}",
+      check_options, latency, scheduled_check, reschedule_check);
 
   engine_logger(dbg_checks, basic)
       << "** Running async check of anomalydetection '" << get_description()
       << "' on host '" << get_hostname() << "'...";
+
+  log_v2::checks()->trace(
+      "** Running async check of anomalydetection '{} ' on host '{}'...",
+      get_description(), get_hostname());
 
   // Check if the service is viable now.
   if (!verify_check_viability(check_options, time_is_valid, preferred_time))
@@ -522,17 +524,14 @@ int anomalydetection::run_async_check(int check_options,
   }
   // Anomalydetection check was override by NEB module.
   else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    if (old_logs)
-      engine_logger(dbg_functions, basic)
-          << "Some broker module overrode check of anomalydetection '"
-          << get_description() << "' on host '" << get_hostname()
-          << "' so we'll bail out";
-
-    if (new_logs)
-      log_v2::functions()->trace(
-          "Some broker module overrode check of anomalydetection '{}' on host "
-          "'{}' so we'll bail out",
-          get_description(), get_hostname());
+    engine_logger(dbg_functions, basic)
+        << "Some broker module overrode check of anomalydetection '"
+        << get_description() << "' on host '" << get_hostname()
+        << "' so we'll bail out";
+    log_v2::functions()->trace(
+        "Some broker module overrode check of anomalydetection '{}' on host "
+        "'{}' so we'll bail out",
+        get_description(), get_hostname());
     return OK;
   }
 

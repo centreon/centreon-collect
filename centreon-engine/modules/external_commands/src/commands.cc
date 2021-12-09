@@ -58,11 +58,9 @@ using namespace com::centreon::engine::logging;
 /* checks for the existence of the external command file and processes all
  * commands found in it */
 int check_for_external_commands() {
-  if (old_logs)
-    engine_logger(dbg_functions, basic) << "check_for_external_commands()";
+  engine_logger(dbg_functions, basic) << "check_for_external_commands()";
 
-  if (new_logs)
-    log_v2::functions()->trace("check_for_external_commands()");
+  log_v2::functions()->trace("check_for_external_commands()");
 
   /* bail out if we shouldn't be checking for external commands */
   if (!config->check_external_commands())
@@ -124,12 +122,10 @@ int check_for_external_commands() {
  *  @return OK on success.
  */
 int process_external_commands_from_file(char const* file, int delete_file) {
-  if (old_logs)
-    engine_logger(dbg_functions, basic)
-        << "process_external_commands_from_file()";
+  engine_logger(dbg_functions, basic)
+      << "process_external_commands_from_file()";
 
-  if (new_logs)
-    log_v2::functions()->trace("process_external_commands_from_file()");
+  log_v2::functions()->trace("process_external_commands_from_file()");
 
   if (!file)
     return ERROR;
@@ -245,7 +241,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
 }
 
 /* removes a host or service comment from the status log */
-int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
+int cmd_delete_comment(int cmd[[maybe_unused]], char* args) {
   uint64_t comment_id{0};
 
   /* get the comment id we should delete */

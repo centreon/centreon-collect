@@ -132,9 +132,6 @@ extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
 
-extern bool old_logs;
-extern bool new_logs;
-
 #ifdef __cplusplus
 }
 #endif /* C++ */

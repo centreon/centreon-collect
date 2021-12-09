@@ -580,11 +580,9 @@ processing::processing()
 processing::~processing() noexcept {}
 
 bool processing::execute(const std::string& cmdstr) const {
-  if (old_logs)
-    engine_logger(dbg_functions, basic) << "processing external command";
+  engine_logger(dbg_functions, basic) << "processing external command";
 
-  if (new_logs)
-    log_v2::functions()->trace("processing external command");
+  log_v2::functions()->trace("processing external command");
 
   char const* cmd{cmdstr.c_str()};
   size_t len{cmdstr.size()};

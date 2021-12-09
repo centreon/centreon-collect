@@ -3835,10 +3835,10 @@ std::string const& state::log_level_functions() const noexcept {
  *  @param[in] value The new log_level_functions value.
  */
 void state::log_level_functions(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_functions = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_functions");
 }
 
 /**
@@ -3856,10 +3856,10 @@ std::string const& state::log_level_config() const noexcept {
  *  @param[in] value The new log_level_config value.
  */
 void state::log_level_config(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_config = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_config");
 }
 
 /**
@@ -3877,10 +3877,10 @@ std::string const& state::log_level_events() const noexcept {
  *  @param[in] value The new log_level_events value.
  */
 void state::log_level_events(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_events = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_events");
 }
 
 /**
@@ -3898,10 +3898,10 @@ std::string const& state::log_level_checks() const noexcept {
  *  @param[in] value The new log_level_checks value.
  */
 void state::log_level_checks(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_checks = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_checks");
 }
 
 /**
@@ -3919,10 +3919,11 @@ std::string const& state::log_level_notifications() const noexcept {
  *  @param[in] value The new log_level_notifications value.
  */
 void state::log_level_notifications(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_notifications = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error(
+        "error wrong level setted for log_level_notifications");
 }
 
 /**
@@ -3940,10 +3941,11 @@ std::string const& state::log_level_eventbroker() const noexcept {
  *  @param[in] value The new log_level_eventbroker value.
  */
 void state::log_level_eventbroker(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_eventbroker = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error(
+        "error wrong level setted for log_level_eventbroker");
 }
 
 /**
@@ -3961,10 +3963,11 @@ std::string const& state::log_level_external_command() const noexcept {
  *  @param[in] value The new log_level_external_command value.
  */
 void state::log_level_external_command(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_external_command = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error(
+        "error wrong level setted for log_level_external_command");
 }
 
 /**
@@ -3982,10 +3985,10 @@ std::string const& state::log_level_commands() const noexcept {
  *  @param[in] value The new log_level_commands value.
  */
 void state::log_level_commands(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_commands = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_commands");
 }
 
 /**
@@ -4003,10 +4006,10 @@ std::string const& state::log_level_downtimes() const noexcept {
  *  @param[in] value The new log_level_downtimes value.
  */
 void state::log_level_downtimes(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_downtimes = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_downtimes");
 }
 
 /**
@@ -4024,10 +4027,10 @@ std::string const& state::log_level_comments() const noexcept {
  *  @param[in] value The new log_level_comments value.
  */
 void state::log_level_comments(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_comments = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_comments");
 }
 
 /**
@@ -4045,10 +4048,10 @@ std::string const& state::log_level_macros() const noexcept {
  *  @param[in] value The new log_level_macros value.
  */
 void state::log_level_macros(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_macros = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_macros");
 }
 
 /**
@@ -4066,10 +4069,10 @@ std::string const& state::log_level_process() const noexcept {
  *  @param[in] value The new log_level_process value.
  */
 void state::log_level_process(std::string const& value) {
-  if (log_v2::levels_map.find(value) != log_v2::levels_map.end())
+  if (log_v2::contains_level(value))
     _log_level_process = value;
   else
-    log_v2::config()->error("error wrong level setted ");
+    log_v2::config()->error("error wrong level setted for log_level_process");
 }
 
 /**
