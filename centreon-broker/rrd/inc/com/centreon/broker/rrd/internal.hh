@@ -21,6 +21,7 @@
 
 #include "bbdo/events.hh"
 #include "bbdo/rebuild.pb.h"
+#include "bbdo/rebuild_message.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 CCB_BEGIN()
 
@@ -28,6 +29,14 @@ namespace storage {
 using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
 }
 
+namespace storage {
+/**
+ * Here is the declaration of the message sent by unified_sql to rrd to rebuild
+ * metrics. */
+using pb_rebuild_message =
+    io::protobuf<RebuildMessage,
+                 make_type(io::storage, storage::de_rebuild_message)>;
+}  // namespace storage
 CCB_END()
 
 #endif /* !CCB_RRD_INTERNAL_HH */

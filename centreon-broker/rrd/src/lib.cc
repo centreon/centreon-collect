@@ -164,7 +164,7 @@ void lib::update(time_t t, std::string const& value) {
   }
 }
 
-void lib::update(const std::list<std::string>& pts) {
+void lib::update(const std::deque<std::string>& pts) {
   const char* argv[pts.size() + 1];
   argv[pts.size()] = nullptr;
   auto it = pts.begin();

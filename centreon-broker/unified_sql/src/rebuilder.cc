@@ -29,6 +29,7 @@
 #include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
+#include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -470,56 +471,122 @@ void rebuilder::_set_index_rebuild(mysql& ms,
  *
  * @param d The BBDO message with all the metric ids to rebuild.
  */
-void rebuilder::rebuild_metrics(const std::shared_ptr<io::data>& d) {
+void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
   asio::post(_timer.get_executor(), [this, data = d] {
-    const bbdo::pb_rebuild_metrics& ids =
-        *static_cast<const bbdo::pb_rebuild_metrics*>(data.get());
+    const bbdo::pb_rebuild_rrd_graphs& ids =
+        *static_cast<const bbdo::pb_rebuild_rrd_graphs*>(data.get());
+
+    std::string ids_str{fmt::format("{}", fmt::join(ids.obj.index_id(), ","))};
     log_v2::sql()->debug(
-        "unified sql: Rebuild metrics event received. Metrics to rebuild: ({})",
-        fmt::join(ids.obj.metric_id(), ","));
+        "Metric rebuild: Rebuild metrics event received for metrics ({})",
+        ids_str);
 
     mysql ms(_db_cfg);
     int32_t conn = ms.choose_best_connection(-1);
-    /* Lets' get the retention time in DB */
+    /* Lets' get the metrics to rebuild time in DB */
     std::promise<database::mysql_result> promise;
-    ms.run_query_and_get_result(
-        "SELECT len_storage_mysql, len_storage_rrd FROM config", &promise,
-        conn);
-    int64_t db_retention_time = 0, len_storage_rrd = 0;
+    struct metric_info {
+      std::string metric_name;
+      int32_t data_source_type;
+      int32_t rrd_retention;
+      uint32_t check_interval;
+    };
+    std::string query{fmt::format(
+        "SELECT m.metric_id, m.metric_name, m.data_source_type, "
+        "i.rrd_retention, s.check_interval FROM metrics m LEFT JOIN index_data "
+        "i ON m.index_id=i.id LEFT JOIN services s ON i.host_id=s.host_id AND "
+        "i.service_id=s.service_id WHERE i.id IN ({})",
+        ids_str)};
+    ms.run_query_and_get_result(query, &promise, conn);
+    std::map<uint64_t, metric_info> ret_inter;
+    auto start_rebuild = std::make_shared<storage::pb_rebuild_message>();
+    start_rebuild->obj.set_state(RebuildMessage_State_START);
     try {
       database::mysql_result res{promise.get_future().get()};
+      while (ms.fetch_row(res)) {
+        start_rebuild->obj.add_metric_id(res.value_as_u64(0));
+        auto ret = ret_inter.emplace(res.value_as_u64(0), metric_info());
+        metric_info& v = ret.first->second;
+        v.metric_name = res.value_as_str(1);
+        v.data_source_type = res.value_as_i32(2);
+        v.rrd_retention = res.value_as_i32(3);
+        if (!v.rrd_retention)
+          v.rrd_retention = _rrd_len;
+        uint32_t rrd_retention = res.value_as_u32(1);
+        v.check_interval = res.value_as_f64(4) * _interval_length;
+        if (!v.check_interval)
+          v.check_interval = 5 * 60;
+      }
+
+      multiplexing::publisher().write(start_rebuild);
+
+      ms.run_query_and_get_result("SELECT len_storage_mysql FROM config",
+                                  &promise, conn);
+      int64_t db_retention_day = 0;
+
+      res = promise.get_future().get();
       if (ms.fetch_row(res)) {
-        db_retention_time = res.value_as_i64(0);
-        len_storage_rrd = res.value_as_i64(1) * 60 * 60 * 24;
+        db_retention_day = res.value_as_i64(0);
+        log_v2::sql()->debug("Storage retention on Mysql: {} days",
+                             db_retention_day);
+      }
+      if (db_retention_day) {
+        /* Let's get the start of this day */
+        struct tm tmv;
+        std::time_t now{std::time(nullptr)};
+        std::time_t start, end;
+        if (localtime_r(&now, &tmv)) {
+          /* Let's compute the beginning and the end of the first day where the
+           * rebuild starts. */
+          tmv.tm_sec = tmv.tm_min = tmv.tm_hour = 0;
+          tmv.tm_mday -= db_retention_day;
+          start = mktime(&tmv);
+          while (db_retention_day > 0) {
+            tmv.tm_mday++;
+            end = mktime(&tmv);
+            db_retention_day--;
+            std::promise<database::mysql_result> promise;
+            std::string query{
+                fmt::format("SELECT id_metric,ctime,value FROM data_bin WHERE "
+                            "ctime>={} AND "
+                            "ctime<{} AND id_metric IN ({}) ORDER BY ctime ASC",
+                            start, end, ids_str)};
+            log_v2::sql()->trace("Metrics rebuild: Query << {} >> executed",
+                                 query);
+            ms.run_query_and_get_result(query, &promise, conn);
+            auto data_rebuild = std::make_shared<storage::pb_rebuild_message>();
+            data_rebuild->obj.set_state(RebuildMessage_State_DATA);
+            database::mysql_result res(promise.get_future().get());
+            while (ms.fetch_row(res)) {
+              uint64_t id_metric = res.value_as_u64(0);
+              time_t ctime = res.value_as_u64(1);
+              double value = res.value_as_f64(2);
+              Pt* pt = (*data_rebuild->obj.mutable_data())[id_metric].add_pts();
+              pt->set_ctime(ctime);
+              pt->set_value(value);
+            }
+            for (auto it = ret_inter.begin(); it != ret_inter.end(); ++it) {
+              auto i = it->second;
+              auto& m{(*data_rebuild->obj.mutable_data())[it->first]};
+              m.set_check_interval(i.check_interval);
+              m.set_data_source_type(i.data_source_type);
+              m.set_rrd_retention(i.rrd_retention);
+            }
+            multiplexing::publisher().write(data_rebuild);
+            start = end;
+          }
+        } else
+          throw msg_fmt("Metrics rebuild: Cannot get the date structure.");
       }
     } catch (const std::exception& e) {
-      log_v2::sql()->error(
-          "Metrics rebuilding: Unable to get lengths of storage rrd and "
-          "storage sql: {}",
-          e.what());
+      log_v2::sql()->error("Metrics rebuild: Error during metrics rebuild: {}",
+                           e.what());
     }
-    if (db_retention_time && len_storage_rrd) {
-      std::time_t start_of_day = misc::start_of_day(time(nullptr));
-
-      //
-      // my ($day,$month,$year) = (localtime())[3,4,5];
-      // my $current_day = $db_retention_time;
-      // while ($current_day > 0) {
-      //	my $start = mktime(0,0,0, $day-$current_day, $month,
-      //$year,0,0,-1); 	my $end = mktime(0,0,0, $day-$current_day+1, $month,
-      //$year,0,0,-1); 	$current_day--;
-      //
-      //	my ($day_past, $month_past, $year_past) =
-      //(localtime($start))[3,4,5]; 	my ($day_past2, $month_past2,
-      //$year_past2) = (localtime($end))[3,4,5];
-      //
-      //
-      //	$start_checktime = time();
-      //	print "Get Data_bin from $day_past/$month_past/$year_past
-      //($start) - $day_past2/$month_past2/$year_past2: "; 	$sth =
-      //$con_centstorage->prepare("SELECT id_metric, ctime, value FROM data_bin
-      // WHERE ctime >= $start AND ctime < $end ORDER BY ctime ASC");
-      //
-    }
+    log_v2::sql()->debug("Metric rebuild: Rebuild of metrics ({}) finished",
+                         ids_str);
+    auto end_rebuild = std::make_shared<storage::pb_rebuild_message>();
+    end_rebuild->obj = std::move(start_rebuild->obj);
+    end_rebuild->obj.set_state(RebuildMessage_State_END);
+    multiplexing::publisher().write(end_rebuild);
   });
 }

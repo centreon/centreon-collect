@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019 - 2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/version.hh"
 
@@ -39,9 +41,13 @@ class BrokerRpc : public ::testing::Test {
   void SetUp() override {
     pool::pool::load(0);
     stats::center::load();
+    io::protocols::load();
+    io::events::load();
   }
 
   void TearDown() override {
+    io::events::unload();
+    io::protocols::unload();
     stats::center::unload();
     pool::pool::unload();
   }

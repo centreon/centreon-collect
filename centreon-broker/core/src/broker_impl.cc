@@ -225,13 +225,13 @@ grpc::Status broker_impl::GetSqlConnectionSize(
  *
  * @return grpc::Status::OK
  */
-grpc::Status broker_impl::RebuildMetrics(grpc::ServerContext* context
-                                         __attribute__((unused)),
-                                         const MetricIds* request,
-                                         ::google::protobuf::Empty* response
-                                         __attribute__((unused))) {
+grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
+                                           __attribute__((unused)),
+                                           const IndexIds* request,
+                                           ::google::protobuf::Empty* response
+                                           __attribute__((unused))) {
   multiplexing::publisher pblshr;
-  auto e{std::make_shared<bbdo::pb_rebuild_metrics>(*request)};
+  auto e{std::make_shared<bbdo::pb_rebuild_rrd_graphs>(*request)};
   pblshr.write(e);
   return grpc::Status::OK;
 }

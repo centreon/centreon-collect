@@ -21,6 +21,7 @@
 
 #include "bbdo/events.hh"
 #include "bbdo/rebuild.pb.h"
+#include "bbdo/rebuild_message.pb.h"
 #include "centreon-broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
@@ -35,10 +36,18 @@ namespace bbdo {
 /**
  * Here is a declaration of pb_rebuild_metrics which is a bbdo event we use to
  * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
-using pb_rebuild_metrics =
-    io::protobuf<MetricIds, make_type(io::bbdo, bbdo::de_rebuild_metrics)>;
+using pb_rebuild_rrd_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
 }  // namespace bbdo
 
+namespace storage {
+/**
+ * Here is the declaration of the message sent by unified_sql to rrd to rebuild
+ * metrics. */
+using pb_rebuild_message =
+    io::protobuf<RebuildMessage,
+                 make_type(io::storage, storage::de_rebuild_message)>;
+}  // namespace storage
 CCB_END()
 
 #endif  // !CCB_UNIFIED_SQL_INTERNAL_HH

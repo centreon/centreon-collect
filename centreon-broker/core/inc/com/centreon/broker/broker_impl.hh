@@ -28,11 +28,11 @@
 CCB_BEGIN()
 
 /**
- * Here is a declaration of pb_rebuild_metrics which is a bbdo event we use to
- * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
+ * Here is a declaration of pb_rebuild_rrd_graphs which is a bbdo event we use
+ * to ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
 namespace bbdo {
-using pb_rebuild_metrics =
-    io::protobuf<MetricIds, make_type(io::bbdo, bbdo::de_rebuild_metrics)>;
+using pb_rebuild_rrd_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
 }
 
 class broker_impl final : public Broker::Service {
@@ -71,9 +71,9 @@ class broker_impl final : public Broker::Service {
                                 const GenericNameOrIndex* request,
                                 GenericString* response) override;
 
-  grpc::Status RebuildMetrics(grpc::ServerContext* context,
-                              const MetricIds* request,
-                              ::google::protobuf::Empty* response) override;
+  grpc::Status RebuildRRDGraphs(grpc::ServerContext* context,
+                                const IndexIds* request,
+                                ::google::protobuf::Empty* response) override;
 
  public:
   void set_broker_name(std::string const& s) { _broker_name = s; };

@@ -438,8 +438,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     (this->*(_neb_processing_table[elem]))(data);
     if (type == neb::service_status::static_type())
       _unified_sql_process_service_status(data);
-  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_metrics))
-    _rebuilder.rebuild_metrics(data);
+  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
+    _rebuilder.rebuild_rrd_graphs(data);
   else {
     log_v2::sql()->trace(
         "unified sql: event of type {} thrown away ; no need to "

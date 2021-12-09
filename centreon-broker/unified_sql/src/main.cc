@@ -106,11 +106,17 @@ void broker_module_init(void const* arg) {
       e.register_event(storage_pb_rebuild, "pb_rebuild",
                        &unified_sql::pb_rebuild::operations);
 
-      /* Lets' register the rebuild_metrics bbdo event. This is needed to send
-       * the rebuild message. */
-      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_metrics),
+      /* Let's register the rebuild_metrics bbdo event. This is needed to send
+       * the rebuild message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
                        "rebuild_metrics",
-                       &bbdo::pb_rebuild_metrics::operations);
+                       &bbdo::pb_rebuild_rrd_graphs::operations);
+
+      /* Let's register the message to start rebuilds, send rebuilds and
+       * terminate rebuilds. This is pb_rebuild_message. */
+      e.register_event(make_type(io::storage, storage::de_rebuild_message),
+                       "rebuild_message",
+                       &storage::pb_rebuild_message::operations);
     }
 
     // Register unified_sql layer.

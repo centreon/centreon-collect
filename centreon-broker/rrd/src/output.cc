@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015,2017 Centreon
+** Copyright 2011-2015,2017, 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -285,7 +285,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       std::shared_ptr<storage::pb_rebuild> e{
           std::static_pointer_cast<storage::pb_rebuild>(d)};
       std::string path;
-      std::list<std::string> lst;
+      std::deque<std::string> lst;
       if (e->obj.has_index_id()) {
         log_v2::rrd()->debug("RRD: complete rebuild request for status {}",
                              e->obj.index_id());
@@ -359,6 +359,41 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
                         e->obj.metric().value_type());
         }
         _backend.update(lst);
+      }
+    } break;
+    case storage::pb_rebuild_message::static_type(): {
+      std::shared_ptr<storage::pb_rebuild_message> e{
+          std::static_pointer_cast<storage::pb_rebuild_message>(d)};
+      switch (e->obj.state()) {
+        case RebuildMessage_State_START:
+          log_v2::rrd()->debug("RRD: Starting to rebuild metrics ({})",
+                               fmt::join(e->obj.metric_id(), ","));
+          break;
+        case RebuildMessage_State_DATA: {
+          std::deque<std::string> query;
+          for (auto& p : e->obj.data()) {
+            log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
+            int32_t data_source_type = p.second.data_source_type();
+            for (auto& pt : p.second.pts())
+              query.emplace_back(
+                  fmt::format("{}:{:f}", pt.ctime(), pt.value()));
+            try {
+              _backend.open(path);
+            } catch (const exceptions::open& ex) {
+              time_t start_time = p.second.pts()[0].ctime() - 1;
+              uint32_t interval{
+                  p.second.check_interval() ? p.second.check_interval() : 60};
+              _backend.open(path, p.second.rrd_retention(), start_time,
+                            interval, p.second.data_source_type());
+            }
+            _backend.update(query);
+          }
+        } break;
+        case RebuildMessage_State_END:
+          log_v2::rrd()->debug("RRD: Finishing to rebuild metrics ({})",
+                               fmt::join(e->obj.metric_id(), ","));
+          break;
       }
     } break;
     case storage::rebuild::static_type(): {

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package com.centreon.broker;
+
+message Pt {
+  int64 ctime = 1;
+  double value = 2;
+  int32 status = 3;
+}
+
+message Timeserie {
+  repeated Pt pts = 1;
+  int32 data_source_type = 2;
+  uint32 check_interval = 3;
+  uint32 rrd_retention = 4;
+}
+
+message RebuildMessage {
+  enum State {
+    START = 0;
+    DATA = 1;
+    END = 2;
+  }
+  State state = 1;
+  map<uint64, Timeserie> data = 2;
+  repeated uint32 metric_id = 3;
+}
+

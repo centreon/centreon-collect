@@ -83,7 +83,7 @@ enum data_element {
   de_version_response = 1,
   de_ack = 2,
   de_stop = 3,
-  de_rebuild_metrics = 4,
+  de_rebuild_rrd_graphs = 4,
 };
 }
 namespace storage {
@@ -95,6 +95,7 @@ enum data_element {
   de_index_mapping = 5,
   de_metric_mapping = 6,
   de_pb_rebuild = 7,
+  de_rebuild_message = 8,
 };
 }
 namespace bam {

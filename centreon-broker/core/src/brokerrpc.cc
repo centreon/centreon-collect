@@ -39,8 +39,9 @@ brokerrpc::brokerrpc(const std::string& address,
 
   /* Lets' register the rebuild_metrics bbdo event. This is needed to send the
    * rebuild message. */
-  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_metrics),
-                   "rebuild_metrics", &bbdo::pb_rebuild_metrics::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
+                   "rebuild_rrd_graphs",
+                   &bbdo::pb_rebuild_rrd_graphs::operations);
 
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};

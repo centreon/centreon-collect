@@ -24,11 +24,11 @@ service Broker {
   /**
    * @brief Rebuild RRD metric RRD files from data in the SQL database.
    *
-   * @param MetricIds Message containing a vector of metric ids.
+   * @param IndexIds Message containing a vector of metric ids.
    *
    * @return An Empty object.
    */
-  rpc RebuildMetrics(MetricIds) returns (google.protobuf.Empty) {}
+  rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
 }
 
 message Version {
@@ -120,6 +120,6 @@ message BrokerStats {
   ConflictManagerStats conflict_manager = 9;
 }
 
-message MetricIds {
-  repeated uint32 metric_id = 1;
+message IndexIds {
+  repeated uint64 index_id = 1;
 }
