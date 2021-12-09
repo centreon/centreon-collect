@@ -18,9 +18,9 @@
  */
 
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include <stdint.h>
+#include <fmt/format.h>
+#include <cstdint>
 #include <map>
-#include <sstream>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -284,11 +284,11 @@ int service_downtime::subscribe() {
 
   /* add a non-persistent comment to the host or service regarding the scheduled
    * outage */
-  std::shared_ptr<comment> com{
-      new comment(comment::service, comment::downtime,
-                  found->second->get_host_id(), found->second->get_service_id(),
-                  time(nullptr), "(Centreon Engine Process)", oss.str(), false,
-                  comment::internal, false, (time_t)0)};
+  auto com{std::make_shared<comment>(
+      comment::service, comment::downtime, found->second->get_host_id(),
+      found->second->get_service_id(), time(nullptr),
+      "(Centreon Engine Process)", msg, false, comment::internal, false,
+      (time_t)0)};
 
   comment::comments.insert({com->get_comment_id(), com});
   _comment_id = com->get_comment_id();
