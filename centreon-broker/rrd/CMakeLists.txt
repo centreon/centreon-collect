@@ -49,8 +49,6 @@ else ()
   set(LIBRRD_LDFLAGS "${LIBRRD_LDFLAGS}" PARENT_SCOPE)
 endif ()
 
-get_protobuf_files(rebuild)
-
 # RRD module.
 set(RRD "70-rrd")
 set(RRD "${RRD}" PARENT_SCOPE)
@@ -62,7 +60,6 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
-  ${proto_rebuild}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"

@@ -26,7 +26,6 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/storage/factory.hh"
 #include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/storage/internal.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -101,10 +100,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
-      log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
-                           io::storage, storage::de_pb_rebuild);
-      e.register_event(storage_pb_rebuild, "pb_rebuild",
-                       &storage::pb_rebuild::operations);
     }
 
     // Register storage layer.

@@ -20,17 +20,11 @@
 #define CCB_UNIFIED_SQL_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/rebuild.pb.h"
 #include "bbdo/rebuild_message.pb.h"
 #include "centreon-broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
 CCB_BEGIN()
-
-// FIXME DBO: This should be rewritten in a near future.
-namespace unified_sql {
-using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
-}
 
 namespace bbdo {
 /**

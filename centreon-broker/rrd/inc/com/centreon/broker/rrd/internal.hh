@@ -20,14 +20,9 @@
 #define CCB_RRD_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/rebuild.pb.h"
 #include "bbdo/rebuild_message.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 CCB_BEGIN()
-
-namespace storage {
-using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
-}
 
 namespace storage {
 /**

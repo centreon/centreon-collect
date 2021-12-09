@@ -41,8 +41,6 @@ set(CONFLICTMGR conflictmgr PARENT_SCOPE)
 set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 
-get_protobuf_files(rebuild)
-
 # Storage module.
 set(STORAGE "20-storage")
 set(STORAGE "${STORAGE}" PARENT_SCOPE)
@@ -53,12 +51,10 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/stream.cc"
-  ${proto_rebuild}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
   "${INC_DIR}/factory.hh"
-  "${INC_DIR}/internal.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh"
 )
@@ -80,7 +76,6 @@ if (WITH_TESTING)
     ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
     ${TEST_DIR}/rebuild.cc
-    ${TEST_DIR}/rebuild2.cc
     ${TEST_DIR}/remove_graph.cc
     ${TEST_DIR}/status.cc
     ${TEST_DIR}/status-entry.cc

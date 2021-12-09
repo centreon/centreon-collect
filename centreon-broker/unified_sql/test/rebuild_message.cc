@@ -35,7 +35,7 @@
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
-#include "com/centreon/broker/storage/internal.hh"
+#include "com/centreon/broker/unified_sql/internal.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
@@ -72,7 +72,7 @@ class into_memory : public io::stream {
   std::vector<char> _memory;
 };
 
-class StorageRebuild2Test : public ::testing::Test {
+class UnifiedSqlRebuild2Test : public ::testing::Test {
  public:
   void SetUp() override {
     io::data::broker_id = 0;
@@ -93,22 +93,19 @@ class StorageRebuild2Test : public ::testing::Test {
   }
 };
 
-// When a script is correctly loaded and a neb event has to be sent
-// Then this event is translated into a Lua table and sent to the lua write()
-// function.
-TEST_F(StorageRebuild2Test, WriteReadRebuild2) {
+// When the first rebuild message is sent, it contains the START flag
+// and a vector of metric ids.
+// Then the receiver can deserialize it.
+TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   config::applier::modules modules;
-  modules.load_file("./storage/20-storage.so");
+  modules.load_file("./unified_sql/20-unified_sql.so");
 
-  std::shared_ptr<storage::pb_rebuild> r(
-      std::make_shared<storage::pb_rebuild>());
-  r->obj.mutable_metric()->set_metric_id(1234);
-  r->obj.mutable_metric()->set_value_type(0);
-  for (int i = 0; i < 20; i++) {
-    Point* p = r->obj.add_data();
-    p->set_ctime(i);
-    p->set_value(i * i);
-  }
+  std::shared_ptr<storage::pb_rebuild_message> r(
+      std::make_shared<storage::pb_rebuild_message>());
+  r->obj.set_state(RebuildMessage_State_START);
+  r->obj.add_metric_id(1);
+  r->obj.add_metric_id(2);
+  r->obj.add_metric_id(5);
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
   bbdo::stream stm(true);
@@ -119,9 +116,9 @@ TEST_F(StorageRebuild2Test, WriteReadRebuild2) {
   stm.write(r);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
-  constexpr size_t size = 270u;
+  constexpr size_t size = 21u;
   ASSERT_EQ(mem1.size(), size);
-  // The size is size - 16: 16 is the header size.
+  // The size of the protobuf part is size - 16: 16 is the header size.
   for (uint32_t i = 0; i < size; i++) {
     printf("%02x ", static_cast<unsigned int>(0xff & mem1[i]));
     if ((i & 0x1f) == 0)
@@ -133,26 +130,30 @@ TEST_F(StorageRebuild2Test, WriteReadRebuild2) {
 
   std::shared_ptr<io::data> e;
   stm.read(e, time(nullptr) + 1000);
-  std::shared_ptr<storage::pb_rebuild> new_r =
-      std::static_pointer_cast<storage::pb_rebuild>(e);
+  std::shared_ptr<storage::pb_rebuild_message> new_r =
+      std::static_pointer_cast<storage::pb_rebuild_message>(e);
   ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
 }
 
-// When a script is correctly loaded and a neb event has to be sent
-// Then this event is translated into a Lua table and sent to the lua write()
-// function.
-TEST_F(StorageRebuild2Test, LongWriteReadRebuild2) {
+// When the second rebuild message is sent, it contains the DATA flag
+// and a map contains data for each metric id.
+// Then the receiver can deserialize it.
+TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   config::applier::modules modules;
-  modules.load_file("./storage/20-storage.so");
+  modules.load_file("./unified_sql/20-unified_sql.so");
 
-  std::shared_ptr<storage::pb_rebuild> r(
-      std::make_shared<storage::pb_rebuild>());
-  r->obj.mutable_metric()->set_metric_id(1234);
-  r->obj.mutable_metric()->set_value_type(0);
-  for (int i = 0; i < 20000; i++) {
-    Point* p = r->obj.add_data();
-    p->set_ctime(i);
-    p->set_value(i * i);
+  std::shared_ptr<storage::pb_rebuild_message> r(
+      std::make_shared<storage::pb_rebuild_message>());
+  r->obj.set_state(RebuildMessage_State_DATA);
+  for (int64_t i : {1, 2, 5}) {
+    Timeserie& ts = (*r->obj.mutable_data())[i];
+    ts.set_data_source_type(1);
+    ts.set_check_interval(250);
+    for (int j = 0; i < 20000; i++) {
+      Pt* pt = ts.add_pts();
+      pt->set_ctime(j);
+      pt->set_value(j * 0.1);
+    }
   }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
@@ -162,23 +163,14 @@ TEST_F(StorageRebuild2Test, LongWriteReadRebuild2) {
   stm.set_negotiate(false);
   stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(r);
-  std::vector<char> const& mem1 = memory_stream->get_memory();
+  const std::vector<char>& mem1 = memory_stream->get_memory();
 
-  constexpr size_t size = 283562;
+  constexpr size_t size = 120063;
   ASSERT_EQ(mem1.size(), size);
-
-  const char* tmp = &mem1[0];
-
-  for (int i = 0; i < 4; i++) {
-    std::cout << "test " << i << std::endl;
-    ASSERT_EQ(htons(*reinterpret_cast<const uint16_t*>(tmp + 2)), 0xffff);
-    tmp += 16 + 0xffff;
-  }
-  ASSERT_EQ(htons(*reinterpret_cast<const uint16_t*>(tmp + 2)), 21342);
 
   std::shared_ptr<io::data> e;
   stm.read(e, time(nullptr) + 1000);
-  std::shared_ptr<storage::pb_rebuild> new_r =
-      std::static_pointer_cast<storage::pb_rebuild>(e);
+  std::shared_ptr<storage::pb_rebuild_message> new_r =
+      std::static_pointer_cast<storage::pb_rebuild_message>(e);
   ASSERT_TRUE(MessageDifferencer::Equals(r->obj, new_r->obj));
 }

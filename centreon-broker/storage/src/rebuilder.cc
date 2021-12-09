@@ -32,10 +32,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
-#include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-#define USE_PROTOBUF
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -273,14 +270,8 @@ void rebuilder::_rebuild_metric(mysql& ms,
       "{})",
       metric_id, metric_name, metric_type, interval);
 
-#ifdef USE_PROTOBUF
-  auto r = std::make_shared<storage::pb_rebuild>();
-  r->obj.mutable_metric()->set_metric_id(metric_id);
-  r->obj.mutable_metric()->set_value_type(metric_type);
-#else
   // Send rebuild start event.
   _send_rebuild_event(false, metric_id, false);
-#endif
 
   time_t start{time(nullptr) - length};
 
@@ -299,7 +290,6 @@ void rebuilder::_rebuild_metric(mysql& ms,
     try {
       database::mysql_result res(promise.get_future().get());
       while (!_should_exit && ms.fetch_row(res)) {
-#ifndef USE_PROTOBUF
         std::shared_ptr<storage::metric> entry =
             std::make_shared<storage::metric>(
                 host_id, service_id, metric_name, res.value_as_u32(0), interval,
@@ -316,42 +306,19 @@ void rebuilder::_rebuild_metric(mysql& ms,
             true, metric_id, length, res.value_as_f64(1), metric_type);
 
         multiplexing::publisher().write(entry);
-#else
-        Point* p = r->obj.add_data();
-        p->set_ctime(res.value_as_u32(0));
-        p->set_value(res.value_as_f64(1));
-        if (p->value() > FLT_MAX * 0.999)
-          p->set_value(std::numeric_limits<double>::infinity());
-        else if (p->value() < -FLT_MAX * 0.999)
-          p->set_value(-std::numeric_limits<double>::infinity());
-        log_v2::perfdata()->trace(
-            "storage(rebuilder): Sending metric with host_id {}, service_id "
-            "{}, metric_name {}, ctime {}, interval {}, is_for_rebuild {}, "
-            "metric_id {}, rrd_len {}, value {}, value_type{}",
-            host_id, service_id, metric_name, p->ctime(), interval, true,
-            metric_id, length, p->value(), metric_type);
-#endif
       }
-#ifdef USE_PROTOBUF
-      multiplexing::publisher().write(r);
-#endif
-
     } catch (const std::exception& e) {
       throw msg_fmt("storage: rebuilder: cannot fetch data of metric {} : {}",
                     metric_id, e.what());
     }
   } catch (...) {
-#ifndef USE_PROTOBUF
     // Send rebuild end event.
     _send_rebuild_event(true, metric_id, false);
-#endif
     // Rethrow exception.
     throw;
   }
-#ifndef USE_PROTOBUF
   // Send rebuild end event.
   _send_rebuild_event(true, metric_id, false);
-#endif
 }
 
 /**
@@ -369,15 +336,8 @@ void rebuilder::_rebuild_status(mysql& ms,
   log_v2::sql()->info("storage: rebuilder: rebuilding status {} (interval {})",
                       index_id, interval);
 
-#ifdef USE_PROTOBUF
-  auto r = std::make_shared<storage::pb_rebuild>();
-  r->obj.set_index_id(index_id);
-  r->obj.set_interval(interval);
-  r->obj.set_length(length);
-#else
   // Send rebuild start event.
   _send_rebuild_event(false, index_id, true);
-#endif
 
   time_t start{time(nullptr) - length};
 
@@ -393,38 +353,21 @@ void rebuilder::_rebuild_status(mysql& ms,
     try {
       database::mysql_result res(promise.get_future().get());
       while (!_should_exit && ms.fetch_row(res)) {
-#ifndef USE_PROTOBUF
         std::shared_ptr<storage::status> entry(
             std::make_shared<storage::status>(res.value_as_u32(0), index_id,
                                               interval, true, _rrd_len,
                                               res.value_as_i32(1)));
         multiplexing::publisher().write(entry);
-#else
-        Point* p = r->obj.add_data();
-        p->set_ctime(res.value_as_u32(0));
-        p->set_status(res.value_as_i32(1));
-#endif
       }
     } catch (const std::exception& e) {
       throw msg_fmt("storage: rebuilder: cannot fetch data of index {} : {}",
                     index_id, e.what());
     }
   } catch (...) {
-#ifndef USE_PROTOBUF
-    // Send rebuild end event.
-    _send_rebuild_event(true, index_id, true);
-
-    // Rethrow exception.
-#endif
     throw;
   }
-#ifndef USE_PROTOBUF
-  // Send rebuild end event.
-  _send_rebuild_event(true, index_id, true);
-#endif
 }
 
-#ifndef USE_PROTOBUF
 /**
  *  Send a rebuild event.
  *
@@ -437,7 +380,6 @@ void rebuilder::_send_rebuild_event(bool end, uint64_t id, bool is_index) {
       std::make_shared<storage::rebuild>(end, id, is_index);
   multiplexing::publisher().write(rb);
 }
-#endif
 
 /**
  *  Set index rebuild flag.

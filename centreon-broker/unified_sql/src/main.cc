@@ -101,10 +101,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
-      log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
-                           io::storage, storage::de_pb_rebuild);
-      e.register_event(storage_pb_rebuild, "pb_rebuild",
-                       &unified_sql::pb_rebuild::operations);
 
       /* Let's register the rebuild_metrics bbdo event. This is needed to send
        * the rebuild message from the gRPC interface. */
