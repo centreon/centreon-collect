@@ -477,7 +477,7 @@ TEST_F(ApplierLog, logFile) {
   configuration::parser parser;
   configuration::state st;
 
-  ASSERT_EQ(st.log_file(), "/var/log/centreon-engine/centengine.log");
+  ASSERT_EQ(st.log_file(), DEFAULT_LOG_FILE);
 
   std::remove("/tmp/test-config.cfg");
 
