@@ -49,8 +49,7 @@ class log_v2 {
 
  public:
   void apply(const configuration::state& config);
-  static const std::array<std::string, 12> loggers;
-  static std::map<std::string, spdlog::level::level_enum> levels_map;
+  static bool contains_level(const std::string& level_name);
   static log_v2& instance();
   static spdlog::logger* functions();
   static spdlog::logger* config();

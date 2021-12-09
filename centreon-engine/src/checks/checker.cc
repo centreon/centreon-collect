@@ -97,11 +97,9 @@ void checker::clear() noexcept {
  *  Reap and process all results received by execution process.
  */
 void checker::reap() {
-  if (old_logs)
-    engine_logger(dbg_functions, basic) << "checker::reap";
+  engine_logger(dbg_functions, basic) << "checker::reap";
 
-  if (new_logs)
-    log_v2::functions()->trace("checker::reap()");
+  log_v2::functions()->trace("checker::reap()");
 
   engine_logger(dbg_checks, basic) << "Starting to reap check results.";
 
@@ -217,18 +215,16 @@ void checker::run_sync(host* hst,
                        int check_options,
                        int use_cached_result,
                        unsigned long check_timestamp_horizon) {
-  if (old_logs)
-    engine_logger(dbg_functions, basic)
-        << "checker::run: hst=" << hst << ", check_options=" << check_options
-        << ", use_cached_result=" << use_cached_result
-        << ", check_timestamp_horizon=" << check_timestamp_horizon;
+  engine_logger(dbg_functions, basic)
+      << "checker::run: hst=" << hst << ", check_options=" << check_options
+      << ", use_cached_result=" << use_cached_result
+      << ", check_timestamp_horizon=" << check_timestamp_horizon;
 
-  if (new_logs)
-    log_v2::functions()->trace(
-        "checker::run: hst={:x}, check_options={}"
-        ", use_cached_result={}"
-        ", check_timestamp_horizon={}",
-        (void*)hst, check_options, use_cached_result, check_timestamp_horizon);
+  log_v2::functions()->trace(
+      "checker::run: hst={:x}, check_options={}"
+      ", use_cached_result={}"
+      ", check_timestamp_horizon={}",
+      (void*)hst, check_options, use_cached_result, check_timestamp_horizon);
 
   // Preamble.
   if (!hst)
@@ -369,11 +365,9 @@ checker::~checker() noexcept {
  */
 void checker::finished(commands::result const& res) noexcept {
   // Debug message.
-  if (old_logs)
-    engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
+  engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
 
-  if (new_logs)
-    log_v2::functions()->trace("checker::finished: res={:x}", (void*)(&res));
+  log_v2::functions()->trace("checker::finished: res={:p}", (void*)&res);
 
   std::unique_lock<std::mutex> lock(_mut_reap);
   auto it_id = _waiting_check_result.find(res.command_id);
@@ -413,12 +407,9 @@ void checker::finished(commands::result const& res) noexcept {
  * host::state_down).
  */
 com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
-  if (old_logs)
-    engine_logger(dbg_functions, basic)
-        << "checker::_execute_sync: hst=" << hst;
+  engine_logger(dbg_functions, basic) << "checker::_execute_sync: hst=" << hst;
 
-  if (new_logs)
-    log_v2::functions()->trace("checker::_execute_sync: hst={:x}", (void*)hst);
+  log_v2::functions()->trace("checker::_execute_sync: hst={:x}", (void*)hst);
 
   << "** Executing sync check of host '" << hst->get_name() << "'...";
 

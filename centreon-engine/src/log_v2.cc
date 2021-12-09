@@ -27,17 +27,6 @@
 using namespace com::centreon::engine;
 using namespace spdlog;
 
-const std::array<std::string, 12> log_v2::loggers{
-    "config",   "process",       "functions",   "events",
-    "checks",   "notifications", "eventbroker", "external_command",
-    "commands", "downtimes",     "comments",    "macros"};
-
-std::map<std::string, level::level_enum> log_v2::levels_map{
-    {"trace", level::trace}, {"debug", level::debug},
-    {"info", level::info},   {"warning", level::warn},
-    {"error", level::err},   {"critical", level::critical},
-    {"none", level::off}};
-
 log_v2& log_v2::instance() {
   static log_v2 instance;
   return instance;
@@ -47,10 +36,66 @@ log_v2::log_v2() {
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
   auto null_sink = std::make_shared<sinks::null_sink_mt>();
 
-  _config_log = std::make_shared<logger>("config", stdout_sink);
-  _config_log->set_level(levels_map["info"]);
-  _config_log->flush_on(levels_map["info"]);
+  _functions_log = std::make_shared<spdlog::logger>("functions", stdout_sink);
+  _functions_log->set_level(level::from_str("trace"));
+  _functions_log->flush_on(level::from_str("trace"));
+  _functions_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _config_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _config_log->set_level(level::from_str("trace"));
+  _config_log->flush_on(level::from_str("trace"));
   _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _events_log = std::make_shared<spdlog::logger>("events", stdout_sink);
+  _events_log->set_level(level::from_str("trace"));
+  _events_log->flush_on(level::from_str("trace"));
+  _events_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _checks_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _checks_log->set_level(level::from_str("trace"));
+  _checks_log->flush_on(level::from_str("trace"));
+  _checks_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _notifications_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _notifications_log->set_level(level::from_str("trace"));
+  _notifications_log->flush_on(level::from_str("trace"));
+  _notifications_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _eventbroker_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _eventbroker_log->set_level(level::from_str("trace"));
+  _eventbroker_log->flush_on(level::from_str("trace"));
+  _eventbroker_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _external_command_log =
+      std::make_shared<spdlog::logger>("config", stdout_sink);
+  _external_command_log->set_level(level::from_str("trace"));
+  _external_command_log->flush_on(level::from_str("trace"));
+  _external_command_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _commands_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _commands_log->set_level(level::from_str("trace"));
+  _commands_log->flush_on(level::from_str("trace"));
+  _commands_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _downtimes_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _downtimes_log->set_level(level::from_str("trace"));
+  _downtimes_log->flush_on(level::from_str("trace"));
+  _downtimes_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _comments_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _comments_log->set_level(level::from_str("trace"));
+  _comments_log->flush_on(level::from_str("trace"));
+  _comments_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _macros_log = std::make_shared<spdlog::logger>("config", stdout_sink);
+  _macros_log->set_level(level::from_str("trace"));
+  _macros_log->flush_on(level::from_str("trace"));
+  _macros_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _process_log = std::make_shared<spdlog::logger>("process", stdout_sink);
+  _process_log->set_level(level::from_str("trace"));
+  _process_log->flush_on(level::from_str("trace"));
+  _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 }
 
 void log_v2::apply(const configuration::state& config) {
@@ -68,14 +113,16 @@ void log_v2::apply(const configuration::state& config) {
     } else if (config.log_v2_logger() == "syslog")
       sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
                                                               0, 0, true));
+    auto broker_sink = std::make_shared<logging::broker_sink_mt>();
+    broker_sink->set_level(spdlog::level::info);
+    sinks.push_back(broker_sink);
   } else
     sinks.push_back(std::make_shared<sinks::null_sink_mt>());
 
-  sinks.push_back(std::make_shared<logging::broker_sink_mt>());
   _functions_log =
       std::make_shared<spdlog::logger>("functions", begin(sinks), end(sinks));
-  _functions_log->set_level(levels_map[config.log_level_functions()]);
-  _functions_log->flush_on(levels_map[config.log_level_functions()]);
+  _functions_log->set_level(level::from_str(config.log_level_functions()));
+  _functions_log->flush_on(level::from_str(config.log_level_functions()));
   if (config.log_pid())
     _functions_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -83,8 +130,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _config_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _config_log->set_level(levels_map[config.log_level_config()]);
-  _config_log->flush_on(levels_map[config.log_level_config()]);
+  _config_log->set_level(level::from_str(config.log_level_config()));
+  _config_log->flush_on(level::from_str(config.log_level_config()));
   if (config.log_pid())
     _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -92,8 +139,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _events_log =
       std::make_shared<spdlog::logger>("events", begin(sinks), end(sinks));
-  _events_log->set_level(levels_map[config.log_level_events()]);
-  _events_log->flush_on(levels_map[config.log_level_events()]);
+  _events_log->set_level(level::from_str(config.log_level_events()));
+  _events_log->flush_on(level::from_str(config.log_level_events()));
   if (config.log_pid())
     _events_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -101,8 +148,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _checks_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _checks_log->set_level(levels_map[config.log_level_checks()]);
-  _checks_log->flush_on(levels_map[config.log_level_checks()]);
+  _checks_log->set_level(level::from_str(config.log_level_checks()));
+  _checks_log->flush_on(level::from_str(config.log_level_checks()));
   if (config.log_pid())
     _checks_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -110,8 +157,10 @@ void log_v2::apply(const configuration::state& config) {
 
   _notifications_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _notifications_log->set_level(levels_map[config.log_level_notifications()]);
-  _notifications_log->flush_on(levels_map[config.log_level_notifications()]);
+  _notifications_log->set_level(
+      level::from_str(config.log_level_notifications()));
+  _notifications_log->flush_on(
+      level::from_str(config.log_level_notifications()));
   if (config.log_pid())
     _notifications_log->set_pattern(
         "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
@@ -120,8 +169,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _eventbroker_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _eventbroker_log->set_level(levels_map[config.log_level_eventbroker()]);
-  _eventbroker_log->flush_on(levels_map[config.log_level_eventbroker()]);
+  _eventbroker_log->set_level(level::from_str(config.log_level_eventbroker()));
+  _eventbroker_log->flush_on(level::from_str(config.log_level_eventbroker()));
   if (config.log_pid())
     _eventbroker_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -130,9 +179,9 @@ void log_v2::apply(const configuration::state& config) {
   _external_command_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
   _external_command_log->set_level(
-      levels_map[config.log_level_external_command()]);
+      level::from_str(config.log_level_external_command()));
   _external_command_log->flush_on(
-      levels_map[config.log_level_external_command()]);
+      level::from_str(config.log_level_external_command()));
   if (config.log_pid())
     _external_command_log->set_pattern(
         "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
@@ -141,8 +190,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _commands_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _commands_log->set_level(levels_map[config.log_level_commands()]);
-  _commands_log->flush_on(levels_map[config.log_level_commands()]);
+  _commands_log->set_level(level::from_str(config.log_level_commands()));
+  _commands_log->flush_on(level::from_str(config.log_level_commands()));
   if (config.log_pid())
     _commands_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -150,8 +199,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _downtimes_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _downtimes_log->set_level(levels_map[config.log_level_downtimes()]);
-  _downtimes_log->flush_on(levels_map[config.log_level_downtimes()]);
+  _downtimes_log->set_level(level::from_str(config.log_level_downtimes()));
+  _downtimes_log->flush_on(level::from_str(config.log_level_downtimes()));
   if (config.log_pid())
     _downtimes_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -159,8 +208,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _comments_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _comments_log->set_level(levels_map[config.log_level_comments()]);
-  _comments_log->flush_on(levels_map[config.log_level_comments()]);
+  _comments_log->set_level(level::from_str(config.log_level_comments()));
+  _comments_log->flush_on(level::from_str(config.log_level_comments()));
   if (config.log_pid())
     _comments_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -168,8 +217,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _macros_log =
       std::make_shared<spdlog::logger>("config", begin(sinks), end(sinks));
-  _macros_log->set_level(levels_map[config.log_level_macros()]);
-  _macros_log->flush_on(levels_map[config.log_level_macros()]);
+  _macros_log->set_level(level::from_str(config.log_level_macros()));
+  _macros_log->flush_on(level::from_str(config.log_level_macros()));
   if (config.log_pid())
     _macros_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
@@ -177,8 +226,8 @@ void log_v2::apply(const configuration::state& config) {
 
   _process_log =
       std::make_shared<spdlog::logger>("process", begin(sinks), end(sinks));
-  _process_log->set_level(levels_map[config.log_level_process()]);
-  _process_log->flush_on(levels_map[config.log_level_process()]);
+  _process_log->set_level(level::from_str(config.log_level_process()));
+  _process_log->flush_on(level::from_str(config.log_level_process()));
   _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
   if (config.log_pid())
     _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
@@ -236,4 +285,18 @@ spdlog::logger* log_v2::macros() {
 
 spdlog::logger* log_v2::process() {
   return instance()._process_log.get();
+}
+
+/**
+ * @brief Check if the given level makes part of the available levels.
+ *
+ * @param level A level as a string
+ *
+ * @return A boolean.
+ */
+
+bool log_v2::contains_level(const std::string& level_name) {
+  auto level = level::from_str(level_name);
+  // ignore unrecognized level names
+  return !(level == level::off && level_name != "off");
 }
