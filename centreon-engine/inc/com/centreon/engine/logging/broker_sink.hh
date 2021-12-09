@@ -26,10 +26,7 @@
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/nebstructs.hh"
-#include "com/centreon/unique_array_ptr.hh"
 #include "spdlog/details/null_mutex.h"
-CCE_BEGIN()
-
 namespace logging {
 template <typename Mutex>
 class broker_sink : public spdlog::sinks::base_sink<Mutex> {

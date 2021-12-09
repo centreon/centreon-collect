@@ -4074,12 +4074,6 @@ void state::log_level_process(std::string const& value) {
   else
     log_v2::config()->error("error wrong level setted for log_level_process");
 }
-
-/**
- *  Get use_timezone value.
- *
- *  @return The use_timezone value.
- */
 std::string const& state::use_timezone() const noexcept {
   return _use_timezone;
 }
