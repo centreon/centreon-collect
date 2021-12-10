@@ -29,6 +29,7 @@
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/cached.hh"
 #include "com/centreon/broker/rrd/lib.hh"
+#include "bbdo/rebuild_message.pb.h"
 
 CCB_BEGIN()
 
@@ -41,11 +42,8 @@ namespace rrd {
  */
 template <typename T>
 class output : public io::stream {
- public:
-  typedef std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>
-      rebuild_cache;
+  using rebuild_cache = std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
 
- private:
   bool _ignore_update_errors;
   std::string _metrics_path;
   rebuild_cache _metrics_rebuild;
@@ -54,6 +52,8 @@ class output : public io::stream {
   const bool _write_metrics;
   const bool _write_status;
   T _backend;
+
+  void _rebuild_data(const RebuildMessage& rm);
 
  public:
   output(std::string const& metrics_path,

@@ -288,31 +288,35 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         case RebuildMessage_State_START:
           log_v2::rrd()->debug("RRD: Starting to rebuild metrics ({})",
                                fmt::join(e->obj.metric_id(), ","));
-          break;
-        case RebuildMessage_State_DATA: {
-          std::deque<std::string> query;
-          for (auto& p : e->obj.data()) {
-            log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
-            std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
-            int32_t data_source_type = p.second.data_source_type();
-            for (auto& pt : p.second.pts())
-              query.emplace_back(
-                  fmt::format("{}:{:f}", pt.ctime(), pt.value()));
-            try {
-              _backend.open(path);
-            } catch (const exceptions::open& ex) {
-              time_t start_time = p.second.pts()[0].ctime() - 1;
-              uint32_t interval{
-                  p.second.check_interval() ? p.second.check_interval() : 60};
-              _backend.open(path, p.second.rrd_retention(), start_time,
-                            interval, p.second.data_source_type());
-            }
-            _backend.update(query);
+          // Rebuild is starting.
+          for (auto& m : e->obj.metric_id()) {
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+            /* Creation of metric caches */
+            _metrics_rebuild[path];
+            /* File removed */
+            _backend.remove(path);
           }
-        } break;
+          break;
+        case RebuildMessage_State_DATA:
+          _rebuild_data(e->obj);
+          break;
         case RebuildMessage_State_END:
           log_v2::rrd()->debug("RRD: Finishing to rebuild metrics ({})",
                                fmt::join(e->obj.metric_id(), ","));
+          // Rebuild is ending.
+          for (auto& m : e->obj.metric_id()) {
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+            auto it = _metrics_rebuild.find(path);
+            std::list<std::shared_ptr<io::data>> l;
+            if (it != _metrics_rebuild.end()) {
+              l = std::move(it->second);
+              _metrics_rebuild.erase(it);
+              while (!l.empty()) {
+                write(l.front());
+                l.pop_front();
+              }
+            }
+          }
           break;
       }
     } break;
@@ -387,4 +391,48 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
   }
 
   return 1;
+}
+
+/**
+ * @brief Internal function called to read the protobuf RebuildMessage
+ * when timeseries are received. It is here that RRD files are rebuilt.
+ *
+ * @tparam T The backend RRD.
+ * @param rm The message to handle.
+ */
+template <typename T>
+void output<T>::_rebuild_data(const RebuildMessage& rm) {
+  std::deque<std::string> query;
+  for (auto& p : rm.timeserie()) {
+    log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
+    std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
+    int32_t data_source_type = p.second.data_source_type();
+    switch (data_source_type) {
+      case misc::perfdata::gauge:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
+        break;
+      case misc::perfdata::counter:
+      case misc::perfdata::absolute:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
+                                         static_cast<uint64_t>(pt.value())));
+        break;
+      case misc::perfdata::derive:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
+                                         static_cast<int64_t>(pt.value())));
+        break;
+    }
+    try {
+      _backend.open(path);
+    } catch (const exceptions::open& ex) {
+      time_t start_time = p.second.pts()[0].ctime() - 1;
+      uint32_t interval{p.second.check_interval() ? p.second.check_interval()
+                                                  : 60};
+      _backend.open(path, p.second.rrd_retention(), start_time, interval,
+                    p.second.data_source_type());
+    }
+    _backend.update(query);
+  }
 }

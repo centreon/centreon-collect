@@ -146,11 +146,11 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
       std::make_shared<storage::pb_rebuild_message>());
   r->obj.set_state(RebuildMessage_State_DATA);
   for (int64_t i : {1, 2, 5}) {
-    Timeserie& ts = (*r->obj.mutable_data())[i];
+    Timeserie& ts = (*r->obj.mutable_timeserie())[i];
     ts.set_data_source_type(1);
     ts.set_check_interval(250);
     for (int j = 0; i < 20000; i++) {
-      Pt* pt = ts.add_pts();
+      Point* pt = ts.add_pts();
       pt->set_ctime(j);
       pt->set_value(j * 0.1);
     }

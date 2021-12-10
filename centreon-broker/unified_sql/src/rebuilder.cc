@@ -509,13 +509,13 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
               uint64_t id_metric = res.value_as_u64(0);
               time_t ctime = res.value_as_u64(1);
               double value = res.value_as_f64(2);
-              Pt* pt = (*data_rebuild->obj.mutable_data())[id_metric].add_pts();
+              Point* pt = (*data_rebuild->obj.mutable_timeserie())[id_metric].add_pts();
               pt->set_ctime(ctime);
               pt->set_value(value);
             }
             for (auto it = ret_inter.begin(); it != ret_inter.end(); ++it) {
               auto i = it->second;
-              auto& m{(*data_rebuild->obj.mutable_data())[it->first]};
+              auto& m{(*data_rebuild->obj.mutable_timeserie())[it->first]};
               m.set_check_interval(i.check_interval);
               m.set_data_source_type(i.data_source_type);
               m.set_rrd_retention(i.rrd_retention);
