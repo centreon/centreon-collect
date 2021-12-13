@@ -24,6 +24,8 @@ include_directories("${INC_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 
+get_protobuf_files(rebuild_message)
+
 # Find librrd.
 include(FindPkgConfig)
 if (PKG_CONFIG_FOUND)
@@ -60,6 +62,7 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
+  ${proto_rebuild_message}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"

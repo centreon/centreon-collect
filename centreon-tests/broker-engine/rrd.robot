@@ -45,8 +45,7 @@ BRRDDM1
 	Stop Engine
 
 	${content1}=	Create List	remove graph request for metric ${metric}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 	Should Be True	${result}
 	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
 
@@ -80,8 +79,7 @@ BRRDDID1
 	Stop Engine
 
 	${content1}=	Create List	remove graph request for metric ${metric}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 	Should Be True	${result}
 	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
 
@@ -115,8 +113,7 @@ BRRDDMID1
 	Stop Engine
 
 	${content1}=	Create List	remove graph request for metric ${metric}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 	Should Be True	${result}
 	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
 
@@ -153,8 +150,7 @@ BRRDDMU1
 	Stop Engine
 
 	${content1}=	Create List	remove graph request for metric ${metric}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 	Should Be True	${result}
 	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
 
@@ -189,8 +185,7 @@ BRRDDIDU1
 	Stop Engine
 
 	${content1}=	Create List	remove graph request for metric ${metric}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 	Should Be True	${result}
 	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
 
@@ -225,10 +220,53 @@ BRRDDMIDU1
 	Stop Engine
 
 	${content1}=	Create List	remove graph request for metric ${metric}
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-rrd-master.log
-	${result}=	Find In Log	${log}	${start}	${content1}
+	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 	Should Be True	${result}
 	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
+
+BRRDRMU1
+	[Documentation]	RRD metric rebuild with gRPC API and unified sql
+        [Tags]	RRD	metric	rebuild	unified_sql	grpc
+        Config Engine	${1}
+        Config Broker	rrd
+        Config Broker	central
+        Config Broker Sql Output	central	unified_sql
+        Config Broker	module
+        Broker Config Log	rrd	rrd	trace
+        Broker Config Log	central	sql	trace
+
+        ${start}=	Get Current Date
+        Start Broker
+        Start Engine
+        ${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	# We get 3 indexes to rebuild
+	${index}=	Get Indexes To Rebuild	3
+        Rebuild Rrd Graphs	51001	${index}
+        Log To Console	Indexes to rebuild: ${index}
+        ${metrics}=	Get Metrics Matching Indexes	${index}
+        Log To Console	Metrics to rebuild: ${metrics}
+        ${content}=	Create List	Metric rebuild: metric	is sent to rebuild	Metric rebuild: Rebuild of metrics (	) finished
+        ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
+        Should Be True	${result}	msg=Central did not send metrics to rebuild
+
+	${content1}=	Create List	RRD: Starting to rebuild metrics
+        ${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+        Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild START
+
+	${content1}=	Create List	RRD: Rebuilding metric
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
+
+	${content1}=	Create List	RRD: Finishing to rebuild metrics
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	240
+	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild END
+        FOR	${m}	IN	@{metrics}
+		${value}=	Evaluate	${m} / 2
+        	${result}=	Compare RRD Average Value	${m}	${value}
+                Should Be True	${result}	msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        END
 
 *** Variables ***
 ${DBName}	centreon_storage
@@ -236,3 +274,5 @@ ${DBHost}	localhost
 ${DBUser}	centreon
 ${DBPass}	centreon
 ${DBPort}	3306
+${rrdLog}		${BROKER_LOG}/central-rrd-master.log
+${centralLog}		${BROKER_LOG}/central-broker-master.log

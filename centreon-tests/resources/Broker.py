@@ -8,6 +8,9 @@ from robot.api import logger
 import json
 import glob
 import os.path
+import grpc
+import broker_pb2
+import broker_pb2_grpc
 
 TIMEOUT = 30
 
@@ -679,3 +682,108 @@ def run_reverse_bam(duration, interval):
     subp.Popen("broker/map_client.py {:f}".format(interval), shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
     time.sleep(duration)
     getoutput("kill -9 $(ps aux | grep map_client.py | awk '{print $2}')")
+
+
+##
+# @brief Get count indexes that are available to rebuild them.
+#
+# @param count is the number of indexes to get.
+#
+# @return a list of indexes
+def get_indexes_to_rebuild(count: int):
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/[0-9]*.rrd")]
+    ids = [int(f.split(".")[0]) for f in files]
+
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='root',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    retval = []
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `metric_id`,`index_id` FROM `metrics`"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            for r in result:
+                if int(r['metric_id']) in ids:
+                    logger.console("building data for metric {}".format(r['metric_id']))
+                    start = int(time.time()) - 24 * 60 * 60 * 30
+                    # We go back to 30 days with steps of 5 mn
+                    value1 = int(r['metric_id'])
+                    value2 = 0
+                    value = value1
+                    cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(r['metric_id'], start))
+                    for i in range(0, 24 * 60 * 60 * 30, 60 * 5):
+                        cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(r['metric_id'], start + i, value))
+                        if value == value1:
+                            value = value2
+                        else:
+                            value = value1
+                    connection.commit()
+                    retval.append(int(r['index_id']))
+
+                if len(retval) == count:
+                    return retval
+
+    # if the loop is already and retval length is not sufficiently long, we
+    # still return what we get.
+    return retval
+
+
+##
+# @brief Returns metric ids matching the given indexes.
+#
+# @param indexes a list of indexes from index_data
+#
+# @return a list of metric ids.
+def get_metrics_matching_indexes(indexes):
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='root',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `metric_id` FROM `metrics` WHERE `index_id` IN ({})".format(','.join(map(str, indexes)))
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            retval = [int(r['metric_id']) for r in result]
+            return retval
+    return []
+
+
+##
+# @brief Execute the gRPC command RebuildRRDGraphs()
+#
+# @param port The port to use with gRPC.
+# @param indexes The list of indexes corresponding to metrics to rebuild.
+#
+def rebuild_rrd_graphs(port, indexes):
+    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        k = 0.0
+        idx = broker_pb2.IndexIds()
+        idx.index_id.extend(indexes)
+        stub.RebuildRRDGraphs(idx)
+
+
+##
+# @brief Compare the average value for an RRD metric on the last 30 days with
+# a value.
+#
+# @param metric The metric id
+# @param float The value to compare with.
+#
+# @return A boolean.
+def compare_rrd_average_value(metric, value: float):
+    res = getoutput("rrdtool graph dummy --start=end-30d --end=now DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf".format(metric))
+    res = float(res.split('\n')[1].replace(',', '.'))
+    return abs(res - float(value)) < 2
+

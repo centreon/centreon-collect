@@ -365,8 +365,8 @@ void rebuilder::_rebuild_status(mysql& ms,
       while (!_should_exit && ms.fetch_row(res)) {
         std::shared_ptr<storage::status> entry(
             std::make_shared<storage::status>(res.value_as_u32(0), index_id,
-                                                  interval, true, _rrd_len,
-                                                  res.value_as_i32(1)));
+                                              interval, true, _rrd_len,
+                                              res.value_as_i32(1)));
         multiplexing::publisher().write(entry);
       }
     } catch (const std::exception& e) {
@@ -445,15 +445,21 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         "i ON m.index_id=i.id LEFT JOIN services s ON i.host_id=s.host_id AND "
         "i.service_id=s.service_id WHERE i.id IN ({})",
         ids_str)};
+    log_v2::sql()->trace("Metric rebuild: Executed query << {} >>", query);
     ms.run_query_and_get_result(query, &promise, conn);
     std::map<uint64_t, metric_info> ret_inter;
+    std::list<int64_t> mids;
     auto start_rebuild = std::make_shared<storage::pb_rebuild_message>();
     start_rebuild->obj.set_state(RebuildMessage_State_START);
     try {
       database::mysql_result res{promise.get_future().get()};
       while (ms.fetch_row(res)) {
-        start_rebuild->obj.add_metric_id(res.value_as_u64(0));
-        auto ret = ret_inter.emplace(res.value_as_u64(0), metric_info());
+        uint64_t mid = res.value_as_u64(0);
+        mids.push_back(mid);
+        log_v2::sql()->trace("Metric rebuild: metric {} is sent to rebuild",
+                             mid);
+        start_rebuild->obj.add_metric_id(mid);
+        auto ret = ret_inter.emplace(mid, metric_info());
         metric_info& v = ret.first->second;
         v.metric_name = res.value_as_str(1);
         v.data_source_type = res.value_as_i32(2);
@@ -466,8 +472,10 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
           v.check_interval = 5 * 60;
       }
 
+      ids_str = fmt::format("{}", fmt::join(mids, ","));
       multiplexing::publisher().write(start_rebuild);
 
+      promise = std::promise<database::mysql_result>();
       ms.run_query_and_get_result("SELECT len_storage_mysql FROM config",
                                   &promise, conn);
       int64_t db_retention_day = 0;
@@ -509,7 +517,8 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
               uint64_t id_metric = res.value_as_u64(0);
               time_t ctime = res.value_as_u64(1);
               double value = res.value_as_f64(2);
-              Point* pt = (*data_rebuild->obj.mutable_timeserie())[id_metric].add_pts();
+              Point* pt =
+                  (*data_rebuild->obj.mutable_timeserie())[id_metric].add_pts();
               pt->set_ctime(ctime);
               pt->set_value(value);
             }
@@ -530,11 +539,11 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->error("Metrics rebuild: Error during metrics rebuild: {}",
                            e.what());
     }
-    log_v2::sql()->debug("Metric rebuild: Rebuild of metrics ({}) finished",
-                         ids_str);
     auto end_rebuild = std::make_shared<storage::pb_rebuild_message>();
-    end_rebuild->obj = std::move(start_rebuild->obj);
+    end_rebuild->obj = start_rebuild->obj;
     end_rebuild->obj.set_state(RebuildMessage_State_END);
     multiplexing::publisher().write(end_rebuild);
+    log_v2::sql()->debug("Metric rebuild: Rebuild of metrics ({}) finished",
+                         ids_str);
   });
 }
