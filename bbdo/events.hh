@@ -97,7 +97,7 @@ enum data_element {
   de_metric_mapping = 6,
   de_pb_rebuild = 7,
   de_rebuild_message = 8,
-  de_remove_message = 9,
+  de_remove_graph_message = 9,
 };
 }
 namespace bam {

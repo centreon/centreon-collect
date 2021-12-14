@@ -126,6 +126,6 @@ message IndexIds {
 }
 
 message ToRemove {
-  repeated uint64 index_id = 1;
-  repeated uint64 metric_id = 2;
+  repeated uint64 index_ids = 1;
+  repeated uint64 metric_ids = 2;
 }

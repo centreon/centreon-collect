@@ -26,6 +26,7 @@ include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 get_protobuf_files(rebuild_message)
+get_protobuf_files(remove_graph_message)
 
 # Storage module.
 set(UNIFIED_SQL "20-unified_sql")
@@ -41,6 +42,7 @@ add_library("${UNIFIED_SQL}" SHARED
   "${SRC_DIR}/stream_sql.cc"
   "${SRC_DIR}/stream_storage.cc"
   ${proto_rebuild_message}
+  ${proto_remove_graph_message}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"

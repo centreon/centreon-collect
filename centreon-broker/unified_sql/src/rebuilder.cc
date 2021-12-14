@@ -419,8 +419,72 @@ void rebuilder::_set_index_rebuild(mysql& ms,
  */
 void rebuilder::remove_graphs(const std::shared_ptr<io::data>& d) {
   asio::post(_timer.get_executor(), [this, data = d] {
+    mysql ms(_db_cfg);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
+    uint32_t deleted_indexes = 0;
+    uint32_t deleted_metrics = 0;
+
+    std::promise<database::mysql_result> promise;
+    int32_t conn = ms.choose_best_connection(-1);
+    std::set<uint64_t> indexes_to_delete;
+    std::set<uint64_t> metrics_to_delete;
+    try {
+      ms.run_query_and_get_result(
+          fmt::format(
+              "SELECT m.index_id,m.metric_id, m.metric_name, i.host_id, "
+              "i.service_id FROM metrics m LEFT JOIN index_data i ON "
+              "i.id=m.index_id WHERE i.index_id IN ({})",
+              fmt::join(ids.obj.index_ids(), ",")),
+          &promise, conn);
+      database::mysql_result res(promise.get_future().get());
+
+      //std::lock_guard<std::mutex> lock(_metric_cache_m);
+      while (ms.fetch_row(res)) {
+        indexes_to_delete.insert(res.value_as_u64(0));
+        metrics_to_delete.insert(res.value_as_u64(1));
+
+        // FIXME DBO: concurrent access
+        //_metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+        //_index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+      }
+      promise = std::promise<database::mysql_result>();
+      for (uint64_t i : ids.obj.metric_ids()) {
+        metrics_to_delete.insert(i);
+        //FIXME DBO
+        //_metric_cache.erase({res.value_as_u64(0), res.value_as_str(1)});
+      }
+    } catch (const std::exception& e) {
+      log_v2::sql()->error(
+          "could not query index / metrics table(s) to get index to delete: "
+          "{} ",
+          e.what());
+    }
+
+    if (!metrics_to_delete.empty()) {
+      std::string mids_str{
+          fmt::format("{}", fmt::join(metrics_to_delete, ","))};
+      log_v2::sql()->debug("metrics {} erased from database", mids_str);
+      ms.run_query(
+          fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
+          database::mysql_error::delete_metric, false);
+    }
+    if (!indexes_to_delete.empty()) {
+      std::string ids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
+      log_v2::sql()->debug("indexes {} erased from database", ids_str);
+      ms.run_query(
+          fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
+          database::mysql_error::delete_index, false);
+    }
+
+    if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {
+      auto rmg{std::make_shared<storage::remove_graph_message>()};
+      for (uint64_t i : metrics_to_delete)
+        rmg->obj.add_metric_ids(i);
+      for (uint64_t i : indexes_to_delete)
+        rmg->obj.add_index_ids(i);
+      multiplexing::publisher().write(rmg);
+    }
   });
 }
 
