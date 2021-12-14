@@ -23,9 +23,9 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
@@ -87,9 +87,7 @@ center::~center() {
    * a last action and wait it is over. */
   std::promise<bool> p;
   std::future<bool> f{p.get_future()};
-  _strand.post([&p] {
-      p.set_value(true);
-      });
+  _strand.post([&p] { p.set_value(true); });
   f.get();
   pool::instance().stop_stats();
 }
@@ -128,10 +126,9 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
   _strand.post([this, &p, connection] {
-    for (auto
-             it = _stats.mutable_connections()->begin(),
-             end = _stats.mutable_connections()->end();
-             it != end; ++it) {
+    for (auto it = _stats.mutable_connections()->begin(),
+              end = _stats.mutable_connections()->end();
+         it != end; ++it) {
       if (&(*it) == connection) {
         _stats.mutable_connections()->erase(it);
         break;
@@ -254,7 +251,7 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
  *
  * @return A pointer to the conflict_manager statistics.
  */
- ConflictManagerStats* center::register_conflict_manager() {
+ConflictManagerStats* center::register_conflict_manager() {
   std::promise<ConflictManagerStats*> p;
   std::future<ConflictManagerStats*> retval = p.get_future();
   _strand.post([this, &p] {
@@ -291,7 +288,7 @@ std::string center::to_string() {
   std::promise<std::string> p;
   std::future<std::string> retval = p.get_future();
   _strand.post(
-      [&s = this->_stats, &p, &tmpnow = this->_json_stats_file_creation] {
+      [& s = this->_stats, &p, &tmpnow = this->_json_stats_file_creation ] {
         const JsonPrintOptions options;
         std::string retval;
         std::time_t now;
@@ -323,29 +320,31 @@ std::string center::to_string() {
 //  done.get();
 //}
 
-bool center::get_sql_connection_stats(uint32_t index, SqlConnectionStats* response) {
+bool center::get_sql_connection_stats(uint32_t index,
+                                      SqlConnectionStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, &index, response] {
+  _strand.post([& s = this->_stats, &p, &index, response ] {
     if (index > static_cast<uint32_t>(s.connections().size() - 1)) {
-        log_v2::sql()->info("mysql_connection: index out of range in get sql connection stats");
-        p.set_value(false);
-      }
-      else {
-        *response = s.connections().at(index);
-        p.set_value(true);
-      }
+      log_v2::sql()->info(
+          "mysql_connection: index out of range in get sql connection stats");
+      p.set_value(false);
+    } else {
+      *response = s.connections().at(index);
+      p.set_value(true);
+    }
   });
 
   // We wait for the response.
   return done.get();
 }
 
-void center::get_all_sql_connections_stats(AllSqlConnectionsStats *response) {
+void center::get_all_sql_connections_stats(AllSqlConnectionsStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
-    response->mutable_connections()->Assign(s.connections().begin(), s.connections().end());
+  _strand.post([& s = this->_stats, &p, response ] {
+    response->mutable_connections()->Assign(s.connections().begin(),
+                                            s.connections().end());
     p.set_value(true);
   });
 
@@ -356,9 +355,9 @@ void center::get_all_sql_connections_stats(AllSqlConnectionsStats *response) {
 void center::get_sql_connection_size(GenericSize* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
-      response->set_size(s.connections().size());
-      p.set_value(true);
+  _strand.post([& s = this->_stats, &p, response ] {
+    response->set_size(s.connections().size());
+    p.set_value(true);
   });
 
   // We wait for the response.
@@ -368,9 +367,9 @@ void center::get_sql_connection_size(GenericSize* response) {
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
-  _strand.post([&s = this->_stats, &p, response] {
-      *response = s.conflict_manager();
-      p.set_value(true);
+  _strand.post([& s = this->_stats, &p, response ] {
+    *response = s.conflict_manager();
+    p.set_value(true);
   });
 
   // We wait for the response.

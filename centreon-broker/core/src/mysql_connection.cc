@@ -111,8 +111,8 @@ void mysql_connection::update_stats(void) noexcept {
     stats::center::instance().execute([this]() {
       _stats->set_waiting_tasks(_tasks_count);
       _stats->set_is_connected(_is_connected);
-      _is_connected ? _stats->set_up_since(_switch_point) :
-        _stats->set_down_since(_switch_point);
+      _is_connected ? _stats->set_up_since(_switch_point)
+                    : _stats->set_down_since(_switch_point);
     });
   }
 }
@@ -528,13 +528,11 @@ std::string mysql_connection::get_error_message() {
   return _error.get_message();
 }
 
-bool mysql_connection::is_connected(void) const noexcept
-{
+bool mysql_connection::is_connected(void) const noexcept {
   return _is_connected;
 }
 
-std::time_t mysql_connection::get_switch_point(void) const noexcept
-{
+std::time_t mysql_connection::get_switch_point(void) const noexcept {
   return _switch_point;
 }
 

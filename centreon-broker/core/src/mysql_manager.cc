@@ -122,7 +122,7 @@ void mysql_manager::clear() {
         conn->finish();
       } catch (const std::exception& e) {
         log_v2::sql()->info("mysql_manager: Unable to stop a connection: {}",
-            e.what());
+                            e.what());
       }
   }
   log_v2::sql()->debug("mysql_manager: clear finished");
@@ -179,14 +179,16 @@ std::map<std::string, std::string> mysql_manager::get_stats() {
     retval.insert(std::make_pair(key, std::to_string(_stats_counts[i])));
   }
   retval.insert(std::make_pair("size", std::to_string(_connection.size())));
-  for (std::vector<std::shared_ptr<mysql_connection>>::iterator conn = _connection.begin();
-    conn != _connection.end(); ++conn) {
-      std::string conn_name = "connection_" + std::to_string(std::distance(_connection.begin(), conn));
-      std::stringstream ss;
-      ss << "connected: " << std::boolalpha << (*conn)->is_connected();
-      ss << ", since: " << std::to_string((*conn)->get_switch_point());
-      ss << ", tasks: " << std::to_string((*conn)->get_tasks_count());
-      retval.insert(std::make_pair(conn_name, ss.str()));
+  for (std::vector<std::shared_ptr<mysql_connection>>::iterator conn =
+           _connection.begin();
+       conn != _connection.end(); ++conn) {
+    std::string conn_name = "connection_" + std::to_string(std::distance(
+                                                _connection.begin(), conn));
+    std::stringstream ss;
+    ss << "connected: " << std::boolalpha << (*conn)->is_connected();
+    ss << ", since: " << std::to_string((*conn)->get_switch_point());
+    ss << ", tasks: " << std::to_string((*conn)->get_tasks_count());
+    retval.insert(std::make_pair(conn_name, ss.str()));
   }
   return retval;
 }
