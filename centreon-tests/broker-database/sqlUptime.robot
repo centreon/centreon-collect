@@ -8,7 +8,6 @@ Documentation       Centreon Broker database connections status and timestamp th
 Library             Process
 Library             DateTime
 Library             OperatingSystem
-#Library             ../resources/BrokerDatabase.py
 Library				../resources/Common.py
 Library				../resources/Broker.py
 Library				../resources/Engine.py
@@ -64,3 +63,18 @@ Database Status Timestamp Stats Test
 
 
 *** Variables ***
+
+# broker is connected to the database
+# broker lost the connection to the database
+# broker restored its connection to the database
+
+#not reported as disconnected when iptables drop
+#both in sql manager output and grpc stats
+#should come from _is_connected inside sql connection
+
+#RUN	iptables -A INPUT -p tcp --dport ${port} -j DROP
+#RUN	iptables -A OUTPUT -p tcp --dport ${port} -j DROP
+#RUN	iptables -A FORWARD -p tcp --dport ${port} -j DROP
+
+#Run	iptables -F
+#Run	iptables -X
