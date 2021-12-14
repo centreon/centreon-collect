@@ -111,7 +111,7 @@ void mysql_connection::_clear_connection() {
  */
 void mysql_connection::update_stats(void) noexcept {
   auto now(std::time(nullptr));
-  if ((now - _clk) > 1000) {
+  if ((now - _clk) >= 1) {
     _clk = now;
     stats::center::instance().execute([this]() {
       _stats->set_waiting_tasks(_tasks_count);
@@ -722,7 +722,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _finish_asked(false),
       _tasks_count(0),
       _need_commit(false),
-      _last_access{0};
+      _last_access{0},
       _host(db_cfg.get_host()),
       _socket(db_cfg.get_socket()),
       _user(db_cfg.get_user()),
