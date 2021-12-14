@@ -98,6 +98,7 @@ class rebuilder {
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;
   void rebuild_rrd_graphs(const std::shared_ptr<io::data>& d);
+  void remove_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace unified_sql
 

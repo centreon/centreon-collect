@@ -32,6 +32,8 @@ namespace bbdo {
  * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
 using pb_rebuild_rrd_graphs =
     io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
+using pb_remove_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_remove_graphs)>;
 }  // namespace bbdo
 
 namespace storage {

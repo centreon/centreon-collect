@@ -418,7 +418,7 @@ void rebuilder::_set_index_rebuild(mysql& ms,
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void rebuilder::remove_graphs(const std::shared_ptr<io::data>& d) {
-  asio::post(_time.get_executor(), [this, data = d] {
+  asio::post(_timer.get_executor(), [this, data = d] {
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
   });
