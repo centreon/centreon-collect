@@ -160,4 +160,5 @@ mapping::entry const acknowledgement::entries[] = {
 static io::data* new_ack() {
   return new acknowledgement;
 }
-io::event_info::event_operations const acknowledgement::operations = {&new_ack};
+io::event_info::event_operations const acknowledgement::operations = {
+    &new_ack, nullptr, nullptr};

@@ -102,54 +102,53 @@ void randomize_init() {
   io::protocols::load();
   io::events::load();
   io::events& e(io::events::instance());
-  e.register_category("neb", io::events::neb);
-  e.register_event(io::events::neb, neb::de_acknowledgement, "acknowledgement",
-                   &neb::acknowledgement::operations,
+  e.register_event(make_type(io::neb, neb::de_acknowledgement),
+                   "acknowledgement", &neb::acknowledgement::operations,
                    neb::acknowledgement::entries);
-  e.register_event(io::events::neb, neb::de_custom_variable, "custom_variable",
-                   &neb::custom_variable::operations,
+  e.register_event(make_type(io::neb, neb::de_custom_variable),
+                   "custom_variable", &neb::custom_variable::operations,
                    neb::custom_variable::entries);
-  e.register_event(io::events::neb, neb::de_custom_variable_status,
+  e.register_event(make_type(io::neb, neb::de_custom_variable_status),
                    "custom_variable_status",
                    &neb::custom_variable_status::operations,
                    neb::custom_variable_status::entries);
-  e.register_event(io::events::neb, neb::de_downtime, "downtime",
+  e.register_event(make_type(io::neb, neb::de_downtime), "downtime",
                    &neb::downtime::operations, neb::downtime::entries);
-  e.register_event(io::events::neb, neb::de_event_handler, "event_handler",
+  e.register_event(make_type(io::neb, neb::de_event_handler), "event_handler",
                    &neb::event_handler::operations,
                    neb::event_handler::entries);
-  e.register_event(io::events::neb, neb::de_flapping_status, "flapping_status",
-                   &neb::flapping_status::operations,
+  e.register_event(make_type(io::neb, neb::de_flapping_status),
+                   "flapping_status", &neb::flapping_status::operations,
                    neb::flapping_status::entries);
-  e.register_event(io::events::neb, neb::de_host_check, "host_check",
+  e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                    &neb::host_check::operations, neb::host_check::entries);
-  e.register_event(io::events::neb, neb::de_host_dependency, "host_dependency",
-                   &neb::host_dependency::operations,
+  e.register_event(make_type(io::neb, neb::de_host_dependency),
+                   "host_dependency", &neb::host_dependency::operations,
                    neb::host_dependency::entries);
-  e.register_event(io::events::neb, neb::de_host, "host",
+  e.register_event(make_type(io::neb, neb::de_host), "host",
                    &neb::host::operations, neb::host::entries);
-  e.register_event(io::events::neb, neb::de_host_parent, "host_parent",
+  e.register_event(make_type(io::neb, neb::de_host_parent), "host_parent",
                    &neb::host_parent::operations, neb::host_parent::entries);
-  e.register_event(io::events::neb, neb::de_host_status, "host_status",
+  e.register_event(make_type(io::neb, neb::de_host_status), "host_status",
                    &neb::host_status::operations, neb::host_status::entries);
-  e.register_event(io::events::neb, neb::de_instance, "instance",
+  e.register_event(make_type(io::neb, neb::de_instance), "instance",
                    &neb::instance::operations, neb::instance::entries);
-  e.register_event(io::events::neb, neb::de_instance_status, "instance_status",
-                   &neb::instance_status::operations,
+  e.register_event(make_type(io::neb, neb::de_instance_status),
+                   "instance_status", &neb::instance_status::operations,
                    neb::instance_status::entries);
-  e.register_event(io::events::neb, neb::de_log_entry, "log_entry",
+  e.register_event(make_type(io::neb, neb::de_log_entry), "log_entry",
                    &neb::log_entry::operations, neb::log_entry::entries);
-  e.register_event(io::events::neb, neb::de_module, "module",
+  e.register_event(make_type(io::neb, neb::de_module), "module",
                    &neb::module::operations, neb::module::entries);
-  e.register_event(io::events::neb, neb::de_service_check, "service_check",
+  e.register_event(make_type(io::neb, neb::de_service_check), "service_check",
                    &neb::service_check::operations,
                    neb::service_check::entries);
-  e.register_event(io::events::neb, neb::de_service_dependency,
+  e.register_event(make_type(io::neb, neb::de_service_dependency),
                    "service_dependency", &neb::service_dependency::operations,
                    neb::service_dependency::entries);
-  e.register_event(io::events::neb, neb::de_service, "service",
+  e.register_event(make_type(io::neb, neb::de_service), "service",
                    &neb::service::operations, neb::service::entries);
-  e.register_event(io::events::neb, neb::de_service_status, "service_status",
+  e.register_event(make_type(io::neb, neb::de_service_status), "service_status",
                    &neb::service_status::operations,
                    neb::service_status::entries);
 }

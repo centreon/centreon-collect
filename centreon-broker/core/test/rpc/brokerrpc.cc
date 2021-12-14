@@ -23,8 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include <google/protobuf/util/time_util.h>
-
 #include <fmt/format.h>
 #include <cstdio>
 #include <fstream>
@@ -170,10 +168,12 @@ TEST_F(BrokerRpc, GetSqlConnectionSize) {
   SqlConnectionStats* _stats;
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 3);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 3);
 
   _stats = stats::center::instance().register_mysql_connection();
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks, _stats, 5);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _stats, 5);
 
   auto output = execute("GetSqlConnectionSize");
   ASSERT_EQ(output.front(), "connection array size: 2\n");

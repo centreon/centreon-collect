@@ -46,7 +46,7 @@ class event_handler : public io::data {
   ~event_handler();
   event_handler& operator=(event_handler const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_event_handler>::value;
+    return io::events::data_type<io::neb, neb::de_event_handler>::value;
   }
 
   std::string command_args;

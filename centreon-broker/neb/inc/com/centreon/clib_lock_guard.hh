@@ -23,13 +23,14 @@
 #define DEBUG_CLIB
 
 #ifdef DEBUG_CLIB
-template<typename M>
+template <typename M>
 class clib_lock_guard : public std::lock_guard<M> {
   static const constexpr char* filename = "/tmp/lock.log";
   const char* _msg;
 
  public:
-  explicit clib_lock_guard<M>(M& m, const char* msg) : std::lock_guard<M>(m), _msg(msg) {
+  explicit clib_lock_guard<M>(M& m, const char* msg)
+      : std::lock_guard<M>(m), _msg(msg) {
     FILE* f = fopen(filename, "a+");
     fprintf(f, "lock_guard lock mutex '%s'\n", _msg);
     fclose(f);
@@ -42,13 +43,14 @@ class clib_lock_guard : public std::lock_guard<M> {
   }
 };
 
-template<typename M>
+template <typename M>
 class clib_unique_lock : public std::unique_lock<M> {
   static const constexpr char* filename = "/tmp/lock.log";
   const char* _msg;
 
  public:
-  explicit clib_unique_lock<M>(M& m, const char* msg) : std::unique_lock<M>(m), _msg(msg) {
+  explicit clib_unique_lock<M>(M& m, const char* msg)
+      : std::unique_lock<M>(m), _msg(msg) {
     FILE* f = fopen(filename, "a+");
     fprintf(f, "unique_lock lock mutex '%s'\n", _msg);
     fclose(f);
@@ -75,18 +77,18 @@ class clib_unique_lock : public std::unique_lock<M> {
   }
 };
 #else
-template<typename M>
+template <typename M>
 class clib_lock_guard : public std::lock_guard<M> {
  public:
-  explicit clib_lock_guard<M>(M& m, const char* msg __attribute__((unused))) : std::lock_guard<M>(m) {
-  }
+  explicit clib_lock_guard<M>(M& m, const char* msg __attribute__((unused)))
+      : std::lock_guard<M>(m) {}
 };
 
-template<typename M>
+template <typename M>
 class clib_unique_lock : public std::unique_lock<M> {
  public:
-  explicit clib_unique_lock<M>(M& m, const char* msg __attribute__((unused))) : std::unique_lock<M>(m) {
-  }
+  explicit clib_unique_lock<M>(M& m, const char* msg __attribute__((unused)))
+      : std::unique_lock<M>(m) {}
 };
 #endif
 

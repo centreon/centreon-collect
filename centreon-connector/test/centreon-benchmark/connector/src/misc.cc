@@ -16,9 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/benchmark/connector/misc.hh"
 #include <fstream>
 #include "com/centreon/benchmark/connector/basic_exception.hh"
-#include "com/centreon/benchmark/connector/misc.hh"
 
 /**
  *  Load the commands configuration file.
@@ -57,11 +57,10 @@ char** com::centreon::benchmark::connector::list_to_tab(
     unsigned int size) {
   if (!size)
     size = v.size() + 1;
-  char** tab(new char* [size]);
+  char** tab(new char*[size]);
   unsigned int i(0);
   for (std::list<std::string>::const_iterator it(v.begin()), end(v.end());
-       it != end;
-       ++it)
+       it != end; ++it)
     tab[i++] = const_cast<char*>(it->c_str());
   tab[i] = NULL;
   return (tab);

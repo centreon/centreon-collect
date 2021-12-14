@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/storage/status.hh"
+#include "bbdo/storage/status.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/storage/internal.hh"
@@ -119,8 +119,7 @@ TEST(StorageStatus, DefaultCtor) {
   // Build object.
   storage::status s;
 
-  auto val(
-      io::events::data_type<io::events::storage, storage::de_status>::value);
+  auto val(io::events::data_type<io::storage, storage::de_status>::value);
 
   // Check properties values.
   ASSERT_FALSE(s.ctime != 0);

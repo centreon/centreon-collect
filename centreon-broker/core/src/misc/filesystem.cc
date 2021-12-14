@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <cstring>
 #include <fstream>
+#include <unistd.h>
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -177,4 +178,28 @@ int64_t filesystem::file_size(std::string const& path) {
   std::ifstream file{path, std::ios::binary | std::ios::ate};
   int64_t size{file.tellg()};
   return size;
+}
+
+/**
+ * @brief Return true if the file/directory is writable.
+ *
+ * @param name
+ *
+ * @return a boolean
+ */
+bool filesystem::writable(const std::string& name) {
+  int retval = access(name.c_str(), W_OK);
+  return retval == 0;
+}
+
+/**
+ * @brief Return true if the file/directory is writable.
+ *
+ * @param name
+ *
+ * @return a boolean
+ */
+bool filesystem::readable(const std::string& name) {
+  int retval = access(name.c_str(), R_OK);
+  return retval == 0;
 }

@@ -78,6 +78,11 @@ bool mysql_connection::_server_error(int code) const {
 void mysql_connection::_prepare_connection() {
   mysql_set_character_set(_conn, "utf8mb4");
 
+  /* This is to set a timeout for the mysql_ping() function that can hang
+   * sometimes */
+  uint32_t timeout = 5;
+  mysql_optionsv(_conn, MYSQL_OPT_READ_TIMEOUT, (void*)&timeout);
+
   if (_qps > 1)
     mysql_autocommit(_conn, 0);
   else
@@ -151,6 +156,7 @@ bool mysql_connection::_try_to_reconnect() {
     update_stats();
     return false;
   }
+  _last_access = std::time(nullptr);
 
   _prepare_connection();
 
@@ -244,6 +250,8 @@ void mysql_connection::_commit(mysql_task* t) {
       log_v2::sql()->error("mysql_connection: {}", err_msg);
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+    if (res == 0)
+      _last_access = std::time(nullptr);
   } else
     res = 0;
 
@@ -614,6 +622,7 @@ void mysql_connection::_run() {
       _start_condition.notify_all();
       return;
     }
+    _last_access = std::time(nullptr);
   }
 
   if (config::applier::mode == config::applier::finished) {
@@ -638,10 +647,27 @@ void mysql_connection::_run() {
       } else {
         _tasks_count = 0;
         update_stats();
+
+        /* We are waiting for some activity, nothing to do for now it is time
+         * to make some ping */
         _tasks_condition.wait(
-            lock, [this] { return _finish_asked || !_tasks_list.empty(); });
-        if (_tasks_list.empty()) {
+            lock,
+            [this] { return _finish_asked || !_tasks_list.empty(); });
+
+        std::time_t now = std::time(nullptr);;
+        if (_tasks_list.empty())
           _state = finished;
+        else if (now >= _last_access + 30) {
+          lock.unlock();
+          log_v2::sql()->trace("SQL: performing mysql_ping.");
+          if (mysql_ping(_conn)) {
+            if (!_try_to_reconnect())
+              log_v2::sql()->error("SQL: Reconnection failed.");
+          } else {
+            log_v2::sql()->trace("SQL: connection always alive");
+            _last_access = now;
+          }
+          lock.lock();
         }
         continue;
       }
@@ -696,6 +722,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _finish_asked(false),
       _tasks_count(0),
       _need_commit(false),
+      _last_access{0};
       _host(db_cfg.get_host()),
       _socket(db_cfg.get_socket()),
       _user(db_cfg.get_user()),

@@ -19,7 +19,7 @@
 #ifndef CCB_STORAGE_EVENTS_HH
 #define CCB_STORAGE_EVENTS_HH
 
-#include "com/centreon/broker/storage/metric.hh"
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/storage/rebuild.hh"
 #include "com/centreon/broker/storage/remove_graph.hh"
 #include "com/centreon/broker/storage/status.hh"

@@ -47,7 +47,7 @@ class instance_broadcast : public io::data {
    *  @return The event type.
    */
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::internal,
+    return io::events::data_type<io::internal,
                                  io::events::de_instance_broadcast>::value;
   }
 

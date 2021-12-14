@@ -38,7 +38,7 @@ namespace orders {
 class parser : public handle_listener {
  public:
   parser();
-  ~parser() override = default ;
+  ~parser() override = default;
   parser(parser const& p) = delete;
   parser& operator=(parser const& p) = delete;
   void error(handle& h) override;

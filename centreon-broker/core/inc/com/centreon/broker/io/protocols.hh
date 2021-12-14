@@ -48,12 +48,12 @@ class protocols {
   std::map<std::string, protocol>::const_iterator end() const;
   static protocols& instance();
   static void load();
-  void reg(std::string const& name,
+  void reg(const std::string& name,
            std::shared_ptr<factory> fac,
            unsigned short osi_from,
            unsigned short osi_to);
   static void unload();
-  void unreg(std::string const& name);
+  void unreg(const std::string& name);
 
  private:
   protocols();

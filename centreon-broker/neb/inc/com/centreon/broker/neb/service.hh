@@ -50,7 +50,7 @@ class service : public host_service, public service_status {
   ~service();
   service& operator=(service const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_service>::value;
+    return io::events::data_type<io::neb, neb::de_service>::value;
   }
 
   bool flap_detection_on_critical;

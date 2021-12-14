@@ -27,9 +27,7 @@ class CentreonEngineEnvironment : public testing::Environment {
     return;
   }
 
-  void TearDown() override {
-    return;
-  }
+  void TearDown() override { return; }
 };
 
 /**

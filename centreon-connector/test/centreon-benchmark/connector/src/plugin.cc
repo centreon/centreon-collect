@@ -16,10 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/benchmark/connector/plugin.hh"
 #include <assert.h>
 #include <errno.h>
-#include <iostream>
-#include <sstream>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -27,9 +26,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <wordexp.h>
+#include <iostream>
+#include <sstream>
 #include "com/centreon/benchmark/connector/basic_exception.hh"
 #include "com/centreon/benchmark/connector/misc.hh"
-#include "com/centreon/benchmark/connector/plugin.hh"
 
 using namespace com::centreon::benchmark::connector;
 
@@ -51,12 +51,16 @@ plugin::plugin(std::string const& commands_file,
  *
  *  @param[in] right  The object to copy.
  */
-plugin::plugin(plugin const& right) : benchmark() { _internal_copy(right); }
+plugin::plugin(plugin const& right) : benchmark() {
+  _internal_copy(right);
+}
 
 /**
  *  Default destructor.
  */
-plugin::~plugin() throw() { _cleanup(); }
+plugin::~plugin() throw() {
+  _cleanup();
+}
 
 /**
  *  Default copy constructor.
@@ -92,8 +96,7 @@ void plugin::run() {
     while (_current_running > 0) {
       _wait_plugin(true);
     }
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     wordfree(&p);
     throw;
   }

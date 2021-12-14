@@ -17,34 +17,34 @@
 */
 
 #ifndef CC_CLIB_VERSION_HH
-# define CC_CLIB_VERSION_HH
+#define CC_CLIB_VERSION_HH
 
 // Compile-time values.
-# define CENTREON_CLIB_VERSION_MAJOR  21
-# define CENTREON_CLIB_VERSION_MINOR  04
-# define CENTREON_CLIB_VERSION_PATCH  2
-# define CENTREON_CLIB_VERSION_STRING "21.04.2"
+#define CENTREON_CLIB_VERSION_MAJOR 21
+#define CENTREON_CLIB_VERSION_MINOR 04
+#define CENTREON_CLIB_VERSION_PATCH 2
+#define CENTREON_CLIB_VERSION_STRING "21.04.2"
 
-# include "com/centreon/namespace.hh"
+#include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 
-namespace              clib {
-  namespace            version {
-    // Compile-time values.
-    unsigned int const major = 21;
-    unsigned int const minor = 04;
-    unsigned int const patch = 2;
-    char const* const  string = "21.04.2";
+namespace clib {
+namespace version {
+// Compile-time values.
+unsigned int const major = 21;
+unsigned int const minor = 04;
+unsigned int const patch = 2;
+char const* const string = "21.04.2";
 
-    // Run-time values.
-    unsigned int       get_major() throw ();
-    unsigned int       get_minor() throw ();
-    unsigned int       get_patch() throw ();
-    char const*        get_string() throw ();
-  }
-}
+// Run-time values.
+unsigned int get_major() throw();
+unsigned int get_minor() throw();
+unsigned int get_patch() throw();
+char const* get_string() throw();
+}  // namespace version
+}  // namespace clib
 
 CC_END()
 
-#endif // !CC_HANDLE_HH
+#endif  // !CC_HANDLE_HH

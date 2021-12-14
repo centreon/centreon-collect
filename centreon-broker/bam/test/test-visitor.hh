@@ -52,9 +52,9 @@ class test_visitor : public io::stream {
           status{b.status},
           in_downtime{b.in_downtime} {}
     test_event(const bam::inherited_downtime& idt)
-      : typ{test_event::idt},
-        ba_id{idt.ba_id},
-        in_downtime{idt.in_downtime} {}
+        : typ{test_event::idt},
+          ba_id{idt.ba_id},
+          in_downtime{idt.in_downtime} {}
   };
 
  private:
@@ -80,7 +80,8 @@ class test_visitor : public io::stream {
         _queue.emplace_back(*std::static_pointer_cast<bam::ba_event>(d));
         break;
       case 393233:
-        _queue.emplace_back(*std::static_pointer_cast<bam::inherited_downtime>(d));
+        _queue.emplace_back(
+            *std::static_pointer_cast<bam::inherited_downtime>(d));
         break;
       default:
         break;
@@ -97,13 +98,14 @@ class test_visitor : public io::stream {
       switch (e.typ) {
         case test_visitor::test_event::kpi:
           std::cout << fmt::format(
-              "[{};{}] : KPI_EVENT - kpi {} ba {} status {} downtime {}\n", e.start_time,
-              e.end_time, e.kpi_id, e.ba_id, e.status, e.in_downtime);
+              "[{};{}] : KPI_EVENT - kpi {} ba {} status {} downtime {}\n",
+              e.start_time, e.end_time, e.kpi_id, e.ba_id, e.status,
+              e.in_downtime);
           break;
         case test_visitor::test_event::ba:
-          std::cout << fmt::format("[{};{}] :  BA_EVENT - ba {} status {} downtime {}\n",
-                                   e.start_time, e.end_time, e.ba_id, e.status,
-                                   e.in_downtime);
+          std::cout << fmt::format(
+              "[{};{}] :  BA_EVENT - ba {} status {} downtime {}\n",
+              e.start_time, e.end_time, e.ba_id, e.status, e.in_downtime);
           break;
         case test_visitor::test_event::idt:
           std::cout << fmt::format("====> INHERITED_DT - ba {} downtime {}\n",

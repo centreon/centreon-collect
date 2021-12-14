@@ -16,13 +16,13 @@
 ** For more information : contact@centreon.com
 */
 
-#include <iostream>
 #include <getopt.h>
 #include <libgen.h>
-#include <memory>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <iostream>
+#include <memory>
 #include "com/centreon/benchmark/connector/basic_exception.hh"
 #include "com/centreon/benchmark/connector/connector.hh"
 #include "com/centreon/benchmark/connector/plugin.hh"
@@ -47,7 +47,8 @@ struct options {
 static void usage(char* appname) {
   std::cout << "usage: " << basename(appname)
             << " -c commands_file [-t connector|plugin] [-m 1024] [-n 100] [-l "
-               "1024] args..." << std::endl;
+               "1024] args..."
+            << std::endl;
 }
 
 static void help() {
@@ -59,7 +60,8 @@ static void help() {
       << "  -n, --total-request:      Number of total request\n"
       << "  -o, --output:             The file path to write request output\n"
       << "  -t, --type:               Type of running command (connector or "
-         "plugin)" << std::endl;
+         "plugin)"
+      << std::endl;
 }
 
 static options parse_options(int ac, char** av) {
@@ -147,8 +149,7 @@ int main(int argc, char** argv) {
     bench->set_output_file(opt.output_file);
 
     bench->run();
-  }
-  catch (std::exception const& e) {
+  } catch (std::exception const& e) {
     std::cerr << "error: " << e.what() << std::endl;
     ret = EXIT_FAILURE;
   }

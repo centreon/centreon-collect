@@ -90,7 +90,7 @@ static io::data* new_im() {
   return new responsive_instance;
 }
 io::event_info::event_operations const responsive_instance::operations = {
-    &new_im};
+    &new_im, nullptr, nullptr};
 
 /**************************************
  *                                     *

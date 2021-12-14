@@ -163,4 +163,5 @@ mapping::entry const comment::entries[] = {
 static io::data* new_comment() {
   return new comment;
 }
-io::event_info::event_operations const comment::operations = {&new_comment};
+io::event_info::event_operations const comment::operations = {&new_comment,
+                                                              nullptr, nullptr};

@@ -116,8 +116,8 @@ You'll need to download the project and launch the *cmake.sh* script
 to prepare the compilation environment:
 
 ```shell
-git clone https://github.com/centreon/centreon-Collect
-cd centreon-Collect
+git clone https://github.com/centreon/centreon-collect
+cd centreon-collect
 ./cmake.sh
 ```
 
@@ -163,11 +163,11 @@ pip3 install conan
 You can now prepare the compilation environment:
 
 ```shell
-git clone https://github.com/centreon/centreon-Collect
-mkdir -p centreon-Collect/build
-cd centreon-Collect/build
+git clone https://github.com/centreon/centreon-collect
+mkdir -p centreon-collect/build
+cd centreon-collect/build
 conan install .. --build=missing
-cmake -DWITH_CENTREON_CLIB_INCLUDE_DIR=../centreon-clib/inc/ -DWITH_CENTREON_CLIB_LIBRARIES=centreon-clib/libcentreon_clib.so -DCMAKE_BUILD_TYPE=Release -DWITH_PREFIX=/usr -DWITH_PREFIX_BIN=/usr/sbin -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker -DWITH_PREFIX_CONF_BROKER=/etc/centreon-broker -DWITH_PREFIX_LIB_BROKER=/usr/lib64/nagios -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine -DWITH_PREFIX_LIB_CLIB=/usr/lib/ -DWITH_RW_DIR=/var/lib/centreon-engine/rw -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_MODULE_SIMU=On ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DWITH_TESTING=On -DWITH_MODULE_SIMU=On ..
 
 ```
 
@@ -195,7 +195,7 @@ You're done!
 ## Bug reports / Feature requests
 
 The best way to report a bug or to request a feature is to open an issue
-in GitHub's [issue tracker](https://github.com/centreon/centreon-Collect/issues/).
+in GitHub's [issue tracker](https://github.com/centreon/centreon-collect/issues/).
 
 Please note that Centreon Collect follows the
 [same workflow as Centreon](https://github.com/centreon/centreon/issues/new/choose)

@@ -46,9 +46,7 @@ class check : public handle_listener {
   check(check const& c) = delete;
   check& operator=(check const& c) = delete;
   void error(handle& h) override;
-  pid_t execute(uint64_t cmd_id,
-                std::string const& cmd,
-                const timestamp& tmt);
+  pid_t execute(uint64_t cmd_id, std::string const& cmd, const timestamp& tmt);
   void listen(listener* listnr);
   void on_timeout(bool final = true);
   void read(handle& h) override;
@@ -58,7 +56,6 @@ class check : public handle_listener {
   void write(handle& h) override;
 
  private:
-
   void _send_result_and_unregister(result const& r);
 
   pid_t _child;

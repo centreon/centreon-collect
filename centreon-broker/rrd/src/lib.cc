@@ -27,19 +27,13 @@
 #include <cstdio>
 #include <cstring>
 
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
-#include "com/centreon/broker/storage/perfdata.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Constructor.
@@ -156,6 +150,28 @@ void lib::update(time_t t, std::string const& value) {
   log_v2::perfdata()->debug("RRD: updating file '{}' ({})", _filename, argv[0]);
 
   // Update RRD file.
+  rrd_clear_error();
+  if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
+                   argv)) {
+    char const* msg(rrd_get_error());
+    if (!strstr(msg, "illegal attempt to update using time"))
+      log_v2::rrd()->error("RRD: failed to update value in file '{}': {}",
+                           _filename, msg);
+
+    else
+      log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
+                           _filename, msg);
+  }
+}
+
+void lib::update(const std::list<std::string>& pts) {
+  const char* argv[pts.size() + 1];
+  argv[pts.size()] = nullptr;
+  auto it = pts.begin();
+  for (uint32_t i = 0; i < pts.size(); i++) {
+    argv[i] = it->data();
+    ++it;
+  }
   rrd_clear_error();
   if (rrd_update_r(_filename.c_str(), nullptr, sizeof(argv) / sizeof(*argv) - 1,
                    argv)) {

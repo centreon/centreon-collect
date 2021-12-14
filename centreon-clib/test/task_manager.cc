@@ -73,7 +73,7 @@ TEST(ClibTaskManager, Execute) {
   tm.add(t1, timestamp::now(), true, true);
   ASSERT_TRUE(tm.next_execution_time().to_useconds());
 
-  ASSERT_EQ(tm.execute(timestamp::now()), 1);
+  ASSERT_EQ(tm.execute(timestamp::now()), 1u);
 
   task_test* t2(new task_test);
   tm.add(t2, timestamp(), false, false);
@@ -81,7 +81,7 @@ TEST(ClibTaskManager, Execute) {
   tm.add(t2, timestamp(), false, false);
   tm.add(t2, timestamp(), false, false);
 
-  ASSERT_EQ(tm.execute(timestamp::now()), 4);
+  ASSERT_EQ(tm.execute(timestamp::now()), 4u);
 
   timestamp future(timestamp::now());
   future.add_seconds(42);
@@ -97,9 +97,9 @@ TEST(ClibTaskManager, ExecuteRecurring) {
     task_test* t1(new task_test);
     tm.add(t1, timestamp(), 1, true, true);
 
-    ASSERT_EQ(tm.execute(timestamp::now()), 1);
-    ASSERT_EQ(tm.execute(timestamp::now()), 1);
-    ASSERT_EQ(tm.execute(timestamp::now()), 1);
+    ASSERT_EQ(tm.execute(timestamp::now()), 1u);
+    ASSERT_EQ(tm.execute(timestamp::now()), 1u);
+    ASSERT_EQ(tm.execute(timestamp::now()), 1u);
   }
 
   {
@@ -111,9 +111,9 @@ TEST(ClibTaskManager, ExecuteRecurring) {
     tm.add(t2, timestamp(), 1, false, false);
     tm.add(t2, timestamp(), 1, false, false);
 
-    ASSERT_EQ(tm.execute(timestamp::now()), 4);
-    ASSERT_EQ(tm.execute(timestamp::now()), 4);
-    ASSERT_EQ(tm.execute(timestamp::now()), 4);
+    ASSERT_EQ(tm.execute(timestamp::now()), 4u);
+    ASSERT_EQ(tm.execute(timestamp::now()), 4u);
+    ASSERT_EQ(tm.execute(timestamp::now()), 4u);
     delete t2;
   }
 
@@ -171,14 +171,14 @@ TEST(ClibTaskManager, RemoveByTask) {
   task_test none;
   ASSERT_FALSE(tm.remove(&none));
 
-  ASSERT_EQ(tm.remove(t1), 1);
+  ASSERT_EQ(tm.remove(t1), 1u);
 
   task_test* t2(new task_test);
   tm.add(t2, timestamp::now(), false, false);
   tm.add(t2, timestamp::now(), false, false);
   tm.add(t2, timestamp::now(), false, false);
   tm.add(t2, timestamp::now(), false, false);
-  ASSERT_EQ(tm.remove(t2), 4);
+  ASSERT_EQ(tm.remove(t2), 4u);
   delete t2;
 
   ASSERT_FALSE(tm.remove(reinterpret_cast<task*>(0x4242)));

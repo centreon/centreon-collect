@@ -22,10 +22,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/graphite/macro_cache.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/storage/metric.hh"
-#include "com/centreon/broker/storage/status.hh"
 
 CCB_BEGIN()
 

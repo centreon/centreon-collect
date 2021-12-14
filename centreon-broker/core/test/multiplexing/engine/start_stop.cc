@@ -64,18 +64,16 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Send events through engine.
     std::array<std::string, 2> messages{MSG1, MSG2};
     for (auto& m : messages) {
-      std::shared_ptr<io::raw> data(new io::raw);
+      auto data{std::make_shared<io::raw>()};
       data->append(m);
-      multiplexing::engine::instance().publish(
-          std::static_pointer_cast<io::data>(data));
+      multiplexing::engine::instance().publish(data);
     }
 
     // Should read no events from subscriber.
     {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
-      if (data)
-        throw msg_fmt("error at step #1");
+      ASSERT_FALSE(data);
     }
 
     // Start multiplexing engine.
@@ -85,34 +83,27 @@ TEST_F(StartStop, MultiplexingWorks) {
     for (auto& m : messages) {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
-      if (!data || data->type() != io::raw::static_type())
-        throw msg_fmt("error at step #2");
-      else {
-        std::shared_ptr<io::raw> raw(std::static_pointer_cast<io::raw>(data));
-        if (strncmp(raw->const_data(), m.c_str(), m.size()))
-          throw msg_fmt("error at step #3");
-      }
+      ASSERT_TRUE(data);
+      ASSERT_EQ(data->type(), io::raw::static_type());
+      std::shared_ptr<io::raw> raw(std::static_pointer_cast<io::raw>(data));
+      ASSERT_EQ(strncmp(raw->const_data(), m.c_str(), m.size()), 0);
     }
 
     // Publish a new event.
     {
-      std::shared_ptr<io::raw> data(new io::raw);
+      auto data{std::make_shared<io::raw>()};
       data->append(MSG3);
-      multiplexing::engine::instance().publish(
-          std::static_pointer_cast<io::data>(data));
+      multiplexing::engine::instance().publish(data);
     }
 
     // Read event.
     {
       std::shared_ptr<io::data> data;
       s.get_muxer().read(data, 0);
-      if (!data || data->type() != io::raw::static_type())
-        throw msg_fmt("error at step #4");
-      else {
-        std::shared_ptr<io::raw> raw(std::static_pointer_cast<io::raw>(data));
-        if (strncmp(raw->const_data(), MSG3.c_str(), MSG3.size()))
-          throw msg_fmt("error at step #5");
-      }
+      ASSERT_TRUE(data);
+      ASSERT_EQ(data->type(), io::raw::static_type());
+      auto raw{std::static_pointer_cast<io::raw>(data)};
+      ASSERT_EQ(strncmp(raw->const_data(), MSG3.c_str(), MSG3.size()), 0);
     }
 
     // Stop multiplexing engine.

@@ -21,13 +21,7 @@
 #
 
 # Set necessary settings.
-cmake_minimum_required(VERSION 2.8)
 project("Centreon Broker" C CXX)
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  message(FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
-endif ()
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # set -latomic if OS is Raspbian.
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
@@ -77,42 +71,14 @@ add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
 
 set_source_files_properties(${INC_DIR}/database/table_max_size.hh PROPERTIES GENERATED TRUE)
 
-set(protobuf_MODULE_COMPATIBLE True)
-find_package(nlohmann_json REQUIRED)
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(asio REQUIRED)
-find_package(Protobuf REQUIRED)
-find_package(gRPC REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(c-ares REQUIRED)
-find_package(ZLIB REQUIRED)
 find_package(mariadb-connector-c REQUIRED)
 
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
-include_directories(${nlohmann_json_INCLUDE_DIRS})
-include_directories(${fmt_INCLUDE_DIRS})
-include_directories(${spdlog_INCLUDE_DIRS})
-include_directories(${asio_INCLUDE_DIRS})
-include_directories(${protobuf_INCLUDE_DIRS})
-include_directories(${absl_INCLUDE_DIRS})
-include_directories(${gRPC_INCLUDE_DIRS})
-include_directories(${ZLIB_INCLUDE_DIRS})
-include_directories(${OpenSSL_INCLUDE_DIRS})
 include_directories(${mariadb-connector-c_INCLUDE_DIRS})
 
-link_directories(${nlohmann_json_LIB_DIRS})
-link_directories(${fmt_LIB_DIRS})
-link_directories(${spdlog_LIB_DIRS})
-link_directories(${protobuf_LIB_DIRS})
-link_directories(${gRPC_LIB_DIRS})
-link_directories(${c-ares_LIB_DIRS})
-link_directories(${OpenSSL_LIB_DIRS})
-link_directories(${ZLIB_LIB_DIRS})
 link_directories(${mariadb-connector-c_LIB_DIRS})
 
-set(PROTOBUF_PREFIX "${protobuf_LIB_DIRS}/..")
 message(STATUS "${PROTOBUF_PREFIX}/bin/protoc")
 set(GRPC_PREFIX "${gRPC_LIB_DIRS}/..")
 
@@ -144,15 +110,12 @@ target_link_libraries(berpc ${protobuf_LIBS})
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
-set(CENTREON_BROKER_MAJOR 21)
-set(CENTREON_BROKER_MINOR 10)
-set(CENTREON_BROKER_PATCH 0)
 if (CENTREON_BROKER_PRERELEASE)
-  set(CENTREON_BROKER_VERSION "${CENTREON_BROKER_MAJOR}.${CENTREON_BROKER_MINOR}.${CENTREON_BROKER_PATCH}-${CENTREON_BROKER_PRERELEASE}")
+  set(CENTREON_BROKER_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_BROKER_PRERELEASE}")
 else ()
-  set(CENTREON_BROKER_VERSION "${CENTREON_BROKER_MAJOR}.${CENTREON_BROKER_MINOR}.${CENTREON_BROKER_PATCH}")
+  set(CENTREON_BROKER_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 endif ()
-add_definitions(-DCENTREON_BROKER_VERSION=\"${CENTREON_BROKER_VERSION}\" -DCENTREON_BROKER_PATCH=${CENTREON_BROKER_PATCH})
+add_definitions(-DCENTREON_BROKER_VERSION=\"${CENTREON_BROKER_VERSION}\" -DCENTREON_BROKER_PATCH=${COLLECT_PATCH})
 configure_file(
   ${INC_DIR}/version.hh.in
   ${INC_DIR}/version.hh
@@ -194,52 +157,15 @@ endif ()
 # Options.
 #
 
-# Main directory.
-if (WITH_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "${WITH_PREFIX}")
-endif ()
+set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
-# Executable directory.
-if (WITH_PREFIX_BIN)
-  set(PREFIX_BIN "${WITH_PREFIX_BIN}")
-else ()
-  set(PREFIX_BIN "${CMAKE_INSTALL_PREFIX}/bin")
-endif ()
+# Modules directories.
+set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
+set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
 
-# Configuration directory.
-if (WITH_PREFIX_CONF_BROKER)
-  set(PREFIX_CONF "${WITH_PREFIX_CONF_BROKER}")
-else ()
-  set(PREFIX_CONF "${CMAKE_INSTALL_PREFIX}/etc")
-endif ()
-
-# Library directory.
-if (WITH_PREFIX_LIB_BROKER)
-  set(PREFIX_LIB "${WITH_PREFIX_LIB_BROKER}")
-else ()
-  set(PREFIX_LIB "${CMAKE_INSTALL_PREFIX}/lib")
-endif ()
-
-# Modules directory.
-if (WITH_PREFIX_MODULES)
-  set(PREFIX_MODULES "${WITH_PREFIX_MODULES}")
-else ()
-  set(PREFIX_MODULES "${PREFIX_LIB}/centreon-broker")
-endif ()
-
-# var directory.
-if (WITH_PREFIX_VAR)
-  set(PREFIX_VAR "${WITH_PREFIX_VAR}")
-else ()
-  set(PREFIX_VAR "${CMAKE_INSTALL_PREFIX}/var")
-endif ()
-
-# Development headers directory.
-if (WITH_PREFIX_INC)
-  set(PREFIX_INC "${WITH_PREFIX_INC}")
-else ()
-  set(PREFIX_INC "${CMAKE_INSTALL_PREFIX}/include/centreon-broker")
-endif ()
+# var directories.
+set(BROKER_VAR_LOG_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
+set(BROKER_VAR_LIB_DIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
 
 # User.
 if (WITH_USER_BROKER)
@@ -319,14 +245,14 @@ if (WITH_DAEMONS)
 
   foreach (DAEMON_NAME IN LISTS WITH_DAEMONS)
     set(DAEMONS_CONFIGURATION
-      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
+      "${DAEMONS_CONFIGURATION}  \"cbd\": [ { \"name\": \"${DAEMON_NAME}\", \"configuration_file\": \"${PREFIX_BROKER_CONF}/${DAEMON_NAME}.json\", \"run\": true, \"reload\": true } ],\n")
   endforeach ()
 
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
     "${PROJECT_SOURCE_DIR}/script/watchdog.json"
     @ONLY)
   install(FILES "${PROJECT_SOURCE_DIR}/script/watchdog.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   if (WITH_STARTUP_SCRIPT STREQUAL "sysv")
     install(PROGRAMS "${PROJECT_SOURCE_DIR}/script/cbd.init"
       DESTINATION "${STARTUP_DIR}"
@@ -346,11 +272,11 @@ if (WITH_CONFIG_FILES)
     @ONLY)
 
   install(FILES "${PROJECT_SOURCE_DIR}/config/poller-module.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-broker.json"
-    DESTINATION "${PREFIX_CONF}")
+    DESTINATION "${PREFIX_BROKER_CONF}")
 endif ()
 
 # Monitoring engine (for testing).
@@ -422,8 +348,9 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/mapping/entry.cc
   ${SRC_DIR}/misc/diagnostic.cc
   ${SRC_DIR}/misc/filesystem.cc
-  ${SRC_DIR}/misc/global_lock.cc
   ${SRC_DIR}/misc/misc.cc
+  ${SRC_DIR}/misc/parse_perfdata.cc
+  ${SRC_DIR}/misc/perfdata.cc
   ${SRC_DIR}/misc/processing_speed_computer.cc
   ${SRC_DIR}/misc/string.cc
   ${SRC_DIR}/misc/stringifier.cc
@@ -432,7 +359,6 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/misc/variant.cc
   ${SRC_DIR}/modules/handle.cc
   ${SRC_DIR}/multiplexing/engine.cc
-  ${SRC_DIR}/multiplexing/hooker.cc
   ${SRC_DIR}/multiplexing/muxer.cc
   ${SRC_DIR}/multiplexing/publisher.cc
   ${SRC_DIR}/mysql.cc
@@ -507,9 +433,9 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/mapping/source.hh
   ${INC_DIR}/misc/diagnostic.hh
   ${INC_DIR}/misc/filesystem.hh
-  ${INC_DIR}/misc/global_lock.hh
   ${INC_DIR}/misc/misc.hh
   ${INC_DIR}/misc/pair.hh
+  ${INC_DIR}/misc/perfdata.hh
   ${INC_DIR}/misc/processing_speed_computer.hh
   ${INC_DIR}/misc/shared_mutex.hh
   ${INC_DIR}/misc/string.hh
@@ -518,7 +444,6 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/misc/variant.hh
   ${INC_DIR}/modules/handle.hh
   ${INC_DIR}/multiplexing/engine.hh
-  ${INC_DIR}/multiplexing/hooker.hh
   ${INC_DIR}/multiplexing/muxer.hh
   ${INC_DIR}/multiplexing/publisher.hh
   ${INC_DIR}/multiplexing/subscriber.hh
@@ -586,6 +511,7 @@ add_broker_module(STATS ON)
 add_broker_module(NEB ON)
 add_broker_module(NOTIFICATION OFF)
 add_broker_module(RRD ON)
+add_broker_module(UNIFIED_SQL ON)
 add_broker_module(SQL ON)
 add_broker_module(STORAGE ON)
 add_broker_module(INFLUXDB ON)
@@ -655,13 +581,11 @@ install(CODE "
     endif ()
   endfunction()
 
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${CMAKE_INSTALL_PREFIX}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BIN}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_LIB}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_BROKER_CONF}\")
   mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_MODULES}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_INC}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CONF}\")
-  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_VAR}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${PREFIX_CBMOD}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${BROKER_VAR_LOG_DIR}\")
+  mkdir_chown(\"${USER}\" \"${GROUP}\" \"${BROKER_VAR_LIB_DIR}\")
   if (WITH_STARTUP_SCRIPT STREQUAL \"sysv\")
     mkdir_chown(\"${USER}\" \"${GROUP}\" \"${STARTUP_DIR}\")
   endif ()
@@ -669,13 +593,13 @@ install(CODE "
 
 # Install rule.
 install(TARGETS "${DAEMON}"
-  RUNTIME DESTINATION "${PREFIX_BIN}"
+  RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
   )
 
 
 # Install header files for development.
 install(DIRECTORY "${INC_DIR}/../../../"
-  DESTINATION "${PREFIX_INC}/"
+  DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/centreon-broker"
   COMPONENT "development"
   FILES_MATCHING PATTERN "*.hh" PATTERN "*.h"
   )
@@ -742,11 +666,11 @@ message(STATUS "    - Module                     ${MODULE_LIST}")
 message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "    - Binary prefix              ${PREFIX_BIN}")
-message(STATUS "    - Library prefix             ${PREFIX_LIB}")
+#message(STATUS "    - Binary prefix              ${CMAKE_INSTALL_SBINDIR}")
+#message(STATUS "    - Library prefix             ${PREFIX_LIB}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
-message(STATUS "    - Include prefix             ${PREFIX_INC}")
-message(STATUS "    - Configuration prefix       ${PREFIX_CONF}")
+message(STATUS "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker")
+message(STATUS "    - Configuration prefix       ${PREFIX_BROKER_CONF}")
 if (NOT WITH_STARTUP_SCRIPT STREQUAL "no")
   message(STATUS "    - Startup dir                ${STARTUP_DIR}")
 endif ()

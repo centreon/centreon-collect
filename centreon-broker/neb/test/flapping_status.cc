@@ -93,7 +93,6 @@ TEST_F(FlappingStatus, DefaultConstructor) {
   ASSERT_TRUE(fabs(flappy.percent_state_change) < 0.000001);
   ASSERT_EQ(flappy.reason_type, 0);
   ASSERT_EQ(flappy.service_id, 0u);
-  ASSERT_TRUE(
-      flappy.type() ==
-      (io::events::data_type<io::events::neb, neb::de_flapping_status>::value));
+  ASSERT_TRUE(flappy.type() ==
+              (io::events::data_type<io::neb, neb::de_flapping_status>::value));
 }

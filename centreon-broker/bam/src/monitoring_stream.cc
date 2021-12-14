@@ -23,26 +23,24 @@
 #include <fstream>
 #include <limits>
 
-#include "com/centreon/broker/bam/ba_status.hh"
+#include "bbdo/bam/ba_status.hh"
+#include "bbdo/bam/kpi_status.hh"
+#include "bbdo/bam/rebuild.hh"
+#include "bbdo/events.hh"
+#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
-#include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/bam/kpi_status.hh"
-#include "com/centreon/broker/bam/rebuild.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/global_lock.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_status.hh"
-#include "com/centreon/broker/storage/internal.hh"
-#include "com/centreon/broker/storage/metric.hh"
 #include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -200,7 +198,8 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       std::shared_ptr<neb::service_status> ss(
           std::static_pointer_cast<neb::service_status>(data));
       log_v2::bam()->trace(
-          "BAM: processing service status (host: {}, service: {}, hard state {}, "
+          "BAM: processing service status (host: {}, service: {}, hard state "
+          "{}, "
           "current state {})",
           ss->host_id, ss->service_id, ss->last_hard_state, ss->current_state);
       multiplexing::publisher pblshr;

@@ -44,8 +44,7 @@ class custom_variable : public custom_variable_status {
   ~custom_variable();
   custom_variable& operator=(custom_variable const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_custom_variable>::value;
+    return io::events::data_type<io::neb, neb::de_custom_variable>::value;
   }
 
   std::string default_value;

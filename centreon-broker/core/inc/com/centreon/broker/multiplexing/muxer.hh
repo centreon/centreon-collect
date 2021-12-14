@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2017 Centreon
+** Copyright 2009-2017-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,13 +21,8 @@
 
 #include <condition_variable>
 #include <list>
-#include <memory>
-#include <mutex>
-#include <queue>
-#include <string>
 #include <unordered_set>
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
 CCB_BEGIN()
@@ -46,7 +41,7 @@ namespace multiplexing {
  */
 class muxer : public io::stream {
  public:
-  typedef std::unordered_set<uint32_t> filters;
+  using filters = std::unordered_set<uint32_t>;
 
  private:
   std::condition_variable _cv;
@@ -79,10 +74,10 @@ class muxer : public io::stream {
   static uint32_t event_queue_max_size() noexcept;
   void publish(std::shared_ptr<io::data> const event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
-  void set_read_filters(filters const& fltrs);
-  void set_write_filters(filters const& fltrs);
-  filters const& get_read_filters() const;
-  filters const& get_write_filters() const;
+  void set_read_filters(const filters& fltrs);
+  void set_write_filters(const filters& fltrs);
+  const filters& get_read_filters() const;
+  const filters& get_write_filters() const;
   const std::string& get_read_filters_str() const;
   const std::string& get_write_filters_str() const;
   uint32_t get_event_queue_size() const;
@@ -92,6 +87,7 @@ class muxer : public io::stream {
   void wake();
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
+  const std::string& name() const;
 
   static std::string memory_file(std::string const& name);
   static std::string queue_file(std::string const& name);

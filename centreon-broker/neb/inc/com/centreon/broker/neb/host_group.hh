@@ -42,7 +42,7 @@ class host_group : public group {
   ~host_group();
   host_group& operator=(host_group const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb, neb::de_host_group>::value;
+    return io::events::data_type<io::neb, neb::de_host_group>::value;
   }
 
   static mapping::entry const entries[];

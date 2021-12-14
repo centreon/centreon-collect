@@ -48,8 +48,7 @@ class instance_status : public status {
   ~instance_status();
   instance_status& operator=(instance_status const& other);
   constexpr static uint32_t static_type() {
-    return io::events::data_type<io::events::neb,
-                                 neb::de_instance_status>::value;
+    return io::events::data_type<io::neb, neb::de_instance_status>::value;
   }
 
   bool active_host_checks_enabled;

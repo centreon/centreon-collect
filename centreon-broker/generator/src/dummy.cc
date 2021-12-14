@@ -65,4 +65,5 @@ mapping::entry const dummy::entries[] = {
 static io::data* new_dummy() {
   return new dummy();
 }
-io::event_info::event_operations const dummy::operations = {&new_dummy};
+io::event_info::event_operations const dummy::operations = {&new_dummy, nullptr,
+                                                            nullptr};

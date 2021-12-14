@@ -23,8 +23,8 @@
 #include <stack>
 
 #include "com/centreon/broker/bam/exp_tokenizer.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

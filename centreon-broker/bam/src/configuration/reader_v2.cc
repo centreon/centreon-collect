@@ -23,15 +23,15 @@
 #include <cstring>
 #include <memory>
 
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_timeperiod.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
-#include "com/centreon/broker/bam/dimension_ba_bv_relation_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_timeperiod_relation.hh"
-#include "com/centreon/broker/bam/dimension_bv_event.hh"
-#include "com/centreon/broker/bam/dimension_kpi_event.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod.hh"
-#include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/log_v2.hh"

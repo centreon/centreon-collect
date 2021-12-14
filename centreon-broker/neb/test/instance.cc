@@ -85,7 +85,7 @@ TEST_F(Instance, DefaultCtor) {
   // Object.
   neb::instance i;
 
-  auto val(io::events::data_type<io::events::neb, neb::de_instance>::value);
+  auto val(io::events::data_type<io::neb, neb::de_instance>::value);
 
   // Check.
   ASSERT_FALSE(i.source_id != 0);

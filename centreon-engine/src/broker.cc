@@ -383,7 +383,6 @@ void broker_aggregated_status_data(int type,
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_AGGREGATED_STATUS_DATA, &ds);
-
 }
 
 /**
@@ -708,7 +707,6 @@ void broker_custom_variable(int type,
 
   // Make callback.
   neb_make_callbacks(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &ds);
-
 }
 
 /**
@@ -911,7 +909,6 @@ void broker_external_command(int type,
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_EXTERNAL_COMMAND_DATA, &ds);
-
 }
 
 /**
@@ -999,7 +996,6 @@ void broker_group(int type,
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_GROUP_DATA, &ds);
-
 }
 
 /**
@@ -1033,7 +1029,6 @@ void broker_group_member(int type,
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_GROUP_MEMBER_DATA, &ds);
-
 }
 
 /**
@@ -1131,7 +1126,7 @@ int broker_host_check(int type,
 
   // Free data.
   delete[] command_buf;
-  return (return_code);
+  return return_code;
 }
 
 /**

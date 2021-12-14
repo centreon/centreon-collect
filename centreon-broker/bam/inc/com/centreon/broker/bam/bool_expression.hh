@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_BOOL_EXPRESSION_HH
 #define CCB_BAM_BOOL_EXPRESSION_HH
 
+#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -39,9 +40,6 @@ class bool_value;
  *  operations and evaluate them to match the kpi interface.
  */
 class bool_expression : public computable {
- public:
-  typedef impact_values::state state;
-
  private:
   uint32_t _id;
   std::shared_ptr<bool_value> _expression;
@@ -53,7 +51,7 @@ class bool_expression : public computable {
   ~bool_expression() noexcept = default;
   bool_expression& operator=(bool_expression const& other) = delete;
   bool child_has_update(computable* child, io::stream* visitor = NULL);
-  impact_values::state get_state() const;
+  state get_state() const;
   bool state_known() const;
   void set_expression(std::shared_ptr<bool_value> const& expression);
   std::shared_ptr<bool_value> get_expression() const;

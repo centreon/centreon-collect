@@ -133,4 +133,5 @@ mapping::entry const instance::entries[] = {
 static io::data* new_instance() {
   return new instance;
 }
-io::event_info::event_operations const instance::operations = {&new_instance};
+io::event_info::event_operations const instance::operations = {
+    &new_instance, nullptr, nullptr};

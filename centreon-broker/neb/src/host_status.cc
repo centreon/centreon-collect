@@ -189,4 +189,4 @@ static io::data* new_host_status() {
   return new host_status;
 }
 io::event_info::event_operations const host_status::operations = {
-    &new_host_status};
+    &new_host_status, nullptr, nullptr};

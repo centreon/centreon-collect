@@ -83,8 +83,8 @@ void applier::comment::_add_host_comment(
  */
 void applier::comment::_add_service_comment(
     retention::comment const& obj) noexcept {
-  service_map::const_iterator it_svc(service::services.find(
-      {obj.host_name(), obj.service_description()}));
+  service_map::const_iterator it_svc(
+      service::services.find({obj.host_name(), obj.service_description()}));
   if (it_svc == service::services.end() || !it_svc->second)
     return;
 

@@ -1,5 +1,5 @@
 ##
-## Copyright 2016-2017 Centreon
+## Copyright 2016-2021 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 ## For more information : contact@centreon.com
 ##
 
-find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 link_directories(${GTest_LIB_DIRS})
 
@@ -28,7 +27,9 @@ set(WDOG_TESTS_DIR ${PROJECT_SOURCE_DIR}/watchdog/test)
 # Include directories.
 include_directories(${PROJECT_SOURCE_DIR}/bam/inc)
 include_directories(${PROJECT_SOURCE_DIR}/bam/test)
+include_directories(${PROJECT_SOURCE_DIR}/storage/src)
 include_directories(${PROJECT_SOURCE_DIR}/storage/inc)
+include_directories(${PROJECT_SOURCE_DIR}/unified_sql/inc)
 include_directories(${PROJECT_SOURCE_DIR}/graphite/inc)
 include_directories(${PROJECT_SOURCE_DIR}/sql/inc)
 include_directories(${PROJECT_SOURCE_DIR}/influxdb/inc)
@@ -82,13 +83,11 @@ add_executable(ut
   ${TESTS_DIR}/misc/filesystem.cc
   ${TESTS_DIR}/misc/math.cc
   ${TESTS_DIR}/misc/misc.cc
+  ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/misc/stringifier.cc
   ${TESTS_DIR}/modules/module.cc
-  ${TESTS_DIR}/multiplexing/engine/hook.cc
-  ${TESTS_DIR}/multiplexing/engine/hooker.cc
   ${TESTS_DIR}/multiplexing/engine/start_stop.cc
-  ${TESTS_DIR}/multiplexing/engine/unhook.cc
   ${TESTS_DIR}/multiplexing/muxer/read.cc
   ${TESTS_DIR}/multiplexing/publisher/read.cc
   ${TESTS_DIR}/multiplexing/publisher/write.cc
@@ -106,9 +105,7 @@ add_executable(ut
   ${TESTS_SOURCES}
   )
 
-#set_target_properties("ut" PROPERTIES COMPILE_FLAGS "${MYSQL_CFLAGS}")
-
-target_link_libraries(ut rokerbase roker ${TESTS_LIBRARIES} conflictmgr
+target_link_libraries(ut roker rokerbase ${TESTS_LIBRARIES} conflictmgr
 	${nlohmann_json_LIBS} ${asio_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${GTest_LIBS} ${mariadb-connector-c_LIBS} ${OpenSSL_LIBS} ${gRPC_LIBS} ${absl_LIBS} )
 
 add_test(NAME tests COMMAND ut)

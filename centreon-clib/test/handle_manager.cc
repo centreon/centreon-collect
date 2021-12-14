@@ -215,7 +215,7 @@ TEST(ClibHandleManager, RemoveByHandleListener) {
 
   io::file_stream fs1(stdin);
   hm.add(&fs1, &l);
-  ASSERT_EQ(hm.remove(&l), 1);
+  ASSERT_EQ(hm.remove(&l), 1u);
 
   hm.add(&fs1, &l);
   io::file_stream fs2(stdout);
@@ -223,5 +223,5 @@ TEST(ClibHandleManager, RemoveByHandleListener) {
   io::file_stream fs3(stderr);
   hm.add(&fs3, &l);
 
-  ASSERT_EQ(hm.remove(&l), 3);
+  ASSERT_EQ(hm.remove(&l), 3u);
 }

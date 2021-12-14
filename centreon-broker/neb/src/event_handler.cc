@@ -146,4 +146,4 @@ static io::data* new_event_handler() {
   return new event_handler;
 }
 io::event_info::event_operations const event_handler::operations = {
-    &new_event_handler};
+    &new_event_handler, nullptr, nullptr};

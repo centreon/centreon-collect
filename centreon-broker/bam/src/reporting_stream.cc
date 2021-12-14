@@ -20,25 +20,24 @@
 
 #include <cstdlib>
 
-#include "com/centreon/broker/bam/ba_duration_event.hh"
-#include "com/centreon/broker/bam/ba_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_bv_relation_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_event.hh"
-#include "com/centreon/broker/bam/dimension_ba_timeperiod_relation.hh"
-#include "com/centreon/broker/bam/dimension_bv_event.hh"
-#include "com/centreon/broker/bam/dimension_kpi_event.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod_exception.hh"
-#include "com/centreon/broker/bam/dimension_timeperiod_exclusion.hh"
-#include "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
-#include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/bam/kpi_event.hh"
-#include "com/centreon/broker/bam/rebuild.hh"
+#include "bbdo/bam/ba_duration_event.hh"
+#include "bbdo/bam/ba_event.hh"
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_timeperiod.hh"
+#include "bbdo/bam/dimension_timeperiod_exception.hh"
+#include "bbdo/bam/dimension_timeperiod_exclusion.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/bam/kpi_event.hh"
+#include "bbdo/bam/rebuild.hh"
+#include "bbdo/events.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/global_lock.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -156,39 +155,34 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
                        data->type());
 
   switch (data->type()) {
-    case io::events::data_type<io::events::bam, bam::de_kpi_event>::value:
+    case io::events::data_type<io::bam, bam::de_kpi_event>::value:
       _process_kpi_event(data);
       break;
-    case io::events::data_type<io::events::bam, bam::de_ba_event>::value:
+    case io::events::data_type<io::bam, bam::de_ba_event>::value:
       _process_ba_event(data);
       break;
-    case io::events::data_type<io::events::bam,
-                               bam::de_ba_duration_event>::value:
+    case io::events::data_type<io::bam, bam::de_ba_duration_event>::value:
       _process_ba_duration_event(data);
       break;
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_truncate_table_signal>::value:
       _process_dimension_truncate_signal(data);
       break;
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_ba_event>::value:
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_bv_event>::value:
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value:
+    case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value:
+    case io::events::data_type<io::bam,
                                bam::de_dimension_ba_bv_relation_event>::value:
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_kpi_event>::value:
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_timeperiod>::value:
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam, bam::de_dimension_kpi_event>::value:
+    case io::events::data_type<io::bam, bam::de_dimension_timeperiod>::value:
+    case io::events::data_type<io::bam,
                                bam::de_dimension_timeperiod_exception>::value:
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_timeperiod_exclusion>::value:
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
       _process_dimension(data);
       break;
-    case io::events::data_type<io::events::bam, bam::de_rebuild>::value:
+    case io::events::data_type<io::bam, bam::de_rebuild>::value:
       _process_rebuild(data);
       break;
     default:
@@ -887,22 +881,20 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
   if (_processing_dimensions) {
     // Cache the event until the end of the dimensions dump.
     switch (e->type()) {
-      case io::events::data_type<io::events::bam,
-                                 bam::de_dimension_ba_event>::value: {
+      case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value: {
         bam::dimension_ba_event const& dba =
             *std::static_pointer_cast<bam::dimension_ba_event const>(e);
         log_v2::bam()->debug("BAM-BI: preparing ba dimension {} ('{}' '{}')",
                              dba.ba_id, dba.ba_name, dba.ba_description);
       } break;
-      case io::events::data_type<io::events::bam,
-                                 bam::de_dimension_bv_event>::value: {
+      case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value: {
         bam::dimension_bv_event const& dbv =
             *std::static_pointer_cast<bam::dimension_bv_event const>(e);
         log_v2::bam()->debug("BAM-BI: preparing bv dimension {} ('{}')",
                              dbv.bv_id, dbv.bv_name);
       } break;
       case io::events::data_type<
-          io::events::bam, bam::de_dimension_ba_bv_relation_event>::value: {
+          io::bam, bam::de_dimension_ba_bv_relation_event>::value: {
         bam::dimension_ba_bv_relation_event const& dbabv =
             *std::static_pointer_cast<
                 bam::dimension_ba_bv_relation_event const>(e);
@@ -910,8 +902,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
             "BAM-BI: preparing relation between ba {} and bv {}", dbabv.ba_id,
             dbabv.bv_id);
       } break;
-      case io::events::data_type<io::events::bam,
-                                 bam::de_dimension_kpi_event>::value: {
+      case io::events::data_type<io::bam, bam::de_dimension_kpi_event>::value: {
         bam::dimension_kpi_event const& dk{
             *std::static_pointer_cast<bam::dimension_kpi_event const>(e)};
         std::string kpi_name;
@@ -927,7 +918,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
         log_v2::bam()->debug("BAM-BI: preparing declaration of kpi {} ('{}')",
                              dk.kpi_id, kpi_name);
       } break;
-      case io::events::data_type<io::events::bam,
+      case io::events::data_type<io::bam,
                                  bam::de_dimension_timeperiod>::value: {
         bam::dimension_timeperiod const& tp =
             *std::static_pointer_cast<bam::dimension_timeperiod const>(e);
@@ -936,7 +927,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
             tp.name);
       } break;
       case io::events::data_type<
-          io::events::bam, bam::de_dimension_timeperiod_exception>::value: {
+          io::bam, bam::de_dimension_timeperiod_exception>::value: {
         bam::dimension_timeperiod_exception const& tpe =
             *std::static_pointer_cast<
                 bam::dimension_timeperiod_exception const>(e);
@@ -944,7 +935,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
                              tpe.timeperiod_id);
       } break;
       case io::events::data_type<
-          io::events::bam, bam::de_dimension_timeperiod_exclusion>::value: {
+          io::bam, bam::de_dimension_timeperiod_exclusion>::value: {
         bam::dimension_timeperiod_exclusion const& tpe =
             *std::static_pointer_cast<
                 bam::dimension_timeperiod_exclusion const>(e);
@@ -953,7 +944,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
             tpe.excluded_timeperiod_id, tpe.timeperiod_id);
       } break;
       case io::events::data_type<
-          io::events::bam, bam::de_dimension_ba_timeperiod_relation>::value: {
+          io::bam, bam::de_dimension_ba_timeperiod_relation>::value: {
         bam::dimension_ba_timeperiod_relation const& r =
             *std::static_pointer_cast<
                 bam::dimension_ba_timeperiod_relation const>(e);
@@ -982,35 +973,31 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
 void reporting_stream::_dimension_dispatch(
     std::shared_ptr<io::data> const& data) {
   switch (data->type()) {
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_ba_event>::value:
+    case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value:
       _process_dimension_ba(data);
       break;
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_bv_event>::value:
+    case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value:
       _process_dimension_bv(data);
       break;
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_ba_bv_relation_event>::value:
       _process_dimension_ba_bv_relation(data);
       break;
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_kpi_event>::value:
+    case io::events::data_type<io::bam, bam::de_dimension_kpi_event>::value:
       _process_dimension_kpi(data);
       break;
-    case io::events::data_type<io::events::bam,
-                               bam::de_dimension_timeperiod>::value:
+    case io::events::data_type<io::bam, bam::de_dimension_timeperiod>::value:
       _process_dimension_timeperiod(data);
       break;
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_timeperiod_exception>::value:
       _process_dimension_timeperiod_exception(data);
       break;
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_timeperiod_exclusion>::value:
       _process_dimension_timeperiod_exclusion(data);
       break;
-    case io::events::data_type<io::events::bam,
+    case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
       _process_dimension_ba_timeperiod_relation(data);
       break;

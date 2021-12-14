@@ -135,13 +135,13 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       try {
         log_v2::instance().apply(s);
       } catch (const std::exception& e) {
-        log_v2::core()->error(e.what());
+        log_v2::core()->error("main: {}", e.what());
       }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
 
     } catch (std::exception const& e) {
-      log_v2::core()->error(e.what());
+      log_v2::core()->error("main: {}", e.what());
       return -1;
     } catch (...) {
       log_v2::core()->error("main: configuration file parsing failed");
