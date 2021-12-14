@@ -70,7 +70,7 @@ Database Status Timestamp Stats Test
 
 #not reported as disconnected when iptables drop
 #both in sql manager output and grpc stats
-#should come from _is_connected inside sql connection
+#should come from non corrrectly setted variables inside sql connection
 
 #RUN	iptables -A INPUT -p tcp --dport ${port} -j DROP
 #RUN	iptables -A OUTPUT -p tcp --dport ${port} -j DROP
