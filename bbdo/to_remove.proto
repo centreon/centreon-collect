@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package com.centreon.broker;
+
+message ToRemoveMessage {
+  repeated uint64 index_id = 1;
+  repeated uint64 metric_id = 2;
+}

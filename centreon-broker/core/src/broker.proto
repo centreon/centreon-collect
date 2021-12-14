@@ -29,6 +29,7 @@ service Broker {
    * @return An Empty object.
    */
   rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
+  rpc RemoveGraphs(ToRemove) returns (google.protobuf.Empty) {}
 }
 
 message Version {
@@ -122,4 +123,9 @@ message BrokerStats {
 
 message IndexIds {
   repeated uint64 index_id = 1;
+}
+
+message ToRemove {
+  repeated uint64 index_id = 1;
+  repeated uint64 metric_id = 2;
 }

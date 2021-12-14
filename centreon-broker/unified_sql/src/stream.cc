@@ -440,6 +440,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
       _unified_sql_process_service_status(data);
   } else if (type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
     _rebuilder.rebuild_rrd_graphs(data);
+  else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
+    _rebuilder.remove_graphs(data);
   else {
     log_v2::sql()->trace(
         "unified sql: event of type {} thrown away ; no need to "

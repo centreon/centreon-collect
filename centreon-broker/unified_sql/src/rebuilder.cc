@@ -64,8 +64,6 @@ rebuilder::rebuilder(const database_config& db_cfg,
       _parent(parent) {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
-  _timer.expires_after(std::chrono::seconds(1));
-  _timer.async_wait(std::bind(&rebuilder::_run, this, std::placeholders::_1));
 }
 
 /**
@@ -415,6 +413,18 @@ void rebuilder::_set_index_rebuild(mysql& ms,
 }
 
 /**
+ * @brief process a remove graphs message.
+ *
+ * @param d The BBDO message with all the metrics/indexes to remove.
+ */
+void rebuilder::remove_graphs(const std::shared_ptr<io::data>& d) {
+  asio::post(_time.get_executor(), [this, data = d] {
+    const bbdo::pb_remove_graphs& ids =
+        *static_cast<const bbdo::pb_remove_graphs*>(data.get());
+  });
+}
+
+/**
  * @brief process a rebuild metrics message.
  *
  * @param d The BBDO message with all the metric ids to rebuild.
@@ -430,6 +440,9 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         ids_str);
 
     mysql ms(_db_cfg);
+    ms.run_query(fmt::format("UPDATE index_data SET must_be_rebuild='2' WHERE id IN ({})",
+          ids_str), database::mysql_error::update_index_state, false);
+
     int32_t conn = ms.choose_best_connection(-1);
     /* Lets' get the metrics to rebuild time in DB */
     std::promise<database::mysql_result> promise;
@@ -472,7 +485,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
           v.check_interval = 5 * 60;
       }
 
-      ids_str = fmt::format("{}", fmt::join(mids, ","));
+      std::string mids_str{fmt::format("{}", fmt::join(mids, ","))};
       multiplexing::publisher().write(start_rebuild);
 
       promise = std::promise<database::mysql_result>();
@@ -497,7 +510,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
           tmv.tm_sec = tmv.tm_min = tmv.tm_hour = 0;
           tmv.tm_mday -= db_retention_day;
           start = mktime(&tmv);
-          while (db_retention_day > 0) {
+          while (db_retention_day >= 0) {
             tmv.tm_mday++;
             end = mktime(&tmv);
             db_retention_day--;
@@ -506,7 +519,7 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
                 fmt::format("SELECT id_metric,ctime,value FROM data_bin WHERE "
                             "ctime>={} AND "
                             "ctime<{} AND id_metric IN ({}) ORDER BY ctime ASC",
-                            start, end, ids_str)};
+                            start, end, mids_str)};
             log_v2::sql()->trace("Metrics rebuild: Query << {} >> executed",
                                  query);
             ms.run_query_and_get_result(query, &promise, conn);
@@ -543,7 +556,9 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
     end_rebuild->obj = start_rebuild->obj;
     end_rebuild->obj.set_state(RebuildMessage_State_END);
     multiplexing::publisher().write(end_rebuild);
-    log_v2::sql()->debug("Metric rebuild: Rebuild of metrics ({}) finished",
+    ms.run_query(fmt::format("UPDATE index_data SET must_be_rebuild='0' WHERE id IN ({})",
+          ids_str), database::mysql_error::update_index_state, false);
+    log_v2::sql()->debug("Metric rebuild: Rebuild of metrics from the following indexes ({}) finished",
                          ids_str);
   });
 }

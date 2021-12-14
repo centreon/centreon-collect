@@ -84,6 +84,7 @@ enum data_element {
   de_ack = 2,
   de_stop = 3,
   de_rebuild_rrd_graphs = 4,
+  de_remove_graphs = 5,
 };
 }
 namespace storage {
@@ -96,6 +97,7 @@ enum data_element {
   de_metric_mapping = 6,
   de_pb_rebuild = 7,
   de_rebuild_message = 8,
+  de_remove_message = 9,
 };
 }
 namespace bam {

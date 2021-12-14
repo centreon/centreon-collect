@@ -33,6 +33,8 @@ CCB_BEGIN()
 namespace bbdo {
 using pb_rebuild_rrd_graphs =
     io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
+using pb_remove_graphs =
+    io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
 }
 
 class broker_impl final : public Broker::Service {
@@ -73,6 +75,10 @@ class broker_impl final : public Broker::Service {
 
   grpc::Status RebuildRRDGraphs(grpc::ServerContext* context,
                                 const IndexIds* request,
+                                ::google::protobuf::Empty* response) override;
+
+  grpc::Status RemoveGraphs(grpc::ServerContext* context,
+                                const ToRemove* request,
                                 ::google::protobuf::Empty* response) override;
 
  public:
