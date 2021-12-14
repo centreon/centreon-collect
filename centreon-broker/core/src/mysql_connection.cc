@@ -679,7 +679,7 @@ mysql_connection::mysql_connection(database_config const& db_cfg)
       _finish_asked(false),
       _tasks_count(0),
       _need_commit(false),
-      _last_access{0};
+      _last_access{0},
       _host(db_cfg.get_host()),
       _socket(db_cfg.get_socket()),
       _user(db_cfg.get_user()),
