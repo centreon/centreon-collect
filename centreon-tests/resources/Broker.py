@@ -654,8 +654,89 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
     time.sleep(5)
   return retval
 
-def get_metric_to_delete():
-    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/*.rrd")]
+
+##
+# @brief Gets count indexes that does not exist in index_data.
+#
+# @param count:int The number of indexes to get.
+#
+# @return a list of index ids.
+#
+def get_not_existing_indexes(count:int):
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='root',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    ids_db = []
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `id` FROM `index_data`"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            index = 1
+            for r in result:
+                while int(r['id']) > index:
+                    ids_db.append(index)
+                    if len(ids_db) == count:
+                        return ids_db
+                    index += 1
+                index += 1
+            while len(ids_db) < count:
+                ids_db.append(index)
+                index += 1
+
+    return ids_db
+
+
+##
+# @brief Gets count indexes from available ones.
+#
+# @param count:int The number of indexes to get.
+#
+# @return a list of index ids.
+#
+def get_indexes_to_delete(count:int):
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/[0-9]*.rrd")]
+    ids = [int(f.split(".")[0]) for f in files]
+
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='root',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    ids_db = set()
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `metric_id`,`index_id` FROM `metrics`"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            for r in result:
+                if int(r['metric_id']) in ids:
+                    ids_db.add(int(r['index_id']))
+                if len(ids_db) == count:
+                    return list(ids_db)
+
+    return list(ids_db)
+
+
+##
+# @brief Gets count metrics that does not exist.
+#
+# @param count:int The number of metrics to get.
+#
+# @return a list of metric ids.
+#
+def get_not_existing_metrics(count:int):
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
@@ -675,8 +756,45 @@ def get_metric_to_delete():
             ids_db = [r['metric_id'] for r in result]
 
     inter = list(set(ids) & set(ids_db))
-    retval = inter[0]
+    index = 1
+    retval = []
+    while len(retval) < count:
+        if not index in inter:
+            retval.append(index)
+        index += 1
     return retval
+
+
+##
+# @brief Gets count metrics from available ones.
+#
+# @param count:int The number of metrics to get.
+#
+# @return a list of metric ids.
+#
+def get_metrics_to_delete(count:int):
+    files = [os.path.basename(x) for x in glob.glob("/var/lib/centreon/metrics/[0-9]*.rrd")]
+    ids = [int(f.split(".")[0]) for f in files]
+
+    # Connect to the database
+    connection = pymysql.connect(host='localhost',
+                                 user='root',
+                                 password='centreon',
+                                 database='centreon_storage',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            # Read a single record
+            sql = "SELECT `metric_id` FROM `metrics`"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            ids_db = [r['metric_id'] for r in result]
+
+    inter = list(set(ids) & set(ids_db))
+    return inter[:count]
+
 
 def run_reverse_bam(duration, interval):
     subp.Popen("broker/map_client.py {:f}".format(interval), shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
@@ -757,6 +875,22 @@ def get_metrics_matching_indexes(indexes):
             retval = [int(r['metric_id']) for r in result]
             return retval
     return []
+
+
+##
+# @brief send a gRPC command to remove graphs (by indexes or by metrics)
+#
+# @param port the gRPC port to use to send the command
+# @param indexes a list of indexes
+# @param metrics a list of metrics
+#
+def remove_graphs(port, indexes, metrics):
+    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        trm = broker_pb2.ToRemove()
+        trm.index_id.extend(indexes)
+        trm.metric_id.extend(metrics)
+        stub.RemoveGraphs(trm)
 
 
 ##

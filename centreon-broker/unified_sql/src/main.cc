@@ -90,9 +90,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
                        &storage::rebuild::operations,
                        storage::rebuild::entries);
-      e.register_event(make_type(io::storage, storage::de_remove_graph),
-                       "remove_graph", &storage::remove_graph::operations,
-                       storage::remove_graph::entries);
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
       e.register_event(make_type(io::storage, storage::de_index_mapping),
@@ -113,6 +110,17 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_rebuild_message),
                        "rebuild_message",
                        &storage::pb_rebuild_message::operations);
+
+      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
+       * the remove graphs message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs),
+                       "remove_graphs", &bbdo::pb_remove_graphs::operations);
+
+      /* Let's register the message to ask rrd for remove metrics. This is
+       * pb_remove_graph_message. */
+      e.register_event(make_type(io::storage, storage::de_remove_graph_message),
+                       "remove_graphs_message",
+                       &storage::pb_remove_graph_message::operations);
     }
 
     // Register unified_sql layer.

@@ -21,6 +21,7 @@
 
 #include "bbdo/events.hh"
 #include "bbdo/rebuild_message.pb.h"
+#include "bbdo/remove_graph_message.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 CCB_BEGIN()
 
@@ -31,6 +32,12 @@ namespace storage {
 using pb_rebuild_message =
     io::protobuf<RebuildMessage,
                  make_type(io::storage, storage::de_rebuild_message)>;
+/**
+ * Here is the declaration of the message sent by unified_sql to rrd to remove
+ * graphs. */
+using pb_remove_graph_message =
+    io::protobuf<RemoveGraphMessage,
+                 make_type(io::storage, storage::de_remove_graph_message)>;
 }  // namespace storage
 CCB_END()
 

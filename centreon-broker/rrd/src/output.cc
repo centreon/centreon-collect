@@ -322,6 +322,21 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           break;
       }
     } break;
+    case storage::pb_remove_graph_message::static_type(): {
+      log_v2::rrd()->debug("RRD: RemoveGraphsMessage received");
+      std::shared_ptr<storage::pb_remove_graph_message> e{
+          std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
+      for (auto& m : e->obj.metric_ids()) {
+        std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+        /* File removed */
+        _backend.remove(path);
+      }
+      for (auto& i : e->obj.index_ids()) {
+        std::string path{fmt::format("{}{}.rrd", _status_path, i)};
+        /* File removed */
+        _backend.remove(path);
+      }
+    } break;
     case storage::rebuild::static_type(): {
       // Debug message.
       std::shared_ptr<storage::rebuild> e(

@@ -21,6 +21,7 @@
 #include <cstring>
 #include <thread>
 
+#include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
@@ -29,9 +30,8 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/stats/center.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "bbdo/remove_graph_message.pb.h"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -560,35 +560,48 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
     mysql ms(_dbcfg);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
-    uint32_t deleted_indexes = 0;
-    uint32_t deleted_metrics = 0;
 
     std::promise<database::mysql_result> promise;
     int32_t conn = ms.choose_best_connection(-1);
     std::set<uint64_t> indexes_to_delete;
     std::set<uint64_t> metrics_to_delete;
     try {
-      ms.run_query_and_get_result(
-          fmt::format(
-              "SELECT m.index_id,m.metric_id, m.metric_name, i.host_id, "
-              "i.service_id FROM metrics m LEFT JOIN index_data i ON "
-              "i.id=m.index_id WHERE i.index_id IN ({})",
-              fmt::join(ids.obj.index_ids(), ",")),
-          &promise, conn);
-      database::mysql_result res(promise.get_future().get());
+      if (!ids.obj.index_ids().empty()) {
+        ms.run_query_and_get_result(
+            fmt::format("SELECT i.id,m.metric_id, m.metric_name,i.host_id,"
+                        "i.service_id FROM index_data i LEFT JOIN metrics m ON "
+                        "i.id=m.index_id WHERE i.id IN ({})",
+                        fmt::join(ids.obj.index_ids(), ",")),
+            &promise, conn);
+        database::mysql_result res(promise.get_future().get());
 
-      std::lock_guard<std::mutex> lock(_metric_cache_m);
-      while (ms.fetch_row(res)) {
-        indexes_to_delete.insert(res.value_as_u64(0));
-        metrics_to_delete.insert(res.value_as_u64(1));
+        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        while (ms.fetch_row(res)) {
+          indexes_to_delete.insert(res.value_as_u64(0));
+          uint64_t mid = res.value_as_u64(1);
+          if (mid)
+            metrics_to_delete.insert(mid);
 
-        _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
-        _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+          _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+        }
       }
-      promise = std::promise<database::mysql_result>();
-      for (uint64_t i : ids.obj.metric_ids()) {
-        metrics_to_delete.insert(i);
-        _metric_cache.erase({res.value_as_u64(0), res.value_as_str(1)});
+
+      if (!ids.obj.metric_ids().empty()) {
+        promise = std::promise<database::mysql_result>();
+
+        ms.run_query_and_get_result(
+            fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
+                        "WHERE metric_id IN ({})",
+                        fmt::join(ids.obj.metric_ids(), ",")),
+            &promise, conn);
+        database::mysql_result res(promise.get_future().get());
+
+        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        while (ms.fetch_row(res)) {
+          metrics_to_delete.insert(res.value_as_u64(1));
+          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+        }
       }
     } catch (const std::exception& e) {
       log_v2::sql()->error(
@@ -597,17 +610,16 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
           e.what());
     }
 
+    std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
     if (!metrics_to_delete.empty()) {
-      std::string mids_str{
-          fmt::format("{}", fmt::join(metrics_to_delete, ","))};
-      log_v2::sql()->debug("metrics {} erased from database", mids_str);
+      log_v2::sql()->info("metrics {} erased from database", mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
           database::mysql_error::delete_metric, false);
     }
+    std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
-      std::string ids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
-      log_v2::sql()->debug("indexes {} erased from database", ids_str);
+      log_v2::sql()->info("indexes {} erased from database", ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
           database::mysql_error::delete_index, false);
@@ -620,8 +632,9 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
       for (uint64_t i : indexes_to_delete)
         rmg->obj.add_index_ids(i);
       multiplexing::publisher().write(rmg);
-    }
+    } else
+      log_v2::sql()->info(
+          "metrics {} and indexes {} do not appear in the storage database",
+          mids_str, ids_str);
   });
 }
-
-
