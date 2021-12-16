@@ -48,45 +48,18 @@ namespace unified_sql {
 class stream;
 
 class rebuilder {
-  asio::steady_timer _timer;
-  std::atomic_bool _should_exit;
   database_config _db_cfg;
   std::shared_ptr<mysql_connection> _connection;
   uint32_t _interval_length;
-  uint32_t _rebuild_check_interval;
   uint32_t _rrd_len;
-  stream* _parent;
 
   // Local types.
-  struct index_info {
-    uint64_t index_id;
-    uint32_t host_id;
-    uint32_t service_id;
-    uint32_t rrd_retention;
-  };
-
-  struct metric_info {
-    uint32_t metric_id;
-    std::string metric_name;
-    int16_t metric_type;
-  };
-
-  void _next_index_to_rebuild(index_info& info, mysql& ms);
-  void _rebuild_metric(mysql& ms,
-                       uint32_t metric_id,
-                       uint32_t host_id,
-                       uint32_t service_id,
-                       std::string const& metric_name,
-                       int16_t metric_type,
-                       uint32_t interval,
-                       int64_t length);
-  void _rebuild_status(mysql& ms,
-                       uint64_t index_id,
-                       uint32_t interval,
-                       int64_t length);
-  void _send_rebuild_event(bool end, uint64_t id, bool is_index);
-  void _set_index_rebuild(mysql& db, uint64_t index_id, int16_t state);
-  void _run(asio::error_code ec);
+    struct metric_info {
+      std::string metric_name;
+      int32_t data_source_type;
+      int32_t rrd_retention;
+      uint32_t check_interval;
+    };
 
  public:
   rebuilder(database_config const& db_cfg,
@@ -94,7 +67,7 @@ class rebuilder {
             uint32_t interval_length = 60,
             uint32_t rebuild_check_interval = 600,
             uint32_t rrd_length = 15552000);
-  ~rebuilder();
+  ~rebuilder() noexcept = default;
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;
   void rebuild_rrd_graphs(const std::shared_ptr<io::data>& d);

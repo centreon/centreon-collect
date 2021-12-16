@@ -25,6 +25,9 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
+get_protobuf_files(rebuild_message)
+get_protobuf_files(remove_graph_message)
+
 # conflict_manager library.
 add_library(conflictmgr STATIC
   # Sources.
@@ -51,6 +54,8 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/stream.cc"
+  ${proto_rebuild_message}
+  ${proto_remove_graph_message}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"

@@ -59,8 +59,8 @@ rebuilder::rebuilder(database_config const& db_cfg,
       _rrd_len(rrd_length) {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
-  _timer.expires_after(std::chrono::seconds(1));
-  _timer.async_wait(std::bind(&rebuilder::_run, this, std::placeholders::_1));
+//  _timer.expires_after(std::chrono::seconds(1));
+//  _timer.async_wait(std::bind(&rebuilder::_run, this, std::placeholders::_1));
 }
 
 /**
