@@ -21,6 +21,7 @@
 #include <fmt/format.h>
 
 #include <cstring>
+#include <deque>
 #include <memory>
 
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
