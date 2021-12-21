@@ -45,32 +45,17 @@ StatsDB6
     Database Status Timestamp Stats Test        conn=6
 
 *** Keywords ***
-Exists Mysql Connections Size In Broker
+Mysql Connection Size Json Request
     ${location}=        Set Variable            /var/lib/centreon-broker/central-broker-master-stats.json
     ${key1}=            Set Variable            mysql manager
     ${key2}=            Set Variable            size
-    ${res}=             Stats Exists In File    location=${location}        key1=${key1}
-    Should Be True      ${res}
-    ${res}=             Stats Exists In File    location=${location}        key1=${key1}        key2=${key2}
-    Should Be True      ${res}
-Exists Mysql Connections Size In Grpc
-    ${component}=       Set Variable            broker
-    ${exe}=             Set Variable            GetSqlConnectionSize
-    ${key1}=            Set Variable            size
-    ${res}=             Stats Exists In Grpc    component=${component}      exe=${exe}          key1=${key1}
-    #Log To Console      ${res}
-    Should Be True      ${res}
-Get Mysql Connections Size From Broker
-    ${location}=        Set Variable            /var/lib/centreon-broker/central-broker-master-stats.json
-    ${key1}=            Set Variable            mysql manager
-    ${key2}=            Set Variable            size
-    ${res}=             Get Stats In File       location=${location}        key1=${key1}        key2=${key2}
+    ${res}=             Json Stats Request      location=${location}        key1=${key1}        key2=${key2}
     [return]            ${res}
-Get Mysql Connections Size From Grpc
+Mysql Connection Size Grpc Request
     ${component}=       Set Variable            broker
     ${exe}=             Set Variable            GetSqlConnectionSize
     ${key1}=            Set Variable            size
-    ${res}=             Get Stats In Grpc       component=${component}      exe=${exe}          key1=${key1}
+    ${res}=             Grpc Stats Request      component=${component}      exe=${exe}          key1=${key1}
     [return]            ${res}
 Database Status Timestamp Stats Test
     [Arguments]     ${conn}
@@ -85,12 +70,12 @@ Database Status Timestamp Stats Test
     Broker Config Log               central     sql                             trace
     Start Broker
     Start Engine
-    Exists Mysql Connections Size In Broker
-    Exists Mysql Connections Size In Grpc
-    ${mysqlConnectionsSizeBroker}=              Get Mysql Connections Size From Broker
-    ${mysqlConnectionsSizeGrpc}=                Get Mysql Connections Size From Grpc
-    Should Be Equal As Integers                 ${mysqlConnectionsSizeBroker}                           ${conn}
-    Should Be Equal As Integers                 ${mysqlConnectionsSizeGrpc}                             ${conn}
+    ${sizeJson}                     ${sizeJsonValue}=                           Mysql Connection Size Json Request
+    ${sizeGrpc}                     ${sizeGrpcValue}=                           Mysql Connection Size Grpc Request
+    Should Be True                  ${sizeJson}
+    Should Be True                  ${sizeGrpc}
+    Should Be Equal As Integers     ${sizeJsonValue}                            ${conn}
+    Should Be Equal As Integers     ${sizeGrpcValue}                            ${conn}
     #
     #FOR
     #END
