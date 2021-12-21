@@ -64,12 +64,22 @@ Mysql Connection Stats Json Request
     ${key2}=            Set Variable            connection_${idx}
     ${res}              Json Stats Request      location=${location}        key1=${key1}        key2=${key2}
     [return]            ${res}
-Mysql Connection Stats Grpc Request
+Mysql Connection Stats Connected Grpc Request
     [arguments]         ${idx}
     ${component}=       Set Variable            broker
     ${exe}=             Set Variable            GetSqlConnectionStats
-    ${key1}=            Set Variable
-    ${res}=             Grpc Stats Request      component=${component}      exe=${exe}          key1=${key1}
+    ${arg}=             Set Variable            {\"value\": ${idx}}
+    ${key1}=            Set Variable            is_connected
+    ${res}=             Grpc Stats Request Args                             component=${component}      exe=${exe}              key1=${key1}            arg=${arg}
+    [return]            ${res}
+Mysql Connection Stats Since Grpc Request
+    [arguments]         ${idx}                  ${connected}
+    ${component}=       Set Variable            broker
+    ${exe}=             Set Variable            GetSqlConnectionStats
+    ${arg}=             Set Variable            {\"value\": ${idx}}
+    ${key1}=            Set Variable If         ${connected} == True        up_since
+    ${key1}=            Set Variable If         ${connected} == False       down_since
+    ${res}=             Grpc Stats Request Args                             component=${component}      exe=${exe}              key1=${key1}            arg=${arg}
     [return]            ${res}
 Database Status Timestamp Stats Test
     [Arguments]     ${conn}
@@ -86,19 +96,24 @@ Database Status Timestamp Stats Test
     Start Engine
     ${sizeJson}                     ${sizeJsonValue}=                           Mysql Connection Size Json Request
     ${sizeGrpc}                     ${sizeGrpcValue}=                           Mysql Connection Size Grpc Request
-    #Should Be True                  ${sizeJson}
-    #Should Be True                  ${sizeGrpc}
-    #Should Be Equal As Integers     ${sizeJsonValue}                            ${conn}
-    #Should Be Equal As Integers     ${sizeGrpcValue}                            ${conn}
-    #
-    FOR     ${idx}      IN RANGE    ${conn}
+    Should Be True                  ${sizeJson}
+    Should Be True                  ${sizeGrpc}
+    Should Be Equal As Integers     ${sizeJsonValue}                            ${conn}
+    Should Be Equal As Integers     ${sizeGrpcValue}                            ${conn}
+    FOR                             ${idx}              IN RANGE                ${conn}
         ${connectionJson}           ${connectionJsonValue}=                     Mysql Connection Stats Json Request             idx=${idx}
-        #Should Be True              ${connectionJson}
-        ${connectionJsonMatch}      ${connectionJsonValueConnected}             ${connectionJsonValueSince}=                    Should Match regexp                         ${connectionJsonValue}                          ^connected: (true|false), since: (\\d+)
-        Log To Console      ${connectionJsonValueConnected}
-        Log To Console      ${connectionJsonValueSince}
+        Should Be True              ${connectionJson}
+        ${connectionJsonMatch}      ${connectionJsonValueConnected}             ${connectionJsonValueSince}=                    Should Match regexp     ${connectionJsonValue}                          ^connected: (true|false), since: (\\d+)
+
+        ${connectionGrpc}           ${connectionGrpcConnectedValue}=            Mysql Connection Stats Connected Grpc Request   idx=${idx}
+        Should Be True              ${connectionGrpc}
+
+        ${connectionGrpc}           ${connectionGrpcSinceValue}=                Mysql Connection Stats Since Grpc Request       idx=${idx}              connected=${connectionGrpcConnectedValue}
+        Should Be True              ${connectionGrpc}
+
+        Should Be Equal                                                         ${connectionJsonValueConnected}                 ${connectionGrpcConnectedValue}
+        Should Be Equal As Integers                                             ${connectionJsonValueSince}                     ${connectionGrpcSinceValue}
     END
-    #
     Stop Broker
     Stop Engine
 
@@ -133,4 +148,10 @@ Database Status Timestamp Stats Test
 #}
 #{
 #  "size": 1
+#}
+
+#{
+#  "waiting_tasks": 1,
+#  "is_connected": true,
+#  "up_since": "1640101108"
 #}
