@@ -1,0 +1,1 @@
+../../grpc/centreon-rpc-client.py
