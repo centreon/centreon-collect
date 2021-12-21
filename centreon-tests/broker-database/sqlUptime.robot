@@ -14,32 +14,32 @@ Library				../resources/Engine.py
 Library             ../resources/Grpc.py
 
 *** Test Cases ***
-StatsDB1
+StatsDBConnectionsStatusTimestamp1
     [Documentation]
     [Tags]      Broker      Database    Grpc    Stats
     Database Status Timestamp Stats Test        conn=1
 
-StatsDB2
+StatsDBConnectionsStatusTimestamp2
     [Documentation]
     [Tags]      Broker      Database    Grpc    Stats
     Database Status Timestamp Stats Test        conn=2
 
-StatsDB3
+StatsDBConnectionsStatusTimestamp3
     [Documentation]
     [Tags]      Broker      Database    Grpc    Stats
     Database Status Timestamp Stats Test        conn=3
 
-StatsDB4
+StatsDBConnectionsStatusTimestamp4
     [Documentation]
     [Tags]      Broker      Database    Grpc    Stats
     Database Status Timestamp Stats Test        conn=4
 
-StatsDB5
+StatsDBConnectionsStatusTimestamp5
     [Documentation]
     [Tags]      Broker      Database    Grpc    Stats
     Database Status Timestamp Stats Test        conn=5
 
-StatsDB6
+StatsDBConnectionsStatusTimestamp6
     [Documentation]
     [Tags]      Broker      Database    Grpc    Stats
     Database Status Timestamp Stats Test        conn=6
@@ -57,6 +57,20 @@ Mysql Connection Size Grpc Request
     ${key1}=            Set Variable            size
     ${res}=             Grpc Stats Request      component=${component}      exe=${exe}          key1=${key1}
     [return]            ${res}
+Mysql Connection Stats Json Request
+    [arguments]         ${idx}
+    ${location}=        Set Variable            /var/lib/centreon-broker/central-broker-master-stats.json
+    ${key1}=            Set Variable            mysql manager
+    ${key2}=            Set Variable            connection_${idx}
+    ${res}              Json Stats Request      location=${location}        key1=${key1}        key2=${key2}
+    [return]            ${res}
+Mysql Connection Stats Grpc Request
+    [arguments]         ${idx}
+    ${component}=       Set Variable            broker
+    ${exe}=             Set Variable            GetSqlConnectionStats
+    ${key1}=            Set Variable
+    ${res}=             Grpc Stats Request      component=${component}      exe=${exe}          key1=${key1}
+    [return]            ${res}
 Database Status Timestamp Stats Test
     [Arguments]     ${conn}
     Config Engine   ${1}
@@ -72,13 +86,18 @@ Database Status Timestamp Stats Test
     Start Engine
     ${sizeJson}                     ${sizeJsonValue}=                           Mysql Connection Size Json Request
     ${sizeGrpc}                     ${sizeGrpcValue}=                           Mysql Connection Size Grpc Request
-    Should Be True                  ${sizeJson}
-    Should Be True                  ${sizeGrpc}
-    Should Be Equal As Integers     ${sizeJsonValue}                            ${conn}
-    Should Be Equal As Integers     ${sizeGrpcValue}                            ${conn}
+    #Should Be True                  ${sizeJson}
+    #Should Be True                  ${sizeGrpc}
+    #Should Be Equal As Integers     ${sizeJsonValue}                            ${conn}
+    #Should Be Equal As Integers     ${sizeGrpcValue}                            ${conn}
     #
-    #FOR
-    #END
+    FOR     ${idx}      IN RANGE    ${conn}
+        ${connectionJson}           ${connectionJsonValue}=                     Mysql Connection Stats Json Request             idx=${idx}
+        #Should Be True              ${connectionJson}
+        ${connectionJsonMatch}      ${connectionJsonValueConnected}             ${connectionJsonValueSince}=                    Should Match regexp                         ${connectionJsonValue}                          ^connected: (true|false), since: (\\d+)
+        Log To Console      ${connectionJsonValueConnected}
+        Log To Console      ${connectionJsonValueSince}
+    END
     #
     Stop Broker
     Stop Engine
@@ -103,3 +122,15 @@ Database Status Timestamp Stats Test
 
 #RUN	iptables -F
 #RUN	iptables -X
+
+#{
+#  "connections": [
+#    {
+#      "waiting_tasks": 0,
+#      "is_connected": false
+#    }
+#  ]
+#}
+#{
+#  "size": 1
+#}
