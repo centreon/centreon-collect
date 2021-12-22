@@ -111,7 +111,7 @@ Database Status Timestamp Stats Test
         ${connectionGrpc}           ${connectionGrpcSinceValue}=                Mysql Connection Stats Since Grpc Request       idx=${idx}              connected=${connectionGrpcConnectedValue}
         Should Be True              ${connectionGrpc}
 
-        Should Be Equal                                                         ${connectionJsonValueConnected}                 ${connectionGrpcConnectedValue}
+        Should Be Equal                                                         ${connectionJsonValueConnected}                  ${connectionGrpcConnectedValue}
         Should Be Equal As Integers                                             ${connectionJsonValueSince}                     ${connectionGrpcSinceValue}
     END
     Stop Broker
