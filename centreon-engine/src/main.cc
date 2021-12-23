@@ -525,12 +525,12 @@ int main(int argc, char* argv[]) {
         // restart or shutdown signal is encountered).
         com::centreon::engine::events::loop::instance().run();
 
-        if (sigshutdown)
+        if (sigshutdown) {
           engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
-        log_v2::process()->info("Caught SIG {}, shutting down ...",
-                                sigs[sig_id]);
-
+          log_v2::process()->info("Caught SIG {}, shutting down ...",
+                                  sigs[sig_id]);
+        }
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE,
                              NEBATTR_NONE, NULL);
@@ -545,10 +545,12 @@ int main(int argc, char* argv[]) {
         cleanup_status_data(true);
 
         // Shutdown stuff.
-        if (sigshutdown)
+        if (sigshutdown) {
           engine_logger(logging::log_process_info, logging::basic)
               << "Successfully shutdown ... (PID=" << getpid() << ")";
-        log_v2::process()->info("Successfully shutdown ... (PID={})", getpid());
+          log_v2::process()->info("Successfully shutdown ... (PID={})",
+                                  getpid());
+        }
 
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {

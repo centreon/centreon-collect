@@ -21,6 +21,7 @@
 #include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -1262,6 +1263,9 @@ bool host::_set_failure_prediction_enabled(bool value) {
   engine_logger(log_verification_error, basic)
       << "Warning: host failure_prediction_enabled is deprecated"
       << " This option will not be supported in 20.04.";
+  log_v2::config()->error(
+      "Warning: host failure_prediction_enabled is deprecated This option will "
+      "not be supported in 20.04.");
   ++config_warnings;
   return true;
 }
@@ -1278,6 +1282,9 @@ bool host::_set_failure_prediction_options(std::string const& value) {
   engine_logger(log_verification_error, basic)
       << "Warning: service failure_prediction_options is deprecated"
       << " This option will not be supported in 20.04.";
+  log_v2::config()->error(
+      "Warning: service failure_prediction_options is deprecated This option "
+      "will not be supported in 20.04.");
   ++config_warnings;
   return (true);
 }

@@ -23,6 +23,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -55,6 +56,9 @@ void applier::serviceescalation::add_object(
       << "Creating new escalation for service '"
       << obj.service_description().front() << "' of host '"
       << obj.hosts().front() << "'";
+  log_v2::config()->debug(
+      "Creating new escalation for service '{}' of host '{}'",
+      obj.service_description().front(), obj.hosts().front());
 
   // Add escalation to the global configuration set.
   config->serviceescalations().insert(obj);
@@ -106,6 +110,7 @@ void applier::serviceescalation::expand_objects(configuration::state& s) {
   // Browse all escalations.
   engine_logger(logging::dbg_config, logging::more)
       << "Expanding service escalations";
+  log_v2::config()->debug("Expanding service escalations");
 
   configuration::set_serviceescalation expanded;
   for (configuration::set_serviceescalation::const_iterator
@@ -170,6 +175,7 @@ void applier::serviceescalation::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing a service escalation.";
+  log_v2::config()->debug("Removing a service escalation.");
 
   // Find service escalation.
   std::string const& host_name{obj.hosts().front()};
@@ -188,6 +194,8 @@ void applier::serviceescalation::remove_object(
     engine_logger(logging::dbg_config, logging::more)
         << "Cannot find service '" << host_name << "/" << description
         << "' - already removed.";
+    log_v2::config()->debug("Cannot find service '{}/{}' - already removed.",
+                            host_name, description);
     service_exists = false;
   } else
     service_exists = true;
@@ -207,6 +215,9 @@ void applier::serviceescalation::remove_object(
         engine_logger(logging::dbg_config, logging::more)
             << "Service '" << host_name << "/" << description
             << "' found - removing escalation from it.";
+        log_v2::config()->debug(
+            "Service '{}/{}' found - removing escalation from it.", host_name,
+            description);
         std::list<escalation*>& srv_escalations(sit->second->get_escalations());
         /* We need also to remove the escalation from the service */
         for (std::list<engine::escalation*>::iterator
@@ -240,6 +251,7 @@ void applier::serviceescalation::resolve_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service escalation.";
+  log_v2::config()->debug("Resolving a service escalation.");
 
   // Find service escalation
   bool found{false};

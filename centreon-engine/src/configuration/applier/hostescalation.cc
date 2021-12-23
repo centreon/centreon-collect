@@ -23,6 +23,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -52,6 +53,8 @@ void applier::hostescalation::add_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new escalation for host '" << *obj.hosts().begin() << "'.";
+  log_v2::config()->debug("Creating new escalation for host '{}'.",
+                          *obj.hosts().begin());
 
   // Add escalation to the global configuration set.
   config->hostescalations().insert(obj);
@@ -151,6 +154,7 @@ void applier::hostescalation::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing a host escalation.";
+  log_v2::config()->debug("Removing a host escalation.");
 
   // Find host escalation.
   std::string const& host_name{*obj.hosts().begin()};
@@ -164,6 +168,8 @@ void applier::hostescalation::remove_object(
   if (hit == engine::host::hosts.end()) {
     engine_logger(logging::dbg_config, logging::more)
         << "Cannot find host '" << host_name << "' - already removed.";
+    log_v2::config()->debug("Cannot find host '{}' - already removed.",
+                            host_name);
     host_exists = false;
   } else
     host_exists = true;
@@ -198,6 +204,8 @@ void applier::hostescalation::remove_object(
         engine_logger(logging::dbg_config, logging::more)
             << "Host '" << host_name
             << "' found - removing escalation from it.";
+        log_v2::config()->debug(
+            "Host '{}' found - removing escalation from it.", host_name);
         std::list<escalation*>& escalations(hit->second->get_escalations());
         /* We need also to remove the escalation from the host */
         for (std::list<engine::escalation*>::iterator heit{escalations.begin()},
@@ -229,6 +237,7 @@ void applier::hostescalation::resolve_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a host escalation.";
+  log_v2::config()->debug("Resolving a host escalation.");
 
   // Find host escalation
   bool found{false};

@@ -21,6 +21,7 @@
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 
@@ -63,6 +64,8 @@ raw::~raw() noexcept {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: Raw command destructor failed: " << e.what();
+    log_v2::runtime()->error("Error: Raw command destructor failed: {}",
+                             e.what());
   }
 }
 
@@ -80,6 +83,8 @@ uint64_t raw::run(std::string const& processed_cmd,
                   uint32_t timeout) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
+  log_v2::commands()->trace("raw::run: cmd='{}', timeout={}", processed_cmd,
+                            timeout);
 
   // Get process and put into the busy list.
   process* p;
@@ -92,6 +97,8 @@ uint64_t raw::run(std::string const& processed_cmd,
 
   engine_logger(dbg_commands, basic)
       << "raw::run: id=" << command_id << ", process=" << p;
+  log_v2::commands()->trace("raw::run: id={} , process={}", command_id,
+                            (void*)p);
 
   // Setup environnement macros if is necessary.
   environment env;
@@ -102,9 +109,13 @@ uint64_t raw::run(std::string const& processed_cmd,
     p->exec(processed_cmd.c_str(), env.data(), timeout);
     engine_logger(dbg_commands, basic)
         << "raw::run: start process success: id=" << command_id;
+    log_v2::commands()->trace("raw::run: start process success: id={}",
+                              command_id);
   } catch (...) {
     engine_logger(dbg_commands, basic)
         << "raw::run: start process failed: id=" << command_id;
+    log_v2::commands()->trace("raw::run: start process failed: id={}",
+                              command_id);
 
     std::lock_guard<std::mutex> lock(_lock);
     _processes_busy.erase(p);
@@ -128,6 +139,8 @@ void raw::run(std::string const& processed_cmd,
               result& res) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
+  log_v2::commands()->trace("raw::run: cmd='{}', timeout={}", processed_cmd,
+                            timeout);
 
   // Get process.
   process p;
@@ -135,6 +148,8 @@ void raw::run(std::string const& processed_cmd,
 
   engine_logger(dbg_commands, basic)
       << "raw::run: id=" << command_id << ", process=" << &p;
+  log_v2::commands()->trace("raw::run: id={}, process={}", command_id,
+                            (void*)&p);
 
   // Setup environement macros if is necessary.
   environment env;
@@ -145,9 +160,13 @@ void raw::run(std::string const& processed_cmd,
     p.exec(processed_cmd.c_str(), env.data(), timeout);
     engine_logger(dbg_commands, basic)
         << "raw::run: start process success: id=" << command_id;
+    log_v2::commands()->trace("raw::run: start process success: id={}",
+                              command_id);
   } catch (...) {
     engine_logger(dbg_commands, basic)
         << "raw::run: start process failed: id=" << command_id;
+    log_v2::commands()->trace("raw::run: start process failed: id={}",
+                              command_id);
     throw;
   }
 
@@ -189,6 +208,16 @@ void raw::run(std::string const& processed_cmd,
                                      << ", "
                                         "output='"
                                      << res.output << "'";
+  log_v2::commands()->trace(
+      "raw::run: end process: "
+      "id={}, "
+      "start_time={}, "
+      "end_time={}, "
+      "exit_code={}, "
+      "exit_status={}, "
+      "output='{}'",
+      command_id, res.start_time.to_mseconds(), res.end_time.to_mseconds(),
+      res.exit_code, res.exit_status, res.output);
 }
 
 /**************************************
@@ -224,6 +253,7 @@ void raw::data_is_available_err(process& p) noexcept {
 void raw::finished(process& p) noexcept {
   try {
     engine_logger(dbg_commands, basic) << "raw::finished: process=" << &p;
+    log_v2::commands()->trace("raw::finished: process={}", (void*)&p);
 
     uint64_t command_id(0);
     {
@@ -239,6 +269,9 @@ void raw::finished(process& p) noexcept {
         engine_logger(log_runtime_warning, basic)
             << "Warning: Invalid process pointer: "
                "process not found into process busy list";
+        log_v2::runtime()->warn(
+            "Warning: Invalid process pointer: "
+            "process not found into process busy list");
         return;
       }
       // Get command_id and remove the process from the busy list.
@@ -247,6 +280,7 @@ void raw::finished(process& p) noexcept {
     }
 
     engine_logger(dbg_commands, basic) << "raw::finished: id=" << command_id;
+    log_v2::commands()->trace("raw::finished: id={}", command_id);
 
     // Build check result.
     result res;
@@ -281,6 +315,11 @@ void raw::finished(process& p) noexcept {
         << ", exit_code=" << res.exit_code
         << ", exit_status=" << res.exit_status << ", output='" << res.output
         << "'";
+    log_v2::commands()->trace(
+        "raw::finished: id={}, start_time={}, end_time={}, exit_code={}, "
+        "exit_status={}, output='{}'",
+        command_id, res.start_time.to_mseconds(), res.end_time.to_mseconds(),
+        res.exit_code, res.exit_status, res.output);
 
     // Forward result to the listener.
     if (_listener)
@@ -288,6 +327,8 @@ void raw::finished(process& p) noexcept {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_warning, basic)
         << "Warning: Raw process termination routine failed: " << e.what();
+    log_v2::runtime()->warn(
+        "Warning: Raw process termination routine failed: {}", e.what());
 
     // Release process, put into the free list.
     std::lock_guard<std::mutex> lock(_lock);

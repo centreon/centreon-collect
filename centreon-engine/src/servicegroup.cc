@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -62,6 +63,8 @@ servicegroup::servicegroup(uint64_t id,
     engine_logger(log_config_error, basic)
         << "Error: Servicegroup '" << group_name
         << "' has already been defined";
+    log_v2::config()->error("Error: Servicegroup '{}' has already been defined",
+                            group_name);
     throw engine_error() << "Could not register service group '" << group_name
                          << "'";
   }
@@ -173,6 +176,10 @@ void servicegroup::resolve(int& w, int& e) {
           << "Error: Service '" << it->first.second << "' on host '"
           << it->first.first << "' specified in service group '" << _group_name
           << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Service '{}' on host '{}' specified in service group '{}' is "
+          "not defined anywhere!",
+          it->first.second, it->first.first, _group_name);
       errors++;
     }
     // Save a pointer to this servicegroup for faster service/group
@@ -196,6 +203,10 @@ void servicegroup::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of servicegroup '" << _group_name
         << "' contains one or more illegal characters.";
+    log_v2::config()->error(
+        "Error: The name of servicegroup '{}' contains one or more illegal "
+        "characters.",
+        _group_name);
     errors++;
   }
 

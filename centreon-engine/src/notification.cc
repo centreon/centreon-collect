@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
@@ -207,6 +208,7 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
 
   engine_logger(dbg_notifications, basic)
       << contacts_notified << " contacts were notified.";
+  log_v2::notifications()->trace(" contacts were notified.");
   return OK;
 }
 

@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -277,6 +278,7 @@ void servicedependency::check_validity() const {
         msg << "host '" << _hosts->front() << "'";
     }
     engine_logger(log_config_warning, basic) << msg.str();
+    log_v2::config()->warn(msg.str());
   }
 
   return;

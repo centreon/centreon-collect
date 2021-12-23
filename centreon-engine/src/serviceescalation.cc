@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration::applier;
@@ -72,6 +73,7 @@ std::string const& serviceescalation::get_description() const {
 bool serviceescalation::is_viable(int state,
                                   uint32_t notification_number) const {
   engine_logger(dbg_functions, basic) << "serviceescalation::is_viable()";
+  log_v2::functions()->trace("serviceescalation::is_viable()");
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
@@ -101,6 +103,10 @@ void serviceescalation::resolve(int& w, int& e) {
         << "Error: Service '" << get_description() << "' on host '"
         << get_hostname()
         << "' specified in service escalation is not defined anywhere!";
+    log_v2::config()->error(
+        "Error: Service '{}' on host '{}' specified in service escalation is "
+        "not defined anywhere!",
+        get_description(), get_hostname());
     errors++;
     notifier_ptr = nullptr;
   } else {
@@ -113,6 +119,7 @@ void serviceescalation::resolve(int& w, int& e) {
   } catch (std::exception const& ee) {
     engine_logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
+    log_v2::config()->error("Error: Notifier escalation error: {}", ee.what());
   }
 
   // Add errors.

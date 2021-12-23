@@ -29,6 +29,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -53,6 +54,7 @@ void applier::host::add_object(configuration::host const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new host '" << obj.host_name() << "'.";
+  log_v2::config()->debug("Creating new host '{}'.", obj.host_name());
 
   // Add host to the global configuration set.
   config->hosts().insert(obj);
@@ -200,6 +202,7 @@ void applier::host::modify_object(configuration::host const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying host '" << obj.host_name() << "'.";
+  log_v2::config()->debug("Modifying host '{}'.", obj.host_name());
 
   // Find the configuration object.
   set_host::iterator it_cfg(config->hosts_find(obj.key()));
@@ -411,6 +414,7 @@ void applier::host::remove_object(configuration::host const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing host '" << obj.host_name() << "'.";
+  log_v2::config()->debug("Removing host '{}'.", obj.host_name());
 
   // Find host.
   host_id_map::iterator it(engine::host::hosts_by_id.find(obj.key()));
@@ -461,6 +465,7 @@ void applier::host::resolve_object(configuration::host const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving host '" << obj.host_name() << "'.";
+  log_v2::config()->debug("Resolving host '{}'.", obj.host_name());
 
   // If it is the very first host to be resolved,
   // remove all the child backlinks of all the hosts.

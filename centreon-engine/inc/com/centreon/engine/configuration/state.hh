@@ -36,6 +36,7 @@
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
+// #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/namespace.hh"
 
@@ -424,6 +425,8 @@ class state {
   void log_level_macros(std::string const& value);
   std::string const& log_level_process() const noexcept;
   void log_level_process(std::string const& value);
+  std::string const& log_level_runtime() const noexcept;
+  void log_level_runtime(std::string const& value);
   std::string const& use_timezone() const noexcept;
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
@@ -480,6 +483,7 @@ class state {
         (obj.*ptr)(val);
       } catch (std::exception const& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
+        // log_v2::config()->error(e.what());
         return (false);
       }
       return (true);
@@ -493,6 +497,7 @@ class state {
         (obj.*ptr)(value);
       } catch (std::exception const& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
+        // com::centreon::engine::log_v2::config()->error(e.what());
         return (false);
       }
       return (true);
@@ -649,6 +654,7 @@ class state {
   std::string _log_level_comments;
   std::string _log_level_macros;
   std::string _log_level_process;
+  std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
 };

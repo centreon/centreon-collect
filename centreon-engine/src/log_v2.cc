@@ -37,65 +37,70 @@ log_v2::log_v2() {
   auto null_sink = std::make_shared<sinks::null_sink_mt>();
 
   _functions_log = std::make_shared<spdlog::logger>("functions", stdout_sink);
-  _functions_log->set_level(level::from_str("trace"));
-  _functions_log->flush_on(level::from_str("trace"));
+  _functions_log->set_level(level::from_str("info"));
+  _functions_log->flush_on(level::from_str("info"));
   _functions_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _config_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _config_log->set_level(level::from_str("trace"));
-  _config_log->flush_on(level::from_str("trace"));
+  _config_log->set_level(level::from_str("info"));
+  _config_log->flush_on(level::from_str("info"));
   _config_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _events_log = std::make_shared<spdlog::logger>("events", stdout_sink);
-  _events_log->set_level(level::from_str("trace"));
-  _events_log->flush_on(level::from_str("trace"));
+  _events_log->set_level(level::from_str("info"));
+  _events_log->flush_on(level::from_str("info"));
   _events_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _checks_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _checks_log->set_level(level::from_str("trace"));
-  _checks_log->flush_on(level::from_str("trace"));
+  _checks_log->set_level(level::from_str("info"));
+  _checks_log->flush_on(level::from_str("info"));
   _checks_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _notifications_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _notifications_log->set_level(level::from_str("trace"));
-  _notifications_log->flush_on(level::from_str("trace"));
+  _notifications_log->set_level(level::from_str("info"));
+  _notifications_log->flush_on(level::from_str("info"));
   _notifications_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _eventbroker_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _eventbroker_log->set_level(level::from_str("trace"));
-  _eventbroker_log->flush_on(level::from_str("trace"));
+  _eventbroker_log->set_level(level::from_str("info"));
+  _eventbroker_log->flush_on(level::from_str("info"));
   _eventbroker_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _external_command_log =
       std::make_shared<spdlog::logger>("config", stdout_sink);
-  _external_command_log->set_level(level::from_str("trace"));
-  _external_command_log->flush_on(level::from_str("trace"));
+  _external_command_log->set_level(level::from_str("info"));
+  _external_command_log->flush_on(level::from_str("info"));
   _external_command_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _commands_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _commands_log->set_level(level::from_str("trace"));
-  _commands_log->flush_on(level::from_str("trace"));
+  _commands_log->set_level(level::from_str("info"));
+  _commands_log->flush_on(level::from_str("info"));
   _commands_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _downtimes_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _downtimes_log->set_level(level::from_str("trace"));
-  _downtimes_log->flush_on(level::from_str("trace"));
+  _downtimes_log->set_level(level::from_str("info"));
+  _downtimes_log->flush_on(level::from_str("info"));
   _downtimes_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _comments_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _comments_log->set_level(level::from_str("trace"));
-  _comments_log->flush_on(level::from_str("trace"));
+  _comments_log->set_level(level::from_str("info"));
+  _comments_log->flush_on(level::from_str("info"));
   _comments_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _macros_log = std::make_shared<spdlog::logger>("config", stdout_sink);
-  _macros_log->set_level(level::from_str("trace"));
-  _macros_log->flush_on(level::from_str("trace"));
+  _macros_log->set_level(level::from_str("info"));
+  _macros_log->flush_on(level::from_str("info"));
   _macros_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 
   _process_log = std::make_shared<spdlog::logger>("process", stdout_sink);
-  _process_log->set_level(level::from_str("trace"));
-  _process_log->flush_on(level::from_str("trace"));
+  _process_log->set_level(level::from_str("info"));
+  _process_log->flush_on(level::from_str("info"));
   _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _runtime_log = std::make_shared<spdlog::logger>("runtime", stdout_sink);
+  _runtime_log->set_level(level::from_str("info"));
+  _runtime_log->flush_on(level::from_str("info"));
+  _runtime_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 }
 
 void log_v2::apply(const configuration::state& config) {
@@ -228,15 +233,19 @@ void log_v2::apply(const configuration::state& config) {
       std::make_shared<spdlog::logger>("process", begin(sinks), end(sinks));
   _process_log->set_level(level::from_str(config.log_level_process()));
   _process_log->flush_on(level::from_str(config.log_level_process()));
-  _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
   if (config.log_pid())
     _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
     _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+
+  _runtime_log =
+      std::make_shared<spdlog::logger>("runtime", begin(sinks), end(sinks));
+  _runtime_log->set_level(level::from_str(config.log_level_process()));
+  _runtime_log->flush_on(level::from_str(config.log_level_process()));
   if (config.log_pid())
-    _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
+    _runtime_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
   else
-    _process_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
+    _runtime_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 }
 
 spdlog::logger* log_v2::functions() {
@@ -285,6 +294,10 @@ spdlog::logger* log_v2::macros() {
 
 spdlog::logger* log_v2::process() {
   return instance()._process_log.get();
+}
+
+spdlog::logger* log_v2::runtime() {
+  return instance()._runtime_log.get();
 }
 
 /**

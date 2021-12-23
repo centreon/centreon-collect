@@ -329,10 +329,14 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     engine_logger(log_config_error, basic)
         << "Error: Service comes from a database, therefore its service id "
         << "must not be null";
+    log_v2::config()->error(
+        "Error: Service comes from a database, therefore its service id must "
+        "not be null");
     return nullptr;
   } else if (description.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Service description is not set";
+    log_v2::config()->error("Error: Service description is not set");
     return nullptr;
   } else if (!host_name.empty()) {
     uint64_t hid = get_host_id(host_name);
@@ -343,6 +347,11 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
           << "' has a conflict between config does not match with the config "
              "id ("
           << hid << ")";
+      log_v2::config()->error(
+          "Error: host id ({}) of host ('{}') of anomaly detection service '' "
+          "has a conflict between config does not match with the config "
+          "id ({})",
+          host_id, host_name, description, hid);
       return nullptr;
     }
   }
@@ -352,6 +361,9 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     engine_logger(log_config_error, basic)
         << "Error: Dependent service " << dependent_service_id
         << " does not exist (anomaly detection " << service_id << ")";
+    log_v2::config()->error(
+        "Error: Dependent service {} does not exist (anomaly detection {})",
+        dependent_service_id, service_id);
     return nullptr;
   }
   service* dependent_service = it->second.get();
@@ -361,6 +373,10 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
         << "Error: metric name must be provided for an anomaly detection "
            "service (host_id:"
         << host_id << ", service_id:" << service_id << ")";
+    log_v2::config()->error(
+        "Error: metric name must be provided for an anomaly detection "
+        "service (host_id:{}, service_id:{})",
+        host_id, service_id);
     return nullptr;
   }
 
@@ -369,6 +385,10 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
         << "Error: thresholds file must be provided for an anomaly detection "
            "service (host_id:"
         << host_id << ", service_id:" << service_id << ")";
+    log_v2::config()->error(
+        "Error: thresholds file must be provided for an anomaly detection "
+        "service (host_id:{}, service_id:{})",
+        host_id, service_id);
     return nullptr;
   }
 
@@ -379,6 +399,10 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
         << "Error: Invalid max_attempts, check_interval, retry_interval"
            ", or notification_interval value for service '"
         << description << "' on host '" << host_name << "'";
+    log_v2::config()->error(
+        "Error: Invalid max_attempts, check_interval, retry_interval"
+        ", or notification_interval value for service '{}' on host '{}'",
+        description, host_name);
     return nullptr;
   }
   // Check if the service is already exist.
@@ -387,6 +411,9 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     engine_logger(log_config_error, basic)
         << "Error: Service '" << description << "' on host '" << host_name
         << "' has already been defined";
+    log_v2::config()->error(
+        "Error: Service '{}' on host '{}' has already been defined",
+        description, host_name);
     return nullptr;
   }
 
@@ -520,6 +547,10 @@ int anomalydetection::run_async_check(int check_options,
     engine_logger(log_runtime_error, basic)
         << "Error: Some broker module cancelled check of anomalydetection '"
         << get_description() << "' on host '" << get_hostname();
+    log_v2::runtime()->error(
+        "Error: Some broker module cancelled check of anomalydetection '{}' on "
+        "host '{}'",
+        get_description(), get_hostname());
     return ERROR;
   }
   // Anomalydetection check was override by NEB module.
@@ -539,6 +570,8 @@ int anomalydetection::run_async_check(int check_options,
   engine_logger(dbg_checks, basic)
       << "Checking anomalydetection '" << get_description() << "' on host '"
       << get_hostname() << "'...";
+  log_v2::checks()->trace("Checking anomalydetection '{}' on host '{}'...",
+                          get_description(), get_hostname());
 
   // Clear check options.
   if (scheduled_check)
@@ -564,6 +597,8 @@ int anomalydetection::run_async_check(int check_options,
   engine_logger(dbg_checks, basic)
       << "Current running service checks: " << currently_running_service_checks;
 
+  log_v2::checks()->trace("Current running service checks: {}",
+                          currently_running_service_checks);
   // Set the execution flag.
   set_is_executing(true);
 
@@ -686,6 +721,7 @@ anomalydetection::parse_perfdata(std::string const& perfdata,
   if (pos == std::string::npos) {
     engine_logger(log_runtime_error, basic)
         << "Error: Unable to parse perfdata '" << perfdata << "'";
+    log_v2::runtime()->error("Error: Unable to parse perfdata '{}'", perfdata);
     return std::make_tuple(service::state_unknown, NAN, "", NAN, NAN);
   }
 
@@ -709,6 +745,9 @@ anomalydetection::parse_perfdata(std::string const& perfdata,
       engine_logger(log_info_message, basic)
           << "The thresholds file is not viable "
              "(not available or not readable).";
+      log_v2::checks()->info(
+          "The thresholds file is not viable "
+          "(not available or not readable).");
     }
     return std::make_tuple(status, value, unit, NAN, NAN);
   }
@@ -737,6 +776,10 @@ anomalydetection::parse_perfdata(std::string const& perfdata,
         << "Error: the thresholds file is too old "
            "compared to the check timestamp "
         << check_time;
+    log_v2::runtime()->error(
+        "Error: the thresholds file is too old "
+        "compared to the check timestamp {}",
+        check_time);
     return std::make_tuple(service::state_unknown, value, uom, NAN, NAN);
   }
   if (it1 != _thresholds.begin())
@@ -745,6 +788,9 @@ anomalydetection::parse_perfdata(std::string const& perfdata,
     engine_logger(log_runtime_error, basic)
         << "Error: timestamp " << check_time
         << " too old compared with the thresholds file";
+    log_v2::runtime()->error(
+        "Error: timestamp {} too old compared with the thresholds file",
+        check_time);
     return std::make_tuple(service::state_unknown, value, uom, NAN, NAN);
   }
 
@@ -775,6 +821,8 @@ void anomalydetection::init_thresholds() {
 
   engine_logger(log_info_message, basic)
       << "Trying to read thresholds file '" << _thresholds_file << "'";
+  log_v2::checks()->info("Trying to read thresholds file '{}'",
+                         _thresholds_file);
   std::ifstream t(_thresholds_file);
   if (!t)
     return;
@@ -789,12 +837,18 @@ void anomalydetection::init_thresholds() {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << _thresholds_file
         << "' contains errors: " << e.what();
+    log_v2::config()->error("Error: the file '{}' contains errors: {}",
+                            _thresholds_file, e.what());
     return;
   }
   if (!json.is_array()) {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << _thresholds_file
         << "' is not a thresholds file. Its global structure is not an array.";
+    log_v2::config()->error(
+        "Error: the file '{}' is not a thresholds file. Its global structure "
+        "is not an array.",
+        _thresholds_file);
     return;
   }
 
@@ -810,6 +864,10 @@ void anomalydetection::init_thresholds() {
           << "Error: host_id and service_id must "
              "be strings containing integers: "
           << e.what();
+      log_v2::config()->error(
+          "Error: host_id and service_id must "
+          "be strings containing integers: {}",
+          e.what());
       return;
     }
     if (host_id == get_host_id() && service_id == get_service_id() &&
@@ -818,6 +876,10 @@ void anomalydetection::init_thresholds() {
           << "Filling thresholds in anomaly detection (host_id: "
           << get_host_id() << ", service_id: " << get_service_id()
           << ", metric: " << _metric_name << ")";
+      log_v2::checks()->info(
+          "Filling thresholds in anomaly detection (host_id: {}, service_id: "
+          "{}, metric: {})",
+          get_host_id(), get_service_id(), _metric_name);
       auto predict = item["predict"];
       _thresholds.clear();
       for (auto& i : predict) {
@@ -835,9 +897,12 @@ void anomalydetection::init_thresholds() {
   if (count > 1) {
     engine_logger(log_info_message, most)
         << "Number of rows in memory: " << count;
+    log_v2::checks()->info("Number of rows in memory: {}", count);
     _thresholds_file_viable = true;
-  } else
+  } else {
     engine_logger(log_info_message, most) << "Nothing in memory";
+    log_v2::checks()->info("Nothing in memory");
+  }
 }
 
 /**
@@ -849,10 +914,13 @@ void anomalydetection::init_thresholds() {
 int anomalydetection::update_thresholds(const std::string& filename) {
   engine_logger(log_info_message, most)
       << "Reading thresholds file '" << filename << "'.";
+  log_v2::checks()->info("Reading thresholds file '{}'.", filename);
   std::ifstream t(filename);
   if (!t) {
     engine_logger(log_config_error, basic)
         << "Error: Unable to read the thresholds file '" << filename << "'.";
+    log_v2::config()->error("Error: Unable to read the thresholds file '{}'.",
+                            filename);
     return -1;
   }
 
@@ -865,6 +933,9 @@ int anomalydetection::update_thresholds(const std::string& filename) {
     engine_logger(log_config_error, basic)
         << "Error: The thresholds file '" << filename
         << "' should be a json file: " << e.what();
+    log_v2::config()->error(
+        "Error: The thresholds file '{}' should be a json file: {}", filename,
+        e.what());
     return -2;
   }
 
@@ -872,6 +943,10 @@ int anomalydetection::update_thresholds(const std::string& filename) {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << filename
         << "' is not a thresholds file. Its global structure is not an array.";
+    log_v2::config()->error(
+        "Error: the file '{}' is not a thresholds file. Its global structure "
+        "is not an array.",
+        filename);
     return -3;
   }
 
@@ -886,6 +961,10 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           << "Error: host_id and service_id must "
              "be strings containing integers: "
           << e.what();
+      log_v2::config()->error(
+          "Error: host_id and service_id must "
+          "be strings containing integers: {}",
+          e.what());
       continue;
     }
     auto found = service::services_by_id.find({host_id, svc_id});
@@ -894,6 +973,10 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           << "Error: The thresholds file contains thresholds for the anomaly "
              "detection service (host_id: "
           << host_id << ", service_id: " << svc_id << ") that does not exist";
+      log_v2::config()->error(
+          "Error: The thresholds file contains thresholds for the anomaly "
+          "detection service (host_id: {}, service_id: {}) that does not exist",
+          host_id, svc_id);
       continue;
     }
     std::shared_ptr<anomalydetection> ad =
@@ -907,12 +990,22 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           << ") with metric_name='" << metric_name
           << "' whereas the configured metric name is '"
           << ad->get_metric_name() << "'";
+      log_v2::config()->error(
+          "Error: The thresholds file contains thresholds for the anomaly "
+          "detection service (host_id: {}, service_id: {}) with "
+          "metric_name='{}' whereas the configured metric name is '{}'",
+          ad->get_host_id(), ad->get_service_id(), metric_name,
+          ad->get_metric_name());
       continue;
     }
     engine_logger(log_info_message, basic)
         << "Filling thresholds in anomaly detection (host_id: "
         << ad->get_host_id() << ", service_id: " << ad->get_service_id()
         << ", metric: " << ad->get_metric_name() << ")";
+    log_v2::checks()->info(
+        "Filling thresholds in anomaly detection (host_id: {}, service_id: {}, "
+        "metric: {})",
+        ad->get_host_id(), ad->get_service_id(), ad->get_metric_name());
 
     auto predict = item["predict"];
     std::map<time_t, std::pair<double, double> > thresholds;

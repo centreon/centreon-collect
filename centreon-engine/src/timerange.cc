@@ -22,6 +22,7 @@
 #include <iomanip>
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
@@ -34,12 +35,16 @@ timerange::timerange(uint64_t start, uint64_t end) {
   if (start > 86400) {
     engine_logger(log_config_error, basic)
         << "Error: Start time " << start << " is not valid for timeperiod";
+    log_v2::config()->error("Error: Start time {} is not valid for timeperiod",
+                            start);
     throw engine_error() << "Could not create timerange "
                          << "start'" << start << "' end '" << end << "'";
   }
   if (end > 86400) {
     engine_logger(log_config_error, basic)
         << "Error: End time " << end << " is not value for timeperiod";
+    log_v2::config()->error("Error: End time {} is not value for timeperiod",
+                            end);
     throw engine_error() << "Could not create timerange "
                          << "start'" << start << "' end '" << end << "'";
   }

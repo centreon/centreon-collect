@@ -23,6 +23,7 @@
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -49,6 +50,7 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   if (name.empty() || alias.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Name or alias for timeperiod is NULL";
+    log_v2::config()->error("Error: Name or alias for timeperiod is NULL");
     throw engine_error() << "Could not register time period '" << name << "'";
   }
 
@@ -57,6 +59,8 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   if (it != timeperiod::timeperiods.end()) {
     engine_logger(log_config_error, basic)
         << "Error: Timeperiod '" << name << "' has already been defined";
+    log_v2::config()->error("Error: Timeperiod '{}' has already been defined",
+                            name);
     throw engine_error() << "Could not register time period '" << name << "'";
   }
 }
@@ -759,6 +763,7 @@ static bool _timerange_to_time_t(timerange* trange,
  */
 bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "check_time_against_period()";
+  log_v2::functions()->trace("check_time_against_period()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -784,6 +789,7 @@ bool check_time_against_period_for_notif(time_t test_time,
                                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic)
       << "check_time_against_period_for_notif()";
+  log_v2::functions()->trace("check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -809,6 +815,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
                                                       bool notif_timeperiod) {
   engine_logger(dbg_functions, basic)
       << "get_next_invalid_time_per_timeperiod()";
+  log_v2::functions()->trace("get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in invalid_time at the end of the loop.
@@ -994,6 +1001,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
                                                     time_t* valid_time,
                                                     bool notif_timeperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time_per_timeperiod()";
+  log_v2::functions()->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
@@ -1118,6 +1126,7 @@ void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time()";
+  log_v2::functions()->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
   time_t preferred_time(std::max(pref_time, time(NULL)));
@@ -1152,6 +1161,10 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of time period '" << _name
         << "' contains one or more illegal characters.";
+    log_v2::config()->error(
+        "Error: The name of time period '{}' contains one or more illegal "
+        "characters.",
+        _name);
     errors++;
   }
 
@@ -1167,6 +1180,10 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
           << "Error: Excluded time period '" << it->first
           << "' specified in timeperiod '" << _name
           << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Excluded time period '{}' specified in timeperiod '{}' is "
+          "not defined anywhere!",
+          it->first, _name);
       errors++;
     } else {
       // Save the timeperiod pointer for later.

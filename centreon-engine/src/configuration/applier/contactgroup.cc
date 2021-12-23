@@ -24,6 +24,7 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
@@ -72,6 +73,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new contactgroup '" << name << "'.";
+  log_v2::config()->debug("Creating new contactgroup '{}'.", name);
 
   if (engine::contactgroup::contactgroups.find(name) !=
       engine::contactgroup::contactgroups.end())
@@ -92,6 +94,10 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact '" << *it << "' specified in contact group '"
           << cg->get_name() << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Contact '{}' specified in contact group '{}' is not defined "
+          "anywhere!",
+          *it, cg->get_name());
       throw engine_error() << "Error: Cannot resolve contact group "
                            << obj.contactgroup_name() << "'";
     } else {
@@ -136,6 +142,8 @@ void applier::contactgroup::modify_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying contactgroup '" << obj.contactgroup_name() << "'";
+  log_v2::config()->debug("Modifying contactgroup '{}'",
+                          obj.contactgroup_name());
 
   // Find old configuration.
   set_contactgroup::iterator it_cfg(config->contactgroups_find(obj.key()));
@@ -173,6 +181,10 @@ void applier::contactgroup::modify_object(
         engine_logger(log_verification_error, basic)
             << "Error: Contact '" << *it << "' specified in contact group '"
             << it_obj->second->get_name() << "' is not defined anywhere!";
+        log_v2::config()->error(
+            "Error: Contact '{}' specified in contact group '{}' is not "
+            "defined anywhere!",
+            *it, it_obj->second->get_name());
         throw engine_error() << "Error: Cannot resolve contact group "
                              << obj.contactgroup_name() << "'";
       } else {
@@ -202,6 +214,8 @@ void applier::contactgroup::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing contactgroup '" << obj.contactgroup_name() << "'";
+  log_v2::config()->debug("Removing contactgroup '{}'",
+                          obj.contactgroup_name());
 
   // Find contact group.
   contactgroup_map::iterator it(
@@ -233,6 +247,8 @@ void applier::contactgroup::resolve_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact group '" << obj.contactgroup_name() << "'";
+  log_v2::config()->debug("Resolving contact group '{}'",
+                          obj.contactgroup_name());
 
   // Find contact group.
   contactgroup_map::iterator it{
@@ -260,6 +276,8 @@ void applier::contactgroup::_resolve_members(
     engine_logger(logging::dbg_config, logging::more)
         << "Resolving members of contact group '" << obj.contactgroup_name()
         << "'";
+    log_v2::config()->debug("Resolving members of contact group '{}'",
+                            obj.contactgroup_name());
 
     // Mark object as resolved.
     configuration::contactgroup& resolved_obj(_resolved[obj.key()]);

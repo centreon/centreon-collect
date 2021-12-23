@@ -20,6 +20,7 @@
 #ifndef CCE_MODULES_EXTERNAL_COMMANDS_INTERNAL_HH
 #define CCE_MODULES_EXTERNAL_COMMANDS_INTERNAL_HH
 
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/modules/external_commands/processing.hh"
 #include "com/centreon/engine/namespace.hh"
 

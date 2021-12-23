@@ -22,6 +22,7 @@
 #include <cmath>
 #include "com/centreon/engine/events/defines.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/statusdata.hh"
 
 using namespace com::centreon::engine;
@@ -45,6 +46,7 @@ void init_timing_loop() {
   double runtime[9];
 
   engine_logger(dbg_functions, basic) << "init_timing_loop()";
+  log_v2::functions()->trace("init_timing_loop()");
 
   /* get the time right now */
   time(&current_time);
@@ -109,6 +111,9 @@ void init_timing_loop() {
       engine_logger(dbg_events, more)
           << "Service '" << temp_service->description << "' on host '"
           << temp_service->host_name << "' should not be scheduled.";
+      log_v2::events()->debug(
+          "Service '{}' on host '{}' should not be scheduled.",
+          temp_service->description, temp_service->host_name);
     }
 
     scheduling_info.total_services++;
@@ -151,6 +156,8 @@ void init_timing_loop() {
 
       engine_logger(dbg_events, more)
           << "Host '" << temp_host->name << "' should not be scheduled.";
+      log_v2::events()->debug("Host '{}' should not be scheduled.",
+                              temp_host->name);
     }
 
     scheduling_info.total_hosts++;
@@ -188,6 +195,7 @@ void init_timing_loop() {
 
   engine_logger(dbg_events, most)
       << "Determining service scheduling parameters...";
+  log_v2::events()->info("Determining service scheduling parameters...");
 
   /* default max service check spread (in minutes) */
   scheduling_info.max_service_check_spread = ::max_service_check_spread;
@@ -237,14 +245,20 @@ void init_timing_loop() {
       engine_logger(dbg_events, more)
           << "Total scheduled service checks:  "
           << scheduling_info.total_scheduled_services;
+      log_v2::events()->debug("Total scheduled service checks:  {}",
+                              scheduling_info.total_scheduled_services);
       engine_logger(dbg_events, more)
           << com::centreon::logging::setprecision(2)
           << "Average service check interval:  "
           << scheduling_info.average_service_check_interval << " sec";
+      log_v2::events()->debug("Average service check interval:  {} sec",
+                              scheduling_info.average_service_check_interval);
       engine_logger(dbg_events, more)
           << com::centreon::logging::setprecision(2)
           << "Service inter-check delay:       "
           << scheduling_info.service_inter_check_delay << " sec";
+      log_v2::events()->debug("Service inter-check delay:       {} sec",
+                              scheduling_info.service_inter_check_delay);
   }
 
   /* how should we determine the service interleave factor? */
@@ -261,11 +275,17 @@ void init_timing_loop() {
       engine_logger(dbg_events, more)
           << "Total scheduled service checks: "
           << scheduling_info.total_scheduled_services;
+      log_v2::events()->debug("Total scheduled service checks: {}",
+                              scheduling_info.total_scheduled_services);
       engine_logger(dbg_events, more)
           << "Total hosts:                    " << scheduling_info.total_hosts;
+      log_v2::events()->debug("Total hosts:                    {}",
+                              scheduling_info.total_hosts);
       engine_logger(dbg_events, more)
           << "Service Interleave factor:      "
           << scheduling_info.service_interleave_factor;
+      log_v2::events()->debug("Service Interleave factor:      {}",
+                              scheduling_info.service_interleave_factor);
   }
 
   /* calculate number of service interleave blocks */
@@ -281,13 +301,21 @@ void init_timing_loop() {
 
   engine_logger(dbg_events, more) << "Total scheduled services: "
                                   << scheduling_info.total_scheduled_services;
+  log_v2::events()->debug("Total scheduled services: {}",
+                          scheduling_info.total_scheduled_services);
   engine_logger(dbg_events, more) << "Service Interleave factor: "
                                   << scheduling_info.service_interleave_factor;
+  log_v2::events()->debug("Service Interleave factor: {}",
+                          scheduling_info.service_interleave_factor);
   engine_logger(dbg_events, more)
       << "Total service interleave blocks: " << total_interleave_blocks;
+  log_v2::events()->debug("Total service interleave blocks: {}",
+                          total_interleave_blocks);
   engine_logger(dbg_events, more) << com::centreon::logging::setprecision(1)
                                   << "Service inter-check delay: "
                                   << scheduling_info.service_inter_check_delay;
+  log_v2::events()->debug("Service inter-check delay: {}",
+                          scheduling_info.service_inter_check_delay);
 
   if (test_scheduling == true)
     gettimeofday(&tv[3], nullptr);
@@ -295,6 +323,7 @@ void init_timing_loop() {
   /******** SCHEDULE SERVICE CHECKS  ********/
 
   engine_logger(dbg_events, most) << "Scheduling service checks...";
+  log_v2::events()->info("Scheduling service checks...");
 
   /* determine check times for service checks (with interleaving to minimize
    * remote load) */
@@ -304,6 +333,8 @@ void init_timing_loop() {
        scheduling_info.service_interleave_factor > 0;) {
     engine_logger(dbg_events, most)
         << "Current Interleave Block: " << current_interleave_block;
+    log_v2::events()->info("Current Interleave Block: {}",
+                           current_interleave_block);
 
     for (interleave_block_index = 0;
          interleave_block_index < scheduling_info.service_interleave_factor &&
@@ -312,11 +343,15 @@ void init_timing_loop() {
       engine_logger(dbg_events, most)
           << "Service '" << temp_service->description << "' on host '"
           << temp_service->host_name << "'";
+      log_v2::events()->info("Service '{}' on host '{}'",
+                             temp_service->description,
+                             temp_service->host_name);
 
       /* skip this service if it shouldn't be scheduled */
       if (temp_service->should_be_scheduled == false) {
         engine_logger(dbg_events, most)
             << "Service check should not be scheduled.";
+        log_v2::events()->info("Service check should not be scheduled.");
         continue;
       }
 
@@ -328,6 +363,10 @@ void init_timing_loop() {
             << "Service is already scheduled to be checked in "
                "the future: "
             << my_ctime(&temp_service->next_check);
+        log_v2::events()->info(
+            "Service is already scheduled to be checked in "
+            "the future: {}",
+            my_ctime(&temp_service->next_check));
         continue;
       }
 
@@ -344,8 +383,13 @@ void init_timing_loop() {
           << ", IBI: " << interleave_block_index
           << ", TIB: " << total_interleave_blocks
           << ", SIF: " << scheduling_info.service_interleave_factor;
+      log_v2::events()->info("CIB: {}, IBI: {}, TIB: {}, SIF: {}",
+                             current_interleave_block, interleave_block_index,
+                             total_interleave_blocks,
+                             scheduling_info.service_interleave_factor);
 
       engine_logger(dbg_events, most) << "Mult factor: " << mult_factor;
+      log_v2::events()->info("Mult factor: {}", mult_factor);
 
       /* set the preferred next check time for the service */
       temp_service->next_check =
@@ -355,6 +399,9 @@ void init_timing_loop() {
       engine_logger(dbg_events, most)
           << "Preferred Check Time: " << temp_service->next_check << " --> "
           << my_ctime(&temp_service->next_check);
+      log_v2::events()->info("Preferred Check Time: {} --> {}",
+                             temp_service->next_check,
+                             my_ctime(&temp_service->next_check));
 
       /* make sure the service can actually be scheduled when we want */
       is_valid_time = check_time_against_period(temp_service->next_check,
@@ -365,7 +412,10 @@ void init_timing_loop() {
             << temp_service->check_period_ptr->name
             << "': " << temp_service->next_check << " --> "
             << my_ctime(&temp_service->next_check);
-
+        log_v2::events()->info(
+            "Preferred Time is Invalid In Timeperiod '{}': {} --> {}",
+            temp_service->check_period_ptr->name, temp_service->next_check,
+            my_ctime(&temp_service->next_check));
         get_next_valid_time(temp_service->next_check, &next_valid_time,
                             temp_service->check_period_ptr);
         temp_service->next_check = next_valid_time;
@@ -374,6 +424,9 @@ void init_timing_loop() {
       engine_logger(dbg_events, most)
           << "Actual Check Time: " << temp_service->next_check << " --> "
           << my_ctime(&temp_service->next_check);
+      log_v2::events()->info("Actual Check Time: {} --> {}",
+                             temp_service->next_check,
+                             my_ctime(&temp_service->next_check));
 
       if (scheduling_info.first_service_check == (time_t)0 ||
           (temp_service->next_check < scheduling_info.first_service_check))
@@ -419,6 +472,7 @@ void init_timing_loop() {
 
   engine_logger(dbg_events, most)
       << "Determining host scheduling parameters...";
+  log_v2::events()->info("Determining host scheduling parameters...");
 
   scheduling_info.first_host_check = (time_t)0L;
   scheduling_info.last_host_check = (time_t)0L;
@@ -480,17 +534,25 @@ void init_timing_loop() {
 
       engine_logger(dbg_events, most) << "Total scheduled host checks:  "
                                       << scheduling_info.total_scheduled_hosts;
+      log_v2::events()->info("Total scheduled host checks:  {}",
+                             scheduling_info.total_scheduled_hosts);
       engine_logger(dbg_events, most)
           << "Host check interval total:    "
           << scheduling_info.host_check_interval_total;
+      log_v2::events()->info("Host check interval total:    {}",
+                             scheduling_info.host_check_interval_total);
       engine_logger(dbg_events, most)
           << com::centreon::logging::setprecision(2)
           << "Average host check interval:  "
           << scheduling_info.average_host_check_interval << " sec";
+      log_v2::events()->info("Average host check interval:  {} sec",
+                             scheduling_info.average_host_check_interval);
       engine_logger(dbg_events, most)
           << com::centreon::logging::setprecision(2)
           << "Host inter-check delay:       "
           << scheduling_info.host_inter_check_delay << " sec";
+      log_v2::events()->info("Host inter-check delay:       {} sec",
+                             scheduling_info.host_inter_check_delay);
   }
 
   if (test_scheduling == true)
@@ -499,16 +561,19 @@ void init_timing_loop() {
   /******** SCHEDULE HOST CHECKS  ********/
 
   engine_logger(dbg_events, most) << "Scheduling host checks...";
+  log_v2::events()->info("Scheduling host checks...");
 
   /* determine check times for host checks */
   mult_factor = 0;
   for (temp_host = host_list; temp_host != nullptr;
        temp_host = temp_host->next) {
     engine_logger(dbg_events, most) << "Host '" << temp_host->name << "'";
+    log_v2::events()->info("Host '{}'", temp_host->name);
 
     /* skip hosts that shouldn't be scheduled */
     if (temp_host->should_be_scheduled == false) {
       engine_logger(dbg_events, most) << "Host check should not be scheduled.";
+      log_v2::events()->info("Host check should not be scheduled.");
       continue;
     }
 
@@ -519,6 +584,9 @@ void init_timing_loop() {
       engine_logger(dbg_events, most)
           << "Host is already scheduled to be checked in the future: "
           << my_ctime(&temp_host->next_check);
+      log_v2::events()->info(
+          "Host is already scheduled to be checked in the future: {}",
+          my_ctime(&temp_host->next_check));
       continue;
     }
 
@@ -529,6 +597,9 @@ void init_timing_loop() {
     engine_logger(dbg_events, most)
         << "Preferred Check Time: " << temp_host->next_check << " --> "
         << my_ctime(&temp_host->next_check);
+    log_v2::events()->info("Preferred Check Time: {} --> {}",
+                           temp_host->next_check,
+                           my_ctime(&temp_host->next_check));
 
     /* make sure the host can actually be scheduled at this time */
     is_valid_time = check_time_against_period(temp_host->next_check,
@@ -542,6 +613,9 @@ void init_timing_loop() {
     engine_logger(dbg_events, most)
         << "Actual Check Time: " << temp_host->next_check << " --> "
         << my_ctime(&temp_host->next_check);
+    log_v2::events()->info("Actual Check Time: {} --> {}",
+                           temp_host->next_check,
+                           my_ctime(&temp_host->next_check));
 
     if (scheduling_info.first_host_check == (time_t)0 ||
         (temp_host->next_check < scheduling_info.first_host_check))
@@ -696,5 +770,6 @@ void init_timing_loop() {
   }
 
   engine_logger(dbg_functions, basic) << "init_timing_loop()";
+  log_v2::functions()->trace "init_timing_loop()"();
   return;
 }

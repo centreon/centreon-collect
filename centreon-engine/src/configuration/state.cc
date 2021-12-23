@@ -258,6 +258,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"log_level_comments", SETTER(std::string const&, log_level_comments)},
     {"log_level_macros", SETTER(std::string const&, log_level_macros)},
     {"log_level_process", SETTER(std::string const&, log_level_process)},
+    {"log_level_runtime", SETTER(std::string const&, log_level_runtime)},
     {"use_timezone", SETTER(std::string const&, use_timezone)},
     {"use_true_regexp_matching", SETTER(bool, use_true_regexp_matching)},
     {"xcddefault_comment_file", SETTER(std::string const&, _set_comment_file)},
@@ -394,6 +395,7 @@ static std::string const default_log_level_downtimes("info");
 static std::string const default_log_level_comments("info");
 static std::string const default_log_level_macros("info");
 static std::string const default_log_level_process("info");
+static std::string const default_log_level_runtime("info");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 
@@ -533,6 +535,7 @@ state::state()
       _log_level_comments(default_log_level_comments),
       _log_level_macros(default_log_level_macros),
       _log_level_process(default_log_level_process),
+      _log_level_runtime(default_log_level_runtime),
       _use_timezone(default_use_timezone),
       _use_true_regexp_matching(default_use_true_regexp_matching) {}
 
@@ -711,6 +714,7 @@ state& state::operator=(state const& right) {
     _log_level_comments = right._log_level_comments;
     _log_level_macros = right._log_level_macros;
     _log_level_process = right._log_level_process;
+    _log_level_runtime = right._log_level_runtime;
     _use_timezone = right._use_timezone;
     _use_true_regexp_matching = right._use_true_regexp_matching;
   }
@@ -877,6 +881,7 @@ bool state::operator==(state const& right) const noexcept {
       _log_level_comments == right._log_level_comments &&
       _log_level_macros == right._log_level_macros &&
       _log_level_process == right._log_level_process &&
+      _log_level_runtime == right._log_level_runtime &&
       _use_timezone == right._use_timezone &&
       _use_true_regexp_matching == right._use_true_regexp_matching);
 }
@@ -3482,6 +3487,7 @@ bool state::set(char const* key, char const* value) {
       return (it->second)(*this, value);
   } catch (std::exception const& e) {
     engine_logger(log_config_error, basic) << e.what();
+    log_v2::config()->error(e.what());
     return false;
   }
   return true;
@@ -3636,6 +3642,9 @@ void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
   engine_logger(log_verification_error, basic)
       << "Warning: use_aggressive_host_checking is deprecated."
          " This option is no more supported since version 21.04.";
+  log_v2::config()->error(
+      "Warning: use_aggressive_host_checking is deprecated. This option is no "
+      "more supported since version 21.04.");
   ++config_warnings;
 }
 
@@ -4076,6 +4085,27 @@ void state::log_level_process(std::string const& value) {
 }
 
 /**
+ *  Get log_level_runtime value.
+ *
+ *  @return The log_level_runtime value.
+ */
+std::string const& state::log_level_runtime() const noexcept {
+  return _log_level_runtime;
+}
+
+/**
+ *  Set log_level_runtime value.
+ *
+ *  @param[in] value The new log_level_runtime value.
+ */
+void state::log_level_runtime(std::string const& value) {
+  if (log_v2::contains_level(value))
+    _log_level_runtime = value;
+  else
+    log_v2::config()->error("error wrong level setted for log_level_runtime");
+}
+
+/**
  *  Get use_timezone value.
  *
  *  @return The use_timezone value.
@@ -4120,6 +4150,7 @@ void state::_set_aggregate_status_updates(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: aggregate_status_updates variable ignored";
+  log_v2::config()->warn("Warning: aggregate_status_updates variable ignored");
   ++config_warnings;
 }
 
@@ -4132,6 +4163,7 @@ void state::_set_auth_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: auth_file variable ignored";
+  log_v2::config()->warn("Warning: auth_file variable ignored");
   ++config_warnings;
 }
 
@@ -4144,6 +4176,7 @@ void state::_set_bare_update_check(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: bare_update_check variable ignored";
+  log_v2::config()->warn("Warning: bare_update_check variable ignored");
   ++config_warnings;
 }
 
@@ -4195,6 +4228,7 @@ void state::_set_check_for_updates(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: check_for_updates variable ignored";
+  log_v2::config()->warn("Warning: check_for_updates variable ignored");
   ++config_warnings;
 }
 
@@ -4207,6 +4241,8 @@ void state::_set_child_processes_fork_twice(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: child_processes_fork_twice variable ignored";
+  log_v2::config()->warn(
+      "Warning: child_processes_fork_twice variable ignored");
   ++config_warnings;
 }
 
@@ -4236,6 +4272,7 @@ void state::_set_comment_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: comment_file variable ignored";
+  log_v2::config()->warn("Warning: comment_file variable ignored");
   ++config_warnings;
 }
 
@@ -4248,6 +4285,7 @@ void state::_set_daemon_dumps_core(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: daemon_dumps_core variable ignored";
+  log_v2::config()->warn("Warning: daemon_dumps_core variable ignored");
   ++config_warnings;
 }
 
@@ -4276,6 +4314,7 @@ void state::_set_downtime_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: downtime_file variable ignored";
+  log_v2::config()->warn("Warning: downtime_file variable ignored");
   ++config_warnings;
 }
 
@@ -4288,6 +4327,7 @@ void state::_set_enable_embedded_perl(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: enable_embedded_perl variable ignored";
+  log_v2::config()->warn("Warning: enable_embedded_perl variable ignored");
   ++config_warnings;
 }
 
@@ -4300,6 +4340,7 @@ void state::_set_enable_failure_prediction(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: enable_failure_prediction variable ignored";
+  log_v2::config()->warn("Warning: enable_failure_prediction variable ignored");
   ++config_warnings;
   return;
 }
@@ -4327,6 +4368,7 @@ void state::_set_free_child_process_memory(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: free_child_process_memory variable ignored";
+  log_v2::config()->warn("Warning: free_child_process_memory variable ignored");
   ++config_warnings;
 }
 
@@ -4376,6 +4418,7 @@ void state::_set_lock_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: lock_file variable ignored";
+  log_v2::config()->warn("Warning: lock_file variable ignored");
   ++config_warnings;
 }
 
@@ -4388,6 +4431,7 @@ void state::_set_log_archive_path(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: log_archive_path variable ignored";
+  log_v2::config()->warn("Warning: log_archive_path variable ignored");
   ++config_warnings;
 }
 
@@ -4400,6 +4444,7 @@ void state::_set_log_initial_states(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: log_initial_states variable ignored";
+  log_v2::config()->warn("Warning: log_initial_states variable ignored");
   ++config_warnings;
   return;
 }
@@ -4413,6 +4458,7 @@ void state::_set_log_rotation_method(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: log_rotation_method variable ignored";
+  log_v2::config()->warn("Warning: log_rotation_method variable ignored");
   ++config_warnings;
 }
 
@@ -4425,6 +4471,7 @@ void state::_set_nagios_group(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: nagios_group variable ignored";
+  log_v2::config()->warn("Warning: nagios_group variable ignored");
   ++config_warnings;
 }
 
@@ -4437,6 +4484,7 @@ void state::_set_nagios_user(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: nagios_user variable ignored";
+  log_v2::config()->warn("Warning: nagios_user variable ignored");
   ++config_warnings;
 }
 
@@ -4449,6 +4497,7 @@ void state::_set_object_cache_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: object_cache_file variable ignored";
+  log_v2::config()->warn("Warning: object_cache_file variable ignored");
   ++config_warnings;
 }
 
@@ -4461,6 +4510,8 @@ void state::_set_p1_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: p1_file variable ignored";
+  log_v2::config()->warn("Warning: p1_file variable ignored");
+
   ++config_warnings;
 }
 
@@ -4473,6 +4524,7 @@ void state::_set_precached_object_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: precached_object_file variable ignored";
+  log_v2::config()->warn("Warning: precached_object_file variable ignored");
   ++config_warnings;
 }
 
@@ -4501,6 +4553,8 @@ void state::_set_retained_process_service_attribute_mask(
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: retained_process_service_attribute_mask variable ignored";
+  log_v2::config()->warn(
+      "Warning: retained_process_service_attribute_mask variable ignored");
   ++config_warnings;
 }
 
@@ -4513,6 +4567,8 @@ void state::_set_retained_service_attribute_mask(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: retained_service_attribute_mask variable ignored";
+  log_v2::config()->warn(
+      "Warning: retained_service_attribute_mask variable ignored");
   ++config_warnings;
 }
 
@@ -4578,6 +4634,7 @@ void state::_set_temp_file(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: temp_file variable ignored";
+  log_v2::config()->warn("Warning: temp_file variable ignored");
   ++config_warnings;
 }
 
@@ -4590,6 +4647,7 @@ void state::_set_temp_path(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: temp_path variable ignored";
+  log_v2::config()->warn("Warning: temp_path variable ignored");
   ++config_warnings;
 }
 
@@ -4602,6 +4660,8 @@ void state::_set_use_embedded_perl_implicitly(std::string const& value) {
   (void)value;
   engine_logger(log_config_warning, basic)
       << "Warning: use_embedded_perl_implicitly variable ignored";
+  log_v2::config()->warn(
+      "Warning: use_embedded_perl_implicitly variable ignored");
   ++config_warnings;
 }
 

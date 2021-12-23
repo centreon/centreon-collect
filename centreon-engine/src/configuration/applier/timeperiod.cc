@@ -24,6 +24,7 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -66,6 +67,8 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new time period '" << obj.timeperiod_name() << "'.";
+  log_v2::config()->debug("Creating new time period '{}'.",
+                          obj.timeperiod_name());
 
   // Add time period to the global configuration set.
   config->timeperiods().insert(obj);
@@ -108,6 +111,7 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying time period '" << obj.timeperiod_name() << "'.";
+  log_v2::config()->debug("Modifying time period '{}'.", obj.timeperiod_name());
 
   // Find old configuration.
   set_timeperiod::iterator it_cfg(config->timeperiods_find(obj.key()));
@@ -175,6 +179,7 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing time period '" << obj.timeperiod_name() << "'.";
+  log_v2::config()->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it(engine::timeperiod::timeperiods.find(obj.key()));
@@ -205,6 +210,7 @@ void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving time period '" << obj.timeperiod_name() << "'.";
+  log_v2::config()->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it{engine::timeperiod::timeperiods.find(obj.key())};

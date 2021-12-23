@@ -28,6 +28,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
@@ -135,6 +136,9 @@ int pre_flight_circular_check(int* w, int* e) {
       engine_logger(log_verification_error, basic)
           << "Error: The host '" << it->first
           << "' is part of a circular parent/child chain!";
+    log_v2::config()->error(
+        "Error: The host '{}' is part of a circular parent/child chain!",
+        it->first);
     /* clean DFS status */
     dfs_set_status(it->second.get(), DFS_UNCHECKED);
   }
@@ -163,6 +167,10 @@ int pre_flight_circular_check(int* w, int* e) {
              "in a deadlock) exists for service '"
           << it->second->get_service_description() << "' on host '"
           << it->second->get_hostname() << "'!";
+      log_v2::config()->error(
+          "Error: A circular execution dependency (which could result "
+          "in a deadlock) exists for service '{}' on host '{}'!",
+          it->second->get_service_description(), it->second->get_hostname());
       errors++;
     }
   }
@@ -187,6 +195,10 @@ int pre_flight_circular_check(int* w, int* e) {
              "result in a deadlock) exists for service '"
           << it->second->get_service_description() << "' on host '"
           << it->second->get_hostname() << "'!";
+      log_v2::config()->error(
+          "Error: A circular notification dependency (which could "
+          "result in a deadlock) exists for service '{}' on host '{}'!",
+          it->second->get_service_description(), it->second->get_hostname());
       errors++;
     }
   }
@@ -217,6 +229,10 @@ int pre_flight_circular_check(int* w, int* e) {
           << "Error: A circular execution dependency (which could "
              "result in a deadlock) exists for host '"
           << it->second->get_hostname() << "'!";
+      log_v2::config()->error(
+          "Error: A circular execution dependency (which could "
+          "result in a deadlock) exists for host '{}'!",
+          it->second->get_hostname());
       errors++;
     }
   }
@@ -240,6 +256,10 @@ int pre_flight_circular_check(int* w, int* e) {
           << "Error: A circular notification dependency (which could "
              "result in a deadlock) exists for host '"
           << it->first << "'!";
+      log_v2::config()->error(
+          "Error: A circular notification dependency (which could "
+          "result in a deadlock) exists for host '{}'!",
+          it->first);
       errors++;
     }
   }

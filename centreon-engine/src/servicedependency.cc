@@ -21,6 +21,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -298,6 +299,11 @@ void servicedependency::resolve(int& w, int& e) {
         << "' specified in service dependency for service '"
         << get_service_description() << "' on host '" << get_hostname()
         << "' is not defined anywhere!";
+    log_v2::config()->error(
+        "Error: Dependent service '{}' on host '{}' specified in service "
+        "dependency for service '{}' on host '{}' is not defined anywhere!",
+        get_dependent_service_description(), get_dependent_hostname(),
+        get_service_description(), get_service_description());
     errors++;
     dependent_service_ptr = nullptr;
   } else
@@ -313,6 +319,11 @@ void servicedependency::resolve(int& w, int& e) {
         << get_hostname() << "' specified in service dependency for service '"
         << get_dependent_service_description() << "' on host '"
         << get_dependent_hostname() << "' is not defined anywhere!";
+    log_v2::config()->error(
+        "Error: Service '{}' on host '{}' specified in service dependency for "
+        "service '{}' on host '{}' is not defined anywhere!",
+        get_service_description(), get_hostname(),
+        get_dependent_service_description(), get_dependent_hostname());
     errors++;
     master_service_ptr = nullptr;
   } else
@@ -326,6 +337,10 @@ void servicedependency::resolve(int& w, int& e) {
         << "Error: Service dependency definition for service '"
         << get_dependent_service_description() << "' on host '"
         << get_dependent_hostname() << "' is circular (it depends on itself)!";
+    log_v2::config()->error(
+        "Error: Service dependency definition for service '{}' on host '{}' is "
+        "circular (it depends on itself)!",
+        get_dependent_service_description(), get_dependent_hostname());
     errors++;
   }
 
@@ -340,6 +355,11 @@ void servicedependency::resolve(int& w, int& e) {
           << "' specified in service dependency for service '"
           << get_dependent_service_description() << "' on host '"
           << get_dependent_hostname() << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Dependency period '{}' specified in service dependency for "
+          "service '{}' on host '{}' is not defined anywhere!",
+          get_dependency_period(), get_dependent_service_description(),
+          get_dependent_hostname());
       errors++;
       dependency_period_ptr = nullptr;
     } else

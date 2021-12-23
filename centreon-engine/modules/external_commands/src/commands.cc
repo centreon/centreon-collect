@@ -134,12 +134,19 @@ int process_external_commands_from_file(char const* file, int delete_file) {
       << "Processing commands from file '" << file << "'.  File will "
       << (delete_file ? "be" : "NOT be") << " deleted after processing.";
 
+  log_v2::external_command()->debug(
+      "Processing commands from file '{}'.  File will {} deleted after "
+      "processing.",
+      file, (delete_file ? "be" : "NOT be"));
+
   /* open the config file for reading */
   mmapfile* thefile(nullptr);
   if ((thefile = mmap_fopen(file)) == nullptr) {
     engine_logger(log_info_message, basic)
         << "Error: Cannot open file '" << file
         << "' to process external commands!";
+    log_v2::config()->info(
+        "Error: Cannot open file '{}' to process external commands!", file);
     return ERROR;
   }
 
@@ -555,6 +562,10 @@ int process_passive_service_check(time_t check_time,
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for service '{}' on host "
+        "'{}', but the host could not be found!",
+        svc_description, host_name);
     return ERROR;
   }
 
@@ -566,6 +577,10 @@ int process_passive_service_check(time_t check_time,
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for service '{}' on host "
+        "'{}', but the service could not be found!",
+        svc_description, host_name);
     return ERROR;
   }
 
@@ -674,6 +689,10 @@ int process_passive_host_check(time_t check_time,
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for host '{}', but the "
+        "host could not be found!",
+        host_name);
     return ERROR;
   }
 

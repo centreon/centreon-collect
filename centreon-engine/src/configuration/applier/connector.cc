@@ -23,6 +23,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
 
@@ -47,6 +48,7 @@ void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new connector '" << obj.connector_name() << "'.";
+  log_v2::config()->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
   nagios_macros* macros(get_global_macros());
@@ -84,6 +86,7 @@ void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying connector '" << obj.connector_name() << "'.";
+  log_v2::config()->debug("Modifying connector '{}'.", obj.connector_name());
 
   // Find old configuration.
   set_connector::iterator it_cfg(config->connectors_find(obj.key()));
@@ -124,6 +127,7 @@ void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing connector '" << obj.connector_name() << "'.";
+  log_v2::config()->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
   connector_map::iterator it(commands::connector::connectors.find(obj.key()));

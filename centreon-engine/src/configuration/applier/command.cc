@@ -27,6 +27,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
@@ -51,6 +52,7 @@ void applier::command::add_object(configuration::command const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new command '" << obj.command_name() << "'.";
+  log_v2::config()->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
   config->commands().insert(obj);
@@ -96,6 +98,7 @@ void applier::command::modify_object(configuration::command const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying command '" << obj.command_name() << "'.";
+  log_v2::config()->debug("Modifying command '{}'.", obj.command_name());
 
   // Find old configuration.
   set_command::iterator it_cfg(config->commands_find(obj.key()));
@@ -156,6 +159,7 @@ void applier::command::remove_object(configuration::command const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing command '" << obj.command_name() << "'.";
+  log_v2::config()->debug("Removing command '{}'.", obj.command_name());
 
   // Find command.
   std::unordered_map<std::string, std::shared_ptr<commands::command> >::iterator

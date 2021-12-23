@@ -21,6 +21,7 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 #include <sstream>
 #include <utility>
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/clear_host.hh"
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
@@ -456,6 +457,8 @@ int grab_standard_host_macro_r(nagios_macros* mac,
     else {
       engine_logger(dbg_macros, basic)
           << "UNHANDLED HOST MACRO #" << macro_type << "! THIS IS A BUG!";
+      log_v2::macros()->trace("UNHANDLED HOST MACRO #{}! THIS IS A BUG!",
+                              macro_type);
       retval = ERROR;
     }
   } else

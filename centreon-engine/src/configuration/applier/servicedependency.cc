@@ -25,6 +25,7 @@
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration;
@@ -77,6 +78,12 @@ void applier::servicedependency::add_object(
       << obj.dependent_hosts().front() << "' on service '"
       << obj.service_description().front() << "' of host '"
       << obj.hosts().front() << "'.";
+  log_v2::config()->debug(
+      "Creating new service dependency of service '{}' of host '{}' on service "
+      "'{}' of host '{}'.",
+      obj.dependent_service_description().front(),
+      obj.dependent_hosts().front(), obj.service_description().front(),
+      obj.hosts().front());
 
   // Add dependency to the global configuration set.
   config->servicedependencies().insert(obj);
@@ -244,6 +251,7 @@ void applier::servicedependency::remove_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Removing a service dependency.";
+  log_v2::config()->debug("Removing a service dependency.");
 
   // Find service dependency.
   servicedependency_mmap::iterator it(
@@ -273,6 +281,7 @@ void applier::servicedependency::resolve_object(
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving a service dependency.";
+  log_v2::config()->debug("Resolving a service dependency.");
 
   // Find service dependency.
   servicedependency_mmap::iterator it(

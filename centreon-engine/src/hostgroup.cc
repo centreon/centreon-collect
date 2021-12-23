@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -59,6 +60,7 @@ hostgroup::hostgroup(uint64_t id,
   // Make sure we have the data we need.
   if (name.empty()) {
     engine_logger(log_config_error, basic) << "Error: Hostgroup name is NULL";
+    log_v2::config()->error("Error: Hostgroup name is NULL");
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
 
@@ -67,6 +69,8 @@ hostgroup::hostgroup(uint64_t id,
   if (found != hostgroup::hostgroups.end()) {
     engine_logger(log_config_error, basic)
         << "Error: Hostgroup '" << name << "' has already been defined";
+    log_v2::config()->error("Error: Hostgroup '{}' has already been defined",
+                            name);
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
 }
@@ -164,6 +168,10 @@ void hostgroup::resolve(int& w, int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Host '" << it->first << "' specified in host group '"
           << get_group_name() << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Host '{}' specified in host group '{}' is not defined "
+          "anywhere!",
+          it->first, get_group_name());
       it->second = nullptr;
       errors++;
     }
@@ -188,6 +196,10 @@ void hostgroup::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of hostgroup '" << get_group_name()
         << "' contains one or more illegal characters.";
+    log_v2::config()->error(
+        "Error: The name of hostgroup '{}' contains one or more illegal "
+        "characters.",
+        get_group_name());
     errors++;
   }
 

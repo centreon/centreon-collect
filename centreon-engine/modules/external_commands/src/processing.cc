@@ -581,7 +581,6 @@ processing::~processing() noexcept {}
 
 bool processing::execute(const std::string& cmdstr) const {
   engine_logger(dbg_functions, basic) << "processing external command";
-
   log_v2::functions()->trace("processing external command");
 
   char const* cmd{cmdstr.c_str()};
@@ -631,6 +630,8 @@ bool processing::execute(const std::string& cmdstr) const {
       lock.unlock();
       engine_logger(log_external_command | log_runtime_warning, basic)
           << "Warning: Unrecognized external command -> " << command_name;
+      log_v2::external_command()->warn(
+          "Warning: Unrecognized external command -> {}", command_name);
       return false;
     }
 
@@ -645,14 +646,20 @@ bool processing::execute(const std::string& cmdstr) const {
     if (config->log_passive_checks())
       engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
+    log_v2::checks()->info("EXTERNAL COMMAND: {};{}", command_name, args);
   } else if (config->log_external_commands())
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
+  log_v2::external_command()->info("EXTERNAL COMMAND: {};{}", command_name,
+                                   args);
 
   engine_logger(dbg_external_command, more)
       << "External command id: " << command_id
       << "\nCommand entry time: " << entry_time
       << "\nCommand arguments: " << args;
+  log_v2::external_command()->debug(
+      "External command id: {} \nCommand entry time: {} \nCommand arguments: ",
+      command_id, entry_time, args);
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, NEBFLAG_NONE,
@@ -701,6 +708,8 @@ void processing::_wrapper_read_state_information() {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
+    log_v2::runtime()->error("Error: could not load retention file: {}",
+                             e.what());
   }
   return;
 }

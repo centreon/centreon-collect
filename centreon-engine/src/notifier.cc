@@ -27,6 +27,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
@@ -159,6 +160,8 @@ notifier::notifier(notifier::notifier_type notifier_type,
     engine_logger(log_config_error, basic)
         << "Error: Invalid notification_interval value for notifier '"
         << display_name << "'";
+    log_v2::config()->error(
+        "Error: Invalid notification_interval value for notifier '{}'");
     throw engine_error() << "Could not register notifier '" << display_name
                          << "'";
   }
@@ -219,6 +222,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
                                               notification_option options) {
   engine_logger(dbg_functions, basic)
       << "notifier::is_notification_viable_normal()";
+  log_v2::functions()->trace("notifier::is_notification_viable_normal()");
 
   /* forced notifications bust through everything */
   uint32_t notification_interval =
@@ -229,6 +233,8 @@ bool notifier::_is_notification_viable_normal(reason_type type
   if (options & notification_option_forced) {
     engine_logger(dbg_notifications, more)
         << "This is a forced notification, so we'll send it out.";
+    log_v2::notifications()->debug(
+        "This is a forced notification, so we'll send it out.");
     return true;
   }
 
@@ -237,6 +243,9 @@ bool notifier::_is_notification_viable_normal(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
            "not be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications will "
+        "not be sent out.");
     return false;
   }
 
@@ -245,6 +254,9 @@ bool notifier::_is_notification_viable_normal(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are temporarily disabled for "
            "this notifier, so we won't send one out.";
+    log_v2::notifications()->debug(
+        "Notifications are temporarily disabled for "
+        "this notifier, so we won't send one out.");
     return false;
   }
 
@@ -254,6 +266,9 @@ bool notifier::_is_notification_viable_normal(reason_type type
     engine_logger(dbg_notifications, more)
         << "This notifier is currently in a scheduled downtime, so "
            "we won't send notifications.";
+    log_v2::notifications()->debug(
+        "This notifier is currently in a scheduled downtime, so "
+        "we won't send notifications.");
     return false;
   }
 
@@ -266,6 +281,9 @@ bool notifier::_is_notification_viable_normal(reason_type type
     engine_logger(dbg_notifications, more)
         << "This notifier shouldn't have notifications sent out "
            "at this time.";
+    log_v2::notifications()->debug(
+        "This notifier shouldn't have notifications sent out "
+        "at this time.");
     return false;
   }
 
@@ -273,6 +291,8 @@ bool notifier::_is_notification_viable_normal(reason_type type
   if (get_is_flapping()) {
     engine_logger(dbg_notifications, more)
         << "This notifier is flapping, so we won't send notifications.";
+    log_v2::notifications()->debug(
+        "This notifier is flapping, so we won't send notifications.");
     return false;
   }
 
@@ -286,6 +306,8 @@ bool notifier::_is_notification_viable_normal(reason_type type
   if (get_state_type() != hard) {
     engine_logger(dbg_notifications, more)
         << "This notifier is in soft state, so we won't send notifications.";
+    log_v2::notifications()->debug(
+        "This notifier is in soft state, so we won't send notifications.");
     return false;
   }
 
@@ -293,12 +315,17 @@ bool notifier::_is_notification_viable_normal(reason_type type
     engine_logger(dbg_notifications, more)
         << "This notifier problem has been acknowledged, so we won't send "
            "notifications.";
+    log_v2::notifications()->debug(
+        "This notifier problem has been acknowledged, so we won't send "
+        "notifications.");
     return false;
   }
 
   if (get_current_state_int() == 0) {
     engine_logger(dbg_notifications, more)
         << "We don't send a normal notification when the state is ok/up";
+    log_v2::notifications()->debug(
+        "We don't send a normal notification when the state is ok/up");
     return false;
   }
 
@@ -307,6 +334,10 @@ bool notifier::_is_notification_viable_normal(reason_type type
         << "This notifier is unable to notify the state "
         << get_current_state_as_string()
         << ": not configured for that or, for a service, its host may be down";
+    log_v2::notifications()->debug(
+        "This notifier is unable to notify the state {}: not configured for "
+        "that or, for a service, its host may be down",
+        get_current_state_as_string());
     return false;
   }
 
@@ -318,6 +349,10 @@ bool notifier::_is_notification_viable_normal(reason_type type
         << "This notifier is configured with a first notification delay, we "
            "won't send notification until timestamp "
         << (_first_notification_delay * config->interval_length());
+    log_v2::notifications()->debug(
+        "This notifier is configured with a first notification delay, we "
+        "won't send notification until timestamp {}",
+        (_first_notification_delay * config->interval_length()));
     return false;
   }
 
@@ -325,6 +360,9 @@ bool notifier::_is_notification_viable_normal(reason_type type
     engine_logger(dbg_notifications, more)
         << "This notifier won't send any notification since it depends on"
            " another notifier that has already sent one";
+    log_v2::notifications()->debug(
+        "This notifier won't send any notification since it depends on"
+        " another notifier that has already sent one");
     return false;
   }
 
@@ -338,6 +376,10 @@ bool notifier::_is_notification_viable_normal(reason_type type
             << _last_notification
             << " so, since the notification interval is 0, it won't be sent"
             << " anymore";
+        log_v2::notifications()->debug(
+            "This notifier problem has already been sent at {} so, since the "
+            "notification interval is 0, it won't be sent anymore",
+            _last_notification);
         return false;
       } else if (notification_interval > 0) {
         if (_last_notification +
@@ -347,6 +389,10 @@ bool notifier::_is_notification_viable_normal(reason_type type
               << "This notifier problem has been sent at " << _last_notification
               << " so it won't be sent until "
               << (notification_interval * config->interval_length());
+          log_v2::notifications()->debug(
+              "This notifier problem has been sent at {} so it won't be sent "
+              "until {}",
+              (notification_interval * config->interval_length()));
           return false;
         }
       }
@@ -361,6 +407,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
                                                 __attribute__((unused))) {
   engine_logger(dbg_functions, basic)
       << "notifier::is_notification_viable_recovery()";
+  log_v2::functions()->trace("notifier::is_notification_viable_recovery()");
   bool retval{true};
   bool send_later{false};
 
@@ -369,6 +416,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
            "not be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications will "
+        "not be sent out.");
     retval = false;
   }
   /* are notifications temporarily disabled for this notifier? */
@@ -376,6 +426,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are temporarily disabled for "
            "this notifier, so we won't send one out.";
+    log_v2::notifications()->debug(
+        "Notifications are temporarily disabled for "
+        "this notifier, so we won't send one out.");
     retval = false;
   } else {
     timeperiod* tp{get_notification_timeperiod()};
@@ -387,6 +440,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
       engine_logger(dbg_notifications, more)
           << "This notifier shouldn't have notifications sent out "
              "at this time.";
+      log_v2::notifications()->debug(
+          "This notifier shouldn't have notifications sent out "
+          "at this time.");
       retval = false;
       send_later = true;
     }
@@ -396,6 +452,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
       engine_logger(dbg_notifications, more)
           << "This notifier is currently in a scheduled downtime, so "
              "we won't send notifications.";
+      log_v2::notifications()->debug(
+          "This notifier is currently in a scheduled downtime, so "
+          "we won't send notifications.");
       retval = false;
       send_later = true;
     }
@@ -403,11 +462,15 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     else if (get_is_flapping()) {
       engine_logger(dbg_notifications, more)
           << "This notifier is flapping, so we won't send notifications.";
+      log_v2::notifications()->debug(
+          "This notifier is flapping, so we won't send notifications.");
       retval = false;
       send_later = true;
     } else if (get_state_type() != hard) {
       engine_logger(dbg_notifications, more)
           << "This notifier is in soft state, so we won't send notifications.";
+      log_v2::notifications()->debug(
+          "This notifier is in soft state, so we won't send notifications.");
       retval = false;
       send_later = true;
     }
@@ -415,11 +478,15 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     else if (get_current_state_int() != 0) {
       engine_logger(dbg_notifications, more)
           << "This notifier state is not UP/OK to send a recovery notification";
+      log_v2::notifications()->debug(
+          "This notifier state is not UP/OK to send a recovery notification");
       retval = false;
       send_later = true;
     } else if (!(get_notify_on(up) || get_notify_on(ok))) {
       engine_logger(dbg_notifications, more)
           << "This notifier is not configured to send a recovery notification";
+      log_v2::notifications()->debug(
+          "This notifier is not configured to send a recovery notification");
       retval = false;
       send_later = false;
     } else if (get_last_hard_state_change() +
@@ -430,6 +497,11 @@ bool notifier::_is_notification_viable_recovery(reason_type type
           << "It won't send any recovery notification until timestamp "
           << " so it won't be sent until "
           << (get_last_hard_state_change() + _recovery_notification_delay);
+      log_v2::notifications()->debug(
+          "This notifier is configured with a recovery notification delay. "
+          "It won't send any recovery notification until timestamp "
+          "so it won't be sent until {}",
+          (get_last_hard_state_change() + _recovery_notification_delay));
       retval = false;
       send_later = true;
     } else if (_notification_number == 0) {
@@ -437,12 +509,19 @@ bool notifier::_is_notification_viable_recovery(reason_type type
           << "No notification has been sent to "
              "announce a problem. So no recovery"
           << " notification will be sent";
+      log_v2::notifications()->debug(
+          "No notification has been sent to "
+          "announce a problem. So no recovery notification will be sent");
       retval = false;
     } else if (!_notification[cat_normal]) {
       engine_logger(dbg_notifications, more)
           << "We should not send a notification "
              "since no normal notification has"
              " been sent before";
+      log_v2::notifications()->debug(
+          "We should not send a notification "
+          "since no normal notification has"
+          " been sent before");
       retval = false;
     }
   }
@@ -462,10 +541,14 @@ bool notifier::_is_notification_viable_acknowledgement(
     notification_option options) {
   engine_logger(dbg_functions, basic)
       << "notifier::is_notification_viable_acknowledgement()";
+  log_v2::functions()->trace(
+      "notifier::is_notification_viable_acknowledgement()");
   /* forced notifications bust through everything */
   if (options & notification_option_forced) {
     engine_logger(dbg_notifications, more)
         << "This is a forced notification, so we'll send it out.";
+    log_v2::notifications()->debug(
+        "This is a forced notification, so we'll send it out.");
     return true;
   }
 
@@ -474,6 +557,9 @@ bool notifier::_is_notification_viable_acknowledgement(
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
            "not be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications will "
+        "not be sent out.");
     return false;
   }
 
@@ -482,6 +568,9 @@ bool notifier::_is_notification_viable_acknowledgement(
     engine_logger(dbg_notifications, more)
         << "Notifications are temporarily disabled for "
            "this notifier, so we won't send one out.";
+    log_v2::notifications()->debug(
+        "Notifications are temporarily disabled for "
+        "this notifier, so we won't send one out.");
     return false;
   }
 
@@ -489,6 +578,9 @@ bool notifier::_is_notification_viable_acknowledgement(
     engine_logger(dbg_notifications, more)
         << "The notifier is currently OK/UP, so we "
            "won't send an acknowledgement.";
+    log_v2::notifications()->debug(
+        "The notifier is currently OK/UP, so we "
+        "won't send an acknowledgement.");
     return false;
   }
   return true;
@@ -498,10 +590,13 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
                                                 notification_option options) {
   engine_logger(dbg_functions, basic)
       << "notifier::is_notification_viable_flapping()";
+  log_v2::functions()->trace("notifier::is_notification_viable_flapping()");
   /* forced notifications bust through everything */
   if (options & notification_option_forced) {
     engine_logger(dbg_notifications, more)
         << "This is a forced notification, so we'll send it out.";
+    log_v2::notifications()->debug(
+        "This is a forced notification, so we'll send it out.");
     return true;
   }
 
@@ -510,6 +605,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
            "not be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications will "
+        "not be sent out.");
     return false;
   }
 
@@ -518,6 +616,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     engine_logger(dbg_notifications, more)
         << "Notifications are temporarily disabled for "
            "this notifier, so we won't send one out.";
+    log_v2::notifications()->debug(
+        "Notifications are temporarily disabled for "
+        "this notifier, so we won't send one out.");
     return false;
   }
 
@@ -534,6 +635,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     engine_logger(dbg_notifications, more)
         << "We shouldn't notify about " << tab_notification_str[type]
         << " events for this notifier.";
+    log_v2::notifications()->debug(
+        "We shouldn't notify about {} events for this notifier.",
+        tab_notification_str[type]);
     return false;
   }
 
@@ -543,6 +647,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     engine_logger(dbg_notifications, more)
         << "A flapping notification is already running, we can not send "
            "a start notification now.";
+    log_v2::notifications()->debug(
+        "A flapping notification is already running, we can not send "
+        "a start notification now.");
     return false;
     /* Don't send a stop/cancel notification if the previous flapping
      * notification is not a start flapping */
@@ -552,6 +659,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
       engine_logger(dbg_notifications, more)
           << "A stop or cancellation flapping notification can only be sent "
              "after a start flapping notification.";
+      log_v2::notifications()->debug(
+          "A stop or cancellation flapping notification can only be sent "
+          "after a start flapping notification.");
       return false;
     }
   }
@@ -562,6 +672,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     engine_logger(dbg_notifications, more)
         << "We shouldn't notify about a " << tab_notification_str[type]
         << " event: already sent.";
+    log_v2::notifications()->debug(
+        "We shouldn't notify about a {} event: already sent.",
+        tab_notification_str[type]);
     return false;
   }
 
@@ -570,6 +683,9 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     engine_logger(dbg_notifications, more)
         << "We shouldn't notify about FLAPPING "
            "events during scheduled downtime.";
+    log_v2::notifications()->debug(
+        "We shouldn't notify about FLAPPING "
+        "events during scheduled downtime.");
     return false;
   }
   return true;
@@ -580,11 +696,14 @@ bool notifier::_is_notification_viable_downtime(reason_type type
                                                 notification_option options) {
   engine_logger(dbg_functions, basic)
       << "notifier::is_notification_viable_downtime()";
+  log_v2::functions()->trace("notifier::is_notification_viable_downtime()");
 
   /* forced notifications bust through everything */
   if (options & notification_option_forced) {
     engine_logger(dbg_notifications, more)
         << "This is a forced notification, so we'll send it out.";
+    log_v2::notifications()->debug(
+        "This is a forced notification, so we'll send it out.");
     return true;
   }
 
@@ -593,6 +712,9 @@ bool notifier::_is_notification_viable_downtime(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
            "not be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications will "
+        "not be sent out.");
     return false;
   }
 
@@ -601,12 +723,17 @@ bool notifier::_is_notification_viable_downtime(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are temporarily disabled for "
            "this notifier, so we won't send one out.";
+    log_v2::notifications()->debug(
+        "Notifications are temporarily disabled for "
+        "this notifier, so we won't send one out.");
     return false;
   }
 
   if (!config->enable_notifications()) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications won't be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications won't be sent out.");
     return false;
   }
 
@@ -614,6 +741,8 @@ bool notifier::_is_notification_viable_downtime(reason_type type
   if (!get_notify_on(downtime)) {
     engine_logger(dbg_notifications, more)
         << "We shouldn't notify about DOWNTIME events for this notifier.";
+    log_v2::notifications()->debug(
+        "We shouldn't notify about DOWNTIME events for this notifier.");
     return false;
   }
 
@@ -624,6 +753,9 @@ bool notifier::_is_notification_viable_downtime(reason_type type
     engine_logger(dbg_notifications, more)
         << "We shouldn't notify about DOWNTIME "
            "events during scheduled downtime.";
+    log_v2::notifications()->debug(
+        "We shouldn't notify about DOWNTIME "
+        "events during scheduled downtime.");
     return false;
   }
   return true;
@@ -634,10 +766,13 @@ bool notifier::_is_notification_viable_custom(reason_type type
                                               notification_option options) {
   engine_logger(dbg_functions, basic)
       << "notifier::is_notification_viable_custom()";
+  log_v2::functions()->trace("notifier::is_notification_viable_custom()");
   /* forced notifications bust through everything */
   if (options & notification_option_forced) {
     engine_logger(dbg_notifications, more)
         << "This is a forced notification, so we'll send it out.";
+    log_v2::notifications()->debug(
+        "This is a forced notification, so we'll send it out.");
     return true;
   }
 
@@ -646,6 +781,9 @@ bool notifier::_is_notification_viable_custom(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
            "not be sent out.";
+    log_v2::notifications()->debug(
+        "Notifications are disabled, so notifications will "
+        "not be sent out.");
     return false;
   }
 
@@ -654,6 +792,9 @@ bool notifier::_is_notification_viable_custom(reason_type type
     engine_logger(dbg_notifications, more)
         << "Notifications are temporarily disabled for "
            "this notifier, so we won't send one out.";
+    log_v2::notifications()->debug(
+        "Notifications are temporarily disabled for "
+        "this notifier, so we won't send one out.");
     return false;
   }
 
@@ -661,6 +802,8 @@ bool notifier::_is_notification_viable_custom(reason_type type
   if (is_in_downtime()) {
     engine_logger(dbg_notifications, more)
         << "We shouldn't send a CUSTOM notification during scheduled downtime.";
+    log_v2::notifications()->debug(
+        "We shouldn't send a CUSTOM notification during scheduled downtime.");
     return false;
   }
   return true;
@@ -768,6 +911,7 @@ int notifier::notify(notifier::reason_type type,
                      std::string const& not_data,
                      notification_option options) {
   engine_logger(dbg_functions, basic) << "notifier::notify()";
+  log_v2::functions()->trace("notifier::notify()");
   notification_category cat{get_category(type)};
 
   /* Has this notification got sense? */
@@ -1175,6 +1319,10 @@ void notifier::resolve(int& w, int& e) {
           << "Error: Event handler command '" << cmd_name
           << "' specified for host '" << get_display_name()
           << "' not defined anywhere";
+      log_v2::config()->error(
+          "Error: Event handler command '{}' specified for host '{}' not "
+          "defined anywhere",
+          cmd_name, get_display_name());
       errors++;
     } else
       /* save the pointer to the event handler command for later */
@@ -1193,8 +1341,12 @@ void notifier::resolve(int& w, int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Notifier check command '" << cmd_name
           << "' specified for host '" << get_display_name()
-          << "' is not defined anywhere!",
-          errors++;
+          << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Notifier check command '{}' specified for host '{}' is not "
+          "defined anywhere!",
+          cmd_name, get_display_name());
+      errors++;
     } else
       /* save the pointer to the check command for later */
       set_check_command_ptr(cmd_found->second.get());
@@ -1204,6 +1356,9 @@ void notifier::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Warning: Notifier '" << get_display_name()
         << "' has no check time period defined!";
+    log_v2::config()->error(
+        "Warning: Notifier '{}' has no check time period defined!",
+        get_display_name());
     warnings++;
     check_period_ptr = nullptr;
   } else {
@@ -1215,6 +1370,10 @@ void notifier::resolve(int& w, int& e) {
           << "Error: Check period '" << get_check_period()
           << "' specified for host '" << get_display_name()
           << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Check period '{}' specified for host '{}' is not defined "
+          "anywhere!",
+          get_check_period(), get_display_name());
       errors++;
       check_period_ptr = nullptr;
     } else
@@ -1231,6 +1390,10 @@ void notifier::resolve(int& w, int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact '" << it->first << "' specified in notifier '"
           << get_display_name() << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Contact '{}' specified in notifier '{}' is not defined "
+          "anywhere!",
+          it->first, get_display_name());
       errors++;
     } else
       /* save the pointer to the contact */
@@ -1249,6 +1412,10 @@ void notifier::resolve(int& w, int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact group '" << it->first << "' specified in host '"
           << get_display_name() << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Contact group '{}' specified in host '{}' is not defined "
+          "anywhere!",
+          it->first, get_display_name());
       errors++;
     } else
       it->second = found_it->second.get();
@@ -1264,6 +1431,10 @@ void notifier::resolve(int& w, int& e) {
           << "Error: Notification period '" << get_notification_period()
           << "' specified for notifier '" << get_display_name()
           << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Notification period '{}' specified for notifier '{}' is not "
+          "defined anywhere!",
+          get_notification_period(), get_display_name());
       errors++;
       _notification_period_ptr = nullptr;
     } else
@@ -1273,6 +1444,9 @@ void notifier::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Warning: Notifier '" << get_display_name()
         << "' has no notification time period defined!";
+    log_v2::config()->error(
+        "Warning: Notifier '{}' has no notification time period defined!",
+        get_display_name());
     warnings++;
     _notification_period_ptr = nullptr;
   }
@@ -1323,14 +1497,17 @@ time_t notifier::get_next_notification_time(time_t offset) {
 
   engine_logger(dbg_functions, basic)
       << "notifier::get_next_notification_time()";
+  log_v2::functions()->trace("notifier::get_next_notification_time()");
   engine_logger(dbg_notifications, most)
       << "Calculating next valid notification time...";
+  log_v2::notifications()->info("Calculating next valid notification time...");
 
   /* default notification interval */
   uint32_t interval_to_use{_notification_interval};
 
   engine_logger(dbg_notifications, most)
       << "Default interval: " << interval_to_use;
+  log_v2::notifications()->info("Default interval: {}", interval_to_use);
 
   /*
    * search all the escalation entries for valid matches for this service (at
@@ -1348,6 +1525,8 @@ time_t notifier::get_next_notification_time(time_t offset) {
     engine_logger(dbg_notifications, most)
         << "Found a valid escalation w/ interval of "
         << e->get_notification_interval();
+    log_v2::notifications()->info("Found a valid escalation w/ interval of {}",
+                                  e->get_notification_interval());
 
     /*
      * if we haven't used a notification interval from an escalation yet,
@@ -1363,6 +1542,7 @@ time_t notifier::get_next_notification_time(time_t offset) {
 
     engine_logger(dbg_notifications, most)
         << "New interval: " << interval_to_use;
+    log_v2::notifications()->info("New interval: {}", interval_to_use);
   }
 
   /*
@@ -1378,6 +1558,10 @@ time_t notifier::get_next_notification_time(time_t offset) {
       << "Interval used for calculating next valid "
          "notification time: "
       << interval_to_use;
+  log_v2::notifications()->info(
+      "Interval used for calculating next valid "
+      "notification time: {}",
+      interval_to_use);
 
   /* calculate next notification time */
   time_t next_notification{
@@ -1418,6 +1602,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the line should start "
            "with 'type: '";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the line should start "
+        "with 'type: '");
     return;
   }
 
@@ -1428,6 +1615,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the separator between "
         << "two fields is ', '";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the separator between two "
+        "fields is ', '");
     return;
   }
 
@@ -1436,6 +1626,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the expected field "
            " after 'type' is 'author'";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the expected field after "
+        "'type' is 'author'");
     return;
   }
 
@@ -1449,6 +1642,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the expected field "
            " after 'author' is 'options'";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the expected field after "
+        "'author' is 'options'");
     return;
   }
 
@@ -1458,6 +1654,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the separator between "
         << "two fields is ', '";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the separator between two "
+        "fields is ', '");
     return;
   }
 
@@ -1466,6 +1665,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the expected field "
            " after 'options' is 'escalated'";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the expected field "
+        " after 'options' is 'escalated'");
     return;
   }
 
@@ -1475,6 +1677,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the separator between "
         << "two fields is ', '";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the separator between two "
+        "fields is ', '");
     return;
   }
 
@@ -1483,6 +1688,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the expected field "
            " after 'escalated' is 'id'";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the expected field "
+        " after 'escalated' is 'id'");
     return;
   }
 
@@ -1492,6 +1700,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the separator between "
         << "two fields is ', '";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the separator between two "
+        "fields is ', '");
     return;
   }
 
@@ -1500,6 +1711,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the expected field "
            " after 'id' is 'number'";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the expected field "
+        " after 'id' is 'number'");
     return;
   }
 
@@ -1509,6 +1723,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the separator between "
         << "two fields is ', '";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the separator between two "
+        "fields is ', '");
     return;
   }
 
@@ -1517,6 +1734,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the expected field "
            " after 'number' is 'interval'";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the expected field "
+        " after 'number' is 'interval'");
     return;
   }
 
@@ -1526,6 +1746,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     engine_logger(log_config_error, basic)
         << "Error: Bad format in the notification part, the 'interval' value "
            "should be an integer";
+    log_v2::config()->error(
+        "Error: Bad format in the notification part, the 'interval' value "
+        "should be an integer");
     return;
   }
 

@@ -21,6 +21,7 @@
 #include "com/centreon/engine/broker/compatibility.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/nebmodules.hh"
 
@@ -110,11 +111,14 @@ void handle::close() {
       typedef int (*func_deinit)(int, int);
       func_deinit deinit(
           (func_deinit)_handle->resolve_proc("nebmodule_deinit"));
-      if (!deinit)
+      if (!deinit) {
         engine_logger(log_info_message, basic)
             << "Cannot resolve symbole 'nebmodule_deinit' in module '"
             << _filename << "'.";
-      else
+        log_v2::process()->error(
+            "Cannot resolve symbole 'nebmodule_deinit' in module '{}'.",
+            _filename);
+      } else
         deinit(NEBMODULE_FORCE_UNLOAD | NEBMODULE_ENGINE,
                NEBMODULE_NEB_SHUTDOWN);
       _handle->unload();

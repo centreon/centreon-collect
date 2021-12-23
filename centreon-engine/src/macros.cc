@@ -25,6 +25,7 @@
 #include <sstream>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -393,6 +394,8 @@ int grab_standard_hostgroup_macro_r(nagios_macros* mac,
     default:
       engine_logger(dbg_macros, basic)
           << "UNHANDLED HOSTGROUP MACRO #" << macro_type << "! THIS IS A BUG!";
+      log_v2::macros()->trace("UNHANDLED HOSTGROUP MACRO #{}! THIS IS A BUG!",
+                              macro_type);
       return ERROR;
   }
 
@@ -472,6 +475,8 @@ int grab_standard_servicegroup_macro_r(nagios_macros* mac,
     default:
       engine_logger(dbg_macros, basic) << "UNHANDLED SERVICEGROUP MACRO #"
                                        << macro_type << "! THIS IS A BUG!";
+      log_v2::macros()->trace(
+          "UNHANDLED SERVICEGROUP MACRO #{}! THIS IS A BUG!", macro_type);
       return ERROR;
   }
 
@@ -560,6 +565,8 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
     default:
       engine_logger(dbg_macros, basic)
           << "UNHANDLED CONTACT MACRO #" << macro_type << "! THIS IS A BUG!";
+      log_v2::macros()->trace("UNHANDLED CONTACT MACRO #{}! THIS IS A BUG!",
+                              macro_type);
       return ERROR;
   }
   return OK;
@@ -620,6 +627,8 @@ int grab_standard_contactgroup_macro(
     default:
       engine_logger(dbg_macros, basic) << "UNHANDLED CONTACTGROUP MACRO #"
                                        << macro_type << "! THIS IS A BUG!";
+      log_v2::macros()->trace(
+          "UNHANDLED CONTACTGROUP MACRO #{}! THIS IS A BUG!", macro_type);
       return ERROR;
   }
   return OK;

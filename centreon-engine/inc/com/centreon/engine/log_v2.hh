@@ -43,6 +43,7 @@ class log_v2 {
   std::shared_ptr<spdlog::logger> _comments_log;
   std::shared_ptr<spdlog::logger> _macros_log;
   std::shared_ptr<spdlog::logger> _process_log;
+  std::shared_ptr<spdlog::logger> _runtime_log;
 
   log_v2();
   ~log_v2() noexcept = default;
@@ -63,6 +64,7 @@ class log_v2 {
   static spdlog::logger* comments();
   static spdlog::logger* macros();
   static spdlog::logger* process();
+  static spdlog::logger* runtime();
 };
 CCE_END()
 

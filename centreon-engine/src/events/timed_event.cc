@@ -30,6 +30,7 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/retention/dump.hh"
@@ -108,6 +109,10 @@ void timed_event::_exec_event_service_check() {
       << "** Service Check Event ==> Host: '" << svc->get_hostname()
       << "', Service: '" << svc->get_description()
       << "', Options: " << event_options << ", Latency: " << latency << " sec";
+  log_v2::events()->trace(
+      "** Service Check Event ==> Host: '{}', Service: '{}', Options: {}, "
+      "Latency: {} sec",
+      svc->get_hostname(), svc->get_description(), event_options, latency);
 
   // run the service check.
   svc->run_scheduled_check(event_options, latency);
@@ -119,6 +124,7 @@ void timed_event::_exec_event_service_check() {
  */
 void timed_event::_exec_event_command_check() {
   engine_logger(dbg_events, basic) << "** External Command Check Event";
+  log_v2::events()->trace("** External Command Check Event");
 
   // send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, NEBFLAG_NONE,
@@ -131,6 +137,7 @@ void timed_event::_exec_event_command_check() {
  */
 void timed_event::_exec_event_enginerpc_check() {
   engine_logger(dbg_events, basic) << "** EngineRPC Command Check Event";
+  log_v2::events()->trace("** EngineRPC Command Check Event");
 
   // send data to event broker.
   command_manager::instance().execute();
@@ -148,6 +155,7 @@ void timed_event::_exec_event_log_rotation() {}
  */
 void timed_event::_exec_event_program_shutdown() {
   engine_logger(dbg_events, basic) << "** Program Shutdown Event";
+  log_v2::events()->trace("** Program Shutdown Event");
 
   // set the shutdown flag.
   sigshutdown = true;
@@ -155,6 +163,8 @@ void timed_event::_exec_event_program_shutdown() {
   // log the shutdown.
   engine_logger(log_process_info, basic)
       << "PROGRAM_SHUTDOWN event encountered, shutting down...";
+  log_v2::process()->info(
+      "PROGRAM_SHUTDOWN event encountered, shutting down...");
 }
 
 /**
@@ -163,6 +173,7 @@ void timed_event::_exec_event_program_shutdown() {
  */
 void timed_event::_exec_event_program_restart() {
   engine_logger(dbg_events, basic) << "** Program Restart Event";
+  log_v2::events()->trace("** Program Restart Event");
 
   // reload configuration.
   sighup = true;
@@ -170,6 +181,7 @@ void timed_event::_exec_event_program_restart() {
   // log the restart.
   engine_logger(log_process_info, basic)
       << "PROGRAM_RESTART event encountered, restarting...";
+  log_v2::process()->info("PROGRAM_RESTART event encountered, restarting...");
 }
 
 /**
@@ -178,12 +190,14 @@ void timed_event::_exec_event_program_restart() {
  */
 void timed_event::_exec_event_check_reaper() {
   engine_logger(dbg_events, basic) << "** Check Result Reaper";
+  log_v2::events()->trace("** Check Result Reaper");
 
   // reap host and service check results.
   try {
     checks::checker::instance().reap();
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic) << "Error: " << e.what();
+    log_v2::runtime()->error("Error: {}", e.what());
   }
 }
 
@@ -194,6 +208,7 @@ void timed_event::_exec_event_check_reaper() {
 void timed_event::_exec_event_orphan_check() {
   engine_logger(dbg_events, basic)
       << "** Orphaned Host and Service Check Event";
+  log_v2::events()->trace("** Orphaned Host and Service Check Event");
 
   // check for orphaned hosts and services.
   if (config->check_orphaned_hosts())
@@ -208,6 +223,7 @@ void timed_event::_exec_event_orphan_check() {
  */
 void timed_event::_exec_event_retention_save() {
   engine_logger(dbg_events, basic) << "** Retention Data Save Event";
+  log_v2::events()->trace("** Retention Data Save Event");
 
   // save state retention data.
   retention::dump::save(config->state_retention_file());
@@ -219,6 +235,7 @@ void timed_event::_exec_event_retention_save() {
  */
 void timed_event::_exec_event_status_save() {
   engine_logger(dbg_events, basic) << "** Status Data Save Event";
+  log_v2::events()->trace("** Status Data Save Event");
 
   // save all status data (program, host, and service).
   update_all_status_data();
@@ -230,6 +247,7 @@ void timed_event::_exec_event_status_save() {
  */
 void timed_event::_exec_event_scheduled_downtime() {
   engine_logger(dbg_events, basic) << "** Scheduled Downtime Event";
+  log_v2::events()->trace("** Scheduled Downtime Event");
 
   // process scheduled downtime info.
   if (event_data) {
@@ -245,6 +263,7 @@ void timed_event::_exec_event_scheduled_downtime() {
  */
 void timed_event::_exec_event_sfreshness_check() {
   engine_logger(dbg_events, basic) << "** Service Result Freshness Check Event";
+  log_v2::events()->trace("** Service Result Freshness Check Event");
 
   // check service result freshness.
   service::check_result_freshness();
@@ -256,6 +275,7 @@ void timed_event::_exec_event_sfreshness_check() {
  */
 void timed_event::_exec_event_expire_downtime() {
   engine_logger(dbg_events, basic) << "** Expire Downtime Event";
+  log_v2::events()->trace("** Expire Downtime Event");
 
   // check for expired scheduled downtime entries.
   downtime_manager::instance().check_for_expired_downtime();
@@ -277,6 +297,9 @@ void timed_event::_exec_event_host_check() {
   engine_logger(dbg_events, basic)
       << "** Host Check Event ==> Host: '" << hst->get_name()
       << "', Options: " << event_options << ", Latency: " << latency << " sec";
+  log_v2::events()->trace(
+      "** Host Check Event ==> Host: '{}', Options: {}, Latency: {} sec",
+      hst->get_name(), event_options, latency);
 
   // run the host check.
   hst->run_scheduled_check(event_options, latency);
@@ -288,6 +311,7 @@ void timed_event::_exec_event_host_check() {
  */
 void timed_event::_exec_event_hfreshness_check() {
   engine_logger(dbg_events, basic) << "** Host Result Freshness Check Event";
+  log_v2::events()->trace("** Host Result Freshness Check Event");
 
   // check host result freshness.
   host::check_result_freshness();
@@ -299,6 +323,7 @@ void timed_event::_exec_event_hfreshness_check() {
  */
 void timed_event::_exec_event_reschedule_checks() {
   engine_logger(dbg_events, basic) << "** Reschedule Checks Event";
+  log_v2::events()->trace("** Reschedule Checks Event");
 
   // adjust scheduling of host and service checks.
   events::loop::instance().adjust_check_scheduling();
@@ -310,6 +335,7 @@ void timed_event::_exec_event_reschedule_checks() {
  */
 void timed_event::_exec_event_expire_comment() {
   engine_logger(dbg_events, basic) << "** Expire Comment Event";
+  log_v2::events()->trace("** Expire Comment Event");
 
   // check for expired comment.
   comment::remove_if_expired_comment((unsigned long)event_data);
@@ -321,6 +347,7 @@ void timed_event::_exec_event_expire_comment() {
  */
 void timed_event::_exec_event_expire_host_ack() {
   engine_logger(dbg_events, basic) << "** Expire Host Acknowledgement Event";
+  log_v2::events()->trace("** Expire Host Acknowledgement Event");
   static_cast<host*>(event_data)->check_for_expired_acknowledgement();
 }
 
@@ -330,6 +357,7 @@ void timed_event::_exec_event_expire_host_ack() {
  */
 void timed_event::_exec_event_expire_service_ack() {
   engine_logger(dbg_events, basic) << "** Expire Service Acknowledgement Event";
+  log_v2::events()->trace("** Expire Service Acknowledgement Event");
   static_cast<service*>(event_data)->check_for_expired_acknowledgement();
 }
 
@@ -340,6 +368,7 @@ void timed_event::_exec_event_expire_service_ack() {
  */
 void timed_event::_exec_event_user_function() {
   engine_logger(dbg_events, basic) << "** User Function Event";
+  log_v2::events()->trace("** User Function Event");
 
   // run a user-defined function.
   if (event_data) {
@@ -365,6 +394,7 @@ void timed_event::_exec_event_user_function() {
  */
 time_t adjust_timestamp_for_time_change(int64_t time_difference, time_t ts) {
   engine_logger(dbg_functions, basic) << "adjust_timestamp_for_time_change()";
+  log_v2::functions()->trace("adjust_timestamp_for_time_change()");
 
   // we shouldn't do anything with epoch or invalid values.
   if (ts == (time_t)0 || ts == (time_t)-1)
@@ -407,6 +437,7 @@ int timed_event::handle_timed_event() {
       &timed_event::_exec_event_enginerpc_check};
 
   engine_logger(dbg_functions, basic) << "handle_timed_event()";
+  log_v2::functions()->trace("handle_timed_event()");
 
   // send event data to broker.
   broker_timed_event(NEBTYPE_TIMEDEVENT_EXECUTE, NEBFLAG_NONE, NEBATTR_NONE,
@@ -414,6 +445,8 @@ int timed_event::handle_timed_event() {
 
   engine_logger(dbg_events, basic) << "** Timed Event ** Type: " << event_type
                                    << ", Run Time: " << my_ctime(&run_time);
+  log_v2::events()->trace("** Timed Event ** Type: {}, Run Time: {}",
+                          event_type, my_ctime(&run_time));
 
   // how should we handle the event?
   if (event_type < tab_exec_event.size())

@@ -74,6 +74,7 @@ void loop::clear() {
 void loop::run() {
   // Debug message.
   engine_logger(dbg_functions, basic) << "events::loop::run()";
+  log_v2::functions()->trace("events::loop::run()");
 
   engine_logger(log_info_message, basic)
       << "Configuration loaded, main loop starting.";
@@ -104,6 +105,7 @@ loop::loop() : _need_reload(0), _reload_running(false) {}
 
 static void apply_conf(std::atomic<bool>* reloading) {
   engine_logger(log_info_message, more) << "Starting to reload configuration.";
+  log_v2::process()->info("Starting to reload configuration.");
   try {
     configuration::state config;
     {
@@ -117,9 +119,11 @@ static void apply_conf(std::atomic<bool>* reloading) {
     log_v2::process()->info("Configuration reloaded, main loop continuing.");
   } catch (std::exception const& e) {
     engine_logger(log_config_error, most) << "Error: " << e.what();
+    log_v2::config()->error("Error: {}", e.what());
   }
   *reloading = false;
   engine_logger(log_info_message, more) << "Reload configuration finished.";
+  log_v2::process()->info("Reload configuration finished.");
 }
 
 /**
@@ -137,6 +141,8 @@ void loop::_dispatching() {
       engine_logger(log_runtime_error, basic)
           << "There aren't any events that need to be handled! "
           << "Exiting...";
+      log_v2::runtime()->error(
+          "There aren't any events that need to be handled! Exiting...");
       break;
     }
 
@@ -149,13 +155,16 @@ void loop::_dispatching() {
     // Start reload configuration.
     if (_need_reload) {
       engine_logger(log_info_message, most) << "Need reload.";
+      log_v2::process()->info("Need reload.");
       if (!reloading) {
         engine_logger(log_info_message, most) << "Reloading...";
+        log_v2::process()->info("Reloading...");
         reloading = true;
         std::async(std::launch::async, apply_conf, &reloading);
-      } else
+      } else {
         engine_logger(log_info_message, most) << "Already reloading...";
-
+        log_v2::process()->info("Already reloading...");
+      }
       _need_reload = 0;
     }
 
@@ -183,23 +192,35 @@ void loop::_dispatching() {
 
     // Log messages about event lists.
     engine_logger(dbg_events, more) << "** Event Check Loop";
-    if (!_event_list_high.empty())
+    log_v2::events()->debug("** Event Check Loop");
+    if (!_event_list_high.empty()) {
       engine_logger(dbg_events, more)
           << "Next High Priority Event Time: "
           << my_ctime(&(*_event_list_high.begin())->run_time);
-    else
+      log_v2::events()->debug("Next High Priority Event Time: {}",
+                              my_ctime(&(*_event_list_high.begin())->run_time));
+    } else {
       engine_logger(dbg_events, more)
           << "No high priority events are scheduled...";
-    if (!_event_list_low.empty())
+      log_v2::events()->debug("No high priority events are scheduled...");
+    }
+    if (!_event_list_low.empty()) {
       engine_logger(dbg_events, more)
           << "Next Low Priority Event Time:  "
           << my_ctime(&(*_event_list_low.begin())->run_time);
-    else
+      log_v2::events()->debug("Next Low Priority Event Time:  {}",
+                              my_ctime(&(*_event_list_low.begin())->run_time));
+    } else {
       engine_logger(dbg_events, more)
           << "No low priority events are scheduled...";
+      log_v2::events()->debug("No low priority events are scheduled...");
+    }
     engine_logger(dbg_events, more)
         << "Current/Max Service Checks: " << currently_running_service_checks
         << '/' << config->max_parallel_service_checks();
+    log_v2::events()->debug("Current/Max Service Checks: {}/{}",
+                            currently_running_service_checks,
+                            config->max_parallel_service_checks());
 
     // Update status information occassionally - NagVis watches the
     // NDOUtils DB to see if Engine is alive.
@@ -256,6 +277,21 @@ void loop::_dispatching() {
               << ") has been reached!  Nudging " << temp_service->get_hostname()
               << ":" << temp_service->get_description() << " by "
               << nudge_seconds << " seconds...";
+          log_v2::events()->trace(
+              "**WARNING** Max concurrent service checks ({}/{}) has been "
+              "reached!  Nudging {}:{} by {} seconds...",
+              currently_running_service_checks,
+              config->max_parallel_service_checks(),
+              temp_service->get_hostname(), temp_service->get_description(),
+              nudge_seconds);
+          log_v2::checks()->trace(
+              "**WARNING** Max concurrent service checks ({}/{}) has been "
+              "reached!  Nudging {}:{} by {} seconds...",
+              currently_running_service_checks,
+              config->max_parallel_service_checks(),
+              temp_service->get_hostname(), temp_service->get_description(),
+              nudge_seconds);
+
           engine_logger(log_runtime_warning, basic)
               << "\tMax concurrent service checks ("
               << currently_running_service_checks << "/"
@@ -263,6 +299,13 @@ void loop::_dispatching() {
               << ") has been reached.  Nudging " << temp_service->get_hostname()
               << ":" << temp_service->get_description() << " by "
               << nudge_seconds << " seconds...";
+          log_v2::runtime()->warn(
+              "\tMax concurrent service checks ({}/{}) has been reached.  "
+              "Nudging {}:{} by {} seconds...",
+              currently_running_service_checks,
+              config->max_parallel_service_checks(),
+              temp_service->get_hostname(), temp_service->get_description(),
+              nudge_seconds);
           run_event = false;
         }
 
@@ -271,6 +314,12 @@ void loop::_dispatching() {
           engine_logger(dbg_events | dbg_checks, more)
               << "We're not executing service checks right now, "
               << "so we'll skip this event.";
+          log_v2::events()->debug(
+              "We're not executing service checks right now, so we'll skip "
+              "this event.");
+          log_v2::checks()->debug(
+              "We're not executing service checks right now, so we'll skip "
+              "this event.");
           run_event = false;
         }
 
@@ -326,6 +375,9 @@ void loop::_dispatching() {
           engine_logger(dbg_events | dbg_checks, more)
               << "We're not executing host checks right now, "
               << "so we'll skip this event.";
+          log_v2::events()->debug(
+              "We're not executing host checks right now, so we'll skip this "
+              "event.");
           run_event = false;
         }
 
@@ -368,6 +420,7 @@ void loop::_dispatching() {
 
         // Handle the event.
         engine_logger(dbg_events, more) << "Running event...";
+        log_v2::events()->debug("Running event...");
         temp_event->handle_timed_event();
 
         // Reschedule the event if necessary.
@@ -381,6 +434,8 @@ void loop::_dispatching() {
       else {
         engine_logger(dbg_events, most)
             << "Did not execute scheduled event. Idling for a bit...";
+        log_v2::events()->info(
+            "Did not execute scheduled event. Idling for a bit...");
         uint64_t d = static_cast<uint64_t>(config->sleep_time() * 1000000000);
         std::this_thread::sleep_for(std::chrono::nanoseconds(d));
       }
@@ -392,6 +447,8 @@ void loop::_dispatching() {
               current_time < (*_event_list_low.begin())->run_time)) {
       engine_logger(dbg_events, most)
           << "No events to execute at the moment. Idling for a bit...";
+      log_v2::events()->info(
+          "No events to execute at the moment. Idling for a bit...");
 
       // Check for external commands if we're supposed to check as
       // often as possible.
@@ -452,6 +509,7 @@ void loop::adjust_check_scheduling() {
   com::centreon::engine::service* svc(nullptr);
 
   engine_logger(dbg_functions, basic) << "adjust_check_scheduling()";
+  log_v2::functions()->trace("adjust_check_scheduling()");
 
   /* TODO:
      - Track host check overhead on a per-host basis
@@ -611,6 +669,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
   long time_difference = current_time - last_time;
 
   engine_logger(dbg_functions, basic) << "compensate_for_system_time_change()";
+  log_v2::functions()->trace("compensate_for_system_time_change()");
 
   // we moved back in time...
   if (time_difference < 0) {
@@ -618,6 +677,9 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
     engine_logger(dbg_events, basic)
         << "Detected a backwards time change of " << days << "d " << hours
         << "h " << minutes << "m " << seconds << "s.";
+    log_v2::events()->trace(
+        "Detected a backwards time change of {}d {}h {}m {}s.", days, hours,
+        minutes, seconds);
   }
   // we moved into the future...
   else {
@@ -625,6 +687,9 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
     engine_logger(dbg_events, basic)
         << "Detected a forwards time change of " << days << "d " << hours
         << "h " << minutes << "m " << seconds << "s.";
+    log_v2::events()->trace(
+        "Detected a forwards time change of {}d {}h {}m {}s.", days, hours,
+        minutes, seconds);
   }
 
   // log the time change.
@@ -633,6 +698,11 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
       << minutes << "m " << seconds << "s ("
       << (time_difference < 0 ? "backwards" : "forwards")
       << " in time) has been detected.  Compensating...";
+  log_v2::runtime()->warn(
+      "Warning: A system time change of {}d {}h {}m {}s ({} in time) has been "
+      "detected.  Compensating...",
+      days, hours, minutes, seconds,
+      (time_difference < 0 ? "backwards" : "forwards"));
 
   // adjust the next run time for all high priority timed events.
   for (auto it = _event_list_high.begin(), end = _event_list_high.end();
@@ -765,6 +835,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
  */
 void loop::add_event(timed_event* event, loop::priority priority) {
   engine_logger(dbg_functions, basic) << "add_event()";
+  log_v2::functions()->trace("add_event()");
 
   timed_event_list* list;
 
@@ -804,6 +875,7 @@ void loop::add_event(timed_event* event, loop::priority priority) {
 
 void loop::remove_downtime(uint64_t downtime_id) {
   engine_logger(dbg_functions, basic) << "loop::remove_downtime()";
+  log_v2::functions()->trace("loop::remove_downtime()");
 
   for (auto it = _event_list_high.begin(), end = _event_list_high.end();
        it != end; ++it) {
@@ -828,6 +900,7 @@ void loop::remove_downtime(uint64_t downtime_id) {
  */
 void loop::remove_event(timed_event* event, loop::priority priority) {
   engine_logger(dbg_functions, basic) << "loop::remove_event()";
+  log_v2::functions()->trace("loop::remove_event()");
 
   // send event data to broker.
   broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
@@ -872,6 +945,7 @@ timed_event* loop::find_event(loop::priority priority,
   timed_event_list* list;
 
   engine_logger(dbg_functions, basic) << "resort_event_list()";
+  log_v2::functions()->trace("resort_event_list()");
 
   // move current event list to temp list.
   if (priority == loop::low)
@@ -895,6 +969,7 @@ timed_event* loop::find_event(loop::priority priority,
  */
 void loop::reschedule_event(timed_event* event, loop::priority priority) {
   engine_logger(dbg_functions, basic) << "reschedule_event()";
+  log_v2::functions()->trace("reschedule_event()");
 
   // reschedule recurring events...
   if (event->recurring) {
@@ -933,6 +1008,7 @@ void loop::resort_event_list(loop::priority priority) {
   timed_event_list* list;
 
   engine_logger(dbg_functions, basic) << "resort_event_list()";
+  log_v2::functions()->trace("resort_event_list()");
 
   // move current event list to temp list.
   if (priority == loop::low)

@@ -27,6 +27,7 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -110,6 +111,8 @@ void applier::service::add_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new service '" << obj.service_description() << "' of host '"
       << *obj.hosts().begin() << "'.";
+  log_v2::config()->debug("Creating new service '{}' of host '{}'.",
+                          obj.service_description(), *obj.hosts().begin());
 
   // Add service to the global configuration set.
   config->services().insert(obj);
@@ -291,6 +294,8 @@ void applier::service::modify_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying new service '" << service_description << "' of host '"
       << host_name << "'.";
+  log_v2::config()->debug("Modifying new service '{}' of host '{}'.",
+                          service_description, host_name);
 
   // Find the configuration object.
   set_service::iterator it_cfg(config->services_find(obj.key()));
@@ -493,6 +498,8 @@ void applier::service::remove_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Removing service '" << service_description << "' of host '"
       << host_name << "'.";
+  log_v2::config()->debug("Removing service '{}' of host '{}'.",
+                          service_description, host_name);
 
   // Find anomaly detections depending on this service
   set_anomalydetection sad = config->anomalydetections();
@@ -550,6 +557,8 @@ void applier::service::resolve_object(configuration::service const& obj) {
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving service '" << obj.service_description() << "' of host '"
       << *obj.hosts().begin() << "'.";
+  log_v2::config()->debug("Resolving service '{}' of host '{}'.",
+                          obj.service_description(), *obj.hosts().begin());
 
   // Find service.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));

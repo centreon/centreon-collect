@@ -26,6 +26,7 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/timezone_locker.hh"
@@ -517,15 +518,23 @@ void applier::scheduler::_calculate_host_inter_check_delay(
 
       engine_logger(dbg_events, most) << "Total scheduled host checks:  "
                                       << scheduling_info.total_scheduled_hosts;
+      log_v2::events()->info("Total scheduled host checks:  {}",
+                             scheduling_info.total_scheduled_hosts);
       engine_logger(dbg_events, most)
           << "Host check interval total:    "
           << scheduling_info.host_check_interval_total;
+      log_v2::events()->info("Host check interval total:    {}",
+                             scheduling_info.host_check_interval_total);
       engine_logger(dbg_events, most)
           << setprecision(2) << "Average host check interval:  "
           << scheduling_info.average_host_check_interval << " sec";
+      log_v2::events()->info("Average host check interval:  {} sec",
+                             scheduling_info.average_host_check_interval);
       engine_logger(dbg_events, most)
           << setprecision(2) << "Host inter-check delay:       "
           << scheduling_info.host_inter_check_delay << " sec";
+      log_v2::events()->info("Host inter-check delay:       {} sec",
+                             scheduling_info.host_inter_check_delay);
   }
 }
 
@@ -535,6 +544,7 @@ void applier::scheduler::_calculate_host_inter_check_delay(
 void applier::scheduler::_calculate_host_scheduling_params() {
   engine_logger(dbg_events, most)
       << "Determining host scheduling parameters...";
+  log_v2::events()->info("Determining host scheduling parameters...");
 
   // get current time.
   time_t const now(time(NULL));
@@ -567,6 +577,8 @@ void applier::scheduler::_calculate_host_scheduling_params() {
       hst.set_should_be_scheduled(false);
       engine_logger(dbg_events, more)
           << "Host " << hst.get_name() << " should not be scheduled.";
+      log_v2::events()->debug("Host {} should not be scheduled.",
+                              hst.get_name());
     }
 
     ++scheduling_info.total_hosts;
@@ -633,12 +645,18 @@ void applier::scheduler::_calculate_service_inter_check_delay(
       engine_logger(dbg_events, more)
           << "Total scheduled service checks:  "
           << scheduling_info.total_scheduled_services;
+      log_v2::events()->debug("Total scheduled service checks:  {}",
+                              scheduling_info.total_scheduled_services);
       engine_logger(dbg_events, more)
           << setprecision(2) << "Average service check interval:  "
           << scheduling_info.average_service_check_interval << " sec";
+      log_v2::events()->debug("Average service check interval:  {} sec",
+                              scheduling_info.average_service_check_interval);
       engine_logger(dbg_events, more)
           << setprecision(2) << "Service inter-check delay:       "
           << scheduling_info.service_inter_check_delay << " sec";
+      log_v2::events()->debug("Service inter-check delay:       {} sec",
+                              scheduling_info.service_inter_check_delay);
   }
 }
 
@@ -662,11 +680,17 @@ void applier::scheduler::_calculate_service_interleave_factor(
       engine_logger(dbg_events, more)
           << "Total scheduled service checks: "
           << scheduling_info.total_scheduled_services;
+      log_v2::events()->debug("Total scheduled service checks: {}",
+                              scheduling_info.total_scheduled_services);
       engine_logger(dbg_events, more)
           << "Total hosts:                    " << scheduling_info.total_hosts;
+      log_v2::events()->debug("Total hosts:                    {}",
+                              scheduling_info.total_hosts);
       engine_logger(dbg_events, more)
           << "Service Interleave factor:      "
           << scheduling_info.service_interleave_factor;
+      log_v2::events()->debug("Service Interleave factor:      {}",
+                              scheduling_info.service_interleave_factor);
   }
 }
 
@@ -676,6 +700,7 @@ void applier::scheduler::_calculate_service_interleave_factor(
 void applier::scheduler::_calculate_service_scheduling_params() {
   engine_logger(dbg_events, most)
       << "Determining service scheduling parameters...";
+  log_v2::events()->info("Determining service scheduling parameters...");
 
   // get current time.
   time_t const now(time(NULL));
@@ -711,6 +736,8 @@ void applier::scheduler::_calculate_service_scheduling_params() {
       engine_logger(dbg_events, more)
           << "Service " << svc.get_description() << " on host "
           << svc.get_hostname() << " should not be scheduled.";
+      log_v2::events()->debug("Service {} on host {} should not be scheduled.",
+                              svc.get_description(), svc.get_hostname());
     }
     ++scheduling_info.total_services;
   }
@@ -873,6 +900,7 @@ void applier::scheduler::_remove_misc_event(timed_event*& evt) {
 void applier::scheduler::_schedule_host_events(
     std::vector<com::centreon::engine::host*> const& hosts) {
   engine_logger(dbg_events, most) << "Scheduling host checks...";
+  log_v2::events()->info("Scheduling host checks...");
 
   // get current time.
   time_t const now(time(NULL));
@@ -885,10 +913,12 @@ void applier::scheduler::_schedule_host_events(
     com::centreon::engine::host& hst(*hosts[i]);
 
     engine_logger(dbg_events, most) << "Host '" << hst.get_name() << "'";
+    log_v2::events()->info("Host '{}'", hst.get_name());
 
     // skip hosts that shouldn't be scheduled.
     if (!hst.get_should_be_scheduled()) {
       engine_logger(dbg_events, most) << "Host check should not be scheduled.";
+      log_v2::events()->info("Host check should not be scheduled.");
       continue;
     }
 
@@ -900,6 +930,8 @@ void applier::scheduler::_schedule_host_events(
     engine_logger(dbg_events, most)
         << "Preferred Check Time: " << hst.get_next_check() << " --> "
         << my_ctime(&time);
+    log_v2::events()->info("Preferred Check Time: {} --> {}",
+                           hst.get_next_check(), my_ctime(&time));
 
     // Make sure the host can actually be scheduled at this time.
     {
@@ -917,6 +949,8 @@ void applier::scheduler::_schedule_host_events(
     engine_logger(dbg_events, most)
         << "Actual Check Time: " << hst.get_next_check() << " --> "
         << my_ctime(&time);
+    log_v2::events()->info("Actual Check Time: {} --> {}", hst.get_next_check(),
+                           my_ctime(&time));
 
     if (!scheduling_info.first_host_check ||
         (hst.get_next_check() < scheduling_info.first_host_check))
@@ -965,6 +999,7 @@ void applier::scheduler::_schedule_host_events(
   // Schedule acknowledgement expirations.
   engine_logger(dbg_events, most)
       << "Scheduling host acknowledgement expirations...";
+  log_v2::events()->info("Scheduling host acknowledgement expirations...");
   for (int i(0), end(hosts.size()); i < end; ++i)
     if (hosts[i]->get_problem_has_been_acknowledged())
       hosts[i]->schedule_acknowledgement_expiration();
@@ -978,6 +1013,7 @@ void applier::scheduler::_schedule_host_events(
 void applier::scheduler::_schedule_service_events(
     std::vector<engine::service*> const& services) {
   engine_logger(dbg_events, most) << "Scheduling service checks...";
+  log_v2::events()->info("Scheduling service checks...");
 
   // get current time.
   time_t const now(time(NULL));
@@ -1072,6 +1108,7 @@ void applier::scheduler::_schedule_service_events(
   // Schedule acknowledgement expirations.
   engine_logger(dbg_events, most)
       << "Scheduling service acknowledgement expirations...";
+  log_v2::events()->info("Scheduling service acknowledgement expirations...");
   for (int i(0), end(services.size()); i < end; ++i)
     if (services[i]->get_problem_has_been_acknowledged())
       services[i]->schedule_acknowledgement_expiration();
