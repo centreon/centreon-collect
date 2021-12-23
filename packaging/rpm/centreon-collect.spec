@@ -343,6 +343,8 @@ fi
 %{_includedir}/centreon-clib
 %doc centreon-clib/LICENSE
 
+%files -n centreon-engine
+
 %files -n centreon-engine-daemon
 %defattr(-,centreon-engine,centreon-engine,-)
 %attr(0664,centreon-engine,centreon-engine) %config(noreplace) %{_sysconfdir}/centreon-engine/centengine.cfg
@@ -352,7 +354,6 @@ fi
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/centengine
 %attr(755, root, root) %{_unitdir}/centengine.service
-
 %{_sbindir}/centengine
 %{_sbindir}/centenginestats
 %attr(0775,root,root) %{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
