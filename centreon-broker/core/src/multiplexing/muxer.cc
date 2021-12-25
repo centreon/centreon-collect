@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2013,2015-2017,2019 Centreon
+** Copyright 2009-2013,2015-2017,2019-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -46,14 +46,13 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
  */
 muxer::muxer(std::string const& name, bool persistent)
     : io::stream("muxer"),
-      _events_size(0),
+      _events_size{0},
       _name(name),
       _persistent(persistent) {
   // Load head queue file back in memory.
   if (_persistent) {
     try {
-      std::unique_ptr<io::stream> mf(
-          std::make_unique<persistent_file>(_memory_file()));
+      auto mf{std::make_unique<persistent_file>(_memory_file())};
       std::shared_ptr<io::data> e;
       for (;;) {
         e.reset();
@@ -329,7 +328,7 @@ void muxer::statistics(nlohmann::json& tree) const {
 
   // Queue file mode.
   bool queue_file_enabled(_file.get());
-  tree["queue_file_enabled"] = queue_file_enabled == true;
+  tree["queue_file_enabled"] = queue_file_enabled;
   if (queue_file_enabled) {
     nlohmann::json queue_file;
     _file->statistics(queue_file);
@@ -398,7 +397,7 @@ void muxer::_clean() {
     try {
       log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
                             _memory_file());
-      std::unique_ptr<io::stream> mf(new persistent_file(_memory_file()));
+      auto mf{std::make_unique<persistent_file>(_memory_file())};
       while (!_events.empty()) {
         mf->write(_events.front());
         _events.pop_front();
