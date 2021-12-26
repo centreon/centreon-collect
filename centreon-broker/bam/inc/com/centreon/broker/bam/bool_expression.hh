@@ -40,7 +40,6 @@ class bool_value;
  *  operations and evaluate them to match the kpi interface.
  */
 class bool_expression : public computable {
- private:
   uint32_t _id;
   std::shared_ptr<bool_value> _expression;
   bool _impact_if;
@@ -50,7 +49,8 @@ class bool_expression : public computable {
   bool_expression(bool_expression const& other) = delete;
   ~bool_expression() noexcept override = default;
   bool_expression& operator=(bool_expression const& other) = delete;
-  bool child_has_update(computable* child, io::stream* visitor = NULL) override;
+  bool child_has_update(computable* child,
+                        io::stream* visitor = nullptr) override;
   state get_state() const;
   bool state_known() const;
   void set_expression(std::shared_ptr<bool_value> const& expression);

@@ -49,7 +49,8 @@ class bool_call : public bool_value {
   bool state_known() const override;
   std::string const& get_name() const;
   void set_expression(std::shared_ptr<bool_value> expression);
-  bool child_has_update(computable* child, io::stream* visitor = NULL) override;
+  bool child_has_update(computable* child,
+                        io::stream* visitor = nullptr) override;
 
  private:
   std::string _name;

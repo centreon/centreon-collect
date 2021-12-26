@@ -124,6 +124,7 @@ stream::stream(const database_config& dbcfg,
   _timer.expires_after(std::chrono::minutes(5));
   _timer.async_wait(
       std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
+  log_v2::sql()->info("Unified sql stream running");
 }
 
 stream::~stream() noexcept {

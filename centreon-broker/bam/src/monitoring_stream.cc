@@ -70,12 +70,6 @@ monitoring_stream::monitoring_stream(std::string const& ext_cmd_file,
   log_v2::bam()->trace("BAM: monitoring_stream constructor");
   // Prepare queries.
   _prepare();
-
-  // Simulate a configuration update.
-  // FIXME DBR: what for? This update() call is made juste after the stream
-  // construction. I keep that in case I'm doing an error but it looks like
-  // a nonsense.
-  // update();
   // Read cache.
   _read_cache();
 }
