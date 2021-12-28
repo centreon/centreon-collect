@@ -481,6 +481,7 @@ set(LIBROKER_SOURCES
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
+add_dependencies(rokerbase berpc)
 target_link_libraries(rokerbase ${ZLIB_LIBRARIES} ${OpenSSL_LIBS} ${mariadb-connector-c_LIBS} pthread dl berpc)
 
 add_library(roker STATIC
