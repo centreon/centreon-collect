@@ -371,3 +371,12 @@ int mysql::choose_connection_by_name(std::string const& name) {
 int mysql::choose_connection_by_instance(int instance_id) const {
   return instance_id % connections_count();
 }
+
+/**
+ * @brief Accessor to the database configuration
+ *
+ * @return the running database configuration.
+ */
+const database_config& mysql::get_config() const {
+  return _db_cfg;
+}

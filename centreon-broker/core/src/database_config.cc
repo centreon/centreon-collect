@@ -197,6 +197,7 @@ database_config& database_config::operator=(database_config const& other) {
     _internal_copy(other);
   return *this;
 }
+
 /**
  *  Comparaison operator.
  *
@@ -215,6 +216,26 @@ bool database_config::operator==(database_config const& other) {
            _connections_count == other._connections_count;
 
   return true;
+}
+
+/**
+ *  Comparaison operator.
+ *
+ *  @param[in] other  Object to compared.
+ *
+ *  @return true if equal.
+ */
+bool database_config::operator!=(database_config const& other) const {
+  if (this != &other)
+    return _type != other._type || _host != other._host ||
+           _socket != other._socket || _port != other._port ||
+           _user != other._user || _password != other._password ||
+           _name != other._name ||
+           _queries_per_transaction != other._queries_per_transaction ||
+           _check_replication != other._check_replication ||
+           _connections_count != other._connections_count;
+
+  return false;
 }
 
 /**

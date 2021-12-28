@@ -357,7 +357,7 @@ class conflict_manager {
   static bool init_storage(bool store_in_db,
                            uint32_t rrd_len,
                            uint32_t interval_length,
-                           uint32_t max_pending_queries);
+                           const database_config& dbcfg);
   static conflict_manager& instance();
   int32_t unload(stream_type type);
   nlohmann::json get_statistics();

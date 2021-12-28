@@ -129,7 +129,7 @@ conflict_manager::~conflict_manager() {
 bool conflict_manager::init_storage(bool store_in_db,
                                     uint32_t rrd_len,
                                     uint32_t interval_length,
-                                    uint32_t queries_per_transaction) {
+                                    const database_config& dbcfg) {
   log_v2::sql()->debug("conflict_manager: storage stream initialization");
   int count;
 
@@ -146,14 +146,18 @@ bool conflict_manager::init_storage(bool store_in_db,
         log_v2::sql()->info("Conflict manager not started because cbd stopped");
         return false;
       }
+      if (_singleton->_mysql.get_config() != dbcfg) {
+        log_v2::sql()->error("Conflict manager: storage and sql streams do not have the same database configuration");
+        return false;
+      }
       std::lock_guard<std::mutex> lk(_singleton->_loop_m);
       _singleton->_store_in_db = store_in_db;
       _singleton->_rrd_len = rrd_len;
       _singleton->_interval_length = interval_length;
-      _singleton->_max_perfdata_queries = queries_per_transaction;
-      _singleton->_max_metrics_queries = queries_per_transaction;
-      _singleton->_max_cv_queries = queries_per_transaction;
-      _singleton->_max_log_queries = queries_per_transaction;
+      _singleton->_max_perfdata_queries = dbcfg.get_queries_per_transaction();
+      _singleton->_max_metrics_queries = dbcfg.get_queries_per_transaction();
+      _singleton->_max_cv_queries = dbcfg.get_queries_per_transaction();
+      _singleton->_max_log_queries = dbcfg.get_queries_per_transaction();
       _singleton->_ref_count++;
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
