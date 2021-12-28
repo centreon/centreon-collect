@@ -273,7 +273,7 @@ touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
 
-%pre
+%pre -n centreon-broker
 %{_bindir}/getent group centreon-broker &>/dev/null || %{_sbindir}/groupadd -r centreon-broker 2> /dev/null || :
 %{_bindir}/getent passwd centreon-broker &>/dev/null || %{_sbindir}/useradd -m -g centreon-broker -d %{_localstatedir}/lib/centreon-broker -r centreon-broker 2> /dev/null || :
 if id centreon &>/dev/null; then
