@@ -23,9 +23,9 @@ BDB1
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Table 'centreon.instances' doesn't exist
+	 ${content}=	Create List	storage and sql streams do not have the same database configuration
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	 Should Be True	${result}
+	 Should Be True	${result}	msg=A message should tell that sql and storage outputs do not have the same configuration.
 	 Stop Broker
 	END
 
@@ -58,39 +58,41 @@ BDB3
 	 Start Broker
 	 ${content}=	Create List	global error: mysql_connection: error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	 Should Be True	${result}
+	 Should Be True	${result}	msg=No message about the database not connected.
 	 Stop Broker
 	END
 
 BDB4
-	[Documentation]	Access denied when database name does not exist for storage output
+	[Documentation]	Access denied when database name does not exist for storage and sql outputs
 	[Tags]	Broker	sql
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Output set	central	central-broker-master-perfdata	db_name	centreon1
+	Broker Config Output set	central	central-broker-master-sql	db_name	centreon1
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Unable to connect to the database
+	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
-	 Should Be True	${result}
+	 Should Be True	${result}	msg=No message about the fact that cbd is not correctly connected to the database.
 	 Stop Broker
 	END
 
 BDB5
-	[Documentation]	cbd does not crash if the storage db_host is wrong
+	[Documentation]	cbd does not crash if the storage/sql db_host is wrong
 	[Tags]	Broker	sql
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Output set	central	central-broker-master-perfdata	db_host	1.2.3.4
+	Broker Config Output set	central	central-broker-master-sql	db_host	1.2.3.4
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Unable to connect to the database
+	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	50
-	 Should Be True	${result}
+	 Should Be True	${result}	msg=No message about the disconnection between cbd and the database
 	 Stop Broker
 	END
 
@@ -106,7 +108,7 @@ BDB6
 	 Start Broker
 	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
-	 Should Be True	${result}
+	 Should Be True	${result}	msg=No message about the disconnection between cbd and the database
 	 Stop Broker
 	END
 
@@ -126,12 +128,13 @@ BDB7
 	Stop Broker
 
 BDB8
-	[Documentation]	access denied when database user password is wrong for perfdata
+	[Documentation]	access denied when database user password is wrong for perfdata/sql
 	[Tags]	Broker	sql
 	Config Broker	central
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Output set	central	central-broker-master-perfdata	db_password	centreon1
+	Broker Config Output set	central	central-broker-master-sql	db_password	centreon1
 	${start}=	Get Current Date
 	Start Broker
 	${content}=	Create List	mysql_connection: error while starting connection
@@ -179,12 +182,12 @@ BEDB2
 	Stop Mysql
 	Start Broker
 	Start Engine
-	${content}=	Create List	Unable to connect to the database
+	${content}=	Create List	error while starting connection
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	40
-	Should Be True	${result}
+	Should Be True	${result}	msg=Message about the disconnection between cbd and the database is missing
 	Start Mysql
 	${result}=	Check Broker Stats exist	central	mysql manager	waiting tasks in connection 0
-	Should Be True	${result}
+	Should Be True	${result}	msg=Message about the connection to the database is missing.
 	Stop Broker
 	Stop Engine
 
@@ -203,12 +206,12 @@ BDBM1
 	 Stop Mysql
 	 Start Broker
 	 Start Engine
-	 ${content}=	Create List	Unable to connect to the database
+	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
-	 Should Be True	${result}
+	 Should Be True	${result}	msg=Message about the disconnection between cbd and the database is missing
 	 Start Mysql
 	 ${result}=	Get Broker Stats Size	central	mysql manager
-	 Should Be True	${result} >= ${c} + 1
+	 Should Be True	${result} >= ${c} + 1	msg=The stats file should contain at less ${c} + 1 connections to the database.
 	 Stop Broker
 	 Stop Engine
 	END
