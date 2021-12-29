@@ -478,7 +478,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 add_dependencies(rokerbase berpc)
-target_link_libraries(rokerbase ${ZLIB_LIBRARIES} ${OpenSSL_LIBS} ${mariadb-connector-c_LIBS} pthread dl berpc)
+target_link_libraries(rokerbase ${ZLIB_LIBRARIES} ${OpenSSL_LIBS} ${mariadb-connector-c_LIBS} pthread dl berpc bbdo_bbdo)
 
 add_library(roker STATIC
   ${SRC_DIR}/config/applier/init.cc)
@@ -486,11 +486,10 @@ target_link_libraries(roker rokerbase dl ${c-ares_LIBS} ${OpenSSL_LIBS} ${gRPC_L
 
 
 # Standalone binary.
-set(DAEMON cbd)
-add_executable(${DAEMON} ${SRC_DIR}/main.cc)
+add_executable(cbd ${SRC_DIR}/main.cc)
 
 #Flags needed to include all symbols in binary.
-target_link_libraries("${DAEMON}"
+target_link_libraries(cbd
 	"-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${gRPC_LIBS} ${absl_LIBS} )
 
 # Centreon Broker Watchdog
@@ -506,7 +505,6 @@ unset(MODULE_LIST)
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
 add_broker_module(NEB ON)
-add_broker_module(NOTIFICATION OFF)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)
 add_broker_module(SQL ON)
@@ -589,7 +587,7 @@ install(CODE "
 ")
 
 # Install rule.
-install(TARGETS "${DAEMON}"
+install(TARGETS cbd
   RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
   )
 

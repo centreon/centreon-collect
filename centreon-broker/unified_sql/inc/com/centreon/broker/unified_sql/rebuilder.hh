@@ -29,6 +29,8 @@
 CCB_BEGIN()
 
 namespace unified_sql {
+class stream;
+
 /**
  *  @class rebuilder rebuilder.hh "com/centreon/broker/unified_sql/rebuilder.hh"
  *  @brief Check for graphs to be rebuild.
@@ -45,8 +47,6 @@ namespace unified_sql {
  *  Each execution of the timer is done using the thread pool accessible from
  *  the pool object. No new thread is created.
  */
-class stream;
-
 class rebuilder {
   database_config _db_cfg;
   std::shared_ptr<mysql_connection> _connection;
@@ -54,18 +54,17 @@ class rebuilder {
   uint32_t _rrd_len;
 
   // Local types.
-    struct metric_info {
-      std::string metric_name;
-      int32_t data_source_type;
-      int32_t rrd_retention;
-      uint32_t check_interval;
-    };
+  struct metric_info {
+    std::string metric_name;
+    int32_t data_source_type;
+    int32_t rrd_retention;
+    uint32_t check_interval;
+  };
 
  public:
   rebuilder(database_config const& db_cfg,
             stream* parent,
             uint32_t interval_length = 60,
-            uint32_t rebuild_check_interval = 600,
             uint32_t rrd_length = 15552000);
   ~rebuilder() noexcept = default;
   rebuilder(const rebuilder&) = delete;

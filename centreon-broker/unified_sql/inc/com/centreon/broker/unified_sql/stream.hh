@@ -317,7 +317,6 @@ class stream : public io::stream {
          uint32_t interval_length,
          uint32_t loop_timeout,
          uint32_t instance_timeout,
-         uint32_t rebuild_check_interval,
          bool store_in_data_bin);
   stream() = delete;
   stream& operator=(const stream&) = delete;

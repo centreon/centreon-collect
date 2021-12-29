@@ -48,7 +48,6 @@ class connector : public io::endpoint {
   void connect_to(database_config const& dbcfg,
                   uint32_t rrd_len,
                   uint32_t interval_length,
-                  uint32_t rebuild_check_interval,
                   bool store_in_data_bin = true);
   std::unique_ptr<io::stream> open() override;
 };

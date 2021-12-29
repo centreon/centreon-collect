@@ -34,6 +34,7 @@
 #include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/storage/rebuilder.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"
 
 CCB_BEGIN()
@@ -177,6 +178,7 @@ class conflict_manager {
   uint32_t _max_metrics_queries;
   uint32_t _max_cv_queries;
   uint32_t _max_log_queries;
+  std::unique_ptr<rebuilder> _rebuilder;
 
   std::thread _thread;
 
@@ -368,6 +370,7 @@ class conflict_manager {
                                 uint32_t metric_id,
                                 std::string const& metric_name,
                                 short metric_type);
+  void remove_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
 CCB_END()

@@ -51,8 +51,6 @@ using namespace com::centreon::broker::storage;
  *  @param[in] db_cfg                  Database configuration.
  *  @param[in] rrd_len                 RRD length.
  *  @param[in] interval_length         Length in seconds of a time unit.
- *  @param[in] rebuild_check_interval  How often the stream must check
- *                                     for graph rebuild.
  *  @param[in] store_in_db             Should we insert data in
  *                                     data_bin ?
  *  @param[in] insert_in_index_data    Create entries in index_data or
@@ -61,15 +59,8 @@ using namespace com::centreon::broker::storage;
 stream::stream(database_config const& dbcfg,
                uint32_t rrd_len,
                uint32_t interval_length,
-               uint32_t rebuild_check_interval,
                bool store_in_db)
-    : io::stream("storage"),
-      _pending_events(0),
-      _rebuilder(dbcfg,
-                 rebuild_check_interval,
-                 rrd_len ? rrd_len : 15552000,
-                 interval_length),
-      _stopped(false) {
+    : io::stream("storage"), _pending_events(0), _stopped(false) {
   log_v2::sql()->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;

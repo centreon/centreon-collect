@@ -20,6 +20,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
@@ -27,6 +28,7 @@
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -147,10 +149,14 @@ bool conflict_manager::init_storage(bool store_in_db,
         return false;
       }
       if (_singleton->_mysql.get_config() != dbcfg) {
-        log_v2::sql()->error("Conflict manager: storage and sql streams do not have the same database configuration");
+        log_v2::sql()->error(
+            "Conflict manager: storage and sql streams do not have the same "
+            "database configuration");
         return false;
       }
       std::lock_guard<std::mutex> lk(_singleton->_loop_m);
+      _singleton->_rebuilder = std::make_unique<rebuilder>(
+          dbcfg, rrd_len ? rrd_len : 15552000, interval_length);
       _singleton->_store_in_db = store_in_db;
       _singleton->_rrd_len = rrd_len;
       _singleton->_interval_length = interval_length;
@@ -548,6 +554,12 @@ void conflict_manager::_callback() {
             else if (std::get<1>(tpl) == storage && cat == io::neb &&
                      type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
+            else if (std::get<1>(tpl) == storage &&
+                     type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
+              _rebuilder->rebuild_rrd_graphs(d);
+            else if (std::get<1>(tpl) == storage &&
+                     type == make_type(io::bbdo, bbdo::de_remove_graphs))
+              remove_graphs(d);
             else {
               log_v2::sql()->trace(
                   "conflict_manager: event of type {} thrown away ; no need to "
@@ -836,4 +848,93 @@ int32_t conflict_manager::unload(stream_type type) {
     }
     return retval;
   }
+}
+
+/**
+ * @brief process a remove graphs message.
+ *
+ * @param d The BBDO message with all the metrics/indexes to remove.
+ */
+void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
+  asio::post(pool::instance().io_context(), [this, data = d] {
+    mysql ms(_mysql.get_config());
+    const bbdo::pb_remove_graphs& ids =
+        *static_cast<const bbdo::pb_remove_graphs*>(data.get());
+
+    std::promise<database::mysql_result> promise;
+    int32_t conn = ms.choose_best_connection(-1);
+    std::set<uint64_t> indexes_to_delete;
+    std::set<uint64_t> metrics_to_delete;
+    try {
+      if (!ids.obj.index_ids().empty()) {
+        ms.run_query_and_get_result(
+            fmt::format("SELECT i.id,m.metric_id, m.metric_name,i.host_id,"
+                        "i.service_id FROM index_data i LEFT JOIN metrics m ON "
+                        "i.id=m.index_id WHERE i.id IN ({})",
+                        fmt::join(ids.obj.index_ids(), ",")),
+            &promise, conn);
+        database::mysql_result res(promise.get_future().get());
+
+        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        while (ms.fetch_row(res)) {
+          indexes_to_delete.insert(res.value_as_u64(0));
+          uint64_t mid = res.value_as_u64(1);
+          if (mid)
+            metrics_to_delete.insert(mid);
+
+          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+          _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
+        }
+      }
+
+      if (!ids.obj.metric_ids().empty()) {
+        promise = std::promise<database::mysql_result>();
+
+        ms.run_query_and_get_result(
+            fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
+                        "WHERE metric_id IN ({})",
+                        fmt::join(ids.obj.metric_ids(), ",")),
+            &promise, conn);
+        database::mysql_result res(promise.get_future().get());
+
+        std::lock_guard<std::mutex> lock(_metric_cache_m);
+        while (ms.fetch_row(res)) {
+          metrics_to_delete.insert(res.value_as_u64(1));
+          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
+        }
+      }
+    } catch (const std::exception& e) {
+      log_v2::sql()->error(
+          "could not query index / metrics table(s) to get index to delete: "
+          "{} ",
+          e.what());
+    }
+
+    std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
+    if (!metrics_to_delete.empty()) {
+      log_v2::sql()->info("metrics {} erased from database", mids_str);
+      ms.run_query(
+          fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
+          database::mysql_error::delete_metric, false);
+    }
+    std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
+    if (!indexes_to_delete.empty()) {
+      log_v2::sql()->info("indexes {} erased from database", ids_str);
+      ms.run_query(
+          fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
+          database::mysql_error::delete_index, false);
+    }
+
+    if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {
+      auto rmg{std::make_shared<storage::pb_remove_graph_message>()};
+      for (uint64_t i : metrics_to_delete)
+        rmg->obj.add_metric_ids(i);
+      for (uint64_t i : indexes_to_delete)
+        rmg->obj.add_index_ids(i);
+      multiplexing::publisher().write(rmg);
+    } else
+      log_v2::sql()->info(
+          "metrics {} and indexes {} do not appear in the storage database",
+          mids_str, ids_str);
+  });
 }

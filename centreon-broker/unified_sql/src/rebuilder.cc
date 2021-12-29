@@ -25,9 +25,6 @@
 #include <cstring>
 #include <ctime>
 
-#include "bbdo/storage/metric.hh"
-#include "bbdo/storage/rebuild.hh"
-#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -45,14 +42,11 @@ using namespace com::centreon::broker::unified_sql;
  *  Constructor.
  *
  *  @param[in] db_cfg                  Database configuration.
- *  @param[in] rebuild_check_interval  How often the rebuild thread will
- *                                     check for rebuild.
  *  @param[in] rrd_length              Length of RRD files.
  *  @param[in] interval_length         Length in seconds of a time unit.
  */
 rebuilder::rebuilder(const database_config& db_cfg,
                      stream* parent,
-                     uint32_t rebuild_check_interval,
                      uint32_t rrd_length,
                      uint32_t interval_length)
     : _db_cfg(db_cfg), _interval_length(interval_length), _rrd_len(rrd_length) {
@@ -76,8 +70,11 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
         ids_str);
 
     mysql ms(_db_cfg);
-    ms.run_query(fmt::format("UPDATE index_data SET must_be_rebuild='2' WHERE id IN ({})",
-          ids_str), database::mysql_error::update_index_state, false);
+    ms.run_query(
+        fmt::format(
+            "UPDATE index_data SET must_be_rebuild='2' WHERE id IN ({})",
+            ids_str),
+        database::mysql_error::update_index_state, false);
 
     int32_t conn = ms.choose_best_connection(-1);
     /* Lets' get the metrics to rebuild time in DB */
@@ -186,9 +183,14 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
     end_rebuild->obj = start_rebuild->obj;
     end_rebuild->obj.set_state(RebuildMessage_State_END);
     multiplexing::publisher().write(end_rebuild);
-    ms.run_query(fmt::format("UPDATE index_data SET must_be_rebuild='0' WHERE id IN ({})",
-          ids_str), database::mysql_error::update_index_state, false);
-    log_v2::sql()->debug("Metric rebuild: Rebuild of metrics from the following indexes ({}) finished",
-                         ids_str);
+    ms.run_query(
+        fmt::format(
+            "UPDATE index_data SET must_be_rebuild='0' WHERE id IN ({})",
+            ids_str),
+        database::mysql_error::update_index_state, false);
+    log_v2::sql()->debug(
+        "Metric rebuild: Rebuild of metrics from the following indexes ({}) "
+        "finished",
+        ids_str);
   });
 }
