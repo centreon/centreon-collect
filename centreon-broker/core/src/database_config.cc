@@ -205,16 +205,63 @@ database_config& database_config::operator=(database_config const& other) {
  *
  *  @return true if equal.
  */
-bool database_config::operator==(database_config const& other) {
-  if (this != &other)
-    return _type == other._type && _host == other._host &&
-           _socket == other._socket && _port == other._port &&
-           _user == other._user && _password == other._password &&
-           _name == other._name &&
-           _queries_per_transaction == other._queries_per_transaction &&
-           _check_replication == other._check_replication &&
-           _connections_count == other._connections_count;
-
+bool database_config::operator==(database_config const& other) const {
+  if (this != &other) {
+    bool retval{_type == other._type && _host == other._host &&
+                _socket == other._socket && _port == other._port &&
+                _user == other._user && _password == other._password &&
+                _name == other._name &&
+                _queries_per_transaction == other._queries_per_transaction &&
+                _connections_count == other._connections_count};
+    if (!retval) {
+      if (_type != other._type)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their types: {} "
+            "!= {}",
+            _type, other._type);
+      else if (_host != other._host)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their hosts: {} "
+            "!= {}",
+            _host, other._host);
+      else if (_socket != other._socket)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their sockets: {} "
+            "!= {}",
+            _socket, other._socket);
+      else if (_port != other._port)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their ports: {} "
+            "!= {}",
+            _port, other._port);
+      else if (_user != other._user)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their users: {} "
+            "!= {}",
+            _user, other._user);
+      else if (_password != other._password)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their passwords: "
+            "{} != {}",
+            _password, other._password);
+      else if (_name != other._name)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their names: {} "
+            "!= {}",
+            _name, other._name);
+      else if (_queries_per_transaction != other._queries_per_transaction)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their queries per "
+            "transactions: {} != {}",
+            _queries_per_transaction, other._queries_per_transaction);
+      else if (_connections_count != other._connections_count)
+        log_v2::sql()->trace(
+            "database configurations do not match because of their connections "
+            "counts: {} != {}",
+            _connections_count, other._connections_count);
+      return false;
+    }
+  }
   return true;
 }
 
@@ -226,16 +273,7 @@ bool database_config::operator==(database_config const& other) {
  *  @return true if equal.
  */
 bool database_config::operator!=(database_config const& other) const {
-  if (this != &other)
-    return _type != other._type || _host != other._host ||
-           _socket != other._socket || _port != other._port ||
-           _user != other._user || _password != other._password ||
-           _name != other._name ||
-           _queries_per_transaction != other._queries_per_transaction ||
-           _check_replication != other._check_replication ||
-           _connections_count != other._connections_count;
-
-  return false;
+  return !operator==(other);
 }
 
 /**
