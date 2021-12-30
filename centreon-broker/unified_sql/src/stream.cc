@@ -516,6 +516,9 @@ int32_t stream::flush() {
   int32_t retval = _ack;
   _ack -= retval;
   _pending_events -= retval;
+  // Event acknowledgement.
+  log_v2::sql()->debug("SQL: {} / {} events acknowledged", retval,
+                       _pending_events);
   return retval;
 }
 

@@ -723,9 +723,13 @@ def get_indexes_to_delete(count:int):
                 if int(r['metric_id']) in ids:
                     ids_db.add(int(r['index_id']))
                 if len(ids_db) == count:
-                    return list(ids_db)
+                    retval = list(ids_db)
+                    retval.sort()
+                    return retval
 
-    return list(ids_db)
+    retval = list(ids_db)
+    retval.sort()
+    return retval
 
 
 ##

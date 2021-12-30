@@ -46,7 +46,7 @@ BRRDDM1
         ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
         Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
         FOR	${m}	IN	@{metrics}
-        	File Should Not Exist	/var/lib/centreon/metrics/${m}.rrd
+        	File Should Not Exist With Timeout	/var/lib/centreon/metrics/${m}.rrd	20
         END
 
 BRRDDID1
@@ -79,10 +79,10 @@ BRRDDID1
         ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
         Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
         FOR	${i}	IN	@{indexes}
-        	File Should Not Exist	/var/lib/centreon/status/${i}.rrd
+        	File Should Not Exist With Timeout	/var/lib/centreon/status/${i}.rrd	20
         END
         FOR	${m}	IN	@{metrics}
-        	File Should Not Exist	/var/lib/centreon/metrics/${m}.rrd
+        	File Should Not Exist With Timeout	/var/lib/centreon/metrics/${m}.rrd	20
         END
 
 BRRDDMID1
@@ -147,7 +147,7 @@ BRRDDMID1
 #	${content1}=	Create List	remove graph request for metric ${metric}
 #	${result}=	Find In Log	${rrdLog}	${start}	${content1}
 #	Should Be True	${result}
-#	File Should Not Exist	/var/lib/centreon/metrics/${metric}.rrd
+#	File Should Not Exist With Timeout	/var/lib/centreon/metrics/${metric}.rrd	20
 #
 #BRRDDIDU1
 #	[Documentation]	RRD metric deletion on table index_data with unified sql output
