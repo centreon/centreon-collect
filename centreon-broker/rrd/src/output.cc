@@ -174,6 +174,8 @@ void output<T>::update() {
 template <typename T>
 int output<T>::write(std::shared_ptr<io::data> const& d) {
   log_v2::rrd()->trace("RRD: output::write.");
+  if (d->type() == 0x30009)
+    log_v2::rrd()->warn("RRD: GOODGOODGOOD");
   // Check that data exists.
   if (!validate(d, "RRD"))
     return 1;
@@ -329,15 +331,18 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       for (auto& m : e->obj.metric_ids()) {
         std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
         /* File removed */
+        log_v2::rrd()->info("RRD: removing {} file", path, m);
         _backend.remove(path);
       }
       for (auto& i : e->obj.index_ids()) {
         std::string path{fmt::format("{}{}.rrd", _status_path, i)};
         /* File removed */
+        log_v2::rrd()->info("RRD: removing {} file", path);
         _backend.remove(path);
       }
     } break;
     case storage::rebuild::static_type(): {
+      log_v2::rrd()->info("storage::rebuild");
       // Debug message.
       std::shared_ptr<storage::rebuild> e(
           std::static_pointer_cast<storage::rebuild>(d));
@@ -386,6 +391,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       }
     } break;
     case storage::remove_graph::static_type(): {
+      log_v2::rrd()->info("storage::remove_graph");
       // Debug message.
       std::shared_ptr<storage::remove_graph> e(
           std::static_pointer_cast<storage::remove_graph>(d));
@@ -405,6 +411,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       // Remove file.
       _backend.remove(path);
     } break;
+    default:
+      log_v2::rrd()->warn("RRD: unknown BBDO message received of type {}",
+                          d->type());
   }
 
   return 1;

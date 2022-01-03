@@ -935,6 +935,7 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
     } else
       log_v2::sql()->info(
           "metrics {} and indexes {} do not appear in the storage database",
-          mids_str, ids_str);
+          fmt::join(ids.obj.metric_ids(), ","),
+          fmt::join(ids.obj.index_ids(), ","));
   });
 }

@@ -93,15 +93,6 @@ Reset Eth Connection
 	Run	iptables -F
 	Run	iptables -X
 
-File Should Not Exist With Timeout
-	[Arguments]	${file}	${timeout}
-	FOR	${i}	IN RANGE	${timeout}
-         ${status}=	File Should Not Exist	${file}
-         Return From Keyword If	${status} == ${True}	${True}
-         Sleep	1s
-        END
-	[Return]	${False}
-
 *** Variables ***
 ${BROKER_LOG}	/var/log/centreon-broker
 ${ENGINE_LOG}	/var/log/centreon-engine

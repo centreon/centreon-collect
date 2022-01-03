@@ -17,7 +17,9 @@
 */
 
 #include "bbdo/events.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
@@ -25,8 +27,7 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/storage/factory.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
+#include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -34,7 +35,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 // Load count.
-static uint32_t instances(0);
+static uint32_t instances{0u};
 
 extern "C" {
 /**
@@ -100,6 +101,28 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
+
+      /* Let's register the rebuild_metrics bbdo event. This is needed to send
+       * the rebuild message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
+                       "rebuild_metrics",
+                       &bbdo::pb_rebuild_rrd_graphs::operations);
+
+      /* Let's register the message to start rebuilds, send rebuilds and
+       * terminate rebuilds. This is pb_rebuild_message. */
+      e.register_event(make_type(io::storage, storage::de_rebuild_message),
+                       "rebuild_message",
+                       &storage::pb_rebuild_message::operations);
+
+      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
+       * the remove graphs message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs),
+                       "remove_graphs", &bbdo::pb_remove_graphs::operations);
+      /* Let's register the message to ask rrd for remove metrics. This is
+       * pb_remove_graph_message. */
+      e.register_event(make_type(io::storage, storage::de_remove_graph_message),
+                       "remove_graphs_message",
+                       &storage::pb_remove_graph_message::operations);
     }
 
     // Register storage layer.
