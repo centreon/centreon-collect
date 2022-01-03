@@ -142,8 +142,10 @@ bool conflict_manager::init_storage(bool store_in_db,
                  config::applier::mode == config::applier::finished;
         })) {
       if (_state == finished ||
-          config::applier::mode == config::applier::finished)
+          config::applier::mode == config::applier::finished) {
+        log_v2::sql()->info("Conflict manager not started because cbd stopped");
         return false;
+      }
       std::lock_guard<std::mutex> lk(_singleton->_loop_m);
       _singleton->_store_in_db = store_in_db;
       _singleton->_rrd_len = rrd_len;
@@ -156,6 +158,7 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
       pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
+      log_v2::sql()->info("Conflict manager running");
       return true;
     }
     log_v2::sql()->info(
