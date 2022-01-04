@@ -41,7 +41,7 @@ RUN yum -y install devtoolset-9 \
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 RUN pip3 install conan --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
-COPY ../../conanfile.txt conanfile.txt
+COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && \
     conan install . -s compiler.libcxx=libstdc++11 --build='*'
