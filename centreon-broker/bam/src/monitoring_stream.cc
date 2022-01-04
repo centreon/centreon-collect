@@ -27,7 +27,6 @@
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
-#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
@@ -230,16 +229,6 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _applier.book_service().update(dt, &ev_cache);
       ev_cache.commit_to(pblshr);
     } break;
-    case storage::metric::static_type(): {
-      std::shared_ptr<storage::metric> m(
-          std::static_pointer_cast<storage::metric>(data));
-      log_v2::bam()->trace("BAM: processing metric (id {}, time {}, value {})",
-                           m->metric_id, m->ctime, m->value);
-      multiplexing::publisher pblshr;
-      event_cache_visitor ev_cache;
-      _applier.book_metric().update(m, &ev_cache);
-      ev_cache.commit_to(pblshr);
-    } break;
     case bam::ba_status::static_type(): {
       ba_status* status(static_cast<ba_status*>(data.get()));
       log_v2::bam()->trace(
@@ -369,7 +358,7 @@ void monitoring_stream::_rebuild() {
   {
     std::string query("SELECT ba_id FROM mod_bam WHERE must_be_rebuild='1'");
     std::promise<mysql_result> promise;
-    _mysql.run_query_and_get_result(query, &promise);
+    _mysql.run_query_and_get_result(query, &promise, 0);
     try {
       mysql_result res(promise.get_future().get());
       while (_mysql.fetch_row(res))
@@ -386,9 +375,9 @@ void monitoring_stream::_rebuild() {
 
   log_v2::bam()->trace("BAM: rebuild asked, sending the rebuild signal");
 
-  std::shared_ptr<rebuild> r(std::make_shared<rebuild>(
-      fmt::format("{}", fmt::join(bas_to_rebuild, ", "))));
-  std::unique_ptr<io::stream> out(new multiplexing::publisher);
+  auto r{std::make_shared<rebuild>(
+      fmt::format("{}", fmt::join(bas_to_rebuild, ", ")))};
+  auto out{std::make_unique<multiplexing::publisher>()};
   out->write(r);
 
   // Set all the BAs to should not be rebuild.
