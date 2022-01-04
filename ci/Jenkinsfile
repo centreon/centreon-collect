@@ -20,6 +20,7 @@ stage('Dependencies containers creation') {
       dir('centreon-collect-debian10') {
         checkout scm
         dir ('ci/docker') {
+          sh 'cp ../../conanfile.txt .'
           sh 'docker build --no-cache . -f Dockerfile.collect-debian10-dependencies -t registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
           sh 'docker push registry.centreon.com/centreon-collect-debian10-dependencies:22.04'
         }
@@ -31,6 +32,7 @@ stage('Dependencies containers creation') {
       dir('centreon-collect-debian11') {
         checkout scm
         dir ('ci/docker') {
+          sh 'cp ../../conanfile.txt .'
           sh 'docker build --no-cache . -f Dockerfile.collect-debian11-dependencies -t registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
           sh 'docker push registry.centreon.com/centreon-collect-debian11-dependencies:22.04'
         }
@@ -42,6 +44,7 @@ stage('Dependencies containers creation') {
       dir('centreon-collect-centos8') {
         checkout scm
         dir ('ci/docker') {
+          sh 'cp ../../conanfile.txt .'
           sh 'docker build --no-cache . -f Dockerfile.collect-centos8-dependencies -t registry.centreon.com/centreon-collect-centos8-dependencies:22.04'
           sh 'docker push registry.centreon.com/centreon-collect-centos8-dependencies:22.04'
         }
