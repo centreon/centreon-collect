@@ -23,7 +23,6 @@
 #include <cstring>
 #include <deque>
 #include <memory>
-#include <unordered_map>
 
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
