@@ -16,7 +16,13 @@
 ## For more information : contact@centreon.com
 ##
 
-macro(get_protobuf_files name)
+set(protobuf_files
+    rebuild_message
+    remove_graph_message
+    service
+   )
+
+foreach(name IN LISTS protobuf_files)
     set(proto_file "${name}.proto")
     set(full_proto_file "${CMAKE_SOURCE_DIR}/bbdo/${name}.proto")
     add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
@@ -26,6 +32,10 @@ macro(get_protobuf_files name)
         ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
         VERBATIM
         )
+    add_custom_target(${name} DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
+endforeach()
+
+macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc" PROPERTIES GENERATED TRUE)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h" PROPERTIES GENERATED TRUE)
   set(proto_${name}
@@ -72,6 +82,7 @@ add_library(
       "storage/status.hh"
     )
 set_target_properties(bbdo_storage PROPERTIES COMPILE_FLAGS "-fPIC")
+add_dependencies(bbdo_storage table_max_size)
 add_library(
     bbdo_bam STATIC
       "bam/ba_duration_event.cc"

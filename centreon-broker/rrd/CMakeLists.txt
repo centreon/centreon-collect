@@ -76,6 +76,7 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
+add_dependencies("${RRD}" rebuild_message remove_graph_message)
 
 # Compile with librrd flags.
 if (LIBRRD_CFLAGS)
