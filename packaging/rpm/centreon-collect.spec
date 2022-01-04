@@ -377,6 +377,8 @@ fi
 %{_libdir}/centreon-engine/bench_passive_module.so
 %{_sbindir}/centengine_bench_passive
 
+%files -n centreon-connector
+
 %files -n centreon-connector-perl
 %attr(0775,root,root) %{_libdir}/centreon-connector/centreon_connector_perl
 
