@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2016 Centreon
+** Copyright 2014-2016, 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -53,13 +53,13 @@ class bool_binary_operator : public bool_value {
 
   bool_binary_operator();
   bool_binary_operator(bool_binary_operator const& right);
-  virtual ~bool_binary_operator();
-  bool_binary_operator& operator=(bool_binary_operator const& right) = delete;
-  bool child_has_update(computable* child, io::stream* visitor = NULL);
+  ~bool_binary_operator() noexcept override = default;
+  bool_binary_operator& operator=(bool_binary_operator const& right);
+  bool child_has_update(computable* child, io::stream* visitor = NULL) override;
   void set_left(std::shared_ptr<bool_value> const& left);
   void set_right(std::shared_ptr<bool_value> const& right);
-  bool state_known() const;
-  bool in_downtime() const;
+  bool state_known() const override;
+  bool in_downtime() const override;
 
  private:
   void _internal_copy(bool_binary_operator const& right);
