@@ -286,10 +286,11 @@ void display_scheduling_info() {
         static_cast<int>(minimum_concurrent_checks));
     ++suggestions;
   }
-  if (suggestions == 0)
+  if (suggestions == 0) {
     engine_logger(log_info_message, basic)
         << "I have no suggestions - things look okay.\n";
-  log_v2::process()->info("I have no suggestions - things look okay.\n");
+    log_v2::process()->info("I have no suggestions - things look okay.\n");
+  }
 
   return;
 }

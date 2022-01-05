@@ -1249,7 +1249,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       << "\n"
       << "\tOutput:             " << queued_check_result->get_output();
 
-  log_v2::checks()->info(
+  log_v2::checks()->debug(
       "\tCheck Type:         {} \n"
       "\tCheck Options:      {}\n"
       "\tReschedule Check?:  {}\n"
@@ -1419,7 +1419,7 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       << "\n"
       << "Perf Data:\n"
       << (get_perf_data().empty() ? "NULL" : get_perf_data());
-  log_v2::checks()->info(
+  log_v2::checks()->debug(
       "Parsing check output...\n Short Output:\n {} \n Long Output:\n {} \n "
       "Perf Data:\n {}",
       (get_plugin_output().empty() ? "NULL" : get_plugin_output()),
@@ -1897,8 +1897,8 @@ bool host::schedule_check(time_t check_time, int options) {
     engine_logger(dbg_checks, most)
         << "Found another host check event for this host @ "
         << my_ctime(&temp_event->run_time);
-    log_v2::checks()->info("Found another host check event for this host @ {}",
-                           my_ctime(&temp_event->run_time));
+    log_v2::checks()->debug("Found another host check event for this host @ {}",
+                            my_ctime(&temp_event->run_time));
     /* use the originally scheduled check unless we decide otherwise */
     use_original_event = true;
 
@@ -1911,7 +1911,7 @@ bool host::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New host check event is forced and occurs before the "
                "existing event, so the new event be used instead.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New host check event is forced and occurs before the "
             "existing event, so the new event be used instead.");
         use_original_event = false;
@@ -1926,7 +1926,7 @@ bool host::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New host check event is forced, so it will be used "
                "instead of the existing event.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New host check event is forced, so it will be used "
             "instead of the existing event.");
       }
@@ -1938,7 +1938,7 @@ bool host::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New host check event occurs before the existing (older) "
                "event, so it will be used instead.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New host check event occurs before the existing (older) "
             "event, so it will be used instead.");
       }
@@ -1948,7 +1948,7 @@ bool host::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New host check event occurs after the existing event, "
                "so we'll ignore it.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New host check event occurs after the existing event, "
             "so we'll ignore it.");
       }
@@ -1964,7 +1964,7 @@ bool host::schedule_check(time_t check_time, int options) {
   /* use the new event */
   if (!use_original_event) {
     engine_logger(dbg_checks, most) << "Scheduling new host check event.";
-    log_v2::checks()->info("Scheduling new host check event.");
+    log_v2::checks()->debug("Scheduling new host check event.");
 
     /* set the next host check time */
     set_next_check(check_time);
@@ -1982,7 +1982,7 @@ bool host::schedule_check(time_t check_time, int options) {
 
     engine_logger(dbg_checks, most)
         << "Keeping original host check event (ignoring the new one).";
-    log_v2::checks()->info(
+    log_v2::checks()->debug(
         "Keeping original host check event (ignoring the new one).");
   }
 
@@ -2858,9 +2858,9 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
       << "HBC: " << has_been_checked() << ", PS: " << program_start
       << ", ES: " << event_start << ", LC: " << get_last_check()
       << ", CT: " << current_time << ", ET: " << expiration_time;
-  log_v2::checks()->info("HBC: {}, PS: {}, ES: {}, LC: {}, CT: {}, ET: {}",
-                         has_been_checked(), program_start, event_start,
-                         get_last_check(), current_time, expiration_time);
+  log_v2::checks()->debug("HBC: {}, PS: {}, ES: {}, LC: {}, CT: {}, ET: {}",
+                          has_been_checked(), program_start, event_start,
+                          get_last_check(), current_time, expiration_time);
 
   /* the results for the last check of this host are stale */
   if (expiration_time < current_time) {
@@ -3063,8 +3063,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
       engine_logger(log_passive_check, basic)
           << "PASSIVE HOST CHECK: " << _name << ";" << new_state << ";"
           << get_plugin_output();
-    log_v2::checks()->info("PASSIVE HOST CHECK: {};{};{}", _name, new_state,
-                           get_plugin_output());
+    log_v2::checks()->debug("PASSIVE HOST CHECK: {};{};{}", _name, new_state,
+                            get_plugin_output());
   }
 
   /******* HOST WAS DOWN/UNREACHABLE INITIALLY *******/
@@ -3581,7 +3581,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         << ", CACHEDTIMEHORIZON: " << check_timestamp_horizon
         << ", USECACHEDRESULT: " << use_cached_result
         << ", ISEXECUTING: " << temp_host->get_is_executing();
-    log_v2::checks()->info(
+    log_v2::checks()->debug(
         "ASYNC CHECK OF HOST: {}, CURRENTTIME: {}, LASTHOSTCHECK: {}, "
         "CACHEDTIMEHORIZON: {}, USECACHEDRESULT: {}, ISEXECUTING: {}",
         temp_host->get_name(), current_time, temp_host->get_last_check(),

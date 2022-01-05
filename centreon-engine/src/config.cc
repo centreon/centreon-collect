@@ -132,13 +132,14 @@ int pre_flight_circular_check(int* w, int* e) {
 
   for (host_map::iterator it(host::hosts.begin()), end(host::hosts.end());
        it != end; ++it) {
-    if (dfs_get_status(it->second.get()) == DFS_LOOPY)
+    if (dfs_get_status(it->second.get()) == DFS_LOOPY) {
       engine_logger(log_verification_error, basic)
           << "Error: The host '" << it->first
           << "' is part of a circular parent/child chain!";
-    log_v2::config()->error(
-        "Error: The host '{}' is part of a circular parent/child chain!",
-        it->first);
+      log_v2::config()->error(
+          "Error: The host '{}' is part of a circular parent/child chain!",
+          it->first);
+    }
     /* clean DFS status */
     dfs_set_status(it->second.get(), DFS_UNCHECKED);
   }

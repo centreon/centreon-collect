@@ -434,7 +434,7 @@ void loop::_dispatching() {
       else {
         engine_logger(dbg_events, most)
             << "Did not execute scheduled event. Idling for a bit...";
-        log_v2::events()->info(
+        log_v2::events()->debug(
             "Did not execute scheduled event. Idling for a bit...");
         uint64_t d = static_cast<uint64_t>(config->sleep_time() * 1000000000);
         std::this_thread::sleep_for(std::chrono::nanoseconds(d));
@@ -447,7 +447,7 @@ void loop::_dispatching() {
               current_time < (*_event_list_low.begin())->run_time)) {
       engine_logger(dbg_events, most)
           << "No events to execute at the moment. Idling for a bit...";
-      log_v2::events()->info(
+      log_v2::events()->debug(
           "No events to execute at the moment. Idling for a bit...");
 
       // Check for external commands if we're supposed to check as

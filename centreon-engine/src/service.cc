@@ -1234,7 +1234,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         << "\n"
         << "Perf Data:\n"
         << (get_perf_data().empty() ? "NULL" : get_perf_data());
-    log_v2::checks()->info(
+    log_v2::checks()->debug(
         "Parsing check output...\n"
         "Short Output:\n {} \n Long Output:\n {} \n Perf Data:\n {}",
         (get_plugin_output().empty() ? "NULL" : get_plugin_output()),
@@ -1311,16 +1311,16 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       << "  CA: " << get_current_attempt() << "  MA: " << get_max_attempts()
       << "  CS: " << _current_state << "  LS: " << _last_state
       << "  LHS: " << _last_hard_state;
-  log_v2::checks()->info("ST: {}  CA: {} MA: {} CS: {} LS: {} LHS: {}",
-                         (get_state_type() == soft ? "SOFT" : "HARD"),
-                         get_current_attempt(), get_max_attempts(),
-                         _current_state, _last_state, _last_hard_state);
+  log_v2::checks()->debug("ST: {}  CA: {} MA: {} CS: {} LS: {} LHS: {}",
+                          (get_state_type() == soft ? "SOFT" : "HARD"),
+                          get_current_attempt(), get_max_attempts(),
+                          _current_state, _last_state, _last_hard_state);
 
   /* check for a state change (either soft or hard) */
   if (_current_state != _last_state) {
     engine_logger(dbg_checks, most)
         << "Service has changed state since last check!";
-    log_v2::checks()->info("Service has changed state since last check!");
+    log_v2::checks()->debug("Service has changed state since last check!");
     state_change = true;
   }
 
@@ -1332,7 +1332,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
    */
   if (_host_problem_at_last_check && _current_state == service::state_ok) {
     engine_logger(dbg_checks, most) << "Service had a HARD STATE CHANGE!!";
-    log_v2::checks()->info("Service had a HARD STATE CHANGE!!");
+    log_v2::checks()->debug("Service had a HARD STATE CHANGE!!");
     hard_state_change = true;
   }
 
@@ -1344,7 +1344,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       (_current_state != _last_hard_state ||
        get_last_state_change() > get_last_hard_state_change())) {
     engine_logger(dbg_checks, most) << "Service had a HARD STATE CHANGE!!";
-    log_v2::checks()->info("Service had a HARD STATE CHANGE!!");
+    log_v2::checks()->debug("Service had a HARD STATE CHANGE!!");
     hard_state_change = true;
   }
 
@@ -1667,7 +1667,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
     if (route_result != host::state_up) {
       engine_logger(dbg_checks, most)
           << "Host is not UP, so we mark state changes if appropriate";
-      log_v2::checks()->info(
+      log_v2::checks()->debug(
           "Host is not UP, so we mark state changes if appropriate");
 
       /* "fake" a hard state change for the service - well, its not really fake,
@@ -1794,7 +1794,7 @@ int service::handle_async_check_result(check_result* queued_check_result) {
                 << "Predictive check of service '"
                 << master_service->get_description() << "' on host '"
                 << master_service->get_hostname() << "' queued.";
-            log_v2::checks()->info(
+            log_v2::checks()->debug(
                 "Predictive check of service '{}' on host '{}' queued.",
                 master_service->get_description(),
                 master_service->get_hostname());
@@ -2249,7 +2249,7 @@ int service::obsessive_compulsive_service_check_processor() {
       << "Raw obsessive compulsive service processor "
          "command line: "
       << raw_command;
-  log_v2::checks()->info(
+  log_v2::checks()->debug(
       "Raw obsessive compulsive service processor "
       "command line: {}",
       raw_command);
@@ -2264,7 +2264,7 @@ int service::obsessive_compulsive_service_check_processor() {
   engine_logger(dbg_checks, most) << "Processed obsessive compulsive service "
                                      "processor command line: "
                                   << processed_command;
-  log_v2::checks()->info(
+  log_v2::checks()->debug(
       "Processed obsessive compulsive service "
       "processor command line: {}",
       processed_command);
@@ -2647,7 +2647,7 @@ bool service::schedule_check(time_t check_time, int options) {
     engine_logger(dbg_checks, most)
         << "Found another service check event for this service @ "
         << my_ctime(&temp_event->run_time);
-    log_v2::checks()->info(
+    log_v2::checks()->debug(
         "Found another service check event for this service @ {}",
         my_ctime(&temp_event->run_time));
 
@@ -2664,7 +2664,7 @@ bool service::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New service check event is forced and occurs before the "
                "existing event, so the new event will be used instead.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New service check event is forced and occurs before the "
             "existing event, so the new event will be used instead.");
       }
@@ -2677,7 +2677,7 @@ bool service::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New service check event is forced, so it will be used "
                "instead of the existing event.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New service check event is forced, so it will be used "
             "instead of the existing event.");
       }
@@ -2688,7 +2688,7 @@ bool service::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New service check event occurs before the existing "
                "(older) event, so it will be used instead.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New service check event occurs before the existing "
             "(older) event, so it will be used instead.");
       }
@@ -2697,7 +2697,7 @@ bool service::schedule_check(time_t check_time, int options) {
         engine_logger(dbg_checks, most)
             << "New service check event occurs after the existing event, "
                "so we'll ignore it.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "New service check event occurs after the existing event, "
             "so we'll ignore it.");
       }
@@ -2718,7 +2718,7 @@ bool service::schedule_check(time_t check_time, int options) {
     }
 
     engine_logger(dbg_checks, most) << "Scheduling new service check event.";
-    log_v2::checks()->info("Scheduling new service check event.");
+    log_v2::checks()->debug("Scheduling new service check event.");
 
     // Allocate memory for a new event item.
     try {
@@ -2746,7 +2746,7 @@ bool service::schedule_check(time_t check_time, int options) {
 
     engine_logger(dbg_checks, most)
         << "Keeping original service check event (ignoring the new one).";
-    log_v2::checks()->info(
+    log_v2::checks()->debug(
         "Keeping original service check event (ignoring the new one).");
   }
 
@@ -2970,7 +2970,7 @@ bool service::verify_check_viability(int check_options,
 
       engine_logger(dbg_checks, most)
           << "Active checks of the service are currently disabled.";
-      log_v2::checks()->info(
+      log_v2::checks()->debug(
           "Active checks of the service are currently disabled.");
     }
 
@@ -2986,7 +2986,7 @@ bool service::verify_check_viability(int check_options,
         engine_logger(dbg_checks, most)
             << "This is not a valid time for this service to be actively "
                "checked.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "This is not a valid time for this service to be actively "
             "checked.");
       }
@@ -3000,7 +3000,7 @@ bool service::verify_check_viability(int check_options,
       engine_logger(dbg_checks, most)
           << "Execution dependencies for this service failed, so it will "
              "not be actively checked.";
-      log_v2::checks()->info(
+      log_v2::checks()->debug(
           "Execution dependencies for this service failed, so it will "
           "not be actively checked.");
     }
@@ -3278,8 +3278,8 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   engine_logger(dbg_checks, most)
       << "Checking freshness of service '" << this->get_description()
       << "' on host '" << this->get_hostname() << "'...";
-  log_v2::checks()->info("Checking freshness of service '{}' on host '{}'...",
-                         this->get_description(), this->get_hostname());
+  log_v2::checks()->debug("Checking freshness of service '{}' on host '{}'...",
+                          this->get_description(), this->get_hostname());
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -3298,8 +3298,8 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   engine_logger(dbg_checks, most)
       << "Freshness thresholds: service=" << this->get_freshness_threshold()
       << ", use=" << freshness_threshold;
-  log_v2::checks()->info("Freshness thresholds: service={}, use={}",
-                         this->get_freshness_threshold(), freshness_threshold);
+  log_v2::checks()->debug("Freshness thresholds: service={}, use={}",
+                          this->get_freshness_threshold(), freshness_threshold);
 
   /* calculate expiration time */
   /* CHANGED 11/10/05 EG - program start is only used in expiration time
@@ -3329,9 +3329,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
       << "HBC: " << this->has_been_checked() << ", PS: " << program_start
       << ", ES: " << event_start << ", LC: " << get_last_check()
       << ", CT: " << current_time << ", ET: " << expiration_time;
-  log_v2::checks()->info("HBC: {}, PS: {}, ES: {}, LC: {}, CT: {}, ET: {}",
-                         this->has_been_checked(), program_start, event_start,
-                         get_last_check(), current_time, expiration_time);
+  log_v2::checks()->debug("HBC: {}, PS: {}, ES: {}, LC: {}, CT: {}, ET: {}",
+                          this->has_been_checked(), program_start, event_start,
+                          get_last_check(), current_time, expiration_time);
 
   /* the results for the last check of this service are stale */
   if (expiration_time < current_time) {
@@ -3409,7 +3409,7 @@ void service::handle_flap_detection_disabled() {
         << "SERVICE FLAPPING ALERT: " << this->get_hostname() << ";"
         << this->get_description()
         << ";DISABLED; Flap detection has been disabled";
-    log_v2::events()->info(
+    log_v2::events()->debug(
         "SERVICE FLAPPING ALERT: {};{};DISABLED; Flap detection has been "
         "disabled",
         this->get_hostname(), this->get_description());

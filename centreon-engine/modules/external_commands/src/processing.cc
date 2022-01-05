@@ -643,15 +643,17 @@ bool processing::execute(const std::string& cmdstr) const {
   if (command_id == CMD_PROCESS_SERVICE_CHECK_RESULT ||
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
     // Passive checks are logged in checks.c.
-    if (config->log_passive_checks())
+    if (config->log_passive_checks()) {
       engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
-    log_v2::checks()->info("EXTERNAL COMMAND: {};{}", command_name, args);
-  } else if (config->log_external_commands())
+      log_v2::checks()->info("EXTERNAL COMMAND: {};{}", command_name, args);
+    }
+  } else if (config->log_external_commands()) {
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
-  log_v2::external_command()->info("EXTERNAL COMMAND: {};{}", command_name,
-                                   args);
+    log_v2::external_command()->info("EXTERNAL COMMAND: {};{}", command_name,
+                                     args);
+  }
 
   engine_logger(dbg_external_command, more)
       << "External command id: " << command_id

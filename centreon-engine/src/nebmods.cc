@@ -486,7 +486,6 @@ int neb_make_callbacks(int callback_type, void* data) {
 
   engine_logger(dbg_eventbroker, more)
       << "Making callbacks (type " << callback_type << ")...";
-  log_v2::eventbroker()->debug("Making callbacks (type {})...", callback_type);
 
   /* make the callbacks... */
   for (temp_callback = neb_callback_list[callback_type]; temp_callback != NULL;
@@ -504,8 +503,6 @@ int neb_make_callbacks(int callback_type, void* data) {
     engine_logger(dbg_eventbroker, most)
         << "Callback #" << total_callbacks << " (type " << callback_type
         << ") return (code = " << cbresult << ")";
-    log_v2::eventbroker()->info("Callback #{} (type {}) return (code = {})",
-                                total_callbacks, callback_type, cbresult);
 
     /* module wants to cancel callbacks to other modules (and potentially cancel
      * the default handling of an event) */

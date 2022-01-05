@@ -320,8 +320,8 @@ int xpddefault_run_service_performance_data_command(
 
   engine_logger(dbg_perfdata, most)
       << "Raw service performance data command line: " << raw_command_line;
-  log_v2::commands()->info("Raw service performance data command line: {}",
-                           raw_command_line);
+  log_v2::commands()->debug("Raw service performance data command line: {}",
+                            raw_command_line);
 
   // process any macros in the raw command line.
   process_macros_r(mac, raw_command_line, processed_command_line,
@@ -332,7 +332,7 @@ int xpddefault_run_service_performance_data_command(
   engine_logger(dbg_perfdata, most) << "Processed service performance data "
                                        "command line: "
                                     << processed_command_line;
-  log_v2::commands()->info(
+  log_v2::commands()->debug(
       "Processed service performance data command line: {}",
       processed_command_line);
 
