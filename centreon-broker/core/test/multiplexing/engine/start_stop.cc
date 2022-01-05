@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <thread>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -82,7 +83,12 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Read retained events.
     for (auto& m : messages) {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      bool ret;
+      do {
+        ret = s.get_muxer().read(data, 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      } while (!ret);
+
       ASSERT_TRUE(data);
       ASSERT_EQ(data->type(), io::raw::static_type());
       std::shared_ptr<io::raw> raw(std::static_pointer_cast<io::raw>(data));
@@ -99,7 +105,12 @@ TEST_F(StartStop, MultiplexingWorks) {
     // Read event.
     {
       std::shared_ptr<io::data> data;
-      s.get_muxer().read(data, 0);
+      bool ret;
+      do {
+        ret = s.get_muxer().read(data, 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      } while (!ret);
+
       ASSERT_TRUE(data);
       ASSERT_EQ(data->type(), io::raw::static_type());
       auto raw{std::static_pointer_cast<io::raw>(data)};

@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include <cstring>
+#include <thread>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -65,7 +66,12 @@ TEST_F(SubscriberTest, DefaultConstructor) {
   s.get_muxer().write(std::static_pointer_cast<io::data>(data));
 
   // Fetch event.
-  s.get_muxer().read(event, 0);
+  bool ret;
+  int count = 0;
+  do {
+    ret = s.get_muxer().read(event, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  } while (!ret && count < 1000);
   ASSERT_TRUE(event);
   ASSERT_EQ(event->type(), io::raw::static_type());
   ASSERT_TRUE(strncmp(std::static_pointer_cast<io::raw>(event)->const_data(),

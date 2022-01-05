@@ -108,10 +108,14 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
         _unprocessed_events++;
       }
       break;
+    case not_started:
+      for (auto& e : to_publish)
+        _kiew.push_back(e);
+      break;
     default:
       for (auto& e : to_publish)
         _kiew.push_back(e);
-      if (_state == running && !_sending_to_subscribers) {
+      if (!_sending_to_subscribers) {
         _sending_to_subscribers = true;
         pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
       }
@@ -178,8 +182,7 @@ void engine::stop() {
     do {
       // Make sure that no more data is available.
       lock.unlock();
-      // Process events from hooks.
-      if (_state == running && !_sending_to_subscribers) {
+      if (!_sending_to_subscribers) {
         _sending_to_subscribers = true;
         pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
       }
