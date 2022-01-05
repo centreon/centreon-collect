@@ -103,7 +103,7 @@ int32_t stream::flush() {
   _pending_events -= retval;
 
   // Event acknowledgement.
-  log_v2::perfdata()->debug("storage: {} events have not yet been acknowledged",
+  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", retval,
                             _pending_events);
   return retval;
 }
@@ -132,7 +132,7 @@ void stream::statistics(nlohmann::json& tree) const {
   std::lock_guard<std::mutex> lock(_statusm);
   if (!_status.empty())
     tree["status"] = _status;
-  tree["pending events"] = _pending_events;
+  tree["storage pending events"] = _pending_events;
 }
 
 /**
@@ -150,6 +150,9 @@ int32_t stream::write(std::shared_ptr<io::data> const& data) {
   int32_t ack =
       conflict_manager::instance().send_event(conflict_manager::storage, data);
   _pending_events -= ack;
+  // Event acknowledgement.
+  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", ack,
+                            _pending_events);
   return ack;
 }
 

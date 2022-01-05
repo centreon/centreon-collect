@@ -37,6 +37,17 @@ namespace multiplexing {
  *  new muxer object. This objects broadcast events sent to it to all
  *  other muxer objects.
  *
+ *  It works essentially with 3 methods:
+ *  * publish(): only called from multiplexing::engine. The event is stored to
+ * the muxer queue if it is possible, otherwise, it is written to its retention
+ * file.
+ *  * write(): it is called from the other side (failover or feeder) to send an
+ * event to the muxer. This time, the muxer does not push it to its queue, but
+ * calls the engine publisher who will publish this event to all its muxers and
+ * also this one.
+ *  * read(): it is used to get the next available event for the
+ * failover/feeder.
+ *
  *  @see engine
  */
 class muxer : public io::stream {

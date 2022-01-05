@@ -555,16 +555,19 @@ void conflict_manager::_callback() {
                      type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
             else if (std::get<1>(tpl) == storage &&
-                     type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs))
+                     type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)) {
               _rebuilder->rebuild_rrd_graphs(d);
-            else if (std::get<1>(tpl) == storage &&
-                     type == make_type(io::bbdo, bbdo::de_remove_graphs))
+              *std::get<2>(tpl) = true;
+            } else if (std::get<1>(tpl) == storage &&
+                       type == make_type(io::bbdo, bbdo::de_remove_graphs)) {
               remove_graphs(d);
-            else {
+              *std::get<2>(tpl) = true;
+            } else {
               log_v2::sql()->trace(
-                  "conflict_manager: event of type {} thrown away ; no need to "
+                  "conflict_manager: event of type {} from channel '{}' thrown "
+                  "away ; no need to "
                   "store it in the database.",
-                  type);
+                  type, std::get<1>(tpl) == sql ? "sql" : "storage");
               *std::get<2>(tpl) = true;
             }
 
