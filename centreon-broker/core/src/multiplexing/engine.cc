@@ -30,6 +30,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
+#include "com/centreon/broker/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -90,7 +91,10 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
       break;
     default:
       _kiew.push_back(e);
-      _send_to_subscribers();
+      if (!_sending_to_subscribers) {
+        _sending_to_subscribers = true;
+        pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
+      }
       break;
   }
 }
@@ -107,7 +111,10 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
     default:
       for (auto& e : to_publish)
         _kiew.push_back(e);
-      _send_to_subscribers();
+      if (_state == running && !_sending_to_subscribers) {
+        _sending_to_subscribers = true;
+        pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
+      }
       break;
   }
 }
@@ -151,7 +158,10 @@ void engine::start() {
 
     // Send events queued while multiplexing was stopped.
     _kiew = std::move(kiew);
-    _send_to_subscribers();
+    if (!_sending_to_subscribers) {
+      _sending_to_subscribers = true;
+      pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
+    }
   }
   log_v2::core()->info("multiplexing: engine started");
 }
@@ -166,11 +176,13 @@ void engine::stop() {
     log_v2::core()->debug("multiplexing: stopping engine");
 
     do {
-      // Process events from hooks.
-      _send_to_subscribers();
-
       // Make sure that no more data is available.
       lock.unlock();
+      // Process events from hooks.
+      if (_state == running && !_sending_to_subscribers) {
+        _sending_to_subscribers = true;
+        pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
+      }
       usleep(200000);
       lock.lock();
     } while (!_kiew.empty());
@@ -231,7 +243,8 @@ engine::engine()
     : _state{not_started},
       _muxers{},
       _stats{stats::center::instance().register_engine()},
-      _unprocessed_events{0u} {
+      _unprocessed_events{0u},
+      _sending_to_subscribers{false} {
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOP);
 }
@@ -253,12 +266,21 @@ std::string engine::_cache_file_path() const {
 void engine::_send_to_subscribers() {
   // Process all queued events.
   std::deque<std::shared_ptr<io::data>> kiew;
-  std::swap(_kiew, kiew);
+  {
+    std::lock_guard<std::mutex> lck(_engine_m);
+    if (_kiew.empty()) {
+      _sending_to_subscribers = false;
+      return;
+    }
+    std::swap(_kiew, kiew);
+  }
+
   for (auto& e : kiew) {
     // Send object to every subscriber.
     for (muxer* m : _muxers)
       m->publish(e);
   }
+  pool::io_context().post(std::bind(&engine::_send_to_subscribers, this));
 }
 
 /**

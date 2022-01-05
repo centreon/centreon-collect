@@ -88,6 +88,8 @@ class engine {
   EngineStats* _stats;
   uint32_t _unprocessed_events;
 
+  std::atomic_bool _sending_to_subscribers;
+
   engine();
   std::string _cache_file_path() const;
   void _send_to_subscribers();
