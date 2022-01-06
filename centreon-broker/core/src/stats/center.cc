@@ -135,6 +135,43 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
 }
 
 /**
+ * @brief If the muxer needs to write statistics, it primarily has to
+ * call this function to be registered in the statistic center and to get
+ * a pointer for its statistics. It is prohibited to directly write into this
+ * pointer. We must use the center member functions for this purpose.
+ *
+ * @param name
+ *
+ * @return A pointer to the muxer statistics.
+ */
+MuxerStats* center::register_muxer(const std::string& name) {
+  std::promise<MuxerStats*> p;
+  std::future<MuxerStats*> retval = p.get_future();
+  _strand.post([this, &p, name] {
+    auto ms = &(*_stats.mutable_muxers())[name];
+    p.set_value(ms);
+  });
+  return retval.get();
+}
+
+/**
+ * @brief
+ *
+ * @param name
+ *
+ * @return
+ */
+bool center::unregister_muxer(const std::string& name) {
+  std::promise<bool> p;
+  std::future<bool> retval = p.get_future();
+  _strand.post([this, &p, name] {
+    _stats.mutable_muxers()->erase(name);
+    p.set_value(true);
+  });
+  return retval.get();
+}
+
+/**
  * @brief When a feeder needs to write statistics, it primarily has to
  * call this function to be registered in the statistic center and to get
  * a pointer for its statistics. It is prohibited to directly write into this
@@ -367,4 +404,18 @@ void center::get_conflict_manager_stats(ConflictManagerStats* response) {
 
 int center::get_json_stats_file_creation(void) {
   return _json_stats_file_creation;
+}
+
+bool center::get_muxer_stats(const std::string& name, MuxerStats* response) {
+  std::promise<bool> p;
+  std::future<bool> done = p.get_future();
+  _strand.post([&s = this->_stats, &p, name, response] {
+    if (!s.muxers().contains(name))
+      p.set_value(false);
+    else {
+      *response = s.muxers().at(name);
+      p.set_value(true);
+    }
+  });
+  return done.get();
 }

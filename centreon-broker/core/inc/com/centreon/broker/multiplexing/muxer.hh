@@ -23,6 +23,7 @@
 #include <list>
 #include <unordered_set>
 
+#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
 CCB_BEGIN()
@@ -57,9 +58,10 @@ class muxer : public io::stream {
  private:
   std::condition_variable _cv;
   std::list<std::shared_ptr<io::data>> _events;
-  uint32_t _events_size;
   static uint32_t _event_queue_max_size;
   std::unique_ptr<persistent_file> _file;
+  bool _queue_file_enabled;
+  std::string _queue_file_name;
   mutable std::mutex _mutex;
   std::string _name;
   bool _persistent;
@@ -73,7 +75,11 @@ class muxer : public io::stream {
   void _get_event_from_file(std::shared_ptr<io::data>& event);
   std::string _memory_file() const;
   void _push_to_queue(std::shared_ptr<io::data> const& event);
-  std::string _queue_file() const;
+
+  void updateStats(void) noexcept;
+
+  MuxerStats* _stats;
+  std::time_t _clk;
 
  public:
   muxer(std::string const& name, bool persistent = false);

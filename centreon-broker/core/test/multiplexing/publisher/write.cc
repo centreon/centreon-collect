@@ -28,7 +28,6 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 
 using namespace com::centreon::broker;
 
@@ -54,9 +53,9 @@ TEST_F(PublisherWrite, Write) {
     // Subscriber.
     std::unordered_set<uint32_t> filters;
     filters.insert(io::raw::static_type());
-    multiplexing::subscriber s("core_multiplexing_publisher_write", "");
-    s.get_muxer().set_read_filters(filters);
-    s.get_muxer().set_write_filters(filters);
+    multiplexing::muxer mux("core_multiplexing_publisher_write", "");
+    mux.set_read_filters(filters);
+    mux.set_write_filters(filters);
 
     // Publish event.
     {
@@ -82,7 +81,7 @@ TEST_F(PublisherWrite, Write) {
       bool ret;
       int count = 0;
       do {
-        ret = s.get_muxer().read(data, 0);
+        ret = mux.read(data, 0);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         count++;
       } while (!ret && count < 100);

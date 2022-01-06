@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Centreon
+** Copyright 2011-2012, 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 #include <thread>
 
 #include "com/centreon/broker/misc/shared_mutex.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
 
@@ -56,7 +56,7 @@ class feeder : public stat_visitable {
   std::atomic_bool _should_exit;
 
   std::unique_ptr<io::stream> _client;
-  multiplexing::subscriber _subscriber;
+  multiplexing::muxer _muxer;
 
   // This mutex is used for the stat thread.
   mutable misc::shared_mutex _client_m;

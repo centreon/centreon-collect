@@ -12,6 +12,7 @@ service Broker {
   rpc GetSqlConnectionStats(GenericInt) returns (SqlConnectionStats) {}
   rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetConflictManagerStats(google.protobuf.Empty) returns (ConflictManagerStats) {}
+  rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
 
   rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetModulesStats(GenericNameOrIndex) returns (GenericString) {}
@@ -109,6 +110,12 @@ message ThreadPool {
   uint32 size = 2;
 }
 
+message MuxerStats {
+  bool queue_file_enabled = 1;
+  string queue_file = 2;
+  string unacknowledged_events = 3;
+}
+
 message BrokerStats {
   string asio_version = 1;
   string version = 2;
@@ -119,6 +126,7 @@ message BrokerStats {
   repeated ModuleStats modules = 7;
   repeated SqlConnectionStats connections = 8;
   ConflictManagerStats conflict_manager = 9;
+  map<string, MuxerStats> muxers = 10;
 }
 
 message IndexIds {

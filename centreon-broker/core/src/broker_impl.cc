@@ -215,6 +215,22 @@ grpc::Status broker_impl::GetSqlConnectionSize(
   return grpc::Status::OK;
 }
 
+grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
+                                        __attribute__((unused)),
+                                        const GenericString* request,
+                                        MuxerStats* response) {
+  const std::string name = request->str_arg();
+  auto status = stats::center::instance().get_muxer_stats(name, response);
+  return status ? grpc::Status::OK
+                : grpc::Status(
+                      grpc::StatusCode::NOT_FOUND,
+                      fmt::format("no muxer stats found for name '{}'", name));
+}
+
+void broker_impl::set_broker_name(const std::string& s) {
+  _broker_name = s;
+}
+
 /**
  * @brief The internal part of the gRPC RebuildMetrics() function.
  *
@@ -237,9 +253,10 @@ grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
-    __attribute__((unused)),
-    const ToRemove* request,
-    ::google::protobuf::Empty* response __attribute__((unused))) {
+                                       __attribute__((unused)),
+                                       const ToRemove* request,
+                                       ::google::protobuf::Empty* response
+                                       __attribute__((unused))) {
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_graphs>(*request)};
   pblshr.write(e);

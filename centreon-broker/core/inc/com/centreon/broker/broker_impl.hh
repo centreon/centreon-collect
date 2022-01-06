@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ using pb_rebuild_rrd_graphs =
     io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
-}
+}  // namespace bbdo
 
 class broker_impl final : public Broker::Service {
   std::string _broker_name;
@@ -65,6 +65,10 @@ class broker_impl final : public Broker::Service {
                                const GenericNameOrIndex* request,
                                GenericString* response) override;
 
+  grpc::Status GetMuxerStats(grpc::ServerContext*,
+                             const GenericString*,
+                             MuxerStats*) override;
+
   grpc::Status GetNumEndpoint(grpc::ServerContext* context,
                               const ::google::protobuf::Empty* /*request*/,
                               GenericSize* response) override;
@@ -78,11 +82,11 @@ class broker_impl final : public Broker::Service {
                                 ::google::protobuf::Empty* response) override;
 
   grpc::Status RemoveGraphs(grpc::ServerContext* context,
-                                const ToRemove* request,
-                                ::google::protobuf::Empty* response) override;
+                            const ToRemove* request,
+                            ::google::protobuf::Empty* response) override;
 
  public:
-  void set_broker_name(std::string const& s) { _broker_name = s; };
+  void set_broker_name(const std::string& s);
 };
 CCB_END()
 

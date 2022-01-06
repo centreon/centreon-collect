@@ -34,7 +34,6 @@
 #include "com/centreon/broker/misc/stringifier.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/processing/acceptor.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
@@ -162,8 +161,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v2::core()->debug("creating endpoint {}", ep.name);
-      // Create subscriber and endpoint.
-      std::shared_ptr<multiplexing::subscriber> s(_create_subscriber(ep));
+      // Create muxer and endpoint.
+      std::shared_ptr<multiplexing::muxer> mux{_create_muxer(ep)};
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e(_create_endpoint(ep, is_acceptor));
       std::unique_ptr<processing::endpoint> endp;
@@ -187,7 +186,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         acceptr->set_write_filters(_filters(ep.write_filters));
         endp.reset(acceptr.release());
       } else
-        endp.reset(_create_failover(ep, s, e, endp_to_create));
+        endp.reset(_create_failover(ep, mux, e, endp_to_create));
       {
         std::lock_guard<std::timed_mutex> lock(_endpointsm);
         _endpoints[ep] = endp.get();
@@ -323,36 +322,35 @@ void endpoint::unload() {
 
 /**
  *  Create a muxer for a chain of failovers / endpoints. This method
- *  will create the subscriber of the chain and set appropriate filters.
+ *  will create the muxer of the chain and set appropriate filters.
  *
  *  @param[in] cfg  Configuration of the root endpoint.
  *
- *  @return The subscriber of the chain.
+ *  @return The muxer of the chain.
  */
-multiplexing::subscriber* endpoint::_create_subscriber(config::endpoint& cfg) {
+multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
   // Build filtering elements.
   std::unordered_set<uint32_t> read_elements(_filters(cfg.read_filters));
   std::unordered_set<uint32_t> write_elements(_filters(cfg.write_filters));
 
-  // Create subscriber.
-  std::unique_ptr<multiplexing::subscriber> s(
-      new multiplexing::subscriber(cfg.name, true));
-  s->get_muxer().set_read_filters(read_elements);
-  s->get_muxer().set_write_filters(write_elements);
-  return s.release();
+  // Create muxer.
+  auto mux{std::make_unique<multiplexing::muxer>(cfg.name, true)};
+  mux->set_read_filters(read_elements);
+  mux->set_write_filters(write_elements);
+  return mux.release();
 }
 
 /**
  *  Create and register an endpoint according to configuration.
  *
  *  @param[in]  cfg      Endpoint configuration.
- *  @param[in]  sbscrbr  Subscriber.
+ *  @param[in]  mux      Muxer.
  *  @param[in]  endp     Endpoint.
  *  @param[in]  l        List of endpoints.
  */
 processing::failover* endpoint::_create_failover(
     config::endpoint& cfg,
-    std::shared_ptr<multiplexing::subscriber> sbscrbr,
+    std::shared_ptr<multiplexing::muxer> mux,
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
@@ -376,8 +374,8 @@ processing::failover* endpoint::_create_failover(
           "endpoint applier: cannot allow acceptor '{}' "
           "as failover for endpoint '{}'",
           front_failover, cfg.name);
-    failovr = std::shared_ptr<processing::failover>(
-        _create_failover(*it, sbscrbr, e, l));
+    failovr =
+        std::shared_ptr<processing::failover>(_create_failover(*it, mux, e, l));
 
     // Add secondary failovers
     for (std::list<std::string>::const_iterator
@@ -404,8 +402,7 @@ processing::failover* endpoint::_create_failover(
   }
 
   // Return failover thread.
-  std::unique_ptr<processing::failover> fo(
-      new processing::failover(endp, sbscrbr, cfg.name));
+  auto fo{std::make_unique<processing::failover>(endp, mux, cfg.name)};
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);
