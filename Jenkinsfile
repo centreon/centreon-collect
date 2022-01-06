@@ -131,6 +131,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
       sh 'docker run  --rm  -u $(id -u):$(id -g) -e SONAR_HOST_URL="https://sonarqube.centreon.com" -i -v "$PWD:/src" sonarsource/sonar-scanner-cli:latest sonar-scanner'
     }
+  }
 }
 
 if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
