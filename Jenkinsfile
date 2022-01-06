@@ -123,7 +123,14 @@ stage('Build / Unit tests // Packaging / Signing') {
       stash name: 'Debian11', includes: 'Debian11/*.deb'
       archiveArtifacts artifacts: "Debian11/*"
     }
-  }  
+  },
+  'sonar analysis': {
+    node("C++") {
+      dir('centreon-collect') {
+        checkout scm
+      }
+      sh 'docker run  --rm  -u $(id -u):$(id -g) -e SONAR_HOST_URL="https://sonarqube.centreon.com" -i -v "$PWD:/src" sonarsource/sonar-scanner-cli:latest sonar-scanner'
+    }
 }
 
 if ((env.BUILD == 'RELEASE') || (env.BUILD == 'QA')) {
