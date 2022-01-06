@@ -329,14 +329,9 @@ void endpoint::unload() {
  *  @return The muxer of the chain.
  */
 multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
-  // Build filtering elements.
-  std::unordered_set<uint32_t> read_elements(_filters(cfg.read_filters));
-  std::unordered_set<uint32_t> write_elements(_filters(cfg.write_filters));
-
   // Create muxer.
-  auto mux{std::make_unique<multiplexing::muxer>(cfg.name, true)};
-  mux->set_read_filters(read_elements);
-  mux->set_write_filters(write_elements);
+  auto mux{std::make_unique<multiplexing::muxer>(
+      cfg.name, _filters(cfg.read_filters), _filters(cfg.write_filters), true)};
   return mux.release();
 }
 

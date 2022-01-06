@@ -41,19 +41,16 @@ using namespace com::centreon::broker::processing;
  */
 feeder::feeder(const std::string& name,
                std::unique_ptr<io::stream>& client,
-               const std::unordered_set<uint32_t>& read_filters,
-               const std::unordered_set<uint32_t>& write_filters)
+               multiplexing::muxer::filters read_filters,
+               multiplexing::muxer::filters write_filters)
     : stat_visitable(name),
       _state{feeder::stopped},
       _should_exit{false},
       _client(std::move(client)),
-      _muxer(name, false) {
+      _muxer(name, std::move(read_filters), std::move(write_filters), false) {
   std::unique_lock<std::mutex> lck(_state_m);
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
-
-  _muxer.set_read_filters(read_filters);
-  _muxer.set_write_filters(write_filters);
 
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
@@ -96,8 +93,8 @@ bool feeder::is_finished() const noexcept {
  *
  *  @return  The read filters used by the feeder.
  */
-std::string const& feeder::_get_read_filters() const {
-  return _muxer.get_read_filters_str();
+const std::string& feeder::_get_read_filters() const {
+  return _muxer.read_filters_as_str();
 }
 
 /**
@@ -106,7 +103,7 @@ std::string const& feeder::_get_read_filters() const {
  *  @return  The write filters used by the feeder.
  */
 std::string const& feeder::_get_write_filters() const {
-  return _muxer.get_write_filters_str();
+  return _muxer.write_filters_as_str();
 }
 
 /**

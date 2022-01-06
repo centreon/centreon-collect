@@ -483,37 +483,12 @@ void failover::update() {
 }
 
 /**
- *  Wait for this thread to terminate along with other failovers.
- *
- *  @param[in] time  Maximum time to wait for thread termination.
- *
- *  @return True if thread exited.
- */
-// bool failover::wait(unsigned long time) {
-//  // Check that failover finished.
-//  bool finished;
-//  if (_failover)
-//    finished = _failover->wait(time);
-//  else
-//    finished = true;
-//
-//  // If there was no failover or failover finished we
-//  // can safely wait for ourselves.
-//  if (finished)
-//    finished = bthread::wait(time);
-//  // Otherwise we're not finished yet.
-//  else
-//    finished = false;
-//  return finished;
-//}
-
-/**
  *  Get the read filters used by the failover.
  *
  *  @return  The read filters used by the failover.
  */
 const std::string& failover::_get_read_filters() const {
-  return _muxer->get_read_filters_str();
+  return _muxer->read_filters_as_str();
 }
 
 /**
@@ -522,7 +497,7 @@ const std::string& failover::_get_read_filters() const {
  *  @return  The write filters used by the failover.
  */
 const std::string& failover::_get_write_filters() const {
-  return _muxer->get_write_filters_str();
+  return _muxer->write_filters_as_str();
 }
 
 /**

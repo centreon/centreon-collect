@@ -41,10 +41,17 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
  *  @param[in] persistent  Whether or not this muxer should backup
  *                         unprocessed events in a persistent storage.
  */
-muxer::muxer(std::string const& name, bool persistent)
+muxer::muxer(std::string name,
+             muxer::filters r_filters,
+             muxer::filters w_filters,
+             bool persistent)
     : io::stream("muxer"),
       _queue_file_enabled{false},
-      _name(name),
+      _name(std::move(name)),
+      _read_filters{std::move(r_filters)},
+      _write_filters{std::move(w_filters)},
+      _read_filters_str{misc::dump_filters(_read_filters)},
+      _write_filters_str{misc::dump_filters(_write_filters)},
       _persistent(persistent),
       _stats{stats::center::instance().register_muxer(name)},
       _clk{std::time(nullptr)} {
@@ -250,34 +257,11 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
 }
 
 /**
- *  Set the read filters.
- *
- *  @param[in] fltrs  Read filters. That is read() will return only
- *                    events which type() is available in this set.
- */
-void muxer::set_read_filters(muxer::filters const& fltrs) {
-  _read_filters = fltrs;
-  _read_filters_str = misc::dump_filters(_read_filters);
-}
-
-/**
- *  Set the write filters.
- *
- *  @param[in] fltrs  Write filters. That is any submitted through
- *                    write() must be in this set otherwise it won't be
- *                    multiplexed.
- */
-void muxer::set_write_filters(muxer::filters const& fltrs) {
-  _write_filters = fltrs;
-  _write_filters_str = misc::dump_filters(_write_filters);
-}
-
-/**
  *  Get the read filters.
  *
  *  @return  The read filters.
  */
-const muxer::filters& muxer::get_read_filters() const {
+const muxer::filters& muxer::read_filters() const {
   return _read_filters;
 }
 
@@ -286,7 +270,7 @@ const muxer::filters& muxer::get_read_filters() const {
  *
  *  @return  The write filters.
  */
-const muxer::filters& muxer::get_write_filters() const {
+const muxer::filters& muxer::write_filters() const {
   return _write_filters;
 }
 
@@ -295,7 +279,7 @@ const muxer::filters& muxer::get_write_filters() const {
  *
  *  @return  The read filters formatted into a string.
  */
-const std::string& muxer::get_read_filters_str() const {
+const std::string& muxer::read_filters_as_str() const {
   return _read_filters_str;
 }
 
@@ -304,7 +288,7 @@ const std::string& muxer::get_read_filters_str() const {
  *
  *  @return  The write filters formatted into a string.
  */
-const std::string& muxer::get_write_filters_str() const {
+const std::string& muxer::write_filters_as_str() const {
   return _write_filters_str;
 }
 

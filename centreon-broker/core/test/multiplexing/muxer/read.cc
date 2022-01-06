@@ -46,11 +46,8 @@ class MultiplexingMuxerRead : public ::testing::Test {
   }
 
   void setup(std::string const& name) {
-    _m = std::make_unique<multiplexing::muxer>(name, false);
-    multiplexing::muxer::filters f;
-    f.insert(io::raw::static_type());
-    _m->set_read_filters(f);
-    _m->set_write_filters(f);
+    multiplexing::muxer::filters f{io::raw::static_type()};
+    _m = std::make_unique<multiplexing::muxer>(name, f, f, false);
   }
 
   void publish_events(int count = 10000) {

@@ -64,12 +64,12 @@ class muxer : public io::stream {
   std::string _queue_file_name;
   mutable std::mutex _mutex;
   std::string _name;
+  const filters _read_filters;
+  const filters _write_filters;
+  const std::string _read_filters_str;
+  const std::string _write_filters_str;
   bool _persistent;
   std::list<std::shared_ptr<io::data>>::iterator _pos;
-  filters _read_filters;
-  filters _write_filters;
-  std::string _read_filters_str;
-  std::string _write_filters_str;
 
   void _clean();
   void _get_event_from_file(std::shared_ptr<io::data>& event);
@@ -82,7 +82,10 @@ class muxer : public io::stream {
   std::time_t _clk;
 
  public:
-  muxer(std::string const& name, bool persistent = false);
+  muxer(std::string name,
+        muxer::filters r_filters,
+        muxer::filters w_filters,
+        bool persistent = false);
   muxer(const muxer&) = delete;
   muxer& operator=(const muxer&) = delete;
   ~muxer() noexcept;
@@ -91,12 +94,10 @@ class muxer : public io::stream {
   static uint32_t event_queue_max_size() noexcept;
   void publish(std::shared_ptr<io::data> const event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
-  void set_read_filters(const filters& fltrs);
-  void set_write_filters(const filters& fltrs);
-  const filters& get_read_filters() const;
-  const filters& get_write_filters() const;
-  const std::string& get_read_filters_str() const;
-  const std::string& get_write_filters_str() const;
+  const filters& read_filters() const;
+  const filters& write_filters() const;
+  const std::string& read_filters_as_str() const;
+  const std::string& write_filters_as_str() const;
   uint32_t get_event_queue_size() const;
   void nack_events();
   void remove_queue_files();

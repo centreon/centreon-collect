@@ -51,11 +51,9 @@ TEST_F(PublisherWrite, Write) {
     multiplexing::publisher p;
 
     // Subscriber.
-    std::unordered_set<uint32_t> filters;
-    filters.insert(io::raw::static_type());
-    multiplexing::muxer mux("core_multiplexing_publisher_write", "");
-    mux.set_read_filters(filters);
-    mux.set_write_filters(filters);
+    std::unordered_set<uint32_t> filters{io::raw::static_type()};
+    multiplexing::muxer mux("core_multiplexing_publisher_write", filters,
+                            filters, true);
 
     // Publish event.
     {
