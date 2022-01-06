@@ -26,6 +26,9 @@
 using namespace com::centreon::broker;
 
 class MultiplexingMuxerRead : public ::testing::Test {
+ protected:
+  std::unique_ptr<multiplexing::muxer> _m;
+
  public:
   void SetUp() override {
     try {
@@ -38,8 +41,8 @@ class MultiplexingMuxerRead : public ::testing::Test {
 
   void TearDown() override {
     _m.reset();
-    stats::center::unload();
     config::applier::deinit();
+    stats::center::unload();
   }
 
   void setup(std::string const& name) {
@@ -72,9 +75,6 @@ class MultiplexingMuxerRead : public ::testing::Test {
       ASSERT_EQ(reread, i);
     }
   }
-
- protected:
-  std::unique_ptr<multiplexing::muxer> _m;
 };
 
 // Given a muxer object with all filters

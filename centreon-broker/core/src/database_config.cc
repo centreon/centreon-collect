@@ -215,47 +215,47 @@ bool database_config::operator==(database_config const& other) const {
                 _connections_count == other._connections_count};
     if (!retval) {
       if (_type != other._type)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their types: {} "
             "!= {}",
             _type, other._type);
       else if (_host != other._host)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their hosts: {} "
             "!= {}",
             _host, other._host);
       else if (_socket != other._socket)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their sockets: {} "
             "!= {}",
             _socket, other._socket);
       else if (_port != other._port)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their ports: {} "
             "!= {}",
             _port, other._port);
       else if (_user != other._user)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their users: {} "
             "!= {}",
             _user, other._user);
       else if (_password != other._password)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their passwords: "
             "{} != {}",
             _password, other._password);
       else if (_name != other._name)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their names: {} "
             "!= {}",
             _name, other._name);
       else if (_queries_per_transaction != other._queries_per_transaction)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their queries per "
             "transactions: {} != {}",
             _queries_per_transaction, other._queries_per_transaction);
       else if (_connections_count != other._connections_count)
-        log_v2::sql()->trace(
+        log_v2::sql()->debug(
             "database configurations do not match because of their connections "
             "counts: {} != {}",
             _connections_count, other._connections_count);
