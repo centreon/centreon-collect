@@ -329,7 +329,6 @@ TEST_F(ServiceFlappingNotification, CheckFlapping) {
   }
 
   std::string out{testing::internal::GetCapturedStdout()};
-  std::cout << out << std::endl;
   size_t m1{out.find("NOW = 53100")};
   size_t m2{
       out.find("SERVICE NOTIFICATION: "
@@ -423,7 +422,6 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
   }
 
   std::string out{testing::internal::GetCapturedStdout()};
-  std::cout << out << std::endl;
   size_t m1{out.find("NOW = 53100")};
   size_t m2{
       out.find("SERVICE NOTIFICATION: "
