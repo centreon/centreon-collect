@@ -262,3 +262,11 @@ grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
   pblshr.write(e);
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::GetProcessingStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    ::ProcessingStats* response) {
+  stats::center::instance().get_processing_stats(response);
+  return grpc::Status::OK;
+}

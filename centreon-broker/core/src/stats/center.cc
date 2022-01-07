@@ -148,7 +148,7 @@ MuxerStats* center::register_muxer(const std::string& name) {
   std::promise<MuxerStats*> p;
   std::future<MuxerStats*> retval = p.get_future();
   _strand.post([this, &p, name] {
-    auto ms = &(*_stats.mutable_muxers())[name];
+    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
     p.set_value(ms);
   });
   return retval.get();
@@ -165,7 +165,7 @@ bool center::unregister_muxer(const std::string& name) {
   std::promise<bool> p;
   std::future<bool> retval = p.get_future();
   _strand.post([this, &p, name] {
-    _stats.mutable_muxers()->erase(name);
+    _stats.mutable_processing()->mutable_muxers()->erase(name);
     p.set_value(true);
   });
   return retval.get();
@@ -335,24 +335,6 @@ std::string center::to_string() {
   return retval.get();
 }
 
-// void center::get_stats(const StatsQuery* request, BrokerStats* response) {
-//  std::promise<bool> p;
-//  std::future<bool> done = p.get_future();
-//  _strand.post([&s = this->_stats, &p, request, response] {
-//    for (auto& q : request->query()) {
-//      switch (q) {
-//        case StatsQuery::ENGINE:
-//          *response->mutable_engine() = s.engine();
-//          break;
-//      }
-//    }
-//    p.set_value(true);
-//  });
-//
-//  // We wait for the response.
-//  done.get();
-//}
-
 void center::get_sql_connection_stats(uint32_t index,
                                       SqlConnectionStats* response) {
   std::promise<bool> p;
@@ -410,12 +392,21 @@ bool center::get_muxer_stats(const std::string& name, MuxerStats* response) {
   std::promise<bool> p;
   std::future<bool> done = p.get_future();
   _strand.post([&s = this->_stats, &p, name, response] {
-    if (!s.muxers().contains(name))
+    if (!s.processing().muxers().contains(name))
       p.set_value(false);
     else {
-      *response = s.muxers().at(name);
+      *response = s.processing().muxers().at(name);
       p.set_value(true);
     }
   });
   return done.get();
+}
+
+void center::get_processing_stats(ProcessingStats* response) {
+  std::promise<void> p;
+  _strand.post([&s = this->_stats, &p, response] {
+    *response = s.processing();
+    p.set_value();
+  });
+  p.get_future().get();
 }

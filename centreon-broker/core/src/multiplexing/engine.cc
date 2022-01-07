@@ -140,7 +140,7 @@ void engine::start() {
     log_v2::core()->debug("multiplexing: engine starting");
     _state = running;
     stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                     EngineStats::WRITE);
+                                     EngineStats::RUNNING);
 
     // Local queue.
     std::deque<std::shared_ptr<io::data>> kiew;
@@ -217,7 +217,7 @@ void engine::stop() {
     // Set writing method.
     _state = stopped;
     stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                     EngineStats::WRITE_TO_CACHE_FILE);
+                                     EngineStats::STOPPED);
   }
   log_v2::core()->debug("multiplexing: engine stopped");
 }
@@ -268,7 +268,7 @@ engine::engine()
       _unprocessed_events{0u},
       _sending_to_subscribers{false} {
   stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                   EngineStats::NOP);
+                                   EngineStats::NOT_STARTED);
 }
 
 /**

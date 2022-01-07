@@ -85,6 +85,12 @@ class broker_impl final : public Broker::Service {
                             const ToRemove* request,
                             ::google::protobuf::Empty* response) override;
 
+  grpc::Status GetProcessingStats(grpc::ServerContext* context
+                                  __attribute__((unused)),
+                                  const ::google::protobuf::Empty* request
+                                  __attribute__((unused)),
+                                  ProcessingStats* response) override;
+
  public:
   void set_broker_name(const std::string& s);
 };

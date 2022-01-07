@@ -11,7 +11,8 @@ service Broker {
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
   rpc GetSqlConnectionStats(GenericInt) returns (SqlConnectionStats) {}
   rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
-  rpc GetConflictManagerStats(google.protobuf.Empty) returns (ConflictManagerStats) {}
+  rpc GetConflictManagerStats(google.protobuf.Empty)
+      returns (ConflictManagerStats) {}
   rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
 
   rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
@@ -20,7 +21,7 @@ service Broker {
   rpc GetNumEndpoint(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetEndpointStats(GenericNameOrIndex) returns (GenericString) {}
 
-  rpc GetStats(google.protobuf.Empty) returns (BrokerStats) {}
+  rpc GetProcessingStats(google.protobuf.Empty) returns (ProcessingStats) {}
 
   /**
    * @brief Rebuild RRD metric RRD files from data in the SQL database.
@@ -66,29 +67,19 @@ message GenericResponse {
   string err_msg = 2;
 }
 
-message EngineStats {
-  enum Mode {
-    NOP = 0;
-    WRITE = 1;
-    WRITE_TO_CACHE_FILE = 2;
-  }
-  Mode mode = 1;
-  uint32 processed_events = 2;
+message SqlConnectionStats {
+  int32 waiting_tasks = 1;
 }
 
-message SqlConnectionStats {
- int32 waiting_tasks = 1;
- }
-
 message ConflictManagerStats {
- int32 events_handled = 1;
- int32 waiting_events = 2;
- int32 max_pending_events = 3;
- int32 sql = 4;
- int32 storage = 5;
- uint32 max_perfdata_events = 6;
- uint32 loop_timeout = 7;
- double speed = 8;
+  int32 events_handled = 1;
+  int32 waiting_events = 2;
+  int32 max_pending_events = 3;
+  int32 sql = 4;
+  int32 storage = 5;
+  uint32 max_perfdata_events = 6;
+  uint32 loop_timeout = 7;
+  double speed = 8;
 }
 
 message ModuleStats {
@@ -102,10 +93,25 @@ message ThreadPool {
   uint32 size = 2;
 }
 
+message EngineStats {
+  enum Mode {
+    NOT_STARTED = 0;
+    RUNNING = 1;
+    STOPPED = 2;
+  }
+  Mode mode = 1;
+  uint32 processed_events = 2;
+}
+
 message MuxerStats {
   uint32 total_events = 1;
   uint32 unacknowledged_events = 2;
   string queue_file = 3;
+}
+
+message ProcessingStats {
+  EngineStats engine = 1;
+  map<string, MuxerStats> muxers = 2;
 }
 
 message BrokerStats {
@@ -118,7 +124,7 @@ message BrokerStats {
   repeated ModuleStats modules = 7;
   repeated SqlConnectionStats connections = 8;
   ConflictManagerStats conflict_manager = 9;
-  map<string, MuxerStats> muxers = 10;
+  ProcessingStats processing = 10;
 }
 
 message IndexIds {
