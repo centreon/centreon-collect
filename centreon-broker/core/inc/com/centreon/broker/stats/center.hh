@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ class center {
   // bool unregister_mysql_manager(void);
 
   int get_json_stats_file_creation(void);
-  void get_stats(const StatsQuery* request, BrokerStats* response);
+  // void get_stats(const StatsQuery* request, BrokerStats* response);
   void get_sql_connection_size(GenericSize* response);
 
   /**

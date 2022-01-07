@@ -70,6 +70,7 @@ class muxer : public io::stream {
   std::condition_variable _cv;
   mutable std::mutex _mutex;
   std::list<std::shared_ptr<io::data>> _events;
+  size_t _events_size;
   std::list<std::shared_ptr<io::data>>::iterator _pos;
   MuxerStats* _stats;
   std::time_t _last_stats;

@@ -20,7 +20,7 @@ service Broker {
   rpc GetNumEndpoint(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetEndpointStats(GenericNameOrIndex) returns (GenericString) {}
 
-  rpc GetStats(StatsQuery) returns (BrokerStats) {}
+  rpc GetStats(google.protobuf.Empty) returns (BrokerStats) {}
 
   /**
    * @brief Rebuild RRD metric RRD files from data in the SQL database.
@@ -64,14 +64,6 @@ message GenericNameOrIndex {
 message GenericResponse {
   bool ok = 1;
   string err_msg = 2;
-}
-
-message StatsQuery {
-  enum Part {
-    ENGINE = 0;
-    THREAD_POOL = 1;
-  }
-  repeated Part query = 1;
 }
 
 message EngineStats {
