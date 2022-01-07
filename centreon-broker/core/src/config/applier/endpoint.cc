@@ -162,7 +162,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v2::core()->debug("creating endpoint {}", ep.name);
       // Create muxer and endpoint.
-      std::shared_ptr<multiplexing::muxer> mux{_create_muxer(ep)};
+      auto mux{std::make_shared<multiplexing::muxer>(
+          ep.name, _filters(ep.read_filters), _filters(ep.write_filters),
+          true)};
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e(_create_endpoint(ep, is_acceptor));
       std::unique_ptr<processing::endpoint> endp;
@@ -318,21 +320,6 @@ void endpoint::unload() {
   gl_loaded = false;
   delete gl_endpoint;
   gl_endpoint = nullptr;
-}
-
-/**
- *  Create a muxer for a chain of failovers / endpoints. This method
- *  will create the muxer of the chain and set appropriate filters.
- *
- *  @param[in] cfg  Configuration of the root endpoint.
- *
- *  @return The muxer of the chain.
- */
-multiplexing::muxer* endpoint::_create_muxer(config::endpoint& cfg) {
-  // Create muxer.
-  auto mux{std::make_unique<multiplexing::muxer>(
-      cfg.name, _filters(cfg.read_filters), _filters(cfg.write_filters), true)};
-  return mux.release();
 }
 
 /**

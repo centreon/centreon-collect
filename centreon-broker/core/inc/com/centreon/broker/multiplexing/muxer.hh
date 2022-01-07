@@ -56,32 +56,36 @@ class muxer : public io::stream {
   using filters = std::unordered_set<uint32_t>;
 
  private:
-  std::condition_variable _cv;
-  std::list<std::shared_ptr<io::data>> _events;
   static uint32_t _event_queue_max_size;
-  std::unique_ptr<persistent_file> _file;
-  bool _queue_file_enabled;
-  std::string _queue_file_name;
-  mutable std::mutex _mutex;
-  std::string _name;
+
+  const std::string _name;
+  const std::string _queue_file_name;
   const filters _read_filters;
   const filters _write_filters;
   const std::string _read_filters_str;
   const std::string _write_filters_str;
-  bool _persistent;
+  const bool _persistent;
+
+  std::unique_ptr<persistent_file> _file;
+  std::condition_variable _cv;
+  mutable std::mutex _mutex;
+  std::list<std::shared_ptr<io::data>> _events;
   std::list<std::shared_ptr<io::data>>::iterator _pos;
+  MuxerStats* _stats;
+  std::time_t _last_stats;
 
   void _clean();
   void _get_event_from_file(std::shared_ptr<io::data>& event);
-  std::string _memory_file() const;
   void _push_to_queue(std::shared_ptr<io::data> const& event);
 
-  void updateStats(void) noexcept;
-
-  MuxerStats* _stats;
-  std::time_t _clk;
+  void _update_stats(void) noexcept;
 
  public:
+  static std::string queue_file(const std::string& name);
+  static std::string memory_file(const std::string& name);
+  static void event_queue_max_size(uint32_t max) noexcept;
+  static uint32_t event_queue_max_size() noexcept;
+
   muxer(std::string name,
         muxer::filters r_filters,
         muxer::filters w_filters,
@@ -90,8 +94,6 @@ class muxer : public io::stream {
   muxer& operator=(const muxer&) = delete;
   ~muxer() noexcept;
   void ack_events(int count);
-  static void event_queue_max_size(uint32_t max) noexcept;
-  static uint32_t event_queue_max_size() noexcept;
   void publish(std::shared_ptr<io::data> const event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   const filters& read_filters() const;
@@ -106,9 +108,6 @@ class muxer : public io::stream {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   const std::string& name() const;
-
-  static std::string memory_file(std::string const& name);
-  static std::string queue_file(std::string const& name);
 };
 }  // namespace multiplexing
 

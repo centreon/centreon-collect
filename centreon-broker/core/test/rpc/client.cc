@@ -135,8 +135,6 @@ int main(int argc, char** argv) {
       MuxerStats response;
       status += client.GetMuxerStats(&response, argv[cpt]) ? 0 : 1;
       std::cout << "name: " << argv[cpt]
-                << ", queue_file_enabled: " << std::boolalpha
-                << response.queue_file_enabled()
                 << ", queue_file: " << response.queue_file()
                 << ", unacknowledged_events: "
                 << response.unacknowledged_events() << std::endl;

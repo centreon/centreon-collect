@@ -81,7 +81,7 @@ message EngineStats {
     WRITE_TO_CACHE_FILE = 2;
   }
   Mode mode = 1;
-  uint32 unprocessed_events = 2;
+  uint32 processed_events = 2;
 }
 
 message SqlConnectionStats {
@@ -111,9 +111,9 @@ message ThreadPool {
 }
 
 message MuxerStats {
-  bool queue_file_enabled = 1;
-  string queue_file = 2;
-  string unacknowledged_events = 3;
+  uint32 total_events = 1;
+  uint32 unacknowledged_events = 2;
+  string queue_file = 3;
 }
 
 message BrokerStats {

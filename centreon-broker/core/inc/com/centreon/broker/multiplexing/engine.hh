@@ -48,17 +48,16 @@ class muxer;
  *  The instance initialization/deinitialization are guarded by a mutex
  *  _load_m. It is only used for that purpose.
  *
- *  This class is the root of events dispatching. Events arrive from a stream
+ *  This class is the root of events dispatching. Events arrive from a stream,
  *  are transfered to a muxer and then to engine (at the root of the tree).
- *  This one then sends the event to all its children. Each muxer receives
- *  the event and sends it to its stream.
+ *  This one then sends events to all its children. Each muxer receives
+ *  these events and sends them to its stream.
  *
  *  The engine has three states:
- *  * switched off, the 'write' function points to a _nop() function. All event
- *    that could be received is lost by the engine. This state is possible only
- *    when the engine is started or during tests.
- *  * running, the 'write' function points to a _write() function that sends
- *    received events to all the muxers beside.
+ *  * not started. All event that could be received is lost by the engine.
+ *    This state is possible only when the engine is started or during tests.
+ *  * running, received events are dispatched to all the muxers beside. This
+ *    is done asynchronously.
  *  * stopped, the 'write' function points to a _write_to_cache_file() funtion.
  *    When broker is stopped, before it to be totally stopped, events are
  *    written to a cache file ...unprocessed... This file will be re-read at the
@@ -71,11 +70,12 @@ class engine {
   static engine* _instance;
 
   enum state { not_started, running, stopped };
-
   state _state;
+  asio::io_context::strand _strand;
+
   std::unique_ptr<persistent_cache> _cache_file;
 
-  // Mutex to lock _kiew and _hooks
+  // Mutex to lock _kiew and _state
   std::mutex _engine_m;
 
   // Data queue.

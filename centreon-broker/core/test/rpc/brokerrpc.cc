@@ -156,47 +156,41 @@ TEST_F(BrokerRpc, GetConflictManagerStats) {
 TEST_F(BrokerRpc, GetMuxerStats) {
   brokerrpc brpc("0.0.0.0", 40000, "test");
   MuxerStats* _stats;
-  std::vector<std::string> vectests = {
-      "name: mx1, queue_file_enabled: true, queue_file: qufl_, "
+  std::vector<std::string> vectests{
+      "name: mx1, queue_file: qufl_, "
       "unacknowledged_events: "
-      "unaev_\n",
-      "name: mx2, queue_file_enabled: true, queue_file: _qufl, "
+      "1789\n",
+      "name: mx2, queue_file: _qufl, "
       "unacknowledged_events: "
-      "_unaev\n",
-      "name: mx3, queue_file_enabled: false, queue_file: _qufl_, "
+      "1790\n",
+      "name: mx3, queue_file: _qufl_, "
       "unacknowledged_events: "
-      "_unaev_\n"};
+      "1791\n"};
 
   _stats = stats::center::instance().register_muxer("mx1");
-  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats,
-                                   true);
   stats::center::instance().update(_stats->mutable_queue_file(),
                                    std::string("qufl_"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(),
-                                   std::string("unaev_"));
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
+                                   _stats, 1789u);
 
   _stats = stats::center::instance().register_muxer("mx2");
-  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats,
-                                   true);
   stats::center::instance().update(_stats->mutable_queue_file(),
                                    std::string("_qufl"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(),
-                                   std::string("_unaev"));
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
+                                   _stats, 1790u);
 
   _stats = stats::center::instance().register_muxer("mx3");
-  stats::center::instance().update(&MuxerStats::set_queue_file_enabled, _stats,
-                                   false);
   stats::center::instance().update(_stats->mutable_queue_file(),
                                    std::string("_qufl_"));
-  stats::center::instance().update(_stats->mutable_unacknowledged_events(),
-                                   std::string("_unaev_"));
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
+                                   _stats, 1791u);
 
   std::list<std::string> output = execute("GetMuxerStats mx1 mx2 mx3");
 
   std::vector<std::string> results(output.size());
   std::copy(output.begin(), output.end(), results.begin());
 
-  ASSERT_EQ(output.size(), 3);
+  ASSERT_EQ(output.size(), 3u);
   ASSERT_EQ(results, vectests);
 
   brpc.shutdown();
