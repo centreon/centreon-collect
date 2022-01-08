@@ -528,12 +528,12 @@ void applier::scheduler::_calculate_host_inter_check_delay(
       engine_logger(dbg_events, most)
           << setprecision(2) << "Average host check interval:  "
           << scheduling_info.average_host_check_interval << " sec";
-      log_v2::events()->info("Average host check interval:  {} sec",
+      log_v2::events()->info("Average host check interval:  {:.2f} sec",
                              scheduling_info.average_host_check_interval);
       engine_logger(dbg_events, most)
           << setprecision(2) << "Host inter-check delay:       "
           << scheduling_info.host_inter_check_delay << " sec";
-      log_v2::events()->info("Host inter-check delay:       {} sec",
+      log_v2::events()->info("Host inter-check delay:       {:.2f} sec",
                              scheduling_info.host_inter_check_delay);
   }
 }
@@ -650,12 +650,12 @@ void applier::scheduler::_calculate_service_inter_check_delay(
       engine_logger(dbg_events, more)
           << setprecision(2) << "Average service check interval:  "
           << scheduling_info.average_service_check_interval << " sec";
-      log_v2::events()->debug("Average service check interval:  {} sec",
+      log_v2::events()->debug("Average service check interval:  {:.2f} sec",
                               scheduling_info.average_service_check_interval);
       engine_logger(dbg_events, more)
           << setprecision(2) << "Service inter-check delay:       "
           << scheduling_info.service_inter_check_delay << " sec";
-      log_v2::events()->debug("Service inter-check delay:       {} sec",
+      log_v2::events()->debug("Service inter-check delay:       {:.2f} sec",
                               scheduling_info.service_inter_check_delay);
   }
 }

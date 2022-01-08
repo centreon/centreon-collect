@@ -251,13 +251,13 @@ void init_timing_loop() {
           << com::centreon::logging::setprecision(2)
           << "Average service check interval:  "
           << scheduling_info.average_service_check_interval << " sec";
-      log_v2::events()->debug("Average service check interval:  {} sec",
+      log_v2::events()->debug("Average service check interval:  {:.2f} sec",
                               scheduling_info.average_service_check_interval);
       engine_logger(dbg_events, more)
           << com::centreon::logging::setprecision(2)
           << "Service inter-check delay:       "
           << scheduling_info.service_inter_check_delay << " sec";
-      log_v2::events()->debug("Service inter-check delay:       {} sec",
+      log_v2::events()->debug("Service inter-check delay:       {:.2f} sec",
                               scheduling_info.service_inter_check_delay);
   }
 
@@ -314,7 +314,7 @@ void init_timing_loop() {
   engine_logger(dbg_events, more) << com::centreon::logging::setprecision(1)
                                   << "Service inter-check delay: "
                                   << scheduling_info.service_inter_check_delay;
-  log_v2::events()->debug("Service inter-check delay: {}",
+  log_v2::events()->debug("Service inter-check delay: {:.1f}",
                           scheduling_info.service_inter_check_delay);
 
   if (test_scheduling == true)
@@ -545,13 +545,13 @@ void init_timing_loop() {
           << com::centreon::logging::setprecision(2)
           << "Average host check interval:  "
           << scheduling_info.average_host_check_interval << " sec";
-      log_v2::events()->debug("Average host check interval:  {} sec",
+      log_v2::events()->debug("Average host check interval:  {:.2f} sec",
                               scheduling_info.average_host_check_interval);
       engine_logger(dbg_events, most)
           << com::centreon::logging::setprecision(2)
           << "Host inter-check delay:       "
           << scheduling_info.host_inter_check_delay << " sec";
-      log_v2::events()->debug("Host inter-check delay:       {} sec",
+      log_v2::events()->debug("Host inter-check delay:       {:.2f} sec",
                               scheduling_info.host_inter_check_delay);
   }
 
@@ -770,6 +770,6 @@ void init_timing_loop() {
   }
 
   engine_logger(dbg_functions, basic) << "init_timing_loop()";
-  log_v2::functions()->trace "init_timing_loop()"();
+  log_v2::functions()->trace("init_timing_loop()");
   return;
 }

@@ -1249,25 +1249,28 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       << "\n"
       << "\tOutput:             " << queued_check_result->get_output();
 
+  log_v2::checks()->debug("Check Type: {}",
+                          queued_check_result->get_check_type() == check_active
+                              ? "Active"
+                              : "Passive");
+  log_v2::checks()->debug("Check Options: {}",
+                          queued_check_result->get_check_options());
   log_v2::checks()->debug(
-      "\tCheck Type:         {} \n"
-      "\tCheck Options:      {}\n"
-      "\tReschedule Check?:  {}\n"
-      "\tShould Reschedule Current Host Check?: {}\n"
-      "\tExited OK?:         {}\n"
-      "\tExec Time:          {}\n"
-      "\tLatency:            {}\n"
-      "\treturn Status:      {}\n"
-      "\tOutput:             {}",
-      (queued_check_result->get_check_type() == check_active ? "Active"
-                                                             : "Passive"),
-      queued_check_result->get_check_options(),
-      (queued_check_result->get_reschedule_check() ? "Yes" : "No"),
-      (queued_check_result->get_reschedule_check() ? "Yes" : "No"),
-      (queued_check_result->get_exited_ok() ? "Yes" : "No"), execution_time,
-      queued_check_result->get_latency(),
-      queued_check_result->get_return_code(),
-      queued_check_result->get_output());
+      "Reschedule Check?:  {}",
+      (queued_check_result->get_reschedule_check() ? "Yes" : "No"));
+  log_v2::checks()->debug(
+      "Should Reschedule Current Host Check?: {}",
+      (queued_check_result->get_reschedule_check() ? "Yes" : "No"));
+  log_v2::checks()->debug(
+      "Exited OK?:         {}",
+      (queued_check_result->get_exited_ok() ? "Yes" : "No"));
+  log_v2::checks()->debug("Exec Time:          {:.3f}\n", execution_time);
+  log_v2::checks()->debug("Latency:            {}",
+                          queued_check_result->get_latency());
+  log_v2::checks()->debug("return Status:      {}",
+                          queued_check_result->get_return_code());
+  log_v2::checks()->debug("Output:             {}",
+                          queued_check_result->get_output());
   /* decrement the number of host checks still out there... */
   if (queued_check_result->get_check_type() == check_active &&
       currently_running_host_checks > 0)
@@ -1420,11 +1423,11 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
       << "Perf Data:\n"
       << (get_perf_data().empty() ? "NULL" : get_perf_data());
   log_v2::checks()->debug(
-      "Parsing check output...\n Short Output:\n {} \n Long Output:\n {} \n "
-      "Perf Data:\n {}",
-      (get_plugin_output().empty() ? "NULL" : get_plugin_output()),
-      (get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output()),
-      (get_perf_data().empty() ? "NULL" : get_perf_data()));
+      "Parsing check output... Short Output: {}  Long Output: {} "
+      "Perf Data: {}",
+      get_plugin_output().empty() ? "NULL" : get_plugin_output(),
+      get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output(),
+      get_perf_data().empty() ? "NULL" : get_perf_data());
   /* get the unprocessed return code */
   /* NOTE: for passive checks, this is the final/processed state */
   svc_res = static_cast<enum service::service_state>(
@@ -1866,7 +1869,7 @@ bool host::schedule_check(time_t check_time, int options) {
       << my_ctime(&check_time);
   log_v2::checks()->trace(
       "Scheduling a {}, active check of host '{}' @ {}",
-      (options & CHECK_OPTION_FORCE_EXECUTION ? "forced" : "non-forced"),
+      options & CHECK_OPTION_FORCE_EXECUTION ? "forced" : "non-forced",
       get_name(), my_ctime(&check_time));
 
   /* don't schedule a check if active checks of this host are disabled */
@@ -2103,7 +2106,7 @@ void host::check_for_flapping(bool update,
       << com::centreon::logging::setprecision(2) << "LFT=" << low_threshold
       << ", HFT=" << high_threshold << ", CPC=" << curved_percent_change
       << ", PSC=" << curved_percent_change << "%";
-  log_v2::checks()->debug("LFT={}, HFT={}, CPC={}, PSC={}%", low_threshold,
+  log_v2::checks()->debug("LFT={:.2f}, HFT={}, CPC={}, PSC={}%", low_threshold,
                           high_threshold, curved_percent_change,
                           curved_percent_change);
 
@@ -2135,8 +2138,7 @@ void host::check_for_flapping(bool update,
       << "Host " << (is_flapping ? "is" : "is not") << " flapping ("
       << curved_percent_change << "% state change).";
   log_v2::checks()->debug("Host {} flapping ({}% state change).",
-                          (is_flapping ? "is" : "is not"),
-                          curved_percent_change);
+                          is_flapping ? "is" : "is not", curved_percent_change);
 
   /* did the host just start flapping? */
   if (is_flapping && !get_is_flapping())
@@ -2167,7 +2169,7 @@ void host::set_flap(double percent_change,
       << "% change > " << high_threshold << "% threshold)";
   log_v2::runtime()->warn(
       "HOST FLAPPING ALERT: {};STARTED; Host appears to have started flapping "
-      "({}% change > {}% threshold)",
+      "({:.1f}% change > {:.1f}% threshold)",
       get_name(), percent_change, high_threshold);
 
   /* add a non-persistent comment to the host */
@@ -2223,7 +2225,7 @@ void host::clear_flap(double percent_change,
       << "% change < " << low_threshold << "% threshold)";
   log_v2::events()->info(
       "HOST FLAPPING ALERT: {};STOPPED; Host appears to have stopped flapping "
-      "({}% change < {}% threshold)",
+      "({:.1f}% change < {:.1f}% threshold)",
       get_name(), percent_change, low_threshold);
 
   /* delete the comment we added earlier */

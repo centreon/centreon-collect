@@ -1047,11 +1047,11 @@ int service::handle_async_check_result(check_result* queued_check_result) {
       "HOST: {}, SERVICE: {}, CHECK TYPE: {}, OPTIONS: {}, RESCHEDULE: {}, "
       "EXITED OK: {}, EXEC TIME: {}, return CODE: {}, OUTPUT: {}",
       _hostname, _description,
-      (queued_check_result->get_check_type() == check_active ? "Active"
-                                                             : "Passive"),
+      queued_check_result->get_check_type() == check_active ? "Active"
+                                                            : "Passive",
       queued_check_result->get_check_options(),
-      (queued_check_result->get_reschedule_check() ? "Yes" : "No"),
-      (queued_check_result->get_exited_ok() ? "Yes" : "No"), execution_time,
+      queued_check_result->get_reschedule_check() ? "Yes" : "No",
+      queued_check_result->get_exited_ok() ? "Yes" : "No", execution_time,
       queued_check_result->get_return_code(),
       queued_check_result->get_output());
 
@@ -1235,11 +1235,10 @@ int service::handle_async_check_result(check_result* queued_check_result) {
         << "Perf Data:\n"
         << (get_perf_data().empty() ? "NULL" : get_perf_data());
     log_v2::checks()->debug(
-        "Parsing check output...\n"
-        "Short Output:\n {} \n Long Output:\n {} \n Perf Data:\n {}",
-        (get_plugin_output().empty() ? "NULL" : get_plugin_output()),
-        (get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output()),
-        (get_perf_data().empty() ? "NULL" : get_perf_data()));
+        "Parsing check output Short Output: {} Long Output: {} Perf Data: {}",
+        get_plugin_output().empty() ? "NULL" : get_plugin_output(),
+        get_long_plugin_output().empty() ? "NULL" : get_long_plugin_output(),
+        get_perf_data().empty() ? "NULL" : get_perf_data());
 
     /* grab the return code */
     _current_state = static_cast<service::service_state>(
@@ -2115,8 +2114,8 @@ void service::check_for_flapping(bool update,
       << com::centreon::logging::setprecision(2) << "LFT=" << low_threshold
       << ", HFT=" << high_threshold << ", CPC=" << curved_percent_change
       << ", PSC=" << curved_percent_change << "%";
-  log_v2::checks()->info("LFT={}, HFT={}, CPC={}, PSC={}%", low_threshold,
-                         high_threshold, curved_percent_change,
+  log_v2::checks()->info("LFT={:.2f}, HFT={:.2f}, CPC={:.2f}, PSC={:.2f}%",
+                         low_threshold, high_threshold, curved_percent_change,
                          curved_percent_change);
 
   /* don't do anything if we don't have flap detection enabled on a program-wide
@@ -2148,7 +2147,7 @@ void service::check_for_flapping(bool update,
       << com::centreon::logging::setprecision(2) << "Service "
       << (is_flapping ? "is" : "is not") << " flapping ("
       << curved_percent_change << "% state change).";
-  log_v2::checks()->debug("Service {} flapping ({}% state change).",
+  log_v2::checks()->debug("Service {} flapping ({:.2f}% state change).",
                           (is_flapping ? "is" : "is not"),
                           curved_percent_change);
 
@@ -2624,7 +2623,7 @@ bool service::schedule_check(time_t check_time, int options) {
       << _hostname << "' @ " << my_ctime(&check_time);
   log_v2::checks()->trace(
       "Scheduling a {}, active check of service '{}' on host '{}' @ {}",
-      (options & CHECK_OPTION_FORCE_EXECUTION ? "forced" : "non-forced"),
+      options & CHECK_OPTION_FORCE_EXECUTION ? "forced" : "non-forced",
       _description, _hostname, my_ctime(&check_time));
 
   // Don't schedule a check if active checks
@@ -2777,7 +2776,7 @@ void service::set_flap(double percent_change,
       << percent_change << "% change >= " << high_threshold << "% threshold)";
   log_v2::runtime()->warn(
       "SERVICE FLAPPING ALERT: {};{};STARTED; Service appears to have started "
-      "flapping ({}% change >= {}% threshold)",
+      "flapping ({:.1f}% change >= {:.1f}% threshold)",
       _hostname, _description, percent_change, high_threshold);
 
   /* add a non-persistent comment to the service */
@@ -2835,7 +2834,7 @@ void service::clear_flap(double percent_change,
       << percent_change << "% change < " << low_threshold << "% threshold)";
   log_v2::events()->info(
       "SERVICE FLAPPING ALERT: {};{};STOPPED; Service appears to have stopped "
-      "flapping ({}% change < {}% threshold)",
+      "flapping ({:.1f}% change < {:.1f}% threshold)",
       _hostname, _description, percent_change, low_threshold);
 
   /* delete the comment we added earlier */

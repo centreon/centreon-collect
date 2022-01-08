@@ -118,7 +118,7 @@ int my_system_r(nagios_macros* mac,
       << " sec, early timeout=" << *early_timeout << ", result=" << result
       << ", output=" << output;
   log_v2::commands()->debug(
-      "Execution time={} sec, early timeout={}, result={}, output={}",
+      "Execution time={:.3f} sec, early timeout={}, result={}, output={}",
       *exectime, *early_timeout, result, output);
 
   // send event broker.

@@ -41,9 +41,9 @@ void display_scheduling_info() {
       << "is listed below.  This information assumes that you are going\n"
       << "to start running Centreon Engine with your current config files.\n\n";
   log_v2::process()->info(
-      "\nProjected scheduling information for host and service checks\nis "
-      "listed below.  This information assumes that you are going\nto start "
-      "running Centreon Engine with your current config files.\n\n");
+      "Projected scheduling information for host and service checks is "
+      "listed below.  This information assumes that you are going to start "
+      "running Centreon Engine with your current config files.");
 
   // Host scheduling information.
   engine_logger(log_info_message, basic)
@@ -54,19 +54,18 @@ void display_scheduling_info() {
       << "Total scheduled hosts:              "
       << scheduling_info.total_scheduled_hosts << "\n";
   log_v2::process()->info(
-      "HOST SCHEDULING INFORMATION\n---------------------------\nTotal hosts:  "
-      "                      {}\nTotal scheduled hosts:              {}\n",
+      "HOST SCHEDULING INFORMATION Total hosts:  {} Total scheduled hosts: {}",
       scheduling_info.total_hosts, scheduling_info.total_scheduled_hosts);
   if (config->host_inter_check_delay_method() ==
       configuration::state::icd_none) {
     engine_logger(log_info_message, basic)
         << "Host inter-check delay method:      NONE\n";
-    log_v2::process()->info("Host inter-check delay method:      NONE\n");
+    log_v2::process()->info("Host inter-check delay method: NONE");
   } else if (config->host_inter_check_delay_method() ==
              configuration::state::icd_dumb) {
     engine_logger(log_info_message, basic)
         << "Host inter-check delay method:      DUMB\n";
-    log_v2::process()->info("Host inter-check delay method:      DUMB\n");
+    log_v2::process()->info("Host inter-check delay method: DUMB");
   } else if (config->host_inter_check_delay_method() ==
              configuration::state::icd_smart) {
     engine_logger(log_info_message, basic)
@@ -74,14 +73,14 @@ void display_scheduling_info() {
         << "Average host check interval:        "
         << scheduling_info.average_host_check_interval << " sec\n";
     log_v2::process()->info(
-        "Host inter-check delay method:      SMART\nAverage host check "
-        "interval:        {} sec\n",
+        "Host inter-check delay method: SMART Average host check "
+        "interval: {} sec",
         scheduling_info.average_host_check_interval);
   } else {
     engine_logger(log_info_message, basic)
         << "Host inter-check delay method:      USER-SUPPLIED VALUE\n";
     log_v2::process()->info(
-        "Host inter-check delay method:      USER-SUPPLIED VALUE\n");
+        "Host inter-check delay method: USER-SUPPLIED VALUE");
   }
   engine_logger(log_info_message, basic)
       << "Host inter-check delay:             "
@@ -98,17 +97,17 @@ void display_scheduling_info() {
               : ctime(&scheduling_info.last_host_check))
       << "\n";
   log_v2::process()->info(
-      "Host inter-check delay:             {} sec\nMax host check spread:      "
-      "        {} min\nFirst scheduled check:              {}Last scheduled "
-      "check:               {}\n",
+      "Host inter-check delay: {} sec Max host check spread: {} min First "
+      "scheduled check: {}Last scheduled "
+      "check: {}",
       scheduling_info.host_inter_check_delay,
       scheduling_info.max_host_check_spread,
-      ((scheduling_info.total_scheduled_hosts == 0)
-           ? "N/A\n"
-           : ctime(&scheduling_info.first_host_check)),
-      ((scheduling_info.total_scheduled_hosts == 0)
-           ? "N/A\n"
-           : ctime(&scheduling_info.last_host_check)));
+      (scheduling_info.total_scheduled_hosts == 0)
+          ? "N/A"
+          : ctime(&scheduling_info.first_host_check),
+      (scheduling_info.total_scheduled_hosts == 0)
+          ? "N/A"
+          : ctime(&scheduling_info.last_host_check));
 
   // Service scheduling information.
   engine_logger(log_info_message, basic)
@@ -119,20 +118,19 @@ void display_scheduling_info() {
       << "Total scheduled services:           "
       << scheduling_info.total_scheduled_services << "\n";
   log_v2::process()->info(
-      "SERVICE SCHEDULING INFORMATION\n-------------------------------\nTotal "
-      "services:                     {}\nTotal scheduled services:           "
-      "{}\n",
+      "SERVICE SCHEDULING INFORMATION Total "
+      "services:  {} Total scheduled services: {}",
       scheduling_info.total_services, scheduling_info.total_scheduled_services);
   if (config->service_inter_check_delay_method() ==
       configuration::state::icd_none) {
     engine_logger(log_info_message, basic)
         << "Service inter-check delay method:   NONE\n";
-    log_v2::process()->info("Service inter-check delay method:   NONE\n");
+    log_v2::process()->info("Service inter-check delay method: NONE");
   } else if (config->service_inter_check_delay_method() ==
              configuration::state::icd_dumb) {
     engine_logger(log_info_message, basic)
         << "Service inter-check delay method:   DUMB\n";
-    log_v2::process()->info("Service inter-check delay method:   DUMB\n");
+    log_v2::process()->info("Service inter-check delay method: DUMB");
   } else if (config->service_inter_check_delay_method() ==
              configuration::state::icd_smart) {
     engine_logger(log_info_message, basic)
@@ -140,14 +138,14 @@ void display_scheduling_info() {
         << "Average service check interval:     "
         << scheduling_info.average_service_check_interval << " sec\n";
     log_v2::process()->info(
-        "Service inter-check delay method:   SMART\nAverage service check "
-        "interval:     {} sec\n",
+        "Service inter-check delay method: SMART Average service check "
+        "interval: {} sec",
         scheduling_info.average_service_check_interval);
   } else {
     engine_logger(log_info_message, basic)
         << "Service inter-check delay method:   USER-SUPPLIED VALUE\n";
     log_v2::process()->info(
-        "Service inter-check delay method:   USER-SUPPLIED VALUE\n");
+        "Service inter-check delay method: USER-SUPPLIED VALUE");
   }
   engine_logger(log_info_message, basic)
       << "Inter-check delay:                  "
@@ -159,19 +157,18 @@ void display_scheduling_info() {
               : "SMART")
       << "\n";
   log_v2::process()->info(
-      "Inter-check delay:                  {} sec\nInterleave factor method:   "
-      "        {}\n",
-      scheduling_info.service_inter_check_delay),
-      ((config->service_interleave_factor_method() ==
-        configuration::state::ilf_user)
-           ? "USER-SUPPLIED VALUE"
-           : "SMART");
+      "Inter-check delay: {} sec Interleave factor method: {}",
+      scheduling_info.service_inter_check_delay,
+      (config->service_interleave_factor_method() ==
+       configuration::state::ilf_user)
+          ? "USER-SUPPLIED VALUE"
+          : "SMART");
   if (config->service_interleave_factor_method() ==
       configuration::state::ilf_smart) {
     engine_logger(log_info_message, basic)
         << "Average services per host:          "
         << scheduling_info.average_services_per_host << "\n";
-    log_v2::process()->info("Average services per host:          {}\n",
+    log_v2::process()->info("Average services per host: {}",
                             scheduling_info.average_services_per_host);
   }
   engine_logger(log_info_message, basic)
@@ -184,9 +181,8 @@ void display_scheduling_info() {
       << "Last scheduled check:               "
       << ctime(&scheduling_info.last_service_check) << "\n";
   log_v2::process()->info(
-      "Service interleave factor:          {}\nMax service check spread:       "
-      "    {} min\nFirst scheduled check:              {}Last scheduled check: "
-      "              {}\n",
+      "Service interleave factor: {} Max service check spread: {} min First "
+      "scheduled check: {}Last scheduled check: {}",
       scheduling_info.service_interleave_factor,
       scheduling_info.max_service_check_spread,
       ctime(&scheduling_info.first_service_check),
@@ -199,27 +195,25 @@ void display_scheduling_info() {
       << "Check result reaper interval:       "
       << config->check_reaper_interval() << " sec\n";
   log_v2::process()->info(
-      "CHECK PROCESSING INFORMATION\n----------------------------\nCheck "
-      "result reaper interval:       {} sec\n",
+      "CHECK PROCESSING INFORMATION Check result reaper interval: {} sec",
       config->check_reaper_interval());
   if (config->max_parallel_service_checks() == 0) {
     engine_logger(log_info_message, basic)
         << "Max concurrent service checks:      Unlimited\n";
-    log_v2::process()->info("Max concurrent service checks:      Unlimited\n");
+    log_v2::process()->info("Max concurrent service checks: Unlimited");
   } else {
     engine_logger(log_info_message, basic)
         << "Max concurrent service checks:      "
         << config->max_parallel_service_checks() << "\n";
-    log_v2::process()->info("Max concurrent service checks:      {}\n",
+    log_v2::process()->info("Max concurrent service checks: {}",
                             config->max_parallel_service_checks());
   }
   engine_logger(log_info_message, basic) << "\n";
-  log_v2::process()->info("\n");
 
   // Performance suggestions.
   engine_logger(log_info_message, basic) << "PERFORMANCE SUGGESTIONS\n"
                                          << "-----------------------\n";
-  log_v2::process()->info("PERFORMANCE SUGGESTIONS\n-----------------------\n");
+  log_v2::process()->info("PERFORMANCE SUGGESTIONS");
   int suggestions(0);
 
   // MAX REAPER INTERVAL RECOMMENDATION.
@@ -237,7 +231,7 @@ void display_scheduling_info() {
         << "* Value for 'check_result_reaper_frequency' should be <= "
         << static_cast<int>(max_reaper_interval) << " seconds\n";
     log_v2::process()->info(
-        "* Value for 'check_result_reaper_frequency' should be <= {} seconds\n",
+        "* Value for 'check_result_reaper_frequency' should be <= {} seconds",
         static_cast<int>(max_reaper_interval));
     ++suggestions;
   }
@@ -247,7 +241,7 @@ void display_scheduling_info() {
            "seconds\n";
     log_v2::process()->info(
         "* Value for 'check_result_reaper_frequency' should be >= 2 "
-        "seconds\n");
+        "seconds");
     ++suggestions;
   }
 
@@ -282,14 +276,14 @@ void display_scheduling_info() {
         << "* Value for 'max_concurrent_checks' option should be >= "
         << static_cast<int>(minimum_concurrent_checks) << "\n";
     log_v2::process()->info(
-        "* Value for 'max_concurrent_checks' option should be >= {}\n",
+        "* Value for 'max_concurrent_checks' option should be >= {}",
         static_cast<int>(minimum_concurrent_checks));
     ++suggestions;
   }
   if (suggestions == 0) {
     engine_logger(log_info_message, basic)
         << "I have no suggestions - things look okay.\n";
-    log_v2::process()->info("I have no suggestions - things look okay.\n");
+    log_v2::process()->info("I have no suggestions - things look okay.");
   }
 
   return;

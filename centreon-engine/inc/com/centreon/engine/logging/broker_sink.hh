@@ -20,7 +20,6 @@
 #define CCE_LOGGING_BROKER_SINK_HH
 #include <spdlog/details/fmt_helper.h>
 #include <spdlog/sinks/base_sink.h>
-#include <iostream>
 #include <mutex>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/logging/broker.hh"
@@ -45,14 +44,14 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
       spdlog::details::fmt_helper::append_string_view(msg.payload, formatted);
       nebstruct_log_data ds;
       ds.entry_time = time(NULL);
-      ds.data = (char*)fmt::to_string(formatted).c_str();
+      ds.data = (char*)fmt::to_string(formatted).data();
 
       // Make callbacks.
       neb_make_callbacks(NEBCALLBACK_LOG_DATA, &ds);
     }
   }
 
-  void flush_() override { std::cout << std::flush; }
+  void flush_() override {}
 };
 
 using broker_sink_mt = broker_sink<std::mutex>;

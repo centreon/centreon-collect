@@ -242,8 +242,8 @@ int host_downtime::subscribe() {
   engine_logger(dbg_downtime, basic) << " Type:        Host Downtime\n"
                                         " Host:        "
                                      << hst->get_name();
-  log_v2::downtimes()->trace(" Type:        Host Downtime\n Host:        {}",
-                             hst->get_name());
+  log_v2::downtimes()->trace(" Type: Host Downtime ");
+  log_v2::downtimes()->trace(" Host: {}", hst->get_name());
   engine_logger(dbg_downtime, basic)
       << " Fixed/Flex:  " << (is_fixed() ? "Fixed\n" : "Flexible\n")
       << " Start:       " << start_time_string
@@ -260,10 +260,10 @@ int host_downtime::subscribe() {
          " Trigger ID:  "
       << get_triggered_by();
   log_v2::downtimes()->trace(
-      " Fixed/Flex:  {} Start:       {}\n End:         {}\n Duration:    {}h "
-      "{}m {}s\n Downtime ID: {}\n Trigger ID:  ",
-      (is_fixed() ? "Fixed\n" : "Flexible\n"), start_time_string,
-      end_time_string, hours, minutes, get_downtime_id(), get_triggered_by());
+      " Fixed/Flex:  {} Start:       {} End:         {} Duration:    {}h "
+      "{}m {}s Downtime ID: {} Trigger ID:  ",
+      (is_fixed() ? "Fixed" : "Flexible"), start_time_string, end_time_string,
+      hours, minutes, get_downtime_id(), get_triggered_by());
 
   /* add a non-persistent comment to the host or service regarding the scheduled
    * outage */

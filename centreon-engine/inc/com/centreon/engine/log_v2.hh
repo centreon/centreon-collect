@@ -52,19 +52,19 @@ class log_v2 {
   void apply(const configuration::state& config);
   static bool contains_level(const std::string& level_name);
   static log_v2& instance();
-  static spdlog::logger* functions();
-  static spdlog::logger* config();
-  static spdlog::logger* events();
-  static spdlog::logger* checks();
-  static spdlog::logger* notifications();
-  static spdlog::logger* eventbroker();
-  static spdlog::logger* external_command();
-  static spdlog::logger* commands();
-  static spdlog::logger* downtimes();
-  static spdlog::logger* comments();
-  static spdlog::logger* macros();
-  static spdlog::logger* process();
-  static spdlog::logger* runtime();
+  static std::shared_ptr<spdlog::logger> functions();
+  static std::shared_ptr<spdlog::logger> config();
+  static std::shared_ptr<spdlog::logger> events();
+  static std::shared_ptr<spdlog::logger> checks();
+  static std::shared_ptr<spdlog::logger> notifications();
+  static std::shared_ptr<spdlog::logger> eventbroker();
+  static std::shared_ptr<spdlog::logger> external_command();
+  static std::shared_ptr<spdlog::logger> commands();
+  static std::shared_ptr<spdlog::logger> downtimes();
+  static std::shared_ptr<spdlog::logger> comments();
+  static std::shared_ptr<spdlog::logger> macros();
+  static std::shared_ptr<spdlog::logger> process();
+  static std::shared_ptr<spdlog::logger> runtime();
 };
 CCE_END()
 

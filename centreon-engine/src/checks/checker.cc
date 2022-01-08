@@ -139,10 +139,11 @@ void checker::reap() {
     // Process check results.
     while (!_to_reap.empty()) {
       // Get result host or service check.
+      ++reaped_checks;
       engine_logger(dbg_checks, basic)
-          << "Found a check result (#" << ++reaped_checks << ") to handle...";
+          << "Found a check result (#" << reaped_checks << ") to handle...";
       log_v2::checks()->trace("Found a check result (#{}) to handle...",
-                              ++reaped_checks);
+                              reaped_checks);
       check_result* result = _to_reap.front();
       _to_reap.pop_front();
 
@@ -236,7 +237,7 @@ void checker::run_sync(host* hst,
       << ", use_cached_result=" << use_cached_result
       << ", check_timestamp_horizon=" << check_timestamp_horizon;
   log_v2::functions()->trace(
-      "checker::run: hst={:x}, check_options={}"
+      "checker::run: hst={:p}, check_options={}"
       ", use_cached_result={}"
       ", check_timestamp_horizon={}",
       (void*)hst, check_options, use_cached_result, check_timestamp_horizon);

@@ -19,7 +19,7 @@
 #include "com/centreon/engine/log_v2.hh"
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
@@ -33,7 +33,7 @@ log_v2& log_v2::instance() {
 }
 
 log_v2::log_v2() {
-  auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+  auto stdout_sink = std::make_shared<sinks::stdout_sink_mt>();
   auto null_sink = std::make_shared<sinks::null_sink_mt>();
 
   _functions_log = std::make_shared<spdlog::logger>("functions", stdout_sink);
@@ -116,7 +116,8 @@ void log_v2::apply(const configuration::state& config) {
         sinks.push_back(
             std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
       else
-        sinks.push_back(std::make_shared<sinks::stdout_color_sink_mt>());
+        log_v2::config()->error("log_file name is empty");
+      sinks.push_back(std::make_shared<sinks::stdout_sink_mt>());
     } else if (config.log_v2_logger() == "syslog")
       sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
                                                               0, 0, true));
@@ -250,56 +251,56 @@ void log_v2::apply(const configuration::state& config) {
     _runtime_log->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
 }
 
-spdlog::logger* log_v2::functions() {
-  return instance()._functions_log.get();
+std::shared_ptr<spdlog::logger> log_v2::functions() {
+  return instance()._functions_log;
 }
 
-spdlog::logger* log_v2::config() {
-  return instance()._config_log.get();
+std::shared_ptr<spdlog::logger> log_v2::config() {
+  return instance()._config_log;
 }
 
-spdlog::logger* log_v2::events() {
-  return instance()._events_log.get();
+std::shared_ptr<spdlog::logger> log_v2::events() {
+  return instance()._events_log;
 }
 
-spdlog::logger* log_v2::checks() {
-  return instance()._checks_log.get();
+std::shared_ptr<spdlog::logger> log_v2::checks() {
+  return instance()._checks_log;
 }
 
-spdlog::logger* log_v2::notifications() {
-  return instance()._notifications_log.get();
+std::shared_ptr<spdlog::logger> log_v2::notifications() {
+  return instance()._notifications_log;
 }
 
-spdlog::logger* log_v2::eventbroker() {
-  return instance()._eventbroker_log.get();
+std::shared_ptr<spdlog::logger> log_v2::eventbroker() {
+  return instance()._eventbroker_log;
 }
 
-spdlog::logger* log_v2::external_command() {
-  return instance()._external_command_log.get();
+std::shared_ptr<spdlog::logger> log_v2::external_command() {
+  return instance()._external_command_log;
 }
 
-spdlog::logger* log_v2::commands() {
-  return instance()._commands_log.get();
+std::shared_ptr<spdlog::logger> log_v2::commands() {
+  return instance()._commands_log;
 }
 
-spdlog::logger* log_v2::downtimes() {
-  return instance()._downtimes_log.get();
+std::shared_ptr<spdlog::logger> log_v2::downtimes() {
+  return instance()._downtimes_log;
 }
 
-spdlog::logger* log_v2::comments() {
-  return instance()._comments_log.get();
+std::shared_ptr<spdlog::logger> log_v2::comments() {
+  return instance()._comments_log;
 }
 
-spdlog::logger* log_v2::macros() {
-  return instance()._macros_log.get();
+std::shared_ptr<spdlog::logger> log_v2::macros() {
+  return instance()._macros_log;
 }
 
-spdlog::logger* log_v2::process() {
-  return instance()._process_log.get();
+std::shared_ptr<spdlog::logger> log_v2::process() {
+  return instance()._process_log;
 }
 
-spdlog::logger* log_v2::runtime() {
-  return instance()._runtime_log.get();
+std::shared_ptr<spdlog::logger> log_v2::runtime() {
+  return instance()._runtime_log;
 }
 
 /**

@@ -132,7 +132,7 @@ unsigned int loader::load_directory(std::string const& dir) {
       engine_logger(log_runtime_error, basic)
           << "Error: Could not load module '" << f.file_name() << "' -> "
           << e.what();
-      log_v2::runtime()->error("Error: Could not load module '{}' -> ",
+      log_v2::runtime()->error("Error: Could not load module '{}' -> {}",
                                f.file_name(), e.what());
     }
   }

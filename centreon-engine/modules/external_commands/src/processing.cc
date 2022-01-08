@@ -659,9 +659,9 @@ bool processing::execute(const std::string& cmdstr) const {
       << "External command id: " << command_id
       << "\nCommand entry time: " << entry_time
       << "\nCommand arguments: " << args;
-  log_v2::external_command()->debug(
-      "External command id: {} \nCommand entry time: {} \nCommand arguments: ",
-      command_id, entry_time, args);
+  log_v2::external_command()->debug("External command id: {}", command_id);
+  log_v2::external_command()->debug("Command entry time: {}", entry_time);
+  log_v2::external_command()->debug("Command arguments: {}", args);
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, NEBFLAG_NONE,
@@ -713,7 +713,6 @@ void processing::_wrapper_read_state_information() {
     log_v2::runtime()->error("Error: could not load retention file: {}",
                              e.what());
   }
-  return;
 }
 
 void processing::_wrapper_save_state_information() {

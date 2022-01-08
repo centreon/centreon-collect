@@ -137,7 +137,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
   log_v2::external_command()->debug(
       "Processing commands from file '{}'.  File will {} deleted after "
       "processing.",
-      file, (delete_file ? "be" : "NOT be"));
+      file, delete_file ? "be" : "NOT be");
 
   /* open the config file for reading */
   mmapfile* thefile(nullptr);
