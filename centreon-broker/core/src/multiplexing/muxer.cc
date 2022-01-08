@@ -54,7 +54,7 @@ muxer::muxer(std::string name,
       _write_filters_str{misc::dump_filters(_write_filters)},
       _persistent(persistent),
       _events_size{0u},
-      _stats{stats::center::instance().register_muxer(name)},
+      _stats{stats::center::instance().register_muxer(_name)},
       _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
   std::lock_guard<std::mutex> lck(_mutex);
