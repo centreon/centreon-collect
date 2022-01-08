@@ -44,7 +44,7 @@ RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
 RUN source /opt/rh/devtoolset-9/enable && \
-    conan install . -s compiler.libcxx=libstdc++11 --build='*'
+    conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
 
 WORKDIR /src
 ENV PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH:/opt/rh/rh-php73/root/usr/bin
