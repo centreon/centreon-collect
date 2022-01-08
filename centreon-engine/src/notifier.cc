@@ -298,8 +298,10 @@ bool notifier::_is_notification_viable_normal(reason_type type
 
   /* On volatile services notifications are always sent */
   if (get_is_volatile()) {
-    logger(dbg_notifications, more)
+    engine_logger(dbg_notifications, more)
         << "This is a volatile service notification, so it is sent.";
+    log_v2::notifications()->debug(
+        "This is a volatile service notification, so it is sent.");
     return true;
   }
 
