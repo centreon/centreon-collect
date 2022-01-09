@@ -33,12 +33,6 @@ extern "C" {
 nebmodule* neb_module_list = NULL;
 }
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Get instance of compatibility singleton.
  */
@@ -58,7 +52,6 @@ void compatibility::author_module(broker::handle* mod) {
       if (tmp->module_handle == mod)
         string::setstr(tmp->info[NEBMODULE_MODINFO_AUTHOR], mod->get_author());
   }
-  return;
 }
 
 /**
@@ -73,7 +66,6 @@ void compatibility::copyright_module(broker::handle* mod) {
         string::setstr(tmp->info[NEBMODULE_MODINFO_COPYRIGHT],
                        mod->get_copyright());
   }
-  return;
 }
 
 /**
@@ -112,7 +104,6 @@ void compatibility::create_module(broker::handle* mod) {
     new_module->next = neb_module_list;
     neb_module_list = new_module.release();
   }
-  return;
 }
 
 /**
@@ -127,7 +118,6 @@ void compatibility::description_module(broker::handle* mod) {
         string::setstr(tmp->info[NEBMODULE_MODINFO_DESC],
                        mod->get_description());
   }
-  return;
 }
 
 /**
@@ -158,7 +148,6 @@ void compatibility::destroy_module(broker::handle* mod) {
       }
     }
   }
-  return;
 }
 
 /**
@@ -173,7 +162,6 @@ void compatibility::license_module(broker::handle* mod) {
         string::setstr(tmp->info[NEBMODULE_MODINFO_LICENSE],
                        mod->get_license());
   }
-  return;
 }
 
 /**
@@ -187,7 +175,6 @@ void compatibility::loaded_module(broker::handle* mod) {
       if (tmp->module_handle == mod)
         tmp->is_currently_loaded = mod->is_loaded();
   }
-  return;
 }
 
 /**
@@ -201,7 +188,6 @@ void compatibility::name_module(broker::handle* mod) {
       if (tmp->module_handle == mod)
         string::setstr(tmp->info[NEBMODULE_MODINFO_TITLE], mod->get_name());
   }
-  return;
 }
 
 /**
@@ -215,7 +201,6 @@ void compatibility::unloaded_module(broker::handle* mod) {
       if (tmp->module_handle == mod)
         tmp->is_currently_loaded = mod->is_loaded();
   }
-  return;
 }
 
 /**
@@ -230,14 +215,7 @@ void compatibility::version_module(broker::handle* mod) {
         string::setstr(tmp->info[NEBMODULE_MODINFO_VERSION],
                        mod->get_version());
   }
-  return;
 }
-
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
 
 /**
  *  Default constructor.
