@@ -256,13 +256,6 @@ bool notifier::_is_notification_viable_normal(reason_type type
     return false;
   }
 
-  /* On volatile services notifications are always sent */
-  if (get_is_volatile()) {
-    logger(dbg_notifications, more)
-        << "This is a volatile service notification, so it is sent.";
-    return true;
-  }
-
   timeperiod* tp{get_notification_timeperiod()};
   timezone_locker lock{get_timezone()};
   time_t now;
@@ -280,6 +273,13 @@ bool notifier::_is_notification_viable_normal(reason_type type
     logger(dbg_notifications, more)
         << "This notifier is flapping, so we won't send notifications.";
     return false;
+  }
+
+  /* On volatile services notifications are always sent */
+  if (get_is_volatile()) {
+    logger(dbg_notifications, more)
+        << "This is a volatile service notification, so it is sent.";
+    return true;
   }
 
   if (get_state_type() != hard) {
@@ -1093,8 +1093,8 @@ std::unordered_map<std::string, contact*>& notifier::get_contacts() noexcept {
   return _contacts;
 }
 
-std::unordered_map<std::string, contact*> const& notifier::get_contacts()
-    const noexcept {
+std::unordered_map<std::string, contact*> const& notifier::get_contacts() const
+    noexcept {
   return _contacts;
 }
 
