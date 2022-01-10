@@ -26,23 +26,28 @@
 using namespace com::centreon::broker;
 
 class MultiplexingMuxerRead : public ::testing::Test {
+ protected:
+  std::unique_ptr<multiplexing::muxer> _m;
+
  public:
   void SetUp() override {
     try {
       config::applier::init(0, "test_broker");
+      stats::center::load();
     } catch (std::exception const& e) {
       (void)e;
     }
   }
 
-  void TearDown() override { config::applier::deinit(); }
+  void TearDown() override {
+    _m.reset();
+    config::applier::deinit();
+    stats::center::unload();
+  }
 
   void setup(std::string const& name) {
-    _m = std::make_unique<multiplexing::muxer>(name, false);
-    multiplexing::muxer::filters f;
-    f.insert(io::raw::static_type());
-    _m->set_read_filters(f);
-    _m->set_write_filters(f);
+    multiplexing::muxer::filters f{io::raw::static_type()};
+    _m = std::make_unique<multiplexing::muxer>(name, f, f, false);
   }
 
   void publish_events(int count = 10000) {
@@ -67,9 +72,6 @@ class MultiplexingMuxerRead : public ::testing::Test {
       ASSERT_EQ(reread, i);
     }
   }
-
- protected:
-  std::unique_ptr<multiplexing::muxer> _m;
 };
 
 // Given a muxer object with all filters

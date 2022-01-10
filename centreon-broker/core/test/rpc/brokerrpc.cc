@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019 - 2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/version.hh"
 
@@ -39,9 +41,13 @@ class BrokerRpc : public ::testing::Test {
   void SetUp() override {
     pool::pool::load(0);
     stats::center::load();
+    io::protocols::load();
+    io::events::load();
   }
 
   void TearDown() override {
+    io::events::unload();
+    io::protocols::unload();
     stats::center::unload();
     pool::pool::unload();
   }
@@ -144,5 +150,48 @@ TEST_F(BrokerRpc, GetConflictManagerStats) {
   auto output = execute("GetConflictManagerStats");
 
   std::cout << output.front();
+  brpc.shutdown();
+}
+
+TEST_F(BrokerRpc, GetMuxerStats) {
+  brokerrpc brpc("0.0.0.0", 40000, "test");
+  MuxerStats* _stats;
+  std::vector<std::string> vectests{
+      "name: mx1, queue_file: qufl_, "
+      "unacknowledged_events: "
+      "1789\n",
+      "name: mx2, queue_file: _qufl, "
+      "unacknowledged_events: "
+      "1790\n",
+      "name: mx3, queue_file: _qufl_, "
+      "unacknowledged_events: "
+      "1791\n"};
+
+  _stats = stats::center::instance().register_muxer("mx1");
+  stats::center::instance().update(_stats->mutable_queue_file(),
+                                   std::string("qufl_"));
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
+                                   _stats, 1789u);
+
+  _stats = stats::center::instance().register_muxer("mx2");
+  stats::center::instance().update(_stats->mutable_queue_file(),
+                                   std::string("_qufl"));
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
+                                   _stats, 1790u);
+
+  _stats = stats::center::instance().register_muxer("mx3");
+  stats::center::instance().update(_stats->mutable_queue_file(),
+                                   std::string("_qufl_"));
+  stats::center::instance().update(&MuxerStats::set_unacknowledged_events,
+                                   _stats, 1791u);
+
+  std::list<std::string> output = execute("GetMuxerStats mx1 mx2 mx3");
+
+  std::vector<std::string> results(output.size());
+  std::copy(output.begin(), output.end(), results.begin());
+
+  ASSERT_EQ(output.size(), 3u);
+  ASSERT_EQ(results, vectests);
+
   brpc.shutdown();
 }

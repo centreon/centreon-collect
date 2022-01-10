@@ -307,13 +307,10 @@ configure_file(
 set(LIBROKER_SOURCES
   # Sources.
   ${SRC_DIR}/bbdo/acceptor.cc
-  ${SRC_DIR}/bbdo/ack.cc
   ${SRC_DIR}/bbdo/connector.cc
   ${SRC_DIR}/bbdo/factory.cc
   ${SRC_DIR}/bbdo/internal.cc
-  ${SRC_DIR}/bbdo/stop.cc
   ${SRC_DIR}/bbdo/stream.cc
-  ${SRC_DIR}/bbdo/version_response.cc
   ${SRC_DIR}/broker_impl.cc
   ${SRC_DIR}/brokerrpc.cc
   ${SRC_DIR}/compression/factory.cc
@@ -354,6 +351,7 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/misc/processing_speed_computer.cc
   ${SRC_DIR}/misc/string.cc
   ${SRC_DIR}/misc/stringifier.cc
+  ${SRC_DIR}/misc/time.cc
   ${SRC_DIR}/misc/tokenizer.cc
   ${SRC_DIR}/misc/uuid.cc
   ${SRC_DIR}/misc/variant.cc
@@ -385,13 +383,10 @@ set(LIBROKER_SOURCES
   ${SRC_DIR}/time/timezone_manager.cc
   # Headers.
   ${INC_DIR}/bbdo/acceptor.hh
-  ${INC_DIR}/bbdo/ack.hh
   ${INC_DIR}/bbdo/connector.hh
   ${INC_DIR}/bbdo/factory.hh
   ${INC_DIR}/bbdo/internal.hh
-  ${INC_DIR}/bbdo/stop.hh
   ${INC_DIR}/bbdo/stream.hh
-  ${INC_DIR}/bbdo/version_response.hh
   ${INC_DIR}/broker_impl.hh
   ${INC_DIR}/brokerrpc.hh
   ${INC_DIR}/compression/factory.hh
@@ -440,13 +435,13 @@ set(LIBROKER_SOURCES
   ${INC_DIR}/misc/shared_mutex.hh
   ${INC_DIR}/misc/string.hh
   ${INC_DIR}/misc/stringifier.hh
+  ${INC_DIR}/misc/time.hh
   ${INC_DIR}/misc/tokenizer.hh
   ${INC_DIR}/misc/variant.hh
   ${INC_DIR}/modules/handle.hh
   ${INC_DIR}/multiplexing/engine.hh
   ${INC_DIR}/multiplexing/muxer.hh
   ${INC_DIR}/multiplexing/publisher.hh
-  ${INC_DIR}/multiplexing/subscriber.hh
   ${INC_DIR}/mysql.hh
   ${INC_DIR}/pool.hh
   ${INC_DIR}/database/mysql_bind.hh
@@ -482,7 +477,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 add_dependencies(rokerbase berpc)
-target_link_libraries(rokerbase ${ZLIB_LIBRARIES} ${OpenSSL_LIBS} ${mariadb-connector-c_LIBS} pthread dl berpc)
+target_link_libraries(rokerbase ${ZLIB_LIBRARIES} ${OpenSSL_LIBS} ${mariadb-connector-c_LIBS} pthread dl berpc bbdo_bbdo)
 
 add_library(roker STATIC
   ${SRC_DIR}/config/applier/init.cc)
@@ -490,11 +485,10 @@ target_link_libraries(roker rokerbase dl ${c-ares_LIBS} ${OpenSSL_LIBS} ${gRPC_L
 
 
 # Standalone binary.
-set(DAEMON cbd)
-add_executable(${DAEMON} ${SRC_DIR}/main.cc)
+add_executable(cbd ${SRC_DIR}/main.cc)
 
 #Flags needed to include all symbols in binary.
-target_link_libraries("${DAEMON}"
+target_link_libraries(cbd
 	"-Wl,--whole-archive" rokerbase roker "-Wl,--no-whole-archive" ${nlohmann_json_LIBS} ${fmt_LIBS} ${spdlog_LIBS} ${gRPC_LIBS} ${absl_LIBS} )
 
 # Centreon Broker Watchdog
@@ -510,7 +504,6 @@ unset(MODULE_LIST)
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
 add_broker_module(NEB ON)
-add_broker_module(NOTIFICATION OFF)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)
 add_broker_module(SQL ON)
@@ -593,7 +586,7 @@ install(CODE "
 ")
 
 # Install rule.
-install(TARGETS "${DAEMON}"
+install(TARGETS cbd
   RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
   )
 

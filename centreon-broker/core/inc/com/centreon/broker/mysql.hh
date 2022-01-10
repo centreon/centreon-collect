@@ -81,6 +81,7 @@ class mysql {
   int choose_connection_by_name(std::string const& name);
   int choose_connection_by_instance(int instance_id) const;
   int choose_best_connection(int32_t type);
+  const database_config& get_config() const;
 
  private:
   static void _initialize_mysql();
@@ -88,7 +89,7 @@ class mysql {
 
   static std::atomic_int _count_ref;
 
-  database_config _db_cfg;
+  const database_config _db_cfg;
   int _pending_queries;
 
   std::vector<std::shared_ptr<mysql_connection>> _connection;

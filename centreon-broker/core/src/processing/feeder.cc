@@ -41,19 +41,16 @@ using namespace com::centreon::broker::processing;
  */
 feeder::feeder(const std::string& name,
                std::unique_ptr<io::stream>& client,
-               const std::unordered_set<uint32_t>& read_filters,
-               const std::unordered_set<uint32_t>& write_filters)
+               multiplexing::muxer::filters read_filters,
+               multiplexing::muxer::filters write_filters)
     : stat_visitable(name),
       _state{feeder::stopped},
       _should_exit{false},
       _client(std::move(client)),
-      _subscriber(name, false) {
+      _muxer(name, std::move(read_filters), std::move(write_filters), false) {
   std::unique_lock<std::mutex> lck(_state_m);
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
-
-  _subscriber.get_muxer().set_read_filters(read_filters);
-  _subscriber.get_muxer().set_write_filters(write_filters);
 
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
@@ -96,8 +93,8 @@ bool feeder::is_finished() const noexcept {
  *
  *  @return  The read filters used by the feeder.
  */
-std::string const& feeder::_get_read_filters() const {
-  return _subscriber.get_muxer().get_read_filters_str();
+const std::string& feeder::_get_read_filters() const {
+  return _muxer.read_filters_as_str();
 }
 
 /**
@@ -106,7 +103,7 @@ std::string const& feeder::_get_read_filters() const {
  *  @return  The write filters used by the feeder.
  */
 std::string const& feeder::_get_write_filters() const {
-  return _subscriber.get_muxer().get_write_filters_str();
+  return _muxer.write_filters_as_str();
 }
 
 /**
@@ -120,7 +117,7 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
       _client->statistics(tree);
     _client_m.unlock();
   }
-  _subscriber.get_muxer().statistics(tree);
+  _muxer.statistics(tree);
 }
 
 void feeder::_callback() noexcept {
@@ -144,7 +141,7 @@ void feeder::_callback() noexcept {
       // Filling stats
       if (time(nullptr) >= fill_stats_time) {
         fill_stats_time += 5;
-        set_queued_events(_subscriber.get_muxer().get_event_queue_size());
+        set_queued_events(_muxer.get_event_queue_size());
       }
 
       if (stream_can_read) {
@@ -159,7 +156,7 @@ void feeder::_callback() noexcept {
               "feeder '{}': sending 1 event from stream to muxer", _name);
           {
             misc::read_lock lock(_client_m);
-            _subscriber.get_muxer().write(d);
+            _muxer.write(d);
           }
           tick();
           continue;  // Stream read bias.
@@ -171,7 +168,7 @@ void feeder::_callback() noexcept {
       bool timed_out_muxer(true);
       if (muxer_can_read)
         try {
-          timed_out_muxer = !_subscriber.get_muxer().read(d, 0);
+          timed_out_muxer = !_muxer.read(d, 0);
         } catch (exceptions::shutdown const& e) {
           muxer_can_read = false;
         }
@@ -182,7 +179,7 @@ void feeder::_callback() noexcept {
           misc::read_lock lock(_client_m);
           _client->write(d);
         }
-        _subscriber.get_muxer().ack_events(1);
+        _muxer.ack_events(1);
         tick();
       }
 
@@ -229,13 +226,13 @@ void feeder::_callback() noexcept {
     _client.reset();
     set_state("disconnected");
     log_v2::core()->info("feeder: queue files of client '{}' removed", _name);
-    _subscriber.get_muxer().remove_queue_files();
+    _muxer.remove_queue_files();
   }
   log_v2::core()->info("feeder: thread of client '{}' will exit", _name);
 }
 
 uint32_t feeder::_get_queued_events() const {
-  return _subscriber.get_muxer().get_event_queue_size();
+  return _muxer.get_event_queue_size();
 }
 
 /**

@@ -41,7 +41,8 @@ class mysql_bind {
   void set_value_as_i32(int range, int value);
   uint32_t value_as_u32(int range) const;
   void set_value_as_u32(int range, uint32_t value);
-  unsigned long long value_as_u64(int range) const;
+  int64_t value_as_i64(int range) const;
+  uint64_t value_as_u64(int range) const;
   void set_value_as_u64(int range, unsigned long long value);
   bool value_as_bool(int range) const;
   void set_value_as_bool(int range, bool value);

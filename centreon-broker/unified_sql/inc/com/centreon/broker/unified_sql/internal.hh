@@ -20,15 +20,34 @@
 #define CCB_UNIFIED_SQL_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/rebuild.pb.h"
+#include "bbdo/rebuild_message.pb.h"
+#include "bbdo/remove_graph_message.pb.h"
+#include "centreon-broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
 CCB_BEGIN()
 
-namespace unified_sql {
-using pb_rebuild = io::protobuf<Rebuild, storage_pb_rebuild>;
-}
+namespace bbdo {
+/**
+ * Here is a declaration of pb_rebuild_metrics which is a bbdo event we use to
+ * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
+using pb_rebuild_rrd_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
+using pb_remove_graphs =
+    io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
+}  // namespace bbdo
 
+namespace storage {
+/**
+ * Here is the declaration of the message sent by unified_sql to rrd to rebuild
+ * metrics. */
+using pb_rebuild_message =
+    io::protobuf<RebuildMessage,
+                 make_type(io::storage, storage::de_rebuild_message)>;
+using pb_remove_graph_message =
+    io::protobuf<RemoveGraphMessage,
+                 make_type(io::storage, storage::de_remove_graph_message)>;
+}  // namespace storage
 CCB_END()
 
 #endif  // !CCB_UNIFIED_SQL_INTERNAL_HH

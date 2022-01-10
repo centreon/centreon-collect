@@ -46,7 +46,8 @@ class mysql_result {
   int value_as_i32(int idx);
   std::string value_as_str(int idx);
   uint32_t value_as_u32(int idx);
-  unsigned long long value_as_u64(int idx);
+  int64_t value_as_i64(int idx);
+  uint64_t value_as_u64(int idx);
   bool value_is_null(int idx);
   bool is_empty() const;
   int get_rows_count() const;

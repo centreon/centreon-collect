@@ -289,7 +289,7 @@ class cached : public backend {
     }
   }
 
-  void update(const std::list<std::string>& pts) {
+  void update(const std::deque<std::string>& pts) {
     log_v2::rrd()->debug("RRD: updating file '{}' with {} values", _filename,
                          pts.size());
 

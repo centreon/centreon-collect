@@ -25,7 +25,8 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
-get_protobuf_files(rebuild)
+get_protobuf_files(rebuild_message)
+get_protobuf_files(remove_graph_message)
 
 # Storage module.
 set(UNIFIED_SQL "20-unified_sql")
@@ -40,7 +41,8 @@ add_library("${UNIFIED_SQL}" SHARED
   "${SRC_DIR}/stream.cc"
   "${SRC_DIR}/stream_sql.cc"
   "${SRC_DIR}/stream_storage.cc"
-  ${proto_rebuild}
+  ${proto_rebuild_message}
+  ${proto_remove_graph_message}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
@@ -53,6 +55,7 @@ add_library("${UNIFIED_SQL}" SHARED
 set_target_properties("${UNIFIED_SQL}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
+add_dependencies("${UNIFIED_SQL}" rebuild_message remove_graph_message)
 target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage)
 
 # Testing.
@@ -68,7 +71,7 @@ if (WITH_TESTING)
     ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
     ${TEST_DIR}/rebuild.cc
-    ${TEST_DIR}/rebuild2.cc
+    ${TEST_DIR}/rebuild_message.cc
     ${TEST_DIR}/remove_graph.cc
     ${TEST_DIR}/status.cc
     ${TEST_DIR}/status-entry.cc

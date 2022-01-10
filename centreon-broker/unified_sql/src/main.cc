@@ -35,7 +35,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 // Load count.
-static uint32_t instances(0);
+static uint32_t instances{0u};
 
 extern "C" {
 /**
@@ -90,9 +90,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
                        &storage::rebuild::operations,
                        storage::rebuild::entries);
-      e.register_event(make_type(io::storage, storage::de_remove_graph),
-                       "remove_graph", &storage::remove_graph::operations,
-                       storage::remove_graph::entries);
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
       e.register_event(make_type(io::storage, storage::de_index_mapping),
@@ -101,10 +98,29 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
-      log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
-                           io::storage, storage::de_pb_rebuild);
-      e.register_event(storage_pb_rebuild, "pb_rebuild",
-                       &unified_sql::pb_rebuild::operations);
+
+      /* Let's register the rebuild_metrics bbdo event. This is needed to send
+       * the rebuild message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
+                       "rebuild_metrics",
+                       &bbdo::pb_rebuild_rrd_graphs::operations);
+
+      /* Let's register the message to start rebuilds, send rebuilds and
+       * terminate rebuilds. This is pb_rebuild_message. */
+      e.register_event(make_type(io::storage, storage::de_rebuild_message),
+                       "rebuild_message",
+                       &storage::pb_rebuild_message::operations);
+
+      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
+       * the remove graphs message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs),
+                       "remove_graphs", &bbdo::pb_remove_graphs::operations);
+
+      /* Let's register the message to ask rrd for remove metrics. This is
+       * pb_remove_graph_message. */
+      e.register_event(make_type(io::storage, storage::de_remove_graph_message),
+                       "remove_graphs_message",
+                       &storage::pb_remove_graph_message::operations);
     }
 
     // Register unified_sql layer.

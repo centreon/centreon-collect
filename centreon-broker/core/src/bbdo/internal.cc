@@ -18,10 +18,10 @@
 
 #include "com/centreon/broker/bbdo/internal.hh"
 
-#include "com/centreon/broker/bbdo/ack.hh"
+#include "bbdo/bbdo/ack.hh"
 #include "com/centreon/broker/bbdo/factory.hh"
-#include "com/centreon/broker/bbdo/stop.hh"
-#include "com/centreon/broker/bbdo/version_response.hh"
+#include "bbdo/bbdo/stop.hh"
+#include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"

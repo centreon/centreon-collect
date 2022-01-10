@@ -43,10 +43,13 @@ def get_date(d: str):
 
 def find_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
+    c = ""
     while time.time() < limit:
-        if find_in_log(log, date, content):
+        ok, c = find_in_log(log, date, content)
+        if ok:
             return True
         time.sleep(5)
+    logger.console("Unable to find '{}' from {} during {}s".format(c, date, timeout))
     return False
 
 
@@ -79,13 +82,12 @@ def find_in_log(log: str, date, content):
                     found = True
                     break
             if not found:
-                logger.console("Unable to find from {} (from line {}): {}".format(date, idx, c))
-                return False
+                return False, c
 
-        return True
+        return True, ""
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False
+        return False, content[0]
 
 
 def get_hostname():

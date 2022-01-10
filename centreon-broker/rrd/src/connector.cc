@@ -28,12 +28,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Default constructor.
  */

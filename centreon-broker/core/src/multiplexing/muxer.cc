@@ -41,15 +41,26 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
  *  @param[in] persistent  Whether or not this muxer should backup
  *                         unprocessed events in a persistent storage.
  */
-muxer::muxer(std::string const& name, bool persistent)
+muxer::muxer(std::string name,
+             muxer::filters r_filters,
+             muxer::filters w_filters,
+             bool persistent)
     : io::stream("muxer"),
-      _events_size{0},
-      _name(name),
-      _persistent(persistent) {
+      _name(std::move(name)),
+      _queue_file_name{queue_file(_name)},
+      _read_filters{std::move(r_filters)},
+      _write_filters{std::move(w_filters)},
+      _read_filters_str{misc::dump_filters(_read_filters)},
+      _write_filters_str{misc::dump_filters(_write_filters)},
+      _persistent(persistent),
+      _events_size{0u},
+      _stats{stats::center::instance().register_muxer(_name)},
+      _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
+  std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
-      auto mf{std::make_unique<persistent_file>(_memory_file())};
+      auto mf{std::make_unique<persistent_file>(memory_file(_name))};
       std::shared_ptr<io::data> e;
       for (;;) {
         e.reset();
@@ -65,9 +76,10 @@ muxer::muxer(std::string const& name, bool persistent)
     }
   }
 
+  _pos = _events.begin();
   // Load queue file back in memory.
   try {
-    _file.reset(new persistent_file(_queue_file()));
+    _file = std::make_unique<persistent_file>(_queue_file_name);
     std::shared_ptr<io::data> e;
     // The following do-while might read an extra event from the queue
     // file back in memory. However this is necessary to ensure that a
@@ -80,22 +92,28 @@ muxer::muxer(std::string const& name, bool persistent)
       _events.push_back(e);
       ++_events_size;
     } while (_events_size < event_queue_max_size());
-  } catch (exceptions::shutdown const& e) {
+  } catch (const exceptions::shutdown& e) {
     // Queue file was entirely read back.
     (void)e;
   }
-  _pos = _events.begin();
+
+  _update_stats();
 
   // Log messages.
   log_v2::perfdata()->info(
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
+
+  engine::instance().subscribe(this);
 }
 
 /**
  *  Destructor.
  */
 muxer::~muxer() noexcept {
+  stats::center::instance().unregister_muxer(_name);
+  engine::instance().unsubscribe(this);
+  std::lock_guard<std::mutex> lock(_mutex);
   log_v2::core()->info("Destroying muxer {}: number of events in the queue: {}",
                        _name, _events_size);
   _clean();
@@ -136,6 +154,7 @@ void muxer::ack_events(int count) {
         break;
       _push_to_queue(e);
     }
+    _update_stats();
   }
 }
 
@@ -147,6 +166,8 @@ void muxer::ack_events(int count) {
 int32_t muxer::stop() {
   log_v2::core()->info("Stopping muxer {}: number of events in the queue: {}",
                        _name, _events_size);
+  std::lock_guard<std::mutex> lck(_mutex);
+  _update_stats();
   return 0;
 }
 
@@ -186,10 +207,12 @@ void muxer::publish(const std::shared_ptr<io::data> event) {
     if (_events_size >= event_queue_max_size()) {
       // Try to create file if is necessary.
       if (!_file)
-        _file.reset(new persistent_file(_queue_file()));
+        _file = std::make_unique<persistent_file>(_queue_file_name);
+
       _file->write(event);
     } else
       _push_to_queue(event);
+    _update_stats();
   }
 }
 
@@ -218,7 +241,6 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     if (_pos != _events.end()) {
       event = *_pos;
       ++_pos;
-      lock.unlock();
       if (event)
         timed_out = false;
     } else
@@ -228,33 +250,11 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   else {
     event = *_pos;
     ++_pos;
-    lock.unlock();
   }
 
+  _update_stats();
+
   return !timed_out;
-}
-
-/**
- *  Set the read filters.
- *
- *  @param[in] fltrs  Read filters. That is read() will return only
- *                    events which type() is available in this set.
- */
-void muxer::set_read_filters(muxer::filters const& fltrs) {
-  _read_filters = fltrs;
-  _read_filters_str = misc::dump_filters(_read_filters);
-}
-
-/**
- *  Set the write filters.
- *
- *  @param[in] fltrs  Write filters. That is any submitted through
- *                    write() must be in this set otherwise it won't be
- *                    multiplexed.
- */
-void muxer::set_write_filters(muxer::filters const& fltrs) {
-  _write_filters = fltrs;
-  _write_filters_str = misc::dump_filters(_write_filters);
 }
 
 /**
@@ -262,7 +262,7 @@ void muxer::set_write_filters(muxer::filters const& fltrs) {
  *
  *  @return  The read filters.
  */
-muxer::filters const& muxer::get_read_filters() const {
+const muxer::filters& muxer::read_filters() const {
   return _read_filters;
 }
 
@@ -271,7 +271,7 @@ muxer::filters const& muxer::get_read_filters() const {
  *
  *  @return  The write filters.
  */
-muxer::filters const& muxer::get_write_filters() const {
+const muxer::filters& muxer::write_filters() const {
   return _write_filters;
 }
 
@@ -280,7 +280,7 @@ muxer::filters const& muxer::get_write_filters() const {
  *
  *  @return  The read filters formatted into a string.
  */
-const std::string& muxer::get_read_filters_str() const {
+const std::string& muxer::read_filters_as_str() const {
   return _read_filters_str;
 }
 
@@ -289,7 +289,7 @@ const std::string& muxer::get_read_filters_str() const {
  *
  *  @return  The write filters formatted into a string.
  */
-const std::string& muxer::get_write_filters_str() const {
+const std::string& muxer::write_filters_as_str() const {
   return _write_filters_str;
 }
 
@@ -300,7 +300,7 @@ const std::string& muxer::get_write_filters_str() const {
  */
 uint32_t muxer::get_event_queue_size() const {
   std::lock_guard<std::mutex> lock(_mutex);
-  return _events.size();
+  return _events_size;
 }
 
 /**
@@ -312,6 +312,7 @@ void muxer::nack_events() {
       _name);
   std::lock_guard<std::mutex> lock(_mutex);
   _pos = _events.begin();
+  _update_stats();
 }
 
 /**
@@ -333,10 +334,10 @@ void muxer::statistics(nlohmann::json& tree) const {
   }
 
   // Unacknowledged events count.
-  int unacknowledged = 0;
+  int32_t count = 0;
   for (auto it = _events.begin(); it != _pos; ++it)
-    ++unacknowledged;
-  tree["unacknowledged_events"] = unacknowledged;
+    count++;
+  tree["unacknowledged_events"] = count;
 }
 
 /**
@@ -356,6 +357,56 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
   if (d && _read_filters.find(d->type()) != _read_filters.end())
     engine::instance().publish(d);
   return 1;
+}
+
+/**
+ *  Release all events stored within the internal list.
+ *  Warning: _mutex must be locked to call this function.
+ */
+void muxer::_clean() {
+  _file.reset();
+  if (_persistent && !_events.empty()) {
+    try {
+      log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
+                            memory_file(_name));
+      auto mf{std::make_unique<persistent_file>(memory_file(_name))};
+      while (!_events.empty()) {
+        mf->write(_events.front());
+        _events.pop_front();
+        --_events_size;
+      }
+    } catch (std::exception const& e) {
+      log_v2::perfdata()->error(
+          "multiplexing: could not backup memory queue of '{}': {}", _name,
+          e.what());
+    }
+  }
+  _events.clear();
+  _events_size = 0;
+  _pos = _events.begin();
+  _update_stats();
+}
+
+/**
+ *  Get event from retention file.
+ *  Warning: lock _mutex before using this function.
+ *
+ *  @param[out] event  Last event available. Null if none is available.
+ */
+void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
+  event.reset();
+  // If file exists, try to get the last event.
+  if (_file) {
+    try {
+      do {
+        _file->read(event);
+      } while (!event);
+    } catch (exceptions::shutdown const& e) {
+      // The file end was reach.
+      (void)e;
+      _file.reset();
+    }
+  }
 }
 
 /**
@@ -385,63 +436,6 @@ std::string muxer::queue_file(std::string const& name) {
 }
 
 /**
- *  Release all events stored within the internal list.
- */
-void muxer::_clean() {
-  std::lock_guard<std::mutex> lock(_mutex);
-  _file.reset();
-  if (_persistent && !_events.empty()) {
-    try {
-      log_v2::core()->trace("muxer: sending {} events to {}", _events_size,
-                            _memory_file());
-      auto mf{std::make_unique<persistent_file>(_memory_file())};
-      while (!_events.empty()) {
-        mf->write(_events.front());
-        _events.pop_front();
-        --_events_size;
-      }
-    } catch (std::exception const& e) {
-      log_v2::perfdata()->error(
-          "multiplexing: could not backup memory queue of '{}': {}", _name,
-          e.what());
-    }
-  }
-  _events.clear();
-  _events_size = 0;
-}
-
-/**
- *  Get event from retention file. Warning: lock _mutex before using
- *  this function.
- *
- *  @param[out] event  Last event available. Null if none is available.
- */
-void muxer::_get_event_from_file(std::shared_ptr<io::data>& event) {
-  event.reset();
-  // If file exist, try to get the last event.
-  if (_file) {
-    try {
-      do {
-        _file->read(event);
-      } while (!event);
-    } catch (exceptions::shutdown const& e) {
-      // The file end was reach.
-      (void)e;
-      _file.reset();
-    }
-  }
-}
-
-/**
- *  Get memory file path.
- *
- *  @return Path to the memory file.
- */
-std::string muxer::_memory_file() const {
-  return memory_file(_name);
-}
-
-/**
  *  Push event to queue (_mutex is locked when this method is called).
  *
  *  @param[in] event  New event.
@@ -458,22 +452,35 @@ void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
 }
 
 /**
- *  Get queue file path.
+ * @brief Fill statistics if it happened more than 1 second ago
  *
- *  @return Path to the queue file.
+ * Warning: _mutex must be locked before while calling this function.
  */
-std::string muxer::_queue_file() const {
-  return queue_file(_name);
+void muxer::_update_stats() noexcept {
+  std::time_t now{std::time(nullptr)};
+  if (now - _last_stats > 0) {
+    _last_stats = now;
+    /* Since _mutex is locked, we can get interesting values and copy them
+     * in the capture. Then the execute() function can put them in the stats
+     * object asynchronously. */
+    stats::center::instance().execute(
+        [stats = _stats, name = _file ? _queue_file_name : "",
+         size = _events_size, unack = std::distance(_events.begin(), _pos)]() {
+          stats->set_queue_file(std::move(name));
+          stats->set_total_events(size);
+          stats->set_unacknowledged_events(unack);
+        });
+  }
 }
 
 /**
  *  Remove all the queue files attached to this muxer.
  */
 void muxer::remove_queue_files() {
-  log_v2::perfdata()->info("multiplexing: '{}' removed", _queue_file());
+  log_v2::perfdata()->info("multiplexing: '{}' removed", _queue_file_name);
 
   /* Here _file is already destroyed */
-  persistent_file file(_queue_file());
+  persistent_file file(_queue_file_name);
   file.remove_all_files();
 }
 

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -103,8 +103,18 @@ void broker_module_init(void const* arg) {
                        storage::metric_mapping::entries);
       log_v2::bbdo()->info("registering protobuf pb_rebuild as {:x}:{:x}",
                            io::storage, storage::de_pb_rebuild);
-      e.register_event(storage_pb_rebuild, "pb_rebuild",
-                       &storage::pb_rebuild::operations);
+
+      /* Let's register the message to start rebuilds, send rebuilds and
+       * terminate rebuilds. This is pb_rebuild_message. */
+      e.register_event(make_type(io::storage, storage::de_rebuild_message),
+                       "rebuild_message",
+                       &storage::pb_rebuild_message::operations);
+
+      /* Let's register the message to ask rrd for remove metrics. This is
+       * pb_remove_graph_message. */
+      e.register_event(make_type(io::storage, storage::de_remove_graph_message),
+                       "remove_graphs_message",
+                       &storage::pb_remove_graph_message::operations);
     }
 
     // Register RRD layer.

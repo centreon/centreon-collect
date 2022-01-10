@@ -20,10 +20,10 @@
 
 #include <algorithm>
 #include <cassert>
-#include "com/centreon/broker/bbdo/ack.hh"
+#include "bbdo/bbdo/ack.hh"
+#include "bbdo/bbdo/stop.hh"
+#include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/bbdo/factory.hh"
-#include "com/centreon/broker/bbdo/stop.hh"
-#include "com/centreon/broker/bbdo/version_response.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -94,9 +94,11 @@ uint32_t events::register_event(uint32_t type_id,
                                 event_info::event_operations const* ops,
                                 mapping::entry const* entries,
                                 const std::string& table_v2) {
-  _elements.emplace(std::piecewise_construct,
-            std::forward_as_tuple(type_id),
-            std::forward_as_tuple(name, ops, entries, table_v2));
+  auto found = _elements.find(type_id);
+  /* The registration is made only if not already done. */
+  if (found == _elements.end())
+    _elements.emplace(std::piecewise_construct, std::forward_as_tuple(type_id),
+                      std::forward_as_tuple(name, ops, entries, table_v2));
   return type_id;
 }
 

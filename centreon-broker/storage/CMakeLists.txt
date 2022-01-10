@@ -25,6 +25,9 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
+get_protobuf_files(rebuild_message)
+get_protobuf_files(remove_graph_message)
+
 # conflict_manager library.
 add_library(conflictmgr STATIC
   # Sources.
@@ -41,8 +44,6 @@ set(CONFLICTMGR conflictmgr PARENT_SCOPE)
 set_target_properties(conflictmgr PROPERTIES
     COMPILE_FLAGS "-fPIC")
 
-get_protobuf_files(rebuild)
-
 # Storage module.
 set(STORAGE "20-storage")
 set(STORAGE "${STORAGE}" PARENT_SCOPE)
@@ -53,18 +54,19 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/rebuilder.cc"
   "${SRC_DIR}/stream.cc"
-  ${proto_rebuild}
+  ${proto_rebuild_message}
+  ${proto_remove_graph_message}
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
   "${INC_DIR}/factory.hh"
-  "${INC_DIR}/internal.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh"
 )
 set_target_properties("${STORAGE}" PROPERTIES
     PREFIX ""
     COMPILE_FLAGS "-fPIC")
+add_dependencies("${STORAGE}" rebuild_message remove_graph_message)
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 
 # Testing.
@@ -80,7 +82,6 @@ if (WITH_TESTING)
     ${TEST_DIR}/connector.cc
     ${TEST_DIR}/metric.cc
     ${TEST_DIR}/rebuild.cc
-    ${TEST_DIR}/rebuild2.cc
     ${TEST_DIR}/remove_graph.cc
     ${TEST_DIR}/status.cc
     ${TEST_DIR}/status-entry.cc

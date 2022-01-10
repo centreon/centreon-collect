@@ -159,6 +159,9 @@ int32_t stream::write(std::shared_ptr<io::data> const& data) {
   int32_t ack = storage::conflict_manager::instance().send_event(
       storage::conflict_manager::sql, data);
   _pending_events -= ack;
+  // Event acknowledgement.
+  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", ack,
+                            _pending_events);
   return ack;
 }
 
