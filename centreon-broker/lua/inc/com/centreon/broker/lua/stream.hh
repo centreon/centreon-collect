@@ -26,9 +26,9 @@
 #include <memory>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <thread>
 #include <utility>
 
+#include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
@@ -58,52 +58,23 @@ namespace lua {
  *  exit, the thread waits for 500ms before rechecking events.
  */
 class stream : public io::stream {
-  std::thread _thread;
-
   /* Macro cache */
   macro_cache _cache;
 
-  /* _exposed_events is just filled by the write() function. This access is
-   * locked by the _exposed_events_m mutex. */
-  mutable std::mutex _exposed_events_m;
-  std::deque<std::shared_ptr<io::data>> _exposed_events;
-
-  /* _acks_count is the number of events to acknowledge regards to the muxer.
-   * This value may be sent on a call to write() or a call to flush(). */
-  std::atomic<uint32_t> _acks_count;
-
-  /* _events_size is just the size of the thread queue. Since, it is only
-   * visible by the thread, we need a such variable to access the size. */
-  std::atomic<uint32_t> _events_size;
-
-  /* Every seconds, we store in this array the number of events handled.
-   * Arrived at the last index, we start again at the beginning of the array.
-   * This allows us to compute an average speed on the last 10 seconds. */
-  std::array<size_t, 10> _stats;
-  std::array<size_t, 10>::iterator _stats_it;
-  std::chrono::time_point<std::chrono::system_clock> _next_stat;
-
-  /* The exit flag */
-  std::atomic_bool _exit;
-
-  /* Here is the flag to tell the thread to execute a flush. No need to lock,
-   * _flush is reset to false when the flush is over, and on the other side,
-   * it is set to true only when it is not already set. */
-  std::atomic_bool _flush;
+  /* The Lua engine */
+  luabinding _luabinding;
 
  public:
   stream(std::string const& lua_script,
          std::map<std::string, misc::variant> const& conf_params,
          std::shared_ptr<persistent_cache> const& cache);
+  ~stream() noexcept = default;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
-  ~stream();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   int write(std::shared_ptr<io::data> const& d) override;
   int32_t flush() override;
   int32_t stop() override;
-  bool stats_mean_square(double& a, double& b) const noexcept;
-  void statistics(nlohmann::json& tree) const override;
 };
 }  // namespace lua
 

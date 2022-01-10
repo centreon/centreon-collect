@@ -1,5 +1,5 @@
 /*
-** Copyright 2015 Centreon
+** Copyright 2015-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 #define CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
 
 #include <array>
+#include <ctime>
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/timestamp.hh"
 
 CCB_BEGIN()
 
@@ -32,22 +32,22 @@ namespace misc {
  *  @brief Compute processing speed.
  */
 class processing_speed_computer {
+  static int const window_length = 30;
+
+  std::array<uint32_t, window_length> _event_by_seconds;
+  std::array<uint32_t, window_length>::iterator _pos;
+  std::time_t _last_tick;
+
  public:
   processing_speed_computer();
+  ~processing_speed_computer() noexcept = default;
   processing_speed_computer(processing_speed_computer const&) = delete;
-  ~processing_speed_computer() noexcept {}
   processing_speed_computer& operator=(processing_speed_computer const&) =
       delete;
 
   double get_processing_speed() const;
-  void tick(int events = 1) noexcept;
-  timestamp get_last_event_time() const;
-
-  static int const window_length = 30;
-
- private:
-  std::array<uint32_t, window_length> _event_by_seconds;
-  timestamp _last_tick;
+  void tick(uint32_t events = 1) noexcept;
+  std::time_t get_last_event_time() const;
 };
 }  // namespace misc
 

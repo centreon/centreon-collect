@@ -26,7 +26,9 @@ using namespace com::centreon::broker::misc;
  *  Default constructor.
  */
 processing_speed_computer::processing_speed_computer()
-    : _event_by_seconds(), _last_tick(timestamp::now()) {}
+    : _event_by_seconds{0},
+      _pos{_event_by_seconds.begin()},
+      _last_tick{std::time(nullptr)} {}
 
 /**
  *  Get the event processing speed.
@@ -34,19 +36,15 @@ processing_speed_computer::processing_speed_computer()
  *  @return  The event processing speed.
  */
 double processing_speed_computer::get_processing_speed() const {
-  // If tick() was never called then no event was processed.
-  if (_last_tick.is_null())
-    return 0.0;
-
   // Compute event processing speed from the number of events processed
   // in /event_window_length/ seconds in the past. The most recent time
   // at which an event was computed is _last_tick. From then, no event
   // was processed.
-  timestamp now(timestamp::now());
-  int events(0);
-  for (int i(0); i < window_length; ++i)
-    events += _event_by_seconds[i];
-  return static_cast<double>(events) / (window_length + now - _last_tick);
+  std::time_t now = std::time(nullptr);
+  double events = 0;
+  for (auto e : _event_by_seconds)
+    events += e;
+  return events / (window_length + now - _last_tick);
 }
 
 /**
@@ -54,29 +52,23 @@ double processing_speed_computer::get_processing_speed() const {
  *
  *  @param[in] events  The number of events to register.
  */
-void processing_speed_computer::tick(int events) noexcept {
-  // New second(s)
-  timestamp now(timestamp::now());
-  if (!_last_tick.is_null() && now > _last_tick) {
-    int step(now - _last_tick);
-    if (step < window_length && step > 0)
-      ::memmove(_event_by_seconds.data() + step, _event_by_seconds.data(),
-                (window_length - step) * sizeof(uint32_t));
-    else
-      step = window_length;
-    ::memset(_event_by_seconds.data(), 0, step * sizeof(uint32_t));
+void processing_speed_computer::tick(uint32_t events) noexcept {
+  time_t now = std::time(nullptr);
+  int step = now - _last_tick;
+  while (step > 0) {
+    ++_pos;
+    if (_pos == _event_by_seconds.end())
+      _pos = _event_by_seconds.begin();
+    *_pos = 0;
+    --step;
   }
-
-  // Update the data of this second.
-  _event_by_seconds[0] += events;
-
-  // Update the last tick.
+  *_pos += events;
   _last_tick = now;
 }
 
 /**
  *  Get the time of the last event.
  */
-timestamp processing_speed_computer::get_last_event_time() const {
+std::time_t processing_speed_computer::get_last_event_time() const {
   return _last_tick;
 }
