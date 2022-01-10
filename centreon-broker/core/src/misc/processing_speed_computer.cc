@@ -26,7 +26,9 @@ using namespace com::centreon::broker::misc;
  *  Default constructor.
  */
 processing_speed_computer::processing_speed_computer()
-    : _last_tick{std::time(nullptr)}, _pos{0} {}
+    : _event_by_seconds{0},
+      _pos{_event_by_seconds.begin()},
+      _last_tick{std::time(nullptr)} {}
 
 /**
  *  Get the event processing speed.
@@ -45,31 +47,6 @@ double processing_speed_computer::get_processing_speed() const {
   return events / (window_length + now - _last_tick);
 }
 
-///**
-// *  Register some number of events.
-// *
-// *  @param[in] events  The number of events to register.
-// */
-//void processing_speed_computer::tick(int events) noexcept {
-//  // New second(s)
-//  timestamp now(timestamp::now());
-//  if (!_last_tick.is_null() && now > _last_tick) {
-//    int step(now - _last_tick);
-//    if (step < window_length && step > 0)
-//      ::memmove(_event_by_seconds.data() + step, _event_by_seconds.data(),
-//                (window_length - step) * sizeof(uint32_t));
-//    else
-//      step = window_length;
-//    ::memset(_event_by_seconds.data(), 0, step * sizeof(uint32_t));
-//  }
-//
-//  // Update the data of this second.
-//  _event_by_seconds[0] += events;
-//
-//  // Update the last tick.
-//  _last_tick = now;
-//}
-
 /**
  *  Register some number of events.
  *
@@ -80,12 +57,12 @@ void processing_speed_computer::tick(uint32_t events) noexcept {
   int step = now - _last_tick;
   while (step > 0) {
     ++_pos;
-    if (_pos >= _event_by_seconds.size())
-      _pos = 0;
-    _event_by_seconds[_pos] = 0;
+    if (_pos == _event_by_seconds.end())
+      _pos = _event_by_seconds.begin();
+    *_pos = 0;
     --step;
   }
-  _event_by_seconds[_pos] += events;
+  *_pos += events;
   _last_tick = now;
 }
 

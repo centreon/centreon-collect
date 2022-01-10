@@ -35,8 +35,8 @@ class processing_speed_computer {
   static int const window_length = 30;
 
   std::array<uint32_t, window_length> _event_by_seconds;
+  std::array<uint32_t, window_length>::iterator _pos;
   std::time_t _last_tick;
-  uint32_t _pos;
 
  public:
   processing_speed_computer();
