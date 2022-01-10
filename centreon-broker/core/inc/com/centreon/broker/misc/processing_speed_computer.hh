@@ -21,6 +21,7 @@
 
 #include <array>
 #include <ctime>
+#include <cstdint>
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
