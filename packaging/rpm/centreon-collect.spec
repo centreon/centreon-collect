@@ -232,7 +232,7 @@ Include files needed to develop a module Centreon Broker.
 
 %build
 pip3 install conan --upgrade
-conan install . -s compiler.libcxx=libstdc++11 --build=missing
+conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 cmake3 \
         -DWITH_TESTING=0 \
