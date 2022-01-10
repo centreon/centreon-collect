@@ -11,7 +11,9 @@ service Broker {
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
   rpc GetSqlConnectionStats(GenericInt) returns (SqlConnectionStats) {}
   rpc GetSqlConnectionSize(google.protobuf.Empty) returns (GenericSize) {}
-  rpc GetConflictManagerStats(google.protobuf.Empty) returns (ConflictManagerStats) {}
+  rpc GetConflictManagerStats(google.protobuf.Empty)
+      returns (ConflictManagerStats) {}
+  rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
 
   rpc GetNumModules(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetModulesStats(GenericNameOrIndex) returns (GenericString) {}
@@ -19,7 +21,17 @@ service Broker {
   rpc GetNumEndpoint(google.protobuf.Empty) returns (GenericSize) {}
   rpc GetEndpointStats(GenericNameOrIndex) returns (GenericString) {}
 
-  rpc GetStats(StatsQuery) returns (BrokerStats) {}
+  rpc GetProcessingStats(google.protobuf.Empty) returns (ProcessingStats) {}
+
+  /**
+   * @brief Rebuild RRD metric RRD files from data in the SQL database.
+   *
+   * @param IndexIds Message containing a vector of metric ids.
+   *
+   * @return An Empty object.
+   */
+  rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
+  rpc RemoveGraphs(ToRemove) returns (google.protobuf.Empty) {}
 }
 
 message Version {
@@ -55,37 +67,19 @@ message GenericResponse {
   string err_msg = 2;
 }
 
-message StatsQuery {
-  enum Part {
-    ENGINE = 0;
-    THREAD_POOL = 1;
-  }
-  repeated Part query = 1;
-}
-
-message EngineStats {
-  enum Mode {
-    NOP = 0;
-    WRITE = 1;
-    WRITE_TO_CACHE_FILE = 2;
-  }
-  Mode mode = 1;
-  uint32 unprocessed_events = 2;
-}
-
 message SqlConnectionStats {
- int32 waiting_tasks = 1;
- }
+  int32 waiting_tasks = 1;
+}
 
 message ConflictManagerStats {
- int32 events_handled = 1;
- int32 waiting_events = 2;
- int32 max_pending_events = 3;
- int32 sql = 4;
- int32 storage = 5;
- uint32 max_perfdata_events = 6;
- uint32 loop_timeout = 7;
- double speed = 8;
+  int32 events_handled = 1;
+  int32 waiting_events = 2;
+  int32 max_pending_events = 3;
+  int32 sql = 4;
+  int32 storage = 5;
+  uint32 max_perfdata_events = 6;
+  uint32 loop_timeout = 7;
+  double speed = 8;
 }
 
 message ModuleStats {
@@ -99,14 +93,44 @@ message ThreadPool {
   uint32 size = 2;
 }
 
+message EngineStats {
+  enum Mode {
+    NOT_STARTED = 0;
+    RUNNING = 1;
+    STOPPED = 2;
+  }
+  Mode mode = 1;
+  uint32 processed_events = 2;
+}
+
+message MuxerStats {
+  uint32 total_events = 1;
+  uint32 unacknowledged_events = 2;
+  string queue_file = 3;
+}
+
+message ProcessingStats {
+  EngineStats engine = 1;
+  map<string, MuxerStats> muxers = 2;
+}
+
 message BrokerStats {
   string asio_version = 1;
   string version = 2;
   uint32 pid = 3;
   int64 now = 4;
   ThreadPool pool_stats = 5;
-  EngineStats engine = 6;
-  repeated ModuleStats modules = 7;
-  repeated SqlConnectionStats connections = 8;
-  ConflictManagerStats conflict_manager = 9;
+  repeated ModuleStats modules = 6;
+  repeated SqlConnectionStats connections = 7;
+  ConflictManagerStats conflict_manager = 8;
+  ProcessingStats processing = 9;
+}
+
+message IndexIds {
+  repeated uint64 index_id = 1;
+}
+
+message ToRemove {
+  repeated uint64 index_ids = 1;
+  repeated uint64 metric_ids = 2;
 }

@@ -25,7 +25,7 @@
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
-#include "com/centreon/broker/bbdo/version_response.hh"
+#include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"

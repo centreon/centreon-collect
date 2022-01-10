@@ -102,7 +102,7 @@ EngineStats* center::register_engine() {
   std::promise<EngineStats*> p;
   std::future<EngineStats*> retval = p.get_future();
   _strand.post([this, &p] {
-    auto eng = _stats.mutable_engine();
+    auto eng = _stats.mutable_processing()->mutable_engine();
     p.set_value(eng);
   });
   return retval.get();
@@ -130,6 +130,43 @@ bool center::unregister_mysql_connection(SqlConnectionStats* connection) {
         break;
       }
     }
+  });
+  return retval.get();
+}
+
+/**
+ * @brief If the muxer needs to write statistics, it primarily has to
+ * call this function to be registered in the statistic center and to get
+ * a pointer for its statistics. It is prohibited to directly write into this
+ * pointer. We must use the center member functions for this purpose.
+ *
+ * @param name
+ *
+ * @return A pointer to the muxer statistics.
+ */
+MuxerStats* center::register_muxer(const std::string& name) {
+  std::promise<MuxerStats*> p;
+  std::future<MuxerStats*> retval = p.get_future();
+  _strand.post([this, &p, name] {
+    auto ms = &(*_stats.mutable_processing()->mutable_muxers())[name];
+    p.set_value(ms);
+  });
+  return retval.get();
+}
+
+/**
+ * @brief
+ *
+ * @param name
+ *
+ * @return
+ */
+bool center::unregister_muxer(const std::string& name) {
+  std::promise<bool> p;
+  std::future<bool> retval = p.get_future();
+  _strand.post([this, &p, name] {
+    _stats.mutable_processing()->mutable_muxers()->erase(name);
+    p.set_value(true);
   });
   return retval.get();
 }
@@ -298,24 +335,6 @@ std::string center::to_string() {
   return retval.get();
 }
 
-// void center::get_stats(const StatsQuery* request, BrokerStats* response) {
-//  std::promise<bool> p;
-//  std::future<bool> done = p.get_future();
-//  _strand.post([&s = this->_stats, &p, request, response] {
-//    for (auto& q : request->query()) {
-//      switch (q) {
-//        case StatsQuery::ENGINE:
-//          *response->mutable_engine() = s.engine();
-//          break;
-//      }
-//    }
-//    p.set_value(true);
-//  });
-//
-//  // We wait for the response.
-//  done.get();
-//}
-
 void center::get_sql_connection_stats(uint32_t index,
                                       SqlConnectionStats* response) {
   std::promise<bool> p;
@@ -367,4 +386,27 @@ void center::get_conflict_manager_stats(ConflictManagerStats* response) {
 
 int center::get_json_stats_file_creation(void) {
   return _json_stats_file_creation;
+}
+
+bool center::get_muxer_stats(const std::string& name, MuxerStats* response) {
+  std::promise<bool> p;
+  std::future<bool> done = p.get_future();
+  _strand.post([&s = this->_stats, &p, name, response] {
+    if (!s.processing().muxers().contains(name))
+      p.set_value(false);
+    else {
+      *response = s.processing().muxers().at(name);
+      p.set_value(true);
+    }
+  });
+  return done.get();
+}
+
+void center::get_processing_stats(ProcessingStats* response) {
+  std::promise<void> p;
+  _strand.post([&s = this->_stats, &p, response] {
+    *response = s.processing();
+    p.set_value();
+  });
+  p.get_future().get();
 }

@@ -22,8 +22,6 @@
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -38,7 +36,7 @@ using namespace com::centreon::broker::processing;
  *  @param[in] name      The failover name.
  */
 failover::failover(std::shared_ptr<io::endpoint> endp,
-                   std::shared_ptr<multiplexing::subscriber> sbscrbr,
+                   std::shared_ptr<multiplexing::muxer> mux,
                    const std::string& name)
     : endpoint(false, name),
       _should_exit(false),
@@ -49,7 +47,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _initialized(false),
       _next_timeout(0),
       _retry_interval(30),
-      _subscriber(sbscrbr),
+      _muxer(mux),
       _update(false) {
   log_v2::core()->trace("failover '{}' construction.", _name);
 }
@@ -87,7 +85,7 @@ void failover::exit() {
     if (_thread.joinable())
       _thread.join();
   }
-  _subscriber->get_muxer().wake();
+  _muxer->wake();
   log_v2::core()->trace("failover '{}' exited.", _name);
 }
 
@@ -220,7 +218,7 @@ void failover::_run() {
       // Event processing loop.
       log_v2::processing()->debug(
           "failover: launching event loop of endpoint '{}'", _name);
-      _subscriber->get_muxer().nack_events();
+      _muxer->nack_events();
       bool stream_can_read(true);
       bool muxer_can_read(true);
       bool should_commit(false);
@@ -239,7 +237,7 @@ void failover::_run() {
         // Filling stats
         if (time(nullptr) >= fill_stats_time) {
           fill_stats_time += 5;
-          set_queued_events(_subscriber->get_muxer().get_event_queue_size());
+          set_queued_events(_muxer->get_event_queue_size());
         }
 
         // Read from endpoint stream.
@@ -264,7 +262,7 @@ void failover::_run() {
                 "engine",
                 _name);
             _update_status("writing event to multiplexing engine");
-            _subscriber->get_muxer().write(d);
+            _muxer->write(d);
             tick();
             _update_status("");
             continue;  // Stream read bias.
@@ -282,7 +280,7 @@ void failover::_run() {
               _name);
           _update_status("reading event from multiplexing engine");
           try {
-            timed_out_muxer = !_subscriber->get_muxer().read(d, 0);
+            timed_out_muxer = !_muxer->read(d, 0);
             should_commit = should_commit || d;
           } catch (exceptions::shutdown const& e) {
             log_v2::processing()->debug(
@@ -309,7 +307,7 @@ void failover::_run() {
                   _name, e.what());
               muxer_can_read = false;
             }
-            _subscriber->get_muxer().ack_events(we);
+            _muxer->ack_events(we);
             tick();
             for (std::vector<std::shared_ptr<io::stream> >::iterator
                      it(secondaries.begin()),
@@ -345,7 +343,7 @@ void failover::_run() {
             std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
             we = _stream->flush();
           }
-          _subscriber->get_muxer().ack_events(we);
+          _muxer->ack_events(we);
           ::usleep(100000);
         }
       }
@@ -362,7 +360,7 @@ void failover::_run() {
             log_v2::core()->error("Failed to send stop event to stream: {}",
                                   e.what());
           }
-          _subscriber->get_muxer().ack_events(ack_events);
+          _muxer->ack_events(ack_events);
           std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
           _stream.reset();
         }
@@ -386,7 +384,7 @@ void failover::_run() {
           log_v2::core()->error("Failed to send stop event to stream: {}",
                                 e.what());
         }
-        _subscriber->get_muxer().ack_events(ack_events);
+        _muxer->ack_events(ack_events);
         std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
         _stream.reset();
         set_state("connecting");
@@ -409,7 +407,7 @@ void failover::_run() {
           log_v2::core()->error("Failed to send stop event to stream: {}",
                                 e.what());
         }
-        _subscriber->get_muxer().ack_events(ack_events);
+        _muxer->ack_events(ack_events);
         _stream.reset();
       }
       set_state("connecting");
@@ -485,37 +483,12 @@ void failover::update() {
 }
 
 /**
- *  Wait for this thread to terminate along with other failovers.
- *
- *  @param[in] time  Maximum time to wait for thread termination.
- *
- *  @return True if thread exited.
- */
-// bool failover::wait(unsigned long time) {
-//  // Check that failover finished.
-//  bool finished;
-//  if (_failover)
-//    finished = _failover->wait(time);
-//  else
-//    finished = true;
-//
-//  // If there was no failover or failover finished we
-//  // can safely wait for ourselves.
-//  if (finished)
-//    finished = bthread::wait(time);
-//  // Otherwise we're not finished yet.
-//  else
-//    finished = false;
-//  return finished;
-//}
-
-/**
  *  Get the read filters used by the failover.
  *
  *  @return  The read filters used by the failover.
  */
 const std::string& failover::_get_read_filters() const {
-  return _subscriber->get_muxer().get_read_filters_str();
+  return _muxer->read_filters_as_str();
 }
 
 /**
@@ -524,7 +497,7 @@ const std::string& failover::_get_read_filters() const {
  *  @return  The write filters used by the failover.
  */
 const std::string& failover::_get_write_filters() const {
-  return _subscriber->get_muxer().get_write_filters_str();
+  return _muxer->write_filters_as_str();
 }
 
 /**
@@ -545,7 +518,7 @@ void failover::_forward_statistic(nlohmann::json& tree) {
     } else
       tree["status"] = "busy";
   }
-  _subscriber->get_muxer().statistics(tree);
+  _muxer->statistics(tree);
   nlohmann::json subtree;
   if (_failover)
     _failover->stats(subtree);
@@ -556,7 +529,7 @@ void failover::_forward_statistic(nlohmann::json& tree) {
  *  Launch failover of this endpoint.
  */
 void failover::_launch_failover() {
-  _subscriber->get_muxer().nack_events();
+  _muxer->nack_events();
   if (_failover && !_failover_launched) {
     _failover_launched = true;
     _failover->start();
@@ -577,7 +550,7 @@ void failover::_update_status(const std::string& status) {
 }
 
 uint32_t failover::_get_queued_events() const {
-  return _subscriber->get_muxer().get_event_queue_size();
+  return _muxer->get_event_queue_size();
 }
 
 /**

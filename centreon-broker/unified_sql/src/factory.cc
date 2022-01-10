@@ -30,12 +30,6 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
-/**************************************
- *                                     *
- *           Static Objects            *
- *                                     *
- **************************************/
-
 /**
  *  Find a parameter in configuration.
  *
@@ -127,26 +121,6 @@ io::endpoint* factory::new_endpoint(
   // Find unified_sql DB parameters.
   database_config dbcfg(cfg);
 
-  // Rebuild check interval.
-  uint32_t rebuild_check_interval(0);
-  {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("rebuild_check_interval")};
-    if (it != cfg.params.end()) {
-      try {
-        rebuild_check_interval = std::stoul(it->second);
-      } catch (std::exception const& e) {
-        rebuild_check_interval = 300;
-        log_v2::sql()->error(
-            "unified_sql: the rebuild_check_interval field should "
-            "contain a string containing a number. We use the default value "
-            "in "
-            "replacement 300.");
-      }
-    } else
-      rebuild_check_interval = 300;
-  }
-
   // Store or not in data_bin.
   bool store_in_data_bin(true);
   {
@@ -174,7 +148,7 @@ io::endpoint* factory::new_endpoint(
   // Connector.
   auto c = std::make_unique<unified_sql::connector>();
   c->connect_to(dbcfg, rrd_length, interval_length, loop_timeout,
-                instance_timeout, rebuild_check_interval, store_in_data_bin);
+                instance_timeout, store_in_data_bin);
   is_acceptor = false;
   return c.release();
 }

@@ -28,7 +28,7 @@ using namespace com::centreon::broker;
 // Load count.
 static uint32_t instances(0);
 
-stats::worker_pool pool;
+stats::worker_pool wpool;
 
 extern "C" {
 /**
@@ -42,7 +42,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
 void broker_module_deinit() {
   // Decrement instance number.
   if (!--instances)
-    pool.cleanup();
+    wpool.cleanup();
 }
 
 /**
@@ -75,7 +75,7 @@ void broker_module_init(void const* arg) {
         for (std::vector<std::string>::const_iterator it = stats_cfg.begin(),
                                                       end = stats_cfg.end();
              it != end; ++it) {
-          pool.add_worker(*it);
+          wpool.add_worker(*it);
         }
         loaded = true;
       } catch (std::exception const& e) {
@@ -85,7 +85,7 @@ void broker_module_init(void const* arg) {
       }
     }
     if (!loaded) {
-      pool.cleanup();
+      wpool.cleanup();
       log_v2::stats()->info(
           "stats: invalid stats "
           "configuration, stats engine is NOT loaded");

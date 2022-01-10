@@ -40,7 +40,7 @@ NetworkDbFail5
 
 NetworkDBFail6
 	[Documentation]	network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
-        [Tags]	Broker	Database	Network
+        [Tags]	Broker	Database	Network	unstable
 	Config Engine	${1}
         Config Broker	central
 	Broker Config Output Set	central	central-broker-master-sql	db_host	127.0.0.1
@@ -68,7 +68,7 @@ NetworkDBFail6
 
 NetworkDBFailU6
 	[Documentation]	network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
-        [Tags]	Broker	Database	Network	unified_sql
+        [Tags]	Broker	Database	Network	unified_sql	unstable
 	Reset Eth Connection
 	Config Engine	${1}
         Config Broker	central

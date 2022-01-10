@@ -48,7 +48,7 @@ TEST(StorageFactory, Factory) {
       factory.new_endpoint(cfg, is_acceptor, cache));
 
   storage::connector con;
-  con.connect_to(dbcfg, 42, 60, 300, true);
+  con.connect_to(dbcfg, 60, 300, true);
 
   ASSERT_TRUE(factory.has_endpoint(cfg, nullptr));
   ASSERT_EQ(cfg.read_timeout, -1);
@@ -81,7 +81,7 @@ TEST(StorageFactory, FactoryWithFullConf) {
       factory.new_endpoint(cfg, is_acceptor, cache));
 
   storage::connector con;
-  con.connect_to(dbcfg, 42, 43, 44, false);
+  con.connect_to(dbcfg, 43, 44, false);
 
   ASSERT_TRUE(factory.has_endpoint(cfg, nullptr));
   ASSERT_EQ(cfg.read_timeout, -1);

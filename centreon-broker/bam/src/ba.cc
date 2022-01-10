@@ -716,7 +716,7 @@ void ba::_open_new_event(io::stream* visitor, short service_hard_state) {
   _event->status = service_hard_state;
   _event->start_time = _last_kpi_update;
   if (visitor) {
-    std::shared_ptr<io::data> be = std::make_shared<ba_event>(*_event);
+    std::shared_ptr<io::data> be{std::make_shared<ba_event>(*_event)};
     visitor->write(be);
   }
 }

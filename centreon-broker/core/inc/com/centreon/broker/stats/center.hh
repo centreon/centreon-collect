@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -74,8 +74,13 @@ class center {
   //                             const std::string& name);
   // ModuleStats* register_modules(void);
   SqlConnectionStats* register_mysql_connection();
-  ConflictManagerStats* register_conflict_manager();
   bool unregister_mysql_connection(SqlConnectionStats* connection);
+  ConflictManagerStats* register_conflict_manager();
+  MuxerStats* register_muxer(const std::string& name);
+  bool unregister_muxer(const std::string& name);
+
+  bool get_muxer_stats(const std::string& name, MuxerStats* response);
+
   void get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
   void get_conflict_manager_stats(ConflictManagerStats* response);
   // bool unregister_endpoint(const std::string& name);
@@ -83,8 +88,8 @@ class center {
   // bool unregister_mysql_manager(void);
 
   int get_json_stats_file_creation(void);
-  void get_stats(const StatsQuery* request, BrokerStats* response);
   void get_sql_connection_size(GenericSize* response);
+  void get_processing_stats(ProcessingStats* response);
 
   /**
    * @brief Set the value pointed by ptr to the value value.

@@ -16,22 +16,23 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bbdo/stop.hh"
+#include "com/centreon/broker/misc/time.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::bbdo;
+using namespace com::centreon::exceptions;
 
 /**
- *  Default constructor.
+ * @brief Compute the start of day as a time_t value.
+ *
+ * @param when A time_t.
+ *
+ * @return A time_t.
  */
-stop::stop() : io::data(stop::static_type()) {}
-
-// Mapping.
-mapping::entry const stop::entries[]{mapping::entry()};
-
-// Operations.
-static io::data* new_stop() {
-  return new stop;
+std::time_t misc::start_of_day(time_t when) {
+  struct tm tmv;
+  if (!localtime_r(&when, &tmv))
+    throw msg_fmt("misc::time: Cannot compute the start of the date {}", when);
+  tmv.tm_sec = tmv.tm_min = tmv.tm_hour = 0;
+  return mktime(&tmv);
 }
-io::event_info::event_operations const stop::operations = {&new_stop, nullptr,
-                                                           nullptr};

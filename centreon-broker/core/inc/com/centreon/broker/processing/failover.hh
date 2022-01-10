@@ -26,7 +26,7 @@
 #include <vector>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/multiplexing/subscriber.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/acceptor.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
@@ -63,7 +63,7 @@ class failover : public endpoint {
 
  public:
   failover(std::shared_ptr<io::endpoint> endp,
-           std::shared_ptr<multiplexing::subscriber> sbscrbr,
+           std::shared_ptr<multiplexing::muxer> mux,
            std::string const& name);
   failover(failover const& other) = delete;
   failover& operator=(failover const& other) = delete;
@@ -100,7 +100,7 @@ class failover : public endpoint {
   volatile bool _initialized;
   time_t _next_timeout;
   volatile time_t _retry_interval;
-  std::shared_ptr<multiplexing::subscriber> _subscriber;
+  std::shared_ptr<multiplexing::muxer> _muxer;
   volatile bool _update;
 
   // Status.

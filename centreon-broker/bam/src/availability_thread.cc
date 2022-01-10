@@ -22,6 +22,7 @@
 
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/time.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -80,7 +81,7 @@ void availability_thread::run() {
       _open_database();
 
       log_v2::bam()->debug("BAM-BI: build availabilities");
-      _build_availabilities(_compute_start_of_day(::time(nullptr)));
+      _build_availabilities(misc::start_of_day(::time(nullptr)));
       _should_rebuild_all = false;
       _bas_to_rebuild.clear();
 
@@ -192,11 +193,11 @@ void availability_thread::_build_availabilities(time_t midnight) {
       if (!_mysql->fetch_row(res))
         throw msg_fmt("no events matching BAs to rebuild");
       first_day = res.value_as_i32(0);
-      first_day = _compute_start_of_day(first_day);
+      first_day = misc::start_of_day(first_day);
       // If there is opened events, rebuild until midnight of this day.
       // If not, rebuild until the last closed events.
       if (res.value_as_i32(2) != 0)
-        last_day = _compute_start_of_day(res.value_as_f64(1));
+        last_day = misc::start_of_day(res.value_as_f64(1));
 
       _delete_all_availabilities();
     } catch (const std::exception& e) {
@@ -431,22 +432,7 @@ void availability_thread::_write_availability(
  */
 time_t availability_thread::_compute_next_midnight() {
   return time::timeperiod::add_round_days_to_midnight(
-      _compute_start_of_day(::time(nullptr)), 3600 * 24);
-}
-
-/**
- *  Get the start of the day of the timestamp when.
- *
- *  @param[in] when  The timestamp.
- *
- *  @return  The result.
- */
-time_t availability_thread::_compute_start_of_day(time_t when) {
-  struct tm tmv;
-  if (!localtime_r(&when, &tmv))
-    throw msg_fmt("BAM-BI: availability thread could not compute start of day");
-  tmv.tm_sec = tmv.tm_min = tmv.tm_hour = 0;
-  return mktime(&tmv);
+      misc::start_of_day(::time(nullptr)), 3600 * 24);
 }
 
 /**

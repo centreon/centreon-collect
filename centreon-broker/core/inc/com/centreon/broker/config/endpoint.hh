@@ -26,7 +26,7 @@
 #include <set>
 #include <string>
 
-#include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 
 CCB_BEGIN()
 

@@ -22,6 +22,7 @@
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -211,5 +212,61 @@ grpc::Status broker_impl::GetSqlConnectionSize(
     const ::google::protobuf::Empty* request __attribute__((unused)),
     GenericSize* response) {
   stats::center::instance().get_sql_connection_size(response);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
+                                        __attribute__((unused)),
+                                        const GenericString* request,
+                                        MuxerStats* response) {
+  const std::string name = request->str_arg();
+  auto status = stats::center::instance().get_muxer_stats(name, response);
+  return status ? grpc::Status::OK
+                : grpc::Status(
+                      grpc::StatusCode::NOT_FOUND,
+                      fmt::format("no muxer stats found for name '{}'", name));
+}
+
+void broker_impl::set_broker_name(const std::string& s) {
+  _broker_name = s;
+}
+
+/**
+ * @brief The internal part of the gRPC RebuildMetrics() function.
+ *
+ * @param context (unused)
+ * @param request A pointer to a MetricIds which contains a vector of metric
+ * ids. These ids correspond to the metrics to rebuild.
+ * @param response (unused)
+ *
+ * @return grpc::Status::OK
+ */
+grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
+                                           __attribute__((unused)),
+                                           const IndexIds* request,
+                                           ::google::protobuf::Empty* response
+                                           __attribute__((unused))) {
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<bbdo::pb_rebuild_rrd_graphs>(*request)};
+  pblshr.write(e);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
+                                       __attribute__((unused)),
+                                       const ToRemove* request,
+                                       ::google::protobuf::Empty* response
+                                       __attribute__((unused))) {
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<bbdo::pb_remove_graphs>(*request)};
+  pblshr.write(e);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetProcessingStats(
+    grpc::ServerContext* context __attribute__((unused)),
+    const ::google::protobuf::Empty* request __attribute__((unused)),
+    ::ProcessingStats* response) {
+  stats::center::instance().get_processing_stats(response);
   return grpc::Status::OK;
 }

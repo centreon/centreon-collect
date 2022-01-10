@@ -1,5 +1,5 @@
 /*
-** Copyright 2013,2017,2020 Centreon
+** Copyright 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,28 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_BBDO_INTERNAL_HH
-#define CCB_BBDO_INTERNAL_HH
+#ifndef CCB_MISC_TIME_HH
+#define CCB_MISC_TIME_HH
 
-#include <cstdint>
-
+#include <ctime>
 #include "com/centreon/broker/namespace.hh"
-
-#define BBDO_VERSION_MAJOR 2
-#define BBDO_VERSION_MINOR 0
-#define BBDO_VERSION_PATCH 0
-constexpr uint32_t BBDO_HEADER_SIZE = 16u;
 
 CCB_BEGIN()
 
-namespace bbdo {
-//using pb_metric_ids = io::protobuf<MetricIds, bbdo_pb_metric_ids>;
-
-// Load/unload of BBDO protocol.
-void load();
-void unload();
-}  // namespace bbdo
+namespace misc {
+std::time_t start_of_day(time_t when);
+}
 
 CCB_END()
 
-#endif  // !CCB_BBDO_INTERNAL_HH
+#endif /* !CCB_MISC_TIME_HH */

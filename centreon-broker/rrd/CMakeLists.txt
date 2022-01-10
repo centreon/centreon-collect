@@ -24,6 +24,9 @@ include_directories("${INC_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 
+get_protobuf_files(rebuild_message)
+get_protobuf_files(remove_graph_message)
+
 # Find librrd.
 include(FindPkgConfig)
 if (PKG_CONFIG_FOUND)
@@ -49,8 +52,6 @@ else ()
   set(LIBRRD_LDFLAGS "${LIBRRD_LDFLAGS}" PARENT_SCOPE)
 endif ()
 
-get_protobuf_files(rebuild)
-
 # RRD module.
 set(RRD "70-rrd")
 set(RRD "${RRD}" PARENT_SCOPE)
@@ -62,7 +63,8 @@ add_library("${RRD}" SHARED
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/output.cc"
-  ${proto_rebuild}
+  ${proto_rebuild_message}
+  ${proto_remove_graph_message}
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"
@@ -74,6 +76,7 @@ add_library("${RRD}" SHARED
   "${INC_DIR}/com/centreon/broker/rrd/output.hh"
   )
 set_target_properties("${RRD}" PROPERTIES PREFIX "")
+add_dependencies("${RRD}" rebuild_message remove_graph_message)
 
 # Compile with librrd flags.
 if (LIBRRD_CFLAGS)

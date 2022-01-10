@@ -30,6 +30,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
+#include "com/centreon/broker/pool.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
@@ -62,6 +63,11 @@ void engine::load() {
  *  Unload class instance.
  */
 void engine::unload() {
+  if (!_instance)
+    return;
+  if (_instance->_state != stopped)
+    _instance->stop();
+
   log_v2::core()->trace("multiplexing: unloading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   // Commit the cache file, if needed.
@@ -90,7 +96,10 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
       break;
     default:
       _kiew.push_back(e);
-      _send_to_subscribers();
+      if (!_sending_to_subscribers) {
+        _sending_to_subscribers = true;
+        _strand.post(std::bind(&engine::_send_to_subscribers, this));
+      }
       break;
   }
 }
@@ -104,10 +113,17 @@ void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
         _unprocessed_events++;
       }
       break;
+    case not_started:
+      for (auto& e : to_publish)
+        _kiew.push_back(e);
+      break;
     default:
       for (auto& e : to_publish)
         _kiew.push_back(e);
-      _send_to_subscribers();
+      if (!_sending_to_subscribers) {
+        _sending_to_subscribers = true;
+        _strand.post(std::bind(&engine::_send_to_subscribers, this));
+      }
       break;
   }
 }
@@ -124,7 +140,7 @@ void engine::start() {
     log_v2::core()->debug("multiplexing: engine starting");
     _state = running;
     stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                     EngineStats::WRITE);
+                                     EngineStats::RUNNING);
 
     // Local queue.
     std::deque<std::shared_ptr<io::data>> kiew;
@@ -151,7 +167,10 @@ void engine::start() {
 
     // Send events queued while multiplexing was stopped.
     _kiew = std::move(kiew);
-    _send_to_subscribers();
+    if (!_sending_to_subscribers) {
+      _sending_to_subscribers = true;
+      _strand.post(std::bind(&engine::_send_to_subscribers, this));
+    }
   }
   log_v2::core()->info("multiplexing: engine started");
 }
@@ -163,16 +182,23 @@ void engine::stop() {
   std::unique_lock<std::mutex> lock(_engine_m);
   if (_state != stopped) {
     // Notify hooks of multiplexing loop end.
-    log_v2::core()->debug("multiplexing: stopping engine");
+    log_v2::core()->info("multiplexing: stopping engine");
 
     do {
-      // Process events from hooks.
-      _send_to_subscribers();
-
       // Make sure that no more data is available.
-      lock.unlock();
-      usleep(200000);
-      lock.lock();
+      if (!_sending_to_subscribers) {
+        log_v2::core()->info(
+            "multiplexing: sending events to muxers for the last time");
+        _sending_to_subscribers = true;
+        lock.unlock();
+        std::promise<void> promise;
+        _strand.post([this, &promise] {
+          _send_to_subscribers();
+          promise.set_value();
+        });
+        promise.get_future().get();
+        lock.lock();
+      }
     } while (!_kiew.empty());
 
     // Open the cache file and start the transaction.
@@ -191,7 +217,7 @@ void engine::stop() {
     // Set writing method.
     _state = stopped;
     stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                     EngineStats::WRITE_TO_CACHE_FILE);
+                                     EngineStats::STOPPED);
   }
   log_v2::core()->debug("multiplexing: engine stopped");
 }
@@ -202,9 +228,13 @@ void engine::stop() {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::subscribe(muxer* subscriber) {
-  std::lock_guard<std::mutex> lock(_engine_m);
-  log_v2::core()->trace("muxer {} subscribes to engine", subscriber->name());
-  _muxers.push_back(subscriber);
+  std::promise<void> promise;
+  _strand.post([this, &promise, subscriber] {
+    log_v2::core()->trace("muxer {} subscribes to engine", subscriber->name());
+    _muxers.push_back(subscriber);
+    promise.set_value();
+  });
+  promise.get_future().get();
 }
 
 /**
@@ -213,15 +243,18 @@ void engine::subscribe(muxer* subscriber) {
  *  @param[in] subscriber  Subscriber.
  */
 void engine::unsubscribe(muxer* subscriber) {
-  std::lock_guard<std::mutex> lock(_engine_m);
-  // std::remove(_muxers.begin(), _muxers.end(), subscriber);
-  for (auto it = _muxers.begin(), end = _muxers.end(); it != end; ++it)
-    if (*it == subscriber) {
-      log_v2::core()->trace("muxer {} unsubscribes to engine",
-                            subscriber->name());
-      _muxers.erase(it);
-      break;
-    }
+  std::promise<void> promise;
+  _strand.post([this, &promise, subscriber] {
+    for (auto it = _muxers.begin(), end = _muxers.end(); it != end; ++it)
+      if (*it == subscriber) {
+        log_v2::core()->trace("muxer {} unsubscribes to engine",
+                              subscriber->name());
+        _muxers.erase(it);
+        break;
+      }
+    promise.set_value();
+  });
+  promise.get_future().get();
 }
 
 /**
@@ -229,11 +262,13 @@ void engine::unsubscribe(muxer* subscriber) {
  */
 engine::engine()
     : _state{not_started},
+      _strand(pool::instance().io_context()),
       _muxers{},
       _stats{stats::center::instance().register_engine()},
-      _unprocessed_events{0u} {
+      _unprocessed_events{0u},
+      _sending_to_subscribers{false} {
   stats::center::instance().update(&EngineStats::set_mode, _stats,
-                                   EngineStats::NOP);
+                                   EngineStats::NOT_STARTED);
 }
 
 /**
@@ -248,17 +283,60 @@ std::string engine::_cache_file_path() const {
 }
 
 /**
- *  Send queued events to subscribers.
+ *  Send queued events to subscribers. Since events are queued, we use a strand
+ *  to keep their order. But there are several muxers, so we parallelize the
+ *  sending of data to each.
  */
 void engine::_send_to_subscribers() {
   // Process all queued events.
   std::deque<std::shared_ptr<io::data>> kiew;
-  std::swap(_kiew, kiew);
-  for (auto& e : kiew) {
-    // Send object to every subscriber.
-    for (muxer* m : _muxers)
-      m->publish(e);
+  {
+    std::lock_guard<std::mutex> lck(_engine_m);
+    if (_kiew.empty()) {
+      _sending_to_subscribers = false;
+      return;
+    }
+    std::swap(_kiew, kiew);
   }
+
+  stats::center::instance().update(&EngineStats::set_processed_events, _stats,
+                                   static_cast<uint32_t>(kiew.size()));
+  std::atomic<size_t> count{_muxers.size()};
+  if (count > 0) {
+    /* We must wait the end of the sending, so we use a promise. */
+    std::promise<void> promise;
+
+    /* Since the sending is parallelized, we use the thread pool for this
+     * purpose except for the last muxer where we use this thread. */
+
+    /* We get an iterator to the last muxer */
+    auto it_last = --_muxers.end();
+
+    /* We use the thread pool for the muxers from the first one to the second
+     * to last */
+    for (auto it = _muxers.begin(); it != it_last; ++it) {
+      pool::io_context().post([&kiew, m = *it, &count, &promise] {
+        for (auto& e : kiew)
+          m->publish(e);
+        --count;
+        if (count == 0)
+          promise.set_value();
+      });
+    }
+    /* The same work but by this thread for the last muxer. */
+    auto m = *it_last;
+    for (auto& e : kiew)
+      m->publish(e);
+    --count;
+
+    if (count == 0)
+      promise.set_value();
+
+    promise.get_future().get();
+  }
+
+  /* The strand is necessary for the order of data */
+  _strand.post(std::bind(&engine::_send_to_subscribers, this));
 }
 
 /**

@@ -164,6 +164,7 @@ class stream : public io::stream {
   // bool _exit;
   uint32_t _loop_timeout;
   uint32_t _max_pending_queries;
+  database_config _dbcfg;
   mysql _mysql;
   uint32_t _instance_timeout;
   rebuilder _rebuilder;
@@ -316,7 +317,6 @@ class stream : public io::stream {
          uint32_t interval_length,
          uint32_t loop_timeout,
          uint32_t instance_timeout,
-         uint32_t rebuild_check_interval,
          bool store_in_data_bin);
   stream() = delete;
   stream& operator=(const stream&) = delete;
@@ -333,6 +333,7 @@ class stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
   int32_t stop() override;
   void statistics(nlohmann::json& tree) const;
+  void remove_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace unified_sql
 CCB_END()

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015,2017 Centreon
+** Copyright 2011-2015,2017, 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -174,6 +174,8 @@ void output<T>::update() {
 template <typename T>
 int output<T>::write(std::shared_ptr<io::data> const& d) {
   log_v2::rrd()->trace("RRD: output::write.");
+  if (d->type() == 0x30009)
+    log_v2::rrd()->warn("RRD: GOODGOODGOOD");
   // Check that data exists.
   if (!validate(d, "RRD"))
     return 1;
@@ -281,87 +283,66 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           it->second.push_back(d);
       }
       break;
-    case storage::pb_rebuild::static_type(): {
-      std::shared_ptr<storage::pb_rebuild> e{
-          std::static_pointer_cast<storage::pb_rebuild>(d)};
-      std::string path;
-      std::list<std::string> lst;
-      if (e->obj.has_index_id()) {
-        log_v2::rrd()->debug("RRD: complete rebuild request for status {}",
-                             e->obj.index_id());
-        // Generate path.
-        path = fmt::format("{}{}.rrd", _status_path, e->obj.index_id());
-        time_t start_time = time(nullptr);
-        if (!e->obj.data().empty())
-          start_time = e->obj.data()[0].ctime() - 1;
-        for (auto& p : e->obj.data()) {
-          std::string v;
-          switch (p.status()) {
-            case 0:
-              lst.emplace_back(fmt::format("{}:{}", p.ctime(), 100));
-              break;
-            case 1:
-              lst.emplace_back(fmt::format("{}:{}", p.ctime(), 75));
-              break;
-            case 2:
-              lst.emplace_back(fmt::format("{}:{}", p.ctime(), 0));
-              break;
-            default:
-              lst.emplace_back(fmt::format("{}:", p.ctime()));
-              break;
+    case storage::pb_rebuild_message::static_type(): {
+      log_v2::rrd()->debug("RRD: RebuildMessage received");
+      std::shared_ptr<storage::pb_rebuild_message> e{
+          std::static_pointer_cast<storage::pb_rebuild_message>(d)};
+      switch (e->obj.state()) {
+        case RebuildMessage_State_START:
+          log_v2::rrd()->debug("RRD: Starting to rebuild metrics ({})",
+                               fmt::join(e->obj.metric_id(), ","));
+          // Rebuild is starting.
+          for (auto& m : e->obj.metric_id()) {
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+            /* Creation of metric caches */
+            _metrics_rebuild[path];
+            /* File removed */
+            _backend.remove(path);
           }
-        }
+          break;
+        case RebuildMessage_State_DATA:
+          log_v2::rrd()->debug("RRD: Data to rebuild metrics");
+          _rebuild_data(e->obj);
+          break;
+        case RebuildMessage_State_END:
+          log_v2::rrd()->debug("RRD: Finishing to rebuild metrics ({})",
+                               fmt::join(e->obj.metric_id(), ","));
+          // Rebuild is ending.
+          for (auto& m : e->obj.metric_id()) {
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+            auto it = _metrics_rebuild.find(path);
+            std::list<std::shared_ptr<io::data>> l;
+            if (it != _metrics_rebuild.end()) {
+              l = std::move(it->second);
+              _metrics_rebuild.erase(it);
+              while (!l.empty()) {
+                write(l.front());
+                l.pop_front();
+              }
+            }
+          }
+          break;
+      }
+    } break;
+    case storage::pb_remove_graph_message::static_type(): {
+      log_v2::rrd()->debug("RRD: RemoveGraphsMessage received");
+      std::shared_ptr<storage::pb_remove_graph_message> e{
+          std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
+      for (auto& m : e->obj.metric_ids()) {
+        std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+        /* File removed */
+        log_v2::rrd()->info("RRD: removing {} file", path, m);
         _backend.remove(path);
-        try {
-          _backend.open(path);
-        } catch (exceptions::open const& b) {
-          time_t interval{e->obj.interval() ? e->obj.interval() : 60};
-          _backend.open(path, e->obj.length(), start_time, interval);
-        }
-        _backend.update(lst);
-      } else {
-        log_v2::rrd()->debug("RRD: complete rebuild request for metric {}",
-                             e->obj.metric().metric_id());
-        time_t start_time = time(nullptr);
-        if (!e->obj.data().empty())
-          start_time = e->obj.data()[0].ctime() - 1;
-        // Generate path.
-        path =
-            fmt::format("{}{}.rrd", _metrics_path, e->obj.metric().metric_id());
-        std::string v;
-        switch (e->obj.metric().value_type()) {
-          case misc::perfdata::gauge:
-            for (auto& p : e->obj.data())
-              lst.emplace_back(fmt::format("{}:{:f}", p.ctime(), p.value()));
-            break;
-          case misc::perfdata::counter:
-          case misc::perfdata::absolute:
-            for (auto& p : e->obj.data())
-              lst.emplace_back(fmt::format("{}:{}", p.ctime(),
-                                           static_cast<uint64_t>(p.value())));
-            break;
-          case misc::perfdata::derive:
-            for (auto& p : e->obj.data())
-              lst.emplace_back(fmt::format("{}:{}", p.ctime(),
-                                           static_cast<int64_t>(p.value())));
-            break;
-          default:
-            for (auto& p : e->obj.data())
-              lst.emplace_back(fmt::format("{}:{:f}", p.ctime(), p.value()));
-            break;
-        }
+      }
+      for (auto& i : e->obj.index_ids()) {
+        std::string path{fmt::format("{}{}.rrd", _status_path, i)};
+        /* File removed */
+        log_v2::rrd()->info("RRD: removing {} file", path);
         _backend.remove(path);
-        try {
-          _backend.open(path);
-        } catch (exceptions::open const& b) {
-          time_t interval{e->obj.interval() ? e->obj.interval() : 60};
-          _backend.open(path, e->obj.length(), start_time, interval,
-                        e->obj.metric().value_type());
-        }
-        _backend.update(lst);
       }
     } break;
     case storage::rebuild::static_type(): {
+      log_v2::rrd()->info("storage::rebuild");
       // Debug message.
       std::shared_ptr<storage::rebuild> e(
           std::static_pointer_cast<storage::rebuild>(d));
@@ -410,6 +391,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       }
     } break;
     case storage::remove_graph::static_type(): {
+      log_v2::rrd()->info("storage::remove_graph");
       // Debug message.
       std::shared_ptr<storage::remove_graph> e(
           std::static_pointer_cast<storage::remove_graph>(d));
@@ -429,7 +411,64 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       // Remove file.
       _backend.remove(path);
     } break;
+    default:
+      log_v2::rrd()->warn("RRD: unknown BBDO message received of type {}",
+                          d->type());
   }
 
   return 1;
+}
+
+/**
+ * @brief Internal function called to read the protobuf RebuildMessage
+ * when timeseries are received. It is here that RRD files are rebuilt.
+ *
+ * @tparam T The backend RRD.
+ * @param rm The message to handle.
+ */
+template <typename T>
+void output<T>::_rebuild_data(const RebuildMessage& rm) {
+  for (auto& p : rm.timeserie()) {
+    std::deque<std::string> query;
+    log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
+    std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
+    int32_t data_source_type = p.second.data_source_type();
+    switch (data_source_type) {
+      case misc::perfdata::gauge:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
+        break;
+      case misc::perfdata::counter:
+      case misc::perfdata::absolute:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
+                                         static_cast<uint64_t>(pt.value())));
+        break;
+      case misc::perfdata::derive:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
+                                         static_cast<int64_t>(pt.value())));
+        break;
+    }
+    if (!query.empty()) {
+      try {
+        _backend.open(path);
+      } catch (const exceptions::open& ex) {
+        log_v2::rrd()->debug("RRD file '{}' does not exist", path);
+        time_t start_time;
+        if (!p.second.pts().empty())
+          start_time = p.second.pts()[0].ctime() - 1;
+        else
+          start_time = std::time(nullptr);
+        log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
+        uint32_t interval{p.second.check_interval() ? p.second.check_interval()
+                                                    : 60};
+        _backend.open(path, p.second.rrd_retention(), start_time, interval,
+                      p.second.data_source_type());
+      }
+      log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
+      _backend.update(query);
+    } else
+      log_v2::rrd()->trace("Nothing to rebuild in '{}'", path);
+  }
 }

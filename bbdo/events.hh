@@ -78,6 +78,15 @@ constexpr const char* category_name(data_category cat) {
   }
 }
 }  // namespace io
+namespace bbdo {
+enum data_element {
+  de_version_response = 1,
+  de_ack = 2,
+  de_stop = 3,
+  de_rebuild_rrd_graphs = 4,
+  de_remove_graphs = 5,
+};
+}
 namespace storage {
 enum data_element {
   de_metric = 1,
@@ -87,6 +96,8 @@ enum data_element {
   de_index_mapping = 5,
   de_metric_mapping = 6,
   de_pb_rebuild = 7,
+  de_rebuild_message = 8,
+  de_remove_graph_message = 9,
 };
 }
 namespace bam {

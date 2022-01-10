@@ -181,12 +181,23 @@ void mysql_bind::set_value_as_u64(int range, unsigned long long value) {
   _bind[range].length = _column[range].length_buffer();
 }
 
-unsigned long long mysql_bind::value_as_u64(int range) const {
+int64_t mysql_bind::value_as_i64(int range) const {
   if (_bind[range].buffer_type == MYSQL_TYPE_LONGLONG)
-    return *static_cast<uint32_t*>(_bind[range].buffer);
+    return *static_cast<int64_t*>(_bind[range].buffer);
   else if (_bind[range].buffer_type == MYSQL_TYPE_STRING) {
-    unsigned long long retval(
-        strtoul(static_cast<char*>(_bind[range].buffer), nullptr, 10));
+    uint64_t retval(
+        strtoll(static_cast<char*>(_bind[range].buffer), nullptr, 10));
+    return retval;
+  } else
+    assert("This field is not an unsigned long int" == nullptr);
+}
+
+uint64_t mysql_bind::value_as_u64(int range) const {
+  if (_bind[range].buffer_type == MYSQL_TYPE_LONGLONG)
+    return *static_cast<uint64_t*>(_bind[range].buffer);
+  else if (_bind[range].buffer_type == MYSQL_TYPE_STRING) {
+    uint64_t retval(
+        strtoull(static_cast<char*>(_bind[range].buffer), nullptr, 10));
     return retval;
   } else
     assert("This field is not an unsigned long int" == nullptr);

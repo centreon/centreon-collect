@@ -79,6 +79,18 @@ class BrokerRPCClient {
     }
     return true;
   }
+
+  bool GetMuxerStats(MuxerStats* response, const std::string& name) {
+    GenericString s;
+    s.set_str_arg(name);
+    grpc::ClientContext context;
+    grpc::Status status = _stub->GetMuxerStats(&context, s, response);
+    if (!status.ok()) {
+      std::cout << "GetMuxerStats rpc failed." << std::endl;
+      return false;
+    }
+    return true;
+  }
 };
 
 int main(int argc, char** argv) {
@@ -92,13 +104,13 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  if (strcmp(argv[1], "GetVersion") == 0) {
+  else if (strcmp(argv[1], "GetVersion") == 0) {
     Version version;
     status = client.GetVersion(&version) ? 0 : 1;
     std::cout << "GetVersion: " << version.DebugString();
   }
 
-  if (strcmp(argv[1], "GetSqlConnectionStatsValue") == 0) {
+  else if (strcmp(argv[1], "GetSqlConnectionStatsValue") == 0) {
     uint32_t sz = atoi(argv[2]);
     SqlConnectionStats response;
     for (uint32_t i = 0; i < sz; ++i) {
@@ -107,17 +119,28 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
+  else if (strcmp(argv[1], "GetSqlConnectionSize") == 0) {
     GenericSize response;
     status = client.GetSqlConnectionSize(&response) ? 0 : 1;
     std::cout << "connection array size: " << response.size() << std::endl;
   }
 
-  if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
+  else if (strcmp(argv[1], "GetConflictManagerStats") == 0) {
     ConflictManagerStats response;
     status = client.GetConflictManagerStats(&response) ? 0 : 1;
     std::cout << "events_handled: " << response.events_handled() << std::endl;
-  }
+  } else if (strcmp(argv[1], "GetMuxerStats") == 0) {
+    status = 0;
+    for (int16_t cpt = 2; cpt < argc; cpt++) {
+      MuxerStats response;
+      status += client.GetMuxerStats(&response, argv[cpt]) ? 0 : 1;
+      std::cout << "name: " << argv[cpt]
+                << ", queue_file: " << response.queue_file()
+                << ", unacknowledged_events: "
+                << response.unacknowledged_events() << std::endl;
+    }
+  } else
+    std::cout << "warning : not implemented" << std::endl;
 
   exit(status);
 }

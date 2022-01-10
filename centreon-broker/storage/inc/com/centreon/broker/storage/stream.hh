@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2017 Centreon
+** Copyright 2011-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/storage/rebuilder.hh"
 
 CCB_BEGIN()
 
@@ -71,7 +70,6 @@ class stream : public io::stream {
   };
 
   int32_t _pending_events;
-  rebuilder _rebuilder;
   std::string _status;
   mutable std::mutex _statusm;
   bool _stopped;
@@ -82,7 +80,6 @@ class stream : public io::stream {
   stream(database_config const& dbcfg,
          uint32_t rrd_len,
          uint32_t interval_length,
-         uint32_t rebuild_check_interval,
          bool store_in_db = true);
   ~stream();
   stream(const stream&) = delete;

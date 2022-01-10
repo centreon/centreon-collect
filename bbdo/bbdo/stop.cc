@@ -1,5 +1,5 @@
 /*
-** Copyright 2013, 2021 Centreon
+** Copyright 2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bbdo/ack.hh"
+#include "bbdo/bbdo/stop.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
@@ -24,24 +24,14 @@ using namespace com::centreon::broker::bbdo;
 /**
  *  Default constructor.
  */
-ack::ack() : io::data(ack::static_type()), acknowledged_events(0) {}
-
-/**
- *  Constructor.
- *
- * @param acknowledged_events How many events to acknowledge.
- */
-ack::ack(uint32_t acknowledged_events)
-    : io::data(ack::static_type()), acknowledged_events(acknowledged_events) {}
+stop::stop() : io::data(stop::static_type()) {}
 
 // Mapping.
-mapping::entry const ack::entries[]{
-    mapping::entry(&ack::acknowledged_events, "acknowledged_events"),
-    mapping::entry()};
+mapping::entry const stop::entries[]{mapping::entry()};
 
 // Operations.
-static io::data* new_ack() {
-  return new ack;
+static io::data* new_stop() {
+  return new stop;
 }
-io::event_info::event_operations const ack::operations = {&new_ack, nullptr,
-                                                          nullptr};
+io::event_info::event_operations const stop::operations = {&new_stop, nullptr,
+                                                           nullptr};

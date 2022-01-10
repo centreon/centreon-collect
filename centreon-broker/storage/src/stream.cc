@@ -51,8 +51,6 @@ using namespace com::centreon::broker::storage;
  *  @param[in] db_cfg                  Database configuration.
  *  @param[in] rrd_len                 RRD length.
  *  @param[in] interval_length         Length in seconds of a time unit.
- *  @param[in] rebuild_check_interval  How often the stream must check
- *                                     for graph rebuild.
  *  @param[in] store_in_db             Should we insert data in
  *                                     data_bin ?
  *  @param[in] insert_in_index_data    Create entries in index_data or
@@ -61,21 +59,14 @@ using namespace com::centreon::broker::storage;
 stream::stream(database_config const& dbcfg,
                uint32_t rrd_len,
                uint32_t interval_length,
-               uint32_t rebuild_check_interval,
                bool store_in_db)
-    : io::stream("storage"),
-      _pending_events(0),
-      _rebuilder(dbcfg,
-                 rebuild_check_interval,
-                 rrd_len ? rrd_len : 15552000,
-                 interval_length),
-      _stopped(false) {
+    : io::stream("storage"), _pending_events(0), _stopped(false) {
   log_v2::sql()->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;
 
   if (!conflict_manager::init_storage(store_in_db, rrd_len, interval_length,
-                                      dbcfg.get_queries_per_transaction())) {
+                                      dbcfg)) {
     log_v2::sql()->error("storage stream instanciation failed");
     throw msg_fmt(
         "storage: Unable to initialize the storage connection to the database");
@@ -112,7 +103,7 @@ int32_t stream::flush() {
   _pending_events -= retval;
 
   // Event acknowledgement.
-  log_v2::perfdata()->debug("storage: {} events have not yet been acknowledged",
+  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", retval,
                             _pending_events);
   return retval;
 }
@@ -141,7 +132,7 @@ void stream::statistics(nlohmann::json& tree) const {
   std::lock_guard<std::mutex> lock(_statusm);
   if (!_status.empty())
     tree["status"] = _status;
-  tree["pending events"] = _pending_events;
+  tree["storage pending events"] = _pending_events;
 }
 
 /**
@@ -159,6 +150,9 @@ int32_t stream::write(std::shared_ptr<io::data> const& data) {
   int32_t ack =
       conflict_manager::instance().send_event(conflict_manager::storage, data);
   _pending_events -= ack;
+  // Event acknowledgement.
+  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", ack,
+                            _pending_events);
   return ack;
 }
 

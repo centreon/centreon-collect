@@ -44,7 +44,16 @@ class protobuf : public data {
    * @brief Default constructor
    */
   protobuf() : data(Typ) {}
-  protobuf(protobuf const&) = delete;
+  /**
+   * @brief Constructor that initializes the T object from an existing one.
+   * The io::protobuf class is a BBDO object that encapsulates a protobuf
+   * object. It is useful to be able to construct an io::protobuf directly from
+   * the Protobuf object.
+   *
+   * @param o The protobuf object (it is copied).
+   */
+  protobuf(const T& o) : data(Typ), obj(o) {}
+  protobuf(const protobuf&) = delete;
   ~protobuf() noexcept = default;
   protobuf& operator=(const protobuf&) = delete;
 
