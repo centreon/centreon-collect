@@ -21,7 +21,6 @@
 #include <cfloat>
 #include <cstring>
 #include <list>
-#include <set>
 #include <sstream>
 
 #include "com/centreon/broker/database/table_max_size.hh"
