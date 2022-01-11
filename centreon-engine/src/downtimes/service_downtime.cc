@@ -296,7 +296,7 @@ int service_downtime::subscribe() {
   log_v2::downtimes()->trace(
       " Fixed/Flex:  {} Start:       {} End:         {} Duration:    {}h "
       "{}m {}s Downtime ID: {} Trigger ID:  {}",
-      (is_fixed() ? "Fixed" : "Flexible"), start_time_string, end_time_string,
+      is_fixed() ? "Fixed" : "Flexible", start_time_string, end_time_string,
       hours, minutes, seconds, get_downtime_id(), get_triggered_by());
 
   /* add a non-persistent comment to the host or service regarding the scheduled

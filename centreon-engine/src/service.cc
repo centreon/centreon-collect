@@ -2114,9 +2114,9 @@ void service::check_for_flapping(bool update,
       << com::centreon::logging::setprecision(2) << "LFT=" << low_threshold
       << ", HFT=" << high_threshold << ", CPC=" << curved_percent_change
       << ", PSC=" << curved_percent_change << "%";
-  log_v2::checks()->info("LFT={:.2f}, HFT={:.2f}, CPC={:.2f}, PSC={:.2f}%",
-                         low_threshold, high_threshold, curved_percent_change,
-                         curved_percent_change);
+  log_v2::checks()->debug("LFT={:.2f}, HFT={:.2f}, CPC={:.2f}, PSC={:.2f}%",
+                          low_threshold, high_threshold, curved_percent_change,
+                          curved_percent_change);
 
   /* don't do anything if we don't have flap detection enabled on a program-wide
    * basis */
@@ -2148,8 +2148,7 @@ void service::check_for_flapping(bool update,
       << (is_flapping ? "is" : "is not") << " flapping ("
       << curved_percent_change << "% state change).";
   log_v2::checks()->debug("Service {} flapping ({:.2f}% state change).",
-                          (is_flapping ? "is" : "is not"),
-                          curved_percent_change);
+                          is_flapping ? "is" : "is not", curved_percent_change);
 
   /* did the service just start flapping? */
   if (is_flapping && !get_is_flapping())

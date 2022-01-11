@@ -284,13 +284,6 @@ void loop::_dispatching() {
               config->max_parallel_service_checks(),
               temp_service->get_hostname(), temp_service->get_description(),
               nudge_seconds);
-          log_v2::checks()->trace(
-              "**WARNING** Max concurrent service checks ({}/{}) has been "
-              "reached!  Nudging {}:{} by {} seconds...",
-              currently_running_service_checks,
-              config->max_parallel_service_checks(),
-              temp_service->get_hostname(), temp_service->get_description(),
-              nudge_seconds);
 
           engine_logger(log_runtime_warning, basic)
               << "\tMax concurrent service checks ("
@@ -315,9 +308,6 @@ void loop::_dispatching() {
               << "We're not executing service checks right now, "
               << "so we'll skip this event.";
           log_v2::events()->debug(
-              "We're not executing service checks right now, so we'll skip "
-              "this event.");
-          log_v2::checks()->debug(
               "We're not executing service checks right now, so we'll skip "
               "this event.");
           run_event = false;

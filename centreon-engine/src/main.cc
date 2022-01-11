@@ -174,7 +174,7 @@ int main(int argc, char* argv[]) {
 
     // Just display the license.
     if (display_license) {
-      engine_logger(logging::log_info_message, logging::basic)
+      std::cout
           << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
           << "\n"
              "\n"
@@ -199,40 +199,13 @@ int main(int argc, char* argv[]) {
              "You should have received a copy of the GNU General Public "
              "License\n"
              "along with this program. If not, see\n"
-             "<http://www.gnu.org/licenses/>.";
-
-      log_v2::config()->info(
-          "Centreon Engine {} \n"
-          "\n"
-          "Copyright 1999-2009 Ethan Galstad\n"
-          "Copyright 2009-2010 Nagios Core Development Team and Community "
-          "Contributors\n"
-          "Copyright 2011-2021 Centreon\n"
-          "\n"
-          "This program is free software: you can redistribute it and/or\n"
-          "modify it under the terms of the GNU General Public License "
-          "version 2\n"
-          "as published by the Free Software Foundation.\n"
-          "\n"
-          "Centreon Engine is distributed in the hope that it will be "
-          "useful,\n"
-          "but WITHOUT ANY WARRANTY; without even the implied warranty "
-          "of\n"
-          "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
-          "GNU\n"
-          "General Public License for more details.\n"
-          "\n"
-          "You should have received a copy of the GNU General Public "
-          "License\n"
-          "along with this program. If not, see\n"
-          "<http://www.gnu.org/licenses/>.",
-          CENTREON_ENGINE_VERSION_STRING);
+             "<http://www.gnu.org/licenses/>.\n";
 
       retval = EXIT_SUCCESS;
     }
     // If requested or if an error occured, print usage.
     else if (error || display_help) {
-      engine_logger(logging::log_info_message, logging::basic)
+      std::cout
           << "Usage: " << argv[0] << " [options] <main_config_file>\n"
           << "\n"
           << "Basics:\n"
@@ -260,38 +233,7 @@ int main(int argc, char* argv[]) {
              "https://documentation.centreon.com/docs/centreon-engine/en/"
              "latest/\n"
           << "  Sources                     "
-             "https://github.com/centreon/centreon-engine";
-
-      log_v2::config()->info(
-          "Usage: {} [options] <main_config_file>\n"
-          "\n"
-          "Basics:\n"
-          "  -h, --help                  Print help.\n"
-          "  -V, --license, --version    Print software version and "
-          "license.\n"
-          "\n"
-          "Configuration:\n"
-          "  -v, --verify-config         Verify all configuration data.\n"
-          "  -s, --test-scheduling       Shows projected/recommended "
-          "check\n"
-          "                              scheduling and other diagnostic "
-          "info\n"
-          "                              based on the current "
-          "configuration\n"
-          "                              files.\n"
-          "  -x, --dont-verify-paths     Don't check for circular object "
-          "paths -\n"
-          "                              USE WITH CAUTION !\n"
-          "  -D, --diagnose              Generate a diagnostic file.\n"
-          "\n"
-          "Online:\n"
-          "  Website                     https://www.centreon.com\n"
-          "  Reference documentation     "
-          "https://documentation.centreon.com/docs/centreon-engine/en/"
-          "latest/\n"
-          "  Sources                     "
-          "https://github.com/centreon/centreon-engine",
-          argv[0]);
+             "https://github.com/centreon/centreon-engine\n";
 
       retval = (display_help ? EXIT_SUCCESS : EXIT_FAILURE);
     }
@@ -308,84 +250,51 @@ int main(int argc, char* argv[]) {
 
         configuration::applier::state::instance().apply(config);
 
-        engine_logger(logging::log_info_message, logging::basic)
-            << "\n"
-            << "Checked " << commands::command::commands.size()
-            << " commands.\n"
-            << "Checked " << commands::connector::connectors.size()
-            << " connectors.\n"
-            << "Checked " << contact::contacts.size() << " contacts.\n"
-            << "Checked " << hostdependency::hostdependencies.size()
-            << " host dependencies.\n"
-            << "Checked " << hostescalation::hostescalations.size()
-            << " host escalations.\n"
-            << "Checked " << hostgroup::hostgroups.size() << " host groups.\n"
-            << "Checked " << host::hosts.size() << " hosts.\n"
-            << "Checked " << servicedependency::servicedependencies.size()
-            << " service dependencies.\n"
-            << "Checked " << serviceescalation::serviceescalations.size()
-            << " service escalations.\n"
-            << "Checked " << servicegroup::servicegroups.size()
-            << " service groups.\n"
-            << "Checked " << service::services.size() << " services.\n"
-            << "Checked " << timeperiod::timeperiods.size()
-            << " time periods.\n"
-            << "\n"
-            << "Total Warnings: " << config_warnings << "\n"
-            << "Total Errors:   " << config_errors;
-        log_v2::config()->info(
-            "\n"
-            "Checked {} "
-            " commands.\n"
-            "Checked {} "
-            " connectors.\n"
-            "Checked  {}    contacts.\n"
-            "Checked  {} "
-            " host dependencies.\n"
-            "Checked  {} "
-            " host escalations.\n"
-            "Checked {} host groups.\n"
-            "Checked {} hosts.\n"
-            "Checked {} "
-            " service dependencies.\n"
-            "Checked {} "
-            " service escalations.\n"
-            "Checked {} "
-            " service groups.\n"
-            "Checked {} services.\n"
-            "Checked {} "
-            " time periods.\n"
-            "\n"
-            "Total Warnings: {} \n"
-            "Total Errors: {}",
-            commands::command::commands.size(),
-            commands::connector::connectors.size(), contact::contacts.size(),
-            hostdependency::hostdependencies.size(),
-            hostescalation::hostescalations.size(),
-            hostgroup::hostgroups.size(), host::hosts.size(),
-            servicedependency::servicedependencies.size(),
-            serviceescalation::serviceescalations.size(),
-            servicegroup::servicegroups.size(), service::services.size(),
-            timeperiod::timeperiods.size(), config_warnings, config_errors);
+        std::cout << "\n"
+                  << "Checked " << commands::command::commands.size()
+                  << " commands.\n"
+                  << "Checked " << commands::connector::connectors.size()
+                  << " connectors.\n"
+                  << "Checked " << contact::contacts.size() << " contacts.\n"
+                  << "Checked " << hostdependency::hostdependencies.size()
+                  << " host dependencies.\n"
+                  << "Checked " << hostescalation::hostescalations.size()
+                  << " host escalations.\n"
+                  << "Checked " << hostgroup::hostgroups.size()
+                  << " host groups.\n"
+                  << "Checked " << host::hosts.size() << " hosts.\n"
+                  << "Checked " << servicedependency::servicedependencies.size()
+                  << " service dependencies.\n"
+                  << "Checked " << serviceescalation::serviceescalations.size()
+                  << " service escalations.\n"
+                  << "Checked " << servicegroup::servicegroups.size()
+                  << " service groups.\n"
+                  << "Checked " << service::services.size() << " services.\n"
+                  << "Checked " << timeperiod::timeperiods.size()
+                  << " time periods.\n"
+                  << "\n"
+                  << "Total Warnings: " << config_warnings << "\n"
+                  << "Total Errors:   " << config_errors << std::endl;
         retval = (config_errors ? EXIT_FAILURE : EXIT_SUCCESS);
       } catch (std::exception const& e) {
-        log_v2::config()->error("Error while processing a config file: {}",
-                                e.what());
-        engine_logger(logging::log_config_error, logging::basic)
-            << "Error while processing a config file: " << e.what();
+        std::cout << "Error while processing a config file: " << e.what()
+                  << std::endl;
 
-        log_v2::config()->error(
-            "One or more problems occurred while processing the config files. "
-            "Check your configuration file(s) to ensure that they contain "
-            "valid directives and data definitions. If you are upgrading from "
-            "a previous version of Centreon Engine, you should be aware that "
-            "some variables/definitions may have been removed or modified in "
-            "this version. Make sure to read the documentation regarding the "
-            "config files, as well as the version changelog to find out what "
-            "has changed.");
-        engine_logger(logging::log_config_error, logging::basic)
+        std::cout
             << "One or more problems occurred while processing the config "
-               "files.\n\n" ERROR_CONFIGURATION;
+               "files.\n "
+               "Check your configuration file(s) to ensure that they contain "
+               "valid directives and data definitions.\nIf you are upgrading "
+               "from "
+               "a previous version of Centreon Engine, you should be aware "
+               "that "
+               "some variables/definitions may have been removed or modified "
+               "in "
+               "this version.\n Make sure to read the documentation regarding "
+               "the "
+               "config files, as well as the version changelog to find out "
+               "what "
+               "has changed.\n";
       }
     }
     // We're just testing scheduling.
@@ -405,8 +314,8 @@ int main(int argc, char* argv[]) {
           try {
             p.parse(config.state_retention_file(), state);
           } catch (std::exception const& e) {
-            log_v2::config()->error("Error while parsing the retention: {}",
-                                    e.what());
+            std::cout << "Error while parsing the retention: {}" << e.what()
+                      << std::endl;
             engine_logger(logging::log_config_error, logging::basic)
                 << e.what();
           }
@@ -418,8 +327,7 @@ int main(int argc, char* argv[]) {
         display_scheduling_info();
         retval = EXIT_SUCCESS;
       } catch (std::exception const& e) {
-        log_v2::config()->error("{}", e.what());
-        engine_logger(logging::log_config_error, logging::basic) << e.what();
+        std::cout << e.what() << std::endl;
       }
     }
     // Diagnostic.

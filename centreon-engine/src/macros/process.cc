@@ -54,10 +54,8 @@ int process_macros_r(nagios_macros* mac,
   engine_logger(dbg_macros, more) << "**** BEGIN MACRO PROCESSING ***********\n"
                                      "Processing: '"
                                   << input_buffer << "'";
-  log_v2::macros()->trace(
-      "**** BEGIN MACRO PROCESSING ***********\n"
-      "Processing: '{}'",
-      input_buffer);
+  log_v2::macros()->trace("**** BEGIN MACRO PROCESSING **** Processing: '{}'",
+                          input_buffer);
 
   for (std::string::const_iterator it{input_buffer.begin()},
        end{input_buffer.end()};
@@ -88,8 +86,8 @@ int process_macros_r(nagios_macros* mac,
               << "', Clean Options: " << clean_options
               << ", Free: " << free_macro;
           log_v2::macros()->trace(
-              "  Processed '{}', To '{}', Clean Options: {}, Free: {}",
-              token.c_str(), token_resolved, clean_options, free_macro);
+              "  Processed '{}', To '{}', Clean Options: {}, Free: {}", token,
+              token_resolved, clean_options, free_macro);
 
           /* an error occurred - we couldn't parse the macro, so continue on */
           if (result == ERROR) {
@@ -176,8 +174,7 @@ int process_macros_r(nagios_macros* mac,
                                   << "'\n"
                                      "**** END MACRO PROCESSING *************";
   log_v2::macros()->trace(
-      "  Done.  Final output: '{}'\n"
-      "**** END MACRO PROCESSING *************",
+      "  Done.  Final output: '{}' **** END MACRO PROCESSING ****",
       output_buffer);
   return OK;
 }

@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <sstream>
 #include <vector>
 #include "com/centreon/engine/configuration/parser.hh"
@@ -91,15 +92,11 @@ void diagnostic::generate(std::string const& cfg_file,
   std::vector<std::string> to_remove;
 
   // Base information about the software.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Centreon Engine " << CENTREON_ENGINE_VERSION_STRING;
-  log_v2::config()->info("Diagnostic: Centreon Engine {}",
-                         CENTREON_ENGINE_VERSION_STRING);
+  std::cout << "Diagnostic: Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
+            << std::endl;
 
   // df.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting disk usage";
-  log_v2::config()->info("Diagnostic: Getting disk usage");
+  std::cout << "Diagnostic: Getting disk usage" << std::endl;
   {
     std::string df_log_path(tmp_dir + "/df.log");
     to_remove.push_back(df_log_path);
@@ -107,9 +104,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // lsb_release.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting LSB information";
-  log_v2::config()->info("Diagnostic: Getting LSB information");
+  std::cout << "Diagnostic: Getting LSB information" << std::endl;
   {
     std::string lsb_release_log_path(tmp_dir + "/lsb_release.log");
     to_remove.push_back(lsb_release_log_path);
@@ -117,9 +112,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // uname.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting system name";
-  log_v2::config()->info("Diagnostic: Getting system name");
+  std::cout << "Diagnostic: Getting system name" << std::endl;
   {
     std::string uname_log_path(tmp_dir + "/uname.log");
     to_remove.push_back(uname_log_path);
@@ -127,9 +120,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // /proc/version
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting kernel information";
-  log_v2::config()->info("Diagnostic: Getting kernel information");
+  std::cout << "Diagnostic: Getting kernel information" << std::endl;
   {
     std::string proc_version_log_path(tmp_dir + "/proc_version.log");
     to_remove.push_back(proc_version_log_path);
@@ -137,9 +128,8 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // netstat.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting network connections information";
-  log_v2::config()->info("Diagnostic: Getting network connections information");
+  std::cout << "Diagnostic: Getting network connections information"
+            << std::endl;
   {
     std::string netstat_log_path(tmp_dir + "/netstat.log");
     to_remove.push_back(netstat_log_path);
@@ -147,9 +137,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // ps.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting processes information";
-  log_v2::config()->info("Diagnostic: Getting processes information");
+  std::cout << "Diagnostic: Getting processes information" << std::endl;
   {
     std::string ps_log_path(tmp_dir + "/ps.log");
     to_remove.push_back(ps_log_path);
@@ -157,9 +145,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // rpm.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting packages information";
-  log_v2::config()->info("Diagnostic: Getting packages information");
+  std::cout << "Diagnostic: Getting packages information" << std::endl;
   {
     std::string rpm_log_path(tmp_dir + "/rpm.log");
     to_remove.push_back(rpm_log_path);
@@ -167,9 +153,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // sestatus.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Getting SELinux status";
-  log_v2::config()->info("Diagnostic: Getting SELinux status");
+  std::cout << "Diagnostic: Getting SELinux status" << std::endl;
   {
     std::string sestatus_log_path(tmp_dir + "/selinux.log");
     to_remove.push_back(sestatus_log_path);
@@ -177,21 +161,15 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Parse configuration file.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Parsing configuration file '" << cfg_file << "'";
-  log_v2::config()->info("Diagnostic: Parsing configuration file '{}'",
-                         cfg_file);
+  std::cout << "Diagnostic: Parsing configuration file '" << cfg_file << "'"
+            << std::endl;
   configuration::state conf;
   try {
     configuration::parser parsr;
     parsr.parse(cfg_file, conf);
   } catch (std::exception const& e) {
-    engine_logger(logging::log_runtime_error, logging::basic)
-        << "Diagnostic: configuration file '" << cfg_file
-        << "' parsing failed: " << e.what();
-    log_v2::runtime()->error(
-        "Diagnostic: configuration file '{}' parsing failed: {}", cfg_file,
-        e.what());
+    std::cerr << "Diagnostic: configuration file '" << cfg_file
+              << "' parsing failed: " << e.what() << std::endl;
   }
 
   // Create temporary configuration directory.
@@ -203,9 +181,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Copy base configuration file.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Copying configuration files";
-  log_v2::config()->info("Diagnostic: Copying configuration files");
+  std::cout << "Diagnostic: Copying configuration files" << std::endl;
   {
     std::string target_path(_build_target_path(tmp_cfg_dir, cfg_file));
     to_remove.push_back(target_path);
@@ -230,9 +206,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Log file.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: getting log file";
-  log_v2::config()->info("Diagnostic: getting log file");
+  std::cout << "Diagnostic: getting log file" << std::endl;
   {
     std::string target_path(_build_target_path(tmp_log_dir, conf.log_file()));
     to_remove.push_back(target_path);
@@ -240,9 +214,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Debug file.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: getting debug file";
-  log_v2::config()->info("Diagnostic: getting debug file");
+  std::cout << "Diagnostic: getting debug file" << std::endl;
   {
     std::string target_path(_build_target_path(tmp_log_dir, conf.debug_file()));
     to_remove.push_back(target_path);
@@ -250,9 +222,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Retention file.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: getting retention file";
-  log_v2::config()->info("Diagnostic: getting retention file");
+  std::cout << "Diagnostic: getting retention file" << std::endl;
   {
     std::string target_path(
         _build_target_path(tmp_log_dir, conf.state_retention_file()));
@@ -261,9 +231,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Status file.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: getting status file";
-  log_v2::config()->info("Diagnostic: getting status file");
+  std::cout << "Diagnostic: getting status file" << std::endl;
   {
     std::string target_path(
         _build_target_path(tmp_log_dir, conf.status_file()));
@@ -279,9 +247,8 @@ void diagnostic::generate(std::string const& cfg_file,
     my_out_file = out_file;
 
   // Create tarball.
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Diagnostic: Creating tarball '" << my_out_file << "'";
-  log_v2::config()->info("Diagnostic: Creating tarball '{}'", my_out_file);
+  std::cout << "Diagnostic: Creating tarball '" << my_out_file << "'"
+            << std::endl;
   {
     std::ostringstream cmdline;
     cmdline << "tar czf '" << my_out_file << "' '" << tmp_dir << "'";

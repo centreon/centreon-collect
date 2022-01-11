@@ -691,7 +691,7 @@ void applier::state::_check_serviceescalations() const {
           << " ; list size: " << srv->get_escalations().size();
       log_v2::config()->error(
           "Error on serviceescalation !!! Some escalations are stored "
-          "several times in service {}/{} set size: {} ; list size: ",
+          "several times in service {}/{} set size: {} ; list size: {}",
           srv->get_hostname(), srv->get_description(), s.size(),
           srv->get_escalations().size());
       throw engine_error() << "This is a bug";
@@ -1535,16 +1535,14 @@ void applier::state::_processing(configuration::state& new_cfg,
           << " sec  * = " << runtimes[3] << " sec ("
           << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
       log_v2::process()->info(
-          "\nTiming information on configuration verification is listed "
-          "below.\n\nCONFIG VERIFICATION TIMES          (* = Potential for "
-          "speedup "
-          "with -x option)\n----------------------------------\n"
-          "Template Resolutions: {} sec\n"
-          "Object Relationships: {} sec\n"
-          "Circular Paths:       {} sec  *\n"
-          "Misc:                 {} sec\n"
-          "                      ============\n"
-          "TOTAL:                {} sec  * = {} sec ({} %) estimated savings\n",
+          "Timing information on configuration verification is listed "
+          "below. CONFIG VERIFICATION TIMES (* = Potential for speedup "
+          "with -x option)"
+          "Template Resolutions: {}sec "
+          "Object Relationships: {}sec "
+          "Circular Paths:       {}sec  * "
+          "Misc:                 {}sec "
+          "TOTAL:                {}sec  * = {}sec ({} %) estimated savings",
           runtimes[0], runtimes[2], runtimes[3], runtimes[1], runtimes[4],
           runtimes[3], (runtimes[3] * 100.0 / runtimes[4]));
     }

@@ -161,7 +161,8 @@ notifier::notifier(notifier::notifier_type notifier_type,
         << "Error: Invalid notification_interval value for notifier '"
         << display_name << "'";
     log_v2::config()->error(
-        "Error: Invalid notification_interval value for notifier '{}'");
+        "Error: Invalid notification_interval value for notifier '{}'",
+        display_name);
     throw engine_error() << "Could not register notifier '" << display_name
                          << "'";
   }
@@ -354,7 +355,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
     log_v2::notifications()->debug(
         "This notifier is configured with a first notification delay, we "
         "won't send notification until timestamp {}",
-        (_first_notification_delay * config->interval_length()));
+        _first_notification_delay * config->interval_length());
     return false;
   }
 
@@ -394,7 +395,8 @@ bool notifier::_is_notification_viable_normal(reason_type type
           log_v2::notifications()->debug(
               "This notifier problem has been sent at {} so it won't be sent "
               "until {}",
-              (notification_interval * config->interval_length()));
+              _last_notification,
+              notification_interval * config->interval_length());
           return false;
         }
       }
@@ -503,7 +505,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
           "This notifier is configured with a recovery notification delay. "
           "It won't send any recovery notification until timestamp "
           "so it won't be sent until {}",
-          (get_last_hard_state_change() + _recovery_notification_delay));
+          get_last_hard_state_change() + _recovery_notification_delay);
       retval = false;
       send_later = true;
     } else if (_notification_number == 0) {

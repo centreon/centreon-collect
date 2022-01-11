@@ -400,7 +400,7 @@ typedef struct nebstruct_log_struct {
 
   time_t entry_time;
   int data_type;
-  char* data;
+  const char* data;
 } nebstruct_log_data;
 
 /* Module data structure. */

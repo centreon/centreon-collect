@@ -348,8 +348,8 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
              "id ("
           << hid << ")";
       log_v2::config()->error(
-          "Error: host id ({}) of host ('{}') of anomaly detection service '' "
-          "has a conflict between config does not match with the config "
+          "Error: host id ({}) of host ('{}') of anomaly detection service "
+          "'{}' has a conflict between config does not match with the config "
           "id ({})",
           host_id, host_name, description, hid);
       return nullptr;

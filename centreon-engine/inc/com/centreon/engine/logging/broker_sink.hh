@@ -40,11 +40,9 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
     // If needed (very likely but not mandatory), the sink formats the message
     // before sending it to its final destination:
     if (this->should_log(msg.level)) {
-      spdlog::memory_buf_t formatted;
-      spdlog::details::fmt_helper::append_string_view(msg.payload, formatted);
       nebstruct_log_data ds;
-      ds.entry_time = time(NULL);
-      ds.data = (char*)fmt::to_string(formatted).data();
+      ds.entry_time = time(nullptr);
+      ds.data = msg.payload.data();
 
       // Make callbacks.
       neb_make_callbacks(NEBCALLBACK_LOG_DATA, &ds);

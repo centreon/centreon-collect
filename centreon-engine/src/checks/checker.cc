@@ -432,7 +432,7 @@ void checker::finished(commands::result const& res) noexcept {
  */
 com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   engine_logger(dbg_functions, basic) << "checker::_execute_sync: hst=" << hst;
-  log_v2::functions()->trace("checker::_execute_sync: hst={:x}", (void*)hst);
+  log_v2::functions()->trace("checker::_execute_sync: hst={:p}", (void*)hst);
 
   // Preamble.
   if (!hst)

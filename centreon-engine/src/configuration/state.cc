@@ -3826,6 +3826,8 @@ std::string const& state::log_v2_logger() const noexcept {
  *  @param[in] value The new log_v2_logger value.
  */
 void state::log_v2_logger(std::string const& value) {
+  if (value.empty())
+    throw(engine_error() << "log_v2_logger cannot be empty");
   _log_v2_logger = value;
 }
 
@@ -3847,7 +3849,7 @@ void state::log_level_functions(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_functions = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_functions");
+    throw(engine_error() << "error wrong level setted for log_level_functions");
 }
 
 /**
@@ -3868,7 +3870,7 @@ void state::log_level_config(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_config = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_config");
+    throw(engine_error() << "error wrong level setted for log_level_config");
 }
 
 /**
@@ -3889,7 +3891,7 @@ void state::log_level_events(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_events = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_events");
+    throw(engine_error() << "error wrong level setted for log_level_events");
 }
 
 /**
@@ -3910,7 +3912,7 @@ void state::log_level_checks(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_checks = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_checks");
+    throw(engine_error() << "error wrong level setted for log_level_checks");
 }
 
 /**
@@ -3931,8 +3933,8 @@ void state::log_level_notifications(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_notifications = value;
   else
-    log_v2::config()->error(
-        "error wrong level setted for log_level_notifications");
+    throw(engine_error()
+          << "error wrong level setted for log_level_notifications");
 }
 
 /**
@@ -3953,8 +3955,8 @@ void state::log_level_eventbroker(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_eventbroker = value;
   else
-    log_v2::config()->error(
-        "error wrong level setted for log_level_eventbroker");
+    throw(
+        engine_error() << "error wrong level setted for log_level_eventbroker");
 }
 
 /**
@@ -3975,8 +3977,8 @@ void state::log_level_external_command(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_external_command = value;
   else
-    log_v2::config()->error(
-        "error wrong level setted for log_level_external_command");
+    throw(engine_error()
+          << "error wrong level setted for log_level_external_command");
 }
 
 /**
@@ -3997,7 +3999,7 @@ void state::log_level_commands(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_commands = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_commands");
+    throw(engine_error() << "error wrong level setted for log_level_commands");
 }
 
 /**
@@ -4018,7 +4020,7 @@ void state::log_level_downtimes(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_downtimes = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_downtimes");
+    throw(engine_error() << "error wrong level setted for log_level_downtimes");
 }
 
 /**
@@ -4039,7 +4041,7 @@ void state::log_level_comments(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_comments = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_comments");
+    throw(engine_error() << "error wrong level setted for log_level_comments");
 }
 
 /**
@@ -4060,7 +4062,7 @@ void state::log_level_macros(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_macros = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_macros");
+    throw(engine_error() << "error wrong level setted for log_level_macros");
 }
 
 /**
@@ -4081,7 +4083,7 @@ void state::log_level_process(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_process = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_process");
+    throw(engine_error() << "error wrong level setted for log_level_process");
 }
 
 /**
@@ -4102,7 +4104,7 @@ void state::log_level_runtime(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_runtime = value;
   else
-    log_v2::config()->error("error wrong level setted for log_level_runtime");
+    throw(engine_error() << "error wrong level setted for log_level_runtime");
 }
 
 /**

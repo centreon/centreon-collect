@@ -1257,13 +1257,12 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
                           queued_check_result->get_check_options());
   log_v2::checks()->debug(
       "Reschedule Check?:  {}",
-      (queued_check_result->get_reschedule_check() ? "Yes" : "No"));
+      queued_check_result->get_reschedule_check() ? "Yes" : "No");
   log_v2::checks()->debug(
       "Should Reschedule Current Host Check?: {}",
-      (queued_check_result->get_reschedule_check() ? "Yes" : "No"));
-  log_v2::checks()->debug(
-      "Exited OK?:         {}",
-      (queued_check_result->get_exited_ok() ? "Yes" : "No"));
+      queued_check_result->get_reschedule_check() ? "Yes" : "No");
+  log_v2::checks()->debug("Exited OK?:         {}",
+                          queued_check_result->get_exited_ok() ? "Yes" : "No");
   log_v2::checks()->debug("Exec Time:          {:.3f}\n", execution_time);
   log_v2::checks()->debug("Latency:            {}",
                           queued_check_result->get_latency());
@@ -1469,10 +1468,10 @@ int host::handle_async_check_result_3x(check_result* queued_check_result) {
           "Warning: return (code of {} for check of host '{}' was out of "
           "bounds.",
           queued_check_result->get_return_code(), get_name(),
-          ((queued_check_result->get_return_code() == 126 ||
-            queued_check_result->get_return_code() == 127)
-               ? " Make sure the plugin you're trying to run actually exists."
-               : ""));
+          (queued_check_result->get_return_code() == 126 ||
+           queued_check_result->get_return_code() == 127)
+              ? " Make sure the plugin you're trying to run actually exists."
+              : "");
 
       std::ostringstream oss;
       oss << "(Return code of " << queued_check_result->get_return_code()
@@ -2814,7 +2813,7 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
 
   engine_logger(dbg_checks, most)
       << "Checking freshness of host '" << _name << "'...";
-  log_v2::checks()->info("Checking freshness of host '{}'...", _name);
+  log_v2::checks()->debug("Checking freshness of host '{}'...", _name);
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -2833,8 +2832,8 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   engine_logger(dbg_checks, most)
       << "Freshness thresholds: host=" << get_freshness_threshold()
       << ", use=" << freshness_threshold;
-  log_v2::checks()->info("Freshness thresholds: host={}, use={}",
-                         get_freshness_threshold(), freshness_threshold);
+  log_v2::checks()->debug("Freshness thresholds: host={}, use={}",
+                          get_freshness_threshold(), freshness_threshold);
 
   /* calculate expiration time */
   /* CHANGED 11/10/05 EG - program start is only used in expiration time
@@ -3041,8 +3040,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
       "HOST: {}, ATTEMPT={}/{}, CHECK TYPE={}, STATE TYPE={}, OLD STATE={}, "
       "NEW STATE={}",
       _name, get_current_attempt(), get_max_attempts(),
-      (get_check_type() == check_active ? "ACTIVE" : "PASSIVE"),
-      (get_state_type() == hard ? "HARD" : "SOFT"), get_current_state(),
+      get_check_type() == check_active ? "ACTIVE" : "PASSIVE",
+      get_state_type() == hard ? "HARD" : "SOFT", get_current_state(),
       new_state);
 
   /* get the current time */
@@ -3094,7 +3093,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
           << (get_state_type() == hard ? "HARD" : "SOFT")
           << " recovery (it's now UP).";
       log_v2::checks()->debug("Host experienced a {} recovery (it's now UP).",
-                              (get_state_type() == hard ? "HARD" : "SOFT"));
+                              get_state_type() == hard ? "HARD" : "SOFT");
 
       /* reschedule the next check of the host at the normal interval */
       reschedule_check = true;
@@ -3480,7 +3479,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
       "Pre-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
       _name, get_current_attempt(), get_max_attempts(),
-      (get_state_type() == hard ? "HARD" : "SOFT"), _current_state);
+      get_state_type() == hard ? "HARD" : "SOFT", _current_state);
 
   /* handle the host state */
   handle_state();
@@ -3494,7 +3493,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
       "Post-handle_host_state() Host: {}, Attempt={}/{}, Type={}, Final "
       "State={}",
       _name, get_current_attempt(), get_max_attempts(),
-      (get_state_type() == hard ? "HARD" : "SOFT"), _current_state);
+      get_state_type() == hard ? "HARD" : "SOFT", _current_state);
 
   /******************** POST-PROCESSING STUFF *********************/
 
@@ -3620,22 +3619,22 @@ enum host::host_state host::determine_host_reachability() {
 
   engine_logger(dbg_checks, most) << "Determining state of host '" << _name
                                   << "': current state=" << _current_state;
-  log_v2::checks()->info("Determining state of host '{}': current state= {}",
-                         _name, _current_state);
+  log_v2::checks()->debug("Determining state of host '{}': current state= {}",
+                          _name, _current_state);
 
   /* host is UP - no translation needed */
   if (_current_state == host::state_up) {
     state = host::state_up;
     engine_logger(dbg_checks, most)
         << "Host is UP, no state translation needed.";
-    log_v2::checks()->info("Host is UP, no state translation needed.");
+    log_v2::checks()->debug("Host is UP, no state translation needed.");
   }
 
   /* host has no parents, so it is DOWN */
   else if (parent_hosts.size() == 0) {
     state = host::state_down;
     engine_logger(dbg_checks, most) << "Host has no parents, so it is DOWN.";
-    log_v2::checks()->info("Host has no parents, so it is DOWN.");
+    log_v2::checks()->debug("Host has no parents, so it is DOWN.");
   }
 
   /* check all parent hosts to see if we're DOWN or UNREACHABLE */
@@ -3653,7 +3652,7 @@ enum host::host_state host::determine_host_reachability() {
         state = host::state_down;
         engine_logger(dbg_checks, most) << "At least one parent (" << it->first
                                         << ") is up, so host is DOWN.";
-        log_v2::checks()->info(
+        log_v2::checks()->debug(
             "At least one parent ({}) is up, so host is DOWN.", it->first);
         break;
       }
@@ -3663,7 +3662,7 @@ enum host::host_state host::determine_host_reachability() {
       state = host::state_unreachable;
       engine_logger(dbg_checks, most)
           << "No parents were up, so host is UNREACHABLE.";
-      log_v2::checks()->info("No parents were up, so host is UNREACHABLE.");
+      log_v2::checks()->debug("No parents were up, so host is UNREACHABLE.");
     }
   }
 
@@ -3744,13 +3743,13 @@ void host::check_result_freshness() {
   log_v2::functions()->trace("check_host_result_freshness()");
   engine_logger(dbg_checks, most)
       << "Attempting to check the freshness of host check results...";
-  log_v2::checks()->info(
+  log_v2::checks()->debug(
       "Attempting to check the freshness of host check results...");
 
   /* bail out if we're not supposed to be checking freshness */
   if (!config->check_host_freshness()) {
     engine_logger(dbg_checks, most) << "Host freshness checking is disabled.";
-    log_v2::checks()->info("Host freshness checking is disabled.");
+    log_v2::checks()->debug("Host freshness checking is disabled.");
     return;
   }
 
@@ -3814,7 +3813,7 @@ void host::adjust_check_attempt(bool is_active) {
       << "': current attempt=" << get_current_attempt() << "/"
       << get_max_attempts() << ", state=" << _current_state
       << ", state type=" << get_state_type();
-  log_v2::checks()->info(
+  log_v2::checks()->debug(
       "Adjusting check attempt number for host '{}': current attempt= {}/{}, "
       "state= {}, state type= {}",
       _name, get_current_attempt(), get_max_attempts(), _current_state,
@@ -3835,8 +3834,8 @@ void host::adjust_check_attempt(bool is_active) {
 
   engine_logger(dbg_checks, most)
       << "New check attempt number = " << get_current_attempt();
-  log_v2::checks()->info("New check attempt number = {}",
-                         get_current_attempt());
+  log_v2::checks()->debug("New check attempt number = {}",
+                          get_current_attempt());
 }
 
 /* check for hosts that never returned from a check... */
