@@ -3948,7 +3948,7 @@ void host::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Warning: Host '" << _name
         << "' has no services associated with it!";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Host '{}' has no services associated with it!", _name);
     ++w;
   } else {
@@ -4008,7 +4008,7 @@ void host::resolve(int& w, int& e) {
         << get_display_name()
         << "' definition doesn't make any sense - specify down and/or "
            "unreachable options as well";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Recovery notification option in host '{}' definition doesn't "
         "make any sense - specify down and/or "
         "unreachable options as well",

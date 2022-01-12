@@ -1102,7 +1102,7 @@ bool host::_set_last_time_down(time_t value) {
     engine_logger(log_verification_error, basic)
         << "Warning: Host last time down cannot be in the future (bad value: "
         << value << ")";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Host last time down cannot be in the future (bad value: {})",
         value);
     value = now;
@@ -1123,7 +1123,7 @@ bool host::_set_last_time_unreachable(time_t value) {
         << "Warning: Host last time unreachable cannot be in the future (bad "
            "value: "
         << value << ")";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Host last time unreachable cannot be in the future (bad "
         "value: {})",
         value);
@@ -1144,7 +1144,7 @@ bool host::_set_last_time_up(time_t value) {
     engine_logger(log_verification_error, basic)
         << "Warning: Host last time up cannot be in the future (bad value: "
         << value << ")";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Host last time up cannot be in the future (bad value: {})",
         value);
     value = now;

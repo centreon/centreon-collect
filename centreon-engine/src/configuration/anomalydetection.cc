@@ -1680,7 +1680,7 @@ bool anomalydetection::_set_failure_prediction_enabled(bool value) {
   engine_logger(log_verification_error, basic)
       << "Warning: anomalydetection failure_prediction_enabled is deprecated."
       << " This option will not be supported in 20.04.";
-  log_v2::config()->error(
+  log_v2::config()->warn(
       "Warning: anomalydetection failure_prediction_enabled is deprecated. "
       "This option will not be supported in 20.04.");
   ++config_warnings;
@@ -1700,7 +1700,7 @@ bool anomalydetection::_set_failure_prediction_options(
   engine_logger(log_verification_error, basic)
       << "Warning: anomalydetection failure_prediction_options is deprecated."
       << " This option will not be supported in 20.04.";
-  log_v2::config()->error(
+  log_v2::config()->warn(
       "Warning: anomalydetection failure_prediction_options is deprecated. "
       "This option will not be supported in 20.04.");
   ++config_warnings;
@@ -2006,7 +2006,7 @@ bool anomalydetection::_set_parallelize_check(bool value) {
   engine_logger(log_verification_error, basic)
       << "Warning: anomalydetection parallelize_check is deprecated"
       << " This option will not be supported in 20.04.";
-  log_v2::config()->error(
+  log_v2::config()->warn(
       "Warning: anomalydetection parallelize_check is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;

@@ -1220,7 +1220,7 @@ void contact::resolve(int& w, int& e) {
         << "Warning: Contact '" << _name
         << "' has no service "
            "notification time period defined!";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Contact '{}' has no service "
         "notification time period defined!",
         _name);
@@ -1252,7 +1252,7 @@ void contact::resolve(int& w, int& e) {
         << "Warning: Contact '" << _name
         << "' has no host "
            "notification time period defined!";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Contact '{}' has no host "
         "notification time period defined!",
         _name);
@@ -1267,7 +1267,7 @@ void contact::resolve(int& w, int& e) {
           << "Error: Host notification period '"
           << get_host_notification_period() << "' specified for contact '"
           << _name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      log_v2::config()->warn(
           "Error: Host notification period '{}' specified for contact '{}' is "
           "not defined anywhere!",
           get_host_notification_period(), _name);
@@ -1286,7 +1286,7 @@ void contact::resolve(int& w, int& e) {
         << "Warning: Host recovery notification option for contact '" << _name
         << "' doesn't make any sense - specify down "
            "and/or unreachable options as well";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Host recovery notification option for contact '{}' doesn't "
         "make any sense - specify down "
         "and/or unreachable options as well",
@@ -1303,7 +1303,7 @@ void contact::resolve(int& w, int& e) {
         << _name
         << "' doesn't make any sense - specify critical "
            "and/or warning options as well";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Service recovery notification option for contact '{}' "
         "doesn't make any sense - specify critical "
         "and/or warning options as well",

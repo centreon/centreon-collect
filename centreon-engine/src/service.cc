@@ -3724,7 +3724,7 @@ void service::resolve(int& w, int& e) {
         << "' for host '" << _hostname
         << "' doesn't make any sense - specify warning and /or critical "
            "options as well";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Recovery notification option in service '{}' for host '{}' "
         "doesn't make any sense - specify warning and /or critical "
         "options as well",
@@ -3741,7 +3741,7 @@ void service::resolve(int& w, int& e) {
            "its check interval!  Notifications are only re-sent after "
            "checks are made, so the effective notification interval will "
            "be that of the check interval.";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Service '{}' on host '{}'  has a notification interval less "
         "than "
         "its check interval!  Notifications are only re-sent after "

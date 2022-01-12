@@ -498,9 +498,10 @@ TEST_F(HostNotification, SimpleCheck) {
   }
   std::string out{testing::internal::GetCapturedStdout()};
   // Only sent when i == 2
-  size_t step1{out.find("HOST ALERT: test_host;DOWN;HARD;1;")};
+  size_t step1{out.find("[events] [info] HOST ALERT: test_host;DOWN;HARD;1;")};
   // Not found because the alert is sent only one time.
-  size_t step2{out.find("HOST ALERT: test_host;DOWN;HARD;1;", step1 + 1)};
+  size_t step2{out.find("[events] [info] HOST ALERT: test_host;DOWN;HARD;1;",
+                        step1 + 1)};
   // Sent when i == 0 on the second loop.
   size_t step3{
       out.find("HOST NOTIFICATION: admin;test_host;RECOVERY (UP);cmd;")};

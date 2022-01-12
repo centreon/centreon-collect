@@ -517,7 +517,7 @@ int downtime_manager::schedule_downtime(downtime::type type,
     engine_logger(log_verification_error, basic)
         << "SCHEDULE DOWNTIME ALERT : start time is out of range and setted to "
            "1/1/2100 00:00";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "SCHEDULE DOWNTIME ALERT : start time is out of range and setted to "
         "1/1/2100 00:00");
     start_time = 4102441200;
@@ -527,7 +527,7 @@ int downtime_manager::schedule_downtime(downtime::type type,
     engine_logger(log_verification_error, basic)
         << "SCHEDULE DOWNTIME ALERT : end time is out of range and setted to "
            "1/1/2100 00:00";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "SCHEDULE DOWNTIME ALERT : end time is out of range and setted to "
         "1/1/2100 00:00");
     end_time = 4102441200;
@@ -536,7 +536,7 @@ int downtime_manager::schedule_downtime(downtime::type type,
   if (duration > 31622400) {
     engine_logger(log_verification_error, basic)
         << "SCHEDULE DOWNTIME ALERT : is too long and setted to 366 days";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "SCHEDULE DOWNTIME ALERT : is too long and setted to 366 days");
     duration = 31622400;
   }

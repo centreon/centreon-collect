@@ -36,7 +36,6 @@
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-// #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/namespace.hh"
 
@@ -483,7 +482,6 @@ class state {
         (obj.*ptr)(val);
       } catch (std::exception const& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
-        // log_v2::config()->error(e.what());
         return (false);
       }
       return (true);
@@ -497,7 +495,6 @@ class state {
         (obj.*ptr)(value);
       } catch (std::exception const& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
-        // com::centreon::engine::log_v2::config()->error(e.what());
         return (false);
       }
       return (true);

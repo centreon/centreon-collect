@@ -1360,7 +1360,7 @@ void notifier::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Warning: Notifier '" << get_display_name()
         << "' has no check time period defined!";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Notifier '{}' has no check time period defined!",
         get_display_name());
     warnings++;
@@ -1448,7 +1448,7 @@ void notifier::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Warning: Notifier '" << get_display_name()
         << "' has no notification time period defined!";
-    log_v2::config()->error(
+    log_v2::config()->warn(
         "Warning: Notifier '{}' has no notification time period defined!",
         get_display_name());
     warnings++;

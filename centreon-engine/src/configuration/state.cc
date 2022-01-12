@@ -3642,7 +3642,7 @@ void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
   engine_logger(log_verification_error, basic)
       << "Warning: use_aggressive_host_checking is deprecated."
          " This option is no more supported since version 21.04.";
-  log_v2::config()->error(
+  log_v2::config()->warn(
       "Warning: use_aggressive_host_checking is deprecated. This option is no "
       "more supported since version 21.04.");
   ++config_warnings;
