@@ -23,6 +23,7 @@
 #include <mutex>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/logging/broker.hh"
+#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/namespace.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/unique_array_ptr.hh"
@@ -40,9 +41,14 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
     // If needed (very likely but not mandatory), the sink formats the message
     // before sending it to its final destination:
     if (this->should_log(msg.level)) {
-      nebstruct_log_data ds;
-      ds.entry_time = time(nullptr);
-      ds.data = msg.payload.data();
+      std::string message{fmt::to_string(msg.payload)};
+      nebstruct_log_data ds{.type = NEBTYPE_LOG_DATA,
+                            .flags = NEBFLAG_NONE,
+                            .attr = NEBATTR_NONE,
+                            .timestamp = get_broker_timestamp(nullptr),
+                            .entry_time = time(nullptr),
+                            .data_type = logging::log_all,
+                            .data = message.c_str()};
 
       // Make callbacks.
       neb_make_callbacks(NEBCALLBACK_LOG_DATA, &ds);

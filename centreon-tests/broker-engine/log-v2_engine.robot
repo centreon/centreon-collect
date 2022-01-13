@@ -4,7 +4,7 @@ Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
 
-Documentation	Centreon Broker and Engine add Hostgroup
+Documentation	Centreon Broker and Engine log_v2
 Library	DatabaseLibrary
 Library	Process
 Library	OperatingSystem
@@ -41,7 +41,7 @@ LOGV2EB1
 	${result1}=	Find In Log With Timeout	${log}	${start}	${content}	15	
 	Should Be True	${result1}
 
-	Sleep	5s
+	Sleep	10s
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
@@ -156,7 +156,7 @@ LOGV2EB2
 	Should Be True	${result1}
 	Should Be True	${result2}
 
-	Sleep	10s
+	Sleep	20s
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
@@ -271,6 +271,38 @@ LOGV2EF2
 	Should Be True	${result2}	
 	Stop Engine
 	Stop Broker
+
+LOGV2BE2
+	[Documentation]	log-v2 enabled hold log enabled check broker sink is equal
+	[Tags]	Broker	Engine	log-v2	sinkbroker
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+	Engine Config Set Value	${0}	log_legacy_enabled	${1}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+
+	${start}=	Get Current Date	 UTC	exclude_millis=yes
+	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
+    ${time_stamp2}    evaluate    int(${time_stamp})
+	log to console	${time_stamp2}
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	Sleep	3m
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Log To Console	after connection
+	@{output}=	Query	select count(*) as c, output from logs where ctime>=${time_stamp2} group by output having c<>2
+
+	${res}=	engine log duplicate	${output}
+	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
+
+	Stop Engine
+	Stop Broker
+
 
 *** Variables ***
 ${DBName}	centreon_storage

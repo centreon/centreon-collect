@@ -115,9 +115,10 @@ void log_v2::apply(const configuration::state& config) {
       if (config.log_file() != "")
         sinks.push_back(
             std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
-      else
+      else {
         log_v2::config()->error("log_file name is empty");
-      sinks.push_back(std::make_shared<sinks::stdout_sink_mt>());
+        sinks.push_back(std::make_shared<sinks::stdout_sink_mt>());
+      }
     } else if (config.log_v2_logger() == "syslog")
       sinks.push_back(std::make_shared<sinks::syslog_sink_mt>("centreon-engine",
                                                               0, 0, true));
