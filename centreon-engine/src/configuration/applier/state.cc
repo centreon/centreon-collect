@@ -23,8 +23,8 @@
 
 #include <array>
 #include <cassert>
+#include <iostream>
 #include <unordered_map>
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
@@ -1157,8 +1157,7 @@ void applier::state::_apply(configuration::state& new_cfg,
       app_state.apply(new_cfg, state);
     } catch (std::exception const& e) {
       ++config_errors;
-      engine_logger(log_info_message, basic) << e.what();
-      log_v2::events()->info(e.what());
+      std::cout << e.what();
     }
   }
 }
@@ -1177,8 +1176,7 @@ void applier::state::_expand(configuration::state& new_state) {
   } catch (std::exception const& e) {
     if (verify_config) {
       ++config_errors;
-      engine_logger(log_info_message, basic) << e.what();
-      log_v2::events()->info(e.what());
+      std::cout << e.what();
     } else
       throw;
   }
@@ -1435,14 +1433,9 @@ void applier::state::_processing(configuration::state& new_cfg,
         config->serviceescalations());
 
 #ifdef DEBUG_CONFIG
-    engine_logger(log_config_error, basic)
-        << "WARNING!! You are using a version of "
-           "centreon engine for developers!!!"
-           " This is not a production version.";
-    log_v2::config()->error(
-        "WARNING!! You are using a version of "
-        "centreon engine for developers!!!"
-        " This is not a production version.");
+    std::cout << "WARNING!! You are using a version of "
+                 "centreon engine for developers!!!"
+                 " This is not a production version.";
     // Checks on configuration
     _check_serviceescalations();
     _check_hostescalations();
@@ -1520,31 +1513,28 @@ void applier::state::_processing(configuration::state& new_cfg,
                       (tv[i + 1].tv_usec - tv[i].tv_usec) / 1000000.0;
         runtimes[4] += runtimes[i];
       }
-      engine_logger(log_info_message, basic)
+      std::cout
           << "\nTiming information on configuration verification is listed "
              "below.\n\n"
-          << "CONFIG VERIFICATION TIMES          (* = Potential for speedup "
+             "CONFIG VERIFICATION TIMES          (* = Potential for speedup "
              "with -x option)\n"
-          << "----------------------------------\n"
-          << "Template Resolutions: " << runtimes[0] << " sec\n"
-          << "Object Relationships: " << runtimes[2] << " sec\n"
-          << "Circular Paths:       " << runtimes[3] << " sec  *\n"
-          << "Misc:                 " << runtimes[1] << " sec\n"
-          << "                      ============\n"
-          << "TOTAL:                " << runtimes[4]
-          << " sec  * = " << runtimes[3] << " sec ("
+             "----------------------------------\n"
+             "Template Resolutions: "
+          << runtimes[0]
+          << " sec\n"
+             "Object Relationships: "
+          << runtimes[2]
+          << " sec\n"
+             "Circular Paths:       "
+          << runtimes[3]
+          << " sec  *\n"
+             "Misc:                 "
+          << runtimes[1]
+          << " sec\n"
+             "                      ============\n"
+             "TOTAL:                "
+          << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
           << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
-      log_v2::process()->info(
-          "Timing information on configuration verification is listed "
-          "below. CONFIG VERIFICATION TIMES (* = Potential for speedup "
-          "with -x option)"
-          "Template Resolutions: {}sec "
-          "Object Relationships: {}sec "
-          "Circular Paths:       {}sec  * "
-          "Misc:                 {}sec "
-          "TOTAL:                {}sec  * = {}sec ({} %) estimated savings",
-          runtimes[0], runtimes[2], runtimes[3], runtimes[1], runtimes[4],
-          runtimes[3], (runtimes[3] * 100.0 / runtimes[4]));
     }
   } catch (...) {
     _processing_state = state_error;
@@ -1571,8 +1561,7 @@ void applier::state::_resolve(std::set<ConfigurationType>& cfg) {
     } catch (std::exception const& e) {
       if (verify_config) {
         ++config_errors;
-        engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        std::cout << e.what() << std::endl;
       } else
         throw;
     }

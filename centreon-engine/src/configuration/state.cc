@@ -1039,7 +1039,7 @@ unsigned int state::auto_rescheduling_interval() const noexcept {
  */
 void state::auto_rescheduling_interval(unsigned int value) {
   if (!value)
-    throw(engine_error() << "auto_rescheduling_interval cannot be 0");
+    throw engine_error() << "auto_rescheduling_interval cannot be 0";
   _auto_rescheduling_interval = value;
 }
 
@@ -1059,7 +1059,7 @@ unsigned int state::auto_rescheduling_window() const noexcept {
  */
 void state::auto_rescheduling_window(unsigned int value) {
   if (!value)
-    throw(engine_error() << "auto_rescheduling_window cannot be 0");
+    throw engine_error() << "auto_rescheduling_window cannot be 0";
   _auto_rescheduling_window = value;
 }
 
@@ -1265,7 +1265,7 @@ unsigned int state::check_reaper_interval() const noexcept {
  */
 void state::check_reaper_interval(unsigned int value) {
   if (!value)
-    throw(engine_error() << "check_reaper_interval cannot be 0");
+    throw engine_error() << "check_reaper_interval cannot be 0";
   _check_reaper_interval = value;
 }
 
@@ -1358,9 +1358,9 @@ int state::command_check_interval() const noexcept {
  */
 void state::command_check_interval(int value) {
   if (value < -1 || !value)
-    throw(engine_error()
-          << "command_check_interval must be either positive or -1 (" << value
-          << " provided)");
+    throw engine_error()
+        << "command_check_interval must be either positive or -1 (" << value
+        << " provided)";
 
   _command_check_interval = value;
 
@@ -1794,7 +1794,7 @@ unsigned int state::event_handler_timeout() const noexcept {
  */
 void state::event_handler_timeout(unsigned int value) {
   if (!value)
-    throw(engine_error() << "event_handler_timeout cannot be 0");
+    throw engine_error() << "event_handler_timeout cannot be 0";
   _event_handler_timeout = value;
 }
 
@@ -1904,8 +1904,8 @@ float state::high_host_flap_threshold() const noexcept {
  */
 void state::high_host_flap_threshold(float value) {
   if (value <= 0.0 || value >= 100.0)
-    throw(engine_error() << "high_host_flap_threshold must "
-                         << "be between 0.0 and 100.0, both excluded");
+    throw engine_error() << "high_host_flap_threshold must "
+                         << "be between 0.0 and 100.0, both excluded";
   _high_host_flap_threshold = value;
 }
 
@@ -1925,8 +1925,8 @@ float state::high_service_flap_threshold() const noexcept {
  */
 void state::high_service_flap_threshold(float value) {
   if (value <= 0.0 || value >= 100.0)
-    throw(engine_error() << "high_service_flap_threshold "
-                         << "must be between 0.0 and 100.0, both excluded");
+    throw engine_error() << "high_service_flap_threshold "
+                         << "must be between 0.0 and 100.0, both excluded";
   _high_service_flap_threshold = value;
 }
 
@@ -2098,7 +2098,7 @@ unsigned int state::host_check_timeout() const noexcept {
  */
 void state::host_check_timeout(unsigned int value) {
   if (!value)
-    throw(engine_error() << "host_check_timeout cannot be 0");
+    throw engine_error() << "host_check_timeout cannot be 0";
   _host_check_timeout = value;
 }
 
@@ -2299,7 +2299,7 @@ unsigned int state::interval_length() const noexcept {
  */
 void state::interval_length(unsigned int value) {
   if (!value)
-    throw(engine_error() << "interval_length cannot be 0");
+    throw engine_error() << "interval_length cannot be 0";
 
   if (!_command_check_interval_is_seconds && _command_check_interval != -1) {
     _command_check_interval /= _interval_length;
@@ -2469,8 +2469,8 @@ float state::low_host_flap_threshold() const noexcept {
  */
 void state::low_host_flap_threshold(float value) {
   if (value <= 0.0 || value >= 100.0)
-    throw(engine_error() << "low_host_flap_threshold "
-                         << "must be between 0.0 and 100.0, both excluded");
+    throw engine_error() << "low_host_flap_threshold "
+                         << "must be between 0.0 and 100.0, both excluded";
   _low_host_flap_threshold = value;
 }
 
@@ -2490,8 +2490,8 @@ float state::low_service_flap_threshold() const noexcept {
  */
 void state::low_service_flap_threshold(float value) {
   if (value <= 0.0 || value >= 100.0)
-    throw(engine_error() << "low_service_flap_threshold "
-                         << "must be between 0.0 and 100.0, both excluded");
+    throw engine_error() << "low_service_flap_threshold "
+                         << "must be between 0.0 and 100.0, both excluded";
   _low_service_flap_threshold = value;
 }
 
@@ -2511,7 +2511,7 @@ unsigned int state::max_check_reaper_time() const noexcept {
  */
 void state::max_check_reaper_time(unsigned int value) {
   if (!value)
-    throw(engine_error() << "max_check_reaper_time cannot be 0");
+    throw engine_error() << "max_check_reaper_time cannot be 0";
   _max_check_reaper_time = value;
 }
 
@@ -2549,7 +2549,7 @@ unsigned int state::max_host_check_spread() const noexcept {
  */
 void state::max_host_check_spread(unsigned int value) {
   if (!value)
-    throw(engine_error() << "max_host_check_spread cannot be 0");
+    throw engine_error() << "max_host_check_spread cannot be 0";
   _max_host_check_spread = value;
 }
 
@@ -2605,7 +2605,7 @@ unsigned int state::max_service_check_spread() const noexcept {
  */
 void state::max_service_check_spread(unsigned int value) {
   if (!value)
-    throw(engine_error() << "max_service_check_spread cannot be 0");
+    throw engine_error() << "max_service_check_spread cannot be 0";
   _max_service_check_spread = value;
 }
 
@@ -2625,7 +2625,7 @@ unsigned int state::notification_timeout() const noexcept {
  */
 void state::notification_timeout(unsigned int value) {
   if (!value)
-    throw(engine_error() << "notification_timeout cannot be 0");
+    throw engine_error() << "notification_timeout cannot be 0";
   _notification_timeout = value;
 }
 
@@ -2699,7 +2699,7 @@ unsigned int state::ochp_timeout() const noexcept {
  */
 void state::ochp_timeout(unsigned int value) {
   if (!value)
-    throw(engine_error() << "ochp_timeout cannot be 0");
+    throw engine_error() << "ochp_timeout cannot be 0";
   _ochp_timeout = value;
 }
 
@@ -2737,7 +2737,7 @@ unsigned int state::ocsp_timeout() const noexcept {
  */
 void state::ocsp_timeout(unsigned int value) {
   if (!value)
-    throw(engine_error() << "ocsp_timeout cannot be 0");
+    throw engine_error() << "ocsp_timeout cannot be 0";
   _ocsp_timeout = value;
 }
 
@@ -2973,7 +2973,7 @@ unsigned int state::retention_scheduling_horizon() const noexcept {
  */
 void state::retention_scheduling_horizon(unsigned int value) {
   if (!value)
-    throw(engine_error() << "retention_scheduling_horizon cannot be 0");
+    throw engine_error() << "retention_scheduling_horizon cannot be 0";
   _retention_scheduling_horizon = value;
 }
 
@@ -2993,7 +2993,7 @@ unsigned int state::retention_update_interval() const noexcept {
  */
 void state::retention_update_interval(unsigned int value) {
   if (!value)
-    throw(engine_error() << "retention_update_interval cannot be 0");
+    throw engine_error() << "retention_update_interval cannot be 0";
   _retention_update_interval = value;
 }
 
@@ -3198,7 +3198,7 @@ unsigned int state::service_check_timeout() const noexcept {
  */
 void state::service_check_timeout(unsigned int value) {
   if (!value)
-    throw(engine_error() << "service_check_timeout cannot be 0");
+    throw engine_error() << "service_check_timeout cannot be 0";
   _service_check_timeout = value;
 }
 
@@ -3218,7 +3218,7 @@ unsigned int state::service_freshness_check_interval() const noexcept {
  */
 void state::service_freshness_check_interval(unsigned int value) {
   if (!value)
-    throw(engine_error() << "service_freshness_check_interval cannot be 0");
+    throw engine_error() << "service_freshness_check_interval cannot be 0";
   _service_freshness_check_interval = value;
 }
 
@@ -3385,8 +3385,8 @@ float state::sleep_time() const noexcept {
  */
 void state::sleep_time(float value) {
   if (value <= 0.0)
-    throw(engine_error() << "sleep_time cannot be less or equal to 0 (" << value
-                         << " provided)");
+    throw engine_error() << "sleep_time cannot be less or equal to 0 (" << value
+                         << " provided)";
   _sleep_time = value;
 }
 
@@ -3466,8 +3466,8 @@ unsigned int state::status_update_interval() const noexcept {
  */
 void state::status_update_interval(unsigned int value) {
   if (value < 2)
-    throw(engine_error() << "status_update_interval cannot be less than 2 ("
-                         << value << " provided)");
+    throw engine_error() << "status_update_interval cannot be less than 2 ("
+                         << value << " provided)";
   _status_update_interval = value;
 }
 
@@ -3565,8 +3565,8 @@ unsigned int state::time_change_threshold() const noexcept {
  */
 void state::time_change_threshold(unsigned int value) {
   if (value < 6)
-    throw(engine_error() << "time_change_threshold cannot be less than 6 ("
-                         << value << " provided)");
+    throw engine_error() << "time_change_threshold cannot be less than 6 ("
+                         << value << " provided)";
   _time_change_threshold = value;
 }
 
@@ -3615,7 +3615,7 @@ void state::user(std::unordered_map<std::string, std::string> const& value) {
  */
 void state::user(std::string const& key, std::string const& value) {
   if (key.size() < 3 || key[0] != '$' || key[key.size() - 1] != '$')
-    throw(engine_error() << "Invalid user key '" << key << "'");
+    throw engine_error() << "Invalid user key '" << key << "'";
   std::string new_key = key;
   new_key.erase(new_key.begin(), new_key.begin() + 1);
   new_key.erase(new_key.end() - 1, new_key.end());
@@ -3827,7 +3827,7 @@ std::string const& state::log_v2_logger() const noexcept {
  */
 void state::log_v2_logger(std::string const& value) {
   if (value.empty())
-    throw(engine_error() << "log_v2_logger cannot be empty");
+    throw engine_error() << "log_v2_logger cannot be empty";
   _log_v2_logger = value;
 }
 
@@ -3849,7 +3849,7 @@ void state::log_level_functions(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_functions = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_functions");
+    throw engine_error() << "error wrong level setted for log_level_functions";
 }
 
 /**
@@ -3870,7 +3870,7 @@ void state::log_level_config(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_config = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_config");
+    throw engine_error() << "error wrong level setted for log_level_config";
 }
 
 /**
@@ -3891,7 +3891,7 @@ void state::log_level_events(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_events = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_events");
+    throw engine_error() << "error wrong level setted for log_level_events";
 }
 
 /**
@@ -3912,7 +3912,7 @@ void state::log_level_checks(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_checks = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_checks");
+    throw engine_error() << "error wrong level setted for log_level_checks";
 }
 
 /**
@@ -3933,8 +3933,8 @@ void state::log_level_notifications(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_notifications = value;
   else
-    throw(engine_error()
-          << "error wrong level setted for log_level_notifications");
+    throw engine_error()
+        << "error wrong level setted for log_level_notifications";
 }
 
 /**
@@ -3955,8 +3955,8 @@ void state::log_level_eventbroker(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_eventbroker = value;
   else
-    throw(
-        engine_error() << "error wrong level setted for log_level_eventbroker");
+    throw engine_error()
+        << "error wrong level setted for log_level_eventbroker";
 }
 
 /**
@@ -3977,8 +3977,8 @@ void state::log_level_external_command(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_external_command = value;
   else
-    throw(engine_error()
-          << "error wrong level setted for log_level_external_command");
+    throw engine_error()
+        << "error wrong level setted for log_level_external_command";
 }
 
 /**
@@ -3999,7 +3999,7 @@ void state::log_level_commands(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_commands = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_commands");
+    throw engine_error() << "error wrong level setted for log_level_commands";
 }
 
 /**
@@ -4020,7 +4020,7 @@ void state::log_level_downtimes(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_downtimes = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_downtimes");
+    throw engine_error() << "error wrong level setted for log_level_downtimes";
 }
 
 /**
@@ -4041,7 +4041,7 @@ void state::log_level_comments(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_comments = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_comments");
+    throw engine_error() << "error wrong level setted for log_level_comments";
 }
 
 /**
@@ -4062,7 +4062,7 @@ void state::log_level_macros(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_macros = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_macros");
+    throw engine_error() << "error wrong level setted for log_level_macros";
 }
 
 /**
@@ -4083,7 +4083,7 @@ void state::log_level_process(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_process = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_process");
+    throw engine_error() << "error wrong level setted for log_level_process";
 }
 
 /**
@@ -4104,7 +4104,7 @@ void state::log_level_runtime(std::string const& value) {
   if (log_v2::contains_level(value))
     _log_level_runtime = value;
   else
-    throw(engine_error() << "error wrong level setted for log_level_runtime");
+    throw engine_error() << "error wrong level setted for log_level_runtime";
 }
 
 /**
@@ -4390,10 +4390,10 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
     _host_inter_check_delay_method = icd_user;
     if (!string::to(value.c_str(), scheduling_info.host_inter_check_delay) ||
         scheduling_info.host_inter_check_delay <= 0.0)
-      throw(engine_error()
-            << "Invalid value for host_inter_check_delay_method, must "
-            << "be one of 'n' (none), 'd' (dumb), 's' (smart) or a "
-            << "stricly positive value (" << value << " provided)");
+      throw engine_error()
+          << "Invalid value for host_inter_check_delay_method, must "
+          << "be one of 'n' (none), 'd' (dumb), 's' (smart) or a "
+          << "stricly positive value (" << value << " provided)";
   }
 }
 
@@ -4590,10 +4590,10 @@ void state::_set_service_inter_check_delay_method(std::string const& value) {
     _service_inter_check_delay_method = icd_user;
     if (!string::to(value.c_str(), scheduling_info.service_inter_check_delay) ||
         scheduling_info.service_inter_check_delay <= 0.0)
-      throw(engine_error()
-            << "Invalid value for service_inter_check_delay_method, "
-            << "must be one of 'n' (none), 'd' (dumb), 's' (smart) or "
-            << "a strictly positive value (" << value << " provided)");
+      throw engine_error()
+          << "Invalid value for service_inter_check_delay_method, "
+          << "must be one of 'n' (none), 'd' (dumb), 's' (smart) or "
+          << "a strictly positive value (" << value << " provided)";
   }
 }
 

@@ -258,7 +258,7 @@ int downtime_manager::check_for_expired_downtime() {
           << " downtime (id=" << dt.get_downtime_id() << ")...";
       log_v2::downtimes()->trace(
           "Expiring {} downtime (id={})...",
-          (dt.get_type() == downtime::host_downtime ? "host" : "service"),
+          dt.get_type() == downtime::host_downtime ? "host" : "service",
           dt.get_downtime_id());
 
       /* delete the downtime entry */

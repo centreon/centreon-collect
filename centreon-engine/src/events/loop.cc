@@ -692,7 +692,7 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
       "Warning: A system time change of {}d {}h {}m {}s ({} in time) has been "
       "detected.  Compensating...",
       days, hours, minutes, seconds,
-      (time_difference < 0 ? "backwards" : "forwards"));
+      time_difference < 0 ? "backwards" : "forwards");
 
   // adjust the next run time for all high priority timed events.
   for (auto it = _event_list_high.begin(), end = _event_list_high.end();
