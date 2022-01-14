@@ -106,7 +106,7 @@ stage('Build / Unit tests // Packaging / Signing') {
         archiveArtifacts artifacts: "Debian10/*"
     }
   },
-    'debian bulseye Build and UT': {
+    'debian bullseye Build and UT': {
     node("C++") {
       dir('centreon-collect-debian11') {
         checkout scm
@@ -114,7 +114,7 @@ stage('Build / Unit tests // Packaging / Signing') {
       }
     }
   },
-  'debian bulseye packaging and signing': {
+  'debian bullseye packaging and signing': {
     node("C++") {
       dir('centreon-collect') {
         checkout scm
