@@ -261,8 +261,7 @@ engine::engine()
       _strand(pool::instance().io_context()),
       _muxers{},
       _unprocessed_events{0u},
-      _sending_to_subscribers{false} {
-}
+      _sending_to_subscribers{false} {}
 
 /**
  *  Generate path to the multiplexing engine cache file.

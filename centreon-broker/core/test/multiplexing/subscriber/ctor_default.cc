@@ -68,10 +68,10 @@ TEST_F(SubscriberTest, DefaultConstructor) {
   bool ret;
   int count = 0;
   do {
-  // Fetch event.
-  ret = s.get_muxer().read(event, 0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  count++;
+    // Fetch event.
+    ret = s.get_muxer().read(event, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    count++;
   } while (!ret && count < 100);
 
   ASSERT_TRUE(event);
