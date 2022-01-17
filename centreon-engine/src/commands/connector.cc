@@ -80,11 +80,12 @@ connector::connector(const std::string& connector_name,
     UNIQUE_LOCK(lck, _lock);
     _process.setpgid_on_exec(config->use_setpgid());
   }
-  if (config->enable_environment_macros())
+  if (config->enable_environment_macros()) {
     engine_logger(log_runtime_warning, basic)
         << "Warning: Connector does not enable environment macros";
-  log_v2::runtime()->warn(
-      "Warning: Connector does not enable environment macros");
+    log_v2::runtime()->warn(
+        "Warning: Connector does not enable environment macros");
+  }
 }
 
 /**

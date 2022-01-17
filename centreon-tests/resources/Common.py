@@ -140,3 +140,32 @@ def clear_retention():
 def clear_cache():
     getoutput("find /var -name '*.cache.*' -delete")
 
+def engine_log_table_duplicate(result: list):
+    dup = True
+    for i in result:
+        if (i[0] % 2) != 0:
+            dup = False
+    return dup
+
+def engine_log_file_duplicate(log: str, date):
+    my_date = parser.parse(date)
+    try:
+        f = open(log, "r")
+        lines = f.readlines()
+        count_true = 0
+        count_false = 0
+        q = re.compile(r"\[([^\]]*)\] \[([^\]]*)\] \[([^\]]*)\] \[([^\]]*)\]")
+        for i in range(0, len(lines)):
+            m = q.search(lines[i])
+            if not m:
+                count_false += 1
+            else:
+                count_true += 1
+        if count_false != count_true:
+            return False
+        else:
+            return True
+    except IOError:
+        logger.console("The file '{}' does not exist".format(log))
+        return False, content[0]
+

@@ -285,7 +285,6 @@ LOGV2BE2
 	${start}=	Get Current Date	 UTC	exclude_millis=yes
 	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
     ${time_stamp2}    evaluate    int(${time_stamp})
-	log to console	${time_stamp2}
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
@@ -297,12 +296,39 @@ LOGV2BE2
 	Log To Console	after connection
 	@{output}=	Query	select count(*) as c, output from logs where ctime>=${time_stamp2} group by output having c<>2
 
-	${res}=	engine log duplicate	${output}
+	${res}=	engine log table duplicate	${output}
 	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
 
 	Stop Engine
 	Stop Broker
 
+LOGV2FE2
+	[Documentation]	log-v2 enabled hold log enabled check logfile sink
+	[Tags]	Broker	Engine	log-v2
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+	Engine Config Set Value	${0}	log_legacy_enabled	${1}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Clear Engine Logs
+	
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+	${pid}=	Get Process Id	e0
+	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
+	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
+
+	Sleep	2m
+	
+	${log}=	Catenate	SEPARATOR=	${ENGINE_LOG}	/config0/centengine.log
+	${res}=	engine log file duplicate	${log}	${start}
+	Should Be True	${res}	msg=one or other log are not duplicate in logsfile
+	Stop Engine
+	Stop Broker
 
 *** Variables ***
 ${DBName}	centreon_storage
